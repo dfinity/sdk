@@ -1,7 +1,7 @@
 [
   (import ./sources.nix)
   (import ./mkShell)
-  (import ./mozilla-rust.nix)
+  (import ./rustNightly.nix)
   (import ./naersk.nix)
   (import ./licenses.nix)
   (import ./lib)

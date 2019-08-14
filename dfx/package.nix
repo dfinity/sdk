@@ -1,9 +1,5 @@
-{ naersk, rustfmt, stdenv, lib, darwin, clang, cmake, python3, rustChannelOf, libressl, pkg-config, moreutils, cargo-graph, graphviz }:
+{ naersk, rustfmt, stdenv, lib, darwin, clang, cmake, python3, rustNightly, libressl, pkg-config, moreutils, cargo-graph, graphviz }:
 let
-  rustChannel = rustChannelOf {
-    channel = "beta";
-  };
-
   name = "dfinity-sdk-dfx";
 
   # Neither Nix nor Hydra provide timestamps during build, which makes it
@@ -33,8 +29,8 @@ in
 naersk.buildPackage src
 {
   inherit name;
-  cargo = rustChannel.rust;
-  rustc = rustChannel.rust;
+  cargo = rustNightly;
+  rustc = rustNightly;
 
   # We add two extra checks to cargo test:
   #   * linting through clippy

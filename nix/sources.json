@@ -34,16 +34,16 @@
         "url": "https://github.com/NixOS/nixpkgs/archive/e0c7712eac67c6b820d9d1020f46bac96fd8cede.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "nixpkgs-mozilla": {
+    "rust-nightly-nix": {
         "branch": "master",
-        "description": "mozilla related nixpkgs (extends nixos/nixpkgs repo)",
-        "homepage": null,
-        "owner": "mozilla",
-        "repo": "nixpkgs-mozilla",
-        "rev": "200cf0640fd8fdff0e1a342db98c9e31e6f13cd7",
-        "sha256": "1am353ims43ylvay263alchzy3y87r1khnwr0x2fp35qr347bvxi",
+        "description": "A Nix expression for nightly Rust versions",
+        "homepage": "",
+        "owner": "basvandijk",
+        "repo": "rust-nightly-nix",
+        "rev": "5f607feac485a05ffa522db46d74f0ccf574f610",
+        "sha256": "0rl73r7yzc1jmcmqg2bmyfm7bnwbffmxb0531hnh2p0n4r5p8jjz",
         "type": "tarball",
-        "url": "https://github.com/mozilla/nixpkgs-mozilla/archive/200cf0640fd8fdff0e1a342db98c9e31e6f13cd7.tar.gz",
+        "url": "https://github.com/basvandijk/rust-nightly-nix/archive/5f607feac485a05ffa522db46d74f0ccf574f610.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
