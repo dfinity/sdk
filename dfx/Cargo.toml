@@ -1,0 +1,8 @@
+[package]
+name = "dfx"
+version = "0.1.0"
+authors = ["DFINITY Team"]
+
+[[bin]]
+name = "dfx"
+path = "src/main.rs"
