@@ -1,0 +1,5 @@
+new:
+    about: Create a new
+    args:
+      - arg:
+          help: print arg information

@@ -1,0 +1,14 @@
+
+===============================================================================
+Welcome to the DFINITY Network!
+You're using dfx v0.1.0
+
+{}
+
+A couple of things to try:
+    cd {}
+    dfx build
+    dfx deploy
+    dfx send Hello
+
+===============================================================================
