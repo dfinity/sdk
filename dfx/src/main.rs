@@ -21,7 +21,7 @@ fn exec(args: &clap::ArgMatches<'_>) -> commands::CliResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
-            cli().print_help();
+            cli().print_help()?;
             return Ok(());
         }
     };

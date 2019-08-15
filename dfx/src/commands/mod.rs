@@ -36,6 +36,14 @@ impl From<std::io::Error> for CliError {
         }
     }
 }
+impl From<clap::Error> for CliError {
+    fn from(err: clap::Error) -> CliError {
+        CliError {
+            error: Some(failure::format_err!("An error occured. Desc: {}", err)),
+            exit_code: 2,
+        }
+    }
+}
 
 pub type CliExecFn = fn(&ArgMatches<'_>) -> CliResult;
 pub type CliResult = Result<(), CliError>;
@@ -45,7 +53,7 @@ pub struct CliCommand {
 }
 
 impl CliCommand {
-    pub fn new<'a, 'b>(subcommand: clap::App<'static, 'static>, executor: CliExecFn) -> CliCommand {
+    pub fn new(subcommand: clap::App<'static, 'static>, executor: CliExecFn) -> CliCommand {
         CliCommand{ subcommand, executor }
     }
     pub fn get_subcommand(&self) -> &clap::App<'static, 'static> {

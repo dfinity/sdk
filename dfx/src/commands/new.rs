@@ -1,11 +1,12 @@
 use crate::commands::{CliResult, CliError};
 
-use colored::*;
+use termcolor::*;
 
+use crate::config::{Config, CONFIG_FILE_NAME};
+use crate::util::logo::generate_logo;
 use clap::{ArgMatches, SubCommand, Arg};
 use std::path::Path;
-use crate::config::{Config, CONFIG_FILE_NAME};
-use crate::util::logo::LOGO;
+
 
 
 pub fn construct() -> clap::App<'static, 'static> {
@@ -24,22 +25,22 @@ pub fn construct() -> clap::App<'static, 'static> {
         )
 }
 
+fn write_status(status: &str, color: Color, rest: &str) {
+    // TODO: color.
+    println!("{:<12} {}", status, rest);
+}
+
 pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> CliResult {
     let path = path.as_ref();
     if !dry_run {
-        match path.parent() {
-            Some(p) => std::fs::create_dir_all(p)?,
-            _ => {},
+        if let Some(p) = path.parent() {
+            std::fs::create_dir_all(p)?;
         }
         std::fs::write(&path, content)?;
     }
 
-    println!(
-        "{:<12} {} ({} bytes)...",
-        "CREATE".green().bold(),
-        path.to_str().unwrap(),
-        content.len(),
-    );
+    write_status("CREATE", Color::Green,
+                 format!("{} ({} bytes)...", path.to_str().unwrap(), content.len()).as_str());
     Ok(())
 }
 
@@ -53,7 +54,7 @@ pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> CliResult {
         std::fs::create_dir_all(&path)?;
     }
 
-    println!("{:<12} {}...", "CREATE_DIR".blue().bold(), path.to_str().unwrap());
+    write_status("CREATE_DIR", Color::Blue, path.to_str().unwrap());
     Ok(())
 }
 
@@ -61,16 +62,17 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
     let dry_run = args.is_present("dry_run");
     let project_name = Path::new(args.value_of("project_name").unwrap());
 
-    match Config::resolve_config_path(&std::env::current_dir()?) {
-        Ok(config_path) => return Err(CliError::new(
+    // Make sure we don't embed a project in another project.
+    if let Ok(config_path) = Config::resolve_config_path(&std::env::current_dir()?) {
+        return Err(CliError::new(
             failure::format_err!(
                 "Config file found at {}. Are you already in a DFINITY project?",
                 config_path.to_str().unwrap(),
             ),
             1,
-        )),
-        _ => {},
-    };
+        ));
+    }
+
     if project_name.exists() {
         return Err(CliError::new(
             failure::format_err!("Project directory already exists."),
@@ -89,7 +91,7 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
     create_dir(project_name.join("bin"), dry_run)?;
 
     // Print welcome message.
-    println!(include_str!("../../messages/welcome.txt"), LOGO, project_name.to_str().unwrap());
+    println!(include_str!("../../messages/welcome.txt"), generate_logo(), project_name.to_str().unwrap());
 
     Ok(())
 }

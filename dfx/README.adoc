@@ -1,5 +1,13 @@
 = dfx
 
+> In the past, I have made no secret of my disdain for Chef Gusteau's
+  famous motto: "Anyone can cook." But I realize, only now do I truly
+  understand what he meant. Not everyone can become a great artist,
+  but a great artist can come from anywhere.
+- Anton Ego, Ratatouille
+
+The goal of an SDK is to make sure anyone can code.
+
 == Developing
 
 Run `nix-shell` in this directory to bring the right version of `rustc` and

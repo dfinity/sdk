@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::path::{Path, PathBuf};
 use serde_json::Value;
 
@@ -16,10 +17,11 @@ impl Config {
             if curr.is_file() {
                 Ok(curr)
             } else {
-                curr.pop();
-                match curr.pop() {
-                    false => Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Config not found.")),
-                    true => recurse(curr),
+                curr.pop();  // Remove the filename.
+                if curr.pop() {
+                    recurse(curr)
+                } else {
+                    Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Config not found."))
                 }
             }
         }
