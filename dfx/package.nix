@@ -19,7 +19,7 @@ let
         else line;
     in lib.concatMapStringsSep "\n" timestamp lines;
 
-  src = lib.sourceFilesByRegex (lib.cleanSource ./.) [
+  src = lib.sourceFilesByRegex (lib.gitOnlySource ./.) [
     ".*\.rs$"
     ".*Cargo\.toml$"
     ".*Cargo\.lock$"

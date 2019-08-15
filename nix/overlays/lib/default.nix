@@ -1,7 +1,7 @@
 # This nixpkgs overlay extends `lib` with our own Nix functions.
 self: super: {
   lib = super.lib // {
-    cleanSource = src: super.lib.cleanSourceWith {
+    gitOnlySource = src: super.lib.cleanSourceWith {
       src = import ./gitSource.nix self src;
       filter = path: type:
         !(super.lib.hasSuffix ".nix" (toString path)
