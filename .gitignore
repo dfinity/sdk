@@ -1,6 +1,6 @@
 result*
-
-# Building
+*/.idea/
+.idea/
 target/
 
 # IDEs
