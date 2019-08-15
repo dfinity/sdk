@@ -1,0 +1,14 @@
+= CI (Continuous Integration)
+
+DFINITY uses https://nixos.org/hydra/[Hydra] for CI. Hydra's web-interface can
+be reached via the VPN at:
+
+https://hydra.oregon.dfinity.build/
+
+Hydra is organized into projects which can consist of multiple sets of jobs. We
+currently have a single project `dfinity-ci-build` consisting of many jobsets.
+
+The https://github.com/dfinity-lab/hydra-jobsets[hydra-jobsets] repository
+declaratively defines the jobsets that Hydra builds. As can be seen in that repo
+`<src/ci/ci.nix>` is used to define to jobset of the `master` branch while
+`<src/ci/ci-pr.nix>` is used to define the jobset for each Pull-Request.
