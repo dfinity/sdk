@@ -1,12 +1,13 @@
 #![allow(dead_code)]
+use crate::commands::CliError;
+use serde_json::{Value, Map};
 use std::path::{Path, PathBuf};
-use serde_json::Value;
 
 pub const CONFIG_FILE_NAME: &str = "dfinity.json";
 
 pub struct Config {
     path: PathBuf,
-    value: Value,
+    value: Map<String, Value>,
 }
 
 impl Config {
@@ -29,17 +30,22 @@ impl Config {
         recurse(PathBuf::from(working_dir))
     }
 
-    pub fn get_path(&self) -> &PathBuf {
-        &self.path
-    }
-    pub fn get_value(&self) -> &Value {
-        &self.value
-    }
-
     pub fn load_from(working_dir: &PathBuf) -> std::io::Result<Config> {
         let path = Config::resolve_config_path(working_dir)?;
         let content = std::fs::read(&path)?;
         let value = serde_json::from_slice(&content)?;
         Ok(Config{path, value})
+    }
+
+    pub fn get_path(&self) -> &PathBuf {
+        &self.path
+    }
+    pub fn get_value(&self) -> &Map<String, Value> {
+        &self.value
+    }
+    pub fn get_mut_value(&mut self) -> &mut Map<String, Value> { &mut self.value }
+
+    pub fn save(&self) -> () {
+        std::fs::write(&self.path, serde_json::to_string_pretty(&self.value).unwrap());
     }
 }

@@ -2,6 +2,7 @@ extern crate failure;
 
 use clap::ArgMatches;
 
+mod config;
 mod new;
 
 
@@ -44,6 +45,14 @@ impl From<clap::Error> for CliError {
         }
     }
 }
+impl From<serde_json::Error> for CliError {
+    fn from(err: serde_json::Error) -> CliError {
+        CliError {
+            error: Some(failure::format_err!("An JSON error occured. Desc: {}", err)),
+            exit_code: 2,
+        }
+    }
+}
 
 pub type CliExecFn = fn(&ArgMatches<'_>) -> CliResult;
 pub type CliResult = Result<(), CliError>;
@@ -69,6 +78,7 @@ impl CliCommand {
 
 pub fn builtin() -> Vec<CliCommand> {
     vec![
+        CliCommand::new(config::construct(), config::exec),
         CliCommand::new(new::construct(), new::exec),
     ]
 }

@@ -1,15 +1,13 @@
 use crate::commands::{CliResult, CliError};
-
-use termcolor::*;
-
 use crate::config::{Config, CONFIG_FILE_NAME};
 use crate::util::logo::generate_logo;
-use clap::{ArgMatches, SubCommand, Arg};
+use clap::{ArgMatches, SubCommand, Arg, App};
+use std::io::Write;
 use std::path::Path;
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 
-
-pub fn construct() -> clap::App<'static, 'static> {
+pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("new")
         .about("Create a new DFINITY project.")
         .arg(
@@ -25,9 +23,17 @@ pub fn construct() -> clap::App<'static, 'static> {
         )
 }
 
-fn write_status(status: &str, _color: Color, rest: &str) {
+fn write_status(status: &str, color: Color, rest: &str) -> CliResult {
+    let mut stream = StandardStream::stderr(ColorChoice::Auto);
+    stream.set_color(ColorSpec::new().set_fg(Some(color)).set_bold(true))?;
+    write!(&mut stream, "{:<12} ", status)?;
+    stream.reset()?;
+    writeln!(&mut stream, "{}", rest)?;
+
+    Ok(())
+
     // TODO: color.
-    println!("{:<12} {}", status, rest);
+//    println!("{:<12} {}", status, rest);
 }
 
 pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> CliResult {
@@ -40,7 +46,7 @@ pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> Cli
     }
 
     write_status("CREATE", Color::Green,
-                 format!("{} ({} bytes)...", path.to_str().unwrap(), content.len()).as_str());
+                 format!("{} ({} bytes)...", path.to_str().unwrap(), content.len()).as_str())?;
     Ok(())
 }
 
@@ -54,7 +60,7 @@ pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> CliResult {
         std::fs::create_dir_all(&path)?;
     }
 
-    write_status("CREATE_DIR", Color::Blue, path.to_str().unwrap());
+    write_status("CREATE_DIR", Color::Blue, path.to_str().unwrap())?;
     Ok(())
 }
 
