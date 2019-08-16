@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::commands::CliError;
+use crate::commands::CliResult;
 use serde_json::{Value, Map};
 use std::path::{Path, PathBuf};
 
@@ -7,7 +7,7 @@ pub const CONFIG_FILE_NAME: &str = "dfinity.json";
 
 pub struct Config {
     path: PathBuf,
-    value: Map<String, Value>,
+    config: Map<String, Value>,
 }
 
 impl Config {
@@ -33,19 +33,22 @@ impl Config {
     pub fn load_from(working_dir: &PathBuf) -> std::io::Result<Config> {
         let path = Config::resolve_config_path(working_dir)?;
         let content = std::fs::read(&path)?;
-        let value = serde_json::from_slice(&content)?;
-        Ok(Config{path, value})
+        let config = serde_json::from_slice(&content)?;
+        Ok(Config{path, config})
+    }
+
+    pub fn from_current_dir() -> std::io::Result<Config> {
+        Config::load_from(&std::env::current_dir()?)
     }
 
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
-    pub fn get_value(&self) -> &Map<String, Value> {
-        &self.value
-    }
-    pub fn get_mut_value(&mut self) -> &mut Map<String, Value> { &mut self.value }
+    pub fn get_value(&self) -> &Map<String, Value> { &self.config }
+    pub fn get_mut_value(&mut self) -> &mut Map<String, Value> { &mut self.config }
 
-    pub fn save(&self) -> () {
-        std::fs::write(&self.path, serde_json::to_string_pretty(&self.value).unwrap());
+    pub fn save(&self) -> CliResult {
+        std::fs::write(&self.path, serde_json::to_string_pretty(&self.config).unwrap())?;
+        Ok(())
     }
 }

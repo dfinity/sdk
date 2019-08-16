@@ -18,16 +18,17 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 pub fn exec(args: &ArgMatches<'_>) -> CliResult {
-    let mut config = Config::load_from(&std::env::current_dir()?)?;
+    let mut config = Config::from_current_dir()?;
 
     let option_name = args.value_of("option_name").unwrap();
-    if args.is_present("value") {
-        config.get_mut_value()[option_name] = serde_json::from_str(args.value_of("value").unwrap())?;
+    if let Some(value) = args.value_of("value") {
+        let new_value = serde_json::from_str(value)?;
+        config.get_mut_value().insert(option_name.to_owned(), new_value);
         config.save()
     } else {
         if let Some(value) = config.get_value().get(option_name) {
             println!("{}", value);
         }
+        Ok(())
     }
-    Ok(())
 }

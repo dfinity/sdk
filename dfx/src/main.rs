@@ -1,6 +1,3 @@
-extern crate clap;
-extern crate serde_json;
-
 use clap::App;
 use crate::commands::CliError;
 

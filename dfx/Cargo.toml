@@ -6,9 +6,11 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.0"
+console = "0.7.7"
 failure = "0.1.5"
+indicatif = "0.11.0"
+rand = "0.7.0"
 serde_json = "1.0.40"
-termcolor = "1.0.5"
 
 [[bin]]
 name = "dfx"

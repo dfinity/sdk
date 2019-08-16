@@ -4,6 +4,7 @@ use clap::ArgMatches;
 
 mod config;
 mod new;
+mod start;
 
 
 /**
@@ -49,7 +50,7 @@ impl From<serde_json::Error> for CliError {
     fn from(err: serde_json::Error) -> CliError {
         CliError {
             error: Some(failure::format_err!("An JSON error occured. Desc: {}", err)),
-            exit_code: 2,
+            exit_code: 3,
         }
     }
 }
@@ -80,5 +81,6 @@ pub fn builtin() -> Vec<CliCommand> {
     vec![
         CliCommand::new(config::construct(), config::exec),
         CliCommand::new(new::construct(), new::exec),
+        CliCommand::new(start::construct(), start::exec),
     ]
 }

@@ -2,9 +2,9 @@ use crate::commands::{CliResult, CliError};
 use crate::config::{Config, CONFIG_FILE_NAME};
 use crate::util::logo::generate_logo;
 use clap::{ArgMatches, SubCommand, Arg, App};
-use std::io::Write;
+use console::{style, Color, Term};
+use indicatif::HumanBytes;
 use std::path::Path;
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 
 pub fn construct() -> App<'static, 'static> {
@@ -24,16 +24,11 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 fn write_status(status: &str, color: Color, rest: &str) -> CliResult {
-    let mut stream = StandardStream::stderr(ColorChoice::Auto);
-    stream.set_color(ColorSpec::new().set_fg(Some(color)).set_bold(true))?;
-    write!(&mut stream, "{:<12} ", status)?;
-    stream.reset()?;
-    writeln!(&mut stream, "{}", rest)?;
+    Term::stderr().write_line(
+        format!("{:<12} {}", style(status).fg(color).bold().to_owned(), rest).as_str(),
+    )?;
 
     Ok(())
-
-    // TODO: color.
-//    println!("{:<12} {}", status, rest);
 }
 
 pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> CliResult {
@@ -45,8 +40,9 @@ pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> Cli
         std::fs::write(&path, content)?;
     }
 
+    let size = content.len() as u64;
     write_status("CREATE", Color::Green,
-                 format!("{} ({} bytes)...", path.to_str().unwrap(), content.len()).as_str())?;
+                 format!("{} ({})...", path.to_str().unwrap(), HumanBytes(size)).as_str())?;
     Ok(())
 }
 
