@@ -3,14 +3,3 @@
 [[package]]
 name = "dfx"
 version = "0.1.0"
-dependencies = [
- "serde 1.0.98 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "serde"
-version = "1.0.98"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[metadata]
-"checksum serde 1.0.98 (registry+https://github.com/rust-lang/crates.io-index)" = "7fe5626ac617da2f2d9c48af5515a21d5a480dbd151e01bb1c355e26a3e68113"
