@@ -4,9 +4,19 @@
   famous motto: "Anyone can cook." But I realize, only now do I truly
   understand what he meant. Not everyone can become a great artist,
   but a great artist can come from anywhere.
-- Anton Ego, Ratatouille
+  - Anton Ego, Ratatouille
 
-The goal of an SDK is to make sure anyone can code.
+The goal of an SDK is to ensure that anyone can code. Ideally, these goals should be at the center
+of our work:
+
+- *Easy to use*. By lowering the barrier of entry, we allow users to experiment rapidly.
+- *Easy to learn*. The SDK should be simple, accessible to all level of developers, have an easy
+  documentation to follow, and a set of best practices that it respects.
+- *Intuitive*. Mental models should map into existing concepts and experiences of our users so that
+  features can be easily discovered simply by trial and error.
+- *Ready to go*. When a user uses the SDK, whether using dfx or a library, it should never leave the
+  user's project in a state worse than before.
+
 
 == Developing
 

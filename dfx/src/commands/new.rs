@@ -25,7 +25,7 @@ pub fn construct() -> clap::App<'static, 'static> {
         )
 }
 
-fn write_status(status: &str, color: Color, rest: &str) {
+fn write_status(status: &str, _color: Color, rest: &str) {
     // TODO: color.
     println!("{:<12} {}", status, rest);
 }
