@@ -1,3 +1,4 @@
+extern crate reqwest;
 extern crate serde;
 
 use serde::{Deserialize, Serialize};
@@ -22,12 +23,23 @@ enum Message {
     },
 }
 
-// TODO: https://github.com/dfinity-lab/dfinity/blob/ebeefdc6cf4a1d2c710fce91e0451dbfe0d75d1d/docs/spec/public/index.adoc#canister-query-call
-// * Use `reqwest` to make a canister query call to /api/v1/read
-// * Define a type containing response fields
-// * if response.status == replied then println!(status.replied) else exit(1)
-
 fn main() {
-    println!("dfx");
-    ::std::process::exit(1);
+    let client = reqwest::Client::new();
+    let message = CanisterQueryCall {
+        canister_id: 0,
+        method_name: "main".to_string(),
+        arg: None,
+    };
+    let query = Message::Query { message };
+    let res = client.post("/api/v1/read")
+        .header(reqwest::header::CONTENT_TYPE, "application/cbor")
+        .body(serde_cbor::to_vec(&query).unwrap())
+        .send();
+    match res {
+        // TODO
+        // * Check response body "status" field is "replied"
+        // * Print value of response body "reply" field
+        Ok(r) => println!("{}", r.status()),
+        Err(_) => ::std::process::exit(1),
+    }
 }
