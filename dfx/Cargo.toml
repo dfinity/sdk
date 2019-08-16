@@ -6,3 +6,6 @@ authors = ["DFINITY Team"]
 [[bin]]
 name = "dfx"
 path = "src/main.rs"
+
+[dependencies]
+serde = "1.0.0"
