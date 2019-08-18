@@ -1,4 +1,5 @@
 extern crate failure;
+extern crate hyper;
 
 use clap::ArgMatches;
 
@@ -51,6 +52,14 @@ impl From<serde_json::Error> for CliError {
         CliError {
             error: Some(failure::format_err!("An JSON error occured. Desc: {}", err)),
             exit_code: 3,
+        }
+    }
+}
+impl From<std::num::ParseIntError> for CliError {
+    fn from(err: std::num::ParseIntError) -> CliError {
+        CliError {
+            error: Some(failure::format_err!("{}", err)),
+            exit_code: 4,
         }
     }
 }

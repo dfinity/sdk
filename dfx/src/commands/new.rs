@@ -92,8 +92,13 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
     create_file(project_name.join("README.md"), format!("# Welcome to {}", project_name.display()).as_str(), dry_run)?;
     create_dir(project_name.join("bin"), dry_run)?;
 
+    let version = "v0.1.0";
+
     // Print welcome message.
-    println!(include_str!("../../messages/welcome.txt"), generate_logo(), project_name.to_str().unwrap());
+    println!(
+        include_str!("../../messages/welcome.txt"),
+        version, generate_logo(), project_name.to_str().unwrap(),
+    );
 
     Ok(())
 }
