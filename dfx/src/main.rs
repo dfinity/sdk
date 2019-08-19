@@ -1,4 +1,4 @@
-use clap::App;
+use clap::{App, AppSettings};
 use crate::commands::CliError;
 
 mod commands;
@@ -9,6 +9,7 @@ fn cli() -> App<'static, 'static> {
     App::new("DFINITY Executor")
         .about("The DFINITY Executor.")
         .version("v0.1.0")
+        .setting(AppSettings::ColoredHelp)
         .subcommands(
             commands::builtin().into_iter().map(|x| x.get_subcommand().clone())
         )

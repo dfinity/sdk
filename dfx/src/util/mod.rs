@@ -39,5 +39,6 @@ pub fn fake_progress(bars: Vec<(std::ops::Range<u64>, Factory, OnDone)>) -> CliR
         });
     }
 
-    multi.join()
+    multi.join().unwrap();
+    Ok(())
 }
