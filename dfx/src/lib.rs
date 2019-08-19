@@ -1,6 +1,8 @@
+extern crate futures;
 extern crate reqwest;
 extern crate serde;
 
+use futures::future::{Future, ok, err};
 use serde::{Deserialize, Serialize};
 
 type Blob = String;
@@ -47,11 +49,12 @@ pub struct Response<A> {
     pub reject_message: String,
 }
 
-fn read(client: reqwest::Client, message: Message) -> reqwest::Result<reqwest::Response> {
+fn read(client: reqwest::async::Client, message: Message) -> impl Future<Item=reqwest::async::Response, Error=DfxError> {
     return client.post("http://localhost/api/v1/read")
         .header(reqwest::header::CONTENT_TYPE, "application/cbor")
         .body(serde_cbor::to_vec(&message).unwrap())
-        .send();
+        .send()
+        .map_err(DfxError::Reqwest);
 }
 
 #[derive(Debug)]
@@ -66,11 +69,15 @@ impl From<reqwest::Error> for DfxError {
     }
 }
 
-pub type DfxResult<A> = Result<A, DfxError>;
-
-pub fn query(client: reqwest::Client, message: CanisterQueryCall) -> DfxResult<Response<String>> {
-    let mut res = read(client, Message::Query { message })?;
-    let mut buf: Vec<u8> = vec![];
-    res.copy_to(&mut buf)?;
-    return serde_cbor::de::from_slice(buf.as_slice()).map_err(DfxError::SerdeCbor);
+pub fn query(client: reqwest::async::Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
+    return read(client, Message::Query { message })
+        .and_then(|mut res| {
+            return res.text().map_err(DfxError::Reqwest);
+        })
+        .and_then(|text| {
+            match serde_cbor::de::from_slice(text[..].as_bytes()) {
+                Ok(r) => ok(r),
+                Err(e) => err(DfxError::SerdeCbor(e)),
+            }
+        });
 }
