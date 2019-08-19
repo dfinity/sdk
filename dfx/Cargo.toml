@@ -2,6 +2,7 @@
 name = "dfx"
 version = "0.1.0"
 authors = ["DFINITY Team"]
+edition = "2018"
 
 [[bin]]
 name = "dfx"
