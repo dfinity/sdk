@@ -20,35 +20,35 @@ pub fn say_hello(state: State) -> (State, &'static str) {
 fn router() -> Router {
     build_simple_router(|route| {
         route.request(vec![Method::GET, Method::HEAD], "/").to(say_hello);
-        route.get_or_head("/products").to(say_hello);
-
-        route.scope("/checkout", |route| {
-            route.get("/start").to(say_hello);
-
-            // Associations allow a single path to be matched for multiple HTTP verbs
-            // with each delegating to a unique handler or the same handler, as shown here with
-            // put and patch.
-            route.associate("/address", |assoc| {
-                assoc.post().to(say_hello);
-                assoc.put().to(say_hello);
-                assoc.patch().to(say_hello);
-                assoc.delete().to(say_hello);
-            });
-
-            route
-                .post("/payment_details")
-                .to(say_hello);
-
-            route
-                .put("/payment_details")
-                .to(say_hello);
-
-            route.post("/complete").to(say_hello);
-        });
-
-        route.scope("/api", |route| {
-            route.get("/products").to(say_hello);
-        });
+//        route.get_or_head("/products").to(say_hello);
+//
+//        route.scope("/checkout", |route| {
+//            route.get("/start").to(say_hello);
+//
+//            // Associations allow a single path to be matched for multiple HTTP verbs
+//            // with each delegating to a unique handler or the same handler, as shown here with
+//            // put and patch.
+//            route.associate("/address", |assoc| {
+//                assoc.post().to(say_hello);
+//                assoc.put().to(say_hello);
+//                assoc.patch().to(say_hello);
+//                assoc.delete().to(say_hello);
+//            });
+//
+//            route
+//                .post("/payment_details")
+//                .to(say_hello);
+//
+//            route
+//                .put("/payment_details")
+//                .to(say_hello);
+//
+//            route.post("/complete").to(say_hello);
+//        });
+//
+//        route.scope("/api", |route| {
+//            route.get("/products").to(say_hello);
+//        });
     })
 }
 

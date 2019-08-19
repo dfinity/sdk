@@ -1,5 +1,6 @@
 use crate::commands::{CliResult, CliError};
 use crate::config::{Config, CONFIG_FILE_NAME};
+use crate::util::fake_progress;
 use crate::util::logo::generate_logo;
 use clap::{ArgMatches, SubCommand, Arg, App};
 use console::{style, Color, Term};
@@ -20,6 +21,12 @@ pub fn construct() -> App<'static, 'static> {
                 .help("Do not commit anything to the file system.")
                 .long("dry-run")
                 .takes_value(false)
+        )
+        .arg(
+            Arg::with_name("dfx_version")
+                .help("Force a version of DFX to use in the new project.")
+                .long("dfx-version")
+                .takes_value(true)
         )
 }
 
@@ -81,6 +88,18 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
             1,
         ));
     }
+
+    fake_progress(vec![
+        (
+            600..1200,
+            |_| {
+                let b = indicatif::ProgressBar::new_spinner();
+                b.set_message("Looking for latest version...");
+                b
+            },
+            |b| b.finish_with_message("Latest version already installed."),
+        ),
+    ]);
 
     println!(r#"Creating new project "{}"..."#, project_name.to_str().unwrap());
     if dry_run {
