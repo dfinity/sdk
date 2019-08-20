@@ -8,7 +8,7 @@ fn main() {
         arg: None,
     })
     .map(|r| {
-        println!("{}", r.reply);
+        println!("{}", r.reply.unwrap());
     })
     .map_err(|e| {
         println!("{:#?}", e);

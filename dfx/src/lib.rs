@@ -42,9 +42,9 @@ pub enum RejectCode {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Response<A> {
     pub status: Status,
-    pub reply: A,
-    pub reject_code: RejectCode,
-    pub reject_message: String,
+    pub reply: Option<A>,
+    pub reject_code: Option<RejectCode>,
+    pub reject_message: Option<String>,
 }
 
 #[derive(Debug)]
