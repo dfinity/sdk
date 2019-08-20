@@ -98,6 +98,7 @@ fn read(client: Client, message: Message) -> impl Future<Item=reqwest::r#async::
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
         .and_then(move |url| {
+            println!("url: {:#?}", url);
             let mut request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
@@ -118,4 +119,47 @@ pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Res
                 Err(e) => err(DfxError::SerdeCbor(e)),
             }
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use futures::future::Future;
+    use mockito::mock;
+    use super::*;
+
+    #[test]
+    fn query_hello_world() {
+        let _ = env_logger::try_init();
+
+        let response = Response {
+            status: Status::Replied,
+            reply: Some("Hello World"),
+            reject_code: None,
+            reject_message: None,
+        };
+
+        let _m = mock("POST", "/api/v1/read")
+            .with_status(200)
+            .with_header("content-type", "application/cbor")
+            .with_body(serde_cbor::to_vec(&response).unwrap())
+            .create();
+
+        let client = Client::new();
+
+        let query = query(client, CanisterQueryCall {
+            canister_id: 0,
+            method_name: "main".to_string(),
+            arg: None,
+        })
+        .map(|r| {
+            println!("{}", r.reply.unwrap());
+        })
+        .map_err(|e| {
+            println!("{:#?}", e);
+        });
+
+        tokio::run(query);
+
+        _m.assert();
+    }
 }
