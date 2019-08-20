@@ -65,13 +65,32 @@ impl From<reqwest::UrlError> for DfxError {
 }
 
 pub trait Client {
+    // TODO: Use `reqwest::Error` in return value?
     fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=DfxError> + Send>;
 }
 
-fn read(client: impl Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
+pub struct AsyncClient {
+    client: reqwest::r#async::Client,
+}
+
+impl AsyncClient {
+    pub fn new() -> AsyncClient {
+        AsyncClient {
+            client: reqwest::r#async::Client::new(),
+        }
+    }
+}
+
+impl Client for AsyncClient {
+    fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=DfxError> + Send> {
+        return Box::new(self.client.execute(request).map_err(DfxError::Reqwest));
+    }
+}
+
+fn read(client: &impl Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> + '_ {
     let parsed = reqwest::Url::parse("http://localhost/api/v1/read").map_err(DfxError::Url);
     return result(parsed)
-        .and_then(|url| {
+        .and_then(move |url| {
             let mut request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
@@ -80,7 +99,7 @@ fn read(client: impl Client, message: Message) -> impl Future<Item=reqwest::r#as
         });
 }
 
-pub fn query(client: impl Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
+pub fn query(client: &impl Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> + '_ {
     return read(client, Message::Query { message })
         .and_then(|mut res| {
             return res.text().map_err(DfxError::Reqwest);
