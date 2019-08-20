@@ -1,0 +1,49 @@
+= dfx
+
+> In the past, I have made no secret of my disdain for Chef Gusteau's
+  famous motto: "Anyone can cook." But I realize, only now do I truly
+  understand what he meant. Not everyone can become a great artist,
+  but a great artist can come from anywhere.
+  - Anton Ego, Ratatouille
+
+The goal of an SDK is to ensure that anyone can code. Ideally, these goals should be at the center
+of our work:
+
+- *Easy to use*. By lowering the barrier of entry, we allow users to experiment rapidly.
+- *Easy to learn*. The SDK should be simple, accessible to all level of developers, have an easy
+  documentation to follow, and a set of best practices that it respects.
+- *Intuitive*. Mental models should map into existing concepts and experiences of our users so that
+  features can be easily discovered simply by trial and error.
+- *Ready to go*. When a user uses the SDK, whether using dfx or a library, it should never leave the
+  user's project in a state worse than before.
+
+
+== Developing
+
+Run `nix-shell` in this directory to bring the right version of `rustc` and
+`cargo` into scope. Inside the shell use `cargo` to build and test the Rust
+packages (crates).
+
+== Documentation
+
+https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfinity-sdk.dfx.doc.x86_64-linux/dfx/index.html[Latest cargo docs].
+
+== CI
+
+To run the CI job manually either run:
+
+`nix-build ci/ci.nix -A dfinity-sdk.dfx[.x86_64-linux|.x86_64-darwin]`
+
+== Dependencies
+
+=== Licenses
+
+https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfinity-sdk.licenses.dfx.x86_64-linux/licenses.dfinity-sdk-dfx.html[Latest licenses of all dependencies of dfx (build for x86_64-linux)].
+
+=== Visualization
+
+https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfinity-sdk.dfx.x86_64-linux/dfx/cargo-graph.svg[Access the latest graph of dependencies between crates of the `dfx` crate (build for x86_64-linux)].
+
+To build and visualize this graph locally run:
+
+`open $(nix-build -A dfinity-sdk.dfx.doc)/dfx/cargo-graph.svg`
