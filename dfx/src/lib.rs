@@ -1,3 +1,5 @@
+use std::sync::Arc;
+use std::cell::RefCell;
 use futures::future::{Future, ok, err, result};
 use serde::{Deserialize, Serialize};
 
@@ -54,13 +56,13 @@ pub enum DfxError {
 
 impl From<reqwest::Error> for DfxError {
     fn from(err: reqwest::Error) -> DfxError {
-        return DfxError::Reqwest(err);
+        DfxError::Reqwest(err)
     }
 }
 
 impl From<reqwest::UrlError> for DfxError {
     fn from(err: reqwest::UrlError) -> DfxError {
-        return DfxError::Url(err);
+        DfxError::Url(err)
     }
 }
 
@@ -82,23 +84,23 @@ impl AsyncClient {
 
 impl Client for AsyncClient {
     fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send> {
-        return Box::new(self.client.execute(request));
+        Box::new(self.client.execute(request))
     }
 }
 
-fn read(client: &impl Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> + '_ {
+fn read(client: Arc<dyn Client>, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
     let parsed = reqwest::Url::parse("http://localhost/api/v1/read").map_err(DfxError::Url);
-    return result(parsed)
+    result(parsed)
         .and_then(move |url| {
             let mut request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
             // .body(serde_cbor::to_vec(&message).unwrap())
-            return client.execute(request).map_err(DfxError::Reqwest);
-        });
+            (*Arc::clone(&client)).execute(request).map_err(DfxError::Reqwest)
+        })
 }
 
-pub fn query(client: &impl Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> + '_ {
+pub fn query(client: Arc<dyn Client>, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
     return read(client, Message::Query { message })
         .and_then(|mut res| {
             return res.text().map_err(DfxError::Reqwest);
