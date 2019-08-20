@@ -65,7 +65,7 @@ impl From<reqwest::UrlError> for DfxError {
 }
 
 pub trait Client {
-    fn execute(client: impl Client, request: reqwest::Request) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError>;
+    fn execute(client: impl Client, request: reqwest::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=DfxError> + Send>;
 }
 
 fn read(client: impl Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
