@@ -114,7 +114,7 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
 
     create_file(project_name.join(CONFIG_FILE_NAME), asset_str!("files/dfinity.json"), dry_run)?;
     create_file(project_name.join("cannisters").join("hello").join("main.as"),
-                asset_str!("files/cannisters/main.as"),
+                asset_str!("files/cannisters/hello/main.as"),
                 dry_run)?;
     create_file(project_name.join("src").join("ask_hello.js"), "// TODO: this file\n", dry_run)?;
     create_file(project_name.join("README.md"),

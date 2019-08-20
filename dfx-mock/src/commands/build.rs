@@ -1,22 +1,19 @@
 use crate::commands::CliResult;
 use crate::config::Config;
-use crate::util::FakeProgress;
-use clap::{ArgMatches, SubCommand, Arg, App};
-use console::style;
-use gotham::router::Router;
-use gotham::router::builder::*;
-use gotham::state::State;
-use hyper::http::Method;
-use indicatif::ProgressStyle;
+use clap::{Arg, ArgMatches, SubCommand, App};
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
-        .about("Start the local test network in the background.")
+        .about("Build a cannister code, or all cannisters if no argument is passed.")
+        .arg(
+            Arg::with_name("cannister")
+                .help("The cannister name to build.")
+        )
 }
 
-pub fn exec(args: &ArgMatches<'_>) -> CliResult {
+pub fn exec(_args: &ArgMatches<'_>) -> CliResult {
     // Read the config.
-    let config = Config::from_current_dir()?;
+    let _config = Config::from_current_dir()?;
 
 
 
