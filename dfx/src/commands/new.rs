@@ -1,10 +1,10 @@
 use crate::commands::{CliResult, CliError};
 use crate::config::{Config, CONFIG_FILE_NAME};
-use crate::util::fake_progress;
+use crate::util::{FakeProgress};
 use crate::util::logo::generate_logo;
 use clap::{ArgMatches, SubCommand, Arg, App};
 use console::{style, Color, Term};
-use indicatif::HumanBytes;
+use indicatif::{HumanBytes, ProgressStyle};
 use std::path::Path;
 
 
@@ -89,18 +89,18 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
         ));
     }
 
-    fake_progress(vec![
-        (
-            600..1200,
-            |_| {
-                let b = indicatif::ProgressBar::new_spinner();
-                b.set_message("Looking for latest version...");
-                b
-            },
-            |b| b.finish_with_message("Latest version already installed."),
-        ),
-    ]);
+    let mut p = FakeProgress::new();
+    p.add(
+        600..1200,
+        |b| {
+            b.set_style(ProgressStyle::default_spinner());
+            b.set_message("Looking for latest version...");
+        },
+        |b| b.finish_with_message("Latest version already installed."),
+    );
+    p.join();
 
+    println!();
     println!(r#"Creating new project "{}"..."#, project_name.to_str().unwrap());
     if dry_run {
         println!(r#"Running in dry mode. Nothing will be committed to disk."#);

@@ -58,6 +58,7 @@ pub struct Config {
     config: ConfigInterface,
 }
 
+#[allow(dead_code)]
 impl Config {
     pub fn resolve_config_path(working_dir: &Path) -> Result<PathBuf, std::io::Error> {
         fn recurse(mut curr: PathBuf) -> Result<PathBuf, std::io::Error> {

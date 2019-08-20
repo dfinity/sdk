@@ -6,7 +6,7 @@ mod config;
 mod util;
 
 fn cli() -> App<'static, 'static> {
-    App::new("DFINITY Executor")
+    App::new("dfx")
         .about("The DFINITY Executor.")
         .version("v0.1.0")
         .setting(AppSettings::ColoredHelp)
