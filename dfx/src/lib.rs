@@ -88,7 +88,8 @@ fn read(client: Client, message: Message) -> impl Future<Item=reqwest::r#async::
             let mut request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
-            // .body(serde_cbor::to_vec(&message).unwrap())
+            let body = request.body_mut();
+            body.get_or_insert(reqwest::r#async::Body::from(serde_cbor::to_vec(&message).unwrap()));
             client.execute(request).map_err(DfxError::Reqwest)
         })
 }
