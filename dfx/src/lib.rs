@@ -1,5 +1,3 @@
-use std::sync::Arc;
-use std::cell::RefCell;
 use futures::future::{Future, ok, err, result};
 use serde::{Deserialize, Serialize};
 
@@ -66,29 +64,24 @@ impl From<reqwest::UrlError> for DfxError {
     }
 }
 
-pub trait Client {
-    fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send>;
-}
-
-pub struct AsyncClient {
+// TODO: move to own file, use conditional compilation for testing
+pub struct Client {
     client: reqwest::r#async::Client,
 }
 
-impl AsyncClient {
-    pub fn new() -> AsyncClient {
-        AsyncClient {
+impl Client {
+    pub fn new() -> Client {
+        Client {
             client: reqwest::r#async::Client::new(),
         }
     }
-}
 
-impl Client for AsyncClient {
-    fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send> {
-        Box::new(self.client.execute(request))
+    pub fn execute(&self, request: reqwest::r#async::Request) -> impl Future<Item=reqwest::r#async::Response, Error=reqwest::Error> {
+        self.client.execute(request)
     }
 }
 
-fn read(client: Arc<dyn Client>, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
+fn read(client: Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
     let parsed = reqwest::Url::parse("http://localhost/api/v1/read").map_err(DfxError::Url);
     result(parsed)
         .and_then(move |url| {
@@ -96,11 +89,11 @@ fn read(client: Arc<dyn Client>, message: Message) -> impl Future<Item=reqwest::
             let headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
             // .body(serde_cbor::to_vec(&message).unwrap())
-            (*Arc::clone(&client)).execute(request).map_err(DfxError::Reqwest)
+            client.execute(request).map_err(DfxError::Reqwest)
         })
 }
 
-pub fn query(client: Arc<dyn Client>, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
+pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
     return read(client, Message::Query { message })
         .and_then(|mut res| {
             return res.text().map_err(DfxError::Reqwest);
