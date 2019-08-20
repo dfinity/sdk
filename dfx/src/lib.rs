@@ -95,7 +95,7 @@ fn read(client: Client, message: Message) -> impl Future<Item=reqwest::r#async::
 }
 
 pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
-    return read(client, Message::Query { message })
+    read(client, Message::Query { message })
         .and_then(|mut res| {
             return res.text().map_err(DfxError::Reqwest);
         })
@@ -104,5 +104,5 @@ pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Res
                 Ok(r) => ok(r),
                 Err(e) => err(DfxError::SerdeCbor(e)),
             }
-        });
+        })
 }
