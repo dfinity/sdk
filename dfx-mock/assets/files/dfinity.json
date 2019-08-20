@@ -1,2 +1,15 @@
 {
+  "version": 0,
+  "cannisters": {
+    "hello": {
+    }
+  },
+  "defaults": {
+    "build": {},
+    "start": {
+      "nodes": 2,
+      "port": 4200,
+      "address": "127.0.0.1"
+    }
+  }
 }

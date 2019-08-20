@@ -3,6 +3,7 @@ extern crate hyper;
 
 use clap::ArgMatches;
 
+mod build;
 mod config;
 mod new;
 mod start;
@@ -88,6 +89,7 @@ impl CliCommand {
 
 pub fn builtin() -> Vec<CliCommand> {
     vec![
+        CliCommand::new(build::construct(), build::exec),
         CliCommand::new(config::construct(), config::exec),
         CliCommand::new(new::construct(), new::exec),
         CliCommand::new(start::construct(), start::exec),

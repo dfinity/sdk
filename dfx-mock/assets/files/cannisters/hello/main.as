@@ -5,10 +5,18 @@ actor class Hello() {
 
     /**
      * A public function can be called by anyone, from inside and outside the network.
-     * 
+     *
+     * @return String an Hello World string.
      */
     public func hello() {
+        /**
+         * This will be sent to the cannisters' console in development, and dropped in production.
+         */
         print("Hello called.");
+
+        /**
+         * Returns a string.
+         */
         "Hello, World"
     }
 }
