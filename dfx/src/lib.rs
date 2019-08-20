@@ -65,14 +65,14 @@ impl From<reqwest::UrlError> for DfxError {
 }
 
 pub trait Client {
-    fn execute(client: impl Client, request: reqwest::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=DfxError> + Send>;
+    fn execute(client: impl Client, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=DfxError> + Send>;
 }
 
 fn read(client: impl Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
     let parsed = reqwest::Url::parse("http://localhost/api/v1/read").map_err(DfxError::Url);
     return result(parsed)
         .and_then(|url| {
-            let request = reqwest::Request::new(reqwest::Method::POST, url);
+            let request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let mut headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
             // .body(serde_cbor::to_vec(&message).unwrap())
