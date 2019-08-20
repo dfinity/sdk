@@ -1,6 +1,5 @@
 use futures::future::{Future, ok, err, result};
 use serde::{Deserialize, Serialize};
-use url;
 
 type Blob = String;
 type CanisterId = u64;
@@ -48,9 +47,9 @@ pub struct Response<A> {
 
 #[derive(Debug)]
 pub enum DfxError {
-    Parse(url::ParseError),
     Reqwest(reqwest::Error),
     SerdeCbor(serde_cbor::error::Error),
+    Url(reqwest::UrlError),
 }
 
 impl From<reqwest::Error> for DfxError {
@@ -59,23 +58,25 @@ impl From<reqwest::Error> for DfxError {
     }
 }
 
+impl From<reqwest::UrlError> for DfxError {
+    fn from(err: reqwest::UrlError) -> DfxError {
+        return DfxError::Url(err);
+    }
+}
+
 pub trait Client {
-    type F: Future<Item=reqwest::r#async::Response, Error=DfxError>;
-    fn execute(client: impl Client, request: reqwest::Request) -> Self::F;
+    fn execute(client: impl Client, request: reqwest::Request) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError>;
 }
 
 fn read(client: impl Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
-    return result(reqwest::Url::parse("http://localhost/api/v1/read"))
-        .map_err(DfxError::Parse)
+    let parsed = reqwest::Url::parse("http://localhost/api/v1/read").map_err(DfxError::Url);
+    return result(parsed)
         .and_then(|url| {
             let request = reqwest::Request::new(reqwest::Method::POST, url);
             let mut headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
             // .body(serde_cbor::to_vec(&message).unwrap())
-            // .build();
-
-            // .map_err(DfxError::Reqwest);
-            return result(Client::execute(client, request).map_err(DfxError::Reqwest));
+            return Client::execute(client, request).map_err(DfxError::Reqwest);
         });
 }
 
