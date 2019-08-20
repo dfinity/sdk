@@ -65,8 +65,7 @@ impl From<reqwest::UrlError> for DfxError {
 }
 
 pub trait Client {
-    // TODO: Use `reqwest::Error` in return value?
-    fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=DfxError> + Send>;
+    fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send>;
 }
 
 pub struct AsyncClient {
@@ -82,8 +81,8 @@ impl AsyncClient {
 }
 
 impl Client for AsyncClient {
-    fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=DfxError> + Send> {
-        return Box::new(self.client.execute(request).map_err(DfxError::Reqwest));
+    fn execute(&self, request: reqwest::r#async::Request) -> Box<dyn Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send> {
+        return Box::new(self.client.execute(request));
     }
 }
 
@@ -95,7 +94,7 @@ fn read(client: &impl Client, message: Message) -> impl Future<Item=reqwest::r#a
             let headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
             // .body(serde_cbor::to_vec(&message).unwrap())
-            return client.execute(request);
+            return client.execute(request).map_err(DfxError::Reqwest);
         });
 }
 
