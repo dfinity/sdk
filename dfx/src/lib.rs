@@ -1,6 +1,9 @@
 use futures::future::{Future, ok, err, result};
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+use mockito;
+
 type Blob = String;
 type CanisterId = u64;
 
@@ -69,12 +72,19 @@ impl From<reqwest::UrlError> for DfxError {
 // TODO: move to own file, use conditional compilation for testing
 pub struct Client {
     client: reqwest::r#async::Client,
+    url: String,
 }
 
 impl Client {
     pub fn new() -> Client {
         Client {
             client: reqwest::r#async::Client::new(),
+
+            #[cfg(not(test))]
+            url: "http://localhost".to_string(),
+
+            #[cfg(test)]
+            url: mockito::server_url(),
         }
     }
 
@@ -84,7 +94,8 @@ impl Client {
 }
 
 fn read(client: Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
-    let parsed = reqwest::Url::parse("http://localhost/api/v1/read").map_err(DfxError::Url);
+    let endpoint = format!("{}/api/v1/read", client.url);
+    let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
         .and_then(move |url| {
             let mut request = reqwest::r#async::Request::new(reqwest::Method::POST, url);

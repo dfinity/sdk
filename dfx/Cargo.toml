@@ -14,3 +14,7 @@ reqwest = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_cbor = "0.10"
 tokio = "0.1"
+
+[dev-dependencies]
+env_logger = "0.6"
+mockito = "0.20"
