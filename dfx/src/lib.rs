@@ -7,14 +7,14 @@ use mockito;
 type Blob = String;
 type CanisterId = u64;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanisterQueryCall {
     pub canister_id: CanisterId,
     pub method_name: String,
     pub arg: Option<Blob>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "message_type")]
 enum Message {
@@ -24,7 +24,7 @@ enum Message {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Status {
     Accepted,
@@ -33,7 +33,7 @@ pub enum Status {
     Unknown,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RejectCode {
     SysFatal = 1,
     SysTransient = 2,
@@ -42,7 +42,7 @@ pub enum RejectCode {
     CanisterError = 5,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Response<A> {
     pub status: Status,
     pub reply: Option<A>,
@@ -99,7 +99,6 @@ fn read(client: Client, message: Message) -> impl Future<Item=reqwest::r#async::
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
         .and_then(move |url| {
-            println!("url: {:#?}", url);
             let mut request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let headers = request.headers_mut();
             headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
@@ -124,7 +123,6 @@ pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Res
 
 #[cfg(test)]
 mod tests {
-    use futures::future::Future;
     use mockito::mock;
     use super::*;
 
@@ -134,7 +132,7 @@ mod tests {
 
         let response = Response {
             status: Status::Replied,
-            reply: Some("Hello World"),
+            reply: Some("Hello World".to_string()),
             reject_code: None,
             reject_message: None,
         };
@@ -151,16 +149,16 @@ mod tests {
             canister_id: 0,
             method_name: "main".to_string(),
             arg: None,
-        })
-        .map(|r| {
-            println!("{}", r.reply.unwrap());
-        })
-        .map_err(|e| {
-            println!("{:#?}", e);
         });
 
-        tokio::run(query);
+        let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+        let result = runtime.block_on(query);
 
         _m.assert();
+
+        match result {
+            Ok(r) => assert_eq!(r, response),
+            Err(e) => assert!(false, format!("{:#?}", e)),
+        }
     }
 }
