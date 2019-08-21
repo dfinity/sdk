@@ -1,4 +1,4 @@
-use futures::future::{Future, ok, err, result};
+use futures::future::{err, ok, result, Future};
 use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
@@ -89,7 +89,10 @@ impl Client {
         }
     }
 
-    pub fn execute(&self, request: reqwest::r#async::Request) -> impl Future<Item=reqwest::r#async::Response, Error=reqwest::Error> {
+    pub fn execute(
+        &self,
+        request: reqwest::r#async::Request,
+    ) -> impl Future<Item = reqwest::r#async::Response, Error = reqwest::Error> {
         self.client.execute(request)
     }
 }
@@ -100,21 +103,27 @@ impl Default for Client {
     }
 }
 
-fn read<A>(client: Client, message: Message) -> impl Future<Item=Response<A>, Error=DfxError> where A: serde::de::DeserializeOwned {
+fn read<A>(client: Client, message: Message) -> impl Future<Item = Response<A>, Error = DfxError>
+where
+    A: serde::de::DeserializeOwned,
+{
     let endpoint = format!("{}/api/v1/read", client.url);
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
         .and_then(move |url| {
             let mut request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let headers = request.headers_mut();
-            headers.insert(reqwest::header::CONTENT_TYPE, "application/cbor".parse().unwrap());
+            headers.insert(
+                reqwest::header::CONTENT_TYPE,
+                "application/cbor".parse().unwrap(),
+            );
             let body = request.body_mut();
-            body.get_or_insert(reqwest::r#async::Body::from(serde_cbor::to_vec(&message).unwrap()));
+            body.get_or_insert(reqwest::r#async::Body::from(
+                serde_cbor::to_vec(&message).unwrap(),
+            ));
             client.execute(request).map_err(DfxError::Reqwest)
         })
-        .and_then(|mut res| {
-            res.text().map_err(DfxError::Reqwest)
-        })
+        .and_then(|mut res| res.text().map_err(DfxError::Reqwest))
         .and_then(|text| {
             let bytes = text.as_bytes();
             match serde_cbor::from_slice(bytes) {
@@ -124,14 +133,17 @@ fn read<A>(client: Client, message: Message) -> impl Future<Item=Response<A>, Er
         })
 }
 
-pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
+pub fn query(
+    client: Client,
+    message: CanisterQueryCall,
+) -> impl Future<Item = Response<String>, Error = DfxError> {
     read::<String>(client, Message::Query { message })
 }
 
 #[cfg(test)]
 mod tests {
-    use mockito::mock;
     use super::*;
+    use mockito::mock;
 
     #[test]
     fn query_hello_world() {
@@ -152,11 +164,14 @@ mod tests {
 
         let client = Client::new();
 
-        let query = query(client, CanisterQueryCall {
-            canister_id: 0,
-            method_name: "main".to_string(),
-            arg: None,
-        });
+        let query = query(
+            client,
+            CanisterQueryCall {
+                canister_id: 0,
+                method_name: "main".to_string(),
+                arg: None,
+            },
+        );
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(query);
