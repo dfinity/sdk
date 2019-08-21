@@ -14,8 +14,8 @@ fn main() {
     .map(|r| match r {
         Response::Accepted => println!("Accepted"),
         Response::Replied {
-            reply: QueryResponseReply { arg: bytes },
-        } => println!("{}", String::from_utf8_lossy(&bytes)),
+            reply: QueryResponseReply { arg: Blob(blob) },
+        } => println!("{}", String::from_utf8_lossy(&blob)),
         Response::Rejected {
             reject_code,
             reject_message,

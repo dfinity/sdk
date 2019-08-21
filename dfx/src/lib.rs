@@ -58,7 +58,7 @@ pub enum Response<A> {
 /// The response of /api/v1/read with "query" message type
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryResponseReply {
-    pub arg: Vec<u8>,
+    pub arg: Blob,
 }
 
 #[derive(Debug)]
@@ -135,9 +135,11 @@ where
             client.execute(request).map_err(DfxError::Reqwest)
         })
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
-        .and_then(|buf| match serde_cbor::from_slice(&buf) {
-            Ok(r) => ok(r),
-            Err(e) => err(DfxError::SerdeCbor(e)),
+        .and_then(|buf| {
+            match serde_cbor::from_slice(&buf) {
+              Ok(r) => ok(r),
+              Err(e) => err(DfxError::SerdeCbor(e)),
+            }
         })
 }
 
@@ -159,7 +161,7 @@ mod tests {
 
         let response = Response::Replied {
             reply: QueryResponseReply {
-                arg: Vec::from("Hello World"),
+                arg: Blob(Vec::from("Hello World")),
             },
         };
 
