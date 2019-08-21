@@ -1,4 +1,5 @@
 use futures::future::{err, ok, result, Future};
+use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
@@ -122,10 +123,9 @@ where
             ));
             client.execute(request).map_err(DfxError::Reqwest)
         })
-        .and_then(|mut res| res.text().map_err(DfxError::Reqwest))
-        .and_then(|text| {
-            let bytes = text.as_bytes();
-            match serde_cbor::from_slice(bytes) {
+        .and_then(|res| { res.into_body().concat2().map_err(DfxError::Reqwest) })
+        .and_then(|buf| {
+            match serde_cbor::from_slice(&buf) {
                 Ok(r) => ok(r),
                 Err(e) => err(DfxError::SerdeCbor(e)),
             }
