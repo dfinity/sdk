@@ -1,8 +1,8 @@
 { pkgs ? import ../. {} }:
 
 pkgs.mkCiShell {
-  name = "dfinity-sdk-dfx-env";
+  name = "dfinity-sdk-dfx-mock-env";
   inputsFrom = [
-    pkgs.dfinity-sdk.dfx
+    pkgs.dfinity-sdk.dfx-mock
   ];
 }

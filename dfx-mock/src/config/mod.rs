@@ -5,47 +5,29 @@ use std::path::{Path, PathBuf};
 
 pub const CONFIG_FILE_NAME: &str = "dfinity.json";
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ConfigServerInterface {
-    address: Option<String>,
-    port: Option<u16>,
-    nodes: Option<u64>,
-}
-
-impl ConfigServerInterface {
-    pub fn get_address(&self, default: String) -> String {
-        match &self.address {
-            Some(v) => v.clone(),
-            _ => default,
-        }
-    }
-    pub fn get_nodes(&self, default: u64) -> u64 {
-        match self.nodes {
-            Some(v) => v,
-            _ => default,
-        }
-    }
-    pub fn get_port(&self, default: u16) -> u16 {
-        match self.port {
-            Some(v) => v,
-            _ => default,
-        }
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ConfigInterface {
-    server: Option<ConfigServerInterface>,
+pub struct ConfigDefaults {
+    pub address: Option<String>,
+    pub nodes: Option<u64>,
+    pub port: Option<u16>,
 }
 
-static EMPTY_CONFIG_SERVER: ConfigServerInterface = ConfigServerInterface{
+pub const EMPTY_CONFIG_SERVER: ConfigDefaults = ConfigDefaults{
     address: None,
     port: None,
     nodes: None,
 };
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigInterface {
+//    pub cannisters: Option<Map<String, ConfigCannisters>>
+    pub defaults: Option<ConfigDefaults>,
+}
+
 impl ConfigInterface {
-    pub fn get_server(&self) -> &ConfigServerInterface {
-        match &self.server {
+    pub fn get_defaults(&self) -> &ConfigDefaults {
+        match &self.defaults {
             Some(v) => &v,
             _ => &EMPTY_CONFIG_SERVER,
         }

@@ -1,2 +1,2 @@
 { system ? builtins.currentSystem }:
-(import ../. { inherit system; }).dfinity-sdk.dfx
+(import ../. { inherit system; }).dfinity-sdk.dfx-mock

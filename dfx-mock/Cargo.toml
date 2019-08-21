@@ -17,7 +17,7 @@ serde_derive = "1.0.40"
 serde_json = "1.0.40"
 
 [[bin]]
-name = "dfx"
+name = "dfx2"
 path = "src/main.rs"
 test = false
 doc = false

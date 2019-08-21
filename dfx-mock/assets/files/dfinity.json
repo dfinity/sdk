@@ -1,7 +1,9 @@
 {
-  "version": 0,
+  "version": 1,
   "cannisters": {
     "hello": {
+      "path": "cannisters/hello",
+      "main": "main.as"
     }
   },
   "defaults": {

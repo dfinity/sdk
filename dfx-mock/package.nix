@@ -1,6 +1,6 @@
 { naersk, rustfmt, stdenv, lib, darwin, clang, cmake, python3, rustNightly, libressl, pkg-config, moreutils, cargo-graph, graphviz }:
 let
-  name = "dfinity-sdk-dfx";
+  name = "dfinity-sdk-dfx-mock";
 
   # Neither Nix nor Hydra provide timestamps during build, which makes it
   # difficult to figure out why a particular build takes time.
@@ -105,7 +105,7 @@ naersk.buildPackage src
   lib.optionalAttrs (oldAttrs.name == name)
   {
     postDoc = ''
-      cargo graph | dot -Tsvg > ./target/doc/dfx/cargo-graph.svg
+      cargo graph | dot -Tsvg > ./target/doc/dfx-mock/cargo-graph.svg
     '';
 
     postInstall = ''
@@ -115,9 +115,9 @@ naersk.buildPackage src
       # logging than Hydra can handle.
       rm -rf $out/target
       mkdir -p $doc/nix-support
-      echo "report cargo-doc-dfx $doc ./index.html" >> \
+      echo "report cargo-doc-dfx-mock $doc ./index.html" >> \
         $doc/nix-support/hydra-build-products
-      echo "report cargo-graph-dfx $doc ./cargo-graph.svg" >> \
+      echo "report cargo-graph-dfx-mock $doc ./cargo-graph.svg" >> \
         $doc/nix-support/hydra-build-products
     '';
   });
