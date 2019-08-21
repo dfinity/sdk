@@ -5,7 +5,13 @@ use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use mockito;
 
-type Blob = String;
+/// A binary "blob", i.e. a byte array
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+// XXX: We newtype and make sure that serde uses `serde_bytes`, otherwise the `Vec<u8>` is
+// deserialized as a sequence (array) of bytes, whereas we want an actual CBOR "byte array", e.g. a
+// bytestring
+pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
+
 type CanisterId = u64;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
