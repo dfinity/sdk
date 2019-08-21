@@ -135,11 +135,9 @@ where
             client.execute(request).map_err(DfxError::Reqwest)
         })
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
-        .and_then(|buf| {
-            match serde_cbor::from_slice(&buf) {
-              Ok(r) => ok(r),
-              Err(e) => err(DfxError::SerdeCbor(e)),
-            }
+        .and_then(|buf| match serde_cbor::from_slice(&buf) {
+            Ok(r) => ok(r),
+            Err(e) => err(DfxError::SerdeCbor(e)),
         })
 }
 
