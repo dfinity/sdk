@@ -39,8 +39,13 @@ pub enum RejectCode {
 #[serde(tag = "status")]
 pub enum Response<A> {
     Accepted,
-    Replied { reply: A },
-    Rejected { reject_code: RejectCode, reject_message: String },
+    Replied {
+        reply: A,
+    },
+    Rejected {
+        reject_code: RejectCode,
+        reject_message: String,
+    },
     Unknown,
 }
 
@@ -123,12 +128,10 @@ where
             ));
             client.execute(request).map_err(DfxError::Reqwest)
         })
-        .and_then(|res| { res.into_body().concat2().map_err(DfxError::Reqwest) })
-        .and_then(|buf| {
-            match serde_cbor::from_slice(&buf) {
-                Ok(r) => ok(r),
-                Err(e) => err(DfxError::SerdeCbor(e)),
-            }
+        .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
+        .and_then(|buf| match serde_cbor::from_slice(&buf) {
+            Ok(r) => ok(r),
+            Err(e) => err(DfxError::SerdeCbor(e)),
         })
 }
 
@@ -149,7 +152,9 @@ mod tests {
         let _ = env_logger::try_init();
 
         let response = Response::Replied {
-            reply: QueryResponseReply { arg: Vec::from("Hello World") },
+            reply: QueryResponseReply {
+                arg: Vec::from("Hello World"),
+            },
         };
 
         let _m = mock("POST", "/api/v1/read")
