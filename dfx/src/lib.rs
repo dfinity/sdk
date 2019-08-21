@@ -114,7 +114,8 @@ pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Res
             return res.text().map_err(DfxError::Reqwest);
         })
         .and_then(|text| {
-            match serde_cbor::de::from_slice(text[..].as_bytes()) {
+            println!("text: {:#?}", text);
+            match serde_cbor::from_slice(text[..].as_bytes()) {
                 Ok(r) => ok(r),
                 Err(e) => err(DfxError::SerdeCbor(e)),
             }
