@@ -6,6 +6,7 @@ use clap::ArgMatches;
 mod build;
 mod config;
 mod new;
+mod send;
 mod start;
 
 
@@ -88,10 +89,23 @@ impl CliCommand {
 }
 
 pub fn builtin() -> Vec<CliCommand> {
-    vec![
-        CliCommand::new(build::construct(), build::exec),
-        CliCommand::new(config::construct(), config::exec),
-        CliCommand::new(new::construct(), new::exec),
-        CliCommand::new(start::construct(), start::exec),
-    ]
+    let mut v: Vec<CliCommand> = Vec::new();
+
+    if build::available() {
+        v.push(CliCommand::new(build::construct(), build::exec));
+    }
+    if config::available() {
+        v.push(CliCommand::new(config::construct(), config::exec));
+    }
+    if new::available() {
+        v.push(CliCommand::new(new::construct(), new::exec));
+    }
+    if send::available() {
+        v.push(CliCommand::new(send::construct(), send::exec));
+    }
+    if start::available() {
+        v.push(CliCommand::new(start::construct(), start::exec));
+    }
+
+    v
 }

@@ -13,6 +13,9 @@ macro_rules! asset_str {
     ($file:expr,) => (asset_str!($file));
 }
 
+pub fn available() -> bool {
+    !Config::from_current_dir().is_ok()
+}
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("new")

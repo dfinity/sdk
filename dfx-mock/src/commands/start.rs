@@ -50,6 +50,9 @@ fn router() -> Router {
     })
 }
 
+pub fn available() -> bool {
+    Config::from_current_dir().is_ok()
+}
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("start")
