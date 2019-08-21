@@ -9,10 +9,10 @@ pub fn available() -> bool {
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
-        .about("Build a cannister code, or all cannisters if no argument is passed.")
+        .about("Build a canister code, or all canisters if no argument is passed.")
         .arg(
-            Arg::with_name("cannister")
-                .help("The cannister name to build.")
+            Arg::with_name("canister")
+                .help("The canister name to build.")
         )
 }
 

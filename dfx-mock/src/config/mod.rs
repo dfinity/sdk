@@ -21,7 +21,7 @@ pub const EMPTY_CONFIG_SERVER: ConfigDefaults = ConfigDefaults{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigInterface {
-//    pub cannisters: Option<Map<String, ConfigCannisters>>
+//    pub canisters: Option<Map<String, ConfigCanisters>>
     pub defaults: Option<ConfigDefaults>,
 }
 

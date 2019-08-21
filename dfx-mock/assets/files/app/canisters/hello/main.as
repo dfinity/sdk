@@ -10,7 +10,7 @@ actor class Hello() {
      */
     public func hello() {
         /**
-         * This will be sent to the cannisters' console in development, and dropped in production.
+         * This will be sent to the canisters' console in development, and dropped in production.
          */
         print("Hello called.");
 

@@ -1,11 +1,15 @@
 use crate::commands::{CliResult, CliError};
-use crate::config::{Config, CONFIG_FILE_NAME};
+use crate::config::Config;
 use crate::util::FakeProgress;
 use crate::util::logo::generate_logo;
 use clap::{ArgMatches, SubCommand, Arg, App};
 use console::{style, Color, Term};
 use indicatif::{HumanBytes, ProgressStyle};
+use std::io::Read;
 use std::path::Path;
+
+include!(concat!(env!("OUT_DIR"), "/load_assets.rs"));
+
 
 // This is easier to use.
 macro_rules! asset_str {
@@ -62,6 +66,7 @@ pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> Cli
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> CliResult {
     let path = path.as_ref();
     if path.is_dir() {
@@ -115,20 +120,26 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
         println!(r#"Running in dry mode. Nothing will be committed to disk."#);
     }
 
-    create_file(project_name.join(CONFIG_FILE_NAME), asset_str!("files/dfinity.json"), dry_run)?;
-    create_file(project_name.join("cannisters").join("hello").join("main.as"),
-                asset_str!("files/cannisters/hello/main.as"),
-                dry_run)?;
-    create_file(project_name.join("src").join("ask_hello.js"), "// TODO: this file\n", dry_run)?;
-    create_file(project_name.join("README.md"),
-                format!(asset_str!("files/README.md"), project = project_name.display()).as_str(),
-                dry_run)?;
-    create_dir(project_name.join("bin"), dry_run)?;
+    let dfx_version = "v0.1.0";
+    for file in get_assets().unwrap().entries()? {
+        let mut file = file?;
 
-    let version = "v0.1.0";
+        if file.header().entry_type().is_dir() {
+            continue
+        }
+
+        let mut s = String::new();
+        file.read_to_string(&mut s).unwrap();
+
+        // Perform replacements.
+        let s = s.replace("{project_name}", project_name.to_str().unwrap());
+        let s = s.replace("{dfx_version}", dfx_version);
+
+        create_file(project_name.join(file.header().path()?), s.as_str(), dry_run)?;
+    }
 
     // Print welcome message.
-    println!(asset_str!("welcome.txt"), version, generate_logo(), project_name.to_str().unwrap());
+    println!(asset_str!("welcome.txt"), dfx_version, generate_logo(), project_name.to_str().unwrap());
 
     Ok(())
 }

@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "cannisters": {
+  "canisters": {
     "hello": {
-      "path": "cannisters/hello",
+      "path": "canisters/hello",
       "main": "main.as"
     }
   },

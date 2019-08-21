@@ -8,10 +8,10 @@ pub fn available() -> bool {
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("send")
-        .about("Send a message to a cannister, and potentially wait for the answer.")
+        .about("Send a message to a canister, and potentially wait for the answer.")
         .arg(
-            Arg::with_name("cannister")
-                .help("The cannister name to send to.")
+            Arg::with_name("canister")
+                .help("The canister name to send to.")
         )
 }
 
