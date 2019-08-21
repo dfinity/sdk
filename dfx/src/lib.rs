@@ -94,7 +94,7 @@ impl Client {
     }
 }
 
-fn read(client: Client, message: Message) -> impl Future<Item=reqwest::r#async::Response, Error=DfxError> {
+fn read<A>(client: Client, message: Message) -> impl Future<Item=Response<A>, Error=DfxError> where A: serde::de::DeserializeOwned {
     let endpoint = format!("{}/api/v1/read", client.url);
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
@@ -106,20 +106,20 @@ fn read(client: Client, message: Message) -> impl Future<Item=reqwest::r#async::
             body.get_or_insert(reqwest::r#async::Body::from(serde_cbor::to_vec(&message).unwrap()));
             client.execute(request).map_err(DfxError::Reqwest)
         })
-}
-
-pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
-    read(client, Message::Query { message })
         .and_then(|mut res| {
             return res.text().map_err(DfxError::Reqwest);
         })
         .and_then(|text| {
-            println!("text: {:#?}", text);
-            match serde_cbor::from_slice(text[..].as_bytes()) {
+            let bytes = text.as_bytes();
+            match serde_cbor::from_slice(bytes) {
                 Ok(r) => ok(r),
                 Err(e) => err(DfxError::SerdeCbor(e)),
             }
         })
+}
+
+pub fn query(client: Client, message: CanisterQueryCall) -> impl Future<Item=Response<String>, Error=DfxError> {
+    read::<String>(client, Message::Query { message })
 }
 
 #[cfg(test)]
