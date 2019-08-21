@@ -42,6 +42,20 @@ pub enum RejectCode {
     CanisterError = 5,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "status")]
+/// The response of /api/v1/read with "query" message type
+pub enum QueryResponse {
+    Replied { reply: QueryResponseReply },
+    Rejected,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QueryResponseReply {
+    pub arg: Vec<u8>,
+}
+
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Response<A> {
     pub status: Status,
@@ -103,7 +117,7 @@ impl Default for Client {
     }
 }
 
-fn read<A>(client: Client, message: Message) -> impl Future<Item = Response<A>, Error = DfxError>
+fn read<A>(client: Client, message: Message) -> impl Future<Item = QueryResponse, Error = DfxError>
 where
     A: serde::de::DeserializeOwned,
 {
@@ -136,7 +150,7 @@ where
 pub fn query(
     client: Client,
     message: CanisterQueryCall,
-) -> impl Future<Item = Response<String>, Error = DfxError> {
+) -> impl Future<Item = QueryResponse, Error = DfxError> {
     read::<String>(client, Message::Query { message })
 }
 
