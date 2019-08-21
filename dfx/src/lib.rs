@@ -81,7 +81,8 @@ impl Client {
             client: reqwest::r#async::Client::new(),
 
             #[cfg(not(test))]
-            url: "http://localhost".to_string(),
+            // url: "http://10.129.10.139:8080".to_string(),
+            url: "http://localhost:8080".to_string(),
 
             #[cfg(test)]
             url: mockito::server_url(),
