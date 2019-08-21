@@ -94,6 +94,12 @@ impl Client {
     }
 }
 
+impl Default for Client {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn read<A>(client: Client, message: Message) -> impl Future<Item=Response<A>, Error=DfxError> where A: serde::de::DeserializeOwned {
     let endpoint = format!("{}/api/v1/read", client.url);
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
@@ -107,7 +113,7 @@ fn read<A>(client: Client, message: Message) -> impl Future<Item=Response<A>, Er
             client.execute(request).map_err(DfxError::Reqwest)
         })
         .and_then(|mut res| {
-            return res.text().map_err(DfxError::Reqwest);
+            res.text().map_err(DfxError::Reqwest)
         })
         .and_then(|text| {
             let bytes = text.as_bytes();
