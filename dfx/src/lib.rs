@@ -25,15 +25,6 @@ enum Message {
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Status {
-    Accepted,
-    Replied,
-    Rejected,
-    Unknown,
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RejectCode {
     SysFatal = 1,
     SysTransient = 2,
@@ -42,26 +33,20 @@ pub enum RejectCode {
     CanisterError = 5,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "status")]
-/// The response of /api/v1/read with "query" message type
-pub enum QueryResponse {
-    Replied { reply: QueryResponseReply },
-    Rejected,
+pub enum Response<A> {
+    Accepted,
+    Replied { reply: A },
+    Rejected { reject_code: RejectCode, reject_message: String },
+    Unknown,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// The response of /api/v1/read with "query" message type
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryResponseReply {
     pub arg: Vec<u8>,
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Response<A> {
-    pub status: Status,
-    pub reply: Option<A>,
-    pub reject_code: Option<RejectCode>,
-    pub reject_message: Option<String>,
 }
 
 #[derive(Debug)]
@@ -117,7 +102,7 @@ impl Default for Client {
     }
 }
 
-fn read<A>(client: Client, message: Message) -> impl Future<Item = QueryResponse, Error = DfxError>
+fn read<A>(client: Client, message: Message) -> impl Future<Item = Response<A>, Error = DfxError>
 where
     A: serde::de::DeserializeOwned,
 {
@@ -150,8 +135,8 @@ where
 pub fn query(
     client: Client,
     message: CanisterQueryCall,
-) -> impl Future<Item = QueryResponse, Error = DfxError> {
-    read::<String>(client, Message::Query { message })
+) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
+    read(client, Message::Query { message })
 }
 
 #[cfg(test)]
@@ -160,14 +145,11 @@ mod tests {
     use mockito::mock;
 
     #[test]
-    fn query_hello_world() {
+    fn query_replied() {
         let _ = env_logger::try_init();
 
-        let response = Response {
-            status: Status::Replied,
-            reply: Some("Hello World".to_string()),
-            reject_code: None,
-            reject_message: None,
+        let response = Response::Replied {
+            reply: ResponseReply { arg: Vec::from("Hello World") },
         };
 
         let _m = mock("POST", "/api/v1/read")
@@ -181,8 +163,45 @@ mod tests {
         let query = query(
             client,
             CanisterQueryCall {
-                canister_id: 0,
-                method_name: "main".to_string(),
+                canister_id: 42,
+                method_name: "dfn_msg greet".to_string(),
+                arg: None,
+            },
+        );
+
+        let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+        let result = runtime.block_on(query);
+
+        _m.assert();
+
+        match result {
+            Ok(r) => assert_eq!(r, response),
+            Err(e) => assert!(false, format!("{:#?}", e)),
+        }
+    }
+
+    #[test]
+    fn query_rejected() {
+        let _ = env_logger::try_init();
+
+        let response = Response::Rejected {
+            reject_code: RejectCode::SysFatal,
+            reject_message: "Fatal error".to_string(),
+        };
+
+        let _m = mock("POST", "/api/v1/read")
+            .with_status(200)
+            .with_header("content-type", "application/cbor")
+            .with_body(serde_cbor::to_vec(&response).unwrap())
+            .create();
+
+        let client = Client::new();
+
+        let query = query(
+            client,
+            CanisterQueryCall {
+                canister_id: 42,
+                method_name: "dfn_msg greet".to_string(),
                 arg: None,
             },
         );

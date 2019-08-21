@@ -1,10 +1,11 @@
+use dfx::*;
 use futures::future::Future;
 
 fn main() {
-    let client = dfx::Client::new();
-    let query = dfx::query(
+    let client = Client::new();
+    let query = query(
         client,
-        dfx::CanisterQueryCall {
+        CanisterQueryCall {
             canister_id: 42,
             method_name: "dfn_msg greet".to_string(),
             arg: None,
@@ -12,9 +13,18 @@ fn main() {
     )
     .map(|r| {
         match r {
-            dfx::QueryResponse::Replied { reply: dfx::QueryResponseReply{ arg: bytes}} =>
-                println!("{}", String::from_utf8_lossy(&bytes)),
-            dfx::QueryResponse::Rejected => panic!("oops!"),
+            Response:: Accepted => {
+                println!("Accepted")
+            },
+            Response::Replied { reply: QueryResponseReply { arg: bytes }} => {
+                println!("{}", String::from_utf8_lossy(&bytes))
+            },
+            Response::Rejected { reject_code, reject_message } => {
+                panic!(format!("{:?}, {}", reject_code, reject_message))
+            },
+            Response::Unknown => {
+                panic!("Unknown response")
+            },
         }
     })
     .map_err(|e| {
