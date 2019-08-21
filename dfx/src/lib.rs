@@ -149,7 +149,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let response = Response::Replied {
-            reply: ResponseReply { arg: Vec::from("Hello World") },
+            reply: QueryResponseReply { arg: Vec::from("Hello World") },
         };
 
         let _m = mock("POST", "/api/v1/read")
