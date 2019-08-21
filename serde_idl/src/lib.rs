@@ -10,7 +10,7 @@ extern crate leb128;
 #[doc(inline)]
 pub use crate::error::{Error, Result};
 #[doc(inline)]
-pub use crate::ser::{to_vec, Serializer};
+pub use crate::ser::{to_vec, to_writer};
 
 //#[macro_use]
 //mod macros;
