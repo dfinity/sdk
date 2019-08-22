@@ -80,7 +80,6 @@ impl From<reqwest::UrlError> for DfxError {
     }
 }
 
-// TODO: move to own file, use conditional compilation for testing
 pub struct Client {
     client: reqwest::r#async::Client,
     url: String,
