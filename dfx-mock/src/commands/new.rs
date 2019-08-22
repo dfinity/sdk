@@ -138,6 +138,13 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
         create_file(project_name.join(file.header().path()?), s.as_str(), dry_run)?;
     }
 
+    if !dry_run {
+        println!("Creating git repository...");
+        std::process::Command::new("git").arg("init").current_dir(project_name).output()?;
+        std::process::Command::new("git").arg("add").current_dir(project_name).arg(".").output()?;
+        std::process::Command::new("git").arg("commit").current_dir(project_name).arg("-a").arg("--message=First commit.").output()?;
+    }
+
     // Print welcome message.
     println!(asset_str!("welcome.txt"), dfx_version, generate_logo(), project_name.to_str().unwrap());
 
