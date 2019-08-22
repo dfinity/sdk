@@ -15,72 +15,6 @@ pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 type CanisterId = u64;
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CanisterQueryCall {
-    pub canister_id: CanisterId,
-    pub method_name: String,
-    pub arg: Option<Blob>,
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-#[serde(tag = "message_type")]
-enum Message {
-    Query {
-        #[serde(flatten)]
-        message: CanisterQueryCall,
-    },
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
-#[repr(u8)]
-pub enum RejectCode {
-    SysFatal = 1,
-    SysTransient = 2,
-    DestinationInvalid = 3,
-    CanisterReject = 4,
-    CanisterError = 5,
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-#[serde(tag = "status")]
-pub enum Response<A> {
-    Accepted,
-    Replied {
-        reply: A,
-    },
-    Rejected {
-        reject_code: RejectCode,
-        reject_message: String,
-    },
-    Unknown,
-}
-
-/// The response of /api/v1/read with "query" message type
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct QueryResponseReply {
-    pub arg: Blob,
-}
-
-#[derive(Debug)]
-pub enum DfxError {
-    Reqwest(reqwest::Error),
-    SerdeCbor(serde_cbor::error::Error),
-    Url(reqwest::UrlError),
-}
-
-impl From<reqwest::Error> for DfxError {
-    fn from(err: reqwest::Error) -> DfxError {
-        DfxError::Reqwest(err)
-    }
-}
-
-impl From<reqwest::UrlError> for DfxError {
-    fn from(err: reqwest::UrlError) -> DfxError {
-        DfxError::Url(err)
-    }
-}
 
 pub struct Client {
     client: reqwest::r#async::Client,
@@ -115,6 +49,68 @@ impl Default for Client {
     }
 }
 
+
+#[derive(Debug)]
+pub enum DfxError {
+    Reqwest(reqwest::Error),
+    SerdeCbor(serde_cbor::error::Error),
+    Url(reqwest::UrlError),
+}
+
+impl From<reqwest::Error> for DfxError {
+    fn from(err: reqwest::Error) -> DfxError {
+        DfxError::Reqwest(err)
+    }
+}
+
+impl From<reqwest::UrlError> for DfxError {
+    fn from(err: reqwest::UrlError) -> DfxError {
+        DfxError::Url(err)
+    }
+}
+
+
+/// Request payloads
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "message_type")]
+enum Message {
+    Query {
+        #[serde(flatten)]
+        message: CanisterQueryCall,
+    },
+}
+
+/// Response payloads
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "status")]
+pub enum Response<A> {
+    Accepted,
+    Replied {
+        reply: A,
+    },
+    Rejected {
+        reject_code: RejectCode,
+        reject_message: String,
+    },
+    Unknown,
+}
+
+/// Response reject codes
+#[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
+pub enum RejectCode {
+    SysFatal = 1,
+    SysTransient = 2,
+    DestinationInvalid = 3,
+    CanisterReject = 4,
+    CanisterError = 5,
+}
+
+
+/// A read request. Intended to remain private in favor of exposing specialized
+/// functions like `query` instead.
 fn read<A>(client: Client, message: Message) -> impl Future<Item = Response<A>, Error = DfxError>
 where
     A: serde::de::DeserializeOwned,
@@ -142,12 +138,33 @@ where
         })
 }
 
+/// Canister query call
+///
+/// Canister methods that do not change the canister state in a meaningful way
+/// can be executed more efficiently. This method provides that ability, and
+/// returns the canister’s response directly within the HTTP response.
 pub fn query(
     client: Client,
     message: CanisterQueryCall,
 ) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
     read(client, Message::Query { message })
 }
+
+
+/// A canister query call request payload
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CanisterQueryCall {
+    pub canister_id: CanisterId,
+    pub method_name: String,
+    pub arg: Option<Blob>,
+}
+
+/// A canister query call response payload
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QueryResponseReply {
+    pub arg: Blob,
+}
+
 
 #[cfg(test)]
 mod tests {
