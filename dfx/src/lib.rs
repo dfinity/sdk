@@ -1,6 +1,7 @@
 use futures::future::{err, ok, result, Future};
 use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[cfg(test)]
 use mockito;
@@ -31,7 +32,8 @@ enum Message {
     },
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 pub enum RejectCode {
     SysFatal = 1,
     SysTransient = 2,
@@ -153,7 +155,86 @@ mod tests {
     use mockito::mock;
 
     #[test]
-    fn query_replied() {
+    fn query_request_serialization() {
+        use serde_cbor::Value;
+        use std::convert::TryInto;
+
+        let canister_id = 1;
+        let method_name = "main".to_string();
+        let arg = None;
+
+        let request = Message::Query {
+            message: CanisterQueryCall {
+                canister_id,
+                method_name: method_name.clone(),
+                arg,
+            },
+        };
+
+        let actual: Value = serde_cbor::from_slice(&serde_cbor::to_vec(&request).unwrap()).unwrap();
+
+        let expected = Value::Map(
+            vec![
+                (
+                    Value::Text("message_type".to_string()),
+                    Value::Text("query".to_string()),
+                ),
+                (
+                    Value::Text("canister_id".to_string()),
+                    Value::Integer(canister_id.try_into().unwrap()),
+                ),
+                (
+                    Value::Text("method_name".to_string()),
+                    Value::Text(method_name.clone()),
+                ),
+                (Value::Text("arg".to_string()), Value::Null),
+            ]
+            .into_iter()
+            .collect(),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn query_response_replied_deserialization() {
+        use serde_cbor::Value;
+
+        let arg = Vec::from("Hello World");
+
+        let response = Value::Map(
+            vec![
+                (
+                    Value::Text("status".to_string()),
+                    Value::Text("replied".to_string()),
+                ),
+                (
+                    Value::Text("reply".to_string()),
+                    Value::Map(
+                        vec![(Value::Text("arg".to_string()), Value::Bytes(arg.clone()))]
+                            .into_iter()
+                            .collect(),
+                    ),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        );
+
+        let actual: Response<QueryResponseReply> =
+            serde_cbor::from_slice(&serde_cbor::to_vec(&response).unwrap()).unwrap();
+
+        let expected = Response::Replied {
+            reply: QueryResponseReply {
+                arg: Blob(arg.clone()),
+            },
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn query_response_replied() {
         let _ = env_logger::try_init();
 
         let response = Response::Replied {
@@ -173,8 +254,8 @@ mod tests {
         let query = query(
             client,
             CanisterQueryCall {
-                canister_id: 42,
-                method_name: "dfn_msg greet".to_string(),
+                canister_id: 1,
+                method_name: "main".to_string(),
                 arg: None,
             },
         );
@@ -191,7 +272,40 @@ mod tests {
     }
 
     #[test]
-    fn query_rejected() {
+    fn query_response_rejected_deserialization() {
+        use serde_cbor::Value;
+
+        let reject_message = "Fatal error".to_string();
+
+        let response = Value::Map(
+            vec![
+                (
+                    Value::Text("status".to_string()),
+                    Value::Text("rejected".to_string()),
+                ),
+                (Value::Text("reject_code".to_string()), Value::Integer(1)),
+                (
+                    Value::Text("reject_message".to_string()),
+                    Value::Text(reject_message.clone()),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        );
+
+        let actual: Response<QueryResponseReply> =
+            serde_cbor::from_slice(&serde_cbor::to_vec(&response).unwrap()).unwrap();
+
+        let expected: Response<QueryResponseReply> = Response::Rejected {
+            reject_code: RejectCode::SysFatal,
+            reject_message: reject_message.clone(),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn query_response_rejected() {
         let _ = env_logger::try_init();
 
         let response = Response::Rejected {
@@ -210,8 +324,8 @@ mod tests {
         let query = query(
             client,
             CanisterQueryCall {
-                canister_id: 42,
-                method_name: "dfn_msg greet".to_string(),
+                canister_id: 1,
+                method_name: "main".to_string(),
                 arg: None,
             },
         );
