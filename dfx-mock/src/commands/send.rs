@@ -1,5 +1,5 @@
 use crate::commands::CliResult;
-use crate::config::Config;
+use crate::config::dfinity::Config;
 use clap::{Arg, ArgMatches, SubCommand, App};
 
 pub fn available() -> bool {

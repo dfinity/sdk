@@ -1,5 +1,7 @@
 use crate::commands::{CliResult, CliError};
-use crate::config::Config;
+use crate::config;
+use crate::config::dfinity::Config;
+use crate::util;
 use crate::util::FakeProgress;
 use crate::util::logo::generate_logo;
 use clap::{ArgMatches, SubCommand, Arg, App};
@@ -7,8 +9,7 @@ use console::{style, Color, Term};
 use indicatif::{HumanBytes, ProgressStyle};
 use std::io::Read;
 use std::path::Path;
-
-include!(concat!(env!("OUT_DIR"), "/load_assets.rs"));
+use crate::config::DFX_VERSION;
 
 
 // This is easier to use.
@@ -103,6 +104,8 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
         ));
     }
 
+    let dfx_version = DFX_VERSION;
+
     let mut p = FakeProgress::new();
     p.add(
         600..1200,
@@ -110,9 +113,17 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
             b.set_style(ProgressStyle::default_spinner());
             b.set_message("Looking for latest version...");
         },
-        |b| b.finish_with_message("Latest version already installed."),
+        |b| {
+            let dfx_version = DFX_VERSION;
+            if !config::cache::is_version_installed(dfx_version).unwrap_or(false) {
+                let version_path = config::cache::install_version(dfx_version).unwrap();
+                b.finish_with_message(format!("Version v{} installed successfully.", dfx_version).as_str());
+            } else {
+                b.finish_with_message(format!("Version v{} already installed.", dfx_version).as_str());
+            }
+        },
     );
-    p.join();
+    p.join()?;
 
     println!();
     println!(r#"Creating new project "{}"..."#, project_name.to_str().unwrap());
@@ -120,8 +131,7 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
         println!(r#"Running in dry mode. Nothing will be committed to disk."#);
     }
 
-    let dfx_version = "v0.1.0";
-    for file in get_assets().unwrap().entries()? {
+    for file in util::assets_new_project_files().unwrap().entries()? {
         let mut file = file?;
 
         if file.header().entry_type().is_dir() {

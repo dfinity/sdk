@@ -5,6 +5,8 @@ use std::time::Duration;
 
 pub mod logo;
 
+include!(concat!(env!("OUT_DIR"), "/load_assets.rs"));
+
 pub struct FakeProgress {
     multi: MultiProgress,
 }
@@ -19,9 +21,9 @@ impl FakeProgress {
         FakeProgress{ multi }
     }
 
-    pub fn join(&self) -> () {
+    pub fn join(&self) -> std::io::Result<()> {
         self.multi.set_draw_target(ProgressDrawTarget::stderr());
-        self.multi.join().unwrap();
+        self.multi.join()
     }
 
     pub fn add<S, D>(&mut self,

@@ -1,5 +1,5 @@
 use crate::commands::CliResult;
-use crate::config::Config;
+use crate::config::dfinity::Config;
 use crate::util::FakeProgress;
 use clap::{ArgMatches, SubCommand, Arg, App};
 use console::style;

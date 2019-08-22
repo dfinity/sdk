@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "dfx": "{dfx_version}",
   "canisters": {
     "hello": {
       "path": "canisters/hello",

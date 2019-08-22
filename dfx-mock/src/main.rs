@@ -1,5 +1,6 @@
 use clap::{App, AppSettings};
 use crate::commands::CliError;
+use crate::config::DFX_VERSION;
 
 mod commands;
 mod config;
@@ -8,7 +9,7 @@ mod util;
 fn cli() -> App<'static, 'static> {
     App::new("dfx")
         .about("The DFINITY Executor.")
-        .version("v0.1.0")
+        .version(DFX_VERSION)
         .setting(AppSettings::ColoredHelp)
         .subcommands(
             commands::builtin().into_iter().map(|x| x.get_subcommand().clone())
