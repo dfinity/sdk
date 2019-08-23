@@ -74,7 +74,7 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
     type SerializeTupleStruct = Impossible<(), Error>;
     type SerializeTupleVariant = Impossible<(), Error>;
     type SerializeMap = Impossible<(), Error>;
-    type SerializeStruct = Impossible<(), Error>;
+    type SerializeStruct = Compound<'a>;
     type SerializeStructVariant = Impossible<(), Error>;
     
     #[inline]
@@ -230,7 +230,7 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
     }
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
-        Err(Error::todo())
+        Ok(Compound {ser: self, fields: Vec::new()})
     }
 
     fn serialize_struct_variant(
@@ -244,12 +244,44 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
     }    
 }
 
+pub struct Compound<'a> {
+    ser: &'a mut ValueSerializer,
+    fields: Vec<(&'static str, Vec<u8>)>,
+}
+
+impl<'a> ser::SerializeStruct for Compound<'a>
+{
+    type Ok = ();
+    type Error = Error;
+
+    #[inline]
+    fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<()>
+    where
+        T: Serialize,
+    {
+        let mut ser = ValueSerializer::new();
+        value.serialize(&mut ser)?;
+        self.fields.push((key, ser.value));
+        Ok(())
+    }
+
+    #[inline]
+    fn end(mut self) -> Result<()> {
+        self.fields.sort_unstable_by_key(|(id,_)| idl_hash(id));        
+        for (_, mut buf) in self.fields {
+            self.ser.value.append(&mut buf);
+        };
+        Ok(())
+    }    
+}
+
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum Type {
     Bool,
     Nat,
     Int,
     Opt(Box<Type>),
+    Record(Vec<(u32, Box<Type>)>),
 }
 
 fn sleb128_encode(val: i64) -> Vec<u8> {
@@ -263,6 +295,7 @@ fn leb128_encode(val: u64) -> Vec<u8> {
     leb128::write::unsigned(&mut buf, val).expect("error");
     buf
 }
+
 /// A structure for serializing Rust values to IDL types.
 #[derive(Debug)]
 pub struct TypeSerializer {
@@ -290,6 +323,17 @@ impl TypeSerializer
                     buf.append(&mut t_buf);
                     Ok(buf)
                 },
+                Type::Record(fs) => {
+                    let mut buf = sleb128_encode(-20);
+                    leb128::write::unsigned(&mut buf, fs.len() as u64)?;
+                    for (id, t) in fs {
+                        let mut id_buf = leb128_encode(*id as u64);
+                        let mut t_buf = self.encode(&t)?;
+                        buf.append(&mut id_buf);
+                        buf.append(&mut t_buf);
+                    };
+                    Ok(buf)
+                },
                 _ => Err(Error::message("unreachable"))
             }.unwrap();
             self.type_table.push(buf);
@@ -302,7 +346,7 @@ impl TypeSerializer
             Type::Bool => sleb128_encode(-2),
             Type::Nat => sleb128_encode(-3),
             Type::Int => sleb128_encode(-4),
-            Type::Opt(_) => {
+            _ => {
                 let idx = self.type_map.get(&t).expect("type not found");
                 sleb128_encode(*idx as i64)
             },
@@ -320,7 +364,7 @@ impl<'a> ser::Serializer for &'a mut TypeSerializer
     type SerializeTupleStruct = Impossible<Self::Ok, Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Error>;
     type SerializeMap = Impossible<Self::Ok, Error>;
-    type SerializeStruct = Impossible<Self::Ok, Error>;
+    type SerializeStruct = TypeCompound<'a>;
     type SerializeStructVariant = Impossible<Self::Ok, Error>;
     
     #[inline]
@@ -477,7 +521,7 @@ impl<'a> ser::Serializer for &'a mut TypeSerializer
     }
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
-        Err(Error::todo())
+        Ok(TypeCompound {ser: self, fields: Vec::new()})
     }
 
     fn serialize_struct_variant(
@@ -488,5 +532,47 @@ impl<'a> ser::Serializer for &'a mut TypeSerializer
         _len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         Err(Error::todo())
+    }    
+}
+
+#[inline]
+fn idl_hash(id: &str) -> u32 {
+    let mut s: u32 = 0;
+    for c in id.chars() {
+        s = s.wrapping_mul(223).wrapping_add(c as u32);
+    }
+    s
+}
+
+pub struct TypeCompound<'a> {
+    ser: &'a mut TypeSerializer,
+    fields: Vec<(&'static str, Type)>,
+}
+
+impl<'a> ser::SerializeStruct for TypeCompound<'a>
+{
+    type Ok = Type;
+    type Error = Error;
+
+    #[inline]
+    fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<()>
+    where
+        T: Serialize,
+    {
+        let t = value.serialize(&mut *self.ser)?;
+        self.fields.push((key, t));
+        Ok(())
+    }
+
+    #[inline]
+    fn end(mut self) -> Result<Type> {
+        self.fields.sort_unstable_by_key(|(id,_)| idl_hash(id));
+        let mut fs = Vec::new();
+        for (k, t) in self.fields {
+            fs.push((idl_hash(k), Box::new(t)));
+        };
+        let t = Type::Record(fs);
+        self.ser.add_type(&t)?;
+        Ok(t)
     }    
 }

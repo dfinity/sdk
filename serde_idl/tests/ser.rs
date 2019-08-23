@@ -22,6 +22,16 @@ fn test_option() {
     check(Some(Some(42)), "4449444c026e7c6e000101012a");
 }
 
+#[test]
+fn test_struct() {
+    #[derive(Serialize, Debug)]
+    struct A {
+        foo: i32,
+        bar: bool,
+    }
+    check(A {foo: 42, bar: true}, "4449444c016c02d3e3aa027e868eb7027c00012a");
+}
+
 fn check<T: Serialize>(value: T, expected: &str) {
     let encoded = to_vec(&value).unwrap();
     let expected = hex::decode(expected).unwrap();
