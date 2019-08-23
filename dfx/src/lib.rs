@@ -15,7 +15,6 @@ pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 type CanisterId = u64;
 
-
 pub struct Client {
     client: reqwest::r#async::Client,
     url: String,
@@ -49,7 +48,6 @@ impl Default for Client {
     }
 }
 
-
 #[derive(Debug)]
 pub enum DfxError {
     Reqwest(reqwest::Error),
@@ -68,7 +66,6 @@ impl From<reqwest::UrlError> for DfxError {
         DfxError::Url(err)
     }
 }
-
 
 /// Request payloads
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -107,7 +104,6 @@ pub enum RejectCode {
     CanisterReject = 4,
     CanisterError = 5,
 }
-
 
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
@@ -150,7 +146,6 @@ pub fn query(
     read(client, Message::Query { message })
 }
 
-
 /// A canister query call request payload
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanisterQueryCall {
@@ -164,7 +159,6 @@ pub struct CanisterQueryCall {
 pub struct QueryResponseReply {
     pub arg: Blob,
 }
-
 
 #[cfg(test)]
 mod tests {
