@@ -2,7 +2,21 @@
 name = "dfx"
 version = "0.1.0"
 authors = ["DFINITY Team"]
+edition = "2018"
 
 [[bin]]
 name = "dfx"
 path = "src/main.rs"
+
+[dependencies]
+futures = "0.1"
+reqwest = "0.9"
+serde = { version = "1.0", features = ["derive"] }
+serde_bytes = "0.11"
+serde_cbor = "0.10"
+serde_repr = "0.1"
+tokio = "0.1"
+
+[dev-dependencies]
+env_logger = "0.6"
+mockito = "0.20"
