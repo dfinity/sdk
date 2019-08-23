@@ -1,7 +1,7 @@
 use crate::commands::CliResult;
 use crate::config::dfinity::Config;
 use clap::{Arg, ArgMatches, SubCommand, App};
-use crate::util::FakeProgress;
+use crate::config::cache::binary_command;
 
 pub fn available() -> bool {
     Config::from_current_dir().is_ok()
@@ -18,16 +18,13 @@ pub fn construct() -> App<'static, 'static> {
 
 pub fn exec(_args: &ArgMatches<'_>) -> CliResult {
     // Read the config.
-    let _config = Config::from_current_dir()?;
+    let config = Config::from_current_dir()?;
+    // get_path() returns the name of the config.
+    let project_root = config.get_path().parent().unwrap();
 
-    let mut fp = FakeProgress::new();
-    fp.add(
-        1000..2000,
-        |bar| {
-
-        },
-        |bar| {},
-    );
+    binary_command(&config, "asc")?
+        .arg(project_root.join("app/canisters/hello/main.as").into_os_string())
+        .output()?;
 
     Ok(())
 }

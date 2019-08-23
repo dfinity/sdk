@@ -116,7 +116,7 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
         |b| {
             let dfx_version = DFX_VERSION;
             if !config::cache::is_version_installed(dfx_version).unwrap_or(false) {
-                let version_path = config::cache::install_version(dfx_version).unwrap();
+                config::cache::install_version(dfx_version).unwrap();
                 b.finish_with_message(format!("Version v{} installed successfully.", dfx_version).as_str());
             } else {
                 b.finish_with_message(format!("Version v{} already installed.", dfx_version).as_str());

@@ -35,7 +35,10 @@ impl ConfigInterface {
         }
     }
     pub fn get_dfx_version(&self) -> String {
-        self.dfx.unwrap_or(DFX_VERSION.to_string()).to_string()
+        match &self.dfx {
+            Some(v) => v.to_owned(),
+            _ => DFX_VERSION.to_owned(),
+        }
     }
 }
 

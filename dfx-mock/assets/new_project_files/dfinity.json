@@ -3,8 +3,7 @@
   "dfx": "{dfx_version}",
   "canisters": {
     "hello": {
-      "path": "canisters/hello",
-      "main": "main.as"
+      "main": "canisters/hello/main.as"
     }
   },
   "defaults": {

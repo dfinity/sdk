@@ -113,7 +113,7 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
             );
         },
     );
-    fp.join();
+    fp.join()?;
 
     let addr = format!("{}:{}", address, port);
     println!("Listening for requests at {}", style(format!("http://{}", addr)).blue().bold().underlined());
