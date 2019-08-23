@@ -119,6 +119,9 @@ naersk.buildPackage src
         $doc/nix-support/hydra-build-products
       echo "report cargo-graph-dfx $doc ./cargo-graph.svg" >> \
         $doc/nix-support/hydra-build-products
+        
+      mkdir -p $out/nix-support
+      echo "file bin $out/bin/dfx" >> $out/nix-support/hydra-build-products
     '';
   });
 }
