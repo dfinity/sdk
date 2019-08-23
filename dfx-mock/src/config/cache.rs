@@ -63,8 +63,22 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
 }
 
 
-pub fn get_binary_from_config(config: &Config, binary_name: &str) -> Result<PathBuf> {
+pub fn get_binary_path_from_config(config: &Config, binary_name: &str) -> Result<PathBuf> {
     let version = config.get_config().get_dfx_version();
 
     Ok(get_bin_cache(version.as_str())?.join(binary_name))
+}
+
+pub fn binary_command(config: &Config, name: &str) -> Result<std::process::Command> {
+    let path = get_binary_path_from_config(config, name);
+
+    match name {
+        "asc" => Ok(
+            std::process::Command::new(path)
+                .env("ASC_RTS", get_binary_path_from_config(config, "as-rts.wasm"))
+        )
+    }
+    let mut cmd = std::process::Command::new(path);
+
+    Ok(cmd)
 }
