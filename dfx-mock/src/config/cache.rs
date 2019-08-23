@@ -70,15 +70,12 @@ pub fn get_binary_path_from_config(config: &Config, binary_name: &str) -> Result
 }
 
 pub fn binary_command(config: &Config, name: &str) -> Result<std::process::Command> {
-    let path = get_binary_path_from_config(config, name);
-
-    match name {
-        "asc" => Ok(
-            std::process::Command::new(path)
-                .env("ASC_RTS", get_binary_path_from_config(config, "as-rts.wasm"))
-        )
-    }
+    let path = get_binary_path_from_config(config, name)?;
     let mut cmd = std::process::Command::new(path);
 
+    match name {
+        "asc" => cmd.env("ASC_RTS", get_binary_path_from_config(config, "as-rts.wasm")),
+        _ => {},
+    };
     Ok(cmd)
 }
