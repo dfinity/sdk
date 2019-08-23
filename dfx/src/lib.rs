@@ -1,5 +1,6 @@
 use futures::future::{err, ok, result, Future};
 use futures::stream::Stream;
+use reqwest::r#async::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
@@ -16,14 +17,14 @@ pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
 type CanisterId = u64;
 
 pub struct Client {
-    client: reqwest::r#async::Client,
+    client: ReqwestClient,
     url: String,
 }
 
 impl Client {
     pub fn new(config: ClientConfig) -> Client {
         Client {
-            client: reqwest::r#async::Client::new(),
+            client: ReqwestClient::new(),
             url: config.url,
         }
     }
