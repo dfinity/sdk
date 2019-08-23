@@ -26,11 +26,14 @@ where
 {
     let mut type_ser = TypeSerializer::new();
     let mut value_ser = ValueSerializer::new();
-    value.serialize(&mut type_ser)?;
+    let ty = value.serialize(&mut type_ser).unwrap();
     value.serialize(&mut value_ser)?;
     writer.write_all(b"DIDL")?;
-    writer.write_all(&type_ser.type_table)?;
-    writer.write_all(&type_ser.ty)?;
+    leb128::write::unsigned(&mut writer, type_ser.type_table.len() as u64)?;
+    for buf in &type_ser.type_table {
+        writer.write_all(&buf)?;
+    };
+    writer.write_all(&type_ser.encode(&ty)?)?;
     writer.write_all(&value_ser.value)?;
     Ok(())
 }
@@ -147,11 +150,12 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
         Err(Error::todo())
     }
 
-    fn serialize_some<T: ?Sized>(self, _v: &T) -> Result<()>
+    fn serialize_some<T: ?Sized>(self, v: &T) -> Result<()>
     where
         T: Serialize,
     {
-        Err(Error::todo())
+        self.write_leb128(1);
+        v.serialize(self)
     }
 
     fn serialize_unit(self) -> Result<()> {
@@ -240,138 +244,172 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
     }    
 }
 
-#[derive(PartialEq, Eq, Hash, Debug)]
-enum Type {
-    Bool = -2,
-    Nat = -3,
-    Int = -4,
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub enum Type {
+    Bool,
+    Nat,
+    Int,
+    Opt(Box<Type>),
 }
 
+fn sleb128_encode(val: i64) -> Vec<u8> {
+    let mut buf = Vec::new();
+    leb128::write::signed(&mut buf, val).expect("error");
+    buf
+}
+
+fn leb128_encode(val: u64) -> Vec<u8> {
+    let mut buf = Vec::new();
+    leb128::write::unsigned(&mut buf, val).expect("error");
+    buf
+}
 /// A structure for serializing Rust values to IDL types.
 #[derive(Debug)]
 pub struct TypeSerializer {
-    type_table: Vec<u8>,
+    type_table: Vec<Vec<u8>>,
     type_map: HashMap<Type, i32>,
-    ty: Vec<u8>,
 }
 
 impl TypeSerializer
 {
-    /// Creates a new IDL serializer.
-    ///
-    /// `to_vec` and `to_writer` should normally be used instead of this method.
     #[inline]
     pub fn new() -> Self {
         TypeSerializer {
-            type_table: Vec::new(), type_map: HashMap::new(), ty: Vec::new()
+            type_table: Vec::new(), type_map: HashMap::new()
         }
     }
     #[inline]
-    fn add_type(&mut self, t: Type) -> () {
-        leb128::write::signed(&mut self.type_table, t as i64).expect("should be number");
+    fn add_type(&mut self, t: &Type) -> Result<()> {
+        if !self.type_map.contains_key(t) {
+            let idx = self.type_table.len();            
+            self.type_map.insert((*t).clone(), idx as i32);            
+            let buf = match t {
+                Type::Opt(t) => {
+                    let mut buf = sleb128_encode(-18);
+                    let mut t_buf = self.encode(&*t)?;
+                    buf.append(&mut t_buf);
+                    Ok(buf)
+                },
+                _ => Err(Error::message("unreachable"))
+            }.unwrap();
+            self.type_table.push(buf);
+        };
+        Ok(())
     }
-    fn encode_type(&mut self, t: Type) -> () {
-        leb128::write::signed(&mut self.ty, t as i64).expect("should be number");
+
+    fn encode(&mut self, t: &Type) -> Result<Vec<u8>> {
+        Ok(match t {
+            Type::Bool => sleb128_encode(-2),
+            Type::Nat => sleb128_encode(-3),
+            Type::Int => sleb128_encode(-4),
+            Type::Opt(_) => {
+                let idx = self.type_map.get(&t).expect("type not found");
+                sleb128_encode(*idx as i64)
+            },
+        })
     }
 }
 
 impl<'a> ser::Serializer for &'a mut TypeSerializer
 {
-    type Ok = ();
+    type Ok = Type;
     type Error = Error;
 
-    type SerializeSeq = Impossible<(), Error>;
-    type SerializeTuple = Impossible<(), Error>;
-    type SerializeTupleStruct = Impossible<(), Error>;
-    type SerializeTupleVariant = Impossible<(), Error>;
-    type SerializeMap = Impossible<(), Error>;
-    type SerializeStruct = Impossible<(), Error>;
-    type SerializeStructVariant = Impossible<(), Error>;
+    type SerializeSeq = Impossible<Self::Ok, Error>;
+    type SerializeTuple = Impossible<Self::Ok, Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Error>;
+    type SerializeMap = Impossible<Self::Ok, Error>;
+    type SerializeStruct = Impossible<Self::Ok, Error>;
+    type SerializeStructVariant = Impossible<Self::Ok, Error>;
     
     #[inline]
-    fn serialize_bool(self, _value: bool) -> Result<()> {
-        Ok(self.encode_type(Type::Bool))
+    fn serialize_bool(self, _value: bool) -> Result<Self::Ok> {
+        Ok(Type::Bool)
     }
 
     #[inline]
-    fn serialize_i8(self, value: i8) -> Result<()> {
+    fn serialize_i8(self, value: i8) -> Result<Self::Ok> {
         self.serialize_i64(value as i64)
     }
 
     #[inline]
-    fn serialize_i16(self, value: i16) -> Result<()> {
+    fn serialize_i16(self, value: i16) -> Result<Self::Ok> {
         self.serialize_i64(value as i64)
     }
 
     #[inline]
-    fn serialize_i32(self, value: i32) -> Result<()> {
+    fn serialize_i32(self, value: i32) -> Result<Self::Ok> {
         self.serialize_i64(value as i64)
     }
 
     #[inline]
-    fn serialize_i64(self, _value: i64) -> Result<()> {
-        Ok(self.encode_type(Type::Int))
+    fn serialize_i64(self, _value: i64) -> Result<Self::Ok> {
+        Ok(Type::Int)
     }
 
     #[inline]
-    fn serialize_u8(self, value: u8) -> Result<()> {
+    fn serialize_u8(self, value: u8) -> Result<Self::Ok> {
         self.serialize_u64(value as u64)
     }
 
     #[inline]
-    fn serialize_u16(self, value: u16) -> Result<()> {
+    fn serialize_u16(self, value: u16) -> Result<Self::Ok> {
         self.serialize_u64(value as u64)
     }
 
     #[inline]
-    fn serialize_u32(self, value: u32) -> Result<()> {
+    fn serialize_u32(self, value: u32) -> Result<Self::Ok> {
         self.serialize_u64(value as u64)
     }
 
     #[inline]
-    fn serialize_u64(self, _value: u64) -> Result<()> {
-        Ok(self.encode_type(Type::Nat))
+    fn serialize_u64(self, _v: u64) -> Result<Self::Ok> {
+        Ok(Type::Nat)
     }
 
     #[inline]
-    fn serialize_f32(self, _v: f32) -> Result<()> {
-        Err(Error::todo())
-    }
-
-    #[inline]
-    fn serialize_f64(self, _v: f64) -> Result<()> {
+    fn serialize_f32(self, _v: f32) -> Result<Self::Ok> {
         Err(Error::todo())
     }
 
     #[inline]
-    fn serialize_char(self, _v: char) -> Result<()> {
+    fn serialize_f64(self, _v: f64) -> Result<Self::Ok> {
         Err(Error::todo())
     }
 
-    fn serialize_str(self, _v: &str) -> Result<()> {
+    #[inline]
+    fn serialize_char(self, _v: char) -> Result<Self::Ok> {
         Err(Error::todo())
     }
 
-    fn serialize_bytes(self, _v: &[u8]) -> Result<()> {
+    fn serialize_str(self, _v: &str) -> Result<Self::Ok> {
         Err(Error::todo())
     }
 
-    fn serialize_none(self) -> Result<()> {
+    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok> {
         Err(Error::todo())
     }
 
-    fn serialize_some<T: ?Sized>(self, _v: &T) -> Result<()>
+    fn serialize_none(self) -> Result<Self::Ok> {
+        Err(Error::todo())
+    }
+
+    fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok>
     where
         T: Serialize,
     {
+        let t = v.serialize(&mut *self)?;
+        let t = Type::Opt(Box::new(t));
+        self.add_type(&t)?;
+        Ok(t)
+    }
+
+    fn serialize_unit(self) -> Result<Self::Ok> {
         Err(Error::todo())
     }
 
-    fn serialize_unit(self) -> Result<()> {
-        Err(Error::todo())
-    }
-
-    fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok> {
         Err(Error::todo())
     }
 
@@ -380,7 +418,7 @@ impl<'a> ser::Serializer for &'a mut TypeSerializer
         _name: &'static str,
         _variant_index: u32,
         _variant: &'static str,
-    ) -> Result<()> {
+    ) -> Result<Self::Ok> {
         Err(Error::todo())
     }
 
@@ -388,7 +426,7 @@ impl<'a> ser::Serializer for &'a mut TypeSerializer
         self,
         _name: &'static str,
         _value: &T,
-    ) -> Result<()>
+    ) -> Result<Self::Ok>
     where
         T: Serialize,
     {
@@ -401,7 +439,7 @@ impl<'a> ser::Serializer for &'a mut TypeSerializer
         _variant_index: u32,
         _variant: &'static str,
         _value: &T,
-    ) -> Result<()>
+    ) -> Result<Self::Ok>
     where
         T: Serialize,
     {
