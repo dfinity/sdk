@@ -21,16 +21,10 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new() -> Client {
+    pub fn new(config: ClientConfig) -> Client {
         Client {
             client: reqwest::r#async::Client::new(),
-
-            #[cfg(not(test))]
-            // url: "http://10.129.10.139:8080".to_string(),
-            url: "http://localhost:8080".to_string(),
-
-            #[cfg(test)]
-            url: mockito::server_url(),
+            url: config.url,
         }
     }
 
@@ -42,10 +36,8 @@ impl Client {
     }
 }
 
-impl Default for Client {
-    fn default() -> Self {
-        Self::new()
-    }
+pub struct ClientConfig {
+    pub url: String,
 }
 
 #[derive(Debug)]
@@ -260,7 +252,9 @@ mod tests {
             .with_body(serde_cbor::to_vec(&response).unwrap())
             .create();
 
-        let client = Client::new();
+        let client = Client::new(ClientConfig {
+            url: mockito::server_url(),
+        });
 
         let query = query(
             client,
@@ -330,7 +324,9 @@ mod tests {
             .with_body(serde_cbor::to_vec(&response).unwrap())
             .create();
 
-        let client = Client::new();
+        let client = Client::new(ClientConfig {
+            url: mockito::server_url(),
+        });
 
         let query = query(
             client,
