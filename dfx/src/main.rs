@@ -2,9 +2,10 @@ use dfx::*;
 use futures::future::Future;
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let url = &args[1];
     let client = Client::new(ClientConfig {
-        url: "http://localhost:8080".to_string(),
-        // url: "http://10.129.10.139:8080".to_string(),
+        url: url.to_string(),
     });
     let query = query(
         client,
