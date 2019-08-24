@@ -23,7 +23,6 @@ pub fn exec(_args: &ArgMatches<'_>) -> CliResult {
     let project_root = config.get_path().parent().unwrap();
 
     let build_root = project_root.join(config.get_config().get_defaults().get_build().get_output("build/"));
-    println!("{}", build_root.to_str().unwrap());
 
     match &config.get_config().canisters {
         Some(canisters) => {
@@ -33,13 +32,24 @@ pub fn exec(_args: &ArgMatches<'_>) -> CliResult {
                 println!("Building {}...", k);
                 match v.main {
                     Some(x) => {
-                        let mut output_path = build_root.join(x.as_str());
-                        output_path.set_extension("wasm");
 
-                        std::fs::create_dir_all(output_path.parent().unwrap())?;
+                        let mut output_wasm_path = build_root.join(x.as_str());
+                        let mut output_idl_path = output_wasm_path.clone();
+                        let mut output_js_path = output_wasm_path.clone();
+                        output_wasm_path.set_extension("wasm");
+                        output_idl_path.set_extension("did");
+                        output_js_path.set_extension("js");
+
+                        std::fs::create_dir_all(output_wasm_path.parent().unwrap())?;
+
                         binary_command(&config, "asc")?
                             .arg(project_root.join(x.as_str()).into_os_string())
-                            .arg("-o").arg(&output_path)
+                            .arg("-o").arg(&output_wasm_path)
+                            .output()?;
+                        binary_command(&config, "didc")?
+                            .arg("--js")
+                            .arg(&output_idl_path)
+                            .arg("-o").arg(&output_js_path)
                             .output()?;
                     },
                     _ => {},
