@@ -1,7 +1,7 @@
 /**
  * Sets of API in a canister are called Actors. An actor can be a structure or a class.
  */
-actor class HelloActor() {
+actor HelloActor {
 
     /**
      * A public function can be called by anyone, from inside and outside the network.

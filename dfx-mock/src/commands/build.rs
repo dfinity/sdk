@@ -32,6 +32,7 @@ pub fn exec(_args: &ArgMatches<'_>) -> CliResult {
                 println!("Building {}...", k);
                 match v.main {
                     Some(x) => {
+                        let input_as_path = project_root.join(x.as_str()).into_os_string();
 
                         let mut output_wasm_path = build_root.join(x.as_str());
                         let mut output_idl_path = output_wasm_path.clone();
@@ -43,8 +44,13 @@ pub fn exec(_args: &ArgMatches<'_>) -> CliResult {
                         std::fs::create_dir_all(output_wasm_path.parent().unwrap())?;
 
                         binary_command(&config, "asc")?
-                            .arg(project_root.join(x.as_str()).into_os_string())
+                            .arg(&input_as_path)
                             .arg("-o").arg(&output_wasm_path)
+                            .output()?;
+                        binary_command(&config, "asc")?
+                            .arg("--idl")
+                            .arg(&input_as_path)
+                            .arg("-o").arg(&output_idl_path)
                             .output()?;
                         binary_command(&config, "didc")?
                             .arg("--js")
