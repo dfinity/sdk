@@ -72,7 +72,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("nodes")
-                .help("The number of nodes to start locally. By default uses 2.")
+                .help("The number of nodes to start locally. By default uses 1 node.")
                 .long("nodes")
                 .short("n")
                 .takes_value(true)
@@ -83,17 +83,17 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
     // Read the config.
     let config = Config::from_current_dir()?;
 
-    let default_address = &config.get_config().get_defaults().address;
+    let default_address = &config.get_config().get_defaults().get_start().address;
     let default_address = default_address.clone().unwrap_or("127.0.0.1".to_owned());
     let address = args.value_of("address").unwrap_or(default_address.as_str());
 
     let nodes = match args.value_of("nodes") {
         Some(n) => n.parse::<u64>()?,
-        None => config.get_config().get_defaults().nodes.unwrap_or(2),
+        None => config.get_config().get_defaults().get_start().get_nodes(1),
     };
     let port = match args.value_of("port") {
         Some(port) => port.parse::<u16>()?,
-        None => config.get_config().get_defaults().port.unwrap_or(4200),
+        None => config.get_config().get_defaults().get_start().get_port(8080),
     };
 
     let mut fp = FakeProgress::new();

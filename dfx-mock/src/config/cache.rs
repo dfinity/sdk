@@ -29,7 +29,7 @@ pub fn get_bin_cache(v: &str) -> Result<PathBuf> {
     let root = get_bin_cache_root()?;
 
     match v {
-        "v0.1.0" | "0.1.0" => Ok(root.join("v0.1.0")),
+        "0.1.0" => Ok(root.join("0.1.0")),
         v => Err(Error::new(ErrorKind::Other, format!("Unknown version: {}", v))),
     }
 }
@@ -54,7 +54,7 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
     }
 
     match v {
-        "v0.1.0" | "0.1.0" => {
+        "0.1.0" => {
             util::assets_v0_1_0_files()?.unpack(p.as_path())?;
             Ok(p)
         },
@@ -64,7 +64,7 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
 
 
 pub fn get_binary_path_from_config(config: &Config, binary_name: &str) -> Result<PathBuf> {
-    let version = config.get_config().get_dfx_version();
+    let version = config.get_config().get_dfx();
 
     Ok(get_bin_cache(version.as_str())?.join(binary_name))
 }

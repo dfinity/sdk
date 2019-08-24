@@ -20,15 +20,21 @@ fn exec(args: &clap::ArgMatches<'_>) -> commands::CliResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
-            cli().print_help()?;
+            cli().write_help(&mut std::io::stderr())?;
+            println!();
+            println!();
             return Ok(());
         }
     };
 
-    if let Some(cmd) = commands::builtin().into_iter().find(|x| name == x.get_name()) {
-        cmd.execute(subcommand_args)
-    } else {
-        Err(CliError::new(failure::format_err!("Command {} unknown.", name), 101))
+    match commands::builtin().into_iter().find(|x| name == x.get_name()) {
+        Some(cmd) => cmd.execute(subcommand_args),
+        _ => {
+            cli().write_help(&mut std::io::stderr())?;
+            println!();
+            println!();
+            Err(CliError::new(failure::format_err!("Command {} unknown.", name), 101))
+        }
     }
 }
 

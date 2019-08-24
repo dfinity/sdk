@@ -3,11 +3,13 @@
   "dfx": "{dfx_version}",
   "canisters": {
     "hello": {
-      "main": "canisters/hello/main.as"
+      "main": "app/canisters/hello/main.as"
     }
   },
   "defaults": {
-    "build": {},
+    "build": {
+      "output": "build/"
+    },
     "start": {
       "nodes": 2,
       "port": 4200,

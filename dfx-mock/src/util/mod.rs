@@ -11,7 +11,7 @@ pub struct FakeProgress {
     multi: MultiProgress,
 }
 
-// 55 fps.
+// 25 fps.
 const WAIT_MSEC: u64 = 40;
 
 impl FakeProgress {

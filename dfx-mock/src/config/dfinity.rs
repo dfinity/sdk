@@ -6,45 +6,107 @@ use crate::config::DFX_VERSION;
 
 pub const CONFIG_FILE_NAME: &str = "dfinity.json";
 
+const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults{
+    build: None,
+    start: None,
+};
+const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart{
+    address: None,
+    port: None,
+    nodes: None,
+};
+const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild{
+    output: None,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ConfigDefaults {
+pub struct ConfigCanistersCanister {
+    pub main: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigDefaultsStart {
     pub address: Option<String>,
     pub nodes: Option<u64>,
     pub port: Option<u16>,
 }
 
-pub const EMPTY_CONFIG_SERVER: ConfigDefaults = ConfigDefaults{
-    address: None,
-    port: None,
-    nodes: None,
-};
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigDefaultsBuild {
+    pub output: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigDefaults {
+    pub build: Option<ConfigDefaultsBuild>,
+    pub start: Option<ConfigDefaultsStart>,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigInterface {
+    pub version: Option<u32>,
     pub dfx: Option<String>,
-    //    pub canisters: Option<Map<String, ConfigCanisters>>
+    pub canisters: Option<Map<String, Value>>,
     pub defaults: Option<ConfigDefaults>,
+}
+
+impl ConfigCanistersCanister {
+    pub fn get_main(&self, default: &str) -> String {
+        self.main.to_owned().unwrap_or(default.to_string())
+    }
+}
+
+impl ConfigDefaultsStart {
+    pub fn get_address(&self, default: &str) -> String {
+        self.address.to_owned().unwrap_or(default.to_string())
+    }
+    pub fn get_nodes(&self, default: u64) -> u64 {
+        self.nodes.unwrap_or(default)
+    }
+    pub fn get_port(&self, default: u16) -> u16 {
+        self.port.unwrap_or(default)
+    }
+}
+
+impl ConfigDefaultsBuild {
+    pub fn get_output(&self, default: &str) -> String {
+        self.output.to_owned().unwrap_or(default.to_string())
+    }
+}
+
+impl ConfigDefaults {
+    pub fn get_build(&self) -> &ConfigDefaultsBuild {
+        match &self.build {
+            Some(x) => &x,
+            None => &EMPTY_CONFIG_DEFAULTS_BUILD,
+        }
+    }
+    pub fn get_start(&self) -> &ConfigDefaultsStart {
+        match &self.start {
+            Some(x) => &x,
+            None => &EMPTY_CONFIG_DEFAULTS_START
+        }
+    }
 }
 
 impl ConfigInterface {
     pub fn get_defaults(&self) -> &ConfigDefaults {
         match &self.defaults {
             Some(v) => &v,
-            _ => &EMPTY_CONFIG_SERVER,
+            _ => &EMPTY_CONFIG_DEFAULTS,
         }
     }
-    pub fn get_dfx_version(&self) -> String {
-        match &self.dfx {
-            Some(v) => v.to_owned(),
-            _ => DFX_VERSION.to_owned(),
-        }
+    pub fn get_version(&self) -> u32 {
+        self.version.unwrap_or(1)
+    }
+    pub fn get_dfx(&self) -> String {
+        self.dfx.to_owned().unwrap_or(DFX_VERSION.to_owned())
     }
 }
 
 pub struct Config {
     path: PathBuf,
-    json_object: Map<String, Value>,
+    json: Map<String, Value>,
     config: ConfigInterface,
 }
 
@@ -73,8 +135,8 @@ impl Config {
         let path = Config::resolve_config_path(working_dir)?;
         let content = std::fs::read(&path)?;
         let config = serde_json::from_slice(&content)?;
-        let json_object = serde_json::from_slice(&content)?;
-        Ok(Config{path, json_object, config})
+        let json = serde_json::from_slice(&content)?;
+        Ok(Config{path, json, config})
     }
 
     pub fn from_current_dir() -> std::io::Result<Config> {
@@ -84,12 +146,12 @@ impl Config {
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
-    pub fn get_value(&self) -> &Map<String, Value> { &self.json_object }
-    pub fn get_mut_value(&mut self) -> &mut Map<String, Value> { &mut self.json_object }
+    pub fn get_value(&self) -> &Map<String, Value> { &self.json }
+    pub fn get_mut_value(&mut self) -> &mut Map<String, Value> { &mut self.json }
     pub fn get_config(&self) -> &ConfigInterface { &self.config }
 
     pub fn save(&self) -> CliResult {
-        std::fs::write(&self.path, serde_json::to_string_pretty(&self.json_object).unwrap())?;
+        std::fs::write(&self.path, serde_json::to_string_pretty(&self.json).unwrap())?;
         Ok(())
     }
 }
