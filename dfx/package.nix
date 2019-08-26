@@ -1,4 +1,22 @@
-{ naersk, rustfmt, rls, stdenv, lib, darwin, clang, cmake, python3, rustPackages, libressl, pkg-config, moreutils, cargo-graph, graphviz }:
+{ naersk
+, rustfmt
+, rls
+, stdenv
+, lib
+, darwin
+, clang
+, cmake
+, python3
+, rustPackages
+, libressl
+, pkg-config
+, moreutils
+, cargo-graph
+, graphviz
+, dfinity
+, actorscript
+}:
+
 let
   name = "dfinity-sdk-dfx";
 
@@ -104,6 +122,15 @@ naersk.buildPackage src
   # derivation (the deps-only build has name "${name}-deps").
   lib.optionalAttrs (oldAttrs.name == name)
   {
+    preBuild = ''
+      mkdir -p dfx_assets/{bin,rts}
+      cp ${dfinity.rust-workspace}/bin/{dfinity,nodemanager} dfx_assets/bin
+      cp ${actorscript.asc}/bin/asc dfx_assets/bin
+      cp ${actorscript.as-ide}/bin/as-ide dfx_assets/bin
+      cp ${actorscript.didc}/bin/didc dfx_assets/bin
+      cp ${actorscript.rts}/rts/as-rts.wasm dfx_assets/rts
+    '';
+
     postDoc = ''
       cargo graph | dot -Tsvg > ./target/doc/dfx/cargo-graph.svg
     '';
@@ -119,7 +146,7 @@ naersk.buildPackage src
         $doc/nix-support/hydra-build-products
       echo "report cargo-graph-dfx $doc ./cargo-graph.svg" >> \
         $doc/nix-support/hydra-build-products
-        
+
       mkdir -p $out/nix-support
       echo "file bin $out/bin/dfx" >> $out/nix-support/hydra-build-products
     '';
