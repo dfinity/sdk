@@ -1,6 +1,7 @@
 self: super:
 
 let dfx = super.callPackage ../../dfx/package.nix {
+  inherit (self) actorscript dfinity;
   libressl = self.libressl_2_9;
 
   # rustfmt needs to be compatible with rustc. The rust repo actually
