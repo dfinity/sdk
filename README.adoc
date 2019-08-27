@@ -3,7 +3,7 @@
 == Using The Mock DFX Locally
 The mock DFX binary is kept on a separate branch. To use it follow the steps:
 
-1. Use a clone of this repository. If you haven't set a clone, this command line will do so:
+1. Make a clone of this repository. If you haven't made a clone, this command line will do so:
 [source,bash]
 git clone https://github.com/dfinity-lab/sdk.git
 cd sdk
