@@ -106,7 +106,7 @@ impl ConfigInterface {
 
 pub struct Config {
     path: PathBuf,
-    json: Map<String, Value>,
+    json: Value,
     config: ConfigInterface,
 }
 
@@ -146,8 +146,8 @@ impl Config {
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
-    pub fn get_value(&self) -> &Map<String, Value> { &self.json }
-    pub fn get_mut_value(&mut self) -> &mut Map<String, Value> { &mut self.json }
+    pub fn get_json(&self) -> &Value { &self.json }
+    pub fn get_mut_json(&mut self) -> &mut Value { &mut self.json }
     pub fn get_config(&self) -> &ConfigInterface { &self.config }
 
     pub fn save(&self) -> CliResult {

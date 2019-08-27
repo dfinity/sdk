@@ -26,10 +26,10 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
     let option_name = args.value_of("option_name").unwrap();
     if let Some(value) = args.value_of("value") {
         let new_value = serde_json::from_str(value)?;
-        config.get_mut_value().insert(option_name.to_owned(), new_value);
+        *config.get_mut_json().pointer_mut(option_name).unwrap() = new_value;
         config.save()
     } else {
-        if let Some(value) = config.get_value().get(option_name) {
+        if let Some(value) = config.get_json().pointer(option_name) {
             println!("{}", value);
         }
         Ok(())

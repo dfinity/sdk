@@ -14,6 +14,10 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("canister")
                 .help("The canister name to build.")
         )
+        .arg(
+            Arg::with_name("watch")
+                .help("Watch input files to ")
+        )
 }
 
 pub fn exec(_args: &ArgMatches<'_>) -> CliResult {
