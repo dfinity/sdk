@@ -11,18 +11,10 @@ let dfx = super.callPackage ../../dfx/package.nix {
   rustfmt = self.pkgsUnstable.rustfmt;
   rls = self.pkgsUnstable.rls;
 }; in
-let dfx-mock = super.callPackage ../../dfx-mock/package.nix {
-  libressl = self.libressl_2_9;
-}; in
 
 {
   dfinity-sdk = {
-    dfx = {
-        inherit dfx;
-    };
-    dfx-mock = {
-        inherit dfx-mock;
-    };
+    inherit dfx;
 
     # This is to make sure CI evalutes shell derivations, builds their
     # dependencies and populates the hydra cache with them. We also use this in
@@ -30,12 +22,10 @@ let dfx-mock = super.callPackage ../../dfx-mock/package.nix {
     # of all the shells here.
     shells = {
       dfx = import ../../dfx/shell.nix { pkgs = self; };
-      dfx-mock = import ../../dfx-mock/shell.nix { pkgs = self; };
     };
 
     licenses = {
       dfx = super.lib.runtime.runtimeLicensesReport dfx;
-      dfx-mock = super.lib.runtime.runtimeLicensesReport dfx;
     };
   };
 }

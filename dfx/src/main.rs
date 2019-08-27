@@ -1,16 +1,15 @@
+use crate::commands::CliError;
+use crate::config::DFX_VERSION;
 use clap::{App, AppSettings};
 
 mod commands;
-pub mod lib;
-
-use lib::error::*;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+mod config;
+mod util;
 
 fn cli() -> App<'static, 'static> {
     App::new("dfx")
         .about("The DFINITY Executor.")
-        .version(VERSION)
+        .version(DFX_VERSION)
         .setting(AppSettings::ColoredHelp)
         .subcommands(
             commands::builtin()
@@ -19,7 +18,7 @@ fn cli() -> App<'static, 'static> {
         )
 }
 
-fn exec(args: &clap::ArgMatches<'_>) -> DfxResult {
+fn exec(args: &clap::ArgMatches<'_>) -> commands::CliResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
@@ -39,10 +38,10 @@ fn exec(args: &clap::ArgMatches<'_>) -> DfxResult {
             cli().write_help(&mut std::io::stderr())?;
             println!();
             println!();
-            Err(DfxError::UnknownCommand(format!(
-                "Command {} unknown.",
-                name
-            )))
+            Err(CliError::new(
+                failure::format_err!("Command {} unknown.", name),
+                101,
+            ))
         }
     }
 }
@@ -53,8 +52,12 @@ fn main() {
     match exec(&matches) {
         Ok(()) => ::std::process::exit(0),
         Err(err) => {
-            println!("An error occured:\n{:#?}", err);
-            ::std::process::exit(255)
+            let CliError { error, exit_code } = err;
+            if let Some(err) = error {
+                println!("An error occured:");
+                println!("{}", err);
+            }
+            ::std::process::exit(exit_code)
         }
     }
 }

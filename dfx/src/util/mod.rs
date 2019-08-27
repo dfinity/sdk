@@ -18,7 +18,7 @@ impl FakeProgress {
     pub fn new() -> FakeProgress {
         let multi: MultiProgress = MultiProgress::new();
         multi.set_draw_target(ProgressDrawTarget::hidden());
-        FakeProgress{ multi }
+        FakeProgress { multi }
     }
 
     pub fn join(&self) -> std::io::Result<()> {
@@ -26,11 +26,8 @@ impl FakeProgress {
         self.multi.join()
     }
 
-    pub fn add<S, D>(&mut self,
-                     time: std::ops::Range<u64>,
-                     on_style: S,
-                     on_done: D,
-    ) where
+    pub fn add<S, D>(&mut self, time: std::ops::Range<u64>, on_style: S, on_done: D)
+    where
         S: 'static + Send + FnOnce(&ProgressBar) -> (),
         D: 'static + Send + FnOnce(&ProgressBar) -> (),
     {
@@ -38,22 +35,23 @@ impl FakeProgress {
         let len = rng.gen_range(time.start, time.end);
         self.add_with_len(len, time, on_style, on_done);
     }
-    pub fn add_with_len<S, D>(&mut self,
-                              len: u64,
-                              time: std::ops::Range<u64>,
-                              on_style: S,
-                              on_done: D,
+    pub fn add_with_len<S, D>(
+        &mut self,
+        len: u64,
+        time: std::ops::Range<u64>,
+        on_style: S,
+        on_done: D,
     ) where
         S: 'static + Send + FnOnce(&ProgressBar) -> (),
         D: 'static + Send + FnOnce(&ProgressBar) -> (),
     {
         let mut rng = rand::thread_rng();
         let time_len = rng.gen_range(time.start, time.end);
-        let bar = self.multi.add(ProgressBar::new(len));
-        on_style(&bar);
+        let pb = self.multi.add(ProgressBar::new(len));
+        on_style(&pb);
 
         // For simplicity, we use a fixed point for calculating the actual increase.
-        let factor = 100000;
+        let factor = 100_000;
         let mut i = 0;
 
         thread::spawn(move || {
@@ -61,10 +59,10 @@ impl FakeProgress {
             for _i in 0..n_updates {
                 i += factor / n_updates;
                 thread::sleep(Duration::from_millis(WAIT_MSEC));
-                bar.set_position((i * len) / factor);
+                pb.set_position((i * len) / factor);
             }
 
-            on_done(&bar);
+            on_done(&pb);
         });
     }
 }

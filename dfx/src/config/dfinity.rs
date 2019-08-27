@@ -1,23 +1,23 @@
+#![allow(dead_code)]
+
 use crate::commands::CliResult;
-use serde::{Deserialize, Serialize};
-use serde_json::{Value, Map};
-use std::path::{Path, PathBuf};
 use crate::config::DFX_VERSION;
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
+use std::path::{Path, PathBuf};
 
 pub const CONFIG_FILE_NAME: &str = "dfinity.json";
 
-const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults{
+const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     build: None,
     start: None,
 };
-const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart{
+const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     address: None,
     port: None,
     nodes: None,
 };
-const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild{
-    output: None,
-};
+const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
@@ -52,13 +52,15 @@ pub struct ConfigInterface {
 
 impl ConfigCanistersCanister {
     pub fn get_main(&self, default: &str) -> String {
-        self.main.to_owned().unwrap_or(default.to_string())
+        self.main.to_owned().unwrap_or_else(|| default.to_string())
     }
 }
 
 impl ConfigDefaultsStart {
     pub fn get_address(&self, default: &str) -> String {
-        self.address.to_owned().unwrap_or(default.to_string())
+        self.address
+            .to_owned()
+            .unwrap_or_else(|| default.to_string())
     }
     pub fn get_nodes(&self, default: u64) -> u64 {
         self.nodes.unwrap_or(default)
@@ -70,7 +72,9 @@ impl ConfigDefaultsStart {
 
 impl ConfigDefaultsBuild {
     pub fn get_output(&self, default: &str) -> String {
-        self.output.to_owned().unwrap_or(default.to_string())
+        self.output
+            .to_owned()
+            .unwrap_or_else(|| default.to_string())
     }
 }
 
@@ -84,7 +88,7 @@ impl ConfigDefaults {
     pub fn get_start(&self) -> &ConfigDefaultsStart {
         match &self.start {
             Some(x) => &x,
-            None => &EMPTY_CONFIG_DEFAULTS_START
+            None => &EMPTY_CONFIG_DEFAULTS_START,
         }
     }
 }
@@ -100,7 +104,9 @@ impl ConfigInterface {
         self.version.unwrap_or(1)
     }
     pub fn get_dfx(&self) -> String {
-        self.dfx.to_owned().unwrap_or(DFX_VERSION.to_owned())
+        self.dfx
+            .to_owned()
+            .unwrap_or_else(|| DFX_VERSION.to_owned())
     }
 }
 
@@ -119,11 +125,14 @@ impl Config {
             if curr.is_file() {
                 Ok(curr)
             } else {
-                curr.pop();  // Remove the filename.
+                curr.pop(); // Remove the filename.
                 if curr.pop() {
                     recurse(curr)
                 } else {
-                    Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Config not found."))
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "Config not found.",
+                    ))
                 }
             }
         }
@@ -136,7 +145,7 @@ impl Config {
         let content = std::fs::read(&path)?;
         let config = serde_json::from_slice(&content)?;
         let json = serde_json::from_slice(&content)?;
-        Ok(Config{path, json, config})
+        Ok(Config { path, json, config })
     }
 
     pub fn from_current_dir() -> std::io::Result<Config> {
@@ -146,12 +155,21 @@ impl Config {
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
-    pub fn get_json(&self) -> &Value { &self.json }
-    pub fn get_mut_json(&mut self) -> &mut Value { &mut self.json }
-    pub fn get_config(&self) -> &ConfigInterface { &self.config }
+    pub fn get_json(&self) -> &Value {
+        &self.json
+    }
+    pub fn get_mut_json(&mut self) -> &mut Value {
+        &mut self.json
+    }
+    pub fn get_config(&self) -> &ConfigInterface {
+        &self.config
+    }
 
     pub fn save(&self) -> CliResult {
-        std::fs::write(&self.path, serde_json::to_string_pretty(&self.json).unwrap())?;
+        std::fs::write(
+            &self.path,
+            serde_json::to_string_pretty(&self.json).unwrap(),
+        )?;
         Ok(())
     }
 }

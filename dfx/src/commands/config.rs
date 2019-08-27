@@ -1,6 +1,6 @@
 use crate::commands::CliResult;
 use crate::config::dfinity::Config;
-use clap::{ArgMatches, SubCommand, Arg, App};
+use clap::{App, Arg, ArgMatches, SubCommand};
 
 pub fn available() -> bool {
     Config::from_current_dir().is_ok()
@@ -12,12 +12,11 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("option_name")
                 .help("The name configuration option to set or read.")
-                .required(true)
+                .required(true),
         )
-        .arg(
-            Arg::with_name("value")
-                .help("The new value to set. If unspecified will output the current value in the config.")
-        )
+        .arg(Arg::with_name("value").help(
+            "The new value to set. If unspecified will output the current value in the config.",
+        ))
 }
 
 pub fn exec(args: &ArgMatches<'_>) -> CliResult {
