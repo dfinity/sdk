@@ -1,4 +1,4 @@
-{ naersk, rustfmt, stdenv, lib, darwin, clang, cmake, python3, rustNightly, libressl, pkg-config, moreutils, cargo-graph, graphviz }:
+{ naersk, rustfmt, rls, stdenv, lib, darwin, clang, cmake, python3, rustPackages, libressl, pkg-config, moreutils, cargo-graph, graphviz }:
 let
   name = "dfinity-sdk-dfx-mock";
 
@@ -30,8 +30,8 @@ in
 naersk.buildPackage src
 {
   inherit name;
-  cargo = rustNightly;
-  rustc = rustNightly;
+  cargo = rustPackages.cargo;
+  rustc = rustPackages.rustc;
 
   # We add two extra checks to cargo test:
   #   * linting through clippy
@@ -53,6 +53,7 @@ naersk.buildPackage src
     docPhase = timestampPhase (oldAttrs.docPhase) (lib.hasPrefix "cargo");
 
     buildInputs = oldAttrs.buildInputs ++ [
+      rls
       rustfmt
       libressl
       pkg-config
@@ -65,6 +66,7 @@ naersk.buildPackage src
       clang
       cmake
       python3
+      rustPackages.clippy
     ];
 
     # Indicate to the 'openssl' Rust crate that OpenSSL/LibreSSL shall be linked statically rather than dynamically.

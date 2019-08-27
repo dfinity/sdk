@@ -13,16 +13,18 @@ let dfx = super.callPackage ../../dfx/package.nix {
 }; in
 let dfx-mock = super.callPackage ../../dfx-mock/package.nix {
   libressl = self.libressl_2_9;
+
+  # rustfmt needs to be compatible with rustc. The rust repo actually
+  # specifies the compatible rustfmt src using a git submodule.
+  # self.pkgsUnstable.rustfmt is a derivation for rustfmt based on that
+  # src. See: https://github.com/NixOS/nixpkgs/pull/66713
+  rustfmt = self.pkgsUnstable.rustfmt;
+  rls = self.pkgsUnstable.rls;
 }; in
 
 {
   dfinity-sdk = {
-    dfx = {
-        inherit dfx;
-    };
-    dfx-mock = {
-        inherit dfx-mock;
-    };
+    inherit dfx dfx-mock;
 
     # This is to make sure CI evalutes shell derivations, builds their
     # dependencies and populates the hydra cache with them. We also use this in
