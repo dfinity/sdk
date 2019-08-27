@@ -1,1 +1,12 @@
 result*
+
+# Building
+target/
+
+# IDEs
+.idea/
+.vscode/
+
+# Mac Temporary Files
+.DS_Store
+**/.DS_Store

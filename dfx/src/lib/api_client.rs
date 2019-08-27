@@ -1,14 +1,9 @@
+use crate::lib::error::*;
 use futures::future::{err, ok, result, Future};
 use futures::stream::Stream;
 use reqwest::r#async::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
-
-#[cfg(test)]
-use mockito;
-
-mod error;
-use error::*;
 
 /// A binary "blob", i.e. a byte array
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
@@ -140,6 +135,7 @@ pub struct QueryResponseReply {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mockito;
     use mockito::mock;
 
     #[test]

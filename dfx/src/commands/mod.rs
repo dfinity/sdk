@@ -1,0 +1,32 @@
+use crate::lib::error::DfxResult;
+use clap::ArgMatches;
+
+mod send;
+
+pub type CliExecFn = fn(&ArgMatches<'_>) -> DfxResult;
+pub struct CliCommand {
+    subcommand: clap::App<'static, 'static>,
+    executor: CliExecFn,
+}
+
+impl CliCommand {
+    pub fn new(subcommand: clap::App<'static, 'static>, executor: CliExecFn) -> CliCommand {
+        CliCommand {
+            subcommand,
+            executor,
+        }
+    }
+    pub fn get_subcommand(&self) -> &clap::App<'static, 'static> {
+        &self.subcommand
+    }
+    pub fn get_name(&self) -> &str {
+        self.subcommand.get_name()
+    }
+    pub fn execute(self: &CliCommand, args: &ArgMatches<'_>) -> DfxResult {
+        (self.executor)(args)
+    }
+}
+
+pub fn builtin() -> Vec<CliCommand> {
+    vec![CliCommand::new(send::construct(), send::exec)]
+}
