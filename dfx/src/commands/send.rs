@@ -5,17 +5,27 @@ use futures::future::{err, ok, Future};
 use tokio::runtime::Runtime;
 
 const HOST_ARG: &str = "host";
+const NAME_ARG: &str = "name";
+
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("send")
         .about(r#"Send a "Hello World" request to the canister 42."#)
         .arg(
+            Arg::with_name(HOST_ARG)
                 .help("The host (with port) to send the query to.")
+                .required(true),
+        )
+        .arg(
+            Arg::with_name(NAME_ARG)
+                .help("The person to say hello to.")
                 .required(true),
         )
 }
 
 pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
+    let name = args.value_of(NAME_ARG).unwrap();
     let url = args.value_of(HOST_ARG).unwrap();
+
     let client = Client::new(ClientConfig {
         url: url.to_string(),
     });
@@ -25,7 +35,7 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
         CanisterQueryCall {
             canister_id: 42,
             method_name: "dfn_msg greet".to_string(),
-            arg: None,
+            arg: Some(Blob(Vec::from(name))),
         },
     )
     .and_then(|r| match r {
