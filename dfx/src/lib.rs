@@ -47,11 +47,11 @@ pub struct ClientConfig {
 /// Request payloads
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[serde(tag = "message_type")]
-enum Message {
+#[serde(tag = "request_type")]
+enum Request {
     Query {
         #[serde(flatten)]
-        message: CanisterQueryCall,
+        request: CanisterQueryCall,
     },
 }
 
@@ -84,7 +84,7 @@ pub enum RejectCode {
 
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
-fn read<A>(client: Client, message: Message) -> impl Future<Item = Response<A>, Error = DfxError>
+fn read<A>(client: Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
 where
     A: serde::de::DeserializeOwned,
 {
@@ -92,17 +92,17 @@ where
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
         .and_then(move |url| {
-            let mut request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
-            let headers = request.headers_mut();
+            let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
+            let headers = http_request.headers_mut();
             headers.insert(
                 reqwest::header::CONTENT_TYPE,
                 "application/cbor".parse().unwrap(),
             );
-            let body = request.body_mut();
+            let body = http_request.body_mut();
             body.get_or_insert(reqwest::r#async::Body::from(
-                serde_cbor::to_vec(&message).unwrap(),
+                serde_cbor::to_vec(&request).unwrap(),
             ));
-            client.execute(request).map_err(DfxError::Reqwest)
+            client.execute(http_request).map_err(DfxError::Reqwest)
         })
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
         .and_then(|buf| match serde_cbor::from_slice(&buf) {
@@ -118,9 +118,9 @@ where
 /// returns the canister’s response directly within the HTTP response.
 pub fn query(
     client: Client,
-    message: CanisterQueryCall,
+    request: CanisterQueryCall,
 ) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
-    read(client, Message::Query { message })
+    read(client, Request::Query { request })
 }
 
 /// A canister query call request payload
@@ -151,8 +151,8 @@ mod tests {
         let method_name = "main".to_string();
         let arg = None;
 
-        let request = Message::Query {
-            message: CanisterQueryCall {
+        let request = Request::Query {
+            request: CanisterQueryCall {
                 canister_id,
                 method_name: method_name.clone(),
                 arg,
@@ -164,7 +164,7 @@ mod tests {
         let expected = Value::Map(
             vec![
                 (
-                    Value::Text("message_type".to_string()),
+                    Value::Text("request_type".to_string()),
                     Value::Text("query".to_string()),
                 ),
                 (
