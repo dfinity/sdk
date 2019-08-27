@@ -4,18 +4,18 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use futures::future::{err, ok, Future};
 use tokio::runtime::Runtime;
 
+const HOST_ARG: &str = "host";
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("send")
         .about(r#"Send a "Hello World" request to the canister 42."#)
         .arg(
-            Arg::with_name("host")
                 .help("The host (with port) to send the query to.")
                 .required(true),
         )
 }
 
 pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
-    let url = args.value_of("host").unwrap();
+    let url = args.value_of(HOST_ARG).unwrap();
     let client = Client::new(ClientConfig {
         url: url.to_string(),
     });
