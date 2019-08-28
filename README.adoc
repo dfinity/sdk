@@ -1,7 +1,7 @@
 = DFINITY SDK
 
 == Using The Mock DFX Locally
-The mock DFX binary is kept on a separate branch. To use it follow the steps:
+The mock DFX binary is kept on a separate branch. To use it follow these steps:
 
 1. Make a clone of this repository. If you haven't made a clone, this command line will do so:
 [source,bash]
