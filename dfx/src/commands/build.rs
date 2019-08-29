@@ -11,7 +11,7 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
         .about("Build a canister code, or all canisters if no argument is passed.")
         .arg(Arg::with_name("canister").help("The canister name to build."))
-        .arg(Arg::with_name("watch").help("Watch input files to "))
+        .arg(Arg::with_name("watch").help("Watch input files and rebuild on changes."))
 }
 
 pub fn exec(_args: &ArgMatches<'_>) -> CliResult {

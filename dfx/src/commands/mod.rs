@@ -90,24 +90,20 @@ impl CliCommand {
     }
 }
 
+fn add_builtin(v: &mut Vec<CliCommand>, available: bool, subcommand: clap::App<'static, 'static>, executor: CliExecFn) -> () {
+    if available {
+        v.push(CliCommand::new(subcommand, executor));
+    };
+}
+
 pub fn builtin() -> Vec<CliCommand> {
     let mut v: Vec<CliCommand> = Vec::new();
 
-    if build::available() {
-        v.push(CliCommand::new(build::construct(), build::exec));
-    }
-    if config::available() {
-        v.push(CliCommand::new(config::construct(), config::exec));
-    }
-    if new::available() {
-        v.push(CliCommand::new(new::construct(), new::exec));
-    }
-    if send::available() {
-        v.push(CliCommand::new(send::construct(), send::exec));
-    }
-    if start::available() {
-        v.push(CliCommand::new(start::construct(), start::exec));
-    }
+    add_builtin(&mut v, build::available(), build::construct(), build::exec);
+    add_builtin(&mut v, config::available(), config::construct(), config::exec);
+    add_builtin(&mut v, new::available(), new::construct(), new::exec);
+    add_builtin(&mut v, send::available(), send::construct(), send::exec);
+    add_builtin(&mut v, start::available(), start::construct(), start::exec);
 
     v
 }
