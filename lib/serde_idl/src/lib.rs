@@ -2,7 +2,9 @@
 
 //#[macro_use]
 extern crate serde;
+extern crate serde_derive_internals;
 extern crate leb128;
+extern crate dfx_info;
 
 // Re-export the [items recommended by serde](https://serde.rs/conventions.html).
 //#[doc(inline)]

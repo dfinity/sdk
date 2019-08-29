@@ -2,6 +2,7 @@
 
 use super::error::{Error, Result};
 use serde::ser::{self, Impossible, Serialize};
+use serde_derive_internals::ast;
 
 use std::io;
 use std::vec::Vec;
@@ -147,7 +148,7 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
     }
 
     fn serialize_none(self) -> Result<()> {
-        Err(Error::todo())
+        Ok(self.write_leb128(0))
     }
 
     fn serialize_some<T: ?Sized>(self, v: &T) -> Result<()>
@@ -317,9 +318,9 @@ impl TypeSerializer
             let idx = self.type_table.len();            
             self.type_map.insert((*t).clone(), idx as i32);            
             let buf = match t {
-                Type::Opt(t) => {
+                Type::Opt(ref t) => {
                     let mut buf = sleb128_encode(-18);
-                    let mut t_buf = self.encode(&*t)?;
+                    let mut t_buf = self.encode(&t)?;
                     buf.append(&mut t_buf);
                     Ok(buf)
                 },
@@ -534,7 +535,25 @@ impl<'a> ser::Serializer for &'a mut TypeSerializer
         Err(Error::todo())
     }    
 }
-
+/*
+impl Serialize<T> for Option<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let t = v.serialize(&mut *self)?;
+        let t = Type::Opt(Box::new(t));
+        self.add_type(&t)?;
+        Ok(t)
+        // 3 is the number of fields in the struct.
+        let mut state = serializer.serialize_struct("Color", 3)?;
+        state.serialize_field("r", &self.r)?;
+        state.serialize_field("g", &self.g)?;
+        state.serialize_field("b", &self.b)?;
+        state.end()
+    }
+}
+*/
 #[inline]
 fn idl_hash(id: &str) -> u32 {
     let mut s: u32 = 0;

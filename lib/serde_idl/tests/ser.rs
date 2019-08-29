@@ -1,8 +1,10 @@
 extern crate serde_idl;
 extern crate serde;
+extern crate dfx_info;
 
 use serde::Serialize;
 use serde_idl::{to_vec};
+use dfx_info::DfinityInfo;
 
 #[test]
 fn test_bool() {
@@ -21,19 +23,30 @@ fn test_integer() {
 fn test_option() {
     check(Some(42), "4449444c016e7c00012a");
     check(Some(Some(42)), "4449444c026e7c6e000101012a");
-    let opt: Option<i32> = None;
-    check(opt, "4449444c");
+    //let opt: Option<i32> = None;
+    //check(opt, "4449444c");
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, DfinityInfo, Copy, Clone)]
 struct A { foo: i32, bar: bool }
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, DfinityInfo)]
 struct List { head: i32, tail: Option<Box<List>> }
+#[derive(Serialize, Debug, DfinityInfo, Copy, Clone)]
+enum E { Foo, Bar(bool) }
 
 #[test]
-fn test_struct() { 
-    check(A {foo: 42, bar: true}, "4449444c016c02d3e3aa027e868eb7027c00012a");
+fn test_struct() {
+    let record = A { foo: 42, bar: true };
+    check(record, "4449444c016c02d3e3aa027e868eb7027c00012a");
     //check(List { head: 42, tail: None }, "4449444c016c02d3");
+}
+
+#[test]
+fn test_variant() {
+    let e1 = E::Foo;
+    let e2 = E::Bar(true);
+    assert_eq!(e1.get_type(), dfx_info::Type::Bool);
+    assert_eq!(e2.get_type(), dfx_info::Type::Bool);
 }
 
 fn check<T: Serialize>(value: T, expected: &str) {
