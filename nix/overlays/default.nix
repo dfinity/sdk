@@ -7,7 +7,6 @@
   (import ./lib)
   (import ./packages)
   (import ./actorscript.nix)
-  (import ./dfinity.nix)
   (import ./dfinity-sdk.nix)
   (import ./mkCiShell.nix)
 ]
