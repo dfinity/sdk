@@ -16,14 +16,14 @@ type CanisterId = u64;
 
 pub struct Client {
     client: ReqwestClient,
-    url: String,
+    host: String,
 }
 
 impl Client {
     pub fn new(config: ClientConfig) -> Client {
         Client {
             client: ReqwestClient::new(),
-            url: config.url,
+            host: config.host,
         }
     }
 
@@ -35,8 +35,22 @@ impl Client {
     }
 }
 
+impl Default for Client {
+    fn default() -> Client {
+        Client::new(Default::default())
+    }
+}
+
 pub struct ClientConfig {
-    pub url: String,
+    pub host: String,
+}
+
+impl Default for ClientConfig {
+    fn default() -> ClientConfig {
+        ClientConfig {
+            host: "http://localhost:8080".to_string(),
+        }
+    }
 }
 
 /// Request payloads
@@ -79,11 +93,11 @@ pub enum RejectCode {
 
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
-fn read<A>(client: Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
+fn read<'a, A: 'a>(client: &'a Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError> + 'a
 where
     A: serde::de::DeserializeOwned,
 {
-    let endpoint = format!("{}/api/v1/read", client.url);
+    let endpoint = format!("{}/api/v1/read", client.host);
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
         .and_then(move |url| {
@@ -111,10 +125,10 @@ where
 /// Canister methods that do not change the canister state in a meaningful way
 /// can be executed more efficiently. This method provides that ability, and
 /// returns the canister’s response directly within the HTTP response.
-pub fn query(
-    client: Client,
+pub fn query<'a>(
+    client: &'a Client,
     request: CanisterQueryCall,
-) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
+) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> + 'a {
     read(client, Request::Query { request })
 }
 
@@ -234,11 +248,11 @@ mod tests {
             .create();
 
         let client = Client::new(ClientConfig {
-            url: mockito::server_url(),
+            host: mockito::server_url(),
         });
 
         let query = query(
-            client,
+            Box::leak(Box::new(client)),
             CanisterQueryCall {
                 canister_id: 1,
                 method_name: "main".to_string(),
@@ -306,11 +320,11 @@ mod tests {
             .create();
 
         let client = Client::new(ClientConfig {
-            url: mockito::server_url(),
+            host: mockito::server_url(),
         });
 
         let query = query(
-            client,
+            Box::leak(Box::new(client)),
             CanisterQueryCall {
                 canister_id: 1,
                 method_name: "main".to_string(),

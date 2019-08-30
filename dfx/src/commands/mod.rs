@@ -1,16 +1,18 @@
+use crate::lib::env::Env;
 use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
 mod send;
 
-pub type CliExecFn = fn(&ArgMatches<'_>) -> DfxResult;
+type CliExecFn = Fn(&ArgMatches<'_>) -> DfxResult;
+
 pub struct CliCommand {
     subcommand: clap::App<'static, 'static>,
-    executor: CliExecFn,
+    executor: Box<CliExecFn>,
 }
 
 impl CliCommand {
-    pub fn new(subcommand: clap::App<'static, 'static>, executor: CliExecFn) -> CliCommand {
+    pub fn new(subcommand: clap::App<'static, 'static>, executor: Box<CliExecFn>) -> CliCommand {
         CliCommand {
             subcommand,
             executor,
@@ -27,6 +29,21 @@ impl CliCommand {
     }
 }
 
-pub fn builtin() -> Vec<CliCommand> {
-    vec![CliCommand::new(send::construct(), send::exec)]
+pub fn ctors() -> Vec<clap::App<'static, 'static>> {
+    vec![send::construct()]
+}
+
+pub fn execs(env: &'static Env) -> Vec<Box<CliExecFn>> {
+    vec![
+        Box::new(move |args| send::exec(&env, args)),
+    ]
+}
+
+pub fn builtin(env: &'static Env) -> Vec<CliCommand> {
+    // We maintain separate vectors of constructors and executors since we only
+    // need the constructors to create a `clap::App`. We can then use values
+    // from the matches on the command line to populate the environment for the
+    // executors.
+    let zipped  = ctors().into_iter().zip(execs(&env).into_iter());
+    zipped.map(|(ctor, exec)| CliCommand::new(ctor, exec)).collect()
 }
