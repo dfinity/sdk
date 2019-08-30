@@ -123,7 +123,7 @@ pub fn query(
 pub struct CanisterQueryCall {
     pub canister_id: CanisterId,
     pub method_name: String,
-    pub arg: Option<Blob>,
+    pub arg: Blob,
 }
 
 /// A canister query call response payload
@@ -145,7 +145,7 @@ mod tests {
 
         let canister_id = 1;
         let method_name = "main".to_string();
-        let arg = None;
+        let arg = Blob(vec![]);
 
         let request = Request::Query {
             request: CanisterQueryCall {
@@ -171,7 +171,7 @@ mod tests {
                     Value::Text("method_name".to_string()),
                     Value::Text(method_name.clone()),
                 ),
-                (Value::Text("arg".to_string()), Value::Null),
+                (Value::Text("arg".to_string()), Value::Bytes(vec![])),
             ]
             .into_iter()
             .collect(),
@@ -242,7 +242,7 @@ mod tests {
             CanisterQueryCall {
                 canister_id: 1,
                 method_name: "main".to_string(),
-                arg: None,
+                arg: Blob(vec![]),
             },
         );
 
@@ -314,7 +314,7 @@ mod tests {
             CanisterQueryCall {
                 canister_id: 1,
                 method_name: "main".to_string(),
-                arg: None,
+                arg: Blob(vec![]),
             },
         );
 
