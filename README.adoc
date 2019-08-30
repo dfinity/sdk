@@ -23,6 +23,10 @@ git checkout origin/dfx-mock
 cd dfx
 nix-shell demo.nix
 
+. You can now run `dfx` directly from your shell.
+[source,bash]
+dfx help
+
 . Done. Good job!
 
 image:./assets/success.gif[Success!]
