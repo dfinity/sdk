@@ -34,7 +34,7 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
         client,
         CanisterQueryCall {
             canister_id: 42,
-            method_name: "dfn_msg greet".to_string(),
+            method_name: "greet".to_string(),
             arg: Some(Blob(Vec::from(name))),
         },
     )
