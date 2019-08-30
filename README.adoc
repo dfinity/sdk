@@ -1,1 +1,35 @@
 = DFINITY SDK
+
+== Using The Mock DFX Locally
+The mock DFX binary is kept on a separate branch. To use it follow these steps:
+
+. Make a clone of this repository. If you haven't made a clone, this command line will do so:
+[source,bash]
+git clone https://github.com/dfinity-lab/sdk.git
+cd sdk
+
+. Make sure your repository is up to date. If you just made a clone for the first time, you can
+skip this step.
+[source,bash]
+git fetch origin
+
+. Checkout the `dfx-mock` branch. If you want to experiment you can create a local branch
+(optional).
+[source,bash]
+git checkout origin/dfx-mock
+
+. Enter a Nix shell that contains `dfx`:
+[source,bash]
+cd dfx
+nix-shell demo.nix
+
+. You can now run `dfx` directly from your shell.
+[source,bash]
+dfx help
+
+. Done. Good job!
+
+image:./assets/success.gif[Success!]
+[source,bash]
+dfx help
+
