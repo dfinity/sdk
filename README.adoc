@@ -18,17 +18,10 @@ easier to manage if you want to experiment.
 [source,bash]
 git checkout -B dfx-mock origin/dfx-mock
 
-1. Build the binary using `nix-build`:
+1. Enter a Nix shell that contains `dfx`:
 [source,bash]
-(cd dfx && nix-build)
-
-1. This will show you a long log, with the last line being a path that contains the output, e.g.
-`/nix/store/ja40izh5md7h51djq42y9a1j7ffzc4g4-dfinity-sdk-dfx`. The binary will be `bin/dfx` in this
-path, e.g. `/nix/store/ja40izh5md7h51djq42y9a1j7ffzc4g4-dfinity-sdk-dfx/bin/dfx`.
-
-1. It is recommended to use this path to create an alias:
-[source,bash]
-alias dfx=/nix/store/ja40izh5md7h51djq42y9a1j7ffzc4g4-dfinity-sdk-dfx/bin/dfx
+cd dfx
+nix-shell demo.nix
 
 1. Done. Good job!
 
