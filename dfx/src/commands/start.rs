@@ -1,5 +1,6 @@
-use crate::commands::CliResult;
+use crate::config::cache::binary_command;
 use crate::config::dfinity::Config;
+use crate::lib::error::DfxResult;
 use crate::util::FakeProgress;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
@@ -7,7 +8,7 @@ use gotham::router::builder::*;
 use gotham::router::Router;
 use gotham::state::State;
 use hyper::http::Method;
-use indicatif::ProgressStyle;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 const HELLO_WORLD: &str = "Hello World!";
 
@@ -81,7 +82,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(args: &ArgMatches<'_>) -> CliResult {
+pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
     // Read the config.
     let config = Config::from_current_dir()?;
 
@@ -105,6 +106,25 @@ pub fn exec(args: &ArgMatches<'_>) -> CliResult {
             .get_start()
             .get_port(8080),
     };
+
+    let mp = MultiProgress::new();
+    let b = mp.add(ProgressBar::new_spinner());
+
+    b.set_message("Starting up the DFINITY client...");
+    let mut cmd = binary_command(&config, "dfinity").unwrap();
+    let _child = cmd.spawn()?;
+    let mut i = 0;
+
+    loop {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        b.inc(1);
+
+        if i < 100 {
+            i = i + 1;
+        } else {
+            break;
+        }
+    }
 
     let mut fp = FakeProgress::new();
     fp.add_with_len(

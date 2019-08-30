@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use crate::commands::CliResult;
 use crate::config::DFX_VERSION;
+use crate::lib::error::DfxResult;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
@@ -165,7 +165,7 @@ impl Config {
         &self.config
     }
 
-    pub fn save(&self) -> CliResult {
+    pub fn save(&self) -> DfxResult {
         std::fs::write(
             &self.path,
             serde_json::to_string_pretty(&self.json).unwrap(),

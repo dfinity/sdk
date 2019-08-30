@@ -1,5 +1,5 @@
-use crate::commands::CliResult;
 use crate::config::dfinity::Config;
+use crate::lib::error::DfxResult;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
 pub fn available() -> bool {
@@ -19,7 +19,7 @@ pub fn construct() -> App<'static, 'static> {
         ))
 }
 
-pub fn exec(args: &ArgMatches<'_>) -> CliResult {
+pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
     let mut config = Config::from_current_dir()?;
 
     let option_name = args.value_of("option_name").unwrap();

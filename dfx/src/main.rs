@@ -1,9 +1,11 @@
-use crate::commands::CliError;
 use crate::config::DFX_VERSION;
+use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, AppSettings};
+use std::io::Write;
 
 mod commands;
 mod config;
+mod lib;
 mod util;
 
 fn cli() -> App<'static, 'static> {
@@ -18,7 +20,7 @@ fn cli() -> App<'static, 'static> {
         )
 }
 
-fn exec(args: &clap::ArgMatches<'_>) -> commands::CliResult {
+fn exec(args: &clap::ArgMatches<'_>) -> DfxResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
@@ -38,10 +40,10 @@ fn exec(args: &clap::ArgMatches<'_>) -> commands::CliResult {
             cli().write_help(&mut std::io::stderr())?;
             println!();
             println!();
-            Err(CliError::new(
-                failure::format_err!("Command {} unknown.", name),
-                101,
-            ))
+            Err(DfxError::UnknownCommand(format!(
+                "Command {} unknown.",
+                name
+            )))
         }
     }
 }
@@ -52,12 +54,9 @@ fn main() {
     match exec(&matches) {
         Ok(()) => ::std::process::exit(0),
         Err(err) => {
-            let CliError { error, exit_code } = err;
-            if let Some(err) = error {
-                println!("An error occured:");
-                println!("{}", err);
-            }
-            ::std::process::exit(exit_code)
+            std::io::stderr().write_fmt(format_args!("An error occured:\n{:?}", err)).unwrap();
+
+            ::std::process::exit(1)
         }
     }
 }

@@ -1,6 +1,6 @@
-use crate::commands::CliResult;
 use crate::config::cache::binary_command;
 use crate::config::dfinity::{Config, ConfigCanistersCanister};
+use crate::lib::error::DfxResult;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
 pub fn available() -> bool {
@@ -14,7 +14,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name("watch").help("Watch input files and rebuild on changes."))
 }
 
-pub fn exec(_args: &ArgMatches<'_>) -> CliResult {
+pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
     // Read the config.
     let config = Config::from_current_dir()?;
     // get_path() returns the name of the config.

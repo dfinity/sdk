@@ -1,7 +1,7 @@
-use crate::commands::{CliError, CliResult};
 use crate::config;
 use crate::config::dfinity::Config;
 use crate::config::DFX_VERSION;
+use crate::lib::error::{DfxError, DfxResult};
 use crate::util;
 use crate::util::logo::generate_logo;
 use crate::util::FakeProgress;
@@ -47,7 +47,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-fn write_status(status: &str, color: Color, rest: &str) -> CliResult {
+fn write_status(status: &str, color: Color, rest: &str) -> DfxResult {
     Term::stderr().write_line(
         format!("{:<12} {}", style(status).fg(color).bold().to_owned(), rest).as_str(),
     )?;
@@ -55,7 +55,7 @@ fn write_status(status: &str, color: Color, rest: &str) -> CliResult {
     Ok(())
 }
 
-pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> CliResult {
+pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> DfxResult {
     let path = path.as_ref();
     if !dry_run {
         if let Some(p) = path.parent() {
@@ -74,7 +74,7 @@ pub fn create_file<P: AsRef<Path>>(path: P, content: &str, dry_run: bool) -> Cli
 }
 
 #[allow(dead_code)]
-pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> CliResult {
+pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> DfxResult {
     let path = path.as_ref();
     if path.is_dir() {
         return Ok(());
@@ -88,25 +88,21 @@ pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> CliResult {
     Ok(())
 }
 
-pub fn exec(args: &ArgMatches<'_>) -> CliResult {
+pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
     let dry_run = args.is_present("dry_run");
     let project_name = Path::new(args.value_of("project_name").unwrap());
 
     // Make sure we don't embed a project in another project.
     if let Ok(config_path) = Config::resolve_config_path(&std::env::current_dir()?) {
-        return Err(CliError::new(
-            failure::format_err!(
-                "Config file found at {}. Are you already in a DFINITY project?",
-                config_path.to_str().unwrap(),
-            ),
-            1,
-        ));
+        return Err(DfxError::Unknown(format!(
+            "Config file found at {}. Are you already in a DFINITY project?",
+            config_path.to_str().unwrap(),
+        )));
     }
 
     if project_name.exists() {
-        return Err(CliError::new(
-            failure::format_err!("Project directory already exists."),
-            1,
+        return Err(DfxError::Unknown(
+            "Project directory already exists.".to_owned(),
         ));
     }
 
