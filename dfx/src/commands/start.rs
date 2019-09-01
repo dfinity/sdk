@@ -120,7 +120,7 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
         b.inc(1);
 
         if i < 100 {
-            i = i + 1;
+            i += 1;
         } else {
             break;
         }
