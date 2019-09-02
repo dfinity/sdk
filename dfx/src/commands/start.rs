@@ -111,7 +111,7 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
     let b = mp.add(ProgressBar::new_spinner());
 
     b.set_message("Starting up the DFINITY client...");
-    let mut cmd = binary_command(&config, "dfinity").unwrap();
+    let mut cmd = binary_command(&config, "client").unwrap();
     let _child = cmd.spawn()?;
     let mut i = 0;
 
