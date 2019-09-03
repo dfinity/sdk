@@ -1,5 +1,4 @@
-{ assets
-, naersk
+{ naersk
 , rustfmt
 , rls
 , stdenv
@@ -14,6 +13,9 @@
 , moreutils
 , cargo-graph
 , graphviz
+, actorscript
+, dfinity
+, runCommand
 }:
 
 let
@@ -122,8 +124,13 @@ naersk.buildPackage src
   # derivation (the deps-only build has name "${name}-deps").
   lib.optionalAttrs (oldAttrs.name == name)
   {
-    preBuild = ''
-      ${assets.copy}
+    DFX_ASSETS = runCommand "dfx-assets" {} ''
+      mkdir -p $out
+      cp ${dfinity.rust-workspace}/bin/{client,nodemanager} $out
+      cp ${actorscript.asc}/bin/asc $out
+      cp ${actorscript.as-ide}/bin/as-ide $out
+      cp ${actorscript.didc}/bin/didc $out
+      cp ${actorscript.rts}/rts/as-rts.wasm $out
     '';
 
     postDoc = ''
