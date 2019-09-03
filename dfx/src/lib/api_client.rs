@@ -14,6 +14,7 @@ pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 type CanisterId = u64;
 
+#[derive(Clone)]
 pub struct Client {
     client: ReqwestClient,
     url: String,
@@ -75,6 +76,23 @@ pub enum RejectCode {
     DestinationInvalid = 3,
     CanisterReject = 4,
     CanisterError = 5,
+}
+
+pub fn ping(client: Client) -> impl Future<Item = (), Error = DfxError> {
+    let parsed = reqwest::Url::parse(&client.url).map_err(DfxError::Url);
+    result(parsed)
+        .and_then(move |url| {
+            let http_request = reqwest::r#async::Request::new(reqwest::Method::GET, url);
+
+            client.execute(http_request).map_err(DfxError::Reqwest)
+        })
+        .then(move |x| {
+            match x {
+                Ok(_) => ok(()),
+                // Forward through anything else.
+                Err(x) => err(x),
+            }
+        })
 }
 
 /// A read request. Intended to remain private in favor of exposing specialized

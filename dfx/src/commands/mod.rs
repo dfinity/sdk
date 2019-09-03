@@ -3,6 +3,7 @@ extern crate hyper;
 use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
+mod auth;
 mod build;
 mod config;
 mod new;
@@ -33,7 +34,7 @@ impl CliCommand {
     }
 }
 
-fn add_builtin(
+pub fn add_builtin(
     v: &mut Vec<CliCommand>,
     available: bool,
     subcommand: clap::App<'static, 'static>,
@@ -47,6 +48,7 @@ fn add_builtin(
 pub fn builtin() -> Vec<CliCommand> {
     let mut v: Vec<CliCommand> = Vec::new();
 
+    add_builtin(&mut v, auth::available(), auth::construct(), auth::exec);
     add_builtin(&mut v, build::available(), build::construct(), build::exec);
     add_builtin(
         &mut v,
