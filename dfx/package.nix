@@ -1,4 +1,5 @@
-{ naersk
+{ assets
+, naersk
 , rustfmt
 , rls
 , stdenv
@@ -13,8 +14,6 @@
 , moreutils
 , cargo-graph
 , graphviz
-, dfinity
-, actorscript
 }:
 
 let
@@ -123,12 +122,7 @@ naersk.buildPackage src
   lib.optionalAttrs (oldAttrs.name == name)
   {
     preBuild = ''
-      mkdir -p dfx_assets/{bin,rts}
-      cp ${dfinity.rust-workspace}/bin/{dfinity,nodemanager} dfx_assets/bin
-      cp ${actorscript.asc}/bin/asc dfx_assets/bin
-      cp ${actorscript.as-ide}/bin/as-ide dfx_assets/bin
-      cp ${actorscript.didc}/bin/didc dfx_assets/bin
-      cp ${actorscript.rts}/rts/as-rts.wasm dfx_assets/rts
+      ${assets.copy}
     '';
 
     postDoc = ''
