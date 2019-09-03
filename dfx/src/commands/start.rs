@@ -6,7 +6,7 @@ use console::style;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("start")
-        .about("Start a local  network in the background.")
+        .about("Start a local network in the background.")
         .arg(
             Arg::with_name("address")
                 .help("The address to listen to. Defaults to 127.0.0.1 (localhost).")
