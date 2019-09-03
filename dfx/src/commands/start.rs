@@ -1,4 +1,4 @@
-use crate::config::cache::{get_binary_path_from_config};
+use crate::config::cache::{binary_command, get_binary_path_from_config};
 use crate::config::dfinity::Config;
 use crate::lib::error::DfxResult;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -23,9 +23,7 @@ pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
     let client_pathbuf = get_binary_path_from_config(&config, "client")?;
     let client = client_pathbuf.as_path();
 
-    let nodemanager = get_binary_path_from_config(&config, "nodemanager")?;
-
-    let mut cmd = std::process::Command::new(nodemanager);
+    let mut cmd = binary_command(&config, "nodemanager")?;
     cmd.args(&[client]);
 
     let _child = cmd.spawn()?;

@@ -78,3 +78,9 @@ pub fn get_binary_path_from_config(config: &Config, binary_name: &str) -> Result
 
     Ok(get_bin_cache(version.as_str())?.join(binary_name))
 }
+
+pub fn binary_command(config: &Config, name: &str) -> Result<std::process::Command> {
+    let path = get_binary_path_from_config(config, name)?;
+    let cmd = std::process::Command::new(path);
+    Ok(cmd)
+}
