@@ -5,7 +5,9 @@ use clap::ArgMatches;
 
 mod auth;
 mod build;
+mod canister;
 mod config;
+mod generate;
 mod new;
 mod send;
 mod start;
@@ -52,9 +54,21 @@ pub fn builtin() -> Vec<CliCommand> {
     add_builtin(&mut v, build::available(), build::construct(), build::exec);
     add_builtin(
         &mut v,
+        canister::available(),
+        canister::construct(),
+        canister::exec,
+    );
+    add_builtin(
+        &mut v,
         config::available(),
         config::construct(),
         config::exec,
+    );
+    add_builtin(
+        &mut v,
+        generate::available(),
+        generate::construct(),
+        generate::exec,
     );
     add_builtin(&mut v, new::available(), new::construct(), new::exec);
     add_builtin(&mut v, true, send::construct(), send::exec);

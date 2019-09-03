@@ -6,8 +6,7 @@ pub fn available() -> bool {
 }
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("list")
-        .about("List all authentications for this user.")
+    SubCommand::with_name("list").about("List all authentications for this user.")
 }
 
 pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
@@ -17,7 +16,6 @@ pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
         v.push(username);
     }
     v.push("fake_user_1".to_owned());
-
 
     for username in v {
         println!("{}", username);

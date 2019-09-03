@@ -13,10 +13,14 @@ pub fn construct() -> App<'static, 'static> {
                 .help("The name of the authentication to add.")
                 .required(true),
         )
+        .arg(
+            Arg::with_name("wasm")
+                .help("The wasm file to use. By default will use the wasm of the same canister name.")
+        )
 }
 
-pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
-    println!("Added credentials for {}", args.value_of("name").unwrap());
+pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
+    println!("Installed wasm");
 
     Ok(())
 }

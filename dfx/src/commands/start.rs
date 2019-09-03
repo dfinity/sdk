@@ -1,7 +1,7 @@
 use crate::config::cache::binary_command;
 use crate::config::dfinity::Config;
-use crate::lib::api_client::{Client, ClientConfig, ping};
-use crate::lib::error::{DfxResult, DfxError};
+use crate::lib::api_client::{ping, Client, ClientConfig};
+use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
 use indicatif::{ProgressBar, ProgressDrawTarget};
@@ -117,7 +117,8 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
     );
 
     loop {
-        #[allow(unused_must_use)] {
+        #[allow(unused_must_use)]
+        {
             child.wait();
         }
 

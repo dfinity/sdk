@@ -66,11 +66,11 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
         "0.1.0" => {
             util::assets_v0_1_0_files()?.unpack(p.as_path())?;
             Ok(p)
-        },
+        }
         "0.1.1" => {
             util::assets_v0_1_0_files()?.unpack(p.as_path())?;
             Ok(p)
-        },
+        }
         v => Err(Error::new(
             ErrorKind::Other,
             format!("Unknown version: {}", v),

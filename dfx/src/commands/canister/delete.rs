@@ -6,17 +6,17 @@ pub fn available() -> bool {
 }
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("remove")
+    SubCommand::with_name("delete")
         .about("Add a user to the key store.")
         .arg(
             Arg::with_name("name")
-                .help("The name of the authentication to remove.")
+                .help("The name of the canister to delete.")
                 .required(true),
         )
 }
 
-pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
-    println!("Removed credentials for {}", args.value_of("name").unwrap());
+pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
+    println!("Canister deleted.");
 
     Ok(())
 }

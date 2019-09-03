@@ -3,9 +3,10 @@ use crate::config::dfinity::Config;
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 
-mod add;
-mod list;
-mod remove;
+mod create;
+mod delete;
+mod install;
+mod upgrade;
 
 pub fn available() -> bool {
     true
@@ -13,7 +14,8 @@ pub fn available() -> bool {
 
 pub fn construct() -> App<'static, 'static> {
     // There is a difference in arguments between in-project versus global.
-    let mut app = SubCommand::with_name("auth").about("Manage authentications and credentials.");
+    let mut app =
+        SubCommand::with_name("canister").about("Manage authentications and credentials.");
 
     if Config::from_current_dir().is_err() {
         app = app.arg(
@@ -38,13 +40,29 @@ pub fn construct() -> App<'static, 'static> {
 pub fn builtins() -> Vec<CliCommand> {
     let mut v: Vec<CliCommand> = Vec::new();
 
-    add_builtin(&mut v, add::available(), add::construct(), add::exec);
-    add_builtin(&mut v, list::available(), list::construct(), list::exec);
     add_builtin(
         &mut v,
-        remove::available(),
-        remove::construct(),
-        remove::exec,
+        create::available(),
+        create::construct(),
+        create::exec,
+    );
+    add_builtin(
+        &mut v,
+        delete::available(),
+        delete::construct(),
+        delete::exec,
+    );
+    add_builtin(
+        &mut v,
+        install::available(),
+        install::construct(),
+        install::exec,
+    );
+    add_builtin(
+        &mut v,
+        upgrade::available(),
+        upgrade::construct(),
+        upgrade::exec,
     );
 
     v

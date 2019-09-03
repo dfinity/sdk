@@ -1,34 +1,19 @@
 use crate::commands::{add_builtin, CliCommand};
 use crate::config::dfinity::Config;
 use crate::lib::error::{DfxError, DfxResult};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, SubCommand};
 
-mod add;
-mod list;
-mod remove;
+mod canister;
+mod upgrade;
 
 pub fn available() -> bool {
-    true
+    Config::from_current_dir().is_ok()
 }
 
 pub fn construct() -> App<'static, 'static> {
     // There is a difference in arguments between in-project versus global.
-    let mut app = SubCommand::with_name("auth").about("Manage authentications and credentials.");
-
-    if Config::from_current_dir().is_err() {
-        app = app.arg(
-            Arg::with_name("network")
-                .help(r#"The network URL to use. Either "main", "local" or a URL."#)
-                .required(true)
-                .validator(|value| match value.as_str() {
-                    "main" => Ok(()),
-                    "local" => Ok(()),
-                    x => reqwest::Url::parse(x)
-                        .map_err(|_| r#""main", "local" or URL expected."#.to_owned())
-                        .map(|_| ()),
-                }),
-        );
-    }
+    let mut app =
+        SubCommand::with_name("generate").about("Generate or transform files in your project.");
 
     app = app.subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()));
 
@@ -38,13 +23,17 @@ pub fn construct() -> App<'static, 'static> {
 pub fn builtins() -> Vec<CliCommand> {
     let mut v: Vec<CliCommand> = Vec::new();
 
-    add_builtin(&mut v, add::available(), add::construct(), add::exec);
-    add_builtin(&mut v, list::available(), list::construct(), list::exec);
     add_builtin(
         &mut v,
-        remove::available(),
-        remove::construct(),
-        remove::exec,
+        canister::available(),
+        canister::construct(),
+        canister::exec,
+    );
+    add_builtin(
+        &mut v,
+        upgrade::available(),
+        upgrade::construct(),
+        upgrade::exec,
     );
 
     v
