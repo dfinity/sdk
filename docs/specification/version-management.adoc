@@ -30,7 +30,7 @@ So the user would never actually see the version of DFINITY client that they are
 == Installing DFX
 The user should initially download the SDK by using the following command:
 [source,bash]
-curl sdk.dfinity.org/install.sh | sh
+curl https://sdk.dfinity.org/install.sh | sh
 
 This will install a binary compatible with your operating system, and add it to `/usr/local/bin`
 (or equivalent).footnote:disclaimer[Other systems, such as `brew`, `dpkg` or simply downloading a
