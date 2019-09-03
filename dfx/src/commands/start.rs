@@ -21,35 +21,6 @@ fn router() -> Router {
         route
             .request(vec![Method::GET, Method::HEAD], "/")
             .to(say_hello);
-        //        route.get_or_head("/products").to(say_hello);
-        //
-        //        route.scope("/checkout", |route| {
-        //            route.get("/start").to(say_hello);
-        //
-        //            // Associations allow a single path to be matched for multiple HTTP verbs
-        //            // with each delegating to a unique handler or the same handler, as shown here with
-        //            // put and patch.
-        //            route.associate("/address", |assoc| {
-        //                assoc.post().to(say_hello);
-        //                assoc.put().to(say_hello);
-        //                assoc.patch().to(say_hello);
-        //                assoc.delete().to(say_hello);
-        //            });
-        //
-        //            route
-        //                .post("/payment_details")
-        //                .to(say_hello);
-        //
-        //            route
-        //                .put("/payment_details")
-        //                .to(say_hello);
-        //
-        //            route.post("/complete").to(say_hello);
-        //        });
-        //
-        //        route.scope("/api", |route| {
-        //            route.get("/products").to(say_hello);
-        //        });
     })
 }
 
@@ -68,7 +39,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("port")
-                .help("The port the test net API server should listen to.")
+                .help("The port the server should listen to.")
                 .long("port")
                 .short("p")
                 .takes_value(true),
@@ -113,43 +84,19 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
     b.set_message("Starting up the DFINITY client...");
     let mut cmd = binary_command(&config, "client").unwrap();
     let _child = cmd.spawn()?;
-    let mut i = 0;
 
-    loop {
+    // Count 600 msec to give the user the impression that something is working hard.
+    for _ in 1..6 {
         std::thread::sleep(std::time::Duration::from_millis(100));
         b.inc(1);
-
-        if i < 100 {
-            i += 1;
-        } else {
-            break;
-        }
     }
 
-    let mut fp = FakeProgress::new();
-    fp.add_with_len(
-        100,
-        1000..4000,
-        move |pb| {
-            pb.set_style(
-                ProgressStyle::default_bar()
-                    .template("[{elapsed_precise:.green}] [{percent:>3.blue.bold}%] {msg}"),
-            );
-            pb.set_message(
-                format!("Starting local DFINITY network with {} node(s)...", &nodes).as_str(),
-            );
-        },
-        move |pb| {
-            pb.finish_with_message(
-                format!(
-                    "Starting local DFINITY network with {} node(s)... Done.",
-                    nodes
-                )
-                .as_str(),
-            );
-        },
-    );
-    fp.join()?;
+    // Wait for the server to actually be up.
+    loop {
+
+    }
+    b.finish_with_message("DFINITY client started...");
+    mp.join();
 
     let addr = format!("{}:{}", address, port);
     println!(
