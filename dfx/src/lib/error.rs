@@ -4,6 +4,8 @@ use crate::lib::api_client::RejectCode;
 #[derive(Debug)]
 pub enum DfxError {
     Clap(clap::Error),
+    IOError(std::io::Error),
+    ParseIntError(std::num::ParseIntError),
     Reqwest(reqwest::Error),
     SerdeCbor(serde_cbor::error::Error),
     Url(reqwest::UrlError),
@@ -16,6 +18,18 @@ pub enum DfxError {
 
 /// The result of running a DFX command.
 pub type DfxResult = Result<(), DfxError>;
+
+impl From<std::io::Error> for DfxError {
+    fn from(err: std::io::Error) -> DfxError {
+        DfxError::IOError(err)
+    }
+}
+
+impl From<std::num::ParseIntError> for DfxError {
+    fn from(err: std::num::ParseIntError) -> DfxError {
+        DfxError::ParseIntError(err)
+    }
+}
 
 impl From<reqwest::Error> for DfxError {
     fn from(err: reqwest::Error) -> DfxError {

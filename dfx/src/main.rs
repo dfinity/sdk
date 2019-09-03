@@ -1,9 +1,12 @@
 use clap::{App, AppSettings};
 
 mod commands;
-pub mod lib;
+mod config;
+mod lib;
+mod util;
 
-use lib::error::*;
+use crate::config::DFX_VERSION;
+use crate::lib::error::*;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -49,6 +52,14 @@ fn exec(args: &clap::ArgMatches<'_>) -> DfxResult {
 
 fn main() {
     let matches = cli().get_matches();
+
+    // TODO: move this somewhere more appropriate
+    if !config::cache::is_version_installed(DFX_VERSION).unwrap_or(false) {
+        config::cache::install_version(DFX_VERSION).unwrap();
+        println!("Version v{} installed successfully.", DFX_VERSION);
+    } else {
+        println!("Version v{} already installed.", DFX_VERSION);
+    }
 
     match exec(&matches) {
         Ok(()) => ::std::process::exit(0),

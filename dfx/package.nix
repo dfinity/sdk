@@ -37,6 +37,7 @@ let
     in lib.concatMapStringsSep "\n" timestamp lines;
 
   src = lib.sourceFilesByRegex (lib.gitOnlySource ./.) [
+    "^assets/.*$"
     ".*\.rs$"
     ".*Cargo\.toml$"
     ".*Cargo\.lock$"
