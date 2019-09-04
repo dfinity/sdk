@@ -6,7 +6,8 @@ pub fn available() -> bool {
 }
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("canister").about("Generate a new canister in your project.")
+    SubCommand::with_name("canister")
+        .about("Generate a new canister in your project.")
         .arg(
             Arg::with_name("name")
                 .help("The name of the canister to generate.")

@@ -81,7 +81,7 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
 
         // Make sure the child is still running.
         if let Ok(result) = child.try_wait() {
-            if let Some(_) = result {
+            if result.is_some() {
                 let mut stderr = String::new();
                 child.stderr.unwrap().read_to_string(&mut stderr)?;
                 b.finish_with_message("The client exited early.");
@@ -104,7 +104,7 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
 
         let mut runtime = Runtime::new().expect("Unable to create a runtime");
         // TODO: not block but keep updating the spinner.
-        if let Ok(_) = runtime.block_on(ping(client)) {
+        if runtime.block_on(ping(client)).is_ok() {
             break;
         }
     }

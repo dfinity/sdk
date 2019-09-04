@@ -14,8 +14,9 @@ pub fn construct() -> App<'static, 'static> {
                 .required(true),
         )
         .arg(
-            Arg::with_name("wasm")
-                .help("The wasm file to use. By default will use the wasm of the same canister name.")
+            Arg::with_name("wasm").help(
+                "The wasm file to use. By default will use the wasm of the same canister name.",
+            ),
         )
 }
 
