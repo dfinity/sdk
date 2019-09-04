@@ -106,7 +106,7 @@ any flags necessary to get the version currently tagged latest.
 == Cache
 A cache directory will exist on the user's home folder. On Linux and OSX, it will likely be in `$HOME/.cache/dfinity`, while on Windows would likely be in `C:\Users\$USER\AppData\Local\DFINITY`.
 
-That cache folder should contain `./v/$VERSION/` folders for each version downloaded, and
+That cache folder should contain `./v/$VERSION/` folders for each version downloaded.
 
 === Upkeep
 A `cache` subcommand should be available to users to manage their cache. Example of subcommands:
