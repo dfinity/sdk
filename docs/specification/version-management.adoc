@@ -34,7 +34,7 @@ This binary contains a number of things:
 
 The `dfx` global CLI then tries to find the version it should use (in order);
 
-. If a `DFX_VERSION` environment variable is set, use that version directly. If that version isnot available in the cache, report the error and do not continue.
+. If a `DFX_VERSION` environment variable is set, use that version directly. If that version is not available in the cache, report the error and do not continue.
 . If there is a local DFINITY configuration file, it will use the version of the SDK specified init (the `dfx_version` field). If that version is not available in the cache, it will try todownload it from the Internet. If there is no connection, report the error and do not continue.
 . If there is an internet connection, to a maximum of once a week, the `dfx` will reach out to`sdk.dfinity.org` to find the latest version available.
 . If there is a user level cache available, the `dfx` will use the greatest version alreadydownloaded by the user, that is not greater than the `dfx` global CLI version.
