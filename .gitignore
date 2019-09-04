@@ -1,6 +1,7 @@
 result*
 
 # Building
+build/
 target/
 
 # IDEs

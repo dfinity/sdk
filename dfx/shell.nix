@@ -8,13 +8,4 @@ pkgs.mkCiShell {
     dfx
   ];
   DFX_ASSETS = dfx.DFX_ASSETS;
-  shellHook = ''
-    echo "{}" > dfinity.json
-
-    # Clean up before we exit the shell
-    trap "{ \
-      rm dfinity.json
-      exit 255; \
-    }" EXIT
-  '';
 }
