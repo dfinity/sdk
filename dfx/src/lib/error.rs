@@ -8,6 +8,7 @@ pub enum DfxError {
     ParseInt(std::num::ParseIntError),
     Reqwest(reqwest::Error),
     SerdeCbor(serde_cbor::error::Error),
+    SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
 
     UnknownCommand(String),
@@ -34,6 +35,18 @@ impl From<reqwest::Error> for DfxError {
 impl From<reqwest::UrlError> for DfxError {
     fn from(err: reqwest::UrlError) -> DfxError {
         DfxError::Url(err)
+    }
+}
+
+impl From<serde_cbor::Error> for DfxError {
+    fn from(err: serde_cbor::Error) -> DfxError {
+        DfxError::SerdeCbor(err)
+    }
+}
+
+impl From<serde_json::Error> for DfxError {
+    fn from(err: serde_json::Error) -> DfxError {
+        DfxError::SerdeJson(err)
     }
 }
 
