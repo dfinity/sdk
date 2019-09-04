@@ -15,7 +15,7 @@ pub fn available() -> bool {
 pub fn construct() -> App<'static, 'static> {
     // There is a difference in arguments between in-project versus global.
     let mut app =
-        SubCommand::with_name("canister").about("Manage authentications and credentials.");
+        SubCommand::with_name("canister").about("Manage canisters on the global network.");
 
     if Config::from_current_dir().is_err() {
         app = app.arg(
