@@ -27,7 +27,7 @@ This will install a binary compatible with your operating system, and add it to 
 
 This binary contains a number of things:
 
-. The global CLI. This is a CLI made to manage the cache, read the project file if necessary, andforward any calls to a versioned CLI.
+. The global CLI. This is a CLI made to manage the cache, read the project file if necessary, and forward any calls to a versioned CLI.
 . A tar gz release file containing a distribution versioned with the latest (available) version ofthe SDK. This tar file include the versioned CLI, the actorscript compiler, the node manager andclient, and any other binaries necessary.
 
 == Version Resolution
