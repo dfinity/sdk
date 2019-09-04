@@ -48,9 +48,6 @@ fn main() {
     )
     .unwrap();
 
-    println!("OPENSSL_STATIC: {:#?}", env::var("OPENSSL_STATIC"));
-    println!("CARGO_HOME: {:#?}", env::var("CARGO_HOME"));
-    println!("DFX_ASSETS: {:#?}", env::var("DFX_ASSETS"));
     let path = env::var("DFX_ASSETS").unwrap();
     add_assets(&mut f, &path);
 }
