@@ -5,7 +5,7 @@ v0.1, 2019-08-29
 -- DRAFT
 
 == Overview
-In order to use the SDK, the user has to download a version of DFX for his platform. Normally that means installing the latest version and using it, but the end user might be working on a project that was using an older version of the DFX.
+In order to use the SDK, the user has to download a version of `dfx` for their platform. Normally that means installing the latest version and using it, but the end user might be working on a project that was using an older version of `dfx`.
 
 For example, a user could have created a project with `dfx` v0.1, but the latest is v1.0 and the user is not ready to upgrade his project just yet.
 
