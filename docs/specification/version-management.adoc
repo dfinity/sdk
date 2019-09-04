@@ -115,7 +115,7 @@ A `cache` subcommand should be available to users to manage their cache. Example
 dfx cache clear  # Delete the cache folder entirely.
 dfx cache list  # List all version installed.
 dfx cache install 1.2.3  # Download and install version 1.2.3 in the cache
-dfx cache remove 1.2.3  # Delete all the cache elements for version 1.2.3
+dfx cache delete 1.2.3  # Delete all the cache elements for version 1.2.3
 ----
 
 Because of the delegation between global and versioned CLI, the `cache` subcommand should be strongly defined in the global CLI.
