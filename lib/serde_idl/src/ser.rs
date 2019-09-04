@@ -2,7 +2,6 @@
 
 use super::error::{Error, Result};
 use serde::ser::{self, Impossible, Serialize};
-use serde_derive_internals::ast;
 
 use std::io;
 use std::vec::Vec;
