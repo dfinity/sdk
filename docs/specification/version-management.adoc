@@ -94,7 +94,7 @@ The `sdk.dfinity.org` should have a well-defined URL scheme that will avoid regr
 | URL | Description
 
 | `sdk.dfinity.org/install.{sh,bash,fish,bat,...}` | should return a shell script that installs the
-global DFX CLI according to platform and shell environment.
+global `dfx` CLI according to platform and shell environment.
 | `sdk.dfinity.org/v/` | Root of all the versions. The `index.html` should list all available
 versions.
 | `sdk.dfinity.org/v/1.2.3/x86_64-darwin.tgz` | The release for version 1.2.3 for OSX.
