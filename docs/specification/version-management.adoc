@@ -18,7 +18,7 @@ For example, assuming `v1.1.5` and `v1.2.3` of DFX are supported stable versions
 
 This means the user would never actually see the version of DFINITY client that they are running.
 
-== Installing DFX
+== Installing `dfx`
 The user should initially download the SDK by using the following command:
 [source,bash]
 curl https://sdk.dfinity.org/install.sh | sh
