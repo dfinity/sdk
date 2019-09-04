@@ -4,8 +4,8 @@ use crate::lib::api_client::RejectCode;
 #[derive(Debug)]
 pub enum DfxError {
     Clap(clap::Error),
-    IOError(std::io::Error),
-    ParseIntError(std::num::ParseIntError),
+    IO(std::io::Error),
+    ParseInt(std::num::ParseIntError),
     Reqwest(reqwest::Error),
     SerdeCbor(serde_cbor::error::Error),
     Url(reqwest::UrlError),
@@ -19,15 +19,9 @@ pub enum DfxError {
 /// The result of running a DFX command.
 pub type DfxResult = Result<(), DfxError>;
 
-impl From<std::io::Error> for DfxError {
-    fn from(err: std::io::Error) -> DfxError {
-        DfxError::IOError(err)
-    }
-}
-
-impl From<std::num::ParseIntError> for DfxError {
-    fn from(err: std::num::ParseIntError) -> DfxError {
-        DfxError::ParseIntError(err)
+impl From<clap::Error> for DfxError {
+    fn from(err: clap::Error) -> DfxError {
+        DfxError::Clap(err)
     }
 }
 
@@ -43,8 +37,14 @@ impl From<reqwest::UrlError> for DfxError {
     }
 }
 
-impl From<clap::Error> for DfxError {
-    fn from(err: clap::Error) -> DfxError {
-        DfxError::Clap(err)
+impl From<std::io::Error> for DfxError {
+    fn from(err: std::io::Error) -> DfxError {
+        DfxError::IO(err)
+    }
+}
+
+impl From<std::num::ParseIntError> for DfxError {
+    fn from(err: std::num::ParseIntError) -> DfxError {
+        DfxError::ParseInt(err)
     }
 }
