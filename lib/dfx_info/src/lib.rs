@@ -52,3 +52,10 @@ primitive_impl!(u32, Nat);
 primitive_impl!(u64, Nat);
 primitive_impl!(usize, Nat);
 
+impl<T> DfinityInfo for Option<T> where T: DfinityInfo {
+    fn ty() -> Type { Type::Opt(Box::new(T::ty())) }
+}
+
+impl<T> DfinityInfo for Box<T> where T: DfinityInfo {
+    fn ty() -> Type { T::ty() }
+}

@@ -26,31 +26,48 @@ fn test_integer() {
 fn test_option() {
     check(Some(42), "4449444c016e7c00012a");
     check(Some(Some(42)), "4449444c026e7c6e000101012a");
-    //let opt: Option<i32> = None;
-    //assert_eq!(types::type_of(&opt), types::Type::Bool);
+    let opt: Option<i32> = None;
+    assert_eq!(get_type(&opt), Type::Opt(Box::new(Type::Int)));
     //check(opt, "4449444c");
 }
 
 #[derive(Serialize, Debug, DfinityInfo)]
 struct A { foo: i32, bar: bool }
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, DfinityInfo)]
 struct List { head: i32, tail: Option<Box<List>> }
 #[derive(Serialize, Debug, DfinityInfo)]
-enum E { Foo, Bar(bool) }
+enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
+
+
+fn field(id: &str, ty: Type) -> dfx_info::Field {
+    dfx_info::Field { id: id.to_string(), ty: ty }
+}
 
 #[test]
 fn test_struct() {
     let record = A { foo: 42, bar: true };
     check(record, "4449444c016c02d3e3aa027e868eb7027c00012a");
     let record = A { foo: 42, bar: true };    
-    assert_eq!(get_type(&record), Type::Bool);
+    assert_eq!(get_type(&record),
+               Type::Record(vec![
+                   field("foo", Type::Int),
+                   field("bar", Type::Bool)]));
+    //let list = List { head: 42, tail: None };
+    //assert_eq!(get_type(&list), Type::Bool);
     //check(List { head: 42, tail: None }, "4449444c016c02d3");
 }
 
 #[test]
 fn test_variant() {
     let v = E::Foo;
-    assert_eq!(get_type(&v), Type::Bool);
+    assert_eq!(get_type(&v),
+               Type::Variant(vec![
+                   field("Foo", Type::Null),
+                   field("Bar", Type::Record(vec![field("0", Type::Bool)])),
+                   field("Baz", Type::Record(vec![field("a", Type::Int),
+                                                  field("b", Type::Nat)])),
+                   ])
+    );
 }
 
 fn check<T: Serialize>(value: T, expected: &str) {
