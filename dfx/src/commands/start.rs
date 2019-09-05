@@ -1,7 +1,7 @@
 use crate::config::cache::binary_command;
 use crate::config::dfinity::{Config, ConfigCanistersCanister};
 use crate::lib::api_client::{ping, Client, ClientConfig};
-use crate::lib::build::watch_file_and_spin;
+use crate::lib::build::watch_file;
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
@@ -144,13 +144,14 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
                 let bar = Arc::new(mp.add(ProgressBar::new_spinner()));
                 let config = Arc::new(config.clone());
 
-                watch_file_and_spin(
-                    bar,
-                    Arc::new(move |name| {
+                watch_file(
+                    Box::new(move |name| {
                         binary_command(Arc::clone(&config).as_ref(), name).map_err(DfxError::StdIo)
                     }),
                     &input_as_path,
                     &output_root.join(x.as_str()),
+                    Box::new(|| Arc::clone(&bar).as_ref().enable_steady_tick(80)),
+                    Box::new(|| Arc::clone(&bar).as_ref().disable_steady_tick()),
                 )?;
             }
         }

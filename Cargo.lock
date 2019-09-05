@@ -358,7 +358,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.1.1"
+version = "0.100.2"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "console 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)",

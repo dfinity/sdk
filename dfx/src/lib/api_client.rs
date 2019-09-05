@@ -120,6 +120,9 @@ where
             body.get_or_insert(reqwest::r#async::Body::from(
                 serde_cbor::to_vec(&request).unwrap(),
             ));
+
+            println!("{:?}", request);
+            println!("{:?}", serde_cbor::to_vec(&request).unwrap());
             client.execute(http_request).map_err(DfxError::Reqwest)
         })
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
@@ -150,12 +153,17 @@ fn submit<A>(client: Client, request: Request) -> impl Future<Item = Response<A>
             body.get_or_insert(reqwest::r#async::Body::from(
                 serde_cbor::to_vec(&request).unwrap(),
             ));
+
+            println!("{:?}", request);
+            println!("{:?}", serde_cbor::to_vec(&request).unwrap());
             client.execute(http_request).map_err(DfxError::Reqwest)
         })
-        .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
-        .and_then(|buf| match serde_cbor::from_slice(&buf) {
-            Ok(r) => ok(r),
-            Err(e) => err(DfxError::SerdeCbor(e)),
+        .and_then(|res| {
+            if res.status() < reqwest::StatusCode::BAD_REQUEST {
+                ok(Response::Accepted)
+            } else {
+                err(DfxError::Unknown(format!("What are you doing. Code: {}", res.status())))
+            }
         })
 }
 
@@ -174,8 +182,8 @@ pub fn query(
 pub fn install_code(
     client: Client,
     request: CanisterInstallCodeCall,
-) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
-    send(client, Request::InstallCode { request })
+) -> impl Future<Item = Response<InstallResponseReply>, Error = DfxError> {
+    submit(client, Request::InstallCode { request })
 }
 
 /// A canister query call request payload
@@ -188,14 +196,19 @@ pub struct CanisterQueryCall {
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanisterInstallCodeCall {
-    canister_id: u64,
-    module: Blob,
+    pub canister_id: u64,
+    pub module: Blob,
 }
 
 /// A canister query call response payload
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryResponseReply {
     pub arg: Blob,
+}
+
+/// A canister install call response payload
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InstallResponseReply {
 }
 
 #[cfg(test)]
