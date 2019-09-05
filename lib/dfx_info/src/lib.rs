@@ -21,7 +21,11 @@ pub struct Field {
 }
 
 pub trait DfinityInfo {
-    fn get_type(&self) -> Type;
+    fn ty() -> Type;
+}
+
+pub fn get_type<T>(_v: &T) -> Type where T: DfinityInfo {
+    T::ty()
 }
 
 // ## Primitive Types
@@ -29,8 +33,7 @@ pub trait DfinityInfo {
 macro_rules! primitive_impl {
     ($t:ty, $id:tt) => {
         impl DfinityInfo for $t {
-            #[inline]
-            fn get_type(&self) -> Type {
+            fn ty() -> Type {
                 Type::$id
             }
         }

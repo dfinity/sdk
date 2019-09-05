@@ -25,7 +25,7 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     };
     let gen = quote! {
         impl dfx_info::DfinityInfo for #name {
-            fn get_type(&self) -> dfx_info::Type {
+            fn ty() -> dfx_info::Type {
                 #body
             }
         }
@@ -82,5 +82,7 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
 }
 
 fn type_from_ast(t: &syn::Type) -> Tokens {
-    quote! { dfx_info::Type::Bool }
+    quote! {
+        <#t as dfx_info::DfinityInfo>::ty()
+    }
 }
