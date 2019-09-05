@@ -7,13 +7,15 @@ extern crate quote;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as Tokens;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput};
+use syn::{parse_macro_input, Data, DeriveInput, Generics, GenericParam};
 use syn::punctuated::Punctuated;
 
 #[proc_macro_derive(DfinityInfo)]
 pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
+    let generics = add_trait_bounds(input.generics);
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();    
     let body = match input.data {
         Data::Enum(ref data) => {
             enum_from_ast(&data.variants)
@@ -24,7 +26,7 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
         Data::Union(_) => unimplemented!("doesn't derive union type")            
     };
     let gen = quote! {
-        impl dfx_info::DfinityInfo for #name {
+        impl #impl_generics dfx_info::DfinityInfo for #name #ty_generics #where_clause {
             fn ty() -> dfx_info::Type {
                 #body
             }
@@ -85,4 +87,14 @@ fn type_from_ast(t: &syn::Type) -> Tokens {
     quote! {
         <#t as dfx_info::DfinityInfo>::ty()
     }
+}
+
+fn add_trait_bounds(mut generics: Generics) -> Generics {
+    for param in &mut generics.params {
+        if let GenericParam::Type(ref mut type_param) = *param {
+            let bound = syn::parse_str("::dfx_info::DfinityInfo").unwrap();
+            type_param.bounds.push(bound);
+        }
+    }
+    generics
 }

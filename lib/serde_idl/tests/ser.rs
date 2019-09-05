@@ -37,11 +37,9 @@ struct A { foo: i32, bar: bool }
 struct List { head: i32, tail: Option<Box<List>> }
 #[derive(Serialize, Debug, DfinityInfo)]
 enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
+#[derive(Serialize, Debug, DfinityInfo)]
+struct G<T, E> { g1: T, g2: E }
 
-
-fn field(id: &str, ty: Type) -> dfx_info::Field {
-    dfx_info::Field { id: id.to_string(), ty: ty }
-}
 
 #[test]
 fn test_struct() {
@@ -70,8 +68,23 @@ fn test_variant() {
     );
 }
 
+#[test]
+fn test_generics() {
+    let res = G { g1: 42, g2: true };
+    assert_eq!(get_type(&res),
+               Type::Record(vec![
+                   field("g1", Type::Int),
+                   field("g2", Type::Bool)])
+    );
+}
+
 fn check<T: Serialize>(value: T, expected: &str) {
     let encoded = to_vec(&value).unwrap();
     let expected = hex::decode(expected).unwrap();
     assert_eq!(encoded, expected, "\nExpected\n{:x?}\nActual\n{:x?}\n", expected, encoded);
 }
+
+fn field(id: &str, ty: Type) -> dfx_info::Field {
+    dfx_info::Field { id: id.to_string(), ty: ty }
+}
+
