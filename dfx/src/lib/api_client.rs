@@ -14,24 +14,32 @@ pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 type CanisterId = u64;
 
-pub struct Client {
-    client: ReqwestClient,
-    url: String,
+pub trait Client {
+    fn config(&self) -> &ClientConfig;
+    fn execute(&self, request: reqwest::r#async::Request) -> Box<Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send>;
 }
 
-impl Client {
-    pub fn new(config: ClientConfig) -> Client {
-        Client {
+pub struct ApiClient {
+    client: reqwest::r#async::Client,
+    config: ClientConfig,
+}
+
+impl ApiClient {
+    pub fn new(config: ClientConfig) -> ApiClient {
+        ApiClient {
+            config,
             client: ReqwestClient::new(),
-            url: config.url,
         }
     }
+}
 
-    pub fn execute(
-        &self,
-        request: reqwest::r#async::Request,
-    ) -> impl Future<Item = reqwest::r#async::Response, Error = reqwest::Error> {
-        self.client.execute(request)
+impl Client for ApiClient {
+    fn config(&self) -> &ClientConfig {
+        &self.config
+    }
+
+    fn execute(&self, request: reqwest::r#async::Request) -> Box<Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send> {
+        Box::new(self.client.execute(request))
     }
 }
 
@@ -79,11 +87,11 @@ pub enum RejectCode {
 
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
-fn read<A>(client: Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
+fn read<A>(client: impl Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
 where
     A: serde::de::DeserializeOwned,
 {
-    let endpoint = format!("{}/api/v1/read", client.url);
+    let endpoint = format!("{}/api/v1/read", client.config().url);
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
         .and_then(move |url| {
@@ -112,7 +120,7 @@ where
 /// can be executed more efficiently. This method provides that ability, and
 /// returns the canister’s response directly within the HTTP response.
 pub fn query(
-    client: Client,
+    client: impl Client,
     request: CanisterQueryCall,
 ) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
     read(client, Request::Query { request })
@@ -233,7 +241,7 @@ mod tests {
             .with_body(serde_cbor::to_vec(&response).unwrap())
             .create();
 
-        let client = Client::new(ClientConfig {
+        let client = ApiClient::new(ClientConfig {
             url: mockito::server_url(),
         });
 
@@ -305,7 +313,7 @@ mod tests {
             .with_body(serde_cbor::to_vec(&response).unwrap())
             .create();
 
-        let client = Client::new(ClientConfig {
+        let client = ApiClient::new(ClientConfig {
             url: mockito::server_url(),
         });
 

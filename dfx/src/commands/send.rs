@@ -26,7 +26,7 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
     let name = args.value_of(NAME_ARG).unwrap();
     let url = args.value_of(HOST_ARG).unwrap();
 
-    let client = Client::new(ClientConfig {
+    let client = ApiClient::new(ClientConfig {
         url: url.to_string(),
     });
 
