@@ -35,8 +35,8 @@ fn test_option() {
 struct A { foo: i32, bar: bool }
 #[derive(Serialize, Debug, DfinityInfo)]
 struct List { head: i32, tail: Option<Box<List>> }
-#[derive(Serialize, Debug)]
-enum E { Foo(i32), Bar(bool) }
+#[derive(Serialize, Debug, DfinityInfo)]
+enum E { Foo, Bar(bool) }
 
 #[test]
 fn test_struct() {
@@ -49,8 +49,8 @@ fn test_struct() {
 
 #[test]
 fn test_variant() {
-    let v = E::Foo(3);
-    //assert_eq!(types::type_of(&v), types::Type::Bool);
+    let v = E::Foo;
+    assert_eq!(v.get_type(), Type::Bool);
 }
 
 fn check<T: Serialize>(value: T, expected: &str) {

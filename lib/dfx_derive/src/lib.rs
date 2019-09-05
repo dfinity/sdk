@@ -2,7 +2,6 @@ extern crate proc_macro;
 extern crate proc_macro2;
 #[macro_use]
 extern crate syn;
-#[macro_use]
 extern crate quote;
 
 use proc_macro::TokenStream;
@@ -17,8 +16,7 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     let name = input.ident;
     let body = match input.data {
         Data::Enum(ref data) => {
-            //enum_from_ast(&data)
-            unimplemented!("TODO")
+            enum_from_ast(&data.variants)
         },
         Data::Struct(ref data) => {
             struct_from_ast(&data.fields)
@@ -35,17 +33,22 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     //panic!(gen.to_string());
     TokenStream::from(gen)
 }
-/*
-fn enum_from_ast(data: &syn::DataEnum) -> TokenStream {
-    data.variants
-        .iter()
-        .map(|variant| {
-            let fields = struct_from_ast(&variant.fields);
-            (variant.ident.clone(), fields)
-        })
-        .collect()    
+
+fn enum_from_ast(variants: &Punctuated<syn::Variant, Token![,]>) -> Tokens {
+    let variants: Vec<(String, Tokens)> = variants.iter().map(|variant| {
+        let id = variant.ident.to_string();
+        let ty = struct_from_ast(&variant.fields);
+        (id, ty)
+    }).collect();
+    let tokens = variants.iter().fold(quote! {}, |tokens, (id, ty)| {
+        quote! {
+            #tokens
+            dfx_info::Field { id: #id.to_owned(), ty: #ty },
+        }
+    });
+    quote! { dfx_info::Type::Variant(vec![#tokens]) }
 }
-*/
+
 fn struct_from_ast(fields: &syn::Fields) -> Tokens {
     match *fields {
         syn::Fields::Named(ref fields) => {
@@ -79,5 +82,5 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
 }
 
 fn type_from_ast(t: &syn::Type) -> Tokens {
-    quote! { dfx_info::Type::Null }
+    quote! { dfx_info::Type::Bool }
 }
