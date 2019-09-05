@@ -55,16 +55,15 @@ A migration script should also be included between two versions to upgrade the p
 
 == Versions
 === Operators
-Semantic versioning operators should be supported in the `dfx_version` field. For example, using the following configuration file:
+Semantic versioning operators should be supported in the `dfx_version` field. For example, using the following configuration file should allow the user to use any `dfx` version between 1.0.0 and less than 1.4:
 [source,json]
 {
   "dfx_version": ">=1.0.0 <1.4.0"
 }
 
-Should allow the user to use any `dfx` version between 1.0.0 and less than 1.4.
 
 === Directories
-Having a directory (starting with either `.`, `~` or `/`) in the `dfx_version` field should be allowed to let the user (and most importantly our own integration tests) use a custom version of the installed binaries. No other verification than having the versioned CLI in it should be necessary.
+Having a directory (starting with either `.`, `~` or `/`) in the `dfx_version` field should be allowed to let the user (and most importantly our own integration tests) use a custom version of the installed binaries. No verification other than having the versioned CLI in it should be necessary.
 
 === Tags (_optional_)
 We might want to have tracks of software that the user can use, resolving to versions through the server. The following tags could be made available from the start:
@@ -76,18 +75,18 @@ We might want to have tracks of software that the user can use, resolving to ver
 By default, prior to creating a project, the `latest` field will be used when contacting the servers to gather the latest stable version.
 
 == Remote Commands
-Commands like wallet, key management, upgrade and deployment of canisters, and other commands that affect a remote net (either the main net or a hosted test net) should validate that the version of the SDK is compatible with the version of the net being used remotely.
+Commands relating to wallet, key management, upgrade and deployment of canisters, and other commands that affect a remote network (either the main network or a hosted test network) should validate that the version of the SDK is compatible with the version of the network being used remotely.
 
 A few ways of doing this can be considered:
 
-. The client API has a call to get the version, and we consider any delta X to be incompatible. 2majors is normally a good delta to guarantee if we implement a 1 major deprecation policy, but1 major could also work. This implies that the client and SDK are loosely versioned together.
-. The client API has a call that list all versions of the SDK it is backward compatible with.
-. The client API stays backward compatible forever.
+. The HTTP API has a call to get the version, and we consider any delta X to be incompatible. 2 major versions is normally a good delta if we implement a 1 major version deprecation policy, but 1 major version could also work. This implies that the client and SDK are loosely versioned together.
+. The HTTP API has a call that lists all versions of the SDK it is backward compatible with.
+. The HTTP API stays backward compatible forever.
 
-There could be other schemes that work. This is out of scope for this particular proposal, but should be addressed prior to launching the main net.
+There could be other schemes that work. This is out of scope for this particular proposal, but should be addressed prior to launching the main network.
 
 == URL Scheme
-The `sdk.dfinity.org` should have a well-defined URL scheme that will avoid regressions:
+`sdk.dfinity.org` should have a well-defined URL scheme that will avoid regressions:
 
 .URL Schemes
 |===
