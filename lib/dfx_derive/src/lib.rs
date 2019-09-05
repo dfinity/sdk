@@ -21,7 +21,7 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
         Data::Struct(ref data) => {
             struct_from_ast(&data.fields)
         },
-        Data::Union(_) => unimplemented!("doesn't derive non-enum type")            
+        Data::Union(_) => unimplemented!("doesn't derive union type")            
     };
     let gen = quote! {
         impl dfx_info::DfinityInfo for #name {
@@ -35,18 +35,18 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
 }
 
 fn enum_from_ast(variants: &Punctuated<syn::Variant, Token![,]>) -> Tokens {
-    let variants: Vec<(String, Tokens)> = variants.iter().map(|variant| {
-        let id = variant.ident.to_string();
-        let ty = struct_from_ast(&variant.fields);
-        (id, ty)
-    }).collect();
-    let tokens = variants.iter().fold(quote! {}, |tokens, (id, ty)| {
-        quote! {
-            #tokens
-            dfx_info::Field { id: #id.to_owned(), ty: #ty },
-        }
-    });
-    quote! { dfx_info::Type::Variant(vec![#tokens]) }
+    let id = variants.iter().map(|variant| variant.ident.to_string());
+    let ty = variants.iter().map(|variant| struct_from_ast(&variant.fields));
+    quote! {
+        dfx_info::Type::Variant(
+            vec![
+                #(dfx_info::Field {
+                    id: #id.to_owned(),
+                    ty: #ty }
+                ),*
+            ]
+        )
+    }
 }
 
 fn struct_from_ast(fields: &syn::Fields) -> Tokens {
@@ -64,21 +64,21 @@ fn struct_from_ast(fields: &syn::Fields) -> Tokens {
 }
 
 fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
-    let fields: Vec<(String, Tokens)> = fields.iter().enumerate().map(|(i, field)| {
-        let id = match field.ident {
+    let id = fields.iter().enumerate().map(|(i, field)| {
+        match field.ident {
             Some(ref ident) => ident.to_string(),
-            None => i.to_string(),
-        };
-        let ty = type_from_ast(&field.ty);
-        (id, ty)
-    }).collect();
-    let tokens = fields.iter().fold(quote! { }, |tokens, (id, ty)| {
-        quote! {
-            #tokens
-            dfx_info::Field { id: #id.to_owned(), ty: #ty },
+            None => i.to_string()
         }
     });
-    quote! { vec![#tokens] }
+    let ty = fields.iter().map(|field| { type_from_ast(&field.ty) });
+    quote! {
+        vec![
+            #(dfx_info::Field {
+                id: #id.to_owned(),
+                ty: #ty }
+            ),*
+        ]
+    }
 }
 
 fn type_from_ast(t: &syn::Type) -> Tokens {
