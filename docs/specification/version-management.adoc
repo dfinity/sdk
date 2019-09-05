@@ -37,19 +37,19 @@ The `dfx` global CLI then tries to find the version it should use (in order);
 . If a `DFX_VERSION` environment variable is set, use that version directly. If that version is not available in the cache, report the error and do not continue.
 . If there is a local DFINITY configuration file, it will use the version of the SDK specified in it (the `dfx_version` field). If that version is not available in the cache, it will try to download it from the Internet. If there is no connection, report the error and do not continue.
 . If there is an Internet connection, to a maximum of once a week, `dfx` will reach out to `sdk.dfinity.org` to find the latest version available.
-. If there is a user level cache available, the `dfx` will use the greatest version alreadydownloaded by the user, that is not greater than the `dfx` global CLI version.
+. If there is a user-level cache available, `dfx` will use the latest version already downloaded by the user that is not newer than the `dfx` global CLI version.
 . Finally, the global `dfx` comes versioned and will use that version number as a last resort. Ifthat version is not part of the cache, it will use its internal tar file to bootstrap theuser level cache.
 
-The global CLI then defer the call to a local, user-level cached, versioned CLI.
+The global CLI then defers the call to a local, user-level cached, versioned CLI.
 
 This whole process implies that:
 
 . The CLI will always create a new project using the latest available client and SDK.
-. The CLI will still work without an internet connection.
-. The global CLI only need to be updated on major changes; either the `cache` command changes, oran URL needs to be updated. If a new version need to be downloaded we can also tell the userhow to perform the upgrade.
+. The CLI will still work without an Internet connection.
+. The global CLI only needs to be updated on major changes; either the `cache` command changes, or a URL needs to be updated. If a new version needs to be downloaded we can also tell the user how to perform the upgrade.
 
 == Upgrade Subcommand
-An `upgrade` command can be made available to ping our servers, download the latest release, install it in the user-level cache, and update the project's `dfx_version` field (if in a project) to the new version. If no internet is available at that time it should error out.
+An `upgrade` command can be made available to ping our servers, download the latest release, install it in the user-level cache, and update the project's `dfx_version` field (if in a project) to the new version. If no Internet is available at that time it should error out.
 
 A migration script should also be included between two versions to upgrade the project. This is out of scope for version 1.0.
 
