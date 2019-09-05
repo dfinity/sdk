@@ -3,7 +3,7 @@ use crate::config::dfinity::{Config, ConfigCanistersCanister};
 use crate::lib::build::{build_file, watch_file_and_spin};
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use indicatif::{MultiProgress, ProgressBar};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 use std::sync::Arc;
 
 pub fn available() -> bool {
@@ -19,6 +19,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("watch")
+                .long("watch")
                 .help("Watch input files and rebuild on changes.")
                 .takes_value(false),
         )
@@ -48,7 +49,7 @@ fn just_build() -> DfxResult {
                 let input_as_path = project_root.join(x.as_str());
 
                 build_file(
-                    &|name| binary_command(&config, name).map_err(DfxError::StdIo),
+                    &move |name| binary_command(config, name).map_err(DfxError::StdIo),
                     &input_as_path,
                     &output_root.join(x.as_str()),
                 )?;
@@ -77,10 +78,11 @@ fn watch_and_build() -> DfxResult {
         let config = config.clone();
 
         let multi = MultiProgress::new();
-        for (k, v) in canisters {
+        multi.set_draw_target(ProgressDrawTarget::stderr());
+
+        for (_, v) in canisters {
             let v: ConfigCanistersCanister = serde_json::from_value(v.to_owned())?;
 
-            println!("Building {}...", k);
             if let Some(x) = v.main {
                 let input_as_path = project_root.join(x.as_str());
 
@@ -89,13 +91,16 @@ fn watch_and_build() -> DfxResult {
 
                 watch_file_and_spin(
                     bar,
-                    Arc::new(move |name| binary_command(Arc::clone(&config).as_ref(), name).map_err(DfxError::StdIo)),
+                    Arc::new(move |name| {
+                        binary_command(Arc::clone(&config).as_ref(), name).map_err(DfxError::StdIo)
+                    }),
                     &input_as_path,
                     &output_root.join(x.as_str()),
                 )?;
             }
         }
 
+        multi.join()?;
         loop {}
     }
 
@@ -103,7 +108,7 @@ fn watch_and_build() -> DfxResult {
 }
 
 pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
-    if args.value_of("watch").is_some() {
+    if args.occurrences_of("watch") > 0 {
         watch_and_build()
     } else {
         just_build()

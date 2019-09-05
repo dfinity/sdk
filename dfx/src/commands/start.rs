@@ -1,11 +1,13 @@
 use crate::config::cache::binary_command;
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, ConfigCanistersCanister};
 use crate::lib::api_client::{ping, Client, ClientConfig};
+use crate::lib::build::watch_file_and_spin;
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
-use indicatif::{ProgressBar, ProgressDrawTarget};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 use std::io::Read;
+use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 pub fn available() -> bool {
@@ -62,8 +64,10 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
             .get_port(8080),
     };
 
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
+    let mp = MultiProgress::new();
+    mp.set_draw_target(ProgressDrawTarget::stderr());
+
+    let b = mp.add(ProgressBar::new_spinner());
     b.set_message("Starting up the DFINITY client...");
 
     let mut cmd = binary_command(&config, "client").unwrap();
@@ -109,6 +113,7 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
         }
     }
     b.finish_with_message("DFINITY client started...");
+    mp.join()?;
 
     let addr = format!("{}:{}", address, port);
     println!(
@@ -116,6 +121,42 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
         style(format!("http://{}", addr)).blue().bold().underlined()
     );
 
+    // get_path() returns the name of the config.
+    let project_root = config.get_path().parent().unwrap();
+
+    let output_root = project_root.join(
+        config
+            .get_config()
+            .get_defaults()
+            .get_build()
+            .get_output("build/"),
+    );
+
+    if let Some(canisters) = &config.get_config().canisters {
+        let config = config.clone();
+
+        for (_, v) in canisters {
+            let v: ConfigCanistersCanister = serde_json::from_value(v.to_owned())?;
+
+            if let Some(x) = v.main {
+                let input_as_path = project_root.join(x.as_str());
+
+                let bar = Arc::new(mp.add(ProgressBar::new_spinner()));
+                let config = Arc::new(config.clone());
+
+                watch_file_and_spin(
+                    bar,
+                    Arc::new(move |name| {
+                        binary_command(Arc::clone(&config).as_ref(), name).map_err(DfxError::StdIo)
+                    }),
+                    &input_as_path,
+                    &output_root.join(x.as_str()),
+                )?;
+            }
+        }
+    }
+
+    mp.join()?;
     loop {
         #[allow(unused_must_use)]
         {

@@ -15,13 +15,10 @@ pub fn watch_file_and_spin(
     binary_command: Arc<Fn(&str) -> DfxResult<std::process::Command> + Send + Sync>,
     file_path: &Path,
     output_root: &Path,
-) -> DfxResult<Sender<()>>
-{
+) -> DfxResult<Sender<()>> {
     let binary_command_arc = Arc::clone(&binary_command);
     let (tx, rx) = channel();
     let (sender, receiver) = channel();
-
-    build_file_and_spin(Arc::clone(&bar), binary_command_arc.as_ref(), file_path, output_root)?;
 
     // There's a better way to do this, e.g. with a single thread watching all files, but this
     // works great for a few files.
@@ -35,6 +32,8 @@ pub fn watch_file_and_spin(
     thread::spawn(move || {
         let fp = file_path.borrow();
         let out = output_root.borrow();
+
+        build_file_and_spin(Arc::clone(&bar), binary_command_arc.as_ref(), &fp, &out).unwrap();
 
         loop {
             if receiver.try_recv().is_ok() {
@@ -85,10 +84,12 @@ pub fn build_file_and_spin<'a>(
         t.join();
     }
 
+    bar.set_position(0);
+    bar.tick();
     if let Err(err) = &result {
-        bar.finish_with_message(format!("{} ERROR: {:?}", file_path.display(), err).as_str());
+        bar.set_message(format!("{} ERROR: {:?}", file_path.display(), err).as_str());
     } else {
-        bar.finish_with_message(format!("{} Done", file_path.display()).as_str());
+        bar.set_message(format!("{} Done", file_path.display()).as_str());
     }
     result
 }
@@ -130,6 +131,8 @@ pub fn build_file<'a>(
                 .output()?;
         }
     }
+
+    thread::sleep(Duration::from_millis(400));
 
     Ok(())
 }

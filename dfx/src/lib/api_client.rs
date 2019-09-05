@@ -49,6 +49,11 @@ enum Request {
         #[serde(flatten)]
         request: CanisterQueryCall,
     },
+
+    InstallCode {
+        #[serde(flatten)]
+        request: CanisterInstallCodeCall,
+    },
 }
 
 /// Response payloads
@@ -124,6 +129,36 @@ where
         })
 }
 
+
+/// A read request. Intended to remain private in favor of exposing specialized
+/// functions like `query` instead.
+fn submit<A>(client: Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
+    where
+        A: serde::de::DeserializeOwned,
+{
+    let endpoint = format!("{}/api/v1/submit", client.url);
+    let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
+    result(parsed)
+        .and_then(move |url| {
+            let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
+            let headers = http_request.headers_mut();
+            headers.insert(
+                reqwest::header::CONTENT_TYPE,
+                "application/cbor".parse().unwrap(),
+            );
+            let body = http_request.body_mut();
+            body.get_or_insert(reqwest::r#async::Body::from(
+                serde_cbor::to_vec(&request).unwrap(),
+            ));
+            client.execute(http_request).map_err(DfxError::Reqwest)
+        })
+        .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
+        .and_then(|buf| match serde_cbor::from_slice(&buf) {
+            Ok(r) => ok(r),
+            Err(e) => err(DfxError::SerdeCbor(e)),
+        })
+}
+
 /// Canister query call
 ///
 /// Canister methods that do not change the canister state in a meaningful way
@@ -136,12 +171,25 @@ pub fn query(
     read(client, Request::Query { request })
 }
 
+pub fn install_code(
+    client: Client,
+    request: CanisterInstallCodeCall,
+) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
+    send(client, Request::InstallCode { request })
+}
+
 /// A canister query call request payload
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanisterQueryCall {
     pub canister_id: CanisterId,
     pub method_name: String,
     pub arg: Blob,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CanisterInstallCodeCall {
+    canister_id: u64,
+    module: Blob,
 }
 
 /// A canister query call response payload
