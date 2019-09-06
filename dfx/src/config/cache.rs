@@ -77,11 +77,6 @@ pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> Result<
     Ok(get_bin_cache(version)?.join(binary_name))
 }
 
-pub fn get_binary_path_from_config(config: &Config, binary_name: &str) -> Result<PathBuf> {
-    let version = config.get_config().get_dfx();
-    get_binary_path_from_version(&version, binary_name)
-}
-
 pub fn binary_command_from_version(version: &str, name: &str) -> Result<std::process::Command> {
     let path = get_binary_path_from_version(version, name)?;
     let cmd = std::process::Command::new(path);
