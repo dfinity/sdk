@@ -1,0 +1,9 @@
+= Assets
+
+The `files/` directory contains all the files of a new project. This is tar gzipped at build time
+and injected into the binary.
+
+The following strings are replaced:
+
+- `{project_name}` => the project name.
+- `{dfx_version}` => the DFX version used to create the project.

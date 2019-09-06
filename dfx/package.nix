@@ -13,8 +13,9 @@
 , moreutils
 , cargo-graph
 , graphviz
-, dfinity
 , actorscript
+, dfinity
+, runCommand
 }:
 
 let
@@ -38,6 +39,7 @@ let
     in lib.concatMapStringsSep "\n" timestamp lines;
 
   src = lib.sourceFilesByRegex (lib.gitOnlySource ./.) [
+    "^assets/.*$"
     ".*\.rs$"
     ".*Cargo\.toml$"
     ".*Cargo\.lock$"
@@ -122,13 +124,13 @@ naersk.buildPackage src
   # derivation (the deps-only build has name "${name}-deps").
   lib.optionalAttrs (oldAttrs.name == name)
   {
-    preBuild = ''
-      mkdir -p dfx_assets/{bin,rts}
-      cp ${dfinity.rust-workspace}/bin/{dfinity,nodemanager} dfx_assets/bin
-      cp ${actorscript.asc}/bin/asc dfx_assets/bin
-      cp ${actorscript.as-ide}/bin/as-ide dfx_assets/bin
-      cp ${actorscript.didc}/bin/didc dfx_assets/bin
-      cp ${actorscript.rts}/rts/as-rts.wasm dfx_assets/rts
+    DFX_ASSETS = runCommand "dfx-assets" {} ''
+      mkdir -p $out
+      cp ${dfinity.rust-workspace}/bin/{client,nodemanager} $out
+      cp ${actorscript.asc}/bin/asc $out
+      cp ${actorscript.as-ide}/bin/as-ide $out
+      cp ${actorscript.didc}/bin/didc $out
+      cp ${actorscript.rts}/rts/as-rts.wasm $out
     '';
 
     postDoc = ''
