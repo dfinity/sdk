@@ -11,7 +11,7 @@ pub fn available() -> bool {
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("install")
-        .about("Add a user to the key store.")
+        .about("Install a canister on the client.")
         .arg(
             Arg::with_name("canister")
                 .help("The ID of the authentication to add.")

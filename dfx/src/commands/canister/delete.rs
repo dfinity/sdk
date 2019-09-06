@@ -7,7 +7,7 @@ pub fn available() -> bool {
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("delete")
-        .about("Add a user to the key store.")
+        .about("Delete a canister from the client.")
         .arg(
             Arg::with_name("name")
                 .help("The name of the canister to delete.")

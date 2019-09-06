@@ -11,7 +11,7 @@ pub fn available() -> bool {
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("call")
-        .about(r#"Send a "Hello World" request to the canister."#)
+        .about(r#"Call a function on a canister."#)
         .arg(
             Arg::with_name("canister")
                 .help("The ID of the authentication to add.")
