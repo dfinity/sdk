@@ -1,4 +1,4 @@
-use crate::config::cache::binary_command;
+use crate::config::cache::binary_command_from_config;
 use crate::config::dfinity::{Config, ConfigCanistersCanister};
 use crate::lib::error::DfxResult;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -40,18 +40,18 @@ pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
 
                 std::fs::create_dir_all(output_wasm_path.parent().unwrap())?;
 
-                binary_command(&config, "asc")?
+                binary_command_from_config(&config, "asc")?
                     .arg(&input_as_path)
                     .arg("-o")
                     .arg(&output_wasm_path)
                     .output()?;
-                binary_command(&config, "asc")?
+                binary_command_from_config(&config, "asc")?
                     .arg("--idl")
                     .arg(&input_as_path)
                     .arg("-o")
                     .arg(&output_idl_path)
                     .output()?;
-                binary_command(&config, "didc")?
+                binary_command_from_config(&config, "didc")?
                     .arg("--js")
                     .arg(&output_idl_path)
                     .arg("-o")

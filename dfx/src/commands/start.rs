@@ -1,4 +1,5 @@
-use crate::config::cache::{binary_command, get_binary_path_from_config};
+use crate::config;
+use crate::config::cache::{binary_command_from_version, get_binary_path_from_version};
 use crate::config::dfinity::Config;
 use crate::lib::error::DfxResult;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -16,14 +17,16 @@ pub fn construct() -> App<'static, 'static> {
 
 pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
     // Read the config.
-    let config = Config::from_current_dir()?;
+    let version: String = Config::from_current_dir().ok().map_or_else(|| config::DFX_VERSION.to_string(), |config| {
+        config.get_config().get_dfx()
+    });
 
     println!("Starting up the DFINITY node manager...");
 
-    let client_pathbuf = get_binary_path_from_config(&config, "client")?;
+    let client_pathbuf = get_binary_path_from_version(&version, "client")?;
     let client = client_pathbuf.as_path();
 
-    let mut cmd = binary_command(&config, "nodemanager")?;
+    let mut cmd = binary_command_from_version(&version, "nodemanager")?;
     cmd.args(&[client]);
 
     let _child = cmd.spawn()?;

@@ -73,14 +73,22 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
     }
 }
 
-pub fn get_binary_path_from_config(config: &Config, binary_name: &str) -> Result<PathBuf> {
-    let version = config.get_config().get_dfx();
-
-    Ok(get_bin_cache(version.as_str())?.join(binary_name))
+pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> Result<PathBuf> {
+    Ok(get_bin_cache(version)?.join(binary_name))
 }
 
-pub fn binary_command(config: &Config, name: &str) -> Result<std::process::Command> {
-    let path = get_binary_path_from_config(config, name)?;
+pub fn get_binary_path_from_config(config: &Config, binary_name: &str) -> Result<PathBuf> {
+    let version = config.get_config().get_dfx();
+    get_binary_path_from_version(&version, binary_name)
+}
+
+pub fn binary_command_from_version(version: &str, name: &str) -> Result<std::process::Command> {
+    let path = get_binary_path_from_version(version, name)?;
     let cmd = std::process::Command::new(path);
     Ok(cmd)
+}
+
+pub fn binary_command_from_config(config: &Config, name: &str) -> Result<std::process::Command> {
+    let version = config.get_config().get_dfx();
+    binary_command_from_version(&version, name)
 }
