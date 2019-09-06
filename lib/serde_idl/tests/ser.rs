@@ -84,7 +84,7 @@ fn test_generics() {
     );
 }
 
-fn check<T: Serialize>(value: T, expected: &str) {
+fn check<T>(value: T, expected: &str) where T: Serialize + DfinityInfo {
     let encoded = to_vec(&value).unwrap();
     let expected = hex::decode(expected).unwrap();
     assert_eq!(encoded, expected, "\nExpected\n{:x?}\nActual\n{:x?}\n", expected, encoded);

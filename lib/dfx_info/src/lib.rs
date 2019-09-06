@@ -8,6 +8,7 @@ pub enum Type {
     Bool,
     Nat,
     Int,
+    Text,
     Var(String),
     Opt(Box<Type>),
     Vec(Box<Type>),
@@ -37,8 +38,6 @@ pub fn get_type<T>(_v: &T) -> Type where T: DfinityInfo {
     T::ty()
 }
 
-// ## Primitive Types
-
 macro_rules! primitive_impl {
     ($t:ty, $id:tt) => {
         impl DfinityInfo for $t {
@@ -60,11 +59,34 @@ primitive_impl!(u16, Nat);
 primitive_impl!(u32, Nat);
 primitive_impl!(u64, Nat);
 primitive_impl!(usize, Nat);
+primitive_impl!(String, Text);
+primitive_impl!(&str, Text);
 
 impl<T> DfinityInfo for Option<T> where T: DfinityInfo {
     fn ty() -> Type { Type::Opt(Box::new(T::_ty())) }
 }
 
-impl<T> DfinityInfo for Box<T> where T: DfinityInfo {
+impl<T> DfinityInfo for Vec<T> where T: DfinityInfo {
+    fn ty() -> Type { Type::Vec(Box::new(T::_ty())) }    
+}
+
+impl<T> DfinityInfo for [T] where T: DfinityInfo {
+    fn ty() -> Type { Type::Vec(Box::new(T::_ty())) }    
+}
+
+impl<T,E> DfinityInfo for Result<T,E> where T: DfinityInfo, E: DfinityInfo {
+    fn ty() -> Type {
+        Type::Variant(vec![
+            Field{ id: "Ok".to_owned(), ty: T::_ty() },
+            Field{ id: "Err".to_owned(), ty: E::_ty() }]
+        )
+    }
+}
+
+impl<T> DfinityInfo for Box<T> where T: ?Sized + DfinityInfo {
     fn ty() -> Type { T::_ty() }
+}
+
+impl<'a,T> DfinityInfo for &'a T where T: 'a + ?Sized + DfinityInfo {
+    fn ty() -> Type { T::_ty() }    
 }

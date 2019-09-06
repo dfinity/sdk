@@ -11,7 +11,7 @@ use std::collections::HashMap;
 /// Serializes a value to a vector.
 pub fn to_vec<T>(value: &T) -> Result<Vec<u8>>
 where
-    T: ser::Serialize,
+    T: ser::Serialize + dfx_info::DfinityInfo,
 {
     let mut vec = Vec::new();
     to_writer(&mut vec, value)?;
@@ -22,9 +22,10 @@ where
 pub fn to_writer<W, T>(mut writer: W, value: &T) -> Result<()>
 where
     W: io::Write,
-    T: ser::Serialize,
+    T: ser::Serialize + dfx_info::DfinityInfo,
 {
     let mut type_ser = TypeSerializer::new();
+    let _ = dfx_info::get_type(&value);
     let mut value_ser = ValueSerializer::new();
     let ty = value.serialize(&mut type_ser).unwrap();
     value.serialize(&mut value_ser)?;
