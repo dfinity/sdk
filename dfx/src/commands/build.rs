@@ -89,30 +89,41 @@ fn watch_and_build() -> DfxResult {
                 let progress_bar = Arc::new(multi.add(ProgressBar::new_spinner()));
                 let config = Box::new(config.clone());
 
-                let p1 = input_as_path.clone();
-                let p2 = input_as_path.clone();
-                let p3 = input_as_path.clone();
-                let b1 = Arc::clone(&progress_bar);
-                let b2 = Arc::clone(&progress_bar);
-                let b3 = Arc::clone(&progress_bar);
-
                 watch_file(
                     Box::new(move |name| {
                         binary_command(config.as_ref(), name).map_err(DfxError::StdIo)
                     }),
                     &input_as_path,
                     &output_root.join(x.as_str()),
-                    Box::new(move || {
-                        b1.set_message(format!("{} - Building", p1.to_str().unwrap()).as_str());
-                        b1.enable_steady_tick(80);
+                    Box::new({
+                        let progress_bar = Arc::clone(&progress_bar);
+                        let input_as_path = input_as_path.clone();
+                        move || {
+                            progress_bar.set_message(
+                                format!("{} - Building", input_as_path.to_str().unwrap()).as_str(),
+                            );
+                            progress_bar.enable_steady_tick(80);
+                        }
                     }),
-                    Box::new(move |_| {
-                        b2.set_message(format!("{} - Done", p2.to_str().unwrap()).as_str());
-                        b2.disable_steady_tick()
+                    Box::new({
+                        let progress_bar = Arc::clone(&progress_bar);
+                        let input_as_path = input_as_path.clone();
+                        move |_| {
+                            progress_bar.set_message(
+                                format!("{} - Done", input_as_path.to_str().unwrap()).as_str(),
+                            );
+                            progress_bar.disable_steady_tick()
+                        }
                     }),
-                    Box::new(move || {
-                        b3.set_message(format!("{} - Error", p3.to_str().unwrap()).as_str());
-                        b3.disable_steady_tick()
+                    Box::new({
+                        let progress_bar = Arc::clone(&progress_bar);
+                        let input_as_path = input_as_path.clone();
+                        move || {
+                            progress_bar.set_message(
+                                format!("{} - Error", input_as_path.to_str().unwrap()).as_str(),
+                            );
+                            progress_bar.disable_steady_tick()
+                        }
                     }),
                 )?;
             }
