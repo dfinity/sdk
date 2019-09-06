@@ -17,9 +17,10 @@ pub fn construct() -> App<'static, 'static> {
 
 pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
     // Read the config.
-    let version: String = Config::from_current_dir().ok().map_or_else(|| config::DFX_VERSION.to_string(), |config| {
-        config.get_config().get_dfx()
-    });
+    let version: String = Config::from_current_dir().ok().map_or_else(
+        || config::DFX_VERSION.to_string(),
+        |config| config.get_config().get_dfx(),
+    );
 
     println!("Starting up the DFINITY node manager...");
 
