@@ -1,23 +1,32 @@
 [package]
 name = "dfx"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["DFINITY Team"]
 edition = "2018"
+build = "assets/build.rs"
 
 [[bin]]
 name = "dfx"
 path = "src/main.rs"
 
+[build-dependencies]
+tar = "0.4.26"
+flate2 = "1.0.11"
+
 [dependencies]
 clap = "2.33.0"
-futures = "0.1"
-reqwest = "0.9"
-serde = { version = "1.0", features = ["derive"] }
-serde_bytes = "0.11"
-serde_cbor = "0.10"
-serde_repr = "0.1"
+console = "0.7.7"
+flate2 = "1.0.11"
+futures = "0.1.28"
+reqwest = "0.9.20"
+serde = "1.0"
+serde_bytes = "0.11.2"
+serde_cbor = "0.10.1"
+serde_repr = "0.1.5"
+serde_json = "1.0.40"
+tar = "0.4.26"
 tokio = "0.1"
 
 [dev-dependencies]
 env_logger = "0.6"
-mockito = "0.20"
+mockito = "0.20.0"

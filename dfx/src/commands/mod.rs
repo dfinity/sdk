@@ -1,7 +1,9 @@
 use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
+mod build;
 mod call;
+mod start;
 
 pub type CliExecFn = fn(&ArgMatches<'_>) -> DfxResult;
 pub struct CliCommand {
@@ -28,5 +30,9 @@ impl CliCommand {
 }
 
 pub fn builtin() -> Vec<CliCommand> {
-    vec![CliCommand::new(call::construct(), call::exec)]
+    vec![
+        CliCommand::new(build::construct(), build::exec),
+        CliCommand::new(call::construct(), call::exec),
+        CliCommand::new(start::construct(), start::exec),
+    ]
 }

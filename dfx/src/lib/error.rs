@@ -4,8 +4,11 @@ use crate::lib::api_client::RejectCode;
 #[derive(Debug)]
 pub enum DfxError {
     Clap(clap::Error),
+    IO(std::io::Error),
+    ParseInt(std::num::ParseIntError),
     Reqwest(reqwest::Error),
     SerdeCbor(serde_cbor::error::Error),
+    SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
 
     UnknownCommand(String),
@@ -16,6 +19,12 @@ pub enum DfxError {
 
 /// The result of running a DFX command.
 pub type DfxResult = Result<(), DfxError>;
+
+impl From<clap::Error> for DfxError {
+    fn from(err: clap::Error) -> DfxError {
+        DfxError::Clap(err)
+    }
+}
 
 impl From<reqwest::Error> for DfxError {
     fn from(err: reqwest::Error) -> DfxError {
@@ -29,8 +38,26 @@ impl From<reqwest::UrlError> for DfxError {
     }
 }
 
-impl From<clap::Error> for DfxError {
-    fn from(err: clap::Error) -> DfxError {
-        DfxError::Clap(err)
+impl From<serde_cbor::Error> for DfxError {
+    fn from(err: serde_cbor::Error) -> DfxError {
+        DfxError::SerdeCbor(err)
+    }
+}
+
+impl From<serde_json::Error> for DfxError {
+    fn from(err: serde_json::Error) -> DfxError {
+        DfxError::SerdeJson(err)
+    }
+}
+
+impl From<std::io::Error> for DfxError {
+    fn from(err: std::io::Error) -> DfxError {
+        DfxError::IO(err)
+    }
+}
+
+impl From<std::num::ParseIntError> for DfxError {
+    fn from(err: std::num::ParseIntError) -> DfxError {
+        DfxError::ParseInt(err)
     }
 }
