@@ -8,6 +8,7 @@ pub enum Type {
     Bool,
     Nat,
     Int,
+    Var(String),
     Opt(Box<Type>),
     Vec(Box<Type>),
     Record(Vec<Field>),
@@ -22,6 +23,14 @@ pub struct Field {
 
 pub trait DfinityInfo {
     fn ty() -> Type;
+    fn name() -> Option<String> { None }
+    fn _ty() -> Type {
+        if let Some(var) = Self::name() {
+            Type::Var(var)
+        } else {
+            Self::ty()
+        }
+    } 
 }
 
 pub fn get_type<T>(_v: &T) -> Type where T: DfinityInfo {
@@ -53,9 +62,9 @@ primitive_impl!(u64, Nat);
 primitive_impl!(usize, Nat);
 
 impl<T> DfinityInfo for Option<T> where T: DfinityInfo {
-    fn ty() -> Type { Type::Opt(Box::new(T::ty())) }
+    fn ty() -> Type { Type::Opt(Box::new(T::_ty())) }
 }
 
 impl<T> DfinityInfo for Box<T> where T: DfinityInfo {
-    fn ty() -> Type { T::ty() }
+    fn ty() -> Type { T::_ty() }
 }

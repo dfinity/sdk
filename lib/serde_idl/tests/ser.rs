@@ -32,9 +32,9 @@ fn test_option() {
 }
 
 #[derive(Serialize, Debug, DfinityInfo)]
-struct A { foo: i32, bar: bool }
-#[derive(Serialize, Debug, DfinityInfo)]
 struct List { head: i32, tail: Option<Box<List>> }
+#[derive(Serialize, Debug, DfinityInfo)]
+struct A { foo: i32, bar: bool }
 #[derive(Serialize, Debug, DfinityInfo)]
 enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
 #[derive(Serialize, Debug, DfinityInfo)]
@@ -49,9 +49,15 @@ fn test_struct() {
     assert_eq!(get_type(&record),
                Type::Record(vec![
                    field("foo", Type::Int),
-                   field("bar", Type::Bool)]));
-    //let list = List { head: 42, tail: None };
-    //assert_eq!(get_type(&list), Type::Bool);
+                   field("bar", Type::Bool)])
+    );
+    let list = List { head: 42, tail: None };
+    assert_eq!(get_type(&list),
+               Type::Record(vec![
+                   field("head", Type::Int),
+                   field("tail", Type::Opt(Box::new(
+                       Type::Var("List".to_owned()))))])               
+    );
     //check(List { head: 42, tail: None }, "4449444c016c02d3");
 }
 

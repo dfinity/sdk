@@ -30,6 +30,7 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
             fn ty() -> dfx_info::Type {
                 #body
             }
+            fn name() -> Option<String> { Some (String::from(stringify!{#name})) }
         }
     };
     //panic!(gen.to_string());
@@ -72,7 +73,7 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
             None => i.to_string()
         }
     });
-    let ty = fields.iter().map(|field| { type_from_ast(&field.ty) });
+    let ty = fields.iter().map(|field| { derive_type(&field.ty) });
     quote! {
         vec![
             #(dfx_info::Field {
@@ -83,9 +84,9 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
     }
 }
 
-fn type_from_ast(t: &syn::Type) -> Tokens {
+fn derive_type(t: &syn::Type) -> Tokens {
     quote! {
-        <#t as dfx_info::DfinityInfo>::ty()
+        <#t as dfx_info::DfinityInfo>::_ty()
     }
 }
 
