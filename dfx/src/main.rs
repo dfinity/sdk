@@ -11,7 +11,7 @@ fn cli() -> App<'static, 'static> {
     App::new("dfx")
         .about("The DFINITY Executor.")
         .version(DFX_VERSION)
-        .global_setting(AppSettings::ColoredHelp)
+        .setting(AppSettings::ColoredHelp)
         .subcommands(
             commands::builtin()
                 .into_iter()

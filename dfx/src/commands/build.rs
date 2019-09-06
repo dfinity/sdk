@@ -1,10 +1,7 @@
 use crate::config::cache::binary_command;
 use crate::config::dfinity::{Config, ConfigCanistersCanister};
-use crate::lib::build::{build_file, watch_file};
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use std::sync::Arc;
 
 pub fn available() -> bool {
     Config::from_current_dir().is_ok()
@@ -13,25 +10,17 @@ pub fn available() -> bool {
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
         .about("Build a canister code, or all canisters if no argument is passed.")
-        .arg(
-            Arg::with_name("canister")
-                .help("The canister name to build. By default builds all canisters."),
-        )
-        .arg(
-            Arg::with_name("watch")
-                .long("watch")
-                .help("Watch input files and rebuild on changes.")
-                .takes_value(false),
-        )
+        .arg(Arg::with_name("canister").help("The canister name to build."))
+        .arg(Arg::with_name("watch").help("Watch input files and rebuild on changes."))
 }
 
-fn just_build() -> DfxResult {
+pub fn exec(_args: &ArgMatches<'_>) -> DfxResult {
     // Read the config.
     let config = Config::from_current_dir()?;
     // get_path() returns the name of the config.
     let project_root = config.get_path().parent().unwrap();
 
-    let output_root = project_root.join(
+    let build_root = project_root.join(
         config
             .get_config()
             .get_defaults()
@@ -45,90 +34,37 @@ fn just_build() -> DfxResult {
 
             println!("Building {}...", k);
             if let Some(x) = v.main {
-                let config: &'static Config = Box::leak(Box::new(config.clone()));
-                let input_as_path = project_root.join(x.as_str());
+                let input_as_path = project_root.join(x.as_str()).into_os_string();
 
-                build_file(
-                    &move |name| binary_command(config, name).map_err(DfxError::StdIo),
-                    &input_as_path,
-                    &output_root.join(x.as_str()),
-                )?;
+                let mut output_wasm_path = build_root.join(x.as_str());
+                let mut output_idl_path = output_wasm_path.clone();
+                let mut output_js_path = output_wasm_path.clone();
+                output_wasm_path.set_extension("wasm");
+                output_idl_path.set_extension("did");
+                output_js_path.set_extension("js");
+
+                std::fs::create_dir_all(output_wasm_path.parent().unwrap())?;
+
+                binary_command(&config, "asc")?
+                    .arg(&input_as_path)
+                    .arg("-o")
+                    .arg(&output_wasm_path)
+                    .output()?;
+                binary_command(&config, "asc")?
+                    .arg("--idl")
+                    .arg(&input_as_path)
+                    .arg("-o")
+                    .arg(&output_idl_path)
+                    .output()?;
+                binary_command(&config, "didc")?
+                    .arg("--js")
+                    .arg(&output_idl_path)
+                    .arg("-o")
+                    .arg(&output_js_path)
+                    .output()?;
             }
         }
     }
 
     Ok(())
-}
-
-fn watch_and_build() -> DfxResult {
-    // Read the config.
-    let config = Config::from_current_dir()?;
-    // get_path() returns the name of the config.
-    let project_root = config.get_path().parent().unwrap();
-
-    let output_root = project_root.join(
-        config
-            .get_config()
-            .get_defaults()
-            .get_build()
-            .get_output("build/"),
-    );
-
-    if let Some(canisters) = &config.get_config().canisters {
-        let config = config.clone();
-
-        let multi = MultiProgress::new();
-        multi.set_draw_target(ProgressDrawTarget::stderr());
-
-        for (_, v) in canisters {
-            let v: ConfigCanistersCanister = serde_json::from_value(v.to_owned())?;
-
-            if let Some(x) = v.main {
-                let input_as_path = project_root.join(x.as_str());
-
-                let bar = Arc::new(multi.add(ProgressBar::new_spinner()));
-                let config = Box::new(config.clone());
-
-                let p1 = input_as_path.clone();
-                let p2 = input_as_path.clone();
-                let p3 = input_as_path.clone();
-                let b1 = Arc::clone(&bar);
-                let b2 = Arc::clone(&bar);
-                let b3 = Arc::clone(&bar);
-
-                watch_file(
-                    Box::new(move |name| {
-                        binary_command(config.as_ref(), name).map_err(DfxError::StdIo)
-                    }),
-                    &input_as_path,
-                    &output_root.join(x.as_str()),
-                    Box::new(move || {
-                        b1.set_message(format!("{} - Building", p1.to_str().unwrap()).as_str());
-                        b1.enable_steady_tick(80);
-                    }),
-                    Box::new(move |_| {
-                        b2.set_message(format!("{} - Done", p2.to_str().unwrap()).as_str());
-                        b2.disable_steady_tick()
-                    }),
-                    Box::new(move || {
-                        b3.set_message(format!("{} - Error", p3.to_str().unwrap()).as_str());
-                        b3.disable_steady_tick()
-                    }),
-                )?;
-            }
-        }
-
-        multi.join()?;
-        loop {}
-    }
-
-    Ok(())
-}
-
-pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
-    if args.occurrences_of("watch") > 0 {
-        watch_and_build()
-    } else {
-        just_build()
-    }
 }

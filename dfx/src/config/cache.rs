@@ -34,7 +34,8 @@ pub fn get_bin_cache(v: &str) -> Result<PathBuf> {
     let root = get_bin_cache_root()?;
 
     match v {
-        "0.1.0" | "0.1.1" | "0.100.2" => Ok(root.join(v)),
+        "0.1.0" => Ok(root.join("0.1.0")),
+        "0.1.1" => Ok(root.join("0.1.1")),
         v => Err(Error::new(
             ErrorKind::Other,
             format!("Unknown version: {}", v),
@@ -62,7 +63,11 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
     }
 
     match v {
-        "0.1.0" | "0.1.1" | "0.100.2" => {
+        "0.1.0" => {
+            util::assets_v0_1_0_files()?.unpack(p.as_path())?;
+            Ok(p)
+        }
+        "0.1.1" => {
             util::assets_v0_1_0_files()?.unpack(p.as_path())?;
             Ok(p)
         }

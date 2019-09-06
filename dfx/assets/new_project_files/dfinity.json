@@ -3,8 +3,7 @@
   "dfx": "{dfx_version}",
   "canisters": {
     "hello": {
-      "main": "app/canisters/hello/main.as",
-      "canister_id": 42
+      "main": "app/canisters/hello/main.as"
     }
   },
   "defaults": {
@@ -12,7 +11,8 @@
       "output": "build/"
     },
     "start": {
-      "port": 8080,
+      "nodes": 2,
+      "port": 4200,
       "address": "127.0.0.1"
     }
   }
