@@ -1,11 +1,11 @@
-use crate::lib::error::{DfxResult, DfxError};
+use crate::lib::error::{DfxError, DfxResult};
 use notify::{watcher, RecursiveMode, Watcher};
 use std::borrow::Borrow;
-use std::path::Path;
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use std::time::Duration;
-use std::ffi::OsStr;
 
 type BinaryCommandFn = dyn Fn(&str) -> DfxResult<std::process::Command>;
 
@@ -14,7 +14,8 @@ pub fn watch_file(
     file_path: &Path,
     output_root: &Path,
     on_start: Box<dyn Fn() -> () + Send + Sync>,
-    on_done: Box<dyn Fn() -> () + Send + Sync>,
+    on_done: Box<dyn Fn(PathBuf) -> () + Send + Sync>,
+    on_error: Box<dyn Fn() -> () + Send + Sync>,
 ) -> DfxResult<Sender<()>> {
     let (tx, rx) = channel();
     let (sender, receiver) = channel();
@@ -32,8 +33,8 @@ pub fn watch_file(
         let out = output_root.borrow();
 
         on_start();
-        build_file(&binary_command, &fp, &out).unwrap();
-        on_done();
+        let pb = build_file(&binary_command, &fp, &out).unwrap();
+        on_done(pb);
 
         loop {
             if receiver.try_recv().is_ok() {
@@ -42,8 +43,10 @@ pub fn watch_file(
 
             if rx.recv_timeout(Duration::from_millis(80)).is_ok() {
                 on_start();
-                build_file(&binary_command, &fp, &out).unwrap();
-                on_start();
+                match build_file(&binary_command, &fp, &out) {
+                    Ok(pb) => on_done(pb),
+                    Err(_) => on_error(),
+                };
             }
         }
 
@@ -61,7 +64,7 @@ pub fn build_file<'a>(
     binary_command: &'a BinaryCommandFn,
     file_path: &'a Path,
     output_root: &'a Path,
-) -> DfxResult {
+) -> DfxResult<PathBuf> {
     let output_wasm_path = output_root.with_extension("wasm");
     let output_idl_path = output_root.with_extension("did");
     let output_js_path = output_root.with_extension("js");
@@ -73,10 +76,10 @@ pub fn build_file<'a>(
             let wat = std::fs::read(file_path)?;
             let wasm = wabt::wat2wasm(wat)?;
 
-            std::fs::write(output_wasm_path, wasm)?;
+            std::fs::write(&output_wasm_path, wasm)?;
 
             Ok(())
-        },
+        }
         Some("as") => {
             binary_command("asc")?
                 .arg(&file_path)
@@ -97,12 +100,15 @@ pub fn build_file<'a>(
                 .output()?;
 
             Ok(())
-        },
-        Some(ext) => Err(DfxError::Unknown(format!(r#"Extension unsupported "{}"."#, ext))),
+        }
+        Some(ext) => Err(DfxError::Unknown(format!(
+            r#"Extension unsupported "{}"."#,
+            ext
+        ))),
         None => Err(DfxError::Unknown(format!(r#"Extension unsupported ""."#))),
     }?;
 
     thread::sleep(Duration::from_millis(400));
 
-    Ok(())
+    Ok(output_wasm_path)
 }

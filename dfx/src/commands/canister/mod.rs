@@ -3,6 +3,7 @@ use crate::config::dfinity::Config;
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 
+mod call;
 mod create;
 mod delete;
 mod install;
@@ -40,6 +41,12 @@ pub fn construct() -> App<'static, 'static> {
 pub fn builtins() -> Vec<CliCommand> {
     let mut v: Vec<CliCommand> = Vec::new();
 
+    add_builtin(
+        &mut v,
+        call::available(),
+        call::construct(),
+        call::exec,
+    );
     add_builtin(
         &mut v,
         create::available(),

@@ -1,10 +1,9 @@
-use crate::lib::error::{DfxResult, DfxError};
-use clap::{App, Arg, ArgMatches, SubCommand};
 use crate::config::dfinity::Config;
-use crate::lib::api_client::{install_code, Client, ClientConfig, CanisterInstallCodeCall, Blob, InstallResponseReply, Response};
-use futures::future::{err, ok, Future};
-use tokio::runtime::Runtime;
+use crate::lib::api_client::{install_code, Blob, CanisterInstallCodeCall, Client, ClientConfig};
+use crate::lib::error::DfxResult;
+use clap::{App, Arg, ArgMatches, SubCommand};
 use std::path::PathBuf;
+use tokio::runtime::Runtime;
 
 pub fn available() -> bool {
     true
@@ -19,9 +18,11 @@ pub fn construct() -> App<'static, 'static> {
                 .required(true),
         )
         .arg(
-            Arg::with_name("wasm").help(
-                "The wasm file to use. By default will use the wasm of the same canister name.",
-            ).required(true),
+            Arg::with_name("wasm")
+                .help(
+                    "The wasm file to use. By default will use the wasm of the same canister name.",
+                )
+                .required(true),
         )
 }
 
@@ -41,25 +42,13 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
         url: url.to_string(),
     });
 
-    let install = install_code(client, CanisterInstallCodeCall {
-        canister_id,
-        module: Blob(wasm),
-    }).and_then(|r| match r {
-        Response::Accepted => {
-            println!("Accepted");
-            ok(())
-        }
-        Response::Replied {
-            reply: InstallResponseReply { },
-        } => {
-            ok(())
-        }
-        Response::Rejected {
-            reject_code,
-            reject_message,
-        } => err(DfxError::ClientError(reject_code, reject_message)),
-        Response::Unknown => err(DfxError::Unknown("Unknown response".to_owned())),
-    });
+    let install = install_code(
+        client,
+        CanisterInstallCodeCall {
+            canister_id,
+            module: Blob(wasm),
+        },
+    );
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(install)

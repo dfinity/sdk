@@ -121,8 +121,6 @@ where
                 serde_cbor::to_vec(&request).unwrap(),
             ));
 
-            println!("{:?}", request);
-            println!("{:?}", serde_cbor::to_vec(&request).unwrap());
             client.execute(http_request).map_err(DfxError::Reqwest)
         })
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
@@ -132,13 +130,9 @@ where
         })
 }
 
-
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
-fn submit<A>(client: Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
-    where
-        A: serde::de::DeserializeOwned,
-{
+fn submit(client: Client, request: Request) -> impl Future<Item = (), Error = DfxError> {
     let endpoint = format!("{}/api/v1/submit", client.url);
     let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
     result(parsed)
@@ -154,15 +148,16 @@ fn submit<A>(client: Client, request: Request) -> impl Future<Item = Response<A>
                 serde_cbor::to_vec(&request).unwrap(),
             ));
 
-            println!("{:?}", request);
-            println!("{:?}", serde_cbor::to_vec(&request).unwrap());
             client.execute(http_request).map_err(DfxError::Reqwest)
         })
         .and_then(|res| {
             if res.status() < reqwest::StatusCode::BAD_REQUEST {
-                ok(Response::Accepted)
+                ok(())
             } else {
-                err(DfxError::Unknown(format!("What are you doing. Code: {}", res.status())))
+                err(DfxError::Unknown(format!(
+                    "What are you doing. Code: {}",
+                    res.status()
+                )))
             }
         })
 }
@@ -182,8 +177,8 @@ pub fn query(
 pub fn install_code(
     client: Client,
     request: CanisterInstallCodeCall,
-) -> impl Future<Item = Response<InstallResponseReply>, Error = DfxError> {
-    submit(client, Request::InstallCode { request })
+) -> impl Future<Item = (), Error = DfxError> {
+    submit(client, Request::InstallCode { request }).and_then(|_| ok(()))
 }
 
 /// A canister query call request payload
@@ -208,8 +203,7 @@ pub struct QueryResponseReply {
 
 /// A canister install call response payload
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct InstallResponseReply {
-}
+pub struct InstallResponseReply {}
 
 #[cfg(test)]
 mod tests {

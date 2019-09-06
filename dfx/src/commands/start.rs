@@ -1,6 +1,8 @@
 use crate::config::cache::binary_command;
 use crate::config::dfinity::{Config, ConfigCanistersCanister};
-use crate::lib::api_client::{ping, Client, ClientConfig};
+use crate::lib::api_client::{
+    install_code, ping, Blob, CanisterInstallCodeCall, Client, ClientConfig,
+};
 use crate::lib::build::watch_file;
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -67,57 +69,44 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
     let mp = MultiProgress::new();
     mp.set_draw_target(ProgressDrawTarget::stderr());
 
-    let b = mp.add(ProgressBar::new_spinner());
+    let b = ProgressBar::new_spinner();
+    b.set_draw_target(ProgressDrawTarget::stderr());
+
     b.set_message("Starting up the DFINITY client...");
+    b.enable_steady_tick(80);
 
     let mut cmd = binary_command(&config, "client").unwrap();
     let mut child = cmd.spawn()?;
-    let mut i = 0;
 
     // Count 600 msec to give the user the impression that something is working hard.
-    loop {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        b.inc(1);
-        i += 1;
-        if i > 5 {
-            break;
-        }
-
-        // Make sure the child is still running.
-        if let Ok(result) = child.try_wait() {
-            if result.is_some() {
-                let mut stderr = String::new();
-                child.stderr.unwrap().read_to_string(&mut stderr)?;
-                b.finish_with_message("The client exited early.");
-                return Err(DfxError::Unknown(format!(
-                    "Client could not be started.\nOutput:\n{}",
-                    stderr,
-                )));
-            }
+    std::thread::sleep(std::time::Duration::from_millis(400));
+    // Make sure the child is still running.
+    if let Ok(result) = child.try_wait() {
+        if result.is_some() {
+            let mut stderr = String::new();
+            child.stderr.unwrap().read_to_string(&mut stderr)?;
+            b.finish_with_message("The client exited early.");
+            return Err(DfxError::Unknown(format!(
+                "Client could not be started.\nOutput:\n{}",
+                stderr,
+            )));
         }
     }
 
     // Wait for the server to actually be up.
     b.set_message("Pinging the DFINITY client...");
-    loop {
-        std::thread::sleep(std::time::Duration::from_millis(80));
-        b.inc(1);
-        let client = Client::new(ClientConfig {
-            url: format!("http://{}:{}", address, port),
-        });
+    std::thread::sleep(std::time::Duration::from_millis(400));
+    let url = format!("http://{}:{}", address, port);
+    let client = Client::new(ClientConfig { url: url.clone() });
 
-        let mut runtime = Runtime::new().expect("Unable to create a runtime");
-        // TODO: not block but keep updating the spinner.
-        if runtime.block_on(ping(client)).is_ok() {
-            break;
-        }
-    }
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    while !runtime.block_on(ping(client.clone())).is_ok() {}
+
     b.finish_with_message("DFINITY client started...");
-    mp.join()?;
 
     let addr = format!("{}:{}", address, port);
-    println!(
-        "Listening for requests at {}",
+    eprintln!(
+        "Listening for requests at {}\n\n",
         style(format!("http://{}", addr)).blue().bold().underlined()
     );
 
@@ -144,14 +133,52 @@ pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
                 let bar = Arc::new(mp.add(ProgressBar::new_spinner()));
                 let config = Arc::new(config.clone());
 
+                let p1 = input_as_path.clone();
+                let p2 = input_as_path.clone();
+                let p3 = input_as_path.clone();
+                let b1 = Arc::clone(&bar);
+                let b2 = Arc::clone(&bar);
+                let b3 = Arc::clone(&bar);
+
+                let url = url.clone();
+                let canister_id = v.canister_id.unwrap_or(42);
+
                 watch_file(
                     Box::new(move |name| {
-                        binary_command(Arc::clone(&config).as_ref(), name).map_err(DfxError::StdIo)
+                        binary_command(config.as_ref(), name).map_err(DfxError::StdIo)
                     }),
                     &input_as_path,
                     &output_root.join(x.as_str()),
-                    Box::new(|| Arc::clone(&bar).as_ref().enable_steady_tick(80)),
-                    Box::new(|| Arc::clone(&bar).as_ref().disable_steady_tick()),
+                    Box::new(move || {
+                        b1.set_message(format!("{} - Building...", p1.to_str().unwrap()).as_str());
+                        b1.enable_steady_tick(80);
+                    }),
+                    Box::new(move |wasm_path| {
+                        b2.set_message(format!("{} - Uploading...", p2.to_str().unwrap()).as_str());
+                        let wasm = std::fs::read(wasm_path).unwrap();
+                        let client = Client::new(ClientConfig {
+                            url: url.to_string(),
+                        });
+
+                        let install = install_code(
+                            client,
+                            CanisterInstallCodeCall {
+                                canister_id,
+                                module: Blob(wasm),
+                            },
+                        );
+
+                        let mut runtime = Runtime::new().expect("Unable to create a runtime");
+                        runtime.block_on(install).unwrap();
+                        b2.set_message(format!("{} - Done", p2.to_str().unwrap()).as_str());
+                        b2.disable_steady_tick();
+                        b2.set_position(16);
+                    }),
+                    Box::new(move || {
+                        b3.set_message(format!("{} - Error", p3.to_str().unwrap()).as_str());
+                        b3.disable_steady_tick();
+                        b3.set_position(16);
+                    }),
                 )?;
             }
         }

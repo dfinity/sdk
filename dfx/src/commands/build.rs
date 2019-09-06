@@ -87,16 +87,33 @@ fn watch_and_build() -> DfxResult {
                 let input_as_path = project_root.join(x.as_str());
 
                 let bar = Arc::new(multi.add(ProgressBar::new_spinner()));
-                let config = Arc::new(config.clone());
+                let config = Box::new(config.clone());
+
+                let p1 = input_as_path.clone();
+                let p2 = input_as_path.clone();
+                let p3 = input_as_path.clone();
+                let b1 = Arc::clone(&bar);
+                let b2 = Arc::clone(&bar);
+                let b3 = Arc::clone(&bar);
 
                 watch_file(
                     Box::new(move |name| {
-                        binary_command(Arc::clone(&config).as_ref(), name).map_err(DfxError::StdIo)
+                        binary_command(config.as_ref(), name).map_err(DfxError::StdIo)
                     }),
                     &input_as_path,
                     &output_root.join(x.as_str()),
-                    Box::new(|| Arc::clone(&bar).as_ref().enable_steady_tick(80)),
-                    Box::new(|| Arc::clone(&bar).as_ref().disable_steady_tick()),
+                    Box::new(move || {
+                        b1.set_message(format!("{} - Building", p1.to_str().unwrap()).as_str());
+                        b1.enable_steady_tick(80);
+                    }),
+                    Box::new(move |_| {
+                        b2.set_message(format!("{} - Done", p2.to_str().unwrap()).as_str());
+                        b2.disable_steady_tick()
+                    }),
+                    Box::new(move || {
+                        b3.set_message(format!("{} - Error", p3.to_str().unwrap()).as_str());
+                        b3.disable_steady_tick()
+                    }),
                 )?;
             }
         }
