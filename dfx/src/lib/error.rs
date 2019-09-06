@@ -10,6 +10,8 @@ pub enum DfxError {
     Url(reqwest::UrlError),
 
     UnknownCommand(String),
+    Wabt(wabt::Error),
+    Notify(notify::Error),
 
     StdIo(std::io::Error),
     StdNumParseIntError(std::num::ParseIntError),
@@ -19,40 +21,23 @@ pub enum DfxError {
 }
 
 /// The result of running a DFX command.
-pub type DfxResult = Result<(), DfxError>;
+pub type DfxResult<T = ()> = Result<T, DfxError>;
 
-impl From<reqwest::Error> for DfxError {
-    fn from(err: reqwest::Error) -> DfxError {
-        DfxError::Reqwest(err)
-    }
+macro_rules! dfx_from_error {
+    ($t: ty, $e: ident) => {
+        impl From<$t> for DfxError {
+            fn from(err: $t) -> DfxError {
+                DfxError::$e(err)
+            }
+        }
+    };
 }
 
-impl From<reqwest::UrlError> for DfxError {
-    fn from(err: reqwest::UrlError) -> DfxError {
-        DfxError::Url(err)
-    }
-}
-
-impl From<clap::Error> for DfxError {
-    fn from(err: clap::Error) -> DfxError {
-        DfxError::Clap(err)
-    }
-}
-
-impl From<std::io::Error> for DfxError {
-    fn from(err: std::io::Error) -> DfxError {
-        DfxError::StdIo(err)
-    }
-}
-
-impl From<serde_json::error::Error> for DfxError {
-    fn from(err: serde_json::error::Error) -> DfxError {
-        DfxError::SerdeJson(err)
-    }
-}
-
-impl From<std::num::ParseIntError> for DfxError {
-    fn from(err: std::num::ParseIntError) -> DfxError {
-        DfxError::StdNumParseIntError(err)
-    }
-}
+dfx_from_error!(clap::Error, Clap);
+dfx_from_error!(notify::Error, Notify);
+dfx_from_error!(reqwest::Error, Reqwest);
+dfx_from_error!(reqwest::UrlError, Url);
+dfx_from_error!(std::io::Error, StdIo);
+dfx_from_error!(std::num::ParseIntError, StdNumParseIntError);
+dfx_from_error!(serde_json::error::Error, SerdeJson);
+dfx_from_error!(wabt::Error, Wabt);

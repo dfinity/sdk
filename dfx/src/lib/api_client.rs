@@ -49,6 +49,11 @@ enum Request {
         #[serde(flatten)]
         request: CanisterQueryCall,
     },
+
+    InstallCode {
+        #[serde(flatten)]
+        request: CanisterInstallCodeCall,
+    },
 }
 
 /// Response payloads
@@ -115,12 +120,45 @@ where
             body.get_or_insert(reqwest::r#async::Body::from(
                 serde_cbor::to_vec(&request).unwrap(),
             ));
+
             client.execute(http_request).map_err(DfxError::Reqwest)
         })
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
         .and_then(|buf| match serde_cbor::from_slice(&buf) {
             Ok(r) => ok(r),
             Err(e) => err(DfxError::SerdeCbor(e)),
+        })
+}
+
+/// A read request. Intended to remain private in favor of exposing specialized
+/// functions like `query` instead.
+fn submit(client: Client, request: Request) -> impl Future<Item = (), Error = DfxError> {
+    let endpoint = format!("{}/api/v1/submit", client.url);
+    let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
+    result(parsed)
+        .and_then(move |url| {
+            let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
+            let headers = http_request.headers_mut();
+            headers.insert(
+                reqwest::header::CONTENT_TYPE,
+                "application/cbor".parse().unwrap(),
+            );
+            let body = http_request.body_mut();
+            body.get_or_insert(reqwest::r#async::Body::from(
+                serde_cbor::to_vec(&request).unwrap(),
+            ));
+
+            client.execute(http_request).map_err(DfxError::Reqwest)
+        })
+        .and_then(|res| {
+            if res.status() < reqwest::StatusCode::BAD_REQUEST {
+                ok(())
+            } else {
+                err(DfxError::Unknown(format!(
+                    "What are you doing. Code: {}",
+                    res.status()
+                )))
+            }
         })
 }
 
@@ -136,6 +174,13 @@ pub fn query(
     read(client, Request::Query { request })
 }
 
+pub fn install_code(
+    client: Client,
+    request: CanisterInstallCodeCall,
+) -> impl Future<Item = (), Error = DfxError> {
+    submit(client, Request::InstallCode { request }).and_then(|_| ok(()))
+}
+
 /// A canister query call request payload
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanisterQueryCall {
@@ -144,11 +189,21 @@ pub struct CanisterQueryCall {
     pub arg: Blob,
 }
 
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CanisterInstallCodeCall {
+    pub canister_id: u64,
+    pub module: Blob,
+}
+
 /// A canister query call response payload
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryResponseReply {
     pub arg: Blob,
 }
+
+/// A canister install call response payload
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InstallResponseReply {}
 
 #[cfg(test)]
 mod tests {

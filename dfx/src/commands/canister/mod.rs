@@ -3,6 +3,7 @@ use crate::config::dfinity::Config;
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 
+mod call;
 mod create;
 mod delete;
 mod install;
@@ -15,7 +16,7 @@ pub fn available() -> bool {
 pub fn construct() -> App<'static, 'static> {
     // There is a difference in arguments between in-project versus global.
     let mut app =
-        SubCommand::with_name("canister").about("Manage authentications and credentials.");
+        SubCommand::with_name("canister").about("Manage canisters on the global network.");
 
     if Config::from_current_dir().is_err() {
         app = app.arg(
@@ -40,6 +41,7 @@ pub fn construct() -> App<'static, 'static> {
 pub fn builtins() -> Vec<CliCommand> {
     let mut v: Vec<CliCommand> = Vec::new();
 
+    add_builtin(&mut v, call::available(), call::construct(), call::exec);
     add_builtin(
         &mut v,
         create::available(),
