@@ -20,4 +20,6 @@ tokio = "0.1"
 
 [dev-dependencies]
 env_logger = "0.6"
+http = "0.1.15"
 mockito = "0.20"
+url = "1.2"

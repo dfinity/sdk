@@ -2,11 +2,12 @@ use crate::lib::error::*;
 use futures::future::{err, ok, result, Future};
 use futures::stream::Stream;
 use reqwest::r#async::Client as ReqwestClient;
+use reqwest::r#async::ResponseBuilderExt;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 /// A binary "blob", i.e. a byte array
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 // XXX: We newtype and make sure that serde uses `serde_bytes`, otherwise the `Vec<u8>` is
 // deserialized as a sequence (array) of bytes, whereas we want an actual CBOR "byte array", e.g. a
 // bytestring
@@ -16,7 +17,10 @@ type CanisterId = u64;
 
 pub trait Client {
     fn config(&self) -> &ClientConfig;
-    fn execute(&self, request: reqwest::r#async::Request) -> Box<Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send>;
+    fn execute(
+        &self,
+        request: reqwest::r#async::Request,
+    ) -> Box<Future<Item = reqwest::r#async::Response, Error = reqwest::Error> + Send>;
 }
 
 pub struct ApiClient {
@@ -38,7 +42,10 @@ impl Client for ApiClient {
         &self.config
     }
 
-    fn execute(&self, request: reqwest::r#async::Request) -> Box<Future<Item=reqwest::r#async::Response, Error=reqwest::Error> + Send> {
+    fn execute(
+        &self,
+        request: reqwest::r#async::Request,
+    ) -> Box<Future<Item = reqwest::r#async::Response, Error = reqwest::Error> + Send> {
         Box::new(self.client.execute(request))
     }
 }
@@ -48,7 +55,7 @@ pub struct ClientConfig {
 }
 
 /// Request payloads
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "request_type")]
 enum Request {
@@ -59,7 +66,7 @@ enum Request {
 }
 
 /// Response payloads
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "status")]
 pub enum Response<A> {
@@ -75,7 +82,7 @@ pub enum Response<A> {
 }
 
 /// Response reject codes
-#[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum RejectCode {
     SysFatal = 1,
@@ -87,7 +94,10 @@ pub enum RejectCode {
 
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
-fn read<A>(client: impl Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
+fn read<A>(
+    client: impl Client,
+    request: Request,
+) -> impl Future<Item = Response<A>, Error = DfxError>
 where
     A: serde::de::DeserializeOwned,
 {
@@ -127,7 +137,7 @@ pub fn query(
 }
 
 /// A canister query call request payload
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanisterQueryCall {
     pub canister_id: CanisterId,
     pub method_name: String,
@@ -135,7 +145,7 @@ pub struct CanisterQueryCall {
 }
 
 /// A canister query call response payload
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryResponseReply {
     pub arg: Blob,
 }
@@ -145,6 +155,27 @@ mod tests {
     use super::*;
     use mockito;
     use mockito::mock;
+    use http;
+    use url;
+
+    struct TestApiClient {
+        config: ClientConfig,
+        result: Box<Fn(reqwest::r#async::Request) -> reqwest::Result<reqwest::r#async::Response> + Send>,
+    }
+
+    impl Client for TestApiClient {
+        fn config(&self) -> &ClientConfig {
+            &self.config
+        }
+
+        fn execute(
+            &self,
+            request: reqwest::r#async::Request,
+        ) -> Box<Future<Item = reqwest::r#async::Response, Error = reqwest::Error> + Send> {
+            let result = (&self.result)(request);
+            Box::new(futures::future::result(result))
+        }
+    }
 
     #[test]
     fn query_request_serialization() {
@@ -225,9 +256,10 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    // FIXME: revert the changes to this test function and do this in a test for commands instead.
     #[test]
     fn query_response_replied() {
-        let _ = env_logger::try_init();
+        let host = "http://localhost:8080";
 
         let response = Response::Replied {
             reply: QueryResponseReply {
@@ -235,15 +267,26 @@ mod tests {
             },
         };
 
-        let _m = mock("POST", "/api/v1/read")
-            .with_status(200)
-            .with_header("content-type", "application/cbor")
-            .with_body(serde_cbor::to_vec(&response).unwrap())
-            .create();
+        let result = |response: Response<QueryResponseReply>| {
+            move |_request| {
+                let url = url::Url::parse(host).unwrap();
+                let body = serde_cbor::to_vec(&response.clone()).unwrap();
 
-        let client = ApiClient::new(ClientConfig {
-            url: mockito::server_url(),
-        });
+                let res = http::response::Builder::new()
+                    .status(200)
+                    .url(url)
+                    .body(body)
+                    .unwrap();
+                Ok(reqwest::r#async::Response::from(res))
+            }
+        };
+
+        let client = TestApiClient {
+            config: ClientConfig {
+                url: host.to_string(),
+            },
+            result: Box::new(result(response.clone())),
+        };
 
         let query = query(
             client,
@@ -257,10 +300,8 @@ mod tests {
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(query);
 
-        _m.assert();
-
         match result {
-            Ok(r) => assert_eq!(r, response),
+            Ok(r) => assert_eq!(r, response.clone()),
             Err(e) => assert!(false, format!("{:#?}", e)),
         }
     }
