@@ -2,7 +2,7 @@ extern crate dfx_derive;
 
 pub use dfx_derive::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Hash, Eq, Clone)]
 pub enum Type {
     Null,
     Bool,
@@ -16,7 +16,16 @@ pub enum Type {
     Variant(Vec<Field>),
 }
 
-#[derive(Debug, PartialEq)]
+pub fn is_primitive(t: &Type) -> bool {
+    use Type::*;
+    match t {
+        Null | Bool | Nat | Int | Text => true,
+        Var(_) => true,
+        Opt(_) | Vec(_) | Record(_) | Variant(_) => false,
+    }
+}
+
+#[derive(Debug, PartialEq, Hash, Eq, Clone)]
 pub struct Field {
     pub id: String,
     pub ty: Type,
