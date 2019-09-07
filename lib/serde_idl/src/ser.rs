@@ -5,9 +5,8 @@ use serde::ser::{self, Impossible, Serialize};
 
 use std::io;
 use std::vec::Vec;
-use leb128;
 use std::collections::HashMap;
-use dfx_info::Type;
+use dfx_info::{Type, Field};
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
 
@@ -57,10 +56,10 @@ impl ValueSerializer
     }
 
     fn write_sleb128(&mut self, value: i64) -> () {
-        leb128::write::signed(&mut self.value, value).expect("should write signed number");
+        sleb128_encode(&mut self.value, value).unwrap();
     }
     fn write_leb128(&mut self, value: u64) -> () {
-        leb128::write::unsigned(&mut self.value, value).expect("should write signed number");
+        leb128_encode(&mut self.value, value).unwrap();
     }
 }
 
@@ -292,6 +291,8 @@ fn idl_hash(id: &str) -> u32 {
     s
 }
 
+// TypeSerialize is implemented outside of the serde framework, as serde only supports value, not type.
+
 impl TypeSerialize
 {
     #[inline]
@@ -317,17 +318,26 @@ impl TypeSerialize
                     self.type_map.insert((*t).clone(), idx as i32);            
                     self.type_table.push(buf);
                 },
-                /*Type::Record(fs) => {
-                    let mut buf = sleb128_encode(-20);
-                    leb128::write::unsigned(&mut buf, fs.len() as u64)?;
-                    for (id, t) in fs {
-                        let mut id_buf = leb128_encode(*id as u64);
-                        let mut t_buf = self.encode(&t)?;
-                        buf.append(&mut id_buf);
-                        buf.append(&mut t_buf);
+                Type::Record(fs) => {
+                    let mut fs: Vec<(u32, &Type)> = fs.into_iter().map(
+                        |Field {id, ty}| (idl_hash(id), ty)).collect();
+                    fs.sort_unstable_by_key(|(id,_)| *id);
+                    for (_, ty) in fs.iter() {
+                        self.build_type(ty).unwrap();
                     };
-                    Ok(buf)
-                },*/
+                    
+                    let mut buf = Vec::new();
+                    sleb128_encode(&mut buf, -20)?;
+                    leb128_encode(&mut buf, fs.len() as u64)?;
+                    for (id, ty) in fs.iter() {
+                        leb128_encode(&mut buf, *id as u64)?;
+                        self.encode(&mut buf, ty)?;
+                    };
+                    // add_type
+                    let idx = self.type_table.len();            
+                    self.type_map.insert((*t).clone(), idx as i32);            
+                    self.type_table.push(buf);                    
+                },
                 _ => ()
             };
         };
@@ -340,7 +350,8 @@ impl TypeSerialize
             Type::Nat => sleb128_encode(buf, -3),
             Type::Int => sleb128_encode(buf, -4),
             _ => {
-                let idx = self.type_map.get(&t).expect("type not found");
+                let idx = self.type_map.get(&t)
+                    .expect(&format!("type {:?} not found", t));
                 sleb128_encode(buf, *idx as i64)
             },
         }?;
@@ -359,50 +370,4 @@ impl TypeSerialize
         Ok(())
     }
 }
-/*
-impl<'a> ser::Serializer for &'a mut TypeSerializer
-{
-    type Ok = Type;
-    type Error = Error;
 
-    type SerializeStruct = TypeCompound<'a>;
-    type SerializeStructVariant = Impossible<Self::Ok, Error>;
-
-    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
-        Ok(TypeCompound {ser: self, fields: Vec::new()})
-    }
-}
-
-pub struct TypeCompound<'a> {
-    ser: &'a mut TypeSerializer,
-    fields: Vec<(&'static str, Type)>,
-}
-
-impl<'a> ser::SerializeStruct for TypeCompound<'a>
-{
-    type Ok = Type;
-    type Error = Error;
-
-    #[inline]
-    fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<()>
-    where
-        T: Serialize,
-    {
-        let t = value.serialize(&mut *self.ser)?;
-        self.fields.push((key, t));
-        Ok(())
-    }
-
-    #[inline]
-    fn end(mut self) -> Result<Type> {
-        self.fields.sort_unstable_by_key(|(id,_)| idl_hash(id));
-        let mut fs = Vec::new();
-        for (k, t) in self.fields {
-            fs.push((idl_hash(k), Box::new(t)));
-        };
-        let t = Type::Record(fs);
-        self.ser.add_type(&t)?;
-        Ok(t)
-    }    
-}
-*/

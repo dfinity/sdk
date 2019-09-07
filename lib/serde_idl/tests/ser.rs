@@ -28,7 +28,7 @@ fn test_option() {
     check(Some(Some(42)), "4449444c026e7c6e000101012a");
     let opt: Option<i32> = None;
     assert_eq!(get_type(&opt), Type::Opt(Box::new(Type::Int)));
-    //check(opt, "4449444c");
+    check(opt, "4449444c016e7c0000");
 }
 
 #[derive(Serialize, Debug, DfinityInfo)]
@@ -58,7 +58,7 @@ fn test_struct() {
                    field("tail", Type::Opt(Box::new(
                        Type::Var("List".to_owned()))))])               
     );
-    //check(List { head: 42, tail: None }, "4449444c016c02d3");
+    check(List { head: 42, tail: None }, "4449444c016c02d3");
 }
 
 #[test]
@@ -72,6 +72,7 @@ fn test_variant() {
                                                   field("b", Type::Nat)])),
                    ])
     );
+    //check(v, "4449444c");
 }
 
 #[test]
