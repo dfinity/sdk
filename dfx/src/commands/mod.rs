@@ -1,3 +1,4 @@
+use crate::lib::env::{BinaryCacheEnv, ClientEnv, ProjectConfigEnv, VersionEnv};
 use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
@@ -5,14 +6,14 @@ mod build;
 mod send;
 mod start;
 
-pub type CliExecFn = fn(&ArgMatches<'_>) -> DfxResult;
-pub struct CliCommand {
+pub type CliExecFn<T> = fn(&T, &ArgMatches<'_>) -> DfxResult;
+pub struct CliCommand<T> {
     subcommand: clap::App<'static, 'static>,
-    executor: CliExecFn,
+    executor: CliExecFn<T>,
 }
 
-impl CliCommand {
-    pub fn new(subcommand: clap::App<'static, 'static>, executor: CliExecFn) -> CliCommand {
+impl<T> CliCommand<T> {
+    pub fn new(subcommand: clap::App<'static, 'static>, executor: CliExecFn<T>) -> CliCommand<T> {
         CliCommand {
             subcommand,
             executor,
@@ -24,12 +25,16 @@ impl CliCommand {
     pub fn get_name(&self) -> &str {
         self.subcommand.get_name()
     }
-    pub fn execute(self: &CliCommand, args: &ArgMatches<'_>) -> DfxResult {
-        (self.executor)(args)
+    pub fn execute(self: &CliCommand<T>, env: &T, args: &ArgMatches<'_>) -> DfxResult {
+        (self.executor)(env, args)
     }
 }
 
-pub fn builtin() -> Vec<CliCommand> {
+/// Returns all builtin commands understood by DFx.
+pub fn builtin<T>() -> Vec<CliCommand<T>>
+where
+    T: BinaryCacheEnv + ClientEnv + ProjectConfigEnv + VersionEnv,
+{
     vec![
         CliCommand::new(build::construct(), build::exec),
         CliCommand::new(send::construct(), send::exec),
