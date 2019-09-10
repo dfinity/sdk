@@ -3,12 +3,19 @@ use crate::config::{cache, DFX_VERSION};
 use crate::lib::api_client::{Client, ClientConfig};
 use crate::lib::error::DfxResult;
 use std::cell::RefCell;
+use std::io;
 use std::path::PathBuf;
 
-/// An environment that can resolve binaries from the user-level cache.
+/// An environment that manages the global binary cache.
 pub trait BinaryCacheEnv {
-    fn get_binary_command_path(&self, binary_name: &str) -> std::io::Result<PathBuf>;
-    fn get_binary_command(&self, binary_name: &str) -> std::io::Result<std::process::Command>;
+    fn is_installed(&self) -> io::Result<bool>;
+    fn install(&self) -> io::Result<()>;
+}
+
+/// An environment that can resolve binaries from the user-level cache.
+pub trait BinaryResolverEnv {
+    fn get_binary_command_path(&self, binary_name: &str) -> io::Result<PathBuf>;
+    fn get_binary_command(&self, binary_name: &str) -> io::Result<std::process::Command>;
 }
 
 /// An environment that can get the project configuration.
@@ -35,10 +42,19 @@ pub struct InProjectEnvironment {
 }
 
 impl BinaryCacheEnv for InProjectEnvironment {
-    fn get_binary_command_path(&self, binary_name: &str) -> std::io::Result<PathBuf> {
+    fn is_installed(&self) -> io::Result<bool> {
+        cache::is_version_installed(self.version.as_str())
+    }
+    fn install(&self) -> io::Result<()> {
+        cache::install_version(self.version.as_str()).map(|_| ())
+    }
+}
+
+impl BinaryResolverEnv for InProjectEnvironment {
+    fn get_binary_command_path(&self, binary_name: &str) -> io::Result<PathBuf> {
         cache::get_binary_path_from_version(self.version.as_str(), binary_name)
     }
-    fn get_binary_command(&self, binary_name: &str) -> std::io::Result<std::process::Command> {
+    fn get_binary_command(&self, binary_name: &str) -> io::Result<std::process::Command> {
         cache::binary_command_from_version(self.version.as_str(), binary_name)
     }
 }

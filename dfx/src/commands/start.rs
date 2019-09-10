@@ -1,4 +1,4 @@
-use crate::lib::env::BinaryCacheEnv;
+use crate::lib::env::BinaryResolverEnv;
 use crate::lib::error::DfxResult;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
@@ -16,7 +16,7 @@ pub fn construct() -> App<'static, 'static> {
 /// Find the binary path for the client, then start the node manager.
 pub fn exec<T>(env: &T, _args: &ArgMatches<'_>) -> DfxResult
 where
-    T: BinaryCacheEnv,
+    T: BinaryResolverEnv,
 {
     println!("Starting up the DFINITY node manager...");
 

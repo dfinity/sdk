@@ -1,5 +1,5 @@
 use crate::config::dfinity::ConfigCanistersCanister;
-use crate::lib::env::{BinaryCacheEnv, ProjectConfigEnv};
+use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::DfxResult;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use std::path::Path;
@@ -12,7 +12,7 @@ pub fn construct() -> App<'static, 'static> {
 
 fn build_file<T>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult
 where
-    T: BinaryCacheEnv,
+    T: BinaryResolverEnv,
 {
     let output_wasm_path = output_path.with_extension("wasm");
     let output_idl_path = output_path.with_extension("did");
@@ -41,7 +41,7 @@ where
 
 pub fn exec<T>(env: &T, _args: &ArgMatches<'_>) -> DfxResult
 where
-    T: BinaryCacheEnv + ProjectConfigEnv,
+    T: BinaryResolverEnv + ProjectConfigEnv,
 {
     // Read the config.
     let config = env.get_config().unwrap();
@@ -94,7 +94,7 @@ mod tests {
             out_file: &'a fs::File,
         }
 
-        impl<'a> BinaryCacheEnv for TestEnv<'a> {
+        impl<'a> BinaryResolverEnv for TestEnv<'a> {
             fn get_binary_command_path(&self, _binary_name: &str) -> io::Result<PathBuf> {
                 // This should not be used.
                 panic!("get_binary_command_path should not be called.")
