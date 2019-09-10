@@ -103,22 +103,22 @@ primitive_impl!(String, Text);
 primitive_impl!(&str, Text);
 
 
-impl<T:'static> DfinityInfo for Option<T> where T: DfinityInfo {
+impl<T> DfinityInfo for Option<T> where T: DfinityInfo + 'static {
     fn id() -> TypeId { TypeId::of::<Option<T>>() }
     fn _ty() -> Type { Type::Opt(Box::new(T::ty())) }
 }
-/*
-impl<T> DfinityInfo for Vec<T> where T: DfinityInfo {
+
+impl<T> DfinityInfo for Vec<T> where T: DfinityInfo + 'static {
     fn id() -> TypeId { TypeId::of::<Vec<T>>() }        
     fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }    
 }
 
-impl<T> DfinityInfo for [T] where T: DfinityInfo {
+impl<T> DfinityInfo for [T] where T: DfinityInfo + 'static {
     fn id() -> TypeId { TypeId::of::<[T]>() }
     fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }    
 }
 
-impl<T,E> DfinityInfo for Result<T,E> where T: DfinityInfo, E: DfinityInfo {
+impl<T,E> DfinityInfo for Result<T,E> where T: DfinityInfo + 'static, E: DfinityInfo + 'static {
     fn id() -> TypeId { TypeId::of::<Result<T,E>>() }
     fn _ty() -> Type {
         Type::Variant(vec![
@@ -127,15 +127,10 @@ impl<T,E> DfinityInfo for Result<T,E> where T: DfinityInfo, E: DfinityInfo {
         )
     }
 }
-*/
-impl<T:'static> DfinityInfo for Box<T> where T: ?Sized + DfinityInfo {
+
+impl<T> DfinityInfo for Box<T> where T: ?Sized + DfinityInfo + 'static {
     fn id() -> TypeId { TypeId::of::<Box<T>>() }
     fn _ty() -> Type { T::ty() }
 }
-/*
-impl<'a,T> DfinityInfo for &'a T where T: 'a + ?Sized + DfinityInfo {
-    fn id() -> TypeId { TypeId::of::<&'a T> }
-    fn _ty() -> Type { T::ty() }    
-}
-*/
+
 

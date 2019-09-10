@@ -95,7 +95,9 @@ fn add_trait_bounds(mut generics: Generics) -> Generics {
     for param in &mut generics.params {
         if let GenericParam::Type(ref mut type_param) = *param {
             let bound = syn::parse_str("::dfx_info::DfinityInfo").unwrap();
+            let lifetime = syn::parse_str("'static").unwrap();
             type_param.bounds.push(bound);
+            type_param.bounds.push(lifetime);
         }
     }
     generics

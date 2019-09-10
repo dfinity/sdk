@@ -77,7 +77,7 @@ fn test_variant() {
     );
     //check(v, "4449444c");
 }
-/*
+
 #[test]
 fn test_generics() {
     #[derive(Serialize, Debug, DfinityInfo)]
@@ -90,7 +90,7 @@ fn test_generics() {
                    field("g2", Type::Bool)])
     );
 }
-*/
+
 fn check<T>(value: T, expected: &str) where T: Serialize + DfinityInfo {
     let encoded = to_vec(&value).unwrap();
     let expected = hex::decode(expected).unwrap();
