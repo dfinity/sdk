@@ -107,6 +107,19 @@ where
         })
 }
 
+/// Ping a client and return ok if the client is started.
+pub fn ping(client: Client) -> impl Future<Item = (), Error = DfxError> {
+    let parsed = reqwest::Url::parse(&client.url).map_err(DfxError::Url);
+    result(parsed).and_then(move |url| {
+        let http_request = reqwest::r#async::Request::new(reqwest::Method::GET, url);
+
+        client
+            .execute(http_request)
+            .map(|_| ())
+            .map_err(DfxError::Reqwest)
+    })
+}
+
 /// Canister query call
 ///
 /// Canister methods that do not change the canister state in a meaningful way
