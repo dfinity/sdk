@@ -6,8 +6,7 @@ mod lib;
 mod util;
 
 use crate::commands::CliCommand;
-use crate::config::DFX_VERSION;
-use crate::lib::env::{InProjectEnvironment, VersionEnv};
+use crate::lib::env::{BinaryCacheEnv, InProjectEnvironment, VersionEnv};
 use crate::lib::error::*;
 
 fn cli<T>(env: &T) -> App<'_, '_>
@@ -56,12 +55,11 @@ fn main() {
 
     let matches = cli(&env).get_matches();
 
-    // TODO: move this somewhere more appropriate
-    if !config::cache::is_version_installed(DFX_VERSION).unwrap_or(false) {
-        config::cache::install_version(DFX_VERSION).unwrap();
-        println!("Version v{} installed successfully.", DFX_VERSION);
+    if !env.is_installed().unwrap() {
+        env.install().unwrap();
+        println!("Version v{} installed successfully.", env.get_version());
     } else {
-        println!("Version v{} already installed.", DFX_VERSION);
+        println!("Version v{} already installed.", env.get_version());
     }
 
     if let Err(err) = exec(&env, &matches, &(cli(&env))) {
