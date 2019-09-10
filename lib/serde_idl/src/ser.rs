@@ -29,8 +29,7 @@ where
     writer.write_all(b"DIDL")?;
     
     let mut type_ser = TypeSerialize::new();
-    let ty = T::ty();
-    type_ser.serialize(&ty)?;
+    type_ser.serialize(&T::ty())?;
     writer.write_all(&type_ser.result)?;
     
     let mut value_ser = ValueSerializer::new();
@@ -307,16 +306,16 @@ impl TypeSerialize
     #[inline]
     fn build_type(&mut self, t: &Type) -> Result<()> {
         if !dfx_info::is_primitive(t) && !self.type_map.contains_key(t) {
+            let idx = self.type_table.len();
+            self.type_map.insert((*t).clone(), idx as i32);
+            self.type_table.push(Vec::new());
             match t {
                 Type::Opt(ref ty) => {
                     self.build_type(ty)?;
                     let mut buf = Vec::new();
                     sleb128_encode(&mut buf, -18)?;
                     self.encode(&mut buf, ty)?;
-                    // add_type
-                    let idx = self.type_table.len();            
-                    self.type_map.insert((*t).clone(), idx as i32);            
-                    self.type_table.push(buf);
+                    self.type_table[idx] = buf;
                 },
                 Type::Record(fs) => {
                     let mut fs: Vec<(u32, &Type)> = fs.into_iter().map(
@@ -333,11 +332,9 @@ impl TypeSerialize
                         leb128_encode(&mut buf, *id as u64)?;
                         self.encode(&mut buf, ty)?;
                     };
-                    // add_type
-                    let idx = self.type_table.len();            
-                    self.type_map.insert((*t).clone(), idx as i32);            
-                    self.type_table.push(buf);                    
+                    self.type_table[idx] = buf;
                 },
+                // TODO remove this
                 _ => ()
             };
         };
@@ -346,9 +343,17 @@ impl TypeSerialize
 
     fn encode(&mut self, buf: &mut Vec<u8>, t: &Type) -> Result<()> {
         match t {
+            Type::Null => sleb128_encode(buf, -1),
             Type::Bool => sleb128_encode(buf, -2),
             Type::Nat => sleb128_encode(buf, -3),
             Type::Int => sleb128_encode(buf, -4),
+            Type::Text => sleb128_encode(buf, -15),
+            Type::Knot(id) => {
+                let ty = dfx_info::find_type(id).unwrap();
+                let idx = self.type_map.get(&ty)
+                    .expect(&format!("knot type {:?} not found", ty));
+                sleb128_encode(buf, *idx as i64)
+            },
             _ => {
                 let idx = self.type_map.get(&t)
                     .expect(&format!("type {:?} not found", t));

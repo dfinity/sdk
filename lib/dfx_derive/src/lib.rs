@@ -15,7 +15,8 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
     let generics = add_trait_bounds(input.generics);
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();    
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+    // TODO respect serde attributes
     let body = match input.data {
         Data::Enum(ref data) => {
             enum_from_ast(&data.variants)
@@ -27,10 +28,10 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     };
     let gen = quote! {
         impl #impl_generics dfx_info::DfinityInfo for #name #ty_generics #where_clause {
-            fn ty() -> dfx_info::Type {
+            fn _ty() -> dfx_info::Type {
                 #body
             }
-            fn name() -> Option<String> { Some (String::from(stringify!{#name})) }
+            fn id() -> dfx_info::TypeId { dfx_info::TypeId::of::<#name #ty_generics>() }
         }
     };
     //panic!(gen.to_string());

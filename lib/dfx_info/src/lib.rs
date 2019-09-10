@@ -1,6 +1,10 @@
 extern crate dfx_derive;
-
 pub use dfx_derive::*;
+
+use std::collections::HashMap;
+use std::cell::RefCell;
+
+pub type TypeId = std::any::TypeId;
 
 #[derive(Debug, PartialEq, Hash, Eq, Clone)]
 pub enum Type {
@@ -9,7 +13,8 @@ pub enum Type {
     Nat,
     Int,
     Text,
-    Var(String),
+    Knot(TypeId),
+    Unknown,
     Opt(Box<Type>),
     Vec(Box<Type>),
     Record(Vec<Field>),
@@ -20,7 +25,8 @@ pub fn is_primitive(t: &Type) -> bool {
     use Type::*;
     match t {
         Null | Bool | Nat | Int | Text => true,
-        Var(_) => true,
+        Unknown => panic!("Unknown type"),
+        Knot(_) => true,
         Opt(_) | Vec(_) | Record(_) | Variant(_) => false,
     }
 }
@@ -32,15 +38,41 @@ pub struct Field {
 }
 
 pub trait DfinityInfo {
-    fn ty() -> Type;
-    fn name() -> Option<String> { None }
-    fn _ty() -> Type {
-        if let Some(var) = Self::name() {
-            Type::Var(var)
+    fn ty() -> Type {
+        let id = Self::id();
+        if let Some(t) = find_type(&id) {
+            match t {
+                Type::Unknown => Type::Knot(id),
+                _ => t,
+            }
         } else {
-            Self::ty()
+            env_put(id, Type::Unknown);
+            let t = Self::_ty();
+            env_put(id, t.clone());
+            t
         }
-    } 
+    }
+    fn id() -> TypeId;
+    fn _ty() -> Type;
+}
+
+pub fn find_type(id: &TypeId) -> Option<Type> {
+    ENV.with(|e| {
+        match e.borrow().get(id) {
+            None => None,
+            Some(t) => Some ((*t).clone()),
+        }
+    })
+}
+
+pub fn env_put(id: TypeId, t: Type) {
+    ENV.with(|e| {
+        drop(e.borrow_mut().insert(id, t))
+    })
+}
+
+thread_local!{
+    pub static ENV: RefCell<HashMap<TypeId, Type>> = RefCell::new(HashMap::new());
 }
 
 pub fn get_type<T>(_v: &T) -> Type where T: DfinityInfo {
@@ -50,9 +82,8 @@ pub fn get_type<T>(_v: &T) -> Type where T: DfinityInfo {
 macro_rules! primitive_impl {
     ($t:ty, $id:tt) => {
         impl DfinityInfo for $t {
-            fn ty() -> Type {
-                Type::$id
-            }
+            fn id() -> TypeId { TypeId::of::<$t>() }            
+            fn _ty() -> Type { Type::$id }
         }
     };
 }
@@ -71,31 +102,40 @@ primitive_impl!(usize, Nat);
 primitive_impl!(String, Text);
 primitive_impl!(&str, Text);
 
-impl<T> DfinityInfo for Option<T> where T: DfinityInfo {
-    fn ty() -> Type { Type::Opt(Box::new(T::_ty())) }
-}
 
+impl<T:'static> DfinityInfo for Option<T> where T: DfinityInfo {
+    fn id() -> TypeId { TypeId::of::<Option<T>>() }
+    fn _ty() -> Type { Type::Opt(Box::new(T::ty())) }
+}
+/*
 impl<T> DfinityInfo for Vec<T> where T: DfinityInfo {
-    fn ty() -> Type { Type::Vec(Box::new(T::_ty())) }    
+    fn id() -> TypeId { TypeId::of::<Vec<T>>() }        
+    fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }    
 }
 
 impl<T> DfinityInfo for [T] where T: DfinityInfo {
-    fn ty() -> Type { Type::Vec(Box::new(T::_ty())) }    
+    fn id() -> TypeId { TypeId::of::<[T]>() }
+    fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }    
 }
 
 impl<T,E> DfinityInfo for Result<T,E> where T: DfinityInfo, E: DfinityInfo {
-    fn ty() -> Type {
+    fn id() -> TypeId { TypeId::of::<Result<T,E>>() }
+    fn _ty() -> Type {
         Type::Variant(vec![
-            Field{ id: "Ok".to_owned(), ty: T::_ty() },
-            Field{ id: "Err".to_owned(), ty: E::_ty() }]
+            Field{ id: "Ok".to_owned(), ty: T::ty() },
+            Field{ id: "Err".to_owned(), ty: E::ty() }]
         )
     }
 }
-
-impl<T> DfinityInfo for Box<T> where T: ?Sized + DfinityInfo {
-    fn ty() -> Type { T::_ty() }
+*/
+impl<T:'static> DfinityInfo for Box<T> where T: ?Sized + DfinityInfo {
+    fn id() -> TypeId { TypeId::of::<Box<T>>() }
+    fn _ty() -> Type { T::ty() }
 }
-
+/*
 impl<'a,T> DfinityInfo for &'a T where T: 'a + ?Sized + DfinityInfo {
-    fn ty() -> Type { T::_ty() }    
+    fn id() -> TypeId { TypeId::of::<&'a T> }
+    fn _ty() -> Type { T::ty() }    
 }
+*/
+

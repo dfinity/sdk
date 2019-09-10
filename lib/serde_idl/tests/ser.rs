@@ -25,24 +25,17 @@ fn test_integer() {
 #[test]
 fn test_option() {
     check(Some(42), "4449444c016e7c00012a");
-    check(Some(Some(42)), "4449444c026e7c6e000101012a");
+    check(Some(Some(42)), "4449444c026e016e7c0001012a");
     let opt: Option<i32> = None;
     assert_eq!(get_type(&opt), Type::Opt(Box::new(Type::Int)));
     check(opt, "4449444c016e7c0000");
 }
 
-#[derive(Serialize, Debug, DfinityInfo)]
-struct List { head: i32, tail: Option<Box<List>> }
-#[derive(Serialize, Debug, DfinityInfo)]
-struct A { foo: i32, bar: bool }
-#[derive(Serialize, Debug, DfinityInfo)]
-enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
-#[derive(Serialize, Debug, DfinityInfo)]
-struct G<T, E> { g1: T, g2: E }
-
-
 #[test]
 fn test_struct() {
+    #[derive(Serialize, Debug, DfinityInfo)]
+    struct A { foo: i32, bar: bool }
+    
     let record = A { foo: 42, bar: true };
     check(record, "4449444c016c02d3e3aa027e868eb7027c00012a");
     let record = A { foo: 42, bar: true };    
@@ -51,18 +44,28 @@ fn test_struct() {
                    field("foo", Type::Int),
                    field("bar", Type::Bool)])
     );
+    
+    #[derive(Serialize, Debug, DfinityInfo)]
+    struct List { head: i32, tail: Option<Box<List>> }
+    
     let list = List { head: 42, tail: None };
     assert_eq!(get_type(&list),
                Type::Record(vec![
                    field("head", Type::Int),
                    field("tail", Type::Opt(Box::new(
-                       Type::Var("List".to_owned()))))])               
+                       Type::Knot(dfx_info::TypeId::of::<List>()))))])               
     );
-    check(List { head: 42, tail: None }, "4449444c016c02d3");
+    check(list, "4449444c026c02a0d2aca8047c90eddae704016e00002a00");    
+    let list: Option<List> = None;
+    check(list, "4449444c026c02a0d2aca8047c90eddae704016e000000");
 }
 
 #[test]
 fn test_variant() {
+    #[allow(dead_code)]
+    #[derive(Serialize, Debug, DfinityInfo)]
+    enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
+    
     let v = E::Foo;
     assert_eq!(get_type(&v),
                Type::Variant(vec![
@@ -74,9 +77,12 @@ fn test_variant() {
     );
     //check(v, "4449444c");
 }
-
+/*
 #[test]
 fn test_generics() {
+    #[derive(Serialize, Debug, DfinityInfo)]
+    struct G<T, E> { g1: T, g2: E }
+    
     let res = G { g1: 42, g2: true };
     assert_eq!(get_type(&res),
                Type::Record(vec![
@@ -84,7 +90,7 @@ fn test_generics() {
                    field("g2", Type::Bool)])
     );
 }
-
+*/
 fn check<T>(value: T, expected: &str) where T: Serialize + DfinityInfo {
     let encoded = to_vec(&value).unwrap();
     let expected = hex::decode(expected).unwrap();
