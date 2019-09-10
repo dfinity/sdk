@@ -5,28 +5,31 @@ mod config;
 mod lib;
 mod util;
 
+use crate::commands::CliCommand;
 use crate::config::DFX_VERSION;
+use crate::lib::env::{InProjectEnvironment, VersionEnv};
 use crate::lib::error::*;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-fn cli() -> App<'static, 'static> {
+fn cli<T>(env: &T) -> App<'_, '_>
+where
+    T: VersionEnv,
+{
     App::new("dfx")
         .about("The DFINITY Executor.")
-        .version(VERSION)
-        .setting(AppSettings::ColoredHelp)
+        .version(env.get_version().as_str())
+        .global_setting(AppSettings::ColoredHelp)
         .subcommands(
             commands::builtin()
                 .into_iter()
-                .map(|x| x.get_subcommand().clone()),
+                .map(|x: CliCommand<InProjectEnvironment>| x.get_subcommand().clone()),
         )
 }
 
-fn exec(args: &clap::ArgMatches<'_>) -> DfxResult {
+fn exec(env: &InProjectEnvironment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) -> DfxResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
-            cli().write_help(&mut std::io::stderr())?;
+            cli.write_help(&mut std::io::stderr())?;
             println!();
             println!();
             return Ok(());
@@ -37,21 +40,21 @@ fn exec(args: &clap::ArgMatches<'_>) -> DfxResult {
         .into_iter()
         .find(|x| name == x.get_name())
     {
-        Some(cmd) => cmd.execute(subcommand_args),
+        Some(cmd) => cmd.execute(env, subcommand_args),
         _ => {
-            cli().write_help(&mut std::io::stderr())?;
+            cli.write_help(&mut std::io::stderr())?;
             println!();
             println!();
-            Err(DfxError::UnknownCommand(format!(
-                "Command {} unknown.",
-                name
-            )))
+            Err(DfxError::UnknownCommand(name.to_owned()))
         }
     }
 }
 
 fn main() {
-    let matches = cli().get_matches();
+    // Build the environment.
+    let env = InProjectEnvironment::from_current_dir().unwrap();
+
+    let matches = cli(&env).get_matches();
 
     // TODO: move this somewhere more appropriate
     if !config::cache::is_version_installed(DFX_VERSION).unwrap_or(false) {
@@ -61,11 +64,8 @@ fn main() {
         println!("Version v{} already installed.", DFX_VERSION);
     }
 
-    match exec(&matches) {
-        Ok(()) => ::std::process::exit(0),
-        Err(err) => {
-            println!("An error occured:\n{:#?}", err);
-            ::std::process::exit(255)
-        }
+    if let Err(err) = exec(&env, &matches, &(cli(&env))) {
+        println!("An error occured:\n{:#?}", err);
+        ::std::process::exit(255)
     }
 }

@@ -14,6 +14,7 @@ pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 type CanisterId = u64;
 
+#[derive(Clone)]
 pub struct Client {
     client: ReqwestClient,
     url: String,

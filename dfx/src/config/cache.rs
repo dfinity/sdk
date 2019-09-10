@@ -1,7 +1,6 @@
 use std::io::{Error, ErrorKind, Result};
 use std::path::PathBuf;
 
-use crate::config::dfinity::Config;
 use crate::util;
 
 pub fn get_bin_cache_root() -> Result<PathBuf> {
@@ -81,9 +80,4 @@ pub fn binary_command_from_version(version: &str, name: &str) -> Result<std::pro
     let path = get_binary_path_from_version(version, name)?;
     let cmd = std::process::Command::new(path);
     Ok(cmd)
-}
-
-pub fn binary_command_from_config(config: &Config, name: &str) -> Result<std::process::Command> {
-    let version = config.get_config().get_dfx();
-    binary_command_from_version(&version, name)
 }
