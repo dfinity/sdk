@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
 mod build;
-mod send;
+mod call;
 mod start;
 
 pub type CliExecFn<T> = fn(&T, &ArgMatches<'_>) -> DfxResult;
@@ -37,7 +37,7 @@ where
 {
     vec![
         CliCommand::new(build::construct(), build::exec),
-        CliCommand::new(send::construct(), send::exec),
+        CliCommand::new(call::construct(), call::exec),
         CliCommand::new(start::construct(), start::exec),
     ]
 }

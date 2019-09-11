@@ -9,11 +9,11 @@ const HOST_ARG: &str = "host";
 const NAME_ARG: &str = "name";
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("send")
-        .about(r#"Send a "Hello World" request to the canister 42."#)
+    SubCommand::with_name("call")
+        .about(r#"Call a "greet" function on the canister with ID 42."#)
         .arg(
             Arg::with_name(HOST_ARG)
-                .help("The host (with port) to send the query to.")
+                .help("The host (with port) to send the request to.")
                 .required(true),
         )
         .arg(
