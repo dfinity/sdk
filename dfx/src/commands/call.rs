@@ -1,4 +1,5 @@
 use crate::lib::api_client::*;
+use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use futures::future::{err, ok, Future};
@@ -22,13 +23,12 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
+where
+    T: ClientEnv,
+{
     let name = args.value_of(NAME_ARG).unwrap();
-    let url = args.value_of(HOST_ARG).unwrap();
-
-    let client = Client::new(ClientConfig {
-        url: url.to_string(),
-    });
+    let client = env.get_client();
 
     let query = query(
         client,

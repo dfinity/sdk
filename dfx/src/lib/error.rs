@@ -11,6 +11,7 @@ pub enum DfxError {
     SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
 
+    /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
 
     ClientError(RejectCode, String),
@@ -18,7 +19,7 @@ pub enum DfxError {
 }
 
 /// The result of running a DFX command.
-pub type DfxResult = Result<(), DfxError>;
+pub type DfxResult<T = ()> = Result<T, DfxError>;
 
 impl From<clap::Error> for DfxError {
     fn from(err: clap::Error) -> DfxError {

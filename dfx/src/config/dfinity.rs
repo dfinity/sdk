@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use crate::config::DFX_VERSION;
 use crate::lib::error::DfxResult;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -103,10 +102,8 @@ impl ConfigInterface {
     pub fn get_version(&self) -> u32 {
         self.version.unwrap_or(1)
     }
-    pub fn get_dfx(&self) -> String {
-        self.dfx
-            .to_owned()
-            .unwrap_or_else(|| DFX_VERSION.to_owned())
+    pub fn get_dfx(&self) -> Option<String> {
+        self.dfx.to_owned()
     }
 }
 
