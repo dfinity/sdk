@@ -56,8 +56,20 @@ fn test_struct() {
                        Type::Knot(dfx_info::TypeId::of::<List>()))))])               
     );
     check(list, "4449444c026c02a0d2aca8047c90eddae704016e00002a00");    
+
     let list: Option<List> = None;
-    check(list, "4449444c026c02a0d2aca8047c90eddae704016e000000");
+    // without memoization on the unrolled type, type table will have 3 entries.
+    check(list, "4449444c026e016c02a0d2aca8047c90eddae704000000");
+}
+
+#[test]
+fn test_mutual_recursion() {
+    type List = Option<ListA>;
+    #[derive(Serialize, Debug, DfinityInfo)]
+    struct ListA { head: i32, tail: Box<List> };
+
+    let list: List = None;
+    check(list, "4449444c026e016c02a0d2aca8047c90eddae704000000");
 }
 
 #[test]

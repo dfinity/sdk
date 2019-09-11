@@ -306,6 +306,15 @@ impl TypeSerialize
     #[inline]
     fn build_type(&mut self, t: &Type) -> Result<()> {
         if !dfx_info::is_primitive(t) && !self.type_map.contains_key(t) {
+            // This is a hack to try to remove equivalent mu types
+            // from the type table
+            let unrolled = dfx_info::unroll(t);
+            if let Some(idx) = self.type_map.get(&unrolled) {
+                let idx = idx.clone();
+                self.type_map.insert((*t).clone(), idx);
+                return Ok(());
+            }
+            
             let idx = self.type_table.len();
             self.type_map.insert((*t).clone(), idx as i32);
             self.type_table.push(Vec::new());
@@ -320,6 +329,7 @@ impl TypeSerialize
                 Type::Record(fs) => {
                     let mut fs: Vec<(u32, &Type)> = fs.into_iter().map(
                         |Field {id, ty}| (idl_hash(id), ty)).collect();
+                    // TODO check for hash collision
                     fs.sort_unstable_by_key(|(id,_)| *id);
                     for (_, ty) in fs.iter() {
                         self.build_type(ty).unwrap();
@@ -349,7 +359,8 @@ impl TypeSerialize
             Type::Int => sleb128_encode(buf, -4),
             Type::Text => sleb128_encode(buf, -15),
             Type::Knot(id) => {
-                let ty = dfx_info::find_type(id).unwrap();
+                let ty = dfx_info::find_type(id)
+                    .expect("knot TypeId not found");
                 let idx = self.type_map.get(&ty)
                     .expect(&format!("knot type {:?} not found", ty));
                 sleb128_encode(buf, *idx as i64)

@@ -87,7 +87,7 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
 
 fn derive_type(t: &syn::Type) -> Tokens {
     quote! {
-        <#t as dfx_info::DfinityInfo>::_ty()
+        <#t as dfx_info::DfinityInfo>::ty()
     }
 }
 

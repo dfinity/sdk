@@ -6,6 +6,10 @@ use std::cell::RefCell;
 
 pub type TypeId = std::any::TypeId;
 
+thread_local!{
+    static ENV: RefCell<HashMap<TypeId, Type>> = RefCell::new(HashMap::new());
+}
+
 #[derive(Debug, PartialEq, Hash, Eq, Clone)]
 pub enum Type {
     Null,
@@ -31,6 +35,22 @@ pub fn is_primitive(t: &Type) -> bool {
     }
 }
 
+pub fn unroll(t: &Type) -> Type {
+    use Type::*;
+    match t {
+        Knot(id) => find_type(id).unwrap(),
+        Opt(ref t) => Opt(Box::new(unroll(t))),
+        Vec(ref t) => Opt(Box::new(unroll(t))),
+        Record(fs) => Record(fs.iter().map(|Field{id,ty}| {
+            Field {id: id.to_string(), ty: unroll(ty)}
+        }).collect()),
+        Variant(fs) => Variant(fs.iter().map(|Field{id,ty}| {
+            Field {id: id.to_string(), ty: unroll(ty)}
+        }).collect()),        
+        _ => (*t).clone(),
+    }
+}
+
 #[derive(Debug, PartialEq, Hash, Eq, Clone)]
 pub struct Field {
     pub id: String,
@@ -38,6 +58,7 @@ pub struct Field {
 }
 
 pub trait DfinityInfo {
+    // memoized type derivation
     fn ty() -> Type {
         let id = Self::id();
         if let Some(t) = find_type(&id) {
@@ -46,9 +67,9 @@ pub trait DfinityInfo {
                 _ => t,
             }
         } else {
-            env_put(id, Type::Unknown);
+            env_add(id, Type::Unknown);
             let t = Self::_ty();
-            env_put(id, t.clone());
+            env_add(id, t.clone());
             t
         }
     }
@@ -65,14 +86,14 @@ pub fn find_type(id: &TypeId) -> Option<Type> {
     })
 }
 
-pub fn env_put(id: TypeId, t: Type) {
+pub fn show_env() {
+    ENV.with(|e| println!("{:?}", e.borrow()));
+}
+
+fn env_add(id: TypeId, t: Type) {
     ENV.with(|e| {
         drop(e.borrow_mut().insert(id, t))
     })
-}
-
-thread_local!{
-    pub static ENV: RefCell<HashMap<TypeId, Type>> = RefCell::new(HashMap::new());
 }
 
 pub fn get_type<T>(_v: &T) -> Type where T: DfinityInfo {
