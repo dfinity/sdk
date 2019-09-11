@@ -5,7 +5,7 @@ use serde::ser::{self, Impossible, Serialize};
 
 use std::io;
 use std::vec::Vec;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, BTreeSet};
 use dfx_info::{Type, Field};
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
@@ -294,7 +294,7 @@ fn sort_fields(fs: &Vec<Field>) -> Vec<(u32, &Type)> {
     let mut fs: Vec<(u32, &Type)> =
         fs.into_iter().map(|Field {id,ty}| (idl_hash(id), ty)).collect();
     fs.sort_unstable_by_key(|(id,_)| *id);
-    let unique_ids: HashSet<_> = fs.iter().map(|(id,_)| id).collect();
+    let unique_ids: BTreeSet<_> = fs.iter().map(|(id,_)| id).collect();
     assert_eq!(unique_ids.len(), fs.len());
     fs
 }
