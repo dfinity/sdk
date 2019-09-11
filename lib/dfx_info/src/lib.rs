@@ -4,7 +4,16 @@ pub use dfx_derive::*;
 use std::collections::HashMap;
 use std::cell::RefCell;
 
-pub type TypeId = std::any::TypeId;
+// This is a re-implementation of std::any::TypeId to get rid of 'static constraint.
+// The current TypeId doesn't consider lifetime while computing the hash, which is
+// totally fine for IDL type, as we don't care about lifetime at all.
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub struct TypeId { id: usize }
+impl TypeId {
+    pub fn of<T: ?Sized>() -> Self {
+        TypeId { id: TypeId::of::<T> as usize }
+    }
+}
 
 thread_local!{
     static ENV: RefCell<HashMap<TypeId, Type>> = RefCell::new(HashMap::new());
@@ -124,22 +133,22 @@ primitive_impl!(String, Text);
 primitive_impl!(&str, Text);
 
 
-impl<T> DfinityInfo for Option<T> where T: DfinityInfo + 'static {
+impl<T> DfinityInfo for Option<T> where T: DfinityInfo {
     fn id() -> TypeId { TypeId::of::<Option<T>>() }
     fn _ty() -> Type { Type::Opt(Box::new(T::ty())) }
 }
 
-impl<T> DfinityInfo for Vec<T> where T: DfinityInfo + 'static {
+impl<T> DfinityInfo for Vec<T> where T: DfinityInfo {
     fn id() -> TypeId { TypeId::of::<Vec<T>>() }        
     fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }    
 }
 
-impl<T> DfinityInfo for [T] where T: DfinityInfo + 'static {
+impl<T> DfinityInfo for [T] where T: DfinityInfo {
     fn id() -> TypeId { TypeId::of::<[T]>() }
     fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }    
 }
 
-impl<T,E> DfinityInfo for Result<T,E> where T: DfinityInfo + 'static, E: DfinityInfo + 'static {
+impl<T,E> DfinityInfo for Result<T,E> where T: DfinityInfo, E: DfinityInfo {
     fn id() -> TypeId { TypeId::of::<Result<T,E>>() }
     fn _ty() -> Type {
         Type::Variant(vec![
@@ -149,8 +158,13 @@ impl<T,E> DfinityInfo for Result<T,E> where T: DfinityInfo + 'static, E: Dfinity
     }
 }
 
-impl<T> DfinityInfo for Box<T> where T: ?Sized + DfinityInfo + 'static {
-    fn id() -> TypeId { TypeId::of::<Box<T>>() }
+impl<T> DfinityInfo for Box<T> where T: ?Sized + DfinityInfo {
+    fn id() -> TypeId { TypeId::of::<T>() } // ignore box
+    fn _ty() -> Type { T::ty() }
+}
+
+impl<'a,T> DfinityInfo for &'a T where T: 'a + ?Sized + DfinityInfo {
+    fn id() -> TypeId { TypeId::of::<&T>() } // ignore lifetime
     fn _ty() -> Type { T::ty() }
 }
 

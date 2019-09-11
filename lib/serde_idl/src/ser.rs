@@ -306,8 +306,10 @@ impl TypeSerialize
     #[inline]
     fn build_type(&mut self, t: &Type) -> Result<()> {
         if !dfx_info::is_primitive(t) && !self.type_map.contains_key(t) {
-            // This is a hack to try to remove equivalent mu types
-            // from the type table
+            // This is a hack to try to remove (some) equivalent mu types
+            // from the type table.
+            // Someone should implement Pottier's O(nlogn) algorithm
+            // http://gallium.inria.fr/~fpottier/publis/gauthier-fpottier-icfp04.pdf
             let unrolled = dfx_info::unroll(t);
             if let Some(idx) = self.type_map.get(&unrolled) {
                 let idx = idx.clone();
@@ -318,14 +320,18 @@ impl TypeSerialize
             let idx = self.type_table.len();
             self.type_map.insert((*t).clone(), idx as i32);
             self.type_table.push(Vec::new());
+            let mut buf = Vec::new();
             match t {
                 Type::Opt(ref ty) => {
                     self.build_type(ty)?;
-                    let mut buf = Vec::new();
                     sleb128_encode(&mut buf, -18)?;
                     self.encode(&mut buf, ty)?;
-                    self.type_table[idx] = buf;
                 },
+                Type::Vec(ref ty) => {
+                    self.build_type(ty)?;
+                    sleb128_encode(&mut buf, -19)?;
+                    self.encode(&mut buf, ty)?;
+                },                
                 Type::Record(fs) => {
                     let mut fs: Vec<(u32, &Type)> = fs.into_iter().map(
                         |Field {id, ty}| (idl_hash(id), ty)).collect();
@@ -335,18 +341,16 @@ impl TypeSerialize
                         self.build_type(ty).unwrap();
                     };
                     
-                    let mut buf = Vec::new();
                     sleb128_encode(&mut buf, -20)?;
                     leb128_encode(&mut buf, fs.len() as u64)?;
                     for (id, ty) in fs.iter() {
                         leb128_encode(&mut buf, *id as u64)?;
                         self.encode(&mut buf, ty)?;
                     };
-                    self.type_table[idx] = buf;
                 },
-                // TODO remove this
-                _ => ()
+                _ => panic!("unreachable"),
             };
+            self.type_table[idx] = buf;
         };
         Ok(())
     }
@@ -376,7 +380,7 @@ impl TypeSerialize
 
     fn serialize(&mut self, t: &Type) -> Result<()> {
         self.build_type(t)?;
-        println!("{:?}", self.type_map);
+        //println!("{:?}", self.type_map);
 
         leb128_encode(&mut self.result, self.type_table.len() as u64)?;
         self.result.append(&mut self.type_table.concat());
