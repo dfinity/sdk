@@ -133,7 +133,6 @@ primitive_impl!(String, Text);
 primitive_impl!(&str, Text);
 primitive_impl!((), Null);
 
-
 impl<T> DfinityInfo for Option<T> where T: DfinityInfo {
     fn id() -> TypeId { TypeId::of::<Option<T>>() }
     fn _ty() -> Type { Type::Opt(Box::new(T::ty())) }

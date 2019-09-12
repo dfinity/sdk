@@ -78,7 +78,7 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
     #[inline]
     fn serialize_bool(self, value: bool) -> Result<()> {
         let value = if value { 1 } else { 0 };
-        Ok(self.write_sleb128(value))
+        Ok(self.write_leb128(value))
     }
 
     #[inline]
