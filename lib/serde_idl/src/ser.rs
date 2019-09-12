@@ -136,8 +136,11 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
         Err(Error::todo())
     }
 
-    fn serialize_str(self, _v: &str) -> Result<()> {
-        Err(Error::todo())
+    fn serialize_str(self, v: &str) -> Result<()> {
+        let mut buf = Vec::from(v.as_bytes());
+        self.write_leb128(buf.len() as u64);
+        self.value.append(&mut buf);
+        Ok(())
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<()> {
@@ -157,20 +160,21 @@ impl<'a> ser::Serializer for &'a mut ValueSerializer
     }
 
     fn serialize_unit(self) -> Result<()> {
-        Err(Error::todo())
+        Ok(())
     }
 
     fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
-        Err(Error::todo())
+        Ok(())
     }
 
     fn serialize_unit_variant(
         self,
         _name: &'static str,
-        _variant_index: u32,
+        variant_index: u32,
         _variant: &'static str,
     ) -> Result<()> {
-        Err(Error::todo())
+        // TODO update index according to idl_hash
+        Ok(self.write_leb128(variant_index as u64))
     }
 
     fn serialize_newtype_struct<T: ?Sized>(
@@ -270,7 +274,7 @@ impl<'a> ser::SerializeStruct for Compound<'a>
             self.ser.value.append(&mut buf);
         };
         Ok(())
-    }    
+    }
 }
 
 /// A structure for serializing Rust values to IDL types.
@@ -293,9 +297,9 @@ fn idl_hash(id: &str) -> u32 {
 fn sort_fields(fs: &Vec<Field>) -> Vec<(u32, &Type)> {
     let mut fs: Vec<(u32, &Type)> =
         fs.into_iter().map(|Field {id,ty}| (idl_hash(id), ty)).collect();
-    fs.sort_unstable_by_key(|(id,_)| *id);
     let unique_ids: BTreeSet<_> = fs.iter().map(|(id,_)| id).collect();
-    assert_eq!(unique_ids.len(), fs.len());
+    assert_eq!(unique_ids.len(), fs.len());    
+    fs.sort_unstable_by_key(|(id,_)| *id);
     fs
 }
 
@@ -315,7 +319,7 @@ impl TypeSerialize
     #[inline]
     fn build_type(&mut self, t: &Type) -> Result<()> {
         if !dfx_info::is_primitive(t) && !self.type_map.contains_key(t) {
-            // This is a hack to try to remove (some) equivalent mu types
+            // This is a hack to remove (some) equivalent mu types
             // from the type table.
             // Someone should implement Pottier's O(nlogn) algorithm
             // http://gallium.inria.fr/~fpottier/publis/gauthier-fpottier-icfp04.pdf

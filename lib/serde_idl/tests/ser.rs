@@ -23,6 +23,11 @@ fn test_integer() {
 }
 
 #[test]
+fn test_text() {
+    check("Hi ☃\n", "4449444c007107486920e298830a");
+}
+
+#[test]
 fn test_option() {
     check(Some(42), "4449444c016e7c00012a");
     check(Some(Some(42)), "4449444c026e016e7c0001012a");
@@ -74,6 +79,11 @@ fn test_mutual_recursion() {
 
 #[test]
 fn test_variant() {
+    #[allow(non_camel_case_types)]    
+    #[derive(Serialize, Debug, DfinityInfo)]
+    enum Unit { foo }
+    check(Unit::foo, "4449444c016b01868eb7027f0000");
+    
     #[allow(dead_code)]
     #[derive(Serialize, Debug, DfinityInfo)]
     enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
@@ -101,6 +111,7 @@ fn test_generics() {
                    field("g1", Type::Int),
                    field("g2", Type::Bool)])
     );
+    check(res, "4449444c016c02eab3017cebb3017e002a01")
 }
 
 fn check<T>(value: T, expected: &str) where T: Serialize + DfinityInfo {

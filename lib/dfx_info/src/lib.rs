@@ -131,6 +131,7 @@ primitive_impl!(u64, Nat);
 primitive_impl!(usize, Nat);
 primitive_impl!(String, Text);
 primitive_impl!(&str, Text);
+primitive_impl!((), Null);
 
 
 impl<T> DfinityInfo for Option<T> where T: DfinityInfo {
