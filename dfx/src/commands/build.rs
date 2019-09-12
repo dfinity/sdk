@@ -1,7 +1,8 @@
 use crate::config::dfinity::ConfigCanistersCanister;
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
-use crate::lib::error::DfxResult;
+use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
+use std::ffi::OsStr;
 use std::path::Path;
 
 pub fn construct() -> App<'static, 'static> {
@@ -15,26 +16,48 @@ where
     T: BinaryResolverEnv,
 {
     let output_wasm_path = output_path.with_extension("wasm");
-    let output_idl_path = output_path.with_extension("did");
-    let output_js_path = output_path.with_extension("js");
 
-    env.get_binary_command("asc")?
-        .arg(input_path)
-        .arg("-o")
-        .arg(&output_wasm_path)
-        .output()?;
-    env.get_binary_command("asc")?
-        .arg("--idl")
-        .arg(input_path)
-        .arg("-o")
-        .arg(&output_idl_path)
-        .output()?;
-    env.get_binary_command("didc")?
-        .arg("--js")
-        .arg(&output_idl_path)
-        .arg("-o")
-        .arg(output_js_path)
-        .output()?;
+    match input_path.extension().and_then(OsStr::to_str) {
+        // TODO(SDK-441): Revisit supporting compilation from WAT files.
+        Some("wat") => {
+            let wat = std::fs::read(input_path)?;
+            let wasm = wabt::wat2wasm(wat)?;
+
+            std::fs::write(&output_wasm_path, wasm)?;
+
+            Ok(())
+        }
+        Some("as") => {
+            let output_idl_path = output_path.with_extension("did");
+            let output_js_path = output_path.with_extension("js");
+
+            env.get_binary_command("asc")?
+                .arg(&input_path)
+                .arg("-o")
+                .arg(&output_wasm_path)
+                .output()?;
+            env.get_binary_command("asc")?
+                .arg("--idl")
+                .arg(&input_path)
+                .arg("-o")
+                .arg(&output_idl_path)
+                .output()?;
+            env.get_binary_command("didc")?
+                .arg("--js")
+                .arg(&output_idl_path)
+                .arg("-o")
+                .arg(&output_js_path)
+                .output()?;
+
+            Ok(())
+        }
+        Some(ext) => Err(DfxError::BuildError(BuildErrorKind::InvalidExtension(
+            ext.to_owned(),
+        ))),
+        None => Err(DfxError::BuildError(BuildErrorKind::InvalidExtension(
+            "".to_owned(),
+        ))),
+    }?;
 
     Ok(())
 }
@@ -126,8 +149,7 @@ mod tests {
 
         let mut s = String::new();
         fs::File::open(temp_path)
-            .expect("Could not open temp file.")
-            .read_to_string(&mut s)
+            .and_then(|mut f| f.read_to_string(&mut s))
             .expect("Could not read temp file.");
 
         assert_eq!(
@@ -137,5 +159,36 @@ mod tests {
                 didc --js /out/file.did -o /out/file.js"#
                 .replace("                ", "")
         );
+    }
+
+    #[test]
+    /// Runs "echo" instead of the compiler to make sure the binaries are called in order
+    /// with the good arguments.
+    fn build_file_wat() -> () {
+        // Create a binary cache environment that just returns "echo", so we can test the STDOUT.
+        struct TestEnv {}
+
+        impl BinaryResolverEnv for TestEnv {
+            fn get_binary_command_path(&self, _binary_name: &str) -> io::Result<PathBuf> {
+                panic!("get_binary_command_path should not be called.")
+            }
+            fn get_binary_command(&self, _binary_name: &str) -> io::Result<process::Command> {
+                panic!("get_binary_command should not be called.")
+            }
+        }
+
+        let env = TestEnv {};
+        let wat = r#"(module )"#;
+
+        let temp_path = temp_dir();
+        let input_path = temp_path.join("input.wat");
+        let output_path = temp_path.join("output.wasm");
+
+        assert!(!output_path.exists());
+
+        std::fs::write(input_path.as_path(), wat).expect("Could not create input.");
+        build_file(&env, input_path.as_path(), output_path.as_path()).expect("Function failed.");
+
+        assert!(output_path.exists());
     }
 }
