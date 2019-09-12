@@ -1,4 +1,4 @@
-use crate::lib::api_client::RejectCode;
+use crate::lib::api_client::ReadRejectCode;
 
 #[derive(Debug)]
 pub enum BuildErrorKind {
@@ -24,7 +24,7 @@ pub enum DfxError {
     // Cannot create a new project because the directory already exists.
     ProjectExists(),
 
-    ClientError(RejectCode, String),
+    ClientError(ReadRejectCode, String),
     Unknown(String),
 }
 

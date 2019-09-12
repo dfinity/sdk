@@ -40,11 +40,11 @@ pub struct ClientConfig {
     pub url: String,
 }
 
-/// Request payloads
+/// Request payloads for the /api/v1/read endpoint.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "request_type")]
-enum Request {
+enum ReadRequest {
     Query {
         #[serde(flatten)]
         request: CanisterQueryCall,
@@ -55,13 +55,13 @@ enum Request {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "status")]
-pub enum Response<A> {
-    Accepted,
+pub enum ReadResponse<A> {
+    Pending,
     Replied {
         reply: A,
     },
     Rejected {
-        reject_code: RejectCode,
+        reject_code: ReadRejectCode,
         reject_message: String,
     },
     Unknown,
@@ -70,7 +70,7 @@ pub enum Response<A> {
 /// Response reject codes
 #[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
-pub enum RejectCode {
+pub enum ReadRejectCode {
     SysFatal = 1,
     SysTransient = 2,
     DestinationInvalid = 3,
@@ -80,7 +80,10 @@ pub enum RejectCode {
 
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
-fn read<A>(client: Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
+fn read<A>(
+    client: Client,
+    request: ReadRequest,
+) -> impl Future<Item = ReadResponse<A>, Error = DfxError>
 where
     A: serde::de::DeserializeOwned,
 {
@@ -128,8 +131,8 @@ pub fn ping(client: Client) -> impl Future<Item = (), Error = DfxError> {
 pub fn query(
     client: Client,
     request: CanisterQueryCall,
-) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
-    read(client, Request::Query { request })
+) -> impl Future<Item = ReadResponse<QueryResponseReply>, Error = DfxError> {
+    read(client, ReadRequest::Query { request })
 }
 
 /// A canister query call request payload
@@ -161,7 +164,7 @@ mod tests {
         let method_name = "main".to_string();
         let arg = Blob(vec![]);
 
-        let request = Request::Query {
+        let request = ReadRequest::Query {
             request: CanisterQueryCall {
                 canister_id,
                 method_name: method_name.clone(),
@@ -219,10 +222,10 @@ mod tests {
             .collect(),
         );
 
-        let actual: Response<QueryResponseReply> =
+        let actual: ReadResponse<QueryResponseReply> =
             serde_cbor::from_slice(&serde_cbor::to_vec(&response).unwrap()).unwrap();
 
-        let expected = Response::Replied {
+        let expected = ReadResponse::Replied {
             reply: QueryResponseReply {
                 arg: Blob(arg.clone()),
             },
@@ -235,7 +238,7 @@ mod tests {
     fn query_response_replied() {
         let _ = env_logger::try_init();
 
-        let response = Response::Replied {
+        let response = ReadResponse::Replied {
             reply: QueryResponseReply {
                 arg: Blob(Vec::from("Hello World")),
             },
@@ -293,11 +296,11 @@ mod tests {
             .collect(),
         );
 
-        let actual: Response<QueryResponseReply> =
+        let actual: ReadResponse<QueryResponseReply> =
             serde_cbor::from_slice(&serde_cbor::to_vec(&response).unwrap()).unwrap();
 
-        let expected: Response<QueryResponseReply> = Response::Rejected {
-            reject_code: RejectCode::SysFatal,
+        let expected: ReadResponse<QueryResponseReply> = ReadResponse::Rejected {
+            reject_code: ReadRejectCode::SysFatal,
             reject_message: reject_message.clone(),
         };
 
@@ -308,8 +311,8 @@ mod tests {
     fn query_response_rejected() {
         let _ = env_logger::try_init();
 
-        let response = Response::Rejected {
-            reject_code: RejectCode::SysFatal,
+        let response = ReadResponse::Rejected {
+            reject_code: ReadRejectCode::SysFatal,
             reject_message: "Fatal error".to_string(),
         };
 
