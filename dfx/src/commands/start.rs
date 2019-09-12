@@ -1,17 +1,6 @@
 use crate::lib::env::BinaryResolverEnv;
 use crate::lib::error::DfxResult;
-use clap::{App, Arg, ArgMatches, SubCommand};
-
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("start")
-        .about("Start a local network in the background.")
-        .arg(
-            Arg::with_name("address")
-                .help("The address to listen to. Defaults to 127.0.0.1 (localhost).")
-                .long("address")
-                .takes_value(true),
-        )
-}
+use clap::ArgMatches;
 
 /// Find the binary path for the client, then start the node manager.
 pub fn exec<T>(env: &T, _args: &ArgMatches<'_>) -> DfxResult

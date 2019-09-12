@@ -1,14 +1,8 @@
 use crate::config::dfinity::ConfigCanistersCanister;
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::DfxResult;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::ArgMatches;
 use std::path::Path;
-
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("build")
-        .about("Build a canister code, or all canisters if no argument is passed.")
-        .arg(Arg::with_name("canister").help("The canister name to build."))
-}
 
 fn build_file<T>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult
 where

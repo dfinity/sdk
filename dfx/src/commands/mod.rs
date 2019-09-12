@@ -36,8 +36,8 @@ where
     T: BinaryResolverEnv + ClientEnv + ProjectConfigEnv + VersionEnv,
 {
     vec![
-        CliCommand::new(build::construct(), build::exec),
-        CliCommand::new(call::construct(), call::exec),
-        CliCommand::new(start::construct(), start::exec),
+        CliCommand::new(crate::util::command_defs::build(), build::exec),
+        CliCommand::new(crate::util::command_defs::call(), call::exec),
+        CliCommand::new(crate::util::command_defs::start(), start::exec),
     ]
 }

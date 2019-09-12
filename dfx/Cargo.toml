@@ -14,7 +14,7 @@ tar = "0.4.26"
 flate2 = "1.0.11"
 
 [dependencies]
-clap = "2.33.0"
+clap = { version = "2.33.0", features = ["yaml"] }
 console = "0.7.7"
 flate2 = "1.0.11"
 futures = "0.1.28"

@@ -1,0 +1,9 @@
+name: call
+about: Call a "greet" function on the canister with ID 42.
+args:
+  - host:
+      help: The host (with port) to send the request to.
+      required: true
+  - name:
+      help: The person to say hello to.
+      required: true

@@ -6,16 +6,17 @@ mod lib;
 mod util;
 
 use crate::commands::CliCommand;
+use crate::config::DFX_VERSION;
 use crate::lib::env::{BinaryCacheEnv, InProjectEnvironment, VersionEnv};
 use crate::lib::error::*;
 
-fn cli<T>(env: &T) -> App<'_, '_>
+fn construct_clap_app<T>(_env: &T) -> App<'_, '_>
 where
     T: VersionEnv,
 {
-    App::new("dfx")
-        .about("The DFINITY Executor.")
-        .version(env.get_version().as_str())
+    util::command_defs::dfx()
+        // Add `v` to version.
+        .version(DFX_VERSION)
         .global_setting(AppSettings::ColoredHelp)
         .subcommands(
             commands::builtin()
@@ -53,7 +54,7 @@ fn main() {
     // Build the environment.
     let env = InProjectEnvironment::from_current_dir().unwrap();
 
-    let matches = cli(&env).get_matches();
+    let matches = construct_clap_app(&env).get_matches();
 
     if !env.is_installed().unwrap() {
         env.install().unwrap();
@@ -62,7 +63,7 @@ fn main() {
         println!("Version v{} already installed.", env.get_version());
     }
 
-    if let Err(err) = exec(&env, &matches, &(cli(&env))) {
+    if let Err(err) = exec(&env, &matches, &(construct_clap_app(&env))) {
         println!("An error occured:\n{:#?}", err);
         ::std::process::exit(255)
     }

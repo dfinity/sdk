@@ -1,0 +1,9 @@
+name: dfx
+about: The DFINITY Executor
+version: 0.0.0  # Set in code. This value comes from the Cargo file.
+args:
+  - verbose:
+      short: v
+      long: verbose
+      multiple: true
+      help: Add levels of verbosity to the output log.

@@ -1,0 +1,5 @@
+name: build
+about: Build a canister code, or all canisters if no argument is passed.
+args:
+  - canister:
+      help: The canister name to build.

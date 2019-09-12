@@ -1,27 +1,13 @@
 use crate::lib::api_client::*;
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::ArgMatches;
 use futures::future::{err, ok, Future};
 use tokio::runtime::Runtime;
 
+#[allow(dead_code)]
 const HOST_ARG: &str = "host";
 const NAME_ARG: &str = "name";
-
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("call")
-        .about(r#"Call a "greet" function on the canister with ID 42."#)
-        .arg(
-            Arg::with_name(HOST_ARG)
-                .help("The host (with port) to send the request to.")
-                .required(true),
-        )
-        .arg(
-            Arg::with_name(NAME_ARG)
-                .help("The person to say hello to.")
-                .required(true),
-        )
-}
 
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
