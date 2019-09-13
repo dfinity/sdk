@@ -1,5 +1,5 @@
 ===============================================================================
-                    Welcome to the DFINITY Network!
+                    Welcome to the Internet Computer!
                         You're using dfx {0}
 
 {1}

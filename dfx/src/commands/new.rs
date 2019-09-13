@@ -17,13 +17,13 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("dry_run")
-                .help("Do not commit anything to the file system.")
+                .help("Do not write anything to the file system.")
                 .long("dry-run")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("dfx_version")
-                .help("Force a version of DFX to use in the new project.")
+                .help("Specify the version of DFX to use in the new project.")
                 .long("dfx-version")
                 .takes_value(true),
         )
@@ -150,7 +150,7 @@ where
             .arg("commit")
             .current_dir(&project_name)
             .arg("-a")
-            .arg("--message=First commit.")
+            .arg("--message=Initial commit.")
             .output()?;
     }
 
