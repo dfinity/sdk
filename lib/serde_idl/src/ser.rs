@@ -33,7 +33,9 @@ where
     writer.write_all(&type_ser.result)?;
     
     let mut value_ser = ValueSerializer::new();
-    value.serialize(&mut value_ser)?;
+    //value.serialize(&mut value_ser)?;
+    dfx_info::IDLType::serialize(&value, &mut value_ser)?;
+    //serde::Serialize::serialize(&value, &mut value_ser)?;
     writer.write_all(&value_ser.value)?;
     Ok(())
 }
@@ -59,6 +61,39 @@ impl ValueSerializer
     }
     fn write_leb128(&mut self, value: u64) -> () {
         leb128_encode(&mut self.value, value).unwrap();
+    }
+}
+
+impl dfx_info::Serializer for &mut ValueSerializer {
+    type Error = Error;
+    fn serialize_bool(self, v: bool) -> Result<()> {
+        let v = if v { 1 } else { 0 };
+        Ok(self.write_leb128(v))
+    }
+    fn serialize_int(self, v: i64) -> Result<()> {
+        Ok(self.write_sleb128(v))
+    }
+    fn serialize_nat(self, v: u64) -> Result<()> {
+        Ok(self.write_leb128(v))
+    }
+    fn serialize_text(self, v: &str) -> Result<()> {
+        let mut buf = Vec::from(v.as_bytes());
+        self.write_leb128(buf.len() as u64);
+        self.value.append(&mut buf);
+        Ok(())        
+    }
+    fn serialize_null(self, v:()) -> Result<()> {
+        Ok(())
+    }
+    fn serialize_option<T: ?Sized>(self, v: Option<&T>) -> Result<()>
+    where T: dfx_info::IDLType {
+        match v {
+            None => Ok(self.write_leb128(0)),
+            Some(v) => {
+                self.write_leb128(1);
+                v.serialize(self)
+            }
+        }
     }
 }
 

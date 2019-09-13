@@ -4,6 +4,8 @@ pub use dfx_derive::*;
 pub mod types;
 use types::{Type, TypeId};
 
+mod impls;
+
 pub trait IDLType {
     // memoized type derivation
     fn ty() -> Type {
@@ -22,11 +24,17 @@ pub trait IDLType {
     }
     fn id() -> TypeId;
     fn _ty() -> Type;
+    // only serialize the value encoding?
+    fn serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where S: Serializer { Ok(()) }
 }
 
-pub trait IDLSerializer: Sized {
+pub trait Serializer: Sized {
     type Error;
     fn serialize_bool(self, v: bool) -> Result<(), Self::Error>;
+    fn serialize_int(self, v: i64) -> Result<(), Self::Error>;
+    fn serialize_nat(self, v: u64) -> Result<(), Self::Error>;
+    fn serialize_text(self, v: &str) -> Result<(), Self::Error>;
+    fn serialize_null(self, v:()) -> Result<(), Self::Error>;
+    fn serialize_option<T: ?Sized>(self, v: Option<&T>) -> Result<(), Self::Error> where T: IDLType;
 }
-
-

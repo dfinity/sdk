@@ -38,6 +38,15 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     TokenStream::from(gen)
 }
 
+#[inline]
+fn idl_hash(id: &str) -> u32 {
+    let mut s: u32 = 0;
+    for c in id.chars() {
+        s = s.wrapping_mul(223).wrapping_add(c as u32);
+    }
+    s
+}
+
 fn enum_from_ast(variants: &Punctuated<syn::Variant, Token![,]>) -> Tokens {
     let id = variants.iter().map(|variant| variant.ident.to_string());
     let ty = variants.iter().map(|variant| struct_from_ast(&variant.fields));
