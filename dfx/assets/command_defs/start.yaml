@@ -1,2 +1,7 @@
 name: start
 about: Start a local network in the background.
+args:
+  - host:
+      long: host
+      help: The host (with port) to use when starting the client.
+      takes_value: true
