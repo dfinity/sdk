@@ -57,22 +57,23 @@ where
 }
 
 fn main() {
-    if Config::from_current_dir().is_ok() {
-        // Build the environment.
-        let env = InProjectEnvironment::from_current_dir().unwrap();
-        let matches = cli(&env).get_matches();
+    let result = {
+        if Config::from_current_dir().is_ok() {
+            // Build the environment.
+            let env = InProjectEnvironment::from_current_dir().unwrap();
+            let matches = cli(&env).get_matches();
 
-        if let Err(err) = exec(&env, &matches, &(cli(&env))) {
-            println!("An error occured:\n{:#?}", err);
-            ::std::process::exit(255)
-        }
-    } else {
-        let env = GlobalEnvironment::from_current_dir().unwrap();
-        let matches = cli(&env).get_matches();
+            exec(&env, &matches, &(cli(&env)))
+        } else {
+            let env = GlobalEnvironment::from_current_dir().unwrap();
+            let matches = cli(&env).get_matches();
 
-        if let Err(err) = exec(&env, &matches, &(cli(&env))) {
-            println!("An error occured:\n{:#?}", err);
-            ::std::process::exit(255)
+            exec(&env, &matches, &(cli(&env)))
         }
+    };
+
+    if let Err(err) = result {
+        println!("An error occured:\n{:#?}", err);
+        ::std::process::exit(255)
     }
 }

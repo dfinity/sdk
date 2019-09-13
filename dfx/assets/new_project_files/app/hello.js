@@ -1,6 +1,6 @@
-// This is imported from the IDL generation.
-import { Hello } from '../canisters/hello/main';
+import { hello } from '../canisters/hello/main';
 
-window.hello = function() {
-  await Hello.
+window.hello = async function(name) {
+  const response = await hello.main(name);
+  console.log(response);
 };

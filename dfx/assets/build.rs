@@ -6,7 +6,6 @@ use std::io::Write;
 use std::path::Path;
 
 fn add_assets(fn_name: &str, f: &mut File, path: &str) -> () {
-    eprintln!("path {}", path);
     let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
     let tar_gz = File::create(&tgz_path).unwrap();

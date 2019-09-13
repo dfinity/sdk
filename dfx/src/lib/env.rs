@@ -8,7 +8,6 @@ use std::path::PathBuf;
 
 /// An environment that contains the platform and general environment.
 pub trait PlatformEnv {
-    fn is_online(&self) -> bool;
     fn get_current_dir(&self) -> PathBuf;
 }
 
@@ -48,9 +47,6 @@ pub struct InProjectEnvironment {
 }
 
 impl PlatformEnv for InProjectEnvironment {
-    fn is_online(&self) -> bool {
-        false
-    }
     fn get_current_dir(&self) -> PathBuf {
         let config_path = self.get_config().unwrap().get_path();
         PathBuf::from(config_path.parent().unwrap())
@@ -132,9 +128,6 @@ pub struct GlobalEnvironment {
 }
 
 impl PlatformEnv for GlobalEnvironment {
-    fn is_online(&self) -> bool {
-        false
-    }
     fn get_current_dir(&self) -> PathBuf {
         std::env::current_dir().unwrap()
     }
