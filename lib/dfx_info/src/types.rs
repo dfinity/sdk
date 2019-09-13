@@ -30,6 +30,7 @@ pub enum Type {
 #[derive(Debug, PartialEq, Hash, Eq, Clone)]
 pub struct Field {
     pub id: String,
+    pub hash: u32,
     pub ty: Type,
 }
 
@@ -49,11 +50,11 @@ pub fn unroll(t: &Type) -> Type {
         Knot(id) => find_type(id).unwrap(),
         Opt(ref t) => Opt(Box::new(unroll(t))),
         Vec(ref t) => Opt(Box::new(unroll(t))),
-        Record(fs) => Record(fs.iter().map(|Field{id,ty}| {
-            Field {id: id.to_string(), ty: unroll(ty)}
+        Record(fs) => Record(fs.iter().map(|Field{id,hash,ty}| {
+            Field {id: id.to_string(), hash: hash.clone(), ty: unroll(ty)}
         }).collect()),
-        Variant(fs) => Variant(fs.iter().map(|Field{id,ty}| {
-            Field {id: id.to_string(), ty: unroll(ty)}
+        Variant(fs) => Variant(fs.iter().map(|Field{id,hash,ty}| {
+            Field {id: id.to_string(), hash: hash.clone(), ty: unroll(ty)}
         }).collect()),        
         _ => (*t).clone(),
     }

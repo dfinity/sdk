@@ -59,12 +59,14 @@ fn enum_from_ast(variants: &Punctuated<syn::Variant, Token![,]>) -> Tokens {
     assert_eq!(unique.len(), fs.len());
     fs.sort_unstable_by_key(|(_,hash,_)| hash.clone());
     let id = fs.iter().map(|(id,_,_)| id);
+    let hash = fs.iter().map(|(_,hash,_)| hash);
     let ty = fs.iter().map(|(_,_,ty)| ty);
     quote! {
         dfx_info::types::Type::Variant(
             vec![
                 #(dfx_info::types::Field {
                     id: #id.to_owned(),
+                    hash: #hash,
                     ty: #ty }
                 ),*
             ]
@@ -99,11 +101,13 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
     assert_eq!(unique.len(), fs.len());
     fs.sort_unstable_by_key(|(_,hash,_)| hash.clone());
     let id = fs.iter().map(|(id,_,_)| id);
+    let hash = fs.iter().map(|(_,hash,_)| hash);
     let ty = fs.iter().map(|(_,_,ty)| ty);
     quote! {
         vec![
             #(dfx_info::types::Field {
                 id: #id.to_owned(),
+                hash: #hash,
                 ty: #ty }
             ),*
         ]

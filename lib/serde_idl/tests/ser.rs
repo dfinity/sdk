@@ -93,7 +93,7 @@ fn test_variant() {
     let v = E::Foo;
     assert_eq!(get_type(&v),
                Type::Variant(vec![
-                   field("Bar", Type::Record(vec![field("0", Type::Bool)])),
+                   field("Bar", Type::Record(vec![unnamed_field(0, Type::Bool)])),
                    field("Baz", Type::Record(vec![field("a", Type::Int),
                                                   field("b", Type::Nat)])),
                    field("Foo", Type::Null),                   
@@ -123,6 +123,17 @@ fn check<T>(value: T, expected: &str) where T: Serialize + IDLType {
 }
 
 fn field(id: &str, ty: Type) -> dfx_info::types::Field {
-    dfx_info::types::Field { id: id.to_string(), ty: ty }
+    dfx_info::types::Field { id: id.to_string(), hash:idl_hash(id), ty: ty }
 }
 
+fn unnamed_field(id: u32, ty: Type) -> dfx_info::types::Field {
+    dfx_info::types::Field { id: id.to_string(), hash:id, ty: ty }
+}
+
+fn idl_hash(id: &str) -> u32 {
+    let mut s: u32 = 0;
+    for c in id.chars() {
+        s = s.wrapping_mul(223).wrapping_add(c as u32);
+    }
+    s
+}

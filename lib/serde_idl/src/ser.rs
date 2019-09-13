@@ -5,7 +5,7 @@ use serde::ser::{self, Impossible, Serialize};
 
 use std::io;
 use std::vec::Vec;
-use std::collections::{HashMap, BTreeSet};
+use std::collections::HashMap;
 use dfx_info::types::{Type, Field};
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
@@ -304,7 +304,7 @@ impl<'a> ser::SerializeStruct for Compound<'a>
 
     #[inline]
     fn end(mut self) -> Result<()> {
-        self.fields.sort_unstable_by_key(|(id,_)| idl_hash(id));        
+        //self.fields.sort_unstable_by_key(|(id,_)| idl_hash(id));        
         for (_, mut buf) in self.fields {
             self.ser.value.append(&mut buf);
         };
@@ -320,23 +320,15 @@ pub struct TypeSerialize {
     result: Vec<u8>,
 }
 
-#[inline]
-fn idl_hash(id: &str) -> u32 {
-    let mut s: u32 = 0;
-    for c in id.chars() {
-        s = s.wrapping_mul(223).wrapping_add(c as u32);
-    }
-    s
-}
 
-fn sort_fields(fs: &Vec<Field>) -> Vec<(u32, &Type)> {
-    let mut fs: Vec<(u32, &Type)> =
-        fs.into_iter().map(|Field {id,ty}| (idl_hash(id), ty)).collect();
-    let unique_ids: BTreeSet<_> = fs.iter().map(|(id,_)| id).collect();
-    assert_eq!(unique_ids.len(), fs.len());    
+//fn sort_fields(fs: &Vec<Field>) -> Vec<(u32, &Type)> {
+//    let fs: Vec<(u32, &Type)> =
+//        fs.into_iter().map(|Field {id,hash,ty}| (hash.clone(), ty)).collect();
+    //let unique_ids: BTreeSet<_> = fs.iter().map(|(hash,_)| hash).collect();
+    //assert_eq!(unique_ids.len(), fs.len());    
     //fs.sort_unstable_by_key(|(id,_)| *id);
-    fs
-}
+//    fs
+//}
 
 // TypeSerialize is implemented outside of the serde framework, as serde only supports value, not type.
 
@@ -381,28 +373,28 @@ impl TypeSerialize
                     self.encode(&mut buf, ty)?;
                 },                
                 Type::Record(fs) => {
-                    let fs = sort_fields(fs);
-                    for (_, ty) in fs.iter() {
+                    //let fs = sort_fields(fs);
+                    for Field {id:_,hash:_,ty} in fs.iter() {
                         self.build_type(ty).unwrap();
                     };
                     
                     sleb128_encode(&mut buf, -20)?;
                     leb128_encode(&mut buf, fs.len() as u64)?;
-                    for (id, ty) in fs.iter() {
-                        leb128_encode(&mut buf, *id as u64)?;
+                    for Field {id:_,hash,ty} in fs.iter() {
+                        leb128_encode(&mut buf, *hash as u64)?;
                         self.encode(&mut buf, ty)?;
                     };
                 },
                 Type::Variant(fs) => {
-                    let fs = sort_fields(fs);
-                    for (_, ty) in fs.iter() {
+                    //let fs = sort_fields(fs);
+                    for Field{id:_,hash:_,ty} in fs.iter() {
                         self.build_type(ty).unwrap();
                     };
                     
                     sleb128_encode(&mut buf, -21)?;
                     leb128_encode(&mut buf, fs.len() as u64)?;
-                    for (id, ty) in fs.iter() {
-                        leb128_encode(&mut buf, *id as u64)?;
+                    for Field{id:_,hash,ty} in fs.iter() {
+                        leb128_encode(&mut buf, *hash as u64)?;
                         self.encode(&mut buf, ty)?;
                     };
                 },                

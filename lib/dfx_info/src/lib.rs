@@ -24,7 +24,7 @@ pub trait IDLType {
     }
     fn id() -> TypeId;
     fn _ty() -> Type;
-    // only serialize the value encoding?
+    // only serialize the value encoding
     fn serialize<S>(&self, serializer: S) -> Result<(), S::Error>
     where S: Serializer { Ok(()) }
 }
