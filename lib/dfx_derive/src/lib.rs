@@ -9,6 +9,7 @@ use proc_macro2::TokenStream as Tokens;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Generics, GenericParam};
 use syn::punctuated::Punctuated;
+use std::collections::BTreeSet;
 
 #[proc_macro_derive(IDLType)]
 pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
@@ -48,8 +49,17 @@ fn idl_hash(id: &str) -> u32 {
 }
 
 fn enum_from_ast(variants: &Punctuated<syn::Variant, Token![,]>) -> Tokens {
-    let id = variants.iter().map(|variant| variant.ident.to_string());
-    let ty = variants.iter().map(|variant| struct_from_ast(&variant.fields));
+    let mut fs: Vec<_> = variants.iter().map(|variant| {
+        let id = variant.ident.to_string();
+        let hash = idl_hash(&id);
+        let ty = struct_from_ast(&variant.fields);
+        (id, hash, ty)
+    }).collect();
+    let unique: BTreeSet<_> = fs.iter().map(|(_,hash,_)| hash).collect();
+    assert_eq!(unique.len(), fs.len());
+    fs.sort_unstable_by_key(|(_,hash,_)| hash.clone());
+    let id = fs.iter().map(|(id,_,_)| id);
+    let ty = fs.iter().map(|(_,_,ty)| ty);
     quote! {
         dfx_info::types::Type::Variant(
             vec![
@@ -77,13 +87,19 @@ fn struct_from_ast(fields: &syn::Fields) -> Tokens {
 }
 
 fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
-    let id = fields.iter().enumerate().map(|(i, field)| {
-        match field.ident {
-            Some(ref ident) => ident.to_string(),
-            None => i.to_string()
-        }
-    });
-    let ty = fields.iter().map(|field| { derive_type(&field.ty) });
+    let mut fs: Vec<_> = fields.iter().enumerate().map(|(i, field)| {
+        let (id, hash) = match field.ident {
+            Some(ref ident) => (ident.to_string(), idl_hash(&ident.to_string())),
+            None => (i.to_string(), i as u32),
+        };
+        let ty = derive_type(&field.ty);
+        (id, hash, ty)
+    }).collect();
+    let unique: BTreeSet<_> = fs.iter().map(|(_,hash,_)| hash).collect();
+    assert_eq!(unique.len(), fs.len());
+    fs.sort_unstable_by_key(|(_,hash,_)| hash.clone());
+    let id = fs.iter().map(|(id,_,_)| id);
+    let ty = fs.iter().map(|(_,_,ty)| ty);
     quote! {
         vec![
             #(dfx_info::types::Field {

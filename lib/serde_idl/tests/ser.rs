@@ -47,8 +47,9 @@ fn test_struct() {
     let record = A { foo: 42, bar: true };    
     assert_eq!(get_type(&record),
                Type::Record(vec![
-                   field("foo", Type::Int),
-                   field("bar", Type::Bool)])
+                   field("bar", Type::Bool),
+                   field("foo", Type::Int),                   
+               ])
     );
     
     #[derive(Serialize, Debug, IDLType)]
@@ -92,10 +93,10 @@ fn test_variant() {
     let v = E::Foo;
     assert_eq!(get_type(&v),
                Type::Variant(vec![
-                   field("Foo", Type::Null),
                    field("Bar", Type::Record(vec![field("0", Type::Bool)])),
                    field("Baz", Type::Record(vec![field("a", Type::Int),
                                                   field("b", Type::Nat)])),
+                   field("Foo", Type::Null),                   
                    ])
     );
     //check(v, "4449444c");

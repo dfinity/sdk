@@ -34,8 +34,8 @@ where
     
     let mut value_ser = ValueSerializer::new();
     //value.serialize(&mut value_ser)?;
-    dfx_info::IDLType::serialize(&value, &mut value_ser)?;
-    //serde::Serialize::serialize(&value, &mut value_ser)?;
+    //dfx_info::IDLType::serialize(&value, &mut value_ser)?;
+    serde::Serialize::serialize(&value, &mut value_ser)?;
     writer.write_all(&value_ser.value)?;
     Ok(())
 }
@@ -82,7 +82,7 @@ impl dfx_info::Serializer for &mut ValueSerializer {
         self.value.append(&mut buf);
         Ok(())        
     }
-    fn serialize_null(self, v:()) -> Result<()> {
+    fn serialize_null(self, _v:()) -> Result<()> {
         Ok(())
     }
     fn serialize_option<T: ?Sized>(self, v: Option<&T>) -> Result<()>
@@ -334,7 +334,7 @@ fn sort_fields(fs: &Vec<Field>) -> Vec<(u32, &Type)> {
         fs.into_iter().map(|Field {id,ty}| (idl_hash(id), ty)).collect();
     let unique_ids: BTreeSet<_> = fs.iter().map(|(id,_)| id).collect();
     assert_eq!(unique_ids.len(), fs.len());    
-    fs.sort_unstable_by_key(|(id,_)| *id);
+    //fs.sort_unstable_by_key(|(id,_)| *id);
     fs
 }
 

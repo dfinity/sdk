@@ -58,6 +58,7 @@ impl<T,E> IDLType for Result<T,E> where T: IDLType, E: IDLType {
     fn id() -> TypeId { TypeId::of::<Result<T,E>>() }
     fn _ty() -> Type {
         Type::Variant(vec![
+            // Make sure the field id is sorted by idl_hash
             Field{ id: "Ok".to_owned(), ty: T::ty() },
             Field{ id: "Err".to_owned(), ty: E::ty() }]
         )
