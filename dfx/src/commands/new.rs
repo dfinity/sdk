@@ -2,7 +2,7 @@ use crate::lib::env::{BinaryCacheEnv, PlatformEnv, VersionEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use console::{style, Term};
+use console::style;
 use indicatif::{HumanBytes, ProgressBar, ProgressDrawTarget};
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -61,7 +61,7 @@ pub fn create_file(path: &Path, content: &str, dry_run: bool) -> DfxResult {
         std::fs::write(&path, content)?;
     }
 
-    Term::stderr().write_line(format!("{}", Status::Create(path, content.len())).as_str())?;
+    eprintln!("{}", Status::Create(path, content.len()));
     Ok(())
 }
 
@@ -76,7 +76,7 @@ pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> DfxResult {
         std::fs::create_dir_all(&path)?;
     }
 
-    Term::stderr().write_line(format!("{}", Status::CreateDir(path)).as_str())?;
+    eprintln!("{}", Status::CreateDir(path));
     Ok(())
 }
 
