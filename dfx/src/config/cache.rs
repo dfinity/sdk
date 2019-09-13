@@ -62,7 +62,7 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
 
     match v {
         "0.2.0" => {
-            util::assets()?.unpack(p.as_path())?;
+            util::assets::binary_cache()?.unpack(p.as_path())?;
             Ok(p)
         }
         v => Err(Error::new(

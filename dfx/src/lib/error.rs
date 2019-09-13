@@ -14,6 +14,9 @@ pub enum DfxError {
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
 
+    // Cannot create a new project because the directory already exists.
+    ProjectExists(),
+
     ClientError(RejectCode, String),
     Unknown(String),
 }
