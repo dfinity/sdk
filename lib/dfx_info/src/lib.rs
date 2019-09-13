@@ -4,7 +4,7 @@ pub use dfx_derive::*;
 pub mod types;
 use types::{Type, TypeId};
 
-pub trait DfinityInfo {
+pub trait IDLType {
     // memoized type derivation
     fn ty() -> Type {
         let id = Self::id();
@@ -23,3 +23,10 @@ pub trait DfinityInfo {
     fn id() -> TypeId;
     fn _ty() -> Type;
 }
+
+pub trait IDLSerializer: Sized {
+    type Error;
+    fn serialize_bool(self, v: bool) -> Result<(), Self::Error>;
+}
+
+

@@ -10,7 +10,7 @@ use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Generics, GenericParam};
 use syn::punctuated::Punctuated;
 
-#[proc_macro_derive(DfinityInfo)]
+#[proc_macro_derive(IDLType)]
 pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
@@ -27,7 +27,7 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
         Data::Union(_) => unimplemented!("doesn't derive union type")            
     };
     let gen = quote! {
-        impl #impl_generics dfx_info::DfinityInfo for #name #ty_generics #where_clause {
+        impl #impl_generics dfx_info::IDLType for #name #ty_generics #where_clause {
             fn _ty() -> dfx_info::types::Type {
                 #body
             }
@@ -87,14 +87,14 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
 
 fn derive_type(t: &syn::Type) -> Tokens {
     quote! {
-        <#t as dfx_info::DfinityInfo>::ty()
+        <#t as dfx_info::IDLType>::ty()
     }
 }
 
 fn add_trait_bounds(mut generics: Generics) -> Generics {
     for param in &mut generics.params {
         if let GenericParam::Type(ref mut type_param) = *param {
-            let bound = syn::parse_str("::dfx_info::DfinityInfo").unwrap();
+            let bound = syn::parse_str("::dfx_info::IDLType").unwrap();
             type_param.bounds.push(bound);
         }
     }

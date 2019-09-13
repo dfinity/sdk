@@ -13,7 +13,7 @@ use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
 /// Serializes a value to a vector.
 pub fn to_vec<T>(value: &T) -> Result<Vec<u8>>
 where
-    T: ser::Serialize + dfx_info::DfinityInfo,
+    T: ser::Serialize + dfx_info::IDLType,
 {
     let mut vec = Vec::new();
     to_writer(&mut vec, value)?;
@@ -24,7 +24,7 @@ where
 pub fn to_writer<W, T>(mut writer: W, value: &T) -> Result<()>
 where
     W: io::Write,
-    T: ser::Serialize + dfx_info::DfinityInfo,
+    T: ser::Serialize + dfx_info::IDLType,
 {
     writer.write_all(b"DIDL")?;
     
