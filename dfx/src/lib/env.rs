@@ -1,5 +1,5 @@
 use crate::config::dfinity::Config;
-use crate::config::{cache, DFX_VERSION};
+use crate::config::{cache, dfx_version};
 use crate::lib::api_client::{Client, ClientConfig};
 use crate::lib::error::DfxResult;
 use std::cell::RefCell;
@@ -116,7 +116,7 @@ impl InProjectEnvironment {
             version: config
                 .get_config()
                 .get_dfx()
-                .unwrap_or_else(|| DFX_VERSION.to_owned()),
+                .unwrap_or_else(|| dfx_version().to_owned()),
             config,
             client: RefCell::new(None),
         })
@@ -174,25 +174,8 @@ impl VersionEnv for GlobalEnvironment {
 
 impl GlobalEnvironment {
     pub fn from_current_dir() -> DfxResult<GlobalEnvironment> {
-        #[cfg(debug_assertions)]
-        {
-            // In debug, add a timestamp of the compilation at the end of version to ensure all
-            // debug runs are unique (and cached uniquely).
-            Ok(GlobalEnvironment {
-                version: format!(
-                    "{}-{:?}",
-                    DFX_VERSION.to_owned(),
-                    std::env::var_os("DFX_TIMESTAMP_DEBUG_MODE_ONLY")
-                        .unwrap_or_else(|| std::ffi::OsString::from("local-debug"))
-                ),
-            })
-        }
-
-        #[cfg(not(debug_assertions))]
-        {
-            Ok(GlobalEnvironment {
-                version: DFX_VERSION.to_owned(),
-            })
-        }
+        Ok(GlobalEnvironment {
+            version: dfx_version().to_owned(),
+        })
     }
 }
