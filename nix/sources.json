@@ -11,6 +11,18 @@
         "url": "https://github.com/nmattia/naersk/archive/5834403f4f4b3152b379b19cec9bdb5889ca9791.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "napalm": {
+        "branch": "master",
+        "description": "Support for building npm packages in Nix and lightweight npm registry",
+        "homepage": "",
+        "owner": "nmattia",
+        "repo": "napalm",
+        "rev": "0331a5b586a186c966f816d434bd5c1ecfa16089",
+        "sha256": "14nlqmmv3xx4cf3r9kcw2xbfgpddppw27ygp8s3r0bbccgwcp9gi",
+        "type": "tarball",
+        "url": "https://github.com/nmattia/napalm/archive/0331a5b586a186c966f816d434bd5c1ecfa16089.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "niv": {
         "branch": "master",
         "description": "Easy dependency management for Nix projects",

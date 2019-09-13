@@ -8,6 +8,7 @@
   (import ./packages)
   (import ./actorscript.nix)
   (import ./dfinity.nix)
+  (import ./napalm.nix)
   (import ./dfinity-sdk.nix)
   (import ./mkCiShell.nix)
   # This file must be the last mentioned as it uses outputs from most other files

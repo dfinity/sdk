@@ -1,0 +1,3 @@
+{ napalm }:
+
+napalm.buildPackage ./. {}
