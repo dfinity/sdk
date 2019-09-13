@@ -6,7 +6,7 @@ use serde::ser::{self, Impossible, Serialize};
 use std::io;
 use std::vec::Vec;
 use std::collections::{HashMap, BTreeSet};
-use dfx_info::{Type, Field};
+use dfx_info::types::{Type, Field};
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
 
@@ -318,12 +318,12 @@ impl TypeSerialize
 
     #[inline]
     fn build_type(&mut self, t: &Type) -> Result<()> {
-        if !dfx_info::is_primitive(t) && !self.type_map.contains_key(t) {
+        if !dfx_info::types::is_primitive(t) && !self.type_map.contains_key(t) {
             // This is a hack to remove (some) equivalent mu types
             // from the type table.
             // Someone should implement Pottier's O(nlogn) algorithm
             // http://gallium.inria.fr/~fpottier/publis/gauthier-fpottier-icfp04.pdf
-            let unrolled = dfx_info::unroll(t);
+            let unrolled = dfx_info::types::unroll(t);
             if let Some(idx) = self.type_map.get(&unrolled) {
                 let idx = idx.clone();
                 self.type_map.insert((*t).clone(), idx);
@@ -386,7 +386,7 @@ impl TypeSerialize
             Type::Int => sleb128_encode(buf, -4),
             Type::Text => sleb128_encode(buf, -15),
             Type::Knot(id) => {
-                let ty = dfx_info::find_type(id)
+                let ty = dfx_info::types::find_type(id)
                     .expect("knot TypeId not found");
                 let idx = self.type_map.get(&ty)
                     .expect(&format!("knot type {:?} not found", ty));

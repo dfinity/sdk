@@ -4,7 +4,8 @@ extern crate dfx_info;
 
 use serde::Serialize;
 use serde_idl::{to_vec};
-use dfx_info::{DfinityInfo, Type, get_type};
+use dfx_info::{DfinityInfo};
+use dfx_info::types::{Type, get_type};
 
 #[test]
 fn test_bool() {
@@ -58,7 +59,7 @@ fn test_struct() {
                Type::Record(vec![
                    field("head", Type::Int),
                    field("tail", Type::Opt(Box::new(
-                       Type::Knot(dfx_info::TypeId::of::<List>()))))])               
+                       Type::Knot(dfx_info::types::TypeId::of::<List>()))))])               
     );
     check(list, "4449444c026c02a0d2aca8047c90eddae704016e00002a00");    
 
@@ -120,7 +121,7 @@ fn check<T>(value: T, expected: &str) where T: Serialize + DfinityInfo {
     assert_eq!(encoded, expected, "\nExpected\n{:x?}\nActual\n{:x?}\n", expected, encoded);
 }
 
-fn field(id: &str, ty: Type) -> dfx_info::Field {
-    dfx_info::Field { id: id.to_string(), ty: ty }
+fn field(id: &str, ty: Type) -> dfx_info::types::Field {
+    dfx_info::types::Field { id: id.to_string(), ty: ty }
 }
 

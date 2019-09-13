@@ -28,10 +28,10 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     };
     let gen = quote! {
         impl #impl_generics dfx_info::DfinityInfo for #name #ty_generics #where_clause {
-            fn _ty() -> dfx_info::Type {
+            fn _ty() -> dfx_info::types::Type {
                 #body
             }
-            fn id() -> dfx_info::TypeId { dfx_info::TypeId::of::<#name #ty_generics>() }
+            fn id() -> dfx_info::types::TypeId { dfx_info::types::TypeId::of::<#name #ty_generics>() }
         }
     };
     //panic!(gen.to_string());
@@ -42,9 +42,9 @@ fn enum_from_ast(variants: &Punctuated<syn::Variant, Token![,]>) -> Tokens {
     let id = variants.iter().map(|variant| variant.ident.to_string());
     let ty = variants.iter().map(|variant| struct_from_ast(&variant.fields));
     quote! {
-        dfx_info::Type::Variant(
+        dfx_info::types::Type::Variant(
             vec![
-                #(dfx_info::Field {
+                #(dfx_info::types::Field {
                     id: #id.to_owned(),
                     ty: #ty }
                 ),*
@@ -57,13 +57,13 @@ fn struct_from_ast(fields: &syn::Fields) -> Tokens {
     match *fields {
         syn::Fields::Named(ref fields) => {
             let fs = fields_from_ast(&fields.named);
-            quote! { dfx_info::Type::Record(#fs) }
+            quote! { dfx_info::types::Type::Record(#fs) }
         },
         syn::Fields::Unnamed(ref fields) => {
             let fs = fields_from_ast(&fields.unnamed);
-            quote! { dfx_info::Type::Record(#fs) }
+            quote! { dfx_info::types::Type::Record(#fs) }
         },
-        syn::Fields::Unit => quote! { dfx_info::Type::Null },
+        syn::Fields::Unit => quote! { dfx_info::types::Type::Null },
     }
 }
 
@@ -77,7 +77,7 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> Tokens {
     let ty = fields.iter().map(|field| { derive_type(&field.ty) });
     quote! {
         vec![
-            #(dfx_info::Field {
+            #(dfx_info::types::Field {
                 id: #id.to_owned(),
                 ty: #ty }
             ),*
