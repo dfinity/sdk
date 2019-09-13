@@ -1,8 +1,14 @@
 use crate::lib::api_client::RejectCode;
 
+#[derive(Debug)]
+pub enum BuildErrorKind {
+    InvalidExtension(String),
+}
+
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
 pub enum DfxError {
+    BuildError(BuildErrorKind),
     Clap(clap::Error),
     IO(std::io::Error),
     ParseInt(std::num::ParseIntError),
@@ -10,6 +16,7 @@ pub enum DfxError {
     SerdeCbor(serde_cbor::error::Error),
     SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
+    WabtError(wabt::Error),
 
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
@@ -63,5 +70,11 @@ impl From<std::io::Error> for DfxError {
 impl From<std::num::ParseIntError> for DfxError {
     fn from(err: std::num::ParseIntError) -> DfxError {
         DfxError::ParseInt(err)
+    }
+}
+
+impl From<wabt::Error> for DfxError {
+    fn from(err: wabt::Error) -> DfxError {
+        DfxError::WabtError(err)
     }
 }
