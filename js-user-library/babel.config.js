@@ -3,10 +3,12 @@ module.exports = {
     [
       "@babel/preset-env",
       {
+        corejs: 3,
         targets: {
-          browsers: "defaults",
+          // browsers: "defaults", // FIXME: we may need to add regenerator-runtime
           node: "current",
         },
+        "useBuiltIns": "usage",
       },
     ],
   ],

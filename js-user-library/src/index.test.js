@@ -1,5 +1,19 @@
-import { sum } from "./index";
+import { IDL, makeActor, sum } from "./index";
 
-test("1 + 2 = 3", () => {
-  expect(sum(1)(2)).toBe(3);
+test("Hello, World!", async () => {
+  class TestApiClient {
+    async call() {
+      return "Hello, World!";
+    }
+  }
+
+  const actorInterface = new IDL.ActorInterface({
+    greet: IDL.Message([IDL.Text], [IDL.Text]),
+  });
+  const client = new TestApiClient();
+  const actor = makeActor(actorInterface)(client);
+  const response = await actor.greet();
+  expect(response).toBe("Hello, World!");
 });
+
+// TODO: test ApiClient
