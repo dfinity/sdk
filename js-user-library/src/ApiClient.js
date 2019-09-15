@@ -17,7 +17,7 @@ export class ApiClient {
 
   async _submit(requestType, fields) {
     const allFields = {
-      ...requestFields,
+      ...fields,
       request_type: requestType,
       // expiry,
       // nonce,
