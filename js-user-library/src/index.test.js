@@ -1,6 +1,6 @@
 import { IDL, makeActor, sum } from "./index";
 
-test("Hello, World!", async () => {
+test("makeActor", async () => {
   class TestApiClient {
     async call() {
       return "Hello, World!";
