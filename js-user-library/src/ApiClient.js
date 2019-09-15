@@ -1,11 +1,20 @@
 const API_VERSION = "v1";
 
+const defaults = {
+  fetch: window.fetch,
+};
+
 export class ApiClient {
-  constructor({ canisterId, host }) {
+  constructor(config) {
+    const { canisterId, fetch, host } = {
+      ...defaults,
+      ...config,
+    };
+
     this._canisterId = canisterId;
 
     this._fetch = (endpoint, body) => {
-      return window.fetch(`${host}/api/${API_VERSION}/${endpoint}`, {
+      return fetch(`${host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/cbor",
