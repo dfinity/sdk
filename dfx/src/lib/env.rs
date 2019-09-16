@@ -174,8 +174,25 @@ impl VersionEnv for GlobalEnvironment {
 
 impl GlobalEnvironment {
     pub fn from_current_dir() -> DfxResult<GlobalEnvironment> {
-        Ok(GlobalEnvironment {
-            version: DFX_VERSION.to_owned(),
-        })
+        #[cfg(debug_assertions)]
+        {
+            // In debug, add a timestamp of the compilation at the end of version to ensure all
+            // debug runs are unique (and cached uniquely).
+            Ok(GlobalEnvironment {
+                version: format!(
+                    "{}-{:?}",
+                    DFX_VERSION.to_owned(),
+                    std::env::var_os("DFX_TIMESTAMP_DEBUG_MODE_ONLY")
+                        .unwrap_or_else(|| std::ffi::OsString::from("local-debug"))
+                ),
+            })
+        }
+
+        #[cfg(not(debug_assertions))]
+        {
+            Ok(GlobalEnvironment {
+                version: DFX_VERSION.to_owned(),
+            })
+        }
     }
 }
