@@ -63,6 +63,12 @@ impl<T,E> IDLType for Result<T,E> where T: IDLType, E: IDLType {
             Field{ id: "Err".to_owned(),hash: 3456837u32, ty: E::ty() }]
         )
     }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+        match *self {
+            Ok(ref v) => serializer.serialize_variant(0, v),
+            Err(ref e) => serializer.serialize_variant(1, e),
+        }
+    }
 }
 
 impl<T> IDLType for Box<T> where T: ?Sized + IDLType {

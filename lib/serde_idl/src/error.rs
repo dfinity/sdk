@@ -24,13 +24,7 @@ impl Error {
             code: ErrorCode::Message(_msg.to_string()),
             offset: 0,
         })
-    }
-    pub(crate) fn todo() -> Error {
-        Error(ErrorImpl {
-            code: ErrorCode::Message("TODO".to_string()),
-            offset: 0,
-        })
-    }    
+    } 
 }
 
 impl error::Error for Error {

@@ -1,7 +1,6 @@
 //! Serialize a Rust data structure to Dfinity IDL
 
 use super::error::{Error, Result};
-//use serde::ser::{self, Impossible, Serialize};
 
 use std::io;
 use std::vec::Vec;
@@ -34,8 +33,6 @@ where
     
     let mut value_ser = ValueSerializer::new();
     value.idl_serialize(&mut value_ser)?;
-    //dfx_info::IDLType::serialize(&value, &mut value_ser)?;
-    //serde::Serialize::serialize(&value, &mut value_ser)?;
     writer.write_all(&value_ser.value)?;
     Ok(())
 }
@@ -66,7 +63,7 @@ impl ValueSerializer
 
 impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
     type Error = Error;
-    type Compound = VCompound<'a>;
+    type Compound = Compound<'a>;
     fn serialize_bool(self, v: bool) -> Result<()> {
         let v = if v { 1 } else { 0 };
         Ok(self.write_leb128(v))
@@ -99,10 +96,15 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
     fn serialize_compound(self) -> Result<Self::Compound> {
         Ok(Self::Compound { ser: self })
     }
+    fn serialize_variant<T>(self, index: u64, v: &T) -> Result<()>
+    where T: dfx_info::IDLType {
+        self.write_leb128(index);
+        v.idl_serialize(self)
+    }
 }
 
-pub struct VCompound<'a> { ser: &'a mut ValueSerializer }
-impl<'a> dfx_info::Compound for VCompound<'a> {
+pub struct Compound<'a> { ser: &'a mut ValueSerializer }
+impl<'a> dfx_info::Compound for Compound<'a> {
     type Error = Error;
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
@@ -120,18 +122,6 @@ pub struct TypeSerialize {
     type_map: HashMap<Type, i32>,
     result: Vec<u8>,
 }
-
-
-//fn sort_fields(fs: &Vec<Field>) -> Vec<(u32, &Type)> {
-//    let fs: Vec<(u32, &Type)> =
-//        fs.into_iter().map(|Field {id,hash,ty}| (hash.clone(), ty)).collect();
-    //let unique_ids: BTreeSet<_> = fs.iter().map(|(hash,_)| hash).collect();
-    //assert_eq!(unique_ids.len(), fs.len());    
-    //fs.sort_unstable_by_key(|(id,_)| *id);
-//    fs
-//}
-
-// TypeSerialize is implemented outside of the serde framework, as serde only supports value, not type.
 
 impl TypeSerialize
 {
@@ -174,7 +164,6 @@ impl TypeSerialize
                     self.encode(&mut buf, ty)?;
                 },                
                 Type::Record(fs) => {
-                    //let fs = sort_fields(fs);
                     for Field {id:_,hash:_,ty} in fs.iter() {
                         self.build_type(ty).unwrap();
                     };
@@ -187,7 +176,6 @@ impl TypeSerialize
                     };
                 },
                 Type::Variant(fs) => {
-                    //let fs = sort_fields(fs);
                     for Field{id:_,hash:_,ty} in fs.iter() {
                         self.build_type(ty).unwrap();
                     };

@@ -39,6 +39,7 @@ pub trait Serializer: Sized {
     fn serialize_null(self, v:()) -> Result<(), Self::Error>;
     fn serialize_option<T: ?Sized>(self, v: Option<&T>) -> Result<(), Self::Error> where T: IDLType;
     fn serialize_compound(self) -> Result<Self::Compound, Self::Error>;
+    fn serialize_variant<T>(self, index: u64, v: &T) -> Result<(), Self::Error> where T: IDLType;
 }
 
 pub trait Compound {
