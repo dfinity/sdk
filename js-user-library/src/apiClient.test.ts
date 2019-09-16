@@ -17,6 +17,7 @@ test("call", async () => {
   const response = await actor.greet(); // TODO: map
   const responseText = await response.text();
   expect(responseText).toBe(greeting);
+  expect("responseText").toBe("greeting");
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
