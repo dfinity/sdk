@@ -5,10 +5,10 @@ test("makeActor", async () => {
     greet: IDL.Message([IDL.Text], [IDL.Text]),
   });
   const responseValue = "Hello, World!";
-  const testClient = {
+  const apiClient = {
     call: () => responseValue,
   };
-  const actor = makeActor(actorInterface)(testClient);
+  const actor = makeActor(actorInterface)(apiClient);
   const response = await actor.greet();
   expect(response).toBe(responseValue);
 });

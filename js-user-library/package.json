@@ -2,19 +2,14 @@
   "private": true,
   "name": "@dfinity/js-user-library",
   "version": "0.1.0",
-  "main": "lib/index.js",
+  "main": "out/index.js",
   "scripts": {
-    "build": "babel src -d lib",
+    "build": "tsc",
     "test": "jest"
   },
   "devDependencies": {
-    "@babel/cli": "^7.6.0",
-    "@babel/core": "^7.6.0",
-    "@babel/preset-env": "^7.6.0",
-    "babel-jest": "^24.9.0",
-    "jest": "^24.9.0"
-  },
-  "dependencies": {
-    "core-js": "^3.2.1"
+    "@types/jest": "^24.0.18",
+    "jest": "^24.9.0",
+    "typescript": "^3.6.3"
   }
 }

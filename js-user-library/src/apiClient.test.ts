@@ -1,16 +1,17 @@
-import { apiClient, IDL, makeActor } from "./index";
+import { makeApiClient, IDL, makeActor } from "./index";
 
 test("call", async () => {
   const actorInterface = new IDL.ActorInterface({
     greet: IDL.Message([IDL.Text], [IDL.Text]),
   });
   const responseValue = "Hello, World!";
-  const mockFetch = jest.fn((resource, init) => Promise.resolve(responseValue));
-  const client = apiClient({
+  const res = new Response()
+  const mockFetch: jest.Mock = jest.fn((resource, init) => Promise.resolve(res));
+  const apiClient = makeApiClient({
     canisterId: 1,
     fetch: mockFetch,
   });
-  const actor = makeActor(actorInterface)(client);
+  const actor = makeActor(actorInterface)(apiClient);
   const response = await actor.greet();
   expect(response).toBe(responseValue);
 
