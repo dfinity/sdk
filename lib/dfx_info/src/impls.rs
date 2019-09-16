@@ -7,7 +7,7 @@ macro_rules! primitive_impl {
         impl IDLType for $t {
             fn id() -> TypeId { TypeId::of::<$t>() }            
             fn _ty() -> Type { Type::$id }
-            fn serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+            fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
                 serializer.$method(*self $($cast)*)
             }
         }
@@ -31,7 +31,7 @@ primitive_impl!((), Null, serialize_null);
 impl IDLType for String {
     fn id() -> TypeId { TypeId::of::<String>() }
     fn _ty() -> Type { Type::Text }
-    fn serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
         serializer.serialize_text(self)
     }    
 }
@@ -39,7 +39,7 @@ impl IDLType for String {
 impl<T: Sized> IDLType for Option<T> where T: IDLType {
     fn id() -> TypeId { TypeId::of::<Option<T>>() }
     fn _ty() -> Type { Type::Opt(Box::new(T::ty())) }
-    fn serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
         serializer.serialize_option(self.as_ref())
     }
 }
@@ -68,15 +68,15 @@ impl<T,E> IDLType for Result<T,E> where T: IDLType, E: IDLType {
 impl<T> IDLType for Box<T> where T: ?Sized + IDLType {
     fn id() -> TypeId { TypeId::of::<T>() } // ignore box
     fn _ty() -> Type { T::ty() }
-    fn serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
-        (**self).serialize(serializer)
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+        (**self).idl_serialize(serializer)
     }    
 }
 
 impl<'a,T> IDLType for &'a T where T: 'a + ?Sized + IDLType {
     fn id() -> TypeId { TypeId::of::<&T>() } // ignore lifetime
     fn _ty() -> Type { T::ty() }
-    fn serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
-        (**self).serialize(serializer)
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+        (**self).idl_serialize(serializer)
     }    
 }

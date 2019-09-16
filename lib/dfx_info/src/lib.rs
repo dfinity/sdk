@@ -25,16 +25,23 @@ pub trait IDLType {
     fn id() -> TypeId;
     fn _ty() -> Type;
     // only serialize the value encoding
-    fn serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
     where S: Serializer { Ok(()) }
 }
 
 pub trait Serializer: Sized {
     type Error;
+    type Compound : Compound<Error=Self::Error>;
     fn serialize_bool(self, v: bool) -> Result<(), Self::Error>;
     fn serialize_int(self, v: i64) -> Result<(), Self::Error>;
     fn serialize_nat(self, v: u64) -> Result<(), Self::Error>;
     fn serialize_text(self, v: &str) -> Result<(), Self::Error>;
     fn serialize_null(self, v:()) -> Result<(), Self::Error>;
     fn serialize_option<T: ?Sized>(self, v: Option<&T>) -> Result<(), Self::Error> where T: IDLType;
+    fn serialize_compound(self) -> Result<Self::Compound, Self::Error>;
+}
+
+pub trait Compound {
+    type Error;
+    fn serialize_field<T: ?Sized>(&mut self, v: &T) -> Result<(), Self::Error> where T: IDLType;
 }
