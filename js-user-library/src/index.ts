@@ -1,3 +1,5 @@
 export * from "./apiClient";
-export * from "./IDL";
 export * from "./makeActor";
+
+import * as IDL from "./IDL";
+export { IDL };

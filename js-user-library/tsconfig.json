@@ -6,7 +6,7 @@
     "rootDir": "src",
     "lib": [
       "dom",
-      "es6"
+      "esnext"
     ],
     "sourceMap": true,
     "strict": true

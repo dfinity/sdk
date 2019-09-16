@@ -4,16 +4,19 @@ test("call", async () => {
   const actorInterface = new IDL.ActorInterface({
     greet: IDL.Message([IDL.Text], [IDL.Text]),
   });
-  const responseValue = "Hello, World!";
-  const res = new Response()
-  const mockFetch: jest.Mock = jest.fn((resource, init) => Promise.resolve(res));
+  // FIXME: since we're making a submit call, there won't be a response
+  const greeting = "Hello, World!";
+  const mockFetch: jest.Mock = jest.fn((resource, init) => {
+    return Promise.resolve(new Response(greeting))
+  });
   const apiClient = makeApiClient({
     canisterId: 1,
     fetch: mockFetch,
   });
   const actor = makeActor(actorInterface)(apiClient);
-  const response = await actor.greet();
-  expect(response).toBe(responseValue);
+  const response = await actor.greet(); // TODO: map
+  const responseText = await response.text();
+  expect(responseText).toBe(greeting);
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);

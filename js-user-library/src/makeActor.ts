@@ -1,4 +1,5 @@
-import { IDL } from "./IDL";
+import { ApiClient } from "./apiClient";
+import { ActorInterface } from "./IDL";
 
 // Allows for one client for the lifetime of the actor:
 //
@@ -14,10 +15,10 @@ import { IDL } from "./IDL";
 // const response1 = actor(client1).greet();
 // const response2 = actor(client2).greet();
 // ```
-export const makeActor = (actorInterface: IDL.ActorInterface) => (apiClient: ApiClient) => {
+export const makeActor = (actorInterface: ActorInterface) => (apiClient: ApiClient) => {
   const entries = Object.entries(actorInterface.fields);
   return Object.fromEntries(entries.map(([methodName, desc]) => {
-    return [methodName, async (...args) => {
+    return [methodName, async (...args/* FIXME */: any[]) => {
       // TODO: convert `args` to `arg` using `desc`
       const arg = new Blob([], { type: "application/cbor" });
       return apiClient.call({ methodName, arg });

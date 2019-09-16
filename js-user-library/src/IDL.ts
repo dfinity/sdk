@@ -1,4 +1,4 @@
-class ActorInterface {
+export class ActorInterface {
   fields: object;
 
   constructor(fields: object) {
@@ -6,7 +6,8 @@ class ActorInterface {
   }
 };
 
-class Message {
+
+class _Message {
   argTypes: Array<Type>
   returnTypes: Array<Type>;
 
@@ -16,14 +17,14 @@ class Message {
   }
 };
 
+export const Message = (argTypes: Array<Type>, returnTypes: Array<Type>) => {
+  return new _Message(argTypes, returnTypes);
+};
+
+
 class Type {};
 
-class Text extends Type {};
 
-export const IDL = {
-  ActorInterface,
-  Message: (argTypes: Array<Type>, returnTypes: Array<Type>) => {
-    return new Message(argTypes, returnTypes);
-  },
-  Text: () => new Text(),
-};
+class _Text extends Type {};
+
+export const Text = () => new _Text();

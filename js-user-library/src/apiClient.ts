@@ -69,7 +69,7 @@ const call = (config: Config) => async ({ methodName, arg }: { methodName: strin
   });
 };
 
-type ApiClient = {
+export type ApiClient = {
   call({ methodName, arg }: { methodName: string, arg: Blob }): Promise<Response>;
 }
 

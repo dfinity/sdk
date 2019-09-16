@@ -4,11 +4,12 @@ test("makeActor", async () => {
   const actorInterface = new IDL.ActorInterface({
     greet: IDL.Message([IDL.Text], [IDL.Text]),
   });
-  const responseValue = "Hello, World!";
+  const greeting = "Hello, World!";
   const apiClient = {
-    call: () => responseValue,
+    call: () => Promise.resolve(new Response(greeting)),
   };
   const actor = makeActor(actorInterface)(apiClient);
-  const response = await actor.greet();
-  expect(response).toBe(responseValue);
+  const response = await actor.greet(); // TODO: map
+  const responseText = await response.text();
+  expect(responseText).toBe(greeting);
 });
