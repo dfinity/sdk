@@ -5,7 +5,7 @@ import { ActorInterface } from "./IDL";
 //
 // ```
 // const actor = makeActor(actorInterface)(client);
-// const response = actor.greet();
+// const reply = actor.greet();
 // ```
 //
 // or using a different client for the same actor if necessary:
