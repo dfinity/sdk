@@ -22,6 +22,9 @@ export const Message = (argTypes: Array<Type>, returnTypes: Array<Type>) => {
 };
 
 
+// TODO: try using built-in ArrayBuffer before reaching for external packages
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
+
 class Type {};
 
 
