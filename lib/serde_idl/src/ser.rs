@@ -93,13 +93,16 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
             }
         }
     }
-    fn serialize_compound(self) -> Result<Self::Compound> {
+    fn serialize_variant(self, index: u64) -> Result<Self::Compound> {
+        self.write_leb128(index);
+        Ok(Self::Compound { ser: self })
+    }    
+    fn serialize_struct(self) -> Result<Self::Compound> {
         Ok(Self::Compound { ser: self })
     }
-    fn serialize_variant<T>(self, index: u64, v: &T) -> Result<()>
-    where T: dfx_info::IDLType {
-        self.write_leb128(index);
-        v.idl_serialize(self)
+    fn serialize_vec(self, len: usize) -> Result<Self::Compound> {
+        self.write_leb128(len as u64);
+        Ok(Self::Compound { ser: self })
     }
 }
 

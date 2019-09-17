@@ -77,16 +77,23 @@ fn test_mutual_recursion() {
     let list: List = None;
     check(list, "4449444c026e016c02a0d2aca8047c90eddae704000000");
 }
-/*
+
+#[test]
+fn test_vector() {
+    check(vec![0,1,2,3], "4449444c016d7c000400010203");
+    let boxed_array: Box<[i32]> = Box::new([0,1,2,3]);
+    check(boxed_array, "4449444c016d7c000400010203");    
+}
+
 #[test]
 fn test_variant() {
     #[allow(non_camel_case_types)]    
     #[derive(Debug, IDLType)]
     enum Unit { foo }
     check(Unit::foo, "4449444c016b01868eb7027f0000");
-    
+
     #[allow(dead_code)]
-    #[derive(Serialize, Debug, IDLType)]
+    #[derive(Debug, IDLType)]
     enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
     
     let v = E::Foo;
@@ -98,9 +105,10 @@ fn test_variant() {
                    field("Foo", Type::Null),                   
                    ])
     );
-    //check(v, "4449444c");
+    
+    check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c01007e6c02617c627d0002");
 }
-*/
+
 #[test]
 fn test_generics() {
     #[derive(Debug, IDLType)]

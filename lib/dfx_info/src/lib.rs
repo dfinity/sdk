@@ -26,7 +26,7 @@ pub trait IDLType {
     fn _ty() -> Type;
     // only serialize the value encoding
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
-    where S: Serializer { Ok(()) }
+    where S: Serializer;
 }
 
 pub trait Serializer: Sized {
@@ -38,8 +38,9 @@ pub trait Serializer: Sized {
     fn serialize_text(self, v: &str) -> Result<(), Self::Error>;
     fn serialize_null(self, v:()) -> Result<(), Self::Error>;
     fn serialize_option<T: ?Sized>(self, v: Option<&T>) -> Result<(), Self::Error> where T: IDLType;
-    fn serialize_compound(self) -> Result<Self::Compound, Self::Error>;
-    fn serialize_variant<T>(self, index: u64, v: &T) -> Result<(), Self::Error> where T: IDLType;
+    fn serialize_struct(self) -> Result<Self::Compound, Self::Error>;
+    fn serialize_vec(self, len: usize) -> Result<Self::Compound, Self::Error>;
+    fn serialize_variant(self, index: u64) -> Result<Self::Compound, Self::Error>;
 }
 
 pub trait Compound {

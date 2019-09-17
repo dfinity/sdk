@@ -46,12 +46,26 @@ impl<T: Sized> IDLType for Option<T> where T: IDLType {
 
 impl<T> IDLType for Vec<T> where T: IDLType {
     fn id() -> TypeId { TypeId::of::<Vec<T>>() }        
-    fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }    
+    fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+        let mut ser = serializer.serialize_vec(self.len())?;
+        for e in self.iter() {
+            super::Compound::serialize_field(&mut ser, &e)?;
+        };
+        Ok(())
+    }
 }
 
 impl<T> IDLType for [T] where T: IDLType {
     fn id() -> TypeId { TypeId::of::<[T]>() }
-    fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }    
+    fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+        let mut ser = serializer.serialize_vec(self.len())?;
+        for e in self.iter() {
+            super::Compound::serialize_field(&mut ser, &e)?;
+        };
+        Ok(())
+    }    
 }
 
 impl<T,E> IDLType for Result<T,E> where T: IDLType, E: IDLType {
@@ -65,14 +79,20 @@ impl<T,E> IDLType for Result<T,E> where T: IDLType, E: IDLType {
     }
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
         match *self {
-            Ok(ref v) => serializer.serialize_variant(0, v),
-            Err(ref e) => serializer.serialize_variant(1, e),
+            Result::Ok(ref v) => {
+                let mut ser = serializer.serialize_variant(0)?;
+                super::Compound::serialize_field(&mut ser, v)
+            },
+            Result::Err(ref e) => {
+                let mut ser = serializer.serialize_variant(1)?;
+                super::Compound::serialize_field(&mut ser, e)
+            },
         }
     }
 }
 
 impl<T> IDLType for Box<T> where T: ?Sized + IDLType {
-    fn id() -> TypeId { TypeId::of::<T>() } // ignore box
+    fn id() -> TypeId { TypeId::of::<Box<T>>() }
     fn _ty() -> Type { T::ty() }
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
         (**self).idl_serialize(serializer)
