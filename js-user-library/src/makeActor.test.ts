@@ -1,15 +1,90 @@
-import { IDL, makeActor } from "./index";
+import { makeApiClient, IDL, makeActor } from "./index";
 
 test("makeActor", async () => {
   const actorInterface = new IDL.ActorInterface({
     greet: IDL.Message([IDL.Text], [IDL.Text]),
   });
+
   const greeting = "Hello, World!";
-  const apiClient = {
-    call: () => Promise.resolve(new Response(greeting)),
-  };
+
+  const mockFetch: jest.Mock = jest.fn()
+    .mockImplementationOnce((resource, init) => {
+      return Promise.resolve(new Response(null, {
+        status: 202,
+      }));
+    })
+    .mockImplementationOnce((resource, init) => {
+      // FIXME: the body should be a CBOR value
+      return Promise.resolve(new Response(null/*status: "unknown"*/, {
+        status: 200,
+      }));
+    })
+    .mockImplementationOnce((resource, init) => {
+      // FIXME: the body should be a CBOR value
+      return Promise.resolve(new Response(null/*status: "pending"*/, {
+        status: 200,
+      }));
+    })
+    .mockImplementationOnce((resource, init) => {
+      // FIXME: the body should be a CBOR value
+      return Promise.resolve(new Response(greeting/*status: "replied", reply: greeting*/, {
+        status: 200,
+      }));
+    });
+
+  const apiClient = makeApiClient({
+    canisterId: 1,
+    fetch: mockFetch,
+  });
+
   const actor = makeActor(actorInterface)(apiClient);
   const response = await actor.greet();
-  const responseText = await response.text();
-  expect(responseText).toBe(greeting);
+  expect(await response.text()).toBe(greeting); // FIXME
+
+  const { calls, results } = mockFetch.mock;
+  expect(calls.length).toBe(4);
+
+  expect(calls[0][0]).toBe("http://localhost:8080/api/v1/submit");
+  expect(calls[0][1]).toEqual({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/cbor",
+    },
+    // FIXME
+    // body: new Blob([], { type: "application/cbor" }),
+    body: "FIXME: call",
+  });
+
+  expect(calls[1][0]).toBe("http://localhost:8080/api/v1/read");
+  expect(calls[1][1]).toEqual({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/cbor",
+    },
+    // FIXME
+    // body: new Blob([], { type: "application/cbor" }),
+    body: "FIXME: request status",
+  });
+
+  expect(calls[2][0]).toBe("http://localhost:8080/api/v1/read");
+  expect(calls[2][1]).toEqual({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/cbor",
+    },
+    // FIXME
+    // body: new Blob([], { type: "application/cbor" }),
+    body: "FIXME: request status",
+  });
+
+  expect(calls[3][0]).toBe("http://localhost:8080/api/v1/read");
+  expect(calls[3][1]).toEqual({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/cbor",
+    },
+    // FIXME
+    // body: new Blob([], { type: "application/cbor" }),
+    body: "FIXME: request status",
+  });
 });

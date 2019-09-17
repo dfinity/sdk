@@ -17,13 +17,88 @@ type Config = {
   host: string,
 };
 
+
 enum Endpoint {
+  read,
   submit,
 };
 
-enum RequestType {
+
+type ReadRequest
+  = ReadQuery
+  | ReadRequestStatus;
+
+enum ReadRequestType {
+  query,
+  requestStatus,
+};
+
+type ReadQuery = {
+  type: ReadRequestType.query,
+  canister_id: number,
+  method_name: string,
+  arg: Blob,
+};
+
+type ReadRequestStatus = {
+  type: ReadRequestType.requestStatus,
+  request_id: number,
+};
+
+const readQuery = ({
+  canisterId,
+  methodName,
+  arg,
+}: {
+  canisterId: number,
+  methodName: string,
+  arg: Blob,
+}): ReadQuery => ({
+  type: ReadRequestType.query,
+  canister_id: canisterId,
+  method_name: methodName,
+  arg,
+});
+
+const readRequestStatus = ({
+  requestId,
+}: {
+  requestId: number,
+}): ReadRequestStatus => ({
+  type: ReadRequestType.requestStatus,
+  request_id: requestId,
+});
+
+
+type SubmitRequest
+  = SubmitCall;
+
+enum SubmitRequestType {
   call,
 };
+
+type SubmitCall = {
+  type: SubmitRequestType.call,
+  canister_id: number,
+  method_name: string,
+  arg: Blob,
+};
+
+const submitCall = ({
+  canisterId,
+  methodName,
+  arg
+}: {
+  canisterId: number,
+  methodName: string,
+  arg: Blob,
+}) => ({
+  type: SubmitRequestType.call,
+  canister_id: canisterId,
+  method_name: methodName,
+  arg,
+});
+
 
 const defaultOptions: DefaultOptions = {
   fetch: window.fetch,
@@ -51,18 +126,26 @@ type SubmitResponse = {
   response: Response,
 }
 
-const submit = (config: Config) => async (requestType: RequestType, fields: object): Promise<SubmitResponse> => {
-  const _fields = {
-    ...fields,
-    request_type: RequestType[requestType],
-    // expiry,
-    // nonce,
-    // sender,
-    // sender_pubkey,
-    // sender_sig,
-  };
-  // FIXME: convert `_fields` to `body`
-  const body = "FIXME";
+const submit = (config: Config) => async (request: SubmitRequest): Promise<SubmitResponse> => {
+  const body = (() => {
+    switch (request.type) {
+      case SubmitRequestType.call: {
+        const fields = {
+          request_type: request.type,
+          canister_id: request.canister_id,
+          method_name: request.method_name,
+          arg: request.arg,
+          // expiry,
+          // nonce,
+          // sender,
+          // sender_pubkey,
+          // sender_sig,
+        };
+        // FIXME: convert `fields` to `body`
+        return "FIXME: call";
+      }
+    }
+  })();
   const response = await config.runFetch(Endpoint.submit, body);
   return {
     requestId: -1, // FIXME
@@ -70,16 +153,46 @@ const submit = (config: Config) => async (requestType: RequestType, fields: obje
   }
 };
 
-const call = (config: Config) => async ({ methodName, arg }: { methodName: string, arg: Blob }): Promise<Response> => {
-  return submit(config)(RequestType.call, {
-    canister_id: config.canisterId,
-    method_name: methodName,
+const read = (config: Config) => async (request: ReadRequest): Promise<Response> => {
+  const body = (() => {
+    switch (request.type) {
+      case ReadRequestType.query: {
+        const fields = {
+          request_type: request.type,
+          canister_id: request.canister_id,
+          method_name: request.method_name,
+          arg: request.arg,
+        };
+        return "FIXME: query";
+      }
+      case ReadRequestType.requestStatus: {
+        const fields = {
+          request_type: request.type,
+          request_id: request.request_id,
+        };
+        return "FIXME: request status";
+      }
+    };
+  })();
+  return config.runFetch(Endpoint.read, body);
+};
+
+const call = (config: Config) => async ({ methodName, arg }: { methodName: string, arg: Blob }): Promise<SubmitResponse> => {
+  const request = submitCall({
+    canisterId: config.canisterId,
+    methodName,
     arg,
   });
+  return submit(config)(request);
+};
+
+const requestStatus = (config: Config) => async ({ requestId }: { requestId: number }): Promise<Response> => {
+  const request = readRequestStatus({ requestId });
+  return read(config)(request);
 };
 
 export type ApiClient = {
-  call({ methodName, arg }: { methodName: string, arg: Blob }): Promise<Response>;
+  call({ methodName, arg }: { methodName: string, arg: Blob }): Promise<SubmitResponse>;
   requestStatus({ requestId }: { requestId: number }): Promise<Response>;
 }
 
@@ -87,5 +200,6 @@ export const makeApiClient = (options: Options): ApiClient => {
   const config = makeConfig(options);
   return {
     call: call(config),
+    requestStatus: requestStatus(config),
   };
 };

@@ -21,9 +21,11 @@ export const makeActor = (actorInterface: ActorInterface) => (apiClient: ApiClie
     return [methodName, async (...args/* FIXME */: any[]) => {
       // TODO: convert `args` to `arg` using `desc`
       const arg = new Blob([], { type: "application/cbor" });
-      const response = await apiClient.call({ methodName, arg });
-      // TODO: poll for response via apiClient.requestStatus(...) and return that instead
-      return response;
+      const { requestId, response } = await apiClient.call({ methodName, arg });
+      // FIXME: poll for response via apiClient.requestStatus(...) and return that instead
+      await apiClient.requestStatus({ requestId });
+      await apiClient.requestStatus({ requestId });
+      return apiClient.requestStatus({ requestId });
     }];
   }));
 };
