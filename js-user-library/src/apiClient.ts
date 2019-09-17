@@ -69,6 +69,13 @@ const readRequestStatus = ({
   request_id: requestId,
 });
 
+export enum ReadRequestStatusResponseStatus {
+  unknown,
+  pending,
+  replied,
+  rejected,
+};
+
 
 type SubmitRequest
   = SubmitCall;

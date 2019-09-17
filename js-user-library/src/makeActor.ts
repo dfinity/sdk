@@ -1,4 +1,4 @@
-import { ApiClient } from "./apiClient";
+import { ApiClient, ReadRequestStatusResponseStatus } from "./apiClient";
 import { ActorInterface } from "./IDL";
 
 // Allows for one client for the lifetime of the actor:
@@ -12,8 +12,8 @@ import { ActorInterface } from "./IDL";
 //
 // ```
 // const actor = makeActor(actorInterface);
-// const response1 = actor(client1).greet();
-// const response2 = actor(client2).greet();
+// const reply1 = actor(client1).greet();
+// const reply2 = actor(client2).greet();
 // ```
 export const makeActor = (actorInterface: ActorInterface) => (apiClient: ApiClient) => {
   const entries = Object.entries(actorInterface.fields);
@@ -22,10 +22,20 @@ export const makeActor = (actorInterface: ActorInterface) => (apiClient: ApiClie
       // TODO: convert `args` to `arg` using `desc`
       const arg = new Blob([], { type: "application/cbor" });
       const { requestId, response } = await apiClient.call({ methodName, arg });
-      // FIXME: poll for response via apiClient.requestStatus(...) and return that instead
-      await apiClient.requestStatus({ requestId });
-      await apiClient.requestStatus({ requestId });
-      return apiClient.requestStatus({ requestId });
+      const maxRetries = 3;
+      for (let i = 0; i < maxRetries; i++) {
+        const response = await apiClient.requestStatus({ requestId });
+        // FIXME: the body should be a CBOR value
+        // TODO: handle decoding failure
+        const responseBody = await response.json();
+        const replied = ReadRequestStatusResponseStatus[ReadRequestStatusResponseStatus.replied];
+        if (responseBody.status === replied) {
+          return responseBody.reply;
+        }
+        if (i + 1 === maxRetries) {
+          return response; // TODO: throw?
+        }
+      }
     }];
   }));
 };

@@ -15,19 +15,22 @@ test("makeActor", async () => {
     })
     .mockImplementationOnce((resource, init) => {
       // FIXME: the body should be a CBOR value
-      return Promise.resolve(new Response(null/*status: "unknown"*/, {
+      const body = JSON.stringify({ status: "unknown" });
+      return Promise.resolve(new Response(body, {
         status: 200,
       }));
     })
     .mockImplementationOnce((resource, init) => {
       // FIXME: the body should be a CBOR value
-      return Promise.resolve(new Response(null/*status: "pending"*/, {
+      const body = JSON.stringify({ status: "pending" });
+      return Promise.resolve(new Response(body, {
         status: 200,
       }));
     })
     .mockImplementationOnce((resource, init) => {
       // FIXME: the body should be a CBOR value
-      return Promise.resolve(new Response(greeting/*status: "replied", reply: greeting*/, {
+      const body = JSON.stringify({ status: "replied", reply: greeting });
+      return Promise.resolve(new Response(body, {
         status: 200,
       }));
     });
@@ -38,8 +41,9 @@ test("makeActor", async () => {
   });
 
   const actor = makeActor(actorInterface)(apiClient);
-  const response = await actor.greet();
-  expect(await response.text()).toBe(greeting); // FIXME
+  const reply = await actor.greet();
+
+  expect(reply).toBe(greeting);
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(4);
