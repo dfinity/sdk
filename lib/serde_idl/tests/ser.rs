@@ -81,16 +81,27 @@ fn test_mutual_recursion() {
 #[test]
 fn test_vector() {
     check(vec![0,1,2,3], "4449444c016d7c000400010203");
+    check([0,1,2,3], "4449444c016d7c000400010203");
     let boxed_array: Box<[i32]> = Box::new([0,1,2,3]);
-    check(boxed_array, "4449444c016d7c000400010203");    
+    check(boxed_array, "4449444c016d7c000400010203");
+    check([(42, "text")], "4449444c026d016c02007c017100012a0474657874");
+    check([[[[()]]]], "4449444c046d016d026d036d7f0001010101");
+}
+
+#[test]
+fn test_tuple() {
+    check((42, "💩"), "4449444c016c02007c0171002a04f09f92a9");
 }
 
 #[test]
 fn test_variant() {
-    #[allow(non_camel_case_types)]    
     #[derive(Debug, IDLType)]
-    enum Unit { foo }
-    check(Unit::foo, "4449444c016b01868eb7027f0000");
+    enum Unit { Foo }
+    check(Unit::Foo, "4449444c016b01e6fdd5017f0000");
+
+    let res: Result<&str,&str> = Ok("good");
+    check(res, "4449444c016b02bc8a0171c5fed20171000004676f6f64");
+    
 
     #[allow(dead_code)]
     #[derive(Debug, IDLType)]

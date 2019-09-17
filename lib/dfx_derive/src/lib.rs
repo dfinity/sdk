@@ -17,7 +17,6 @@ pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
     let name = input.ident;
     let generics = add_trait_bounds(input.generics);
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-    // TODO respect serde attributes
     let (ty_body, ser_body) = match input.data {
         Data::Enum(ref data) => {
             enum_from_ast(&name, &data.variants)
@@ -134,7 +133,7 @@ fn enum_from_ast(name: &syn::Ident, variants: &Punctuated<syn::Variant, Token![,
         let (pattern, id) = f.to_pattern();
         (pattern,
          quote! {
-             #(dfx_info::Compound::serialize_field(&mut ser, #id)?;)*
+             #(dfx_info::Compound::serialize_element(&mut ser, #id)?;)*
          })
     }).unzip();
     let variant_gen = quote! {
@@ -154,7 +153,7 @@ fn serialize_struct(idents: &Vec<Ident>) -> Tokens {
     let id = idents.iter().map(|ident| ident.to_token());
     quote! {
         let mut ser = __serializer.serialize_struct()?;
-        #(dfx_info::Compound::serialize_field(&mut ser, &self.#id)?;)*
+        #(dfx_info::Compound::serialize_element(&mut ser, &self.#id)?;)*
         Ok(())
     }
 }

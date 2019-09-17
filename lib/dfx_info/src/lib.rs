@@ -45,5 +45,5 @@ pub trait Serializer: Sized {
 
 pub trait Compound {
     type Error;
-    fn serialize_field<T: ?Sized>(&mut self, v: &T) -> Result<(), Self::Error> where T: IDLType;
+    fn serialize_element<T: ?Sized>(&mut self, v: &T) -> Result<(), Self::Error> where T: IDLType;
 }

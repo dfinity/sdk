@@ -50,7 +50,7 @@ impl<T> IDLType for Vec<T> where T: IDLType {
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
         let mut ser = serializer.serialize_vec(self.len())?;
         for e in self.iter() {
-            super::Compound::serialize_field(&mut ser, &e)?;
+            super::Compound::serialize_element(&mut ser, &e)?;
         };
         Ok(())
     }
@@ -62,10 +62,40 @@ impl<T> IDLType for [T] where T: IDLType {
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
         let mut ser = serializer.serialize_vec(self.len())?;
         for e in self.iter() {
-            super::Compound::serialize_field(&mut ser, &e)?;
+            super::Compound::serialize_element(&mut ser, &e)?;
         };
         Ok(())
     }    
+}
+
+macro_rules! array_impls {
+    ($($len:tt)+) => {
+        $(
+            impl<T> IDLType for [T; $len]
+            where T: IDLType,
+            {
+                fn id() -> TypeId { TypeId::of::<[T; $len]>() }
+                fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }                
+                fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+                where S: Serializer,
+                {
+                    let mut ser = serializer.serialize_vec($len)?;
+                    for e in self.iter() {
+                        super::Compound::serialize_element(&mut ser, &e)?;
+                    };
+                    Ok(())
+                }
+            }
+        )+
+    }
+}
+
+array_impls! {
+    00
+    01 02 03 04 05 06 07 08 09 10
+    11 12 13 14 15 16 17 18 19 20
+    21 22 23 24 25 26 27 28 29 30
+    31 32
 }
 
 impl<T,E> IDLType for Result<T,E> where T: IDLType, E: IDLType {
@@ -81,11 +111,11 @@ impl<T,E> IDLType for Result<T,E> where T: IDLType, E: IDLType {
         match *self {
             Result::Ok(ref v) => {
                 let mut ser = serializer.serialize_variant(0)?;
-                super::Compound::serialize_field(&mut ser, v)
+                super::Compound::serialize_element(&mut ser, v)
             },
             Result::Err(ref e) => {
                 let mut ser = serializer.serialize_variant(1)?;
-                super::Compound::serialize_field(&mut ser, e)
+                super::Compound::serialize_element(&mut ser, e)
             },
         }
     }
@@ -105,4 +135,50 @@ impl<'a,T> IDLType for &'a T where T: 'a + ?Sized + IDLType {
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
         (**self).idl_serialize(serializer)
     }    
+}
+
+macro_rules! tuple_impls {
+    ($($len:expr => ($($n:tt $name:ident)+))+) => {
+        $(
+            impl<$($name),+> IDLType for ($($name,)+)
+            where
+                $($name: IDLType,)+
+            {
+                fn id() -> TypeId { TypeId::of::<($($name,)+)>() }
+                fn _ty() -> Type {
+                    Type::Record(vec![
+                        $(Field{ id: $n.to_string(), hash: $n, ty: $name::ty() },)+
+                    ])
+                }
+                fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+                where S: Serializer,
+                {
+                    let mut ser = serializer.serialize_struct()?;
+                    $(
+                        super::Compound::serialize_element(&mut ser, &self.$n)?;
+                    )+
+                    Ok(())
+                }
+            }
+        )+
+    }
+}
+
+tuple_impls! {
+    1 => (0 T0)
+    2 => (0 T0 1 T1)
+    3 => (0 T0 1 T1 2 T2)
+    4 => (0 T0 1 T1 2 T2 3 T3)
+    5 => (0 T0 1 T1 2 T2 3 T3 4 T4)
+    6 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5)
+    7 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6)
+    8 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7)
+    9 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8)
+    10 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9)
+    11 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9 10 T10)
+    12 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9 10 T10 11 T11)
+    13 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9 10 T10 11 T11 12 T12)
+    14 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9 10 T10 11 T11 12 T12 13 T13)
+    15 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9 10 T10 11 T11 12 T12 13 T13 14 T14)
+    16 => (0 T0 1 T1 2 T2 3 T3 4 T4 5 T5 6 T6 7 T7 8 T8 9 T9 10 T10 11 T11 12 T12 13 T13 14 T14 15 T15)
 }

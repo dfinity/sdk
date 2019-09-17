@@ -109,7 +109,7 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
 pub struct Compound<'a> { ser: &'a mut ValueSerializer }
 impl<'a> dfx_info::Compound for Compound<'a> {
     type Error = Error;
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
         T: dfx_info::IDLType,
     {
