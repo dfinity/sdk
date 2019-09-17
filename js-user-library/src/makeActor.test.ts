@@ -9,7 +9,7 @@ test("makeActor", async () => {
     call: () => Promise.resolve(new Response(greeting)),
   };
   const actor = makeActor(actorInterface)(apiClient);
-  const response = await actor.greet(); // TODO: map
+  const response = await actor.greet();
   const responseText = await response.text();
   expect(responseText).toBe(greeting);
 });

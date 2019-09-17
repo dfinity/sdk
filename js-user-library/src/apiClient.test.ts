@@ -14,7 +14,7 @@ test("call", async () => {
     fetch: mockFetch,
   });
   const actor = makeActor(actorInterface)(apiClient);
-  const response = await actor.greet(); // TODO: map
+  const response = await actor.greet();
   const responseText = await response.text();
   expect(responseText).toBe(greeting);
 
