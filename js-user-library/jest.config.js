@@ -1,5 +1,8 @@
 module.exports = {
-  preset: "ts-jest",
+  bail: false,
+  setupFiles: [
+    "whatwg-fetch",
+  ],
   testEnvironment: "jsdom",
   testPathIgnorePatterns: [
     "/node_modules/",

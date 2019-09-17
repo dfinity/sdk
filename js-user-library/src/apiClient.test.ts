@@ -17,7 +17,6 @@ test("call", async () => {
   const response = await actor.greet(); // TODO: map
   const responseText = await response.text();
   expect(responseText).toBe(greeting);
-  expect("responseText").toBe("greeting");
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
@@ -27,6 +26,7 @@ test("call", async () => {
     headers: {
       "Content-Type": "application/cbor",
     },
-    body: new Blob([], { type: "application/cbor" }), // FIXME
+    // body: new Blob([], { type: "application/cbor" }), // FIXME
+    body: "FIXME", // FIXME
   });
 });

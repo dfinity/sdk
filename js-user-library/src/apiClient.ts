@@ -35,7 +35,7 @@ const makeConfig = (options: Options): Config => {
   return {
     ...withDefaults,
     runFetch: (endpoint, body) => {
-      return withDefaults.fetch(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
+      return withDefaults.fetch(`${withDefaults.host}/api/${API_VERSION}/${Endpoint[endpoint]}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/cbor",
