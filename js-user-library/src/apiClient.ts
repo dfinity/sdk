@@ -46,7 +46,12 @@ const makeConfig = (options: Options): Config => {
   };
 };
 
-const submit = (config: Config) => async (requestType: RequestType, fields: object) => {
+type SubmitResponse = {
+  requestId: number,
+  response: Response,
+}
+
+const submit = (config: Config) => async (requestType: RequestType, fields: object): Promise<SubmitResponse> => {
   const _fields = {
     ...fields,
     request_type: RequestType[requestType],
@@ -58,7 +63,11 @@ const submit = (config: Config) => async (requestType: RequestType, fields: obje
   };
   // FIXME: convert `_fields` to `body`
   const body = "FIXME";
-  return config.runFetch(Endpoint.submit, body);
+  const response = await config.runFetch(Endpoint.submit, body);
+  return {
+    requestId: -1, // FIXME
+    response,
+  }
 };
 
 const call = (config: Config) => async ({ methodName, arg }: { methodName: string, arg: Blob }): Promise<Response> => {
@@ -71,6 +80,7 @@ const call = (config: Config) => async ({ methodName, arg }: { methodName: strin
 
 export type ApiClient = {
   call({ methodName, arg }: { methodName: string, arg: Blob }): Promise<Response>;
+  requestStatus({ requestId }: { requestId: number }): Promise<Response>;
 }
 
 export const makeApiClient = (options: Options): ApiClient => {
