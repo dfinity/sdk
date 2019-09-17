@@ -1,3 +1,9 @@
+// Relevant links:
+// * New binary format spec
+//   https://github.com/dfinity-lab/actorscript/blob/b240d8d28a6cef470faa56cf7322127819111fbc/design/IDL.md#binary-format
+// * Old implementation based on a temporary wire format for ActorScript types
+//   https://github.com/dfinity-lab/dev/blob/9030c90efe5b3de33670d4f4f0331482d51c5858/experimental/js-dfinity-client/src/IDL.js#L213
+
 export class ActorInterface {
   fields: object;
 
