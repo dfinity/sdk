@@ -12,6 +12,7 @@
     "test": "npm run type-check && jest"
   },
   "dependencies": {
+    "buffer": "^5.4.3",
     "core-js": "^3.2.1",
     "regenerator-runtime": "^0.13.3"
   },
