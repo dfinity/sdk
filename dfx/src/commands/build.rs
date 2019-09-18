@@ -180,7 +180,8 @@ mod tests {
         let env = TestEnv {};
         let wat = r#"(module )"#;
 
-        let temp_path = temp_dir();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let temp_path = temp_dir.into_path();
         let input_path = temp_path.join("input.wat");
         let output_path = temp_path.join("output.wasm");
 
