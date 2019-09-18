@@ -4,6 +4,14 @@
 // * Old implementation based on a temporary wire format for ActorScript types
 //   https://github.com/dfinity-lab/dev/blob/9030c90efe5b3de33670d4f4f0331482d51c5858/experimental/js-dfinity-client/src/IDL.js#L213
 
+
+export const hash = (s: string): number => {
+  const utf8encoder = new TextEncoder();
+  const array = utf8encoder.encode(s);
+  let h = 0;
+  array.forEach((c, i, array) => { h *= 223; h += c; h %= 2**32; });
+  return h;
+}
 export class ActorInterface {
   fields: object;
 
