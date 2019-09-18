@@ -1,4 +1,7 @@
 module.exports = {
+  ignore: [
+    "./src/IDL-ts",
+  ],
   presets: [
     [
       "@babel/preset-env",
