@@ -25,6 +25,7 @@
     "babel-jest": "^24.9.0",
     "buffer-pipe": "0.0.4",
     "jest": "^24.9.0",
+    "jest-expect-message": "^1.0.2",
     "leb128": "0.0.5",
     "text-encoding": "^0.7.0",
     "typescript": "^3.6.3",

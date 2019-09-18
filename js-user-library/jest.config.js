@@ -4,6 +4,9 @@ module.exports = {
     "./src/test-setup",
     "whatwg-fetch",
   ],
+  setupFilesAfterEnv: [
+    "jest-expect-message",
+  ],
   testEnvironment: "jsdom",
   testPathIgnorePatterns: [
     "/node_modules/",
