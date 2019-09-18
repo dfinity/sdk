@@ -32,3 +32,4 @@ wabt = "0.9.2"
 [dev-dependencies]
 env_logger = "0.6"
 mockito = "0.20.0"
+tempfile = "3.1.0"

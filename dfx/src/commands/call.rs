@@ -39,21 +39,21 @@ where
         },
     )
     .and_then(|r| match r {
-        Response::Accepted => {
-            println!("Accepted");
+        ReadResponse::Pending => {
+            println!("Pending");
             ok(())
         }
-        Response::Replied {
+        ReadResponse::Replied {
             reply: QueryResponseReply { arg: Blob(blob) },
         } => {
             println!("{}", String::from_utf8_lossy(&blob));
             ok(())
         }
-        Response::Rejected {
+        ReadResponse::Rejected {
             reject_code,
             reject_message,
         } => err(DfxError::ClientError(reject_code, reject_message)),
-        Response::Unknown => err(DfxError::Unknown("Unknown response".to_owned())),
+        ReadResponse::Unknown => err(DfxError::Unknown("Unknown response".to_owned())),
     });
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");

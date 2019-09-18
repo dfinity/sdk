@@ -1,5 +1,5 @@
 use crate::config::dfinity::Config;
-use crate::config::{cache, DFX_VERSION};
+use crate::config::{cache, dfx_version};
 use crate::lib::api_client::{Client, ClientConfig};
 use crate::lib::error::DfxResult;
 use std::cell::RefCell;
@@ -116,7 +116,7 @@ impl InProjectEnvironment {
             version: config
                 .get_config()
                 .get_dfx()
-                .unwrap_or_else(|| DFX_VERSION.to_owned()),
+                .unwrap_or_else(|| dfx_version().to_owned()),
             config,
             client: RefCell::new(None),
         })
@@ -175,7 +175,7 @@ impl VersionEnv for GlobalEnvironment {
 impl GlobalEnvironment {
     pub fn from_current_dir() -> DfxResult<GlobalEnvironment> {
         Ok(GlobalEnvironment {
-            version: DFX_VERSION.to_owned(),
+            version: dfx_version().to_owned(),
         })
     }
 }
