@@ -14,7 +14,7 @@ This document details the design and decisions made to solve the problem of havi
 == User-facing Version
 The version of `dfx` is the only version the user should be aware of. Any upstream version will be hidden behind the `dfx` version.
 
-For example, assuming `v1.1.5` and `v1.2.3` of DFX are supported stable versions, with unstable being `v1.3.0-beta.1`. Assuming a version of the DFINITY client could be released with bug fixes that affect both the previous stable, current stable and unstable releases. Without changes to the DFX client, we should release a `v1.1.6`, `v1.2.4` and `v1.3.0-beta.2` versions of the DFX containing the DFINITY client with the fix included.
+For example, assuming `v1.1.5` and `v1.2.3` of `dfx` are supported stable versions, with unstable being `v1.3.0-beta.1`, and assuming a version of the DFINITY client could be released with bug fixes that affect both the previous stable, current stable, and unstable releases, without changes to `dfx` itself we should release a `v1.1.6`, `v1.2.4` and `v1.3.0-beta.2` versions of `dfx` containing the DFINITY client with the fix included.
 
 This means the user would never actually see the version of DFINITY client that they are running.
 
