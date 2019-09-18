@@ -12,22 +12,22 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 // bytestring
 pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
-const HTTP_ENDPOINT_READ: &str = "/api/v1/read";
-const HTTP_ENDPOINT_SUBMIT: &str = "/api/v1/submit";
-
 type CanisterId = u64;
 
 #[derive(Clone)]
 pub struct Client {
     client: ReqwestClient,
-    url: String,
+    url: reqwest::Url,
 }
 
 impl Client {
     pub fn new(config: ClientConfig) -> Client {
         Client {
             client: ReqwestClient::new(),
-            url: config.url,
+            url: reqwest::Url::parse(config.url.as_str())
+                .expect("Invalid client URL.")
+                .join("api/v1/")
+                .unwrap(),
         }
     }
 
@@ -102,9 +102,7 @@ fn read<A>(
 where
     A: serde::de::DeserializeOwned,
 {
-    let endpoint = format!("{}/api/v1/read", client.url);
-    let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
-    result(parsed)
+    result(client.url.join("read").map_err(DfxError::Url))
         .and_then(move |url| {
             let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let headers = http_request.headers_mut();
@@ -127,8 +125,7 @@ where
 
 /// Ping a client and return ok if the client is started.
 pub fn ping(client: Client) -> impl Future<Item = (), Error = DfxError> {
-    let parsed = reqwest::Url::parse(&client.url).map_err(DfxError::Url);
-    result(parsed).and_then(move |url| {
+    ok(client.url.clone()).and_then(move |url| {
         let http_request = reqwest::r#async::Request::new(reqwest::Method::GET, url);
 
         client
@@ -144,9 +141,7 @@ fn submit(
     client: Client,
     request: SubmitRequest,
 ) -> impl Future<Item = reqwest::r#async::Response, Error = DfxError> {
-    let endpoint = format!("{}/api/v1/submit", client.url);
-    let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
-    result(parsed).and_then(move |url| {
+    result(client.url.join("submit").map_err(DfxError::Url)).and_then(move |url| {
         let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
         let headers = http_request.headers_mut();
         headers.insert(
