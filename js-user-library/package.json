@@ -23,7 +23,9 @@
     "@babel/preset-typescript": "^7.6.0",
     "@types/jest": "^24.0.18",
     "babel-jest": "^24.9.0",
+    "buffer-pipe": "0.0.4",
     "jest": "^24.9.0",
+    "leb128": "0.0.5",
     "text-encoding": "^0.7.0",
     "typescript": "^3.6.3",
     "whatwg-fetch": "^3.0.0"

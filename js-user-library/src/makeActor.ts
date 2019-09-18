@@ -16,7 +16,7 @@ import { ActorInterface } from "./IDL";
 // const reply2 = actor(client2).greet();
 // ```
 export const makeActor = (actorInterface: ActorInterface) => (apiClient: ApiClient) => {
-  const entries = Object.entries(actorInterface.fields);
+  const entries = Object.entries(actorInterface.__fields);
   return Object.fromEntries(entries.map(([methodName, desc]) => {
     return [methodName, async (...args/* FIXME */: any[]) => {
       // TODO: convert `args` to `arg` using `desc`
