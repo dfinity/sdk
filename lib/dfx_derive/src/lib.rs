@@ -12,7 +12,7 @@ use syn::punctuated::Punctuated;
 use std::collections::BTreeSet;
 
 #[proc_macro_derive(IDLType)]
-pub fn derive_dfinity_info(input: TokenStream) -> TokenStream {
+pub fn derive_idl_type(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
     let generics = add_trait_bounds(input.generics);
@@ -145,7 +145,6 @@ fn enum_from_ast(name: &syn::Ident, variants: &Punctuated<syn::Variant, Token![,
         };
         Ok(())
     };
-    //panic!(variant_gen.to_string());
     (ty_gen, variant_gen)
 }
 
@@ -191,7 +190,7 @@ impl Ident {
     fn to_token(&self) -> Tokens {
         match self {
             Ident::Named(ident) => quote! { #ident },
-            Ident::Unnamed(ref i) => quote! { #i },
+            Ident::Unnamed(ref i) => syn::parse_str::<Tokens>(&format!("{}", i)).unwrap(),
         }
     }
 }

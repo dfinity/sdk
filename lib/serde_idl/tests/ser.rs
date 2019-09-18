@@ -42,14 +42,17 @@ fn test_struct() {
     struct A { foo: i32, bar: bool }
     
     let record = A { foo: 42, bar: true };
-    check(record, "4449444c016c02d3e3aa027e868eb7027c00012a");
-    let record = A { foo: 42, bar: true };    
     assert_eq!(get_type(&record),
                Type::Record(vec![
                    field("bar", Type::Bool),
                    field("foo", Type::Int),                   
                ])
     );
+    check(record, "4449444c016c02d3e3aa027e868eb7027c00012a");    
+
+    #[derive(Debug, IDLType)]
+    struct B(bool, i32);
+    check(B(true,42), "4449444c016c02007e017c00012a");
 
     #[derive(Debug, IDLType)]
     struct List { head: i32, tail: Option<Box<List>> }
@@ -102,7 +105,6 @@ fn test_variant() {
     let res: Result<&str,&str> = Ok("good");
     check(res, "4449444c016b02bc8a0171c5fed20171000004676f6f64");
     
-
     #[allow(dead_code)]
     #[derive(Debug, IDLType)]
     enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
@@ -116,7 +118,6 @@ fn test_variant() {
                    field("Foo", Type::Null),                   
                    ])
     );
-    
     check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c01007e6c02617c627d0002");
 }
 
