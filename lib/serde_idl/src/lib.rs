@@ -11,12 +11,14 @@ extern crate dfx_info;
 #[doc(inline)]
 pub use crate::error::{Error, Result};
 #[doc(inline)]
-pub use crate::ser::{to_vec, to_writer};
+pub use crate::ser::{to_vec}; //, to_writer};
 
 //#[macro_use]
 //mod macros;
 
 //pub mod de;
 pub mod error;
+#[macro_use]
 pub mod ser;
 //pub mod value;
+

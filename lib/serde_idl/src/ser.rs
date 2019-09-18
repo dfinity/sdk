@@ -2,13 +2,37 @@
 
 use super::error::{Error, Result};
 
-use std::io;
+use std::io::Write;
 use std::vec::Vec;
 use std::collections::HashMap;
 use dfx_info::types::{Type, Field};
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
 
+#[macro_export]
+macro_rules! to_vec {
+    ($($args:expr),+) => {{
+        let mut vec = Vec::new();
+        vec.write_all(b"DIDL").unwrap();
+        
+        let mut type_ser = TypeSerialize::new();
+        $(let ty = dfx_info::types::get_type(&$args);
+          type_ser.push_type(&ty).unwrap();)+
+        type_ser.serialize().unwrap();
+        vec.write_all(&type_ser.result).unwrap();
+
+        let mut value_ser = ValueSerializer::new();
+        $(let v = $args;
+        v.idl_serialize(&mut value_ser).unwrap();)+
+        vec.write_all(&value_ser.value).unwrap();
+        Ok(vec)
+    }}
+}
+
+pub fn to_vec<T: dfx_info::IDLType>(value: &T) -> Result<Vec<u8>> {
+    to_vec!(value)
+}
+/*
 /// Serializes a value to a vector.
 pub fn to_vec<T>(value: &T) -> Result<Vec<u8>>
 where
@@ -36,7 +60,7 @@ where
     writer.write_all(&value_ser.value)?;
     Ok(())
 }
-
+*/
 /// A structure for serializing Rust values to IDL.
 #[derive(Debug)]
 pub struct ValueSerializer {
@@ -123,6 +147,7 @@ impl<'a> dfx_info::Compound for Compound<'a> {
 pub struct TypeSerialize {
     type_table: Vec<Vec<u8>>,
     type_map: HashMap<Type, i32>,
+    args: Vec<Type>,
     result: Vec<u8>,
 }
 
@@ -133,6 +158,7 @@ impl TypeSerialize
         TypeSerialize {
             type_table: Vec::new(),
             type_map: HashMap::new(),
+            args: Vec::new(),
             result: Vec::new()
         }
     }
@@ -197,7 +223,12 @@ impl TypeSerialize
         Ok(())
     }
 
-    fn encode(&mut self, buf: &mut Vec<u8>, t: &Type) -> Result<()> {
+    fn push_type(&mut self, t: &Type) -> Result<()> {
+        self.args.push(t.clone());
+        self.build_type(t)
+    }
+
+    fn encode(&self, buf: &mut Vec<u8>, t: &Type) -> Result<()> {
         match t {
             Type::Null => sleb128_encode(buf, -1),
             Type::Bool => sleb128_encode(buf, -2),
@@ -220,14 +251,18 @@ impl TypeSerialize
         Ok(())
     }
 
-    fn serialize(&mut self, t: &Type) -> Result<()> {
-        self.build_type(t)?;
+    fn serialize(&mut self) -> Result<()> {
+        //self.build_type(t)?;
         //println!("{:?}", self.type_map);
 
         leb128_encode(&mut self.result, self.type_table.len() as u64)?;
         self.result.append(&mut self.type_table.concat());
-        let mut ty_encode = Vec::new();        
-        self.encode(&mut ty_encode, t)?;
+
+        leb128_encode(&mut self.result, self.args.len() as u64)?;
+        let mut ty_encode = Vec::new();
+        for t in self.args.iter() {
+            self.encode(&mut ty_encode, t)?;
+        };
         self.result.append(&mut ty_encode);
         Ok(())
     }
