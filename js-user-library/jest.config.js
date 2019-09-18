@@ -8,5 +8,6 @@ module.exports = {
   testPathIgnorePatterns: [
     "/node_modules/",
     "/out/",
+    "/src/IDL-ts/",
   ]
 };
