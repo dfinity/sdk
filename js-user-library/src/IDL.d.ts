@@ -1,17 +1,13 @@
-declare class Message {}
-declare class Type {}
-declare class Text {}
+declare class _Message {}
+declare class _Type {}
+declare class _Text {}
 
-declare module IDL {
-  class ActorInterface {
-    __fields: object
-    constructor(fields: object)
-  }
-
-  function idlHash(s: string): number
-
-  function Message(argTypes?: Array<Type>, retTypes?: Array<Type>): Message
-  function Text(): Text
+export class ActorInterface {
+  __fields: object
+  constructor(fields: object)
 }
 
-export = IDL;
+export function idlHash(s: string): number
+
+export function Message(argTypes?: Array<_Type>, retTypes?: Array<_Type>): _Message
+export function Text(): _Text
