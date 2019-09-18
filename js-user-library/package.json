@@ -9,7 +9,7 @@
     "build": "npm run build:types && npm run build:js",
     "build:types": "tsc --declaration --emitDeclarationOnly",
     "build:js": "babel src --out-dir out --extensions \".ts\" --source-maps inline",
-    "test": "npm run type-check && jest"
+    "test": "npm run type-check && jest --verbose"
   },
   "dependencies": {
     "buffer": "^5.4.3",
