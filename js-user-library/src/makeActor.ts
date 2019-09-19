@@ -33,7 +33,10 @@ export const makeActor = (
         requestId,
         // response,
       } = await apiClient.call({ methodName, arg });
+
       const maxRetries = 3;
+
+      // NOTE: we may need to use something like `setInterval` here
       for (let i = 0; i < maxRetries; i++) {
         const response = await apiClient.requestStatus({ requestId });
         // FIXME: the body should be a CBOR value
