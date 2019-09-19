@@ -23,14 +23,6 @@ The function encode takes a JavaScript value that can be represented as such,
 and turns it into a Buffer.
 */
 
-/*
-TODO: (By anyone who knows JavaScript better than me...)
- * The code currently does naive Buffer concatenation. Some more clever strategy
-   would be better.
- * The arguments to encode should be checked for having the proper type.
- * Maybe the whole thing needs to be rewritten.
-*/
-
 const zipWith = (xs, ys, f) => xs.map((x, i) => f(x, ys[i]))
 
 const idlHash = s => {
@@ -94,7 +86,7 @@ class TypeTable {
 }
 
 /**
- * Represents an ActorScript type
+ * Represents an IDL type
  */
 class Type {
   /**
@@ -112,8 +104,9 @@ class Type {
     this.buildType(T)
     const magic = Buffer.from(magicNumber, 'utf8')
     const table = T.encodeTable()
+    const len = leb.encode(1)
     const ty = this.encodeTypeGo(T)
-    return Buffer.concat([magic, table, ty])
+    return Buffer.concat([magic, table, len, ty])
   }
 
   /* Memoized DFS for storing type description into TypeTable  */
@@ -188,7 +181,10 @@ class Type {
         throw new Error('Illegal op_code: ' + ty)
       }
     }
-    sleb.readBn(b).toNumber()
+    const ty_len = leb.readBn(b)
+    for (var i = 0; i < ty_len; i++) {
+      sleb.readBn(b).toNumber()
+    }
   }
 
   decodeGo (x) {
@@ -201,7 +197,7 @@ class Type {
 }
 
 /**
- * Represents an ActorScript None, a type which has no inhabitants.
+ * Represents an IDL None, a type which has no inhabitants.
  * Since no values exist for this type, it cannot be serialised or deserialised.
  * Result types like `Result<Text, None>` should always succeed.
  */
@@ -220,7 +216,7 @@ class None extends Type {
 }
 
 /**
- * Represents an ActorScript Bool
+ * Represents an IDL Bool
  */
 class Bool extends Type {
   encodeGo (x) {
@@ -243,7 +239,7 @@ class Bool extends Type {
 }
 
 /**
- * Represents an ActorScript Unit
+ * Represents an IDL Unit
  */
 class Unit extends Type {
   encodeGo (x) {
@@ -260,7 +256,7 @@ class Unit extends Type {
 }
 
 /**
- * Represents an ActorScript Text
+ * Represents an IDL Text
  */
 class Text extends Type {
   // Special top-level encoding
@@ -301,7 +297,7 @@ class Text extends Type {
 }
 
 /**
- * Represents an ActorScript Int
+ * Represents an IDL Int
  */
 class Int extends Type {
   encodeGo (x) {
@@ -321,7 +317,7 @@ class Int extends Type {
 }
 
 /**
- * Represents an ActorScript Nat
+ * Represents an IDL Nat
  */
 class Nat extends Type {
   encodeGo (x) {
@@ -341,7 +337,7 @@ class Nat extends Type {
 }
 
 /**
- * Represents an ActorScript Tuple
+ * Represents an IDL Tuple
  * @param {Type} components
 */
 class Tuple extends Type {
@@ -380,7 +376,7 @@ class Tuple extends Type {
 }
 
 /**
- * Represents an ActorScript Array
+ * Represents an IDL Array
  * @param {Type} t
  */
 class Arr extends Type {
@@ -427,7 +423,7 @@ class Arr extends Type {
 }
 
 /**
- * Represents an ActorScript Option
+ * Represents an IDL Option
  * @param {Type} t
  */
 class Opt extends Type {
@@ -472,7 +468,7 @@ class Opt extends Type {
 }
 
 /**
- * Represents an ActorScript Object
+ * Represents an IDL Object
  * @param {Object} [fields] - mapping of function name to Type
  */
 class Obj extends Type {
@@ -525,7 +521,7 @@ class Obj extends Type {
 }
 
 /**
- * Represents an ActorScript Variant
+ * Represents an IDL Variant
  * @param {Object} [fields] - mapping of function name to Type
  */
 class Variant extends Type {
@@ -588,7 +584,7 @@ class Variant extends Type {
 }
 
 /**
- * Represents a reference to an ActorScript type,
+ * Represents a reference to an IDL type,
  * used for defining recursive data types.
  */
 class Rec extends Type {
@@ -743,7 +739,19 @@ class ActorInterface {
           if (args.length !== msg.argTypes.length) {
             throw Error('Wrong number of message arguments')
           }
-          return zipWith(msg.argTypes, args, (a, b) => a.encode(b))
+          /*
+          const T = new TypeTable()
+          const argTypes = msg.argTypes
+          argTypes.map(t => t.buildType(T))
+
+          const magic = Buffer.from(magicNumber, 'utf8')
+          const table = T.encodeTable()
+          const len = leb.encode(args.length)
+          const typs = Buffer.concat(argTypes.map(t => t.encodeTypeGo(T)))
+          const vals = Buffer.concat(zipWith(argTypes, args, (t, x) => t.encodeGo(x)))
+          return Buffer.concat([magic,table,len,typs,vals])
+          */
+          return zipWith(argTypes, args, (a, b) => a.encode(b))
         }
 
         const decodeResults = res_ => {
