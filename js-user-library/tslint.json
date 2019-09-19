@@ -11,6 +11,7 @@
     ]
   },
   "rules": {
+    "array-type": [true, "generic"],
     "interface-name": [true, "never-prefix"],
     "max-line-length": [true, 80],
     "object-literal-sort-keys": false
