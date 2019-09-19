@@ -44,12 +44,15 @@ export const makeActor = (
       // NOTE: we may need to use something like `setInterval` here
       for (let i = 0; i < maxRetries; i++) {
         const response = await apiClient.requestStatus({ requestId });
+        const decoded = await response.json();
+        /*
         // TODO: handle decoding failure
         const responseBody = await response.arrayBuffer();
         // TODO: throw if fn.retTypes.length !== args.length
         const decoded = zipWith(fn.retTypes, responseBody, (x, y) => {
           return x.decode(y);
         });
+        */
         const replied = ResponseStatus[ResponseStatus.replied];
 
         if (decoded.status === replied) {
