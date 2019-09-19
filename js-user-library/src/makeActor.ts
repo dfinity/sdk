@@ -31,7 +31,8 @@ export const makeActor = (
     return [methodName, async (...args: Array<any>) => {
       // TODO: throw if fn.argTypes.length !== args.length
       const encoded = zipWith(fn.argTypes, args, (x, y) => x.encode(y));
-      const arg = new Blob(encoded, { type: "application/cbor" }); // TODO: is this the right thing to do?
+      // TODO: is this the right thing to do?
+      const arg = new Blob(encoded, { type: "application/cbor" });
 
       const {
         requestId,
