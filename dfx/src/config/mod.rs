@@ -13,6 +13,7 @@ pub fn dfx_version() -> &'static str {
             Some(x) => x.as_str(),
             None => {
                 let version = env!("CARGO_PKG_VERSION");
+                DFX_VERSION = Some(version.to_owned());
 
                 #[cfg(debug_assertions)]
                 {
