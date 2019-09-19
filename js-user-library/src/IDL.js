@@ -2,6 +2,8 @@ const sleb = require('leb128/signed')
 const leb = require('leb128/unsigned')
 const Pipe = require('buffer-pipe')
 
+const { zipWith } = require('./array');
+
 const type = o => Object.prototype.toString.call(o).slice(8, -1)
 
 // `TextEncoder` is defined at the top-level in later versions of Node.js, and
@@ -22,8 +24,6 @@ https://github.com/dfinity-lab/actorscript/blob/26ed2f1d33e4fbad2ef16f7723ad529a
 The function encode takes a JavaScript value that can be represented as such,
 and turns it into a Buffer.
 */
-
-const zipWith = (xs, ys, f) => xs.map((x, i) => f(x, ys[i]))
 
 const idlHash = s => {
   if (!(typeof s === 'string')) {
