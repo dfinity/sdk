@@ -1,3 +1,8 @@
 { napalm }:
 
-napalm.buildPackage ./. {}
+napalm.buildPackage ./. {
+  npmCommands = [
+    "npm install"
+    "npm test"
+  ];
+}
