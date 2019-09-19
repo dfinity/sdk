@@ -116,25 +116,24 @@ pub struct Config {
 #[allow(dead_code)]
 impl Config {
     pub fn resolve_config_path(working_dir: &Path) -> Result<PathBuf, std::io::Error> {
-        fn recurse(mut curr: PathBuf) -> Result<PathBuf, std::io::Error> {
-            curr.push(CONFIG_FILE_NAME);
-
-            if curr.is_file() {
-                Ok(curr)
+        let mut curr = PathBuf::from(working_dir).canonicalize()?;
+        while curr.parent().is_some() {
+            if curr.join(CONFIG_FILE_NAME).is_file() {
+                return Ok(curr);
             } else {
-                curr.pop(); // Remove the filename.
-                if curr.pop() {
-                    recurse(curr)
-                } else {
-                    Err(std::io::Error::new(
-                        std::io::ErrorKind::NotFound,
-                        "Config not found.",
-                    ))
-                }
+                curr.pop();
             }
         }
 
-        recurse(PathBuf::from(working_dir))
+        // Have to check if the config could be in the root (e.g. on VMs / CI).
+        if curr.join(CONFIG_FILE_NAME).is_file() {
+            return Ok(curr);
+        }
+
+        Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Config not found.",
+        ))
     }
 
     pub fn load_from(working_dir: &PathBuf) -> std::io::Result<Config> {
