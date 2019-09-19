@@ -263,8 +263,6 @@ class Text extends Type {
   encode (x) {
     if (typeof x === 'string') {
       return Buffer.from(x, 'utf8')
-    } else if (typeof x === 'object' && x instanceof UserIdentity) {
-      return x
     } else {
       throw Error('Invalid Text argument: ' + x)
     }
@@ -634,34 +632,6 @@ class Rec extends Type {
 }
 
 /**
- * A UserIdentity is a special function argument, which is filled
- * in by the system and guaranteed to be true. It is not supported nested in
- * arguments, or as return values.
- */
-class DfinityUserId extends Type {
-  encode (x) {
-    // NB: The argument is ignored
-    return new UserIdentity()
-  }
-
-  decode () {
-    throw Error('DfinityUserId not supported as result values.')
-  }
-
-  encodeGo (x) {
-    throw Error('DfinityUserId not supported in nested position.')
-  }
-
-  encodeTypeGo (T) {
-    throw Error('DfinityUserId not supported in nested position.')
-  }
-
-  decodeGo () {
-    throw Error('DfinityUserId not supported in nested position.')
-  }
-}
-
-/**
  * Represents an ActorScript Async Function which can return data
  * @param {Array<Type>} [argTypes] - argument types
  * @param {Array<Type>} [retTypes] - return types
@@ -832,7 +802,6 @@ module.exports = {
   Obj: fs => new Obj(fs),
   Variant: fs => new Variant(fs),
   Rec : () => new Rec(),
-  DfinityUserId: new DfinityUserId(),
 
   Message: (...args) => new Message(...args),
   ActorInterface,

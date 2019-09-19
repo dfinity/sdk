@@ -1,4 +1,4 @@
-import { makeApiClient, IDL, makeActor } from "./index";
+import { IDL, makeActor, makeApiClient } from "./index";
 
 test("makeActor", async () => {
   const actorInterface = new IDL.ActorInterface({

@@ -1,11 +1,12 @@
-import { makeApiClient, IDL, makeActor } from "./index";
+import { IDL, makeActor, makeApiClient } from "./index";
 
 test("call", async () => {
   const greeting = "Hello, World!";
 
   const mockFetch: jest.Mock = jest.fn((resource, init) => {
     // FIXME: the body should be a CBOR value
-    return Promise.resolve(new Response(greeting/*status: "replied", reply: greeting*/, {
+    // status: "replied", reply: greeting
+    return Promise.resolve(new Response(greeting, {
       status: 200,
     }));
   });
