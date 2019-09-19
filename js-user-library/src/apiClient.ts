@@ -1,48 +1,66 @@
-const API_VERSION = "v1";
+import { assertNever } from "./never";
 
-interface Options {
-  canisterId: number;
-  fetch?: WindowOrWorkerGlobalScope["fetch"];
-  host?: string;
+// Common request fields.
+interface Request {
+  request_type: ReadRequestType | SubmitRequestType;
+  // expiry?:;
+  // NOTE: `nonce` is optional in the spec, but we should probably provide it
+  // nonce: Blob;
+  // sender:;
+  // sender_pubkey: Blob;
+  // sender_sig: Blob;
 }
 
-interface DefaultOptions {
-  fetch: WindowOrWorkerGlobalScope["fetch"];
-  host: string;
-}
 
-interface Config {
-  canisterId: number;
-  host: string;
-  runFetch(endpoint: Endpoint, body?: BodyInit | null): Promise<Response>;
-}
-
-enum Endpoint {
-  read,
-  submit,
-}
-
+// An ADT that represents requests to the "read" endpoint.
 type ReadRequest
-  = ReadQuery
-  | ReadRequestStatus;
+  = ReadQueryRequest
+  | ReadRequestStatusRequest;
 
+// The types of values allowed in the `request_type` field for read requests.
 enum ReadRequestType {
-  query,
-  requestStatus,
+  query = "query",
+  requestStatus = "request-status",
 }
 
-interface ReadQuery {
-  type: ReadRequestType.query;
+// Pattern match on a read request.
+const matchReadRequest = (
+  handlers: {
+    query: (x: ReadQueryRequest) => any,
+    requestStatus: (x: ReadRequestStatusRequest) => any,
+  },
+) => (
+  request: ReadRequest,
+): any => {
+  switch (request.request_type) {
+    case ReadRequestType.query: {
+      return handlers.query(request);
+    }
+    case ReadRequestType.requestStatus: {
+      return handlers.requestStatus(request);
+    }
+    default: {
+      // Make the type checker enforce that our switch cases are exhaustive
+      return assertNever(request);
+    }
+  }
+};
+
+// The fields in a "query" read request.
+interface ReadQueryRequest extends Request {
+  request_type: ReadRequestType.query;
   canister_id: number;
   method_name: string;
   arg: Blob;
 }
 
-interface ReadRequestStatus {
-  type: ReadRequestType.requestStatus;
+// The fields in a "request-status" read request.
+interface ReadRequestStatusRequest extends Request {
+  request_type: ReadRequestType.requestStatus;
   request_id: number;
 }
 
+// Construct a "query" read request.
 const readQuery = ({
   canisterId,
   methodName,
@@ -51,19 +69,21 @@ const readQuery = ({
   canisterId: number,
   methodName: string,
   arg: Blob,
-}): ReadQuery => ({
-  type: ReadRequestType.query,
+}): ReadQueryRequest => ({
+  request_type: ReadRequestType.query,
   canister_id: canisterId,
   method_name: methodName,
   arg,
 });
 
+
+// Construct a "request-status" read request.
 const readRequestStatus = ({
   requestId,
 }: {
   requestId: number,
-}): ReadRequestStatus => ({
-  type: ReadRequestType.requestStatus,
+}): ReadRequestStatusRequest => ({
+  request_type: ReadRequestType.requestStatus,
   request_id: requestId,
 });
 
@@ -74,20 +94,54 @@ export enum ReadRequestStatusResponseStatus {
   rejected,
 }
 
-type SubmitRequest
-  = SubmitCall;
 
-enum SubmitRequestType {
-  call,
+enum RejectCode {
+  SysFatal = 1,
+  SysTransient = 2,
+  DestinationInvalid = 3,
+  CanisterReject = 4,
+  CanisterError = 5,
 }
 
-interface SubmitCall {
-  type: SubmitRequestType.call;
+
+// An ADT that represents requests to the "submit" endpoint.
+type SubmitRequest
+  = SubmitCallRequest;
+
+// The types of values allowed in the `request_type` field for submit requests.
+enum SubmitRequestType {
+  call = "call",
+}
+
+// Pattern match on a submit request.
+const matchSubmitRequest = (
+  handlers: {
+    call: (x: SubmitCallRequest) => any,
+  },
+) => (
+  request: SubmitRequest,
+): any => {
+  switch (request.request_type) {
+    case SubmitRequestType.call: {
+      return handlers.call(request);
+    }
+    default: {
+      // Make the type checker enforce that our switch cases are exhaustive
+      // FIXME: this causes a type error since we currently only have 1 tag
+      // return assertNever(request);
+    }
+  }
+};
+
+// The fields in a "call" submit request.
+interface SubmitCallRequest extends Request {
+  request_type: SubmitRequestType.call;
   canister_id: number;
   method_name: string;
   arg: Blob;
 }
 
+// Construct a "call" submit request.
 const submitCall = ({
   canisterId,
   methodName,
@@ -96,63 +150,31 @@ const submitCall = ({
   canisterId: number,
   methodName: string,
   arg: Blob,
-}) => ({
-  type: SubmitRequestType.call,
+}): SubmitCallRequest => ({
+  request_type: SubmitRequestType.call,
   canister_id: canisterId,
   method_name: methodName,
   arg,
 });
 
-const defaultOptions: DefaultOptions = {
-  fetch: window.fetch,
-  host: "http://localhost:8080",
-};
-
-const makeConfig = (options: Options): Config => {
-  const withDefaults = { ...defaultOptions, ...options };
-  return {
-    ...withDefaults,
-    runFetch: (endpoint, body) => {
-      return withDefaults.fetch(`${withDefaults.host}/api/${API_VERSION}/${Endpoint[endpoint]}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/cbor",
-        },
-        body,
-      });
-    },
-  };
-};
 
 interface SubmitResponse {
   requestId: number;
   response: Response;
 }
 
+
 const submit = (
   config: Config,
 ) => async (
   request: SubmitRequest,
 ): Promise<SubmitResponse> => {
-  const body = (() => {
-    switch (request.type) {
-      case SubmitRequestType.call: {
-        const fields = {
-          request_type: request.type,
-          canister_id: request.canister_id,
-          method_name: request.method_name,
-          arg: request.arg,
-          // expiry,
-          // nonce, // FIXME: provide this to create distinct request IDs
-          // sender,
-          // sender_pubkey,
-          // sender_sig,
-        };
-        // FIXME: convert `fields` to `body`
-        return "FIXME: call";
-      }
-    }
-  })();
+  const body = matchSubmitRequest({
+    call: (fields) => {
+      // FIXME: convert `fields` to `body`
+      return "FIXME: call";
+    },
+  })(request);
   // TODO: decode body from CBOR
   const response = await config.runFetch(Endpoint.submit, body);
   return {
@@ -166,26 +188,14 @@ const read = (
 ) => async (
   request: ReadRequest,
 ): Promise<Response> => {
-  const body = (() => {
-    switch (request.type) {
-      case ReadRequestType.query: {
-        const fields = {
-          request_type: request.type,
-          canister_id: request.canister_id,
-          method_name: request.method_name,
-          arg: request.arg,
-        };
-        return "FIXME: query"; // FIXME: CBOR
-      }
-      case ReadRequestType.requestStatus: {
-        const fields = {
-          request_type: request.type,
-          request_id: request.request_id,
-        };
-        return "FIXME: request status"; // FIXME: // CBOR
-      }
-    }
-  })();
+  const body = matchReadRequest({
+    query: (fields) => {
+      return "FIXME: query"; // FIXME: CBOR
+    },
+    requestStatus: (fields) => {
+      return "FIXME: request status"; // FIXME: // CBOR
+    },
+  })(request);
   // TODO: decode body from CBOR
   return config.runFetch(Endpoint.read, body);
 };
@@ -218,17 +228,61 @@ const requestStatus = (
   return read(config)(request);
 };
 
+
+const API_VERSION = "v1";
+
+interface Options {
+  canisterId: number;
+  fetch?: WindowOrWorkerGlobalScope["fetch"];
+  host?: string;
+}
+
+interface DefaultOptions {
+  fetch: WindowOrWorkerGlobalScope["fetch"];
+  host: string;
+}
+
+const defaultOptions: DefaultOptions = {
+  fetch: window.fetch,
+  host: "http://localhost:8080",
+};
+
+
+interface Config {
+  canisterId: number;
+  host: string;
+  runFetch(endpoint: Endpoint, body?: BodyInit | null): Promise<Response>;
+}
+
+const makeConfig = (options: Options): Config => {
+  const withDefaults = { ...defaultOptions, ...options };
+  return {
+    ...withDefaults,
+    runFetch: (endpoint, body) => {
+      return withDefaults.fetch(`${withDefaults.host}/api/${API_VERSION}/${Endpoint[endpoint]}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/cbor",
+        },
+        body,
+      });
+    },
+  };
+};
+
+
+enum Endpoint {
+  read,
+  submit,
+}
+
 export interface ApiClient {
-  call({
-    methodName,
-    arg,
-  }: {
+  call(_: {
     methodName: string,
     arg: Blob,
   }): Promise<SubmitResponse>;
-  requestStatus({
-    requestId,
-  }: {
+
+  requestStatus(_: {
     requestId: number,
   }): Promise<Response>;
 }
