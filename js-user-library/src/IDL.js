@@ -13,16 +13,14 @@ if (typeof TextEncoder === "undefined") {
 }
 
 /*
-This module provides a combinator library to create
-serializers/deserializers between JavaScript values and the scaffolding
-binary version used by ActorScript canisters, as documented at
-https://github.com/dfinity-lab/actorscript/blob/26ed2f1d33e4fbad2ef16f7723ad529a0e073e55/design/TmpWireFormat.md
+  This module provides a combinator library to create serializers/deserializers
+  between JavaScript values and IDL used by canisters on the Internet Computer,
+  as documented at https://github.com/dfinity-lab/actorscript/blob/128e37bf6800125056269454a21acd8f2c70b226/design/IDL.md
 */
 
 /*
-
-The function encode takes a JavaScript value that can be represented as such,
-and turns it into a Buffer.
+  The function `encode` takes a JavaScript value that can be represented as
+  such, and turns it into a Buffer.
 */
 
 const idlHash = s => {
@@ -618,7 +616,7 @@ class Rec extends Type {
 }
 
 /**
- * Represents an ActorScript Async Function which can return data
+ * Represents an async function which can return data
  * @param {Array<Type>} [argTypes] - argument types
  * @param {Array<Type>} [retTypes] - return types
  */
@@ -643,7 +641,7 @@ class Message {
 
 /**
  * A wrapper over a client and an IDL
- * @param {Object} [fields] - a map of IDL function name to Message
+ * @param {Object} [fields] - a map of function names to IDL function signatures
  */
 class ActorInterface {
   constructor (fields) {
