@@ -143,7 +143,7 @@ const submit = (
           method_name: request.method_name,
           arg: request.arg,
           // expiry,
-          // nonce,
+          // nonce, // FIXME: provide this to create distinct request IDs
           // sender,
           // sender_pubkey,
           // sender_sig,
