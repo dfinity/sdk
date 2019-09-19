@@ -174,14 +174,14 @@ const read = (
           method_name: request.method_name,
           arg: request.arg,
         };
-        return "FIXME: query";
+        return "FIXME: query"; // FIXME: CBOR
       }
       case ReadRequestType.requestStatus: {
         const fields = {
           request_type: request.type,
           request_id: request.request_id,
         };
-        return "FIXME: request status";
+        return "FIXME: request status"; // FIXME: // CBOR
       }
     }
   })();

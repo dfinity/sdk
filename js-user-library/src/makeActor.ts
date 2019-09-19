@@ -3,7 +3,8 @@ import {
   ReadRequestStatusResponseStatus as ResponseStatus,
 } from "./apiClient";
 
-import { ActorInterface } from "./IDL";
+import { zipWith } from "./array";
+import { ActorInterface, Fn } from "./IDL";
 
 // Allows for one client for the lifetime of the actor:
 //
@@ -25,13 +26,16 @@ export const makeActor = (
   apiClient: ApiClient,
 ) => {
   const entries = Object.entries(actorInterface.__fields);
-  return Object.fromEntries(entries.map(([methodName, desc]) => {
-    return [methodName, async (...args/* FIXME */: any[]) => {
-      // TODO: convert `args` to `arg` using `desc`
-      const arg = new Blob([], { type: "application/cbor" });
+  return Object.fromEntries(entries.map((entry) => {
+    const [methodName, fn] = entry as [string, Fn];
+    return [methodName, async (...args: Array<any>) => {
+      // TODO: throw if desc.argTypes.length !== args.length
+      const encoded = zipWith(fn.argTypes, args, (x, y) => x.encode(y));
+      const arg = new Blob(encoded, { type: "application/cbor" }); // TODO: is this the right thing to do?
+
       const {
         requestId,
-        // response,
+        // response, // FIXME: check response is OK before continuing
       } = await apiClient.call({ methodName, arg });
 
       const maxRetries = 3;
@@ -39,15 +43,18 @@ export const makeActor = (
       // NOTE: we may need to use something like `setInterval` here
       for (let i = 0; i < maxRetries; i++) {
         const response = await apiClient.requestStatus({ requestId });
-        // FIXME: the body should be a CBOR value
         // TODO: handle decoding failure
-        const responseBody = await response.json();
+        const responseBody = await response.arrayBuffer();
+        const decoded = zipWith(fn.retTypes, responseBody, (x, y) => {
+          return x.decode(y);
+        });
         const replied = ResponseStatus[ResponseStatus.replied];
-        if (responseBody.status === replied) {
-          return responseBody.reply;
+
+        if (decoded.status === replied) {
+          return decoded.reply;
         }
         if (i + 1 === maxRetries) {
-          return response; // TODO: throw?
+          return response; // TODO: throw
         }
       }
     }];

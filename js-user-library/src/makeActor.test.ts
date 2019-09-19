@@ -5,7 +5,8 @@ test("makeActor", async () => {
     greet: IDL.Fn([IDL.Text], [IDL.Text]),
   });
 
-  const greeting = "Hello, World!";
+  const name = "World";
+  const expectedReply = `Hello, ${name}!`;
 
   const mockFetch: jest.Mock = jest.fn()
     .mockImplementationOnce((resource, init) => {
@@ -29,7 +30,7 @@ test("makeActor", async () => {
     })
     .mockImplementationOnce((resource, init) => {
       // FIXME: the body should be a CBOR value
-      const body = JSON.stringify({ status: "replied", reply: greeting });
+      const body = JSON.stringify({ status: "replied", reply: expectedReply });
       return Promise.resolve(new Response(body, {
         status: 200,
       }));
@@ -41,9 +42,9 @@ test("makeActor", async () => {
   });
 
   const actor = makeActor(actorInterface)(apiClient);
-  const reply = await actor.greet();
+  const reply = await actor.greet(name);
 
-  expect(reply).toBe(greeting);
+  expect(reply).toBe(expectedReply);
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(4);
@@ -56,7 +57,7 @@ test("makeActor", async () => {
     },
     // FIXME
     // body: new Blob([], { type: "application/cbor" }),
-    body: "FIXME: call",
+    body: "FIXME: call", // FIXME: use name
   });
 
   expect(calls[1][0]).toBe("http://localhost:8080/api/v1/read");
