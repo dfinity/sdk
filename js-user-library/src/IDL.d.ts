@@ -1,4 +1,4 @@
-declare class _Message {}
+declare class _Function {}
 declare class _Type {}
 declare class _Text {}
 
@@ -9,5 +9,5 @@ export class ActorInterface {
 
 export function idlHash(s: string): number
 
-export function Message(argTypes?: Array<_Type>, retTypes?: Array<_Type>): _Message
+export function Function(argTypes?: Array<_Type>, retTypes?: Array<_Type>): _Function
 export function Text(): _Text

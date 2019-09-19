@@ -620,7 +620,7 @@ class Rec extends Type {
  * @param {Array<Type>} [argTypes] - argument types
  * @param {Array<Type>} [retTypes] - return types
  */
-class Message {
+class Function {
   constructor (argTypes = [], retTypes = null) {
     if (argTypes instanceof Type) {
       argTypes = [ argTypes ]
@@ -629,10 +629,10 @@ class Message {
       retTypes = [ retTypes ]
     }
     if (!Array.isArray(argTypes)) {
-      throw Error('First argument to Message must be an array of IDL argument types.')
+      throw Error('First argument to Function must be an array of IDL argument types.')
     }
     if (retTypes && !Array.isArray(retTypes)) {
-      throw Error('Second argument to Message must be an array of IDL argument types.')
+      throw Error('Second argument to Function must be an array of IDL argument types.')
     }
     this.argTypes = argTypes
     this.retTypes = retTypes
@@ -787,7 +787,7 @@ module.exports = {
   Variant: fs => new Variant(fs),
   Rec : () => new Rec(),
 
-  Message: (...args) => new Message(...args),
+  Function: (...args) => new Function(...args),
   ActorInterface,
   idlHash
 }
