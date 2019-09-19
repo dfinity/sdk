@@ -1,6 +1,7 @@
 use crate::lib::error::*;
 use futures::future::{err, ok, result, Future};
 use futures::stream::Stream;
+use rand::Rng;
 use reqwest::r#async::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -90,7 +91,20 @@ enum SubmitRequest {
         canister_id: CanisterId,
         module: Blob,
         arg: Blob,
+        nonce: Option<Blob>,
     },
+    Call {
+        canister_id: CanisterId,
+        method_name: String,
+        arg: Blob,
+        nonce: Option<Blob>,
+    },
+}
+
+/// Generates a random 32 bytes of blob.
+fn random_blob() -> Blob {
+    let mut rng = rand::thread_rng();
+    Blob(rng.gen::<[u8; 32]>().iter().cloned().collect())
 }
 
 /// A read request. Intended to remain private in favor of exposing specialized
@@ -181,6 +195,36 @@ pub fn install_code(
             canister_id,
             module,
             arg: arg.unwrap_or_else(|| Blob(vec![])),
+            nonce: Some(random_blob()),
+        },
+    )
+    .and_then(|response| {
+        result(
+            response
+                .error_for_status()
+                .map(|_| ())
+                .map_err(DfxError::from),
+        )
+    })
+}
+
+/// Canister call
+///
+/// Canister methods that can change the canister state. This return right away, and cannot wait
+/// for the canister to be done.
+pub fn call(
+    client: Client,
+    canister_id: CanisterId,
+    method_name: String,
+    arg: Option<Blob>,
+) -> impl Future<Item = (), Error = DfxError> {
+    submit(
+        client,
+        SubmitRequest::Call {
+            canister_id,
+            method_name,
+            arg: arg.unwrap_or_else(|| Blob(vec![])),
+            nonce: Some(random_blob()),
         },
     )
     .and_then(|response| {
@@ -417,6 +461,7 @@ mod tests {
             canister_id,
             module,
             arg,
+            nonce: None,
         };
 
         let actual: Value = serde_cbor::from_slice(&serde_cbor::to_vec(&request).unwrap()).unwrap();
@@ -433,6 +478,7 @@ mod tests {
                 ),
                 (Value::Text("module".to_string()), Value::Bytes(vec![1])),
                 (Value::Text("arg".to_string()), Value::Bytes(vec![2])),
+                (Value::Text("nonce".to_string()), Value::Null),
             ]
             .into_iter()
             .collect(),
