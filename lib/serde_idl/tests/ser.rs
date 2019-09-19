@@ -1,4 +1,4 @@
-
+#[macro_use]
 extern crate serde_idl;
 extern crate serde;
 extern crate dfx_info;
@@ -136,8 +136,19 @@ fn test_generics() {
     check(res, "4449444c016c02eab3017cebb3017e01002a01")
 }
 
+#[test]
+fn test_builder() {
+    checks(IDL!(&42, &Some(42), &Some(1), &Some(2)), "4449444c016e7c047c0000002a012a01010102");
+    checks(IDL!(&[(42, "text")], &(42, "text")), "4449444c026d016c02007c0171020001012a04746578742a0474657874");
+}
+
 fn check<T>(value: T, expected: &str) where T: IDLType {
     let encoded = to_vec(&value).unwrap();
+    let expected = hex::decode(expected).unwrap();
+    assert_eq!(encoded, expected, "\nExpected\n{:x?}\nActual\n{:x?}\n", expected, encoded);
+}
+
+fn checks(encoded: Vec<u8>, expected: &str) {
     let expected = hex::decode(expected).unwrap();
     assert_eq!(encoded, expected, "\nExpected\n{:x?}\nActual\n{:x?}\n", expected, encoded);
 }

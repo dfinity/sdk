@@ -2,65 +2,52 @@
 
 use super::error::{Error, Result};
 
-use std::io::Write;
+use std::io;
 use std::vec::Vec;
 use std::collections::HashMap;
 use dfx_info::types::{Type, Field};
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
 
-#[macro_export]
-macro_rules! to_vec {
-    ($($args:expr),+) => {{
+pub struct IDLBuilder {
+    type_ser: TypeSerialize,
+    value_ser: ValueSerializer,
+}
+
+impl IDLBuilder {
+    pub fn new() -> Self {
+        IDLBuilder {
+            type_ser: TypeSerialize::new(),
+            value_ser: ValueSerializer::new(),
+        }
+    }
+    pub fn arg<'a, T: dfx_info::IDLType>(&'a mut self, value: &T) -> &'a mut Self {
+        self.type_ser.push_type(&T::ty()).unwrap();
+        value.idl_serialize(&mut self.value_ser).unwrap();
+        self
+    }
+    pub fn serialize<W: io::Write>(&mut self, mut writer: W) -> Result<()> {
+        writer.write_all(b"DIDL")?;
+        self.type_ser.serialize()?;
+        writer.write_all(&self.type_ser.result)?;
+        writer.write_all(&self.value_ser.value)?;
+        Ok(())
+    }
+    pub fn to_vec(&mut self) -> Result<Vec<u8>> {
         let mut vec = Vec::new();
-        vec.write_all(b"DIDL").unwrap();
-        
-        let mut type_ser = TypeSerialize::new();
-        $(let ty = dfx_info::types::get_type(&$args);
-          type_ser.push_type(&ty).unwrap();)+
-        type_ser.serialize().unwrap();
-        vec.write_all(&type_ser.result).unwrap();
-
-        let mut value_ser = ValueSerializer::new();
-        $(let v = $args;
-        v.idl_serialize(&mut value_ser).unwrap();)+
-        vec.write_all(&value_ser.value).unwrap();
+        self.serialize(&mut vec)?;
         Ok(vec)
-    }}
+    }
 }
 
-pub fn to_vec<T: dfx_info::IDLType>(value: &T) -> Result<Vec<u8>> {
-    to_vec!(value)
-}
-/*
 /// Serializes a value to a vector.
 pub fn to_vec<T>(value: &T) -> Result<Vec<u8>>
 where
     T: dfx_info::IDLType,
 {
-    let mut vec = Vec::new();
-    to_writer(&mut vec, value)?;
-    Ok(vec)
+    IDLBuilder::new().arg(value).to_vec()
 }
 
-/// Serializes a value to a writer.
-pub fn to_writer<W, T>(mut writer: W, value: &T) -> Result<()>
-where
-    W: io::Write,
-    T: dfx_info::IDLType,
-{
-    writer.write_all(b"DIDL")?;
-    
-    let mut type_ser = TypeSerialize::new();
-    type_ser.serialize(&T::ty())?;
-    writer.write_all(&type_ser.result)?;
-    
-    let mut value_ser = ValueSerializer::new();
-    value.idl_serialize(&mut value_ser)?;
-    writer.write_all(&value_ser.value)?;
-    Ok(())
-}
-*/
 /// A structure for serializing Rust values to IDL.
 #[derive(Debug)]
 pub struct ValueSerializer {
@@ -252,9 +239,6 @@ impl TypeSerialize
     }
 
     fn serialize(&mut self) -> Result<()> {
-        //self.build_type(t)?;
-        //println!("{:?}", self.type_map);
-
         leb128_encode(&mut self.result, self.type_table.len() as u64)?;
         self.result.append(&mut self.type_table.concat());
 

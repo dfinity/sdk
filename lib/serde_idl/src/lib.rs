@@ -1,6 +1,5 @@
 //! # Serde Dfinity IDL
 
-//#[macro_use]
 extern crate serde;
 extern crate leb128;
 extern crate dfx_info;
@@ -11,14 +10,18 @@ extern crate dfx_info;
 #[doc(inline)]
 pub use crate::error::{Error, Result};
 #[doc(inline)]
-pub use crate::ser::{to_vec}; //, to_writer};
-
-//#[macro_use]
-//mod macros;
+pub use crate::ser::{to_vec};
 
 //pub mod de;
 pub mod error;
 #[macro_use]
 pub mod ser;
-//pub mod value;
 
+#[macro_export]
+macro_rules! IDL {
+    ( $($x:expr),+ ) => {{
+        let mut idl = serde_idl::ser::IDLBuilder::new();
+        $(idl.arg($x);)+
+        idl.to_vec().unwrap()
+    }}
+}
