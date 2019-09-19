@@ -1,0 +1,19 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:recommended"
+  ],
+  "jsRules": {},
+  "linterOptions": {
+    "exclude": [
+      "src/IDL.js",
+      "src/IDL.test.js"
+    ]
+  },
+  "rules": {
+    "interface-name": [true, "never-prefix"],
+    "max-line-length": [true, 80],
+    "object-literal-sort-keys": false
+  },
+  "rulesDirectory": []
+}
