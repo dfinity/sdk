@@ -38,7 +38,7 @@ test('IDL encoding', () => {
   test_(IDL.Unit, null, '4449444c00017f', 'Unit value')
 
   // Text
-  test_(IDL.Text, 'Hi ☃\n', '486920e298830a', 'Text with unicode')
+  test_(IDL.Text, 'Hi ☃\n', '4449444c00017107486920e298830a', 'Text with unicode')
   test_(IDL.Opt(IDL.Text), 'Hi ☃\n', '4449444c016e7101000107486920e298830a', 'Nested text with unicode')
   expect(() => IDL.Text.encode(0), 'Wrong Text type').toThrow(/Invalid Text argument/)
   expect(() => IDL.Text.encode(null), 'Wrong Text type').toThrow(/Invalid Text argument/)

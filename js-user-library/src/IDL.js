@@ -259,20 +259,6 @@ class Unit extends Type {
  * Represents an IDL Text
  */
 class Text extends Type {
-  // Special top-level encoding
-  encode (x) {
-    if (typeof x === 'string') {
-      return Buffer.from(x, 'utf8')
-    } else {
-      throw Error('Invalid Text argument: ' + x)
-    }
-  }
-
-  decode (x) {
-    return x.toString()
-  }
-
-  // Standard format
   encodeGo (x) {
     if (typeof x !== 'string') {
       throw Error('Invalid Text argument: ' + x)
@@ -657,7 +643,7 @@ class Message {
 
 /**
  * A wrapper over a client and an IDL
- * @param {Object} [fields] - a map of ActorScript function name to Message
+ * @param {Object} [fields] - a map of IDL function name to Message
  */
 class ActorInterface {
   constructor (fields) {
