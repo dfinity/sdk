@@ -1,6 +1,6 @@
-declare class _Function {}
-declare class _Type {}
-declare class _Text {}
+export interface Function {}
+export interface Type {}
+export interface Text {}
 
 export class ActorInterface {
   __fields: object
@@ -9,5 +9,5 @@ export class ActorInterface {
 
 export function idlHash(s: string): number
 
-export function Function(argTypes?: Array<_Type>, retTypes?: Array<_Type>): _Function
-export function Text(): _Text
+export function Function(argTypes?: Array<Type>, retTypes?: Array<Type>): Function
+export function Text(): Text
