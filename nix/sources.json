@@ -12,15 +12,15 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "napalm": {
-        "branch": "paulyoung/netcat",
+        "branch": "master",
         "description": "Support for building npm packages in Nix and lightweight npm registry",
         "homepage": "",
-        "owner": "paulyoung",
+        "owner": "nmattia",
         "repo": "napalm",
-        "rev": "8882fc37de5a9bbb0a0695dac9ffe272a01497c0",
+        "rev": "e4da955b155e8d1bd1858a8479abe9ba9d846fe8",
         "sha256": "0q8m7gl92bipr5czh2n7w7gh11indh3ad00xvq8k2jbpz9kz84vc",
         "type": "tarball",
-        "url": "https://github.com/paulyoung/napalm/archive/8882fc37de5a9bbb0a0695dac9ffe272a01497c0.tar.gz",
+        "url": "https://github.com/nmattia/napalm/archive/e4da955b155e8d1bd1858a8479abe9ba9d846fe8.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "niv": {
