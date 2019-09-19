@@ -2,7 +2,7 @@ import { IDL, makeActor, makeApiClient } from "./index";
 
 test("makeActor", async () => {
   const actorInterface = new IDL.ActorInterface({
-    greet: IDL.Function([IDL.Text], [IDL.Text]),
+    greet: IDL.Fn([IDL.Text], [IDL.Text]),
   });
 
   const greeting = "Hello, World!";
