@@ -153,6 +153,7 @@ const submit = (
       }
     }
   })();
+  // TODO: decode body from CBOR
   const response = await config.runFetch(Endpoint.submit, body);
   return {
     requestId: -1, // FIXME
@@ -185,6 +186,7 @@ const read = (
       }
     }
   })();
+  // TODO: decode body from CBOR
   return config.runFetch(Endpoint.read, body);
 };
 

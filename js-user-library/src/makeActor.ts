@@ -29,7 +29,7 @@ export const makeActor = (
   return Object.fromEntries(entries.map((entry) => {
     const [methodName, fn] = entry as [string, Fn];
     return [methodName, async (...args: Array<any>) => {
-      // TODO: throw if desc.argTypes.length !== args.length
+      // TODO: throw if fn.argTypes.length !== args.length
       const encoded = zipWith(fn.argTypes, args, (x, y) => x.encode(y));
       const arg = new Blob(encoded, { type: "application/cbor" }); // TODO: is this the right thing to do?
 
@@ -45,6 +45,7 @@ export const makeActor = (
         const response = await apiClient.requestStatus({ requestId });
         // TODO: handle decoding failure
         const responseBody = await response.arrayBuffer();
+        // TODO: throw if fn.retTypes.length !== args.length
         const decoded = zipWith(fn.retTypes, responseBody, (x, y) => {
           return x.decode(y);
         });
