@@ -14,6 +14,8 @@
     "array-type": [true, "generic"],
     "interface-name": [true, "never-prefix"],
     "max-line-length": [true, 80],
+    "no-consecutive-blank-lines": [true, 2],
+    "no-switch-case-fall-through": true,
     "object-literal-sort-keys": false
   },
   "rulesDirectory": []
