@@ -1,6 +1,6 @@
 import {
   ApiClient,
-  ReadRequestStatusResponseStatus as ResponseStatus,
+  ReadRequestStatusResponseStatus,
 } from "./apiClient";
 
 import { zipWith } from "./array";
@@ -43,6 +43,7 @@ export const makeActor = (
 
       // NOTE: we may need to use something like `setInterval` here
       for (let i = 0; i < maxRetries; i++) {
+        // TODO: decode from CBOR to ReadRequestStatusResponse
         const response = await apiClient.requestStatus({ requestId });
         const decoded = await response.json();
         /*
@@ -53,9 +54,7 @@ export const makeActor = (
           return x.decode(y);
         });
         */
-        const replied = ResponseStatus[ResponseStatus.replied];
-
-        if (decoded.status === replied) {
+        if (decoded.status === ReadRequestStatusResponseStatus.Replied) {
           return decoded.reply;
         }
         if (i + 1 === maxRetries) {

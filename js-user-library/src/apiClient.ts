@@ -19,8 +19,8 @@ type ReadRequest
 
 // The types of values allowed in the `request_type` field for read requests.
 enum ReadRequestType {
-  query = "query",
-  requestStatus = "request-status",
+  Query = "query",
+  RequestStatus = "request-status",
 }
 
 // Pattern match on a read request.
@@ -33,10 +33,10 @@ const matchReadRequest = (
   request: ReadRequest,
 ): any => {
   switch (request.request_type) {
-    case ReadRequestType.query: {
+    case ReadRequestType.Query: {
       return handlers.query(request);
     }
-    case ReadRequestType.requestStatus: {
+    case ReadRequestType.RequestStatus: {
       return handlers.requestStatus(request);
     }
     default: {
@@ -48,7 +48,7 @@ const matchReadRequest = (
 
 // The fields in a "query" read request.
 interface ReadQueryRequest extends Request {
-  request_type: ReadRequestType.query;
+  request_type: ReadRequestType.Query;
   canister_id: number;
   method_name: string;
   arg: Blob;
@@ -56,7 +56,7 @@ interface ReadQueryRequest extends Request {
 
 // The fields in a "request-status" read request.
 interface ReadRequestStatusRequest extends Request {
-  request_type: ReadRequestType.requestStatus;
+  request_type: ReadRequestType.RequestStatus;
   request_id: number;
 }
 
@@ -70,7 +70,7 @@ const readQuery = ({
   methodName: string,
   arg: Blob,
 }): ReadQueryRequest => ({
-  request_type: ReadRequestType.query,
+  request_type: ReadRequestType.Query,
   canister_id: canisterId,
   method_name: methodName,
   arg,
@@ -83,15 +83,15 @@ const readRequestStatus = ({
 }: {
   requestId: number,
 }): ReadRequestStatusRequest => ({
-  request_type: ReadRequestType.requestStatus,
+  request_type: ReadRequestType.RequestStatus,
   request_id: requestId,
 });
 
 export enum ReadRequestStatusResponseStatus {
-  unknown,
-  pending,
-  replied,
-  rejected,
+  Pending = "pending",
+  Replied = "replied",
+  Rejected = "rejected",
+  Unknown = "unknown",
 }
 
 
@@ -110,7 +110,7 @@ type SubmitRequest
 
 // The types of values allowed in the `request_type` field for submit requests.
 enum SubmitRequestType {
-  call = "call",
+  Call = "call",
 }
 
 // Pattern match on a submit request.
@@ -122,7 +122,7 @@ const matchSubmitRequest = (
   request: SubmitRequest,
 ): any => {
   switch (request.request_type) {
-    case SubmitRequestType.call: {
+    case SubmitRequestType.Call: {
       return handlers.call(request);
     }
     default: {
@@ -135,7 +135,7 @@ const matchSubmitRequest = (
 
 // The fields in a "call" submit request.
 interface SubmitCallRequest extends Request {
-  request_type: SubmitRequestType.call;
+  request_type: SubmitRequestType.Call;
   canister_id: number;
   method_name: string;
   arg: Blob;
@@ -151,7 +151,7 @@ const submitCall = ({
   methodName: string,
   arg: Blob,
 }): SubmitCallRequest => ({
-  request_type: SubmitRequestType.call,
+  request_type: SubmitRequestType.Call,
   canister_id: canisterId,
   method_name: methodName,
   arg,
@@ -176,7 +176,7 @@ const submit = (
     },
   })(request);
   // TODO: decode body from CBOR
-  const response = await config.runFetch(Endpoint.submit, body);
+  const response = await config.runFetch(Endpoint.Submit, body);
   return {
     requestId: -1, // FIXME
     response,
@@ -197,7 +197,7 @@ const read = (
     },
   })(request);
   // TODO: decode body from CBOR
-  return config.runFetch(Endpoint.read, body);
+  return config.runFetch(Endpoint.Read, body);
 };
 
 const call = (
@@ -259,7 +259,7 @@ const makeConfig = (options: Options): Config => {
   return {
     ...withDefaults,
     runFetch: (endpoint, body) => {
-      return withDefaults.fetch(`${withDefaults.host}/api/${API_VERSION}/${Endpoint[endpoint]}`, {
+      return withDefaults.fetch(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/cbor",
@@ -272,8 +272,8 @@ const makeConfig = (options: Options): Config => {
 
 
 enum Endpoint {
-  read,
-  submit,
+  Read = "read",
+  Submit = "submit",
 }
 
 export interface ApiClient {
