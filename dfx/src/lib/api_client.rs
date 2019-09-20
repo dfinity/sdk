@@ -1,4 +1,5 @@
 use crate::lib::error::*;
+use crate::lib::CanisterId;
 use futures::future::{err, ok, result, Future};
 use futures::stream::Stream;
 use rand::Rng;
@@ -12,8 +13,6 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 // deserialized as a sequence (array) of bytes, whereas we want an actual CBOR "byte array", e.g. a
 // bytestring
 pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
-
-type CanisterId = u64;
 
 #[derive(Clone)]
 pub struct Client {
