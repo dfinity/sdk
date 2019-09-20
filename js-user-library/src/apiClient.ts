@@ -46,6 +46,7 @@ const matchReadRequest = (
   }
 };
 
+
 // The fields in a "query" read request.
 interface ReadQueryRequest extends Request {
   request_type: ReadRequestType.Query;
@@ -54,11 +55,68 @@ interface ReadQueryRequest extends Request {
   arg: Blob;
 }
 
+// An ADT that represents responses to a "query" read request.
+type ReadQueryResponse<A>
+  = ReadQueryResponseReplied<A>
+  | ReadQueryResponseRejected;
+
+interface ReadQueryResponseReplied<A> {
+  status: ReadQueryResponseStatus.Replied;
+  reply: A;
+}
+
+interface ReadQueryResponseRejected {
+  status: ReadQueryResponseStatus.Rejected;
+  reject_code: RejectCode;
+  reject_message: string;
+}
+
+enum ReadQueryResponseStatus {
+  Replied = "replied",
+  Rejected = "rejected",
+}
+
+
 // The fields in a "request-status" read request.
 interface ReadRequestStatusRequest extends Request {
   request_type: ReadRequestType.RequestStatus;
   request_id: number;
 }
+
+// An ADT that represents responses to a "request-status" read request.
+type ReadRequestStatusResponse
+  = ReadRequestStatusResponsePending
+  | ReadRequestStatusResponseReplied
+  | ReadRequestStatusResponseRejected
+  | ReadRequestStatusResponseUnknown;
+
+interface ReadRequestStatusResponsePending {
+  status: ReadRequestStatusResponseStatus.Pending;
+}
+
+interface ReadRequestStatusResponseReplied {
+  status: ReadRequestStatusResponseStatus.Replied;
+  reply: { arg: Blob };
+}
+
+interface ReadRequestStatusResponseRejected {
+  status: ReadRequestStatusResponseStatus.Rejected;
+  reject_code: RejectCode;
+  reject_message: string;
+}
+
+interface ReadRequestStatusResponseUnknown {
+  status: ReadRequestStatusResponseStatus.Unknown;
+}
+
+
+export enum ReadRequestStatusResponseStatus {
+  Pending = "pending",
+  Replied = "replied",
+  Rejected = "rejected",
+  Unknown = "unknown",
+}
+
 
 // Construct a "query" read request.
 const readQuery = ({
@@ -86,13 +144,6 @@ const readRequestStatus = ({
   request_type: ReadRequestType.RequestStatus,
   request_id: requestId,
 });
-
-export enum ReadRequestStatusResponseStatus {
-  Pending = "pending",
-  Replied = "replied",
-  Rejected = "rejected",
-  Unknown = "unknown",
-}
 
 
 enum RejectCode {
