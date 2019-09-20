@@ -1,4 +1,4 @@
-import { IDL, makeActor, makeApiClient } from "./index";
+import { CanisterId, IDL, makeActor, makeApiClient } from "./index";
 
 test("call", async () => {
   const greeting = "Hello, World!";
@@ -12,7 +12,7 @@ test("call", async () => {
   });
 
   const apiClient = makeApiClient({
-    canisterId: 1,
+    canisterId: 1 as CanisterId,
     fetch: mockFetch,
   });
 

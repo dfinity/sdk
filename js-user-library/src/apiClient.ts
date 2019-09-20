@@ -1,7 +1,11 @@
+import { Int } from "./int";
 import { assertNever } from "./never";
 
 // TODO:
 // * Handle errors everywhere we `await`
+
+export type CanisterId = Int & { __canisterId__: void };
+export type RequestId = Int & { __requestId__: void };
 
 // Common request fields.
 interface Request {
@@ -53,7 +57,7 @@ const matchReadRequest = (
 // The fields in a "query" read request.
 interface QueryRequest extends Request {
   request_type: ReadRequestType.Query;
-  canister_id: number;
+  canister_id: CanisterId;
   method_name: string;
   arg: Blob;
 }
@@ -83,7 +87,7 @@ enum QueryResponseStatus {
 // The fields in a "request-status" read request.
 interface RequestStatusRequest extends Request {
   request_type: ReadRequestType.RequestStatus;
-  request_id: number;
+  request_id: RequestId;
 }
 
 // An ADT that represents responses to a "request-status" read request.
@@ -127,7 +131,7 @@ const makeQueryRequest = ({
   methodName,
   arg,
 }: {
-  canisterId: number,
+  canisterId: CanisterId,
   methodName: string,
   arg: Blob,
 }): QueryRequest => ({
@@ -142,7 +146,7 @@ const makeQueryRequest = ({
 const makeRequestStatusRequest = ({
   requestId,
 }: {
-  requestId: number,
+  requestId: RequestId,
 }): RequestStatusRequest => ({
   request_type: ReadRequestType.RequestStatus,
   request_id: requestId,
@@ -190,7 +194,7 @@ const matchSubmitRequest = (
 // The fields in a "call" submit request.
 interface CallRequest extends Request {
   request_type: SubmitRequestType.Call;
-  canister_id: number;
+  canister_id: CanisterId;
   method_name: string;
   arg: Blob;
 }
@@ -201,7 +205,7 @@ const makeCallRequest = ({
   methodName,
   arg,
 }: {
-  canisterId: number,
+  canisterId: CanisterId,
   methodName: string,
   arg: Blob,
 }): CallRequest => ({
@@ -213,7 +217,7 @@ const makeCallRequest = ({
 
 
 interface SubmitResponse {
-  requestId: number;
+  requestId: RequestId;
   response: Response;
 }
 
@@ -232,7 +236,7 @@ const submit = (
   // TODO: decode body from CBOR
   const response = await config.runFetch(Endpoint.Submit, body);
   return {
-    requestId: -1, // FIXME
+    requestId: -1 as RequestId,
     response,
   };
 };
@@ -286,7 +290,7 @@ const requestStatus = (
 const API_VERSION = "v1";
 
 interface Options {
-  canisterId: number;
+  canisterId: CanisterId;
   fetch?: WindowOrWorkerGlobalScope["fetch"];
   host?: string;
 }
@@ -303,7 +307,7 @@ const defaultOptions: DefaultOptions = {
 
 
 interface Config {
-  canisterId: number;
+  canisterId: CanisterId;
   host: string;
   runFetch(endpoint: Endpoint, body?: BodyInit | null): Promise<Response>;
 }

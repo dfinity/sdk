@@ -1,4 +1,4 @@
-import { IDL, makeActor, makeApiClient } from "./index";
+import { CanisterId, IDL, makeActor, makeApiClient } from "./index";
 
 test("makeActor", async () => {
   const actorInterface = new IDL.ActorInterface({
@@ -37,7 +37,7 @@ test("makeActor", async () => {
     });
 
   const apiClient = makeApiClient({
-    canisterId: 1,
+    canisterId: 1 as CanisterId,
     fetch: mockFetch,
   });
 
