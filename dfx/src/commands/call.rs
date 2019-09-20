@@ -30,31 +30,24 @@ where
     let name = args.value_of(NAME_ARG).unwrap();
     let client = env.get_client();
 
-    let query = query(
-        client,
-        CanisterQueryCall {
-            canister_id: 42,
-            method_name: "greet".to_string(),
-            arg: Blob(Vec::from(name)),
-        },
-    )
-    .and_then(|r| match r {
-        ReadResponse::Pending => {
-            println!("Pending");
-            ok(())
-        }
-        ReadResponse::Replied {
-            reply: QueryResponseReply { arg: Blob(blob) },
-        } => {
-            println!("{}", String::from_utf8_lossy(&blob));
-            ok(())
-        }
-        ReadResponse::Rejected {
-            reject_code,
-            reject_message,
-        } => err(DfxError::ClientError(reject_code, reject_message)),
-        ReadResponse::Unknown => err(DfxError::Unknown("Unknown response".to_owned())),
-    });
+    let query =
+        query(client, 42, "greet".to_string(), Some(Blob(Vec::from(name)))).and_then(|r| match r {
+            ReadResponse::Pending => {
+                println!("Pending");
+                ok(())
+            }
+            ReadResponse::Replied {
+                reply: QueryResponseReply { arg: Blob(blob) },
+            } => {
+                println!("{}", String::from_utf8_lossy(&blob));
+                ok(())
+            }
+            ReadResponse::Rejected {
+                reject_code,
+                reject_message,
+            } => err(DfxError::ClientError(reject_code, reject_message)),
+            ReadResponse::Unknown => err(DfxError::Unknown("Unknown response".to_owned())),
+        });
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(query)

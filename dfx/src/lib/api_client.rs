@@ -109,6 +109,9 @@ fn random_blob() -> Blob {
 
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
+///
+/// TODO: filter the output of this function when moving to ic_http_api.
+/// For example, it should never return Unknown or Pending, per the spec.
 fn read<A>(
     client: Client,
     request: ReadRequest,
@@ -177,9 +180,20 @@ fn submit(
 /// returns the canister’s response directly within the HTTP response.
 pub fn query(
     client: Client,
-    request: CanisterQueryCall,
+    canister_id: CanisterId,
+    method_name: String,
+    arg: Option<Blob>,
 ) -> impl Future<Item = ReadResponse<QueryResponseReply>, Error = DfxError> {
-    read(client, ReadRequest::Query { request })
+    read(
+        client,
+        ReadRequest::Query {
+            request: CanisterQueryCall {
+                canister_id,
+                method_name,
+                arg: arg.unwrap_or_else(|| Blob(vec![])),
+            },
+        },
+    )
 }
 
 /// Canister Install call
@@ -356,14 +370,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let query = query(
-            client,
-            CanisterQueryCall {
-                canister_id: 1,
-                method_name: "main".to_string(),
-                arg: Blob(vec![]),
-            },
-        );
+        let query = query(client, 1, "main".to_string(), Some(Blob(vec![])));
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(query);
@@ -428,14 +435,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let query = query(
-            client,
-            CanisterQueryCall {
-                canister_id: 1,
-                method_name: "main".to_string(),
-                arg: Blob(vec![]),
-            },
-        );
+        let query = query(client, 1, "main".to_string(), Some(Blob(vec![])));
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(query);
