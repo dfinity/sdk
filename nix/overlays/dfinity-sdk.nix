@@ -1,7 +1,7 @@
 self: super:
 
 let dfx = super.callPackage ../../dfx/package.nix {
-  libressl = self.libressl_2_9;
+  inherit (self) actorscript dfinity runCommand;
 }; in
 
 {

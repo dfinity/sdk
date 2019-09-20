@@ -88,9 +88,15 @@ then
     }
 
 else
-  trace "gitSource.nix: ${toString repo-root} does not seem to be a git repository,\nassuming it is a clean checkout." (
-    subdir: nixpkgs.lib.cleanSourceWith {
+  let warn_unless = b: m: x: if b then x else trace m x; in
+  # No .git directory found, we should warn the user.
+  # But when this repository is imported using something like
+  # `builtins.fetchGit` then the source is extracted to /nix/store without a
+  # .git directory, but in this case we know that it is clean, so do not warn
+  warn_unless
+    (has_prefix "/nix/store" (toString repo-root))
+    "gitSource.nix: ${toString ../.} does not seem to be a git repository,\nassuming it is a clean checkout."
+    (subdir: nixpkgs.lib.cleanSourceWith {
       src = if isString subdir then (repo-root + "/${subdir}") else subdir;
       filter = _p: _t: true;
-    }
-  )
+    })
