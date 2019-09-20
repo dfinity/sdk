@@ -1,12 +1,14 @@
 = IDL Serialization library in Rust
 
 == Using the library
-* Import
+* Serialization
 [source,rust]
 #[macro_use]
 extern crate serde_idl;
-extern crate dfx_info;
-use dfx_info::{IDLType};
+IDL!(&42, &Some(42), &[1,2,3])
+// IDL! macro expands to:
+IDLBuilder::new().arg(&42).arg(&Some(42)).arg(&[1,2,3]).to_vec().unwrap(),
+
 
 * Derive serialization trait and inspect IDL type
 [source,rust]
@@ -19,18 +21,8 @@ assert_eq!(serde_idl::get_type(&list),
                field("tail", Type::Opt(Box::new(
                    Type::Knot(TypeId::of::<List>()))))])               
 );
-
-* Serialize single argument
-[source,rust]
-assert_eq!(serde_idl::to_vec(list).unwrap(), 
+assert_eq!(IDL!(&list),
            hex::decode("4449444c026c02a0d2aca8047c90eddae704016e00002a00").unwrap());
-
-* Serialize multiple arguments
-[source,rust]
-assert_eq!(
-  IDLBuilder::new().arg(&42).arg(&Some(42)).arg(&[1,2,3]).to_vec().unwrap(),
-  IDL!(&42, &Some(42), &[1,2,3])
-);
 
 == Why not using serde
 We end up not using `serde`, since `serde` cannot derive type information, and we cannot easily sort the field index in `struct` and `enum` by the `idl_hash`.
