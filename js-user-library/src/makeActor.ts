@@ -1,6 +1,6 @@
 import {
   ApiClient,
-  ReadRequestStatusResponseStatus,
+  RequestStatusResponseStatus,
 } from "./apiClient";
 
 import { zipWith } from "./array";
@@ -54,7 +54,7 @@ export const makeActor = (
           return x.decode(y);
         });
         */
-        if (decoded.status === ReadRequestStatusResponseStatus.Replied) {
+        if (decoded.status === RequestStatusResponseStatus.Replied) {
           return decoded.reply;
         }
         if (i + 1 === maxRetries) {

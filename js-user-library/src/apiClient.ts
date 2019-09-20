@@ -14,8 +14,8 @@ interface Request {
 
 // An ADT that represents requests to the "read" endpoint.
 type ReadRequest
-  = ReadQueryRequest
-  | ReadRequestStatusRequest;
+  = QueryRequest
+  | RequestStatusRequest;
 
 // The types of values allowed in the `request_type` field for read requests.
 enum ReadRequestType {
@@ -26,8 +26,8 @@ enum ReadRequestType {
 // Pattern match on a read request.
 const matchReadRequest = (
   handlers: {
-    query: (x: ReadQueryRequest) => any,
-    requestStatus: (x: ReadRequestStatusRequest) => any,
+    query: (fields: QueryRequest) => any,
+    requestStatus: (fields: RequestStatusRequest) => any,
   },
 ) => (
   request: ReadRequest,
@@ -48,7 +48,7 @@ const matchReadRequest = (
 
 
 // The fields in a "query" read request.
-interface ReadQueryRequest extends Request {
+interface QueryRequest extends Request {
   request_type: ReadRequestType.Query;
   canister_id: number;
   method_name: string;
@@ -56,61 +56,61 @@ interface ReadQueryRequest extends Request {
 }
 
 // An ADT that represents responses to a "query" read request.
-type ReadQueryResponse<A>
-  = ReadQueryResponseReplied<A>
-  | ReadQueryResponseRejected;
+type QueryResponse<A>
+  = QueryResponseReplied<A>
+  | QueryResponseRejected;
 
-interface ReadQueryResponseReplied<A> {
-  status: ReadQueryResponseStatus.Replied;
+interface QueryResponseReplied<A> {
+  status: QueryResponseStatus.Replied;
   reply: A;
 }
 
-interface ReadQueryResponseRejected {
-  status: ReadQueryResponseStatus.Rejected;
+interface QueryResponseRejected {
+  status: QueryResponseStatus.Rejected;
   reject_code: RejectCode;
   reject_message: string;
 }
 
-enum ReadQueryResponseStatus {
+enum QueryResponseStatus {
   Replied = "replied",
   Rejected = "rejected",
 }
 
 
 // The fields in a "request-status" read request.
-interface ReadRequestStatusRequest extends Request {
+interface RequestStatusRequest extends Request {
   request_type: ReadRequestType.RequestStatus;
   request_id: number;
 }
 
 // An ADT that represents responses to a "request-status" read request.
-type ReadRequestStatusResponse
-  = ReadRequestStatusResponsePending
-  | ReadRequestStatusResponseReplied
-  | ReadRequestStatusResponseRejected
-  | ReadRequestStatusResponseUnknown;
+type RequestStatusResponse
+  = RequestStatusResponsePending
+  | RequestStatusResponseReplied
+  | RequestStatusResponseRejected
+  | RequestStatusResponseUnknown;
 
-interface ReadRequestStatusResponsePending {
-  status: ReadRequestStatusResponseStatus.Pending;
+interface RequestStatusResponsePending {
+  status: RequestStatusResponseStatus.Pending;
 }
 
-interface ReadRequestStatusResponseReplied {
-  status: ReadRequestStatusResponseStatus.Replied;
+interface RequestStatusResponseReplied {
+  status: RequestStatusResponseStatus.Replied;
   reply: { arg: Blob };
 }
 
-interface ReadRequestStatusResponseRejected {
-  status: ReadRequestStatusResponseStatus.Rejected;
+interface RequestStatusResponseRejected {
+  status: RequestStatusResponseStatus.Rejected;
   reject_code: RejectCode;
   reject_message: string;
 }
 
-interface ReadRequestStatusResponseUnknown {
-  status: ReadRequestStatusResponseStatus.Unknown;
+interface RequestStatusResponseUnknown {
+  status: RequestStatusResponseStatus.Unknown;
 }
 
 
-export enum ReadRequestStatusResponseStatus {
+export enum RequestStatusResponseStatus {
   Pending = "pending",
   Replied = "replied",
   Rejected = "rejected",
@@ -119,7 +119,7 @@ export enum ReadRequestStatusResponseStatus {
 
 
 // Construct a "query" read request.
-const readQuery = ({
+const makeQueryRequest = ({
   canisterId,
   methodName,
   arg,
@@ -127,7 +127,7 @@ const readQuery = ({
   canisterId: number,
   methodName: string,
   arg: Blob,
-}): ReadQueryRequest => ({
+}): QueryRequest => ({
   request_type: ReadRequestType.Query,
   canister_id: canisterId,
   method_name: methodName,
@@ -136,11 +136,11 @@ const readQuery = ({
 
 
 // Construct a "request-status" read request.
-const readRequestStatus = ({
+const makeRequestStatusRequest = ({
   requestId,
 }: {
   requestId: number,
-}): ReadRequestStatusRequest => ({
+}): RequestStatusRequest => ({
   request_type: ReadRequestType.RequestStatus,
   request_id: requestId,
 });
@@ -157,7 +157,7 @@ enum RejectCode {
 
 // An ADT that represents requests to the "submit" endpoint.
 type SubmitRequest
-  = SubmitCallRequest;
+  = CallRequest;
 
 // The types of values allowed in the `request_type` field for submit requests.
 enum SubmitRequestType {
@@ -167,7 +167,7 @@ enum SubmitRequestType {
 // Pattern match on a submit request.
 const matchSubmitRequest = (
   handlers: {
-    call: (x: SubmitCallRequest) => any,
+    call: (fields: CallRequest) => any,
   },
 ) => (
   request: SubmitRequest,
@@ -185,7 +185,7 @@ const matchSubmitRequest = (
 };
 
 // The fields in a "call" submit request.
-interface SubmitCallRequest extends Request {
+interface CallRequest extends Request {
   request_type: SubmitRequestType.Call;
   canister_id: number;
   method_name: string;
@@ -193,7 +193,7 @@ interface SubmitCallRequest extends Request {
 }
 
 // Construct a "call" submit request.
-const submitCall = ({
+const makeCallRequest = ({
   canisterId,
   methodName,
   arg,
@@ -201,7 +201,7 @@ const submitCall = ({
   canisterId: number,
   methodName: string,
   arg: Blob,
-}): SubmitCallRequest => ({
+}): CallRequest => ({
   request_type: SubmitRequestType.Call,
   canister_id: canisterId,
   method_name: methodName,
@@ -260,7 +260,7 @@ const call = (
   methodName: string,
   arg: Blob,
 }): Promise<SubmitResponse> => {
-  const request = submitCall({
+  const request = makeCallRequest({
     canisterId: config.canisterId,
     methodName,
     arg,
@@ -275,7 +275,7 @@ const requestStatus = (
 }: {
   requestId: number,
 }): Promise<Response> => {
-  const request = readRequestStatus({ requestId });
+  const request = makeRequestStatusRequest({ requestId });
   return read(config)(request);
 };
 
