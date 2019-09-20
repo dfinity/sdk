@@ -1,5 +1,8 @@
 import { assertNever } from "./never";
 
+// TODO:
+// * Handle errors everywhere we `await`
+
 // Common request fields.
 interface Request {
   request_type: ReadRequestType | SubmitRequestType;
