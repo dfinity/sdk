@@ -328,12 +328,12 @@ enum Endpoint {
 }
 
 export interface ApiClient {
-  call(_: {
+  call(fields: {
     methodName: string,
     arg: Blob,
   }): Promise<SubmitResponse>;
 
-  requestStatus(_: {
+  requestStatus(fields: {
     requestId: number,
   }): Promise<Response>;
 }
