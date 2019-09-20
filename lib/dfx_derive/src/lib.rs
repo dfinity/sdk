@@ -7,9 +7,9 @@ extern crate quote;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as Tokens;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Generics, GenericParam};
-use syn::punctuated::Punctuated;
 use std::collections::BTreeSet;
+use syn::punctuated::Punctuated;
+use syn::{parse_macro_input, Data, DeriveInput, GenericParam, Generics};
 
 #[proc_macro_derive(IDLType)]
 pub fn derive_idl_type(input: TokenStream) -> TokenStream {
@@ -18,14 +18,12 @@ pub fn derive_idl_type(input: TokenStream) -> TokenStream {
     let generics = add_trait_bounds(input.generics);
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let (ty_body, ser_body) = match input.data {
-        Data::Enum(ref data) => {
-            enum_from_ast(&name, &data.variants)
-        },
+        Data::Enum(ref data) => enum_from_ast(&name, &data.variants),
         Data::Struct(ref data) => {
             let (ty, idents) = struct_from_ast(&data.fields);
             (ty, serialize_struct(&idents))
-        },
-        Data::Union(_) => unimplemented!("doesn't derive union type")            
+        }
+        Data::Union(_) => unimplemented!("doesn't derive union type"),
     };
     let gen = quote! {
         impl #impl_generics dfx_info::IDLType for #name #ty_generics #where_clause {
@@ -33,13 +31,13 @@ pub fn derive_idl_type(input: TokenStream) -> TokenStream {
                 #ty_body
             }
             fn id() -> dfx_info::types::TypeId { dfx_info::types::TypeId::of::<#name #ty_generics>() }
-            
+
             fn idl_serialize<__S>(&self, __serializer: __S) -> Result<(), __S::Error>
                 where
                 __S: dfx_info::Serializer,
                 {
                     #ser_body
-                }            
+                }
         }
     };
     //panic!(gen.to_string());
@@ -68,7 +66,9 @@ enum Style {
 }
 impl Variant {
     fn style(&self) -> Style {
-        if self.members.is_empty() { return Style::Unit };
+        if self.members.is_empty() {
+            return Style::Unit;
+        };
         match self.members[0] {
             Ident::Named(_) => Style::Struct,
             Ident::Unnamed(_) => Style::Tuple,
@@ -76,43 +76,62 @@ impl Variant {
     }
     fn to_pattern(&self) -> (Tokens, Vec<Tokens>) {
         match self.style() {
-            Style::Unit => {
-                (quote! {}, Vec::new())
-            },
+            Style::Unit => (quote! {}, Vec::new()),
             Style::Struct => {
                 let id: Vec<_> = self.members.iter().map(|ident| ident.to_token()).collect();
-                (quote! {
-                    {#(ref #id),*}
-                }, id)
-            },
+                (
+                    quote! {
+                        {#(ref #id),*}
+                    },
+                    id,
+                )
+            }
             Style::Tuple => {
-                let id: Vec<_> = self.members.iter().map(|ident| {
-                    let ident = ident.to_string();
-                    let var = format!("__field{}", ident.to_string());
-                    syn::parse_str(&var).unwrap()
-                }).collect();
-                (quote! {
-                    (#(ref #id),*)
-                }, id)
-            },
+                let id: Vec<_> = self
+                    .members
+                    .iter()
+                    .map(|ident| {
+                        let ident = ident.to_string();
+                        let var = format!("__field{}", ident.to_string());
+                        syn::parse_str(&var).unwrap()
+                    })
+                    .collect();
+                (
+                    quote! {
+                        (#(ref #id),*)
+                    },
+                    id,
+                )
+            }
         }
     }
 }
 
-fn enum_from_ast(name: &syn::Ident, variants: &Punctuated<syn::Variant, Token![,]>) -> (Tokens, Tokens) {
-    let mut fs: Vec<_> = variants.iter().map(|variant| {
-        let id = variant.ident.clone();
-        let hash = idl_hash(&id.to_string());
-        let (ty, idents) = struct_from_ast(&variant.fields);
-        Variant { ident: id, hash: hash, ty: ty, members: idents }
-    }).collect();
-    let unique: BTreeSet<_> = fs.iter().map(|Variant{hash,..}| hash).collect();
+fn enum_from_ast(
+    name: &syn::Ident,
+    variants: &Punctuated<syn::Variant, Token![,]>,
+) -> (Tokens, Tokens) {
+    let mut fs: Vec<_> = variants
+        .iter()
+        .map(|variant| {
+            let id = variant.ident.clone();
+            let hash = idl_hash(&id.to_string());
+            let (ty, idents) = struct_from_ast(&variant.fields);
+            Variant {
+                ident: id,
+                hash,
+                ty,
+                members: idents,
+            }
+        })
+        .collect();
+    let unique: BTreeSet<_> = fs.iter().map(|Variant { hash, .. }| hash).collect();
     assert_eq!(unique.len(), fs.len());
-    fs.sort_unstable_by_key(|Variant{hash,..}| hash.clone());
-    
-    let id = fs.iter().map(|Variant{ident,..}| ident.to_string());
-    let hash = fs.iter().map(|Variant{hash,..}| hash);
-    let ty = fs.iter().map(|Variant{ty,..}| ty);
+    fs.sort_unstable_by_key(|Variant { hash, .. }| *hash);
+
+    let id = fs.iter().map(|Variant { ident, .. }| ident.to_string());
+    let hash = fs.iter().map(|Variant { hash, .. }| hash);
+    let ty = fs.iter().map(|Variant { ty, .. }| ty);
     let ty_gen = quote! {
         dfx_info::types::Type::Variant(
             vec![
@@ -124,18 +143,23 @@ fn enum_from_ast(name: &syn::Ident, variants: &Punctuated<syn::Variant, Token![,
             ]
         )
     };
-    
-    let id = fs.iter().map(|Variant{ident,..}|
+
+    let id = fs.iter().map(|Variant { ident, .. }| {
         syn::parse_str::<Tokens>(&format!("{}::{}", name, ident)).unwrap()
-    );
+    });
     let index = 0..fs.len() as u64;
-    let (pattern, members): (Vec<_>, Vec<_>) = fs.iter().map(|f| {
-        let (pattern, id) = f.to_pattern();
-        (pattern,
-         quote! {
-             #(dfx_info::Compound::serialize_element(&mut ser, #id)?;)*
-         })
-    }).unzip();
+    let (pattern, members): (Vec<_>, Vec<_>) = fs
+        .iter()
+        .map(|f| {
+            let (pattern, id) = f.to_pattern();
+            (
+                pattern,
+                quote! {
+                    #(dfx_info::Compound::serialize_element(&mut ser, #id)?;)*
+                },
+            )
+        })
+        .unzip();
     let variant_gen = quote! {
         match *self {
             #(#id #pattern => {
@@ -148,7 +172,7 @@ fn enum_from_ast(name: &syn::Ident, variants: &Punctuated<syn::Variant, Token![,
     (ty_gen, variant_gen)
 }
 
-fn serialize_struct(idents: &Vec<Ident>) -> Tokens {
+fn serialize_struct(idents: &[Ident]) -> Tokens {
     let id = idents.iter().map(|ident| ident.to_token());
     quote! {
         let mut ser = __serializer.serialize_struct()?;
@@ -161,17 +185,13 @@ fn struct_from_ast(fields: &syn::Fields) -> (Tokens, Vec<Ident>) {
     match *fields {
         syn::Fields::Named(ref fields) => {
             let (fs, idents) = fields_from_ast(&fields.named);
-            (quote! { dfx_info::types::Type::Record(#fs) },
-             idents)
-        },
+            (quote! { dfx_info::types::Type::Record(#fs) }, idents)
+        }
         syn::Fields::Unnamed(ref fields) => {
             let (fs, idents) = fields_from_ast(&fields.unnamed);
-            (quote! { dfx_info::types::Type::Record(#fs) },
-             idents)          
-        },
-        syn::Fields::Unit =>
-            (quote! { dfx_info::types::Type::Null },
-             Vec::new())
+            (quote! { dfx_info::types::Type::Record(#fs) }, idents)
+        }
+        syn::Fields::Unit => (quote! { dfx_info::types::Type::Null }, Vec::new()),
     }
 }
 
@@ -202,20 +222,28 @@ struct Field {
 }
 
 fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> (Tokens, Vec<Ident>) {
-    let mut fs: Vec<_> = fields.iter().enumerate().map(|(i, field)| {
-        let (ident, hash) = match field.ident {
-            Some(ref ident) => (Ident::Named(ident.clone()), idl_hash(&ident.to_string())),
-            None => (Ident::Unnamed(i as u32), i as u32)
-        };
-        Field { ident: ident, hash: hash, ty: derive_type(&field.ty) }
-    }).collect();
-    let unique: BTreeSet<_> = fs.iter().map(|Field {hash,..}| hash).collect();
+    let mut fs: Vec<_> = fields
+        .iter()
+        .enumerate()
+        .map(|(i, field)| {
+            let (ident, hash) = match field.ident {
+                Some(ref ident) => (Ident::Named(ident.clone()), idl_hash(&ident.to_string())),
+                None => (Ident::Unnamed(i as u32), i as u32),
+            };
+            Field {
+                ident,
+                hash,
+                ty: derive_type(&field.ty),
+            }
+        })
+        .collect();
+    let unique: BTreeSet<_> = fs.iter().map(|Field { hash, .. }| hash).collect();
     assert_eq!(unique.len(), fs.len());
-    fs.sort_unstable_by_key(|Field {hash,..}| hash.clone());    
-    
-    let id = fs.iter().map(|Field {ident,..}| ident.to_string());
-    let hash = fs.iter().map(|Field{hash,..}| hash);
-    let ty = fs.iter().map(|Field{ty,..}| ty);
+    fs.sort_unstable_by_key(|Field { hash, .. }| *hash);
+
+    let id = fs.iter().map(|Field { ident, .. }| ident.to_string());
+    let hash = fs.iter().map(|Field { hash, .. }| hash);
+    let ty = fs.iter().map(|Field { ty, .. }| ty);
     let ty_gen = quote! {
         vec![
             #(dfx_info::types::Field {
@@ -225,7 +253,7 @@ fn fields_from_ast(fields: &Punctuated<syn::Field, syn::Token![,]>) -> (Tokens, 
             ),*
         ]
     };
-    let idents: Vec<Ident> = fs.iter().map(|Field{ident,..}| ident.clone()).collect();
+    let idents: Vec<Ident> = fs.iter().map(|Field { ident, .. }| ident.clone()).collect();
     (ty_gen, idents)
 }
 

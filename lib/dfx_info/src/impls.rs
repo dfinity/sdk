@@ -1,11 +1,11 @@
-use IDLType;
 use types::*;
+use IDLType;
 use Serializer;
 
 macro_rules! primitive_impl {
     ($t:ty, $id:tt, $method:ident $($cast:tt)*) => {
         impl IDLType for $t {
-            fn id() -> TypeId { TypeId::of::<$t>() }            
+            fn id() -> TypeId { TypeId::of::<$t>() }
             fn _ty() -> Type { Type::$id }
             fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
                 serializer.$method(*self $($cast)*)
@@ -29,43 +29,80 @@ primitive_impl!(&str, Text, serialize_text);
 primitive_impl!((), Null, serialize_null);
 
 impl IDLType for String {
-    fn id() -> TypeId { TypeId::of::<String>() }
-    fn _ty() -> Type { Type::Text }
-    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+    fn id() -> TypeId {
+        TypeId::of::<String>()
+    }
+    fn _ty() -> Type {
+        Type::Text
+    }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_text(self)
-    }    
+    }
 }
 
-impl<T: Sized> IDLType for Option<T> where T: IDLType {
-    fn id() -> TypeId { TypeId::of::<Option<T>>() }
-    fn _ty() -> Type { Type::Opt(Box::new(T::ty())) }
-    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+impl<T: Sized> IDLType for Option<T>
+where
+    T: IDLType,
+{
+    fn id() -> TypeId {
+        TypeId::of::<Option<T>>()
+    }
+    fn _ty() -> Type {
+        Type::Opt(Box::new(T::ty()))
+    }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_option(self.as_ref())
     }
 }
 
-impl<T> IDLType for Vec<T> where T: IDLType {
-    fn id() -> TypeId { TypeId::of::<Vec<T>>() }        
-    fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }
-    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+impl<T> IDLType for Vec<T>
+where
+    T: IDLType,
+{
+    fn id() -> TypeId {
+        TypeId::of::<Vec<T>>()
+    }
+    fn _ty() -> Type {
+        Type::Vec(Box::new(T::ty()))
+    }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where
+        S: Serializer,
+    {
         let mut ser = serializer.serialize_vec(self.len())?;
         for e in self.iter() {
             super::Compound::serialize_element(&mut ser, &e)?;
-        };
+        }
         Ok(())
     }
 }
 
-impl<T> IDLType for [T] where T: IDLType {
-    fn id() -> TypeId { TypeId::of::<[T]>() }
-    fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }
-    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+impl<T> IDLType for [T]
+where
+    T: IDLType,
+{
+    fn id() -> TypeId {
+        TypeId::of::<[T]>()
+    }
+    fn _ty() -> Type {
+        Type::Vec(Box::new(T::ty()))
+    }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where
+        S: Serializer,
+    {
         let mut ser = serializer.serialize_vec(self.len())?;
         for e in self.iter() {
             super::Compound::serialize_element(&mut ser, &e)?;
-        };
+        }
         Ok(())
-    }    
+    }
 }
 
 macro_rules! array_impls {
@@ -75,7 +112,7 @@ macro_rules! array_impls {
             where T: IDLType,
             {
                 fn id() -> TypeId { TypeId::of::<[T; $len]>() }
-                fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }                
+                fn _ty() -> Type { Type::Vec(Box::new(T::ty())) }
                 fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
                 where S: Serializer,
                 {
@@ -91,49 +128,86 @@ macro_rules! array_impls {
 }
 
 array_impls! {
-    01 02 03 04 05 06 07 08 09 10
+     1  2  3  4  5  6  7  8  9 10
     11 12 13 14 15 16 17 18 19 20
     21 22 23 24 25 26 27 28 29 30
     31 32 00
 }
 
-impl<T,E> IDLType for Result<T,E> where T: IDLType, E: IDLType {
-    fn id() -> TypeId { TypeId::of::<Result<T,E>>() }
+impl<T, E> IDLType for Result<T, E>
+where
+    T: IDLType,
+    E: IDLType,
+{
+    fn id() -> TypeId {
+        TypeId::of::<Result<T, E>>()
+    }
     fn _ty() -> Type {
         Type::Variant(vec![
             // Make sure the field id is sorted by idl_hash
-            Field{ id: "Ok".to_owned(), hash: 17724u32, ty: T::ty() },
-            Field{ id: "Err".to_owned(),hash: 3456837u32, ty: E::ty() }]
-        )
+            Field {
+                id: "Ok".to_owned(),
+                hash: 17724u32,
+                ty: T::ty(),
+            },
+            Field {
+                id: "Err".to_owned(),
+                hash: 3_456_837u32,
+                ty: E::ty(),
+            },
+        ])
     }
-    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where
+        S: Serializer,
+    {
         match *self {
             Result::Ok(ref v) => {
                 let mut ser = serializer.serialize_variant(0)?;
                 super::Compound::serialize_element(&mut ser, v)
-            },
+            }
             Result::Err(ref e) => {
                 let mut ser = serializer.serialize_variant(1)?;
                 super::Compound::serialize_element(&mut ser, e)
-            },
+            }
         }
     }
 }
 
-impl<T> IDLType for Box<T> where T: ?Sized + IDLType {
-    fn id() -> TypeId { TypeId::of::<Box<T>>() }
-    fn _ty() -> Type { T::ty() }
-    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+impl<T> IDLType for Box<T>
+where
+    T: ?Sized + IDLType,
+{
+    fn id() -> TypeId {
+        TypeId::of::<Box<T>>()
+    }
+    fn _ty() -> Type {
+        T::ty()
+    }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where
+        S: Serializer,
+    {
         (**self).idl_serialize(serializer)
-    }    
+    }
 }
 
-impl<'a,T> IDLType for &'a T where T: 'a + ?Sized + IDLType {
-    fn id() -> TypeId { TypeId::of::<&T>() } // ignore lifetime
-    fn _ty() -> Type { T::ty() }
-    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> where S: Serializer {
+impl<'a, T> IDLType for &'a T
+where
+    T: 'a + ?Sized + IDLType,
+{
+    fn id() -> TypeId {
+        TypeId::of::<&T>()
+    } // ignore lifetime
+    fn _ty() -> Type {
+        T::ty()
+    }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where
+        S: Serializer,
+    {
         (**self).idl_serialize(serializer)
-    }    
+    }
 }
 
 macro_rules! tuple_impls {

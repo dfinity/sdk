@@ -1,0 +1,11 @@
+[root]
+name = "dfinity-sdk"
+version = "0.2.1"
+
+[workspace]
+members = [
+    "dfx",
+    "lib/dfx_derive",
+    "lib/dfx_info",
+    "lib/serde_idl"
+]

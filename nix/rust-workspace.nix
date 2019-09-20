@@ -16,10 +16,14 @@
 , actorscript
 , dfinity
 , runCommand
+, release ? true # is it a "release" build, as opposed to "debug" ?
+, doClippy ? false
+, doFmt ? false
+, doDoc ? false
 }:
 
 let
-  name = "dfinity-sdk-dfx";
+  name = "dfinity-sdk-rust";
 
   # Neither Nix nor Hydra provide timestamps during build, which makes it
   # difficult to figure out why a particular build takes time.
@@ -38,31 +42,28 @@ let
         else line;
     in lib.concatMapStringsSep "\n" timestamp lines;
 
-  src = lib.sourceFilesByRegex (lib.gitOnlySource ./.) [
-    "^assets/.*$"
+  src = lib.sourceFilesByRegex (lib.gitOnlySource ../.) [
+    ".*/assets/.*$"
     ".*\.rs$"
     ".*Cargo\.toml$"
     ".*Cargo\.lock$"
     "^.cargo/config$"
   ];
-in
-naersk.buildPackage src
-{
-  inherit name;
+
   cargo = rustPackages.cargo;
   rustc = rustPackages.rustc;
+in
+naersk.buildPackage src {
+  inherit name rustc release;
+
   # We add two extra checks to cargo test:
   #   * linting through clippy
   #   * formatting through rustfmt
   #       https://github.com/rust-lang/rustfmt/tree/1d19a08ed4743e3c95176fb639ebcd50f68a3313#checking-style-on-a-ci-server
-  cargoTest =
-    lib.concatStringsSep "\n" (
-    lib.concatMap
-    (str: [ "echo 'Running: ${str}'" str ])
-    [ "cargo clippy -- -D clippy::all"
-      "cargo test --$CARGO_BUILD_PROFILE"
-      "cargo fmt --all -- --check"
-    ]);
+  cargoTestCommands =
+      [ ''cargo test "''${cargo_release[*]}"  -j $NIX_BUILD_CORES'' ]
+      ++ lib.optional doClippy "cargo clippy --tests -- -D clippy::all"
+      ++ lib.optional doFmt "cargo fmt --all -- --check";
 
   override = oldAttrs: {
 
@@ -76,8 +77,8 @@ naersk.buildPackage src
       libressl
       pkg-config
       moreutils
-      cargo-graph
-      graphviz
+      # cargo-graph
+      # graphviz
     ] ++ stdenv.lib.optional (stdenv.isDarwin) darwin.apple_sdk.frameworks.Security;
 
     nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
@@ -133,9 +134,12 @@ naersk.buildPackage src
       cp ${actorscript.rts}/rts/as-rts.wasm $out
     '';
 
-    postDoc = ''
-      cargo graph | dot -Tsvg > ./target/doc/dfx/cargo-graph.svg
-    '';
+    ## This crashes when running locally, because Cargo.lock does not have a root
+    ## table. Since we have a very simple graph and don't really need this it's
+    ## best to ignore it for now.
+    # postDoc = ''
+    #   cargo graph | dot -Tsvg > ./target/doc/dfx/cargo-graph.svg
+    # '';
 
     postInstall = ''
       # XXX: naersk forwards the whole ./target/ to the output. When using 'cargo
@@ -143,14 +147,12 @@ naersk.buildPackage src
       # In particular "checking for references to /build/ in ..." creates more
       # logging than Hydra can handle.
       rm -rf $out/target
+    '' + lib.optionalString doDoc ''
       mkdir -p $doc/nix-support
-      echo "report cargo-doc-dfx $doc ./index.html" >> \
+      echo "report cargo-doc-dfinity $doc index.html" >> \
         $doc/nix-support/hydra-build-products
-      echo "report cargo-graph-dfx $doc ./cargo-graph.svg" >> \
+      echo "report cargo-graph-dfinity $doc ic_client/cargo-graph.svg" >> \
         $doc/nix-support/hydra-build-products
-
-      mkdir -p $out/nix-support
-      echo "file bin $out/bin/dfx" >> $out/nix-support/hydra-build-products
     '';
   });
 }

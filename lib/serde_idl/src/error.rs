@@ -24,7 +24,7 @@ impl Error {
             code: ErrorCode::Message(_msg.to_string()),
             offset: 0,
         })
-    } 
+    }
 }
 
 impl error::Error for Error {
