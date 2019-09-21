@@ -1,5 +1,6 @@
 import {
   ApiClient,
+  RequestStatusResponse,
   RequestStatusResponseStatus,
 } from "./apiClient";
 
@@ -30,22 +31,41 @@ export const makeActor = (
     const [methodName, fn] = entry as [string, Fn];
     return [methodName, async (...args: Array<any>) => {
       // TODO: throw if fn.argTypes.length !== args.length
-      const encoded = zipWith(fn.argTypes, args, (x, y) => x.encode(y));
-      // TODO: is this the right thing to do?
-      const arg = new Blob(encoded, { type: "application/cbor" });
+      // FIXME: Old code does something like:
+      const buffer = zipWith(fn.argTypes, args, (x, y) => x.encode(y));
 
       const {
         requestId,
         // response, // FIXME: check response is OK before continuing
-      } = await apiClient.call({ methodName, arg });
+      } = await apiClient.call({ methodName, arg: [] });
 
       const maxRetries = 3;
 
       // NOTE: we may need to use something like `setInterval` here
       for (let i = 0; i < maxRetries; i++) {
-        // TODO: decode from CBOR to ReadRequestStatusResponse
-        const response = await apiClient.requestStatus({ requestId });
-        const decoded = await response.json();
+        const response: RequestStatusResponse = await apiClient.requestStatus({
+          requestId,
+        });
+
+        switch (response.status) {
+          case RequestStatusResponseStatus.Replied: {
+            return response.reply;
+
+            // FIXME: Old code does something like the following:
+            // tslint:disable-next-line: max-line-length
+            // https://github.com/dfinity-lab/dev/blob/9030c90efe5b3de33670d4f4f0331482d51c5858/experimental/js-dfinity-client/src/IDL.js#L753
+            // TODO: throw if fn.retTypes.length !== response.reply.arg.length
+            // TODO: handle IDL decoding failures
+            // return zipWith(fn.retTypes, response.reply.arg, (x, y) => {
+            //   return x.decode(y);
+            // });
+          }
+          default: {
+            if (i + 1 === maxRetries) {
+              return response; // TODO: throw
+            }
+          }
+        }
         /*
         // TODO: handle decoding failure
         const responseBody = await response.arrayBuffer();
@@ -54,12 +74,6 @@ export const makeActor = (
           return x.decode(y);
         });
         */
-        if (decoded.status === RequestStatusResponseStatus.Replied) {
-          return decoded.reply;
-        }
-        if (i + 1 === maxRetries) {
-          return response; // TODO: throw
-        }
       }
     }];
   }));

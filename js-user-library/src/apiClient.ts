@@ -1,3 +1,5 @@
+import { Buffer } from "buffer";
+import * as cbor from "./cbor";
 import { Int } from "./int";
 import { assertNever } from "./never";
 
@@ -8,15 +10,17 @@ export type CanisterId = Int & { __canisterId__: void };
 export type RequestId = Int & { __requestId__: void };
 
 // Common request fields.
-interface Request {
+interface Request extends Record<string, any> {
   request_type: ReadRequestType | SubmitRequestType;
   // expiry?:;
   // NOTE: `nonce` is optional in the spec, but we should probably provide it
-  // nonce: Blob;
+  // nonce: Array<Int>;
   // sender:;
-  // sender_pubkey: Blob;
-  // sender_sig: Blob;
+  // sender_pubkey: Array<Int>;
+  // sender_sig: Array<Int>;
 }
+
+interface Response extends Record<string, any> {}
 
 
 // An ADT that represents requests to the "read" endpoint.
@@ -59,11 +63,11 @@ interface QueryRequest extends Request {
   request_type: ReadRequestType.Query;
   canister_id: CanisterId;
   method_name: string;
-  arg: Blob;
+  arg: Array<Int>;
 }
 
 // An ADT that represents responses to a "query" read request.
-type QueryResponse<A>
+export type QueryResponse<A>
   = QueryResponseReplied<A>
   | QueryResponseRejected;
 
@@ -83,6 +87,9 @@ enum QueryResponseStatus {
   Rejected = "rejected",
 }
 
+// Pattern match on the response to a query request.
+// TODO: matchQueryResponse
+
 
 // The fields in a "request-status" read request.
 interface RequestStatusRequest extends Request {
@@ -91,31 +98,30 @@ interface RequestStatusRequest extends Request {
 }
 
 // An ADT that represents responses to a "request-status" read request.
-type RequestStatusResponse
+export type RequestStatusResponse
   = RequestStatusResponsePending
   | RequestStatusResponseReplied
   | RequestStatusResponseRejected
   | RequestStatusResponseUnknown;
 
-interface RequestStatusResponsePending {
+interface RequestStatusResponsePending extends Response {
   status: RequestStatusResponseStatus.Pending;
 }
 
-interface RequestStatusResponseReplied {
+interface RequestStatusResponseReplied extends Response {
   status: RequestStatusResponseStatus.Replied;
-  reply: { arg: Blob };
+  reply: { arg: Array<Int> };
 }
 
-interface RequestStatusResponseRejected {
+interface RequestStatusResponseRejected extends Response {
   status: RequestStatusResponseStatus.Rejected;
   reject_code: RejectCode;
   reject_message: string;
 }
 
-interface RequestStatusResponseUnknown {
+interface RequestStatusResponseUnknown extends Response {
   status: RequestStatusResponseStatus.Unknown;
 }
-
 
 export enum RequestStatusResponseStatus {
   Pending = "pending",
@@ -123,6 +129,37 @@ export enum RequestStatusResponseStatus {
   Rejected = "rejected",
   Unknown = "unknown",
 }
+
+// Pattern match on the response to a "request-status" request.
+export const matchRequestStatusResponse = (
+  handlers: {
+    pending: (fields: RequestStatusResponsePending) => any,
+    replied: (fields: RequestStatusResponseReplied) => any,
+    rejected: (fields: RequestStatusResponseRejected) => any,
+    unknown: (fields: RequestStatusResponseUnknown) => any,
+  },
+) => (
+  response: RequestStatusResponse,
+): any => {
+  switch (response.status) {
+    case RequestStatusResponseStatus.Pending: {
+      return handlers.pending(response);
+    }
+    case RequestStatusResponseStatus.Replied: {
+      return handlers.replied(response);
+    }
+    case RequestStatusResponseStatus.Rejected: {
+      return handlers.rejected(response);
+    }
+    case RequestStatusResponseStatus.Unknown: {
+      return handlers.unknown(response);
+    }
+    default: {
+      // Make the type checker enforce that our switch cases are exhaustive
+      return assertNever(response);
+    }
+  }
+};
 
 
 // Construct a "query" read request.
@@ -133,7 +170,7 @@ const makeQueryRequest = ({
 }: {
   canisterId: CanisterId,
   methodName: string,
-  arg: Blob,
+  arg: Array<Int>,
 }): QueryRequest => ({
   request_type: ReadRequestType.Query,
   canister_id: canisterId,
@@ -196,7 +233,7 @@ interface CallRequest extends Request {
   request_type: SubmitRequestType.Call;
   canister_id: CanisterId;
   method_name: string;
-  arg: Blob;
+  arg: Array<Int>;
 }
 
 // Construct a "call" submit request.
@@ -207,7 +244,7 @@ const makeCallRequest = ({
 }: {
   canisterId: CanisterId,
   methodName: string,
-  arg: Blob,
+  arg: Array<Int>,
 }): CallRequest => ({
   request_type: SubmitRequestType.Call,
   canister_id: canisterId,
@@ -216,7 +253,7 @@ const makeCallRequest = ({
 });
 
 
-interface SubmitResponse {
+interface SubmitResponse extends Response {
   requestId: RequestId;
   response: Response;
 }
@@ -227,16 +264,10 @@ const submit = (
 ) => async (
   request: SubmitRequest,
 ): Promise<SubmitResponse> => {
-  const body = matchSubmitRequest({
-    call: (fields) => {
-      // FIXME: convert `fields` to `body`
-      return "FIXME: call";
-    },
-  })(request);
-  // TODO: decode body from CBOR
+  const body = cbor.encode(request);
   const response = await config.runFetch(Endpoint.Submit, body);
   return {
-    requestId: -1 as RequestId,
+    requestId: 1 as RequestId,
     response,
   };
 };
@@ -246,15 +277,7 @@ const read = (
 ) => async (
   request: ReadRequest,
 ): Promise<Response> => {
-  const body = matchReadRequest({
-    query: (fields) => {
-      return "FIXME: query"; // FIXME: CBOR
-    },
-    requestStatus: (fields) => {
-      return "FIXME: request status"; // FIXME: // CBOR
-    },
-  })(request);
-  // TODO: decode body from CBOR
+  const body = cbor.encode(request);
   return config.runFetch(Endpoint.Read, body);
 };
 
@@ -265,7 +288,7 @@ const call = (
   arg,
 }: {
   methodName: string,
-  arg: Blob,
+  arg: Array<Int>,
 }): Promise<SubmitResponse> => {
   const request = makeCallRequest({
     canisterId: config.canisterId,
@@ -280,10 +303,12 @@ const requestStatus = (
 ) => async ({
   requestId,
 }: {
-  requestId: number,
-}): Promise<Response> => {
+  requestId: RequestId,
+}): Promise<RequestStatusResponse> => {
   const request = makeRequestStatusRequest({ requestId });
-  return read(config)(request);
+  const response = await read(config)(request);
+  const body = await response.arrayBuffer();
+  return cbor.decode(Buffer.from(body)) as RequestStatusResponse;
 };
 
 
@@ -337,12 +362,12 @@ enum Endpoint {
 export interface ApiClient {
   call(fields: {
     methodName: string,
-    arg: Blob,
+    arg: Array<Int>,
   }): Promise<SubmitResponse>;
 
   requestStatus(fields: {
-    requestId: number,
-  }): Promise<Response>;
+    requestId: RequestId,
+  }): Promise<RequestStatusResponse>;
 }
 
 export const makeApiClient = (options: Options): ApiClient => {

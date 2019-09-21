@@ -18,11 +18,11 @@ test("call", async () => {
 
   const { requestId, response } = await apiClient.call({
     methodName: "greet",
-    arg: new Blob([], { type: "application/cbor" }), // FIXME
+    arg: [],
   });
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
-  expect(requestId).toBe(-1); // FIXME
+  expect(requestId).toBe(1); // FIXME
   expect(await response.text()).toBe(greeting); // FIXME
 });
