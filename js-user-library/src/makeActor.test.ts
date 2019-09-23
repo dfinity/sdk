@@ -33,7 +33,7 @@ test("makeActor", async () => {
     });
 
   const apiClient = makeApiClient({
-    canisterId: 1 as CanisterId,
+    canisterId: [1] as CanisterId,
     fetch: mockFetch,
   });
 
@@ -54,7 +54,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "call",
-      canister_id: 1 as CanisterId,
+      canister_id: [1] as CanisterId,
       method_name: "greet",
       arg: [],
     }),
@@ -68,7 +68,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: 1 as RequestId,
+      request_id: [1] as RequestId,
     }),
   });
 
@@ -80,7 +80,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: 1 as RequestId,
+      request_id: [1] as RequestId,
     }),
   });
 
@@ -92,7 +92,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: 1 as RequestId,
+      request_id: [1] as RequestId,
     }),
   });
 });

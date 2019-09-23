@@ -12,7 +12,7 @@ test("call", async () => {
   });
 
   const apiClient = makeApiClient({
-    canisterId: 1 as CanisterId,
+    canisterId: [1] as CanisterId,
     fetch: mockFetch,
   });
 

@@ -6,8 +6,8 @@ import { assertNever } from "./never";
 // TODO:
 // * Handle errors everywhere we `await`
 
-export type CanisterId = Int & { __canisterId__: void };
-export type RequestId = Int & { __requestId__: void };
+export type CanisterId = Array<Int>;
+export type RequestId = Array<Int>;
 
 // Common request fields.
 interface Request extends Record<string, any> {
@@ -267,7 +267,7 @@ const submit = (
   const body = cbor.encode(request);
   const response = await config.runFetch(Endpoint.Submit, body);
   return {
-    requestId: 1 as RequestId,
+    requestId: [1] as RequestId,
     response,
   };
 };
