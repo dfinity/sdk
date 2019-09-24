@@ -378,7 +378,7 @@ mod tests {
 
         match result {
             Ok(r) => assert_eq!(r, response),
-            Err(e) => assert!(false, format!("{:#?}", e)),
+            Err(e) => panic!("{:#?}", e),
         }
     }
 
@@ -443,7 +443,7 @@ mod tests {
 
         match result {
             Ok(r) => assert_eq!(r, response),
-            Err(e) => assert!(false, format!("{:#?}", e)),
+            Err(e) => panic!("{:#?}", e),
         }
     }
 
@@ -508,7 +508,7 @@ mod tests {
 
         match result {
             Ok(()) => {}
-            Err(e) => assert!(false, format!("{:#?}", e)),
+            Err(e) => panic!("{:#?}", e),
         }
     }
 
@@ -533,10 +533,10 @@ mod tests {
         _m.assert();
 
         match result {
-            Ok(()) => assert!(false, "Install succeeded."),
+            Ok(()) => panic!("Install succeeded."),
             Err(e) => match e {
                 DfxError::Reqwest(_err) => (),
-                _ => assert!(false, format!("{:#?}", e)),
+                _ => panic!("{:#?}", e),
             },
         }
     }

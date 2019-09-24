@@ -2,4 +2,8 @@
 , crossSystem ? null
 , config ? {}
 , overlays ? []
-}: import ./nix/nixpkgs.nix { inherit system crossSystem config overlays; }
+}@args:
+
+let pkgs = import ./nix/nixpkgs.nix args; in {
+  inherit pkgs;
+} // pkgs.dfinity-sdk.packages

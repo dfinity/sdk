@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["chenyan-dfinity <yan.chen@dfinity.org>"]
 
 [lib]
+name = "dfx_derive"
 proc-macro = true
 
 [dependencies]
