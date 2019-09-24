@@ -6,6 +6,4 @@
 
 let pkgs = import ./nix/nixpkgs.nix args; in {
   inherit pkgs;
-
-  inherit (pkgs.dfinity-sdk.packages) rust-workspace;
-}
+} // pkgs.dfinity-sdk.packages

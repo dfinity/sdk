@@ -2,5 +2,5 @@
 , crossSystem ? null
 , config ? {}
 }: {
-  inherit (import ./. { inherit system crossSystem config; }) rust-workspace;
+  inherit ((import ./. { inherit system crossSystem config; }).pkgs.dfinity-sdk) packages;
 }
