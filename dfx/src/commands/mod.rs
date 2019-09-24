@@ -5,7 +5,6 @@ use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
 mod build;
-mod call;
 mod canister;
 mod new;
 mod start;
@@ -41,7 +40,6 @@ where
 {
     vec![
         CliCommand::new(build::construct(), build::exec),
-        CliCommand::new(call::construct(), call::exec),
         CliCommand::new(canister::construct::<T>(), canister::exec),
         CliCommand::new(new::construct(), new::exec),
         CliCommand::new(start::construct(), start::exec),
