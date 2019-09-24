@@ -3,6 +3,9 @@
   "name": "@internet-computer/js-user-library",
   "version": "0.1.0",
   "main": "out/index.js",
+  "files": [
+    "out/**/*"
+  ],
   "scripts": {
     "type-check": "tsc --noEmit",
     "type-check:watch": "npm run type-check -- --watch",
