@@ -81,7 +81,6 @@ test("requestIdOf", async () => {
   expect(
     toHex(requestId as Array<Int>),
   ).toEqual(
-    // "8781291c347db32a9d8c10eb62b710fce5a93be676474c42babc74c51858f94b",
-    "8ef075dddcd53a18bc40d6a1b6ef7b559cc7945e8c7f898c689635a32148c71c",
+    "8781291c347db32a9d8c10eb62b710fce5a93be676474c42babc74c51858f94b",
   );
 });

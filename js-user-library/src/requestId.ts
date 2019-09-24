@@ -22,7 +22,7 @@ const hashBlob = (value: Array<Int>): Promise<ArrayBuffer> => {
 
 const hashString = (value: string): Promise<ArrayBuffer> => {
   const encoder = new TextEncoder();
-  const encoded = encoder.encode(value === "canister_id" ? "callee" : value);
+  const encoded = encoder.encode(value);
   return hash(encoded);
 };
 
@@ -30,10 +30,20 @@ const isString = (value: HashableValue): value is string => {
   return typeof value === "string";
 };
 
+const concat = (bs: Array<ArrayBuffer>): ArrayBuffer => {
+  const folded = bs.reduce((state: Uint8Array, b: ArrayBuffer): Uint8Array => {
+    return new Uint8Array([
+      ...state,
+      ...(new Uint8Array(b)),
+    ]);
+  }, new Uint8Array());
+  return folded.buffer;
+};
+
 export const requestIdOf = async (request: Request): Promise<RequestId> => {
   const { sender_pubkey, sender_sig, ...rest } = request;
 
-  const hashed = Object
+  const hashed: Array<Promise<[ArrayBuffer, ArrayBuffer]>> = Object
     .entries(rest)
     .map(async ([key, value]: [string, CborValue]) => {
       const hashedKey = await hashString(key);
@@ -42,14 +52,21 @@ export const requestIdOf = async (request: Request): Promise<RequestId> => {
       const hashedValue = await hashValue(value as string | Array<Int>);
 
       return [
-        Buffer.from(hashedKey),
-        Buffer.from(hashedValue),
-      ] as [Buffer, Buffer];
+        hashedKey,
+        hashedValue,
+      ] as [ArrayBuffer, ArrayBuffer];
     });
 
-  const traversed = await Promise.all(hashed);
-  const sorted = traversed.sort(([k1, v1], [k2, v2]) => Buffer.compare(k1, k2));
-  const concatenated = Buffer.concat(sorted.map(Buffer.concat));
-  const buffer = await hash(concatenated.buffer);
+  const traversed: Array<[ArrayBuffer, ArrayBuffer]> = await Promise.all(
+    hashed,
+  );
+
+  const sorted: Array<[ArrayBuffer, ArrayBuffer]> = traversed
+    .sort(([k1, v1], [k2, v2]) => {
+      return Buffer.compare(Buffer.from(k1), Buffer.from(k2));
+    });
+
+  const concatenated: ArrayBuffer = concat(sorted.map(concat));
+  const buffer = await hash(concatenated);
   return Array.from(new Uint8Array(buffer)) as Array<Int>;
 };
