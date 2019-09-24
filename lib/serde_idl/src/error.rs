@@ -47,7 +47,7 @@ impl fmt::Display for Error {
 }
 
 impl fmt::Debug for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
@@ -77,7 +77,7 @@ pub(crate) enum ErrorCode {
 }
 
 impl fmt::Display for ErrorCode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             ErrorCode::Message(ref msg) => f.write_str(msg),
             ErrorCode::Io(ref err) => fmt::Display::fmt(err, f),
