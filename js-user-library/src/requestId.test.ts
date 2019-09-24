@@ -37,7 +37,7 @@ test("hash", async () => {
     ),
     testHashOfString(
       "canister_id",
-      "92ca4c0ced628df1e7b9f336416ead190bd0348615b6f71a64b21d1b68d4e7e2",
+      "0a3eb2ba16702a387e6321066dd952db7a31f9b5cc92981e0a92dd56802d3df9",
     ),
     testHashOfBlob(
       [0, 0, 0, 0, 0, 0, 4, 210] as Array<Int>,
