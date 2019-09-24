@@ -119,7 +119,7 @@ impl Config {
         let mut curr = PathBuf::from(working_dir).canonicalize()?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
-                return Ok(curr);
+                return Ok(curr.join(CONFIG_FILE_NAME));
             } else {
                 curr.pop();
             }
@@ -127,7 +127,7 @@ impl Config {
 
         // Have to check if the config could be in the root (e.g. on VMs / CI).
         if curr.join(CONFIG_FILE_NAME).is_file() {
-            return Ok(curr);
+            return Ok(curr.join(CONFIG_FILE_NAME));
         }
 
         Err(std::io::Error::new(
@@ -167,5 +167,55 @@ impl Config {
             serde_json::to_string_pretty(&self.json).unwrap(),
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find_dfinity_config_current_path() {
+        let root_dir = tempfile::tempdir().unwrap();
+        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
+
+        std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+        std::fs::write(&config_path, "{}").unwrap();
+
+        assert_eq!(
+            config_path,
+            Config::resolve_config_path(config_path.parent().unwrap()).unwrap(),
+        );
+    }
+
+    #[test]
+    fn find_dfinity_config_parent() {
+        let root_dir = tempfile::tempdir().unwrap();
+        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
+
+        std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+        std::fs::write(&config_path, "{}").unwrap();
+
+        assert!(
+            Config::resolve_config_path(config_path.parent().unwrap().parent().unwrap()).is_err()
+        );
+    }
+
+    #[test]
+    fn find_dfinity_config_subdir() {
+        let root_dir = tempfile::tempdir().unwrap();
+        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
+        let subdir_path = config_path.parent().unwrap().join("baz/blue");
+
+        std::fs::create_dir_all(&subdir_path).unwrap();
+        std::fs::write(&config_path, "{}").unwrap();
+
+        assert_eq!(
+            config_path,
+            Config::resolve_config_path(subdir_path.as_path()).unwrap(),
+        );
     }
 }
