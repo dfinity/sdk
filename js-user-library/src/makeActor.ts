@@ -1,8 +1,8 @@
 import {
-  ApiClient,
+  HttpAgent,
   RequestStatusResponse,
   RequestStatusResponseStatus,
-} from "./apiClient";
+} from "./httpAgent";
 
 import { zipWith } from "./array";
 import { ActorInterface, Fn } from "./IDL";
@@ -24,7 +24,7 @@ import { ActorInterface, Fn } from "./IDL";
 export const makeActor = (
   actorInterface: ActorInterface,
 ) => (
-  apiClient: ApiClient,
+  httpAgent: HttpAgent,
 ) => {
   const entries = Object.entries(actorInterface.__fields);
   return Object.fromEntries(entries.map((entry) => {
@@ -37,13 +37,13 @@ export const makeActor = (
       const {
         requestId,
         // response, // FIXME: check response is OK before continuing
-      } = await apiClient.call({ methodName, arg: [] });
+      } = await httpAgent.call({ methodName, arg: [] });
 
       const maxRetries = 3;
 
       // NOTE: we may need to use something like `setInterval` here
       for (let i = 0; i < maxRetries; i++) {
-        const response: RequestStatusResponse = await apiClient.requestStatus({
+        const response: RequestStatusResponse = await httpAgent.requestStatus({
           requestId,
         });
 

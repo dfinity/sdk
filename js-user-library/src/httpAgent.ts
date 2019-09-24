@@ -359,7 +359,7 @@ enum Endpoint {
   Submit = "submit",
 }
 
-export interface ApiClient {
+export interface HttpAgent {
   call(fields: {
     methodName: string,
     arg: Array<Int>,
@@ -370,7 +370,7 @@ export interface ApiClient {
   }): Promise<RequestStatusResponse>;
 }
 
-export const makeApiClient = (options: Options): ApiClient => {
+export const makeHttpAgent = (options: Options): HttpAgent => {
   const config = makeConfig(options);
   return {
     call: call(config),

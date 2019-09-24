@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
-import { Request, RequestId } from "./apiClient";
 import { CborValue } from "./cbor";
+import { Request, RequestId } from "./httpAgent";
 import { Int } from "./int";
 
 // The spec describes encoding for these types.

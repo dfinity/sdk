@@ -1,6 +1,6 @@
-import { RequestId } from "./apiClient";
 import * as cbor from "./cbor";
-import { CanisterId, IDL, makeActor, makeApiClient } from "./index";
+import { RequestId } from "./httpAgent";
+import { CanisterId, IDL, makeActor, makeHttpAgent } from "./index";
 
 test("makeActor", async () => {
   const actorInterface = new IDL.ActorInterface({
@@ -32,12 +32,12 @@ test("makeActor", async () => {
       }));
     });
 
-  const apiClient = makeApiClient({
+  const httpAgent = makeHttpAgent({
     canisterId: [1] as CanisterId,
     fetch: mockFetch,
   });
 
-  const actor = makeActor(actorInterface)(apiClient);
+  const actor = makeActor(actorInterface)(httpAgent);
   // FIXME: the argument isn't actually used yet
   const reply = await actor.greet("Name");
 

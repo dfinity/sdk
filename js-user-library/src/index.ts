@@ -1,4 +1,4 @@
-export * from "./apiClient";
+export * from "./httpAgent";
 
 import * as IDL from "./IDL";
 export { IDL };

@@ -1,4 +1,4 @@
-import { CanisterId, IDL, makeActor, makeApiClient } from "./index";
+import { CanisterId, IDL, makeActor, makeHttpAgent } from "./index";
 
 test("call", async () => {
   const greeting = "Hello, World!";
@@ -11,12 +11,12 @@ test("call", async () => {
     }));
   });
 
-  const apiClient = makeApiClient({
+  const httpAgent = makeHttpAgent({
     canisterId: [1] as CanisterId,
     fetch: mockFetch,
   });
 
-  const { requestId, response } = await apiClient.call({
+  const { requestId, response } = await httpAgent.call({
     methodName: "greet",
     arg: [],
   });

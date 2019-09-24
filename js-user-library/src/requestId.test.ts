@@ -1,7 +1,7 @@
 // tslint:disable-next-line: max-line-length
 // https://github.com/dfinity-lab/dfinity/blob/5fef1450c9ab16ccf18381379149e504b11c8218/docs/spec/public/index.adoc#request-ids
 
-import { Request } from "./apiClient";
+import { Request } from "./httpAgent";
 import { hash, requestIdOf } from "./index";
 import { Int } from "./int";
 
