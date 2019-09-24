@@ -1,4 +1,3 @@
-import { Buffer } from "buffer";
 import * as cbor from "./cbor";
 import { Int } from "./int";
 import { assertNever } from "./never";
@@ -308,7 +307,7 @@ const requestStatus = (
   const request = makeRequestStatusRequest({ requestId });
   const response = await read(config)(request);
   const body = await response.arrayBuffer();
-  return cbor.decode(Buffer.from(body)) as RequestStatusResponse;
+  return cbor.decode(body) as RequestStatusResponse;
 };
 
 

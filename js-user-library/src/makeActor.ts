@@ -32,7 +32,7 @@ export const makeActor = (
     return [methodName, async (...args: Array<any>) => {
       // TODO: throw if fn.argTypes.length !== args.length
       // FIXME: Old code does something like:
-      const buffer = zipWith(fn.argTypes, args, (x, y) => x.encode(y));
+      // const buffer = zipWith(fn.argTypes, args, (x, y) => x.encode(y));
 
       const {
         requestId,

@@ -1,4 +1,4 @@
-import { Buffer } from "buffer";
+import { Buffer } from "safe-buffer";
 import { Text } from "./Text";
 import { Type } from "./Type";
 

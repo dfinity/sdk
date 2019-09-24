@@ -2,7 +2,6 @@
 // https://github.com/dfinity-lab/dfinity/blob/9bca65f8edd65701ea6bdb00e0752f9186bbc893/docs/spec/public/index.adoc#cbor-encoding-of-requests-and-responses
 
 import borc from "borc";
-import { Buffer } from "buffer";
 import { Int } from "./int";
 
 const SEMANTIC_TAG = 55799;
@@ -23,15 +22,15 @@ export type CborValue
   // Nested records: Major type 5 followed by string keys.
   | CborRecord;
 
-export const encode = (value: CborValue): Buffer => {
+export const encode = (value: CborValue): ArrayBuffer => {
   return borc.encode(
     new borc.Tagged(SEMANTIC_TAG, value),
   );
 };
 
-export const decode = (input: Buffer): CborValue => {
+export const decode = (input: ArrayBuffer): CborValue => {
   const decoder = new borc.Decoder({
-    size: input.length,
+    size: input.byteLength,
     tags: {
       [SEMANTIC_TAG]: (value: CborValue): CborValue => value,
     },
