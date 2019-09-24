@@ -1,15 +1,11 @@
 use crate::lib::api_client::{install_code, Blob};
 use crate::lib::env::{ClientEnv, ProjectConfigEnv};
 use crate::lib::error::DfxResult;
+use crate::lib::CanisterId;
+use crate::util::clap::validators;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
-
-fn is_number(v: String) -> Result<(), String> {
-    v.parse::<u64>()
-        .map_err(|_| String::from("The value must be a number."))
-        .map(|_| ())
-}
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("install")
@@ -19,7 +15,7 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(true)
                 .help("The canister ID (a number).")
                 .required(true)
-                .validator(is_number),
+                .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("wasm")
@@ -36,7 +32,7 @@ where
     let config = env.get_config().unwrap();
     let project_root = config.get_path().parent().unwrap();
 
-    let canister_id = args.value_of("canister").unwrap().parse::<u64>()?;
+    let canister_id = args.value_of("canister").unwrap().parse::<CanisterId>()?;
     let wasm_path = args.value_of("wasm").unwrap();
     let wasm_path = PathBuf::from(project_root).join(wasm_path);
 

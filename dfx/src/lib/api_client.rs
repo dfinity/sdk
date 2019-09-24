@@ -1,6 +1,8 @@
 use crate::lib::error::*;
+use crate::lib::CanisterId;
 use futures::future::{err, ok, result, Future};
 use futures::stream::Stream;
+use rand::Rng;
 use reqwest::r#async::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -11,8 +13,6 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 // deserialized as a sequence (array) of bytes, whereas we want an actual CBOR "byte array", e.g. a
 // bytestring
 pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
-
-type CanisterId = u64;
 
 #[derive(Clone)]
 pub struct Client {
@@ -90,11 +90,27 @@ enum SubmitRequest {
         canister_id: CanisterId,
         module: Blob,
         arg: Blob,
+        nonce: Option<Blob>,
     },
+    Call {
+        canister_id: CanisterId,
+        method_name: String,
+        arg: Blob,
+        nonce: Option<Blob>,
+    },
+}
+
+/// Generates a random 32 bytes of blob.
+fn random_blob() -> Blob {
+    let mut rng = rand::thread_rng();
+    Blob(rng.gen::<[u8; 32]>().iter().cloned().collect())
 }
 
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
+///
+/// TODO: filter the output of this function when moving to ic_http_api.
+/// For example, it should never return Unknown or Pending, per the spec.
 fn read<A>(
     client: Client,
     request: ReadRequest,
@@ -163,9 +179,20 @@ fn submit(
 /// returns the canister’s response directly within the HTTP response.
 pub fn query(
     client: Client,
-    request: CanisterQueryCall,
+    canister_id: CanisterId,
+    method_name: String,
+    arg: Option<Blob>,
 ) -> impl Future<Item = ReadResponse<QueryResponseReply>, Error = DfxError> {
-    read(client, ReadRequest::Query { request })
+    read(
+        client,
+        ReadRequest::Query {
+            request: CanisterQueryCall {
+                canister_id,
+                method_name,
+                arg: arg.unwrap_or_else(|| Blob(vec![])),
+            },
+        },
+    )
 }
 
 /// Canister Install call
@@ -181,6 +208,36 @@ pub fn install_code(
             canister_id,
             module,
             arg: arg.unwrap_or_else(|| Blob(vec![])),
+            nonce: Some(random_blob()),
+        },
+    )
+    .and_then(|response| {
+        result(
+            response
+                .error_for_status()
+                .map(|_| ())
+                .map_err(DfxError::from),
+        )
+    })
+}
+
+/// Canister call
+///
+/// Canister methods that can change the canister state. This return right away, and cannot wait
+/// for the canister to be done.
+pub fn call(
+    client: Client,
+    canister_id: CanisterId,
+    method_name: String,
+    arg: Option<Blob>,
+) -> impl Future<Item = (), Error = DfxError> {
+    submit(
+        client,
+        SubmitRequest::Call {
+            canister_id,
+            method_name,
+            arg: arg.unwrap_or_else(|| Blob(vec![])),
+            nonce: Some(random_blob()),
         },
     )
     .and_then(|response| {
@@ -312,14 +369,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let query = query(
-            client,
-            CanisterQueryCall {
-                canister_id: 1,
-                method_name: "main".to_string(),
-                arg: Blob(vec![]),
-            },
-        );
+        let query = query(client, 1, "main".to_string(), Some(Blob(vec![])));
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(query);
@@ -384,14 +434,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let query = query(
-            client,
-            CanisterQueryCall {
-                canister_id: 1,
-                method_name: "main".to_string(),
-                arg: Blob(vec![]),
-            },
-        );
+        let query = query(client, 1, "main".to_string(), Some(Blob(vec![])));
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(query);
@@ -417,6 +460,7 @@ mod tests {
             canister_id,
             module,
             arg,
+            nonce: None,
         };
 
         let actual: Value = serde_cbor::from_slice(&serde_cbor::to_vec(&request).unwrap()).unwrap();
@@ -433,6 +477,7 @@ mod tests {
                 ),
                 (Value::Text("module".to_string()), Value::Bytes(vec![1])),
                 (Value::Text("arg".to_string()), Value::Bytes(vec![2])),
+                (Value::Text("nonce".to_string()), Value::Null),
             ]
             .into_iter()
             .collect(),
