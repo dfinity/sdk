@@ -10,7 +10,7 @@ export type CanisterId = Array<Int>;
 export type RequestId = Array<Int>;
 
 // Common request fields.
-interface Request extends Record<string, any> {
+export interface Request extends Record<string, any> {
   request_type: ReadRequestType | SubmitRequestType;
   // expiry?:;
   // NOTE: `nonce` is optional in the spec, but we should probably provide it
