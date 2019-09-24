@@ -1,6 +1,8 @@
 use crate::lib::error::*;
+use crate::lib::CanisterId;
 use futures::future::{err, ok, result, Future};
 use futures::stream::Stream;
+use rand::Rng;
 use reqwest::r#async::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -12,19 +14,20 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 // bytestring
 pub struct Blob(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
-type CanisterId = u64;
-
 #[derive(Clone)]
 pub struct Client {
     client: ReqwestClient,
-    url: String,
+    url: reqwest::Url,
 }
 
 impl Client {
     pub fn new(config: ClientConfig) -> Client {
         Client {
             client: ReqwestClient::new(),
-            url: config.url,
+            url: reqwest::Url::parse(config.url.as_str())
+                .expect("Invalid client URL.")
+                .join("api/v1/")
+                .unwrap(),
         }
     }
 
@@ -40,28 +43,28 @@ pub struct ClientConfig {
     pub url: String,
 }
 
-/// Request payloads
+/// Request payloads for the /api/v1/read endpoint.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "request_type")]
-enum Request {
+enum ReadRequest {
     Query {
         #[serde(flatten)]
         request: CanisterQueryCall,
     },
 }
 
-/// Response payloads
+/// Response payloads for the /api/v1/read endpoint.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "status")]
-pub enum Response<A> {
-    Accepted,
+pub enum ReadResponse<A> {
+    Pending,
     Replied {
         reply: A,
     },
     Rejected {
-        reject_code: RejectCode,
+        reject_code: ReadRejectCode,
         reject_message: String,
     },
     Unknown,
@@ -70,7 +73,7 @@ pub enum Response<A> {
 /// Response reject codes
 #[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
-pub enum RejectCode {
+pub enum ReadRejectCode {
     SysFatal = 1,
     SysTransient = 2,
     DestinationInvalid = 3,
@@ -78,15 +81,44 @@ pub enum RejectCode {
     CanisterError = 5,
 }
 
+/// Request payloads for the /api/v1/submit endpoint.
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "request_type")]
+enum SubmitRequest {
+    InstallCode {
+        canister_id: CanisterId,
+        module: Blob,
+        arg: Blob,
+        nonce: Option<Blob>,
+    },
+    Call {
+        canister_id: CanisterId,
+        method_name: String,
+        arg: Blob,
+        nonce: Option<Blob>,
+    },
+}
+
+/// Generates a random 32 bytes of blob.
+fn random_blob() -> Blob {
+    let mut rng = rand::thread_rng();
+    Blob(rng.gen::<[u8; 32]>().iter().cloned().collect())
+}
+
 /// A read request. Intended to remain private in favor of exposing specialized
 /// functions like `query` instead.
-fn read<A>(client: Client, request: Request) -> impl Future<Item = Response<A>, Error = DfxError>
+///
+/// TODO: filter the output of this function when moving to ic_http_api.
+/// For example, it should never return Unknown or Pending, per the spec.
+fn read<A>(
+    client: Client,
+    request: ReadRequest,
+) -> impl Future<Item = ReadResponse<A>, Error = DfxError>
 where
     A: serde::de::DeserializeOwned,
 {
-    let endpoint = format!("{}/api/v1/read", client.url);
-    let parsed = reqwest::Url::parse(&endpoint).map_err(DfxError::Url);
-    result(parsed)
+    result(client.url.join("read").map_err(DfxError::Url))
         .and_then(move |url| {
             let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
             let headers = http_request.headers_mut();
@@ -109,14 +141,34 @@ where
 
 /// Ping a client and return ok if the client is started.
 pub fn ping(client: Client) -> impl Future<Item = (), Error = DfxError> {
-    let parsed = reqwest::Url::parse(&client.url).map_err(DfxError::Url);
-    result(parsed).and_then(move |url| {
+    ok(client.url.clone()).and_then(move |url| {
         let http_request = reqwest::r#async::Request::new(reqwest::Method::GET, url);
 
         client
             .execute(http_request)
             .map(|_| ())
             .map_err(DfxError::Reqwest)
+    })
+}
+
+/// A submit request. Intended to remain private in favor of exposing specialized
+/// functions like `install_code` instead.
+fn submit(
+    client: Client,
+    request: SubmitRequest,
+) -> impl Future<Item = reqwest::r#async::Response, Error = DfxError> {
+    result(client.url.join("submit").map_err(DfxError::Url)).and_then(move |url| {
+        let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
+        let headers = http_request.headers_mut();
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/cbor".parse().unwrap(),
+        );
+        let body = http_request.body_mut();
+        body.get_or_insert(reqwest::r#async::Body::from(
+            serde_cbor::to_vec(&request).unwrap(),
+        ));
+        client.execute(http_request).map_err(DfxError::Reqwest)
     })
 }
 
@@ -127,9 +179,75 @@ pub fn ping(client: Client) -> impl Future<Item = (), Error = DfxError> {
 /// returns the canister’s response directly within the HTTP response.
 pub fn query(
     client: Client,
-    request: CanisterQueryCall,
-) -> impl Future<Item = Response<QueryResponseReply>, Error = DfxError> {
-    read(client, Request::Query { request })
+    canister_id: CanisterId,
+    method_name: String,
+    arg: Option<Blob>,
+) -> impl Future<Item = ReadResponse<QueryResponseReply>, Error = DfxError> {
+    read(
+        client,
+        ReadRequest::Query {
+            request: CanisterQueryCall {
+                canister_id,
+                method_name,
+                arg: arg.unwrap_or_else(|| Blob(vec![])),
+            },
+        },
+    )
+}
+
+/// Canister Install call
+pub fn install_code(
+    client: Client,
+    canister_id: CanisterId,
+    module: Blob,
+    arg: Option<Blob>,
+) -> impl Future<Item = (), Error = DfxError> {
+    submit(
+        client,
+        SubmitRequest::InstallCode {
+            canister_id,
+            module,
+            arg: arg.unwrap_or_else(|| Blob(vec![])),
+            nonce: Some(random_blob()),
+        },
+    )
+    .and_then(|response| {
+        result(
+            response
+                .error_for_status()
+                .map(|_| ())
+                .map_err(DfxError::from),
+        )
+    })
+}
+
+/// Canister call
+///
+/// Canister methods that can change the canister state. This return right away, and cannot wait
+/// for the canister to be done.
+pub fn call(
+    client: Client,
+    canister_id: CanisterId,
+    method_name: String,
+    arg: Option<Blob>,
+) -> impl Future<Item = (), Error = DfxError> {
+    submit(
+        client,
+        SubmitRequest::Call {
+            canister_id,
+            method_name,
+            arg: arg.unwrap_or_else(|| Blob(vec![])),
+            nonce: Some(random_blob()),
+        },
+    )
+    .and_then(|response| {
+        result(
+            response
+                .error_for_status()
+                .map(|_| ())
+                .map_err(DfxError::from),
+        )
+    })
 }
 
 /// A canister query call request payload
@@ -161,7 +279,7 @@ mod tests {
         let method_name = "main".to_string();
         let arg = Blob(vec![]);
 
-        let request = Request::Query {
+        let request = ReadRequest::Query {
             request: CanisterQueryCall {
                 canister_id,
                 method_name: method_name.clone(),
@@ -219,10 +337,10 @@ mod tests {
             .collect(),
         );
 
-        let actual: Response<QueryResponseReply> =
+        let actual: ReadResponse<QueryResponseReply> =
             serde_cbor::from_slice(&serde_cbor::to_vec(&response).unwrap()).unwrap();
 
-        let expected = Response::Replied {
+        let expected = ReadResponse::Replied {
             reply: QueryResponseReply {
                 arg: Blob(arg.clone()),
             },
@@ -235,7 +353,7 @@ mod tests {
     fn query_response_replied() {
         let _ = env_logger::try_init();
 
-        let response = Response::Replied {
+        let response = ReadResponse::Replied {
             reply: QueryResponseReply {
                 arg: Blob(Vec::from("Hello World")),
             },
@@ -251,14 +369,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let query = query(
-            client,
-            CanisterQueryCall {
-                canister_id: 1,
-                method_name: "main".to_string(),
-                arg: Blob(vec![]),
-            },
-        );
+        let query = query(client, 1, "main".to_string(), Some(Blob(vec![])));
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(query);
@@ -267,7 +378,7 @@ mod tests {
 
         match result {
             Ok(r) => assert_eq!(r, response),
-            Err(e) => assert!(false, format!("{:#?}", e)),
+            Err(e) => panic!("{:#?}", e),
         }
     }
 
@@ -293,11 +404,11 @@ mod tests {
             .collect(),
         );
 
-        let actual: Response<QueryResponseReply> =
+        let actual: ReadResponse<QueryResponseReply> =
             serde_cbor::from_slice(&serde_cbor::to_vec(&response).unwrap()).unwrap();
 
-        let expected: Response<QueryResponseReply> = Response::Rejected {
-            reject_code: RejectCode::SysFatal,
+        let expected: ReadResponse<QueryResponseReply> = ReadResponse::Rejected {
+            reject_code: ReadRejectCode::SysFatal,
             reject_message: reject_message.clone(),
         };
 
@@ -308,8 +419,8 @@ mod tests {
     fn query_response_rejected() {
         let _ = env_logger::try_init();
 
-        let response = Response::Rejected {
-            reject_code: RejectCode::SysFatal,
+        let response = ReadResponse::Rejected {
+            reject_code: ReadRejectCode::SysFatal,
             reject_message: "Fatal error".to_string(),
         };
 
@@ -323,14 +434,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let query = query(
-            client,
-            CanisterQueryCall {
-                canister_id: 1,
-                method_name: "main".to_string(),
-                arg: Blob(vec![]),
-            },
-        );
+        let query = query(client, 1, "main".to_string(), Some(Blob(vec![])));
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(query);
@@ -339,7 +443,101 @@ mod tests {
 
         match result {
             Ok(r) => assert_eq!(r, response),
-            Err(e) => assert!(false, format!("{:#?}", e)),
+            Err(e) => panic!("{:#?}", e),
+        }
+    }
+
+    #[test]
+    fn install_code_request_serialization() {
+        use serde_cbor::Value;
+        use std::convert::TryInto;
+
+        let canister_id = 1;
+        let module = Blob(vec![1]);
+        let arg = Blob(vec![2]);
+
+        let request = SubmitRequest::InstallCode {
+            canister_id,
+            module,
+            arg,
+            nonce: None,
+        };
+
+        let actual: Value = serde_cbor::from_slice(&serde_cbor::to_vec(&request).unwrap()).unwrap();
+
+        let expected = Value::Map(
+            vec![
+                (
+                    Value::Text("request_type".to_string()),
+                    Value::Text("install_code".to_string()),
+                ),
+                (
+                    Value::Text("canister_id".to_string()),
+                    Value::Integer(canister_id.try_into().unwrap()),
+                ),
+                (Value::Text("module".to_string()), Value::Bytes(vec![1])),
+                (Value::Text("arg".to_string()), Value::Bytes(vec![2])),
+                (Value::Text("nonce".to_string()), Value::Null),
+            ]
+            .into_iter()
+            .collect(),
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn install_code_response_replied() {
+        let _ = env_logger::try_init();
+
+        let _m = mock("POST", "/api/v1/submit")
+            .with_status(200)
+            .with_header("content-type", "application/cbor")
+            .create();
+
+        let client = Client::new(ClientConfig {
+            url: mockito::server_url(),
+        });
+
+        let future = install_code(client, 1, Blob(vec![1]), None);
+
+        let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+        let result = runtime.block_on(future);
+
+        _m.assert();
+
+        match result {
+            Ok(()) => {}
+            Err(e) => panic!("{:#?}", e),
+        }
+    }
+
+    #[test]
+    fn install_code_response_rejected() {
+        let _ = env_logger::try_init();
+
+        let _m = mock("POST", "/api/v1/submit")
+            .with_status(400)
+            .with_header("content-type", "application/cbor")
+            .create();
+
+        let client = Client::new(ClientConfig {
+            url: mockito::server_url(),
+        });
+
+        let future = install_code(client, 1, Blob(vec![1]), None);
+
+        let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+        let result = runtime.block_on(future);
+
+        _m.assert();
+
+        match result {
+            Ok(()) => panic!("Install succeeded."),
+            Err(e) => match e {
+                DfxError::Reqwest(_err) => (),
+                _ => panic!("{:#?}", e),
+            },
         }
     }
 }

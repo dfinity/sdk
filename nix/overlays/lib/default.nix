@@ -22,5 +22,17 @@ self: super: {
           in type == "directory" || super.lib.any (re: builtins.match re relPath != null) regexes;
         inherit src;
       };
+
+    # The "root" of the dfinity repository. On Hydra, this is ".". Outside of
+    # Hydra, this is the absolute path to the root of the repository on the
+    # user's system.
+    dfinityRoot =
+      # We use a bit of a hack to figure out if we're on Hydra: if <src> is
+      # set, then yes, otherwise we assume not.
+      if (builtins.tryEval <src>).success
+      then # we're on Hydra
+        "."
+      else # this is a local build
+        builtins.toString ../../..;
   };
 }

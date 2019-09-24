@@ -13,7 +13,7 @@
 }:
 
 let
-  pkgs = import ../. {};
+  pkgs = (import ../. {}).pkgs;
   sources = import ../nix/sources.nix;
 
   release-lib = import ((sources.nixpkgs) + "/pkgs/top-level/release-lib.nix") {

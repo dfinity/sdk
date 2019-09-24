@@ -1,6 +1,7 @@
 use std::io::{Error, ErrorKind, Result};
 use std::path::PathBuf;
 
+use crate::config::dfx_version;
 use crate::util;
 
 pub fn get_bin_cache_root() -> Result<PathBuf> {
@@ -31,14 +32,7 @@ pub fn get_bin_cache_root() -> Result<PathBuf> {
 
 pub fn get_bin_cache(v: &str) -> Result<PathBuf> {
     let root = get_bin_cache_root()?;
-
-    match v {
-        "0.2.0" => Ok(root.join("0.2.0")),
-        v => Err(Error::new(
-            ErrorKind::Other,
-            format!("Unknown version: {}", v),
-        )),
-    }
+    Ok(root.join(v))
 }
 
 pub fn is_version_installed(v: &str) -> Result<bool> {
@@ -60,15 +54,14 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
         return Ok(p);
     }
 
-    match v {
-        "0.2.0" => {
-            util::assets::binary_cache()?.unpack(p.as_path())?;
-            Ok(p)
-        }
-        v => Err(Error::new(
+    if v == dfx_version() {
+        util::assets::binary_cache()?.unpack(p.as_path())?;
+        Ok(p)
+    } else {
+        Err(Error::new(
             ErrorKind::Other,
             format!("Unknown version: {}", v),
-        )),
+        ))
     }
 }
 
