@@ -111,7 +111,7 @@ mod tests {
     #[test]
     /// Runs "echo" instead of the compiler to make sure the binaries are called in order
     /// with the good arguments.
-    fn build_file_wasm() -> () {
+    fn build_file_wasm() {
         // Create a binary cache environment that just returns "echo", so we can test the STDOUT.
         struct TestEnv<'a> {
             out_file: &'a fs::File,
@@ -164,7 +164,7 @@ mod tests {
     #[test]
     /// Runs "echo" instead of the compiler to make sure the binaries are called in order
     /// with the good arguments.
-    fn build_file_wat() -> () {
+    fn build_file_wat() {
         // Create a binary cache environment that just returns "echo", so we can test the STDOUT.
         struct TestEnv {}
 

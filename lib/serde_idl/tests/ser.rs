@@ -17,8 +17,8 @@ fn test_bool() {
 #[test]
 fn test_integer() {
     check(42, "4449444c00017c2a");
-    check(1234567890, "4449444c00017cd285d8cc04");
-    check(-1234567890, "4449444c00017caefaa7b37b");
+    check(1_234_567_890, "4449444c00017cd285d8cc04");
+    check(-1_234_567_890, "4449444c00017caefaa7b37b");
     check(Box::new(42), "4449444c00017c2a");
     assert_eq!(get_type(&42), Type::Int);
 }
@@ -205,7 +205,7 @@ fn field(id: &str, ty: Type) -> dfx_info::types::Field {
     dfx_info::types::Field {
         id: id.to_string(),
         hash: idl_hash(id),
-        ty: ty,
+        ty,
     }
 }
 
@@ -213,7 +213,7 @@ fn unnamed_field(id: u32, ty: Type) -> dfx_info::types::Field {
     dfx_info::types::Field {
         id: id.to_string(),
         hash: id,
-        ty: ty,
+        ty,
     }
 }
 
