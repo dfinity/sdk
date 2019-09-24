@@ -23,6 +23,6 @@ test("call", async () => {
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
-  expect(requestId).toBe(1); // FIXME
+  expect(requestId).toEqual([1]); // FIXME
   expect(await response.text()).toBe(greeting); // FIXME
 });
