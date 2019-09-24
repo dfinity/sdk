@@ -66,16 +66,16 @@ interface QueryRequest extends Request {
 }
 
 // An ADT that represents responses to a "query" read request.
-export type QueryResponse<A>
-  = QueryResponseReplied<A>
+export type QueryResponse
+  = QueryResponseReplied
   | QueryResponseRejected;
 
-interface QueryResponseReplied<A> {
+interface QueryResponseReplied extends Response {
   status: QueryResponseStatus.Replied;
-  reply: A;
+  reply: { arg: Array<Int> };
 }
 
-interface QueryResponseRejected {
+interface QueryResponseRejected extends Response {
   status: QueryResponseStatus.Rejected;
   reject_code: RejectCode;
   reject_message: string;
@@ -310,6 +310,25 @@ const requestStatus = (
   return cbor.decode(body) as RequestStatusResponse;
 };
 
+const query = (
+  config: Config,
+) => async ({
+  methodName,
+  arg,
+}: {
+  methodName: string,
+  arg: Array<Int>,
+}): Promise<QueryResponse> => {
+  const request = makeQueryRequest({
+    canisterId: config.canisterId,
+    methodName,
+    arg,
+  });
+  const response = await read(config)(request);
+  const body = await response.arrayBuffer();
+  return cbor.decode(body) as QueryResponse;
+};
+
 
 const API_VERSION = "v1";
 
@@ -367,6 +386,11 @@ export interface HttpAgent {
   requestStatus(fields: {
     requestId: RequestId,
   }): Promise<RequestStatusResponse>;
+
+  query(fields: {
+    methodName: string,
+    arg: Array<Int>,
+  }): Promise<QueryResponse>;
 }
 
 export const makeHttpAgent = (options: Options): HttpAgent => {
@@ -374,5 +398,6 @@ export const makeHttpAgent = (options: Options): HttpAgent => {
   return {
     call: call(config),
     requestStatus: requestStatus(config),
+    query: query(config),
   };
 };
