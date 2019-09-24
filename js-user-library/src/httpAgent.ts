@@ -90,6 +90,22 @@ enum QueryResponseStatus {
 // Pattern match on the response to a query request.
 // TODO: matchQueryResponse
 
+// Construct a "query" read request.
+export const makeQueryRequest = ({
+  canisterId,
+  methodName,
+  arg,
+}: {
+  canisterId: CanisterId,
+  methodName: string,
+  arg: Array<Int>,
+}): QueryRequest => ({
+  request_type: ReadRequestType.Query,
+  canister_id: canisterId,
+  method_name: methodName,
+  arg,
+});
+
 
 // The fields in a "request-status" read request.
 interface RequestStatusRequest extends Request {
@@ -160,24 +176,6 @@ export const matchRequestStatusResponse = (
     }
   }
 };
-
-
-// Construct a "query" read request.
-export const makeQueryRequest = ({
-  canisterId,
-  methodName,
-  arg,
-}: {
-  canisterId: CanisterId,
-  methodName: string,
-  arg: Array<Int>,
-}): QueryRequest => ({
-  request_type: ReadRequestType.Query,
-  canister_id: canisterId,
-  method_name: methodName,
-  arg,
-});
-
 
 // Construct a "request-status" read request.
 export const makeRequestStatusRequest = ({
