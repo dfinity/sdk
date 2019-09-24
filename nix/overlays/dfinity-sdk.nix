@@ -7,8 +7,7 @@ let rust-workspace = super.callPackage ../rust-workspace.nix {
 {
   dfinity-sdk = {
     packages = {
-        docs = super.callPackage ../../docs/package.nix {};
-        rust-workspace = rust-workspace;
+        inherit rust-workspace;
         rust-workspace-debug = rust-workspace.override (_: {
           release = false;
           doClippy = true;

@@ -149,10 +149,10 @@ naersk.buildPackage src {
       rm -rf $out/target
     '' + lib.optionalString doDoc ''
       mkdir -p $doc/nix-support
-      echo "report cargo-doc-dfinity $doc index.html" >> \
+      echo "report cargo-doc-dfinity-sdk $doc index.html" >> \
         $doc/nix-support/hydra-build-products
-      echo "report cargo-graph-dfinity $doc ic_client/cargo-graph.svg" >> \
-        $doc/nix-support/hydra-build-products
+      # echo "report cargo-graph-dfinity-sdk $doc ic_client/cargo-graph.svg" >> \
+      #  $doc/nix-support/hydra-build-products
     '';
   });
 }
