@@ -37,8 +37,8 @@ export const requestIdOf = async (request: Request): Promise<RequestId> => {
     .entries(rest)
     .map(async ([key, value]: [string, CborValue]) => {
       const hashedKey = await hashString(key);
-      // Will throw on ints and records. The spec only prescribes encoding for
-      // strings and binary blobs.
+      // Behavior is undefined for ints and records. The spec only describes
+      // encoding for strings and binary blobs.
       const hashedValue = await hashValue(value as string | Array<Int>);
 
       return [
