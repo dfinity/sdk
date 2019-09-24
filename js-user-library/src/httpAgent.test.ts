@@ -1,28 +1,46 @@
-import { CanisterId, IDL, makeActor, makeHttpAgent } from "./index";
+import {
+  CanisterId,
+  Int,
+  makeCallRequest,
+  makeHttpAgent,
+  requestIdOf,
+} from "./index";
 
 test("call", async () => {
-  const greeting = "Hello, World!";
-
   const mockFetch: jest.Mock = jest.fn((resource, init) => {
-    // FIXME: the body should be a CBOR value
-    // status: "replied", reply: greeting
-    return Promise.resolve(new Response(greeting, {
+    return Promise.resolve(new Response(null, {
       status: 200,
     }));
   });
 
+  const canisterId = [1] as CanisterId;
+
   const httpAgent = makeHttpAgent({
-    canisterId: [1] as CanisterId,
+    canisterId,
     fetch: mockFetch,
   });
 
+  const methodName = "greet";
+  const arg: Array<Int> = [];
+
   const { requestId, response } = await httpAgent.call({
-    methodName: "greet",
-    arg: [],
+    methodName,
+    arg,
   });
+
+  const expectedRequestId = await requestIdOf(
+    makeCallRequest({
+      canisterId,
+      methodName,
+      arg,
+    }),
+  );
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
-  expect(requestId).toEqual([1]); // FIXME
-  expect(await response.text()).toBe(greeting); // FIXME
+  expect(requestId).toEqual(expectedRequestId);
 });
+
+test.todo("query");
+
+test.todo("requestStatus");

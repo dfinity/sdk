@@ -1,6 +1,7 @@
 import * as cbor from "./cbor";
 import { Int } from "./int";
 import { assertNever } from "./never";
+import { requestIdOf } from "./requestId";
 
 // TODO:
 // * Handle errors everywhere we `await`
@@ -162,7 +163,7 @@ export const matchRequestStatusResponse = (
 
 
 // Construct a "query" read request.
-const makeQueryRequest = ({
+export const makeQueryRequest = ({
   canisterId,
   methodName,
   arg,
@@ -179,7 +180,7 @@ const makeQueryRequest = ({
 
 
 // Construct a "request-status" read request.
-const makeRequestStatusRequest = ({
+export const makeRequestStatusRequest = ({
   requestId,
 }: {
   requestId: RequestId,
@@ -236,7 +237,7 @@ interface CallRequest extends Request {
 }
 
 // Construct a "call" submit request.
-const makeCallRequest = ({
+export const makeCallRequest = ({
   canisterId,
   methodName,
   arg,
@@ -265,10 +266,8 @@ const submit = (
 ): Promise<SubmitResponse> => {
   const body = cbor.encode(request);
   const response = await config.runFetch(Endpoint.Submit, body);
-  return {
-    requestId: [1] as RequestId,
-    response,
-  };
+  const requestId = await requestIdOf(request);
+  return { requestId, response };
 };
 
 const read = (

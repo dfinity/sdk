@@ -1,6 +1,14 @@
 import * as cbor from "./cbor";
-import { RequestId } from "./httpAgent";
-import { CanisterId, IDL, makeActor, makeHttpAgent } from "./index";
+
+import {
+  CanisterId,
+  IDL,
+  Int,
+  makeActor,
+  makeCallRequest,
+  makeHttpAgent,
+  requestIdOf,
+} from "./index";
 
 test("makeActor", async () => {
   const actorInterface = new IDL.ActorInterface({
@@ -32,8 +40,20 @@ test("makeActor", async () => {
       }));
     });
 
+  const canisterId = [1] as CanisterId;
+  const methodName = "greet";
+  const arg: Array<Int> = [];
+
+  const expectedRequest = makeCallRequest({
+    canisterId,
+    methodName,
+    arg,
+  });
+
+  const expectedRequestId = await requestIdOf(expectedRequest);
+
   const httpAgent = makeHttpAgent({
-    canisterId: [1] as CanisterId,
+    canisterId,
     fetch: mockFetch,
   });
 
@@ -52,12 +72,7 @@ test("makeActor", async () => {
     headers: {
       "Content-Type": "application/cbor",
     },
-    body: cbor.encode({
-      request_type: "call",
-      canister_id: [1] as CanisterId,
-      method_name: "greet",
-      arg: [],
-    }),
+    body: cbor.encode(expectedRequest),
   });
 
   expect(calls[1][0]).toBe("http://localhost:8080/api/v1/read");
@@ -68,7 +83,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: [1] as RequestId,
+      request_id: expectedRequestId,
     }),
   });
 
@@ -80,7 +95,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: [1] as RequestId,
+      request_id: expectedRequestId,
     }),
   });
 
@@ -92,7 +107,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: [1] as RequestId,
+      request_id: expectedRequestId,
     }),
   });
 });
