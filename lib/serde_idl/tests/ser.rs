@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate serde_idl;
 extern crate dfx_info;
-extern crate serde;
 
 use dfx_info::types::{get_type, Type};
 use dfx_info::IDLType;
