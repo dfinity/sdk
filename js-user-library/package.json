@@ -11,7 +11,7 @@
     "type-check:watch": "npm run type-check -- --watch",
     "build": "npm run test && npm run build:types && npm run build:js",
     "build:types": "tsc --allowJs false --declaration --emitDeclarationOnly",
-    "build:js": "babel src --out-dir out --extensions \".ts\" --source-maps inline",
+    "build:js": "babel src --out-dir out --extensions '.js','.ts' --source-maps inline",
     "lint": "tslint --project tsconfig.json --config tslint.json",
     "lint:fix": "npm run lint -- --fix",
     "test": "npm run lint && npm run type-check && jest --verbose"
