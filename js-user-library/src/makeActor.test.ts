@@ -5,8 +5,8 @@ import {
   IDL,
   Int,
   makeActor,
-  makeCallRequest,
   makeHttpAgent,
+  Request,
   requestIdOf,
 } from "./index";
 
@@ -44,13 +44,14 @@ test("makeActor", async () => {
   const methodName = "greet";
   const arg: Array<Int> = [];
 
-  const expectedRequest = makeCallRequest({
-    canisterId,
-    methodName,
+  const expectedCallRequest = {
+    request_type: "call",
+    canister_id: canisterId,
+    method_name: methodName,
     arg,
-  });
+  } as Request;
 
-  const expectedRequestId = await requestIdOf(expectedRequest);
+  const expectedCallRequestId = await requestIdOf(expectedCallRequest);
 
   const httpAgent = makeHttpAgent({
     canisterId,
@@ -72,7 +73,7 @@ test("makeActor", async () => {
     headers: {
       "Content-Type": "application/cbor",
     },
-    body: cbor.encode(expectedRequest),
+    body: cbor.encode(expectedCallRequest),
   });
 
   expect(calls[1][0]).toBe("http://localhost:8080/api/v1/read");
@@ -83,7 +84,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: expectedRequestId,
+      request_id: expectedCallRequestId,
     }),
   });
 
@@ -95,7 +96,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: expectedRequestId,
+      request_id: expectedCallRequestId,
     }),
   });
 
@@ -107,7 +108,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
-      request_id: expectedRequestId,
+      request_id: expectedCallRequestId,
     }),
   });
 });

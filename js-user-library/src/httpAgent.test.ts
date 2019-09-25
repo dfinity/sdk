@@ -1,8 +1,10 @@
+import * as cbor from "./cbor";
+
 import {
   CanisterId,
   Int,
-  makeCallRequest,
   makeHttpAgent,
+  Request,
   requestIdOf,
 } from "./index";
 
@@ -28,19 +30,75 @@ test("call", async () => {
     arg,
   });
 
-  const expectedRequestId = await requestIdOf(
-    makeCallRequest({
-      canisterId,
-      methodName,
-      arg,
-    }),
-  );
+  const expectedRequest = {
+    request_type: "call",
+    canister_id: canisterId,
+    method_name: methodName,
+    arg,
+  } as Request;
+
+  const expectedRequestId = await requestIdOf(expectedRequest);
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
   expect(requestId).toEqual(expectedRequestId);
+
+  expect(calls[0][0]).toBe("http://localhost:8080/api/v1/submit");
+  expect(calls[0][1]).toEqual({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/cbor",
+    },
+    body: cbor.encode(expectedRequest),
+  });
 });
 
 test.todo("query");
 
-test.todo("requestStatus");
+test("requestStatus", async () => {
+  const mockResponse = {
+    status: "replied",
+    reply: { arg: [] },
+  };
+
+  const mockFetch: jest.Mock = jest.fn((resource, init) => {
+    const body = cbor.encode(mockResponse);
+    return Promise.resolve(new Response(body, {
+      status: 200,
+    }));
+  });
+
+  const canisterId = [1] as CanisterId;
+
+  const httpAgent = makeHttpAgent({
+    canisterId,
+    fetch: mockFetch,
+  });
+
+  const requestId = await requestIdOf({
+    request_type: "call",
+    canister_id: canisterId,
+    method_name: "greet",
+    arg: [],
+  } as Request);
+
+  const response = await httpAgent.requestStatus({
+    requestId,
+  });
+
+  const { calls, results } = mockFetch.mock;
+  expect(calls.length).toBe(1);
+  expect(response).toEqual(mockResponse);
+
+  expect(calls[0][0]).toBe("http://localhost:8080/api/v1/read");
+  expect(calls[0][1]).toEqual({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/cbor",
+    },
+    body: cbor.encode({
+      request_type: "request-status",
+      request_id: requestId,
+    }),
+  });
+});
