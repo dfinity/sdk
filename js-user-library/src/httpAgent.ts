@@ -91,7 +91,7 @@ enum QueryResponseStatus {
 // TODO: matchQueryResponse
 
 // Construct a "query" read request.
-export const makeQueryRequest = ({
+const makeQueryRequest = ({
   canisterId,
   methodName,
   arg,
@@ -178,7 +178,7 @@ export const matchRequestStatusResponse = (
 };
 
 // Construct a "request-status" read request.
-export const makeRequestStatusRequest = ({
+const makeRequestStatusRequest = ({
   requestId,
 }: {
   requestId: RequestId,
@@ -235,7 +235,7 @@ interface CallRequest extends Request {
 }
 
 // Construct a "call" submit request.
-export const makeCallRequest = ({
+const makeCallRequest = ({
   canisterId,
   methodName,
   arg,
