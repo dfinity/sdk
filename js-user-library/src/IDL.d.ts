@@ -1,4 +1,4 @@
-export interface Fn {
+export interface Func {
   argTypes: Array<Type>;
   retTypes: Array<Type>;
 }
@@ -20,5 +20,5 @@ export class ActorInterface {
 
 export function idlHash(s: string): number
 
-export function Fn(argTypes?: Array<Type>, retTypes?: Array<Type>): Fn
+export function Func(argTypes?: Array<Type>, retTypes?: Array<Type>): Func
 export const Text: Text

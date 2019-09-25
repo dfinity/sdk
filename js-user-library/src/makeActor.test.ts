@@ -12,7 +12,7 @@ import {
 
 test("makeActor", async () => {
   const actorInterface = new IDL.ActorInterface({
-    greet: IDL.Fn([IDL.Text], [IDL.Text]),
+    greet: IDL.Func([IDL.Text], [IDL.Text]),
   });
 
   const mockFetch: jest.Mock = jest.fn()

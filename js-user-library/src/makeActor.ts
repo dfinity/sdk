@@ -5,7 +5,7 @@ import {
 } from "./httpAgent";
 
 import { zipWith } from "./array";
-import { ActorInterface, Fn } from "./IDL";
+import { ActorInterface, Func } from "./IDL";
 
 // Allows for one client for the lifetime of the actor:
 //
@@ -28,11 +28,11 @@ export const makeActor = (
 ) => {
   const entries = Object.entries(actorInterface.__fields);
   return Object.fromEntries(entries.map((entry) => {
-    const [methodName, fn] = entry as [string, Fn];
+    const [methodName, func] = entry as [string, Func];
     return [methodName, async (...args: Array<any>) => {
-      // TODO: throw if fn.argTypes.length !== args.length
+      // TODO: throw if func.argTypes.length !== args.length
       // FIXME: Old code does something like:
-      // const buffer = zipWith(fn.argTypes, args, (x, y) => x.encode(y));
+      // const buffer = zipWith(func.argTypes, args, (x, y) => x.encode(y));
 
       const {
         requestId,
@@ -54,9 +54,9 @@ export const makeActor = (
             // FIXME: Old code does something like the following:
             // tslint:disable-next-line: max-line-length
             // https://github.com/dfinity-lab/dev/blob/9030c90efe5b3de33670d4f4f0331482d51c5858/experimental/js-dfinity-client/src/IDL.js#L753
-            // TODO: throw if fn.retTypes.length !== response.reply.arg.length
+            // TODO: throw if func.retTypes.length !== response.reply.arg.length
             // TODO: handle IDL decoding failures
-            // return zipWith(fn.retTypes, response.reply.arg, (x, y) => {
+            // return zipWith(func.retTypes, response.reply.arg, (x, y) => {
             //   return x.decode(y);
             // });
           }
