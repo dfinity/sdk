@@ -1,8 +1,6 @@
 self: super:
 
-let rust-workspace = super.callPackage ../rust-workspace.nix {
-  inherit (self) actorscript dfinity;
-}; in
+let rust-workspace = super.callPackage ../rust-workspace.nix {}; in
 
 {
   dfinity-sdk = {
