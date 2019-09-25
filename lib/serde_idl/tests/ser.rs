@@ -4,35 +4,36 @@ extern crate dfx_info;
 
 use dfx_info::{IDLType};
 use dfx_info::types::{Type, get_type};
+use serde_idl::{from_bytes};
 
 #[test]
 fn test_bool() {
-    check(true, "4449444c00017e01");
-    check(false, "4449444c00017e00");
+    all_check(true, "4449444c00017e01");
+    all_check(false, "4449444c00017e00");
     assert_eq!(get_type(&true), Type::Bool);
 }
 
 #[test]
 fn test_integer() {
-    check(42, "4449444c00017c2a");
-    check(1234567890, "4449444c00017cd285d8cc04");
-    check(-1234567890, "4449444c00017caefaa7b37b");
-    check(Box::new(42), "4449444c00017c2a");
+    all_check(42, "4449444c00017c2a");
+    all_check(1234567890, "4449444c00017cd285d8cc04");
+    all_check(-1234567890, "4449444c00017caefaa7b37b");
+    all_check(Box::new(42), "4449444c00017c2a");
     assert_eq!(get_type(&42), Type::Int);
 }
 
 #[test]
 fn test_text() {
-    check("Hi ☃\n", "4449444c00017107486920e298830a");
+    all_check("Hi ☃\n".to_string(), "4449444c00017107486920e298830a");
 }
 
 #[test]
 fn test_option() {
-    check(Some(42), "4449444c016e7c0100012a");
-    check(Some(Some(42)), "4449444c026e016e7c010001012a");
+    all_check(Some(42), "4449444c016e7c0100012a");
+    all_check(Some(Some(42)), "4449444c026e016e7c010001012a");
     let opt: Option<i32> = None;
     assert_eq!(get_type(&opt), Type::Opt(Box::new(Type::Int)));
-    check(opt, "4449444c016e7c010000");
+    all_check(opt, "4449444c016e7c010000");
 }
 
 #[test]
@@ -142,7 +143,17 @@ fn test_multiargs() {
 
 fn check<T>(value: T, expected: &str) where T: IDLType {
     let encoded = IDL!(&value);
-    checks(encoded, expected)
+    checks(encoded, expected);
+}
+
+fn all_check<T>(value: T, expected: &str)
+where T: IDLType + serde::de::DeserializeOwned,
+{
+    let expected = hex::decode(expected).unwrap();
+    let decoded: T = from_bytes(&expected).unwrap();
+    let encoded_from_value = IDL!(&value);
+    let encoded_from_decoded = IDL!(&decoded);
+    assert_eq!(encoded_from_value, encoded_from_decoded, "\nValue\n{:x?}\nDecoded\n{:x?}\n", encoded_from_value, encoded_from_decoded);    
 }
 
 fn checks(encoded: Vec<u8>, expected: &str) {

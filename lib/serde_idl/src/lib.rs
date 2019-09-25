@@ -6,7 +6,7 @@ extern crate dfx_info;
 
 // Re-export the [items recommended by serde](https://serde.rs/conventions.html).
 //#[doc(inline)]
-//pub use crate::de::{from_str, Deserializer};
+pub use crate::de::{from_bytes, Deserializer};
 pub use crate::error::{Error, Result};
 
 pub mod de;

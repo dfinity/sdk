@@ -1,19 +1,20 @@
 use std::io::Read;
 use super::error::{Error, Result};
 use serde::Deserialize;
-use serde::de::{self, Visitor};
+use serde::de::{self, Visitor, DeserializeOwned};
 use dfx_info::types::{Type, Field};
 use std::collections::HashMap;
 
 use leb128::read::{signed as sleb128_decode, unsigned as leb128_decode};
 
-pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<()>
+pub fn from_bytes<T>(bytes: &[u8]) -> Result<T>
+where T: DeserializeOwned,
 {
     let mut deserializer = Deserializer::from_bytes(bytes);
     deserializer.parse_table()?;
-    //let t = T::deserialize(&mut deserializer)?;
+    let t = T::deserialize(&mut deserializer)?;
     if deserializer.input.is_empty() {
-        Ok(())
+        Ok(t)
     } else {
         Err(Error::Message(format!("Trailing bytes: {:x?}", deserializer.input)))
     }
@@ -158,6 +159,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         match self.types[0] {
             Type::Bool => self.deserialize_bool(visitor),
+            Type::Text => {
+                let len = self.leb128_read()? as usize;
+                let mut buf = Vec::with_capacity(len);
+                self.input.read_exact(&mut buf)?;
+                let value = String::from_utf8(buf).unwrap();
+                visitor.visit_string(value)
+            },
             _ => Err(Error::Message("Unsupported type".to_string()))
         }
     }
@@ -217,53 +225,17 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         visitor.visit_u64(self.leb128_read()?)
     }
-    fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-    fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
-    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        let mut buf = [0; 1];
+        self.input.read_exact(&mut buf)?;
+        if buf == [0] {
+            visitor.visit_none()
+        } else {
+            visitor.visit_some(self)
+        }
     }
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
     where
@@ -349,18 +321,17 @@ fn deserialize_struct<V>(
     {
         self.deserialize_str(visitor)
     }
-    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_any(visitor)
-    }    
+    
+    serde::forward_to_deserialize_any! {
+        char str string bytes byte_buf ignored_any f32 f64
+    }
 }
-
+/*
 #[test]
 fn test() {
     //from_bytes(&hex::decode("4449444c016c02d3e3aa027e868eb7027c0100012a").unwrap()).unwrap();    
-    //from_bytes(&hex::decode("4449444c026e016e7c010001012a").unwrap()).unwrap();
-    from_bytes(&hex::decode("4449444c026d016c02007c0171020001012a04746578742a0474657874").unwrap()).unwrap();
-    from_bytes(&hex::decode("4449444c026e016c02a0d2aca8047c90eddae70400010000").unwrap()).unwrap();
+    from_bytes(&hex::decode("4449444c026e016e7c010001012a").unwrap()).unwrap();
+    //from_bytes(&hex::decode("4449444c026d016c02007c0171020001012a04746578742a0474657874").unwrap()).unwrap();
+    //from_bytes(&hex::decode("4449444c026e016c02a0d2aca8047c90eddae70400010000").unwrap()).unwrap();
 }
+*/
