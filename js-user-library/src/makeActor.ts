@@ -25,7 +25,7 @@ export const makeActor = (
   actorInterface: ActorInterface,
 ) => (
   httpAgent: HttpAgent,
-) => {
+): Record<string, (...args: Array<any>) => any> => {
   const entries = Object.entries(actorInterface.__fields);
   return Object.fromEntries(entries.map((entry) => {
     const [methodName, func] = entry as [string, Func];
