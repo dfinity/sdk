@@ -1,0 +1,15 @@
+# Various IDEs and Editors
+.vscode/
+.idea/
+**/*~
+
+# Mac OSX temporary files
+.DS_Store
+**/.DS_Store
+
+# Build artifacts
+build/
+dist/main.js
+
+# Node.js
+node_modules/
