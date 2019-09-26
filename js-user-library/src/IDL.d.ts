@@ -11,6 +11,7 @@ export interface Type {
   // decode(x: Buffer): JsValue // A safe-buffer Buffer
 }
 
+// export interface Obj extends Type {}
 export interface Text extends Type {}
 
 export class ActorInterface {
@@ -21,4 +22,5 @@ export class ActorInterface {
 export function idlHash(s: string): number
 
 export function Func(argTypes?: Array<Type>, retTypes?: Array<Type>): Func
+// export function Obj(fields: Record<string, Type>): Obj
 export const Text: Text

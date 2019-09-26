@@ -5,7 +5,7 @@ import {
 } from "./httpAgent";
 
 import { zipWith } from "./array";
-import { ActorInterface, Func } from "./IDL";
+import _IDL from "./IDL";
 
 // Allows for one client for the lifetime of the actor:
 //
@@ -22,13 +22,14 @@ import { ActorInterface, Func } from "./IDL";
 // const reply2 = actor(client2).greet();
 // ```
 export const makeActor = (
-  actorInterface: ActorInterface,
+  makeActorInterface: ({ IDL }: { IDL: typeof _IDL }) => _IDL.ActorInterface,
 ) => (
   httpAgent: HttpAgent,
 ): Record<string, (...args: Array<any>) => any> => {
+  const actorInterface = makeActorInterface({ IDL: _IDL });
   const entries = Object.entries(actorInterface.__fields);
   return Object.fromEntries(entries.map((entry) => {
-    const [methodName, func] = entry as [string, Func];
+    const [methodName, func] = entry as [string, _IDL.Func];
     return [methodName, async (...args: Array<any>) => {
       // TODO: throw if func.argTypes.length !== args.length
       // FIXME: Old code does something like:

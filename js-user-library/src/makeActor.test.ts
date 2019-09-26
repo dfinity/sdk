@@ -2,7 +2,7 @@ import * as cbor from "./cbor";
 
 import {
   CanisterId,
-  IDL,
+  IDL as _IDL,
   Int,
   makeActor,
   makeHttpAgent,
@@ -11,9 +11,12 @@ import {
 } from "./index";
 
 test("makeActor", async () => {
-  const actorInterface = new IDL.ActorInterface({
-    greet: IDL.Func([IDL.Text], [IDL.Text]),
-  });
+  const actorInterface = ({ IDL }: { IDL: typeof _IDL }) => {
+    return new IDL.ActorInterface({
+      greet: IDL.Func([IDL.Text], [IDL.Text]),
+      // greet: IDL.Func(IDL.Obj({ "0": Text }), IDL.Obj({ "0": Text })),
+    });
+  };
 
   const mockFetch: jest.Mock = jest.fn()
     .mockImplementationOnce((/*resource, init*/) => {
