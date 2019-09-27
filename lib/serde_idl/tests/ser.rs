@@ -1,10 +1,12 @@
 #[macro_use]
 extern crate serde_idl;
+extern crate serde;
 extern crate dfx_info;
 
 use dfx_info::{IDLType};
 use dfx_info::types::{Type, get_type};
-use serde_idl::{from_bytes};
+use serde::Deserialize;
+use serde_idl::{from_bytes, idl_hash};
 
 #[test]
 fn test_bool() {
@@ -38,7 +40,7 @@ fn test_option() {
 
 #[test]
 fn test_struct() {
-    #[derive(Debug, IDLType)]
+    #[derive(Debug, Deserialize, IDLType)]
     struct A { foo: i32, bar: bool }
     
     let record = A { foo: 42, bar: true };
@@ -48,13 +50,13 @@ fn test_struct() {
                    field("foo", Type::Int),                   
                ])
     );
-    check(record, "4449444c016c02d3e3aa027e868eb7027c0100012a");    
+    all_check(record, "4449444c016c02d3e3aa027e868eb7027c0100012a");    
 
-    #[derive(Debug, IDLType)]
+    #[derive(Debug, Deserialize, IDLType)]
     struct B(bool, i32);
     check(B(true,42), "4449444c016c02007e017c0100012a");
 
-    #[derive(Debug, IDLType)]
+    #[derive(Debug, Deserialize, IDLType)]
     struct List { head: i32, tail: Option<Box<List>> }
     
     let list = List { head: 42, tail: None };
@@ -74,7 +76,7 @@ fn test_struct() {
 #[test]
 fn test_mutual_recursion() {
     type List = Option<ListA>;
-    #[derive(Debug, IDLType)]
+    #[derive(Debug, Deserialize, IDLType)]
     struct ListA { head: i32, tail: Box<List> };
 
     let list: List = None;
@@ -98,7 +100,7 @@ fn test_tuple() {
 
 #[test]
 fn test_variant() {
-    #[derive(Debug, IDLType)]
+    #[derive(Debug, Deserialize, IDLType)]
     enum Unit { Foo }
     check(Unit::Foo, "4449444c016b01e6fdd5017f010000");
 
@@ -106,7 +108,7 @@ fn test_variant() {
     check(res, "4449444c016b02bc8a0171c5fed2017101000004676f6f64");
     
     #[allow(dead_code)]
-    #[derive(Debug, IDLType)]
+    #[derive(Debug, Deserialize, IDLType)]
     enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
     
     let v = E::Foo;
@@ -123,7 +125,7 @@ fn test_variant() {
 
 #[test]
 fn test_generics() {
-    #[derive(Debug, IDLType)]
+    #[derive(Debug, Deserialize, IDLType)]
     struct G<T, E> { g1: T, g2: E }
     
     let res = G { g1: 42, g2: true };
@@ -169,10 +171,3 @@ fn unnamed_field(id: u32, ty: Type) -> dfx_info::types::Field {
     dfx_info::types::Field { id: id.to_string(), hash:id, ty: ty }
 }
 
-fn idl_hash(id: &str) -> u32 {
-    let mut s: u32 = 0;
-    for c in id.chars() {
-        s = s.wrapping_mul(223).wrapping_add(c as u32);
-    }
-    s
-}

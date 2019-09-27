@@ -22,3 +22,11 @@ macro_rules! IDL {
         idl.to_vec().unwrap()
     }}
 }
+
+pub fn idl_hash(id: &str) -> u32 {
+    let mut s: u32 = 0;
+    for c in id.chars() {
+        s = s.wrapping_mul(223).wrapping_add(c as u32);
+    }
+    s
+}

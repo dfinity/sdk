@@ -1,5 +1,8 @@
+extern crate paste;
+
 use std::io::Read;
 use super::error::{Error, Result};
+use super::idl_hash;
 use serde::Deserialize;
 use serde::de::{self, Visitor, DeserializeOwned};
 use dfx_info::types::{Type, Field};
@@ -57,14 +60,23 @@ impl<'de> Deserializer<'de> {
     fn sleb128_read(&mut self) -> Result<i64> {
         Ok(sleb128_decode(&mut self.input).expect("Should read signed number"))
     }
-    fn parse_magic(&mut self) -> Result<()> {
-        let mut buf = [0; 4];
+    fn parse_string(&mut self, len: usize) -> Result<String> {
+        let mut buf = Vec::new();
+        buf.resize(len, 0);
         self.input.read_exact(&mut buf)?;
-        let magic = String::from_utf8(buf.to_vec()).unwrap();
+        Ok(String::from_utf8(buf).unwrap())
+    }
+    fn parse_char(&mut self) -> Result<u8> {
+        let mut buf = [0u8; 1];
+        self.input.read_exact(&mut buf)?;
+        Ok(buf[0])
+    }
+    fn parse_magic(&mut self) -> Result<()> {
+        let magic = self.parse_string(4)?;
         if magic == "DIDL" {
             Ok(())
         } else {
-            Err(Error::Message(format!("wrong magic number {:x?}", buf)))
+            Err(Error::Message(format!("wrong magic number {}", magic)))
         }
     }
     
@@ -135,6 +147,18 @@ impl<'de> Deserializer<'de> {
                 };
                 Ok(Type::Record(fs))
             },
+            -21 => {
+                let mut iter = ty[1..].iter();
+                let len = iter.next().unwrap().get_u64()?;
+                let mut fs = Vec::new();
+                for _i in 0..len {
+                    let hash = iter.next().unwrap().get_u64()?;
+                    let t1 = self.build_type(hashmap, iter.as_slice())?;
+                    iter.next();
+                    fs.push(Field {id: hash.to_string(), hash: hash as u32, ty: t1 });
+                };
+                Ok(Type::Variant(fs))
+            },            
             _ if t >= 0 => {
                 match hashmap.get(&t) {
                     Some(t1) => Ok(t1.clone()),
@@ -152,86 +176,63 @@ impl<'de> Deserializer<'de> {
     }
 }
 
+macro_rules! primitive_impl {
+    ($ty:ident, $method:ident $($cast:tt)*) => {
+        paste::item! {
+            fn [<deserialize_ $ty>]<V>(self, visitor: V) -> Result<V::Value>
+            where V: Visitor<'de> {
+                visitor.[<visit_ $ty>](self.$method()? $($cast)*)
+            }
+        }
+    };
+}
+
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
     where V: Visitor<'de>
     {
         match self.types[0] {
-            Type::Bool => self.deserialize_bool(visitor),
+            Type::Bool => {
+                visitor.visit_bool(self.parse_char()? == 1u8)
+            }
             Type::Text => {
                 let len = self.leb128_read()? as usize;
-                let mut buf = Vec::with_capacity(len);
-                self.input.read_exact(&mut buf)?;
-                let value = String::from_utf8(buf).unwrap();
-                visitor.visit_string(value)
+                let value = self.parse_string(len)?;
+                visitor.visit_string(value) 
             },
-            _ => Err(Error::Message("Unsupported type".to_string()))
+            Type::Int => visitor.visit_i64(self.sleb128_read()?),
+            Type::Nat => visitor.visit_u64(self.leb128_read()?),
+            Type::Opt(_) => self.deserialize_option(visitor),
+            //Type::Record(fs) => {
+            //    self.deserialize_struct()
+            //},
+            _ => Err(Error::Message(format!("Unsupported type {:?}", self.types[0])))
         }
     }
-    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        let mut buf = [0; 1];
-        self.input.read_exact(&mut buf)?;
-        visitor.visit_bool(buf == [1])
+
+    primitive_impl!(i8, sleb128_read as i8);
+    primitive_impl!(i16, sleb128_read as i16);
+    primitive_impl!(i32, sleb128_read as i32);
+    primitive_impl!(i64, sleb128_read);
+    primitive_impl!(u8, leb128_read as u8);
+    primitive_impl!(u16, leb128_read as u16);
+    primitive_impl!(u32, leb128_read as u32);
+    primitive_impl!(u64, leb128_read);
+
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value> where V: Visitor<'de> {
+        let len = self.leb128_read()? as usize;
+        let value = std::str::from_utf8(&self.input[0..len]).unwrap();
+        self.input = &self.input[len..];
+        visitor.visit_borrowed_str(value)
     }
-    fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_i8(self.sleb128_read().unwrap() as i8)
-    }
-    fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_i16(self.sleb128_read().unwrap() as i16)
-    }
-    fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_i32(self.sleb128_read().unwrap() as i32)
-    }
-    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_i64(self.sleb128_read()?)
-    }
-    fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_u8(self.leb128_read().unwrap() as u8)
-    }
-    fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_u16(self.leb128_read().unwrap() as u16)
-    }
-    fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_u32(self.leb128_read().unwrap() as u32)
-    }
-    fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_u64(self.leb128_read()?)
-    }
+    
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        let mut buf = [0; 1];
-        self.input.read_exact(&mut buf)?;
-        if buf == [0] {
+        let bit = self.parse_char()?;
+        if bit == 0u8 {
             visitor.visit_none()
         } else {
             visitor.visit_some(self)
@@ -292,28 +293,32 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         unimplemented!()
     }
-fn deserialize_struct<V>(
+
+    fn deserialize_struct<V>(
         self,
-        _name: &'static str,
-        _fields: &'static [&'static str],
+        name: &'static str,
+        fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
+    where V: Visitor<'de>,
     {
-        self.deserialize_map(visitor)
+        println!("XX {} {:?}", name, fields);
+        //let value = visitor.visit_seq(DeserializeSeq::new(&mut self, fields))?;
+        //Ok(value)
+        visitor.visit_bool(true)
     }
 
     fn deserialize_enum<V>(
         self,
-        _name: &'static str,
-        _variants: &'static [&'static str],
+        name: &'static str,
+        variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        println!("XX {} {:?}", name, variants);
+        visitor.visit_bool(true)
     }
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
     where
@@ -323,15 +328,27 @@ fn deserialize_struct<V>(
     }
     
     serde::forward_to_deserialize_any! {
-        char str string bytes byte_buf ignored_any f32 f64
+        char string bytes byte_buf ignored_any f32 f64
+        bool
     }
 }
-/*
-#[test]
-fn test() {
-    //from_bytes(&hex::decode("4449444c016c02d3e3aa027e868eb7027c0100012a").unwrap()).unwrap();    
-    from_bytes(&hex::decode("4449444c026e016e7c010001012a").unwrap()).unwrap();
-    //from_bytes(&hex::decode("4449444c026d016c02007c0171020001012a04746578742a0474657874").unwrap()).unwrap();
-    //from_bytes(&hex::decode("4449444c026e016c02a0d2aca8047c90eddae70400010000").unwrap()).unwrap();
+
+struct DeserializeSeq<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
+    fs: &'a Vec<Field>,
+    fields: &'static [&'static str],
 }
-*/
+
+impl<'a, 'de> DeserializeSeq<'a, 'de> {
+    fn new(de: &'a mut Deserializer<'de>, fs: &'a Vec<Field>, fields: &'static [&'static str]) -> Self {
+        DeserializeSeq { de, fs, fields }
+    }
+}
+
+impl<'de, 'a> de::SeqAccess<'de> for DeserializeSeq<'a, 'de> {
+    type Error = Error;
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+    where T: de::DeserializeSeed<'de> {
+        seed.deserialize(&mut *self.de).map(Some)
+    }
+}
