@@ -2,7 +2,6 @@
 use serde::{de,ser};
 
 use std::io;
-use std::error;
 use std::fmt::{self, Display};
 
 pub type Result<T> = std::result::Result<T, Error>;

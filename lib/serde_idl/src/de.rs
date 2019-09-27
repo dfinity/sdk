@@ -53,6 +53,7 @@ impl<'de> Deserializer<'de> {
             input: input,
             table: Vec::new(),
             types: Vec::new(),
+            // TODO consider borrowing
             current_type: VecDeque::new(),
         }
     }
@@ -246,7 +247,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         assert_eq!(self.parse_type().unwrap(), -18);
         let bit = self.parse_char()?;
         if bit == 0u8 {
-            self.parse_type();
+            self.parse_type()?;
             visitor.visit_none()
         } else {
             visitor.visit_some(self)
@@ -309,19 +310,21 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 
     fn deserialize_struct<V>(
-        self,
+        mut self,
         name: &'static str,
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
     where V: Visitor<'de>,
     {
+        assert_eq!(self.parse_type().unwrap(), -20);
+        let len = self.current_type.pop_front().unwrap().get_u64()?;
+        
         println!("XX {} {:?}", name, fields);
-        //let value = visitor.visit_seq(DeserializeSeq::new(&mut self, fields))?;
-        //Ok(value)
-        visitor.visit_bool(true)
+        let value = visitor.visit_map(DeserializeMap::new(&mut self, len, fields))?;
+        Ok(value)
     }
-
+    
     fn deserialize_enum<V>(
         self,
         name: &'static str,
@@ -338,7 +341,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_str(visitor)
+        panic!("i'm here")
     }
     
     serde::forward_to_deserialize_any! {
@@ -346,22 +349,32 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 }
 
-struct DeserializeSeq<'a, 'de: 'a> {
+struct DeserializeMap<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
-    fs: &'a Vec<Field>,
+    len: u64,
     fields: &'static [&'static str],
 }
 
-impl<'a, 'de> DeserializeSeq<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>, fs: &'a Vec<Field>, fields: &'static [&'static str]) -> Self {
-        DeserializeSeq { de, fs, fields }
+impl<'a, 'de> DeserializeMap<'a, 'de> {
+    fn new(de: &'a mut Deserializer<'de>, len: u64, fields: &'static [&'static str]) -> Self {
+        DeserializeMap { de, len, fields }
     }
 }
 
-impl<'de, 'a> de::SeqAccess<'de> for DeserializeSeq<'a, 'de> {
+impl<'de, 'a> de::MapAccess<'de> for DeserializeMap<'a, 'de> {
     type Error = Error;
-    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-    where T: de::DeserializeSeed<'de> {
+    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
+    where K: de::DeserializeSeed<'de> {
+        if self.len > 0 {
+            self.len -= 1;
+            return Ok(None);
+        }
         seed.deserialize(&mut *self.de).map(Some)
+        //let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
+        //Ok(Some(*self.fields[0]))
+    }
+    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
+    where V: de::DeserializeSeed<'de> {
+        seed.deserialize(&mut *self.de)
     }
 }
