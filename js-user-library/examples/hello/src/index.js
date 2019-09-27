@@ -1,6 +1,6 @@
 import config from "../dfinity.json";
 import actorInterface from "../build/canisters/hello/main.js";
-import { IDL, makeActor, makeHttpAgent } from "@internet-computer/js-user-library";
+import { makeActor, makeHttpAgent } from "@internet-computer/js-user-library";
 
 (async () => {
   const httpAgent = makeHttpAgent({
