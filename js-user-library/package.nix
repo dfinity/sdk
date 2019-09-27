@@ -12,6 +12,6 @@ package.overrideAttrs (oldAttrs: {
     mkdir -p $out
     cp package.json $out
     cp README.adoc $out
-    cp -r out/ $out
+    cp -r dist/ $out
   '';
 })

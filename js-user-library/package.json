@@ -2,13 +2,14 @@
   "private": true,
   "name": "@internet-computer/js-user-library",
   "version": "0.1.0",
-  "main": "out/index.js",
+  "main": "dist/main.js",
   "files": [
     "out/**/*"
   ],
   "scripts": {
     "type-check": "tsc --noEmit",
     "type-check:watch": "npm run type-check -- --watch",
+    "bundle": "npm run build && webpack",
     "build": "npm run test && npm run build:types && npm run build:js",
     "build:types": "tsc --allowJs false --declaration --emitDeclarationOnly",
     "build:js": "babel src --out-dir out --extensions '.js','.ts' --source-maps inline",
@@ -37,6 +38,8 @@
     "text-encoding": "^0.7.0",
     "tslint": "^5.20.0",
     "typescript": "^3.6.3",
+    "webpack": "^4.41.0",
+    "webpack-cli": "^3.3.9",
     "whatwg-fetch": "^3.0.0"
   }
 }
