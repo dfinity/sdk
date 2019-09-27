@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use tokio::prelude::FutureExt;
 use tokio::runtime::Runtime;
 
-const TIMEOUT_IN_SECS: u64 = 5;
+const TIMEOUT_IN_SECS: u64 = 10;
 const IC_CLIENT_BIND_ADDR: &str = "http://localhost:8080/api";
 
 pub fn construct() -> App<'static, 'static> {
@@ -47,7 +47,11 @@ where
                 .get_binding_socket_addr("localhost:8000")
                 .unwrap())
         })?;
-    let frontend_url = format!("{}:{}", address_and_port.ip(), address_and_port.port());
+    let frontend_url = format!(
+        "http://{}:{}",
+        address_and_port.ip(),
+        address_and_port.port()
+    );
     let project_root = config.get_path().parent().unwrap();
 
     let client_watchdog = std::thread::spawn(move || {

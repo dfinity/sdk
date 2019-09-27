@@ -1,3 +1,4 @@
+use actix::System;
 use actix_web::client::Client;
 use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use futures::Future;
@@ -48,6 +49,8 @@ fn run_webserver(
 ) -> Result<(), std::io::Error> {
     eprintln!("binding to: {:?}", bind);
     eprintln!("client: {:?}", client_api_uri);
+
+    let _sys = System::new("dfx-frontend-http-server");
 
     HttpServer::new(move || {
         App::new()
