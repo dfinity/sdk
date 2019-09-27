@@ -1,4 +1,4 @@
-{ buildDfinityRustPackage, stdenv, lib, darwin, libressl
+{ buildDfinityRustPackage, stdenv, lib, darwin, libressl, cargo-graph, graphviz
 #, cargo-graph, graphviz
 , dfinity, actorscript, runCommandNoCC
 , release ? true # is it a "release" build, as opposed to "debug" ?
@@ -40,25 +40,19 @@ drv.overrideAttrs (oldAttrs: {
     cp ${actorscript.rts}/rts/as-rts.wasm $out
   '';
 
-  #nativeBuildInputs = oldAttrs.nativeBuildInputs ++ lib.optionals doDoc [
-  #  cargo-graph
-  #  graphviz
-  #];
-  #
-  #postDoc = oldAttrs.postDoc + ''
-  #  pushd client
-  #  cargo graph | dot -Tsvg > ../target/doc/ic_client/cargo-graph.svg
-  #  popd
-  #'';
-  #
-  #postInstall = oldAttrs.postInstall + lib.optionalString doDoc ''
-  #  echo "report cargo-graph-dfinity $doc ic_client/cargo-graph.svg" >> \
-  #    $doc/nix-support/hydra-build-products
-  #'';
+  nativeBuildInputs = oldAttrs.nativeBuildInputs ++ lib.optionals doDoc [
+    cargo-graph
+    graphviz
+  ];
 
-  shellHook = oldAttrs.shellHook + ''
-    function dshell() {
-      source ${lib.dfinityRoot}/nix/dshell/load
-    }
+  postDoc = oldAttrs.postDoc + ''
+    pushd dfx
+    cargo graph | dot -Tsvg > ../target/doc/dfx/cargo-graph.svg
+    popd
+  '';
+
+  postInstall = oldAttrs.postInstall + lib.optionalString doDoc ''
+    echo "report cargo-graph-dfx $doc dfx/cargo-graph.svg" >> \
+      $doc/nix-support/hydra-build-products
   '';
 })
