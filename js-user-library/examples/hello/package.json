@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "bundle": "webpack --mode=development"
+    "bundle": "webpack"
   },
   "dependencies": {
     "@internet-computer/js-user-library": "../../"
