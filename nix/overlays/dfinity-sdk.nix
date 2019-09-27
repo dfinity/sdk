@@ -1,19 +1,14 @@
-self: super:
-
-let rust-workspace = super.callPackage ../rust-workspace.nix {
-  inherit (self) actorscript dfinity;
-}; in
-
-{
-  dfinity-sdk = {
-    packages = {
-        inherit rust-workspace;
+self: super: {
+  dfinity-sdk = rec {
+    packages = rec {
+        rust-workspace = super.callPackage ../rust-workspace.nix {};
         rust-workspace-debug = rust-workspace.override (_: {
           release = false;
           doClippy = true;
           doFmt = true;
           doDoc = true;
         });
+        rust-workspace-doc = rust-workspace-debug.doc;
     };
 
     # This is to make sure CI evalutes shell derivations, builds their
@@ -25,7 +20,7 @@ let rust-workspace = super.callPackage ../rust-workspace.nix {
     };
 
     licenses = {
-      rust-workspace = super.lib.runtime.runtimeLicensesReport rust-workspace;
+      rust-workspace = super.lib.runtime.runtimeLicensesReport packages.rust-workspace;
     };
   };
 }
