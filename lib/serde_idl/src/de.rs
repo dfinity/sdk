@@ -6,7 +6,7 @@ use super::idl_hash;
 use serde::Deserialize;
 use serde::de::{self, Visitor, DeserializeOwned};
 use dfx_info::types::{Type, Field};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use leb128::read::{signed as sleb128_decode, unsigned as leb128_decode};
 
@@ -16,14 +16,14 @@ where T: DeserializeOwned,
     let mut deserializer = Deserializer::from_bytes(bytes);
     deserializer.parse_table()?;
     let t = T::deserialize(&mut deserializer)?;
-    if deserializer.input.is_empty() {
+    if deserializer.input.is_empty() && deserializer.current_type.is_empty() {
         Ok(t)
     } else {
-        Err(Error::Message(format!("Trailing bytes: {:x?}", deserializer.input)))
+        Err(Error::Message(format!("Trailing bytes: {:x?}, types: {:?}", deserializer.input, deserializer.current_type)))
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum RawValue { I(i64), U(u64) }
 impl RawValue {
     fn get_i64(&self) -> Result<i64> {
@@ -43,7 +43,8 @@ impl RawValue {
 pub struct Deserializer<'de> {
     input: &'de [u8],
     table: Vec<Vec<RawValue>>,
-    types: Vec<Type>,
+    types: Vec<RawValue>,
+    current_type: VecDeque<RawValue>,
 }
 
 impl<'de> Deserializer<'de> {
@@ -52,6 +53,7 @@ impl<'de> Deserializer<'de> {
             input: input,
             table: Vec::new(),
             types: Vec::new(),
+            current_type: VecDeque::new(),
         }
     }
     fn leb128_read(&mut self) -> Result<u64> {
@@ -107,15 +109,31 @@ impl<'de> Deserializer<'de> {
         };
         println!("{:?}", self.table);
         let len = self.leb128_read()?;
-        let mut hashmap = HashMap::new();
+        //let mut hashmap = HashMap::new();
         for _i in 0..len {
             let ty = self.sleb128_read()?;
-            let ty = self.build_type(&mut hashmap, &[RawValue::I(ty)])?;
-            self.types.push(ty);
+            //let ty = self.build_type(&mut hashmap, &[RawValue::I(ty)])?;
+            self.types.push(RawValue::I(ty));
         };
+        self.current_type.push_back(self.types[0].clone());
         println!("{:?}", self.types);
         Ok(())
     }
+
+    fn parse_type(&mut self) -> Result<i64> {
+        let op = self.current_type.pop_front().unwrap().get_i64()?;
+        if op >= 0 {
+            self.current_type.pop_front();
+            let ty = &self.table[op as usize];
+            for x in ty.iter().rev() {
+                self.current_type.push_front(x.clone());
+            }
+            self.parse_type()
+        } else {
+            Ok(op)
+        }
+    }
+
     fn build_type(&self, hashmap: &mut HashMap<i64, Type>, ty: &[RawValue]) -> Result<Type> {
         if ty.is_empty() {
             return Err(Error::Message("empty ty".to_string()));
@@ -177,10 +195,11 @@ impl<'de> Deserializer<'de> {
 }
 
 macro_rules! primitive_impl {
-    ($ty:ident, $method:ident $($cast:tt)*) => {
+    ($ty:ident, $opcode:literal, $method:ident $($cast:tt)*) => {
         paste::item! {
             fn [<deserialize_ $ty>]<V>(self, visitor: V) -> Result<V::Value>
             where V: Visitor<'de> {
+                assert_eq!(self.parse_type().unwrap(), $opcode);
                 visitor.[<visit_ $ty>](self.$method()? $($cast)*)
             }
         }
@@ -192,35 +211,28 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
     where V: Visitor<'de>
     {
-        match self.types[0] {
-            Type::Bool => {
-                visitor.visit_bool(self.parse_char()? == 1u8)
-            }
-            Type::Text => {
-                let len = self.leb128_read()? as usize;
-                let value = self.parse_string(len)?;
-                visitor.visit_string(value) 
-            },
-            Type::Int => visitor.visit_i64(self.sleb128_read()?),
-            Type::Nat => visitor.visit_u64(self.leb128_read()?),
-            Type::Opt(_) => self.deserialize_option(visitor),
-            //Type::Record(fs) => {
-            //    self.deserialize_struct()
-            //},
-            _ => Err(Error::Message(format!("Unsupported type {:?}", self.types[0])))
-        }
+        unimplemented!()
     }
 
-    primitive_impl!(i8, sleb128_read as i8);
-    primitive_impl!(i16, sleb128_read as i16);
-    primitive_impl!(i32, sleb128_read as i32);
-    primitive_impl!(i64, sleb128_read);
-    primitive_impl!(u8, leb128_read as u8);
-    primitive_impl!(u16, leb128_read as u16);
-    primitive_impl!(u32, leb128_read as u32);
-    primitive_impl!(u64, leb128_read);
+    primitive_impl!(i8, -4, sleb128_read as i8);
+    primitive_impl!(i16, -4, sleb128_read as i16);
+    primitive_impl!(i32, -4, sleb128_read as i32);
+    primitive_impl!(i64, -4, sleb128_read);
+    primitive_impl!(u8, -3, leb128_read as u8);
+    primitive_impl!(u16, -3, leb128_read as u16);
+    primitive_impl!(u32, -3, leb128_read as u32);
+    primitive_impl!(u64, -3, leb128_read);
+    primitive_impl!(bool, -2, parse_char == 1u8);
 
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value> where V: Visitor<'de> {
+        assert_eq!(self.parse_type().unwrap(), -15);
+        let len = self.leb128_read()? as usize;
+        let value = self.parse_string(len)?;
+        visitor.visit_string(value)         
+    }
+    
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value> where V: Visitor<'de> {
+        assert_eq!(self.parse_type().unwrap(), -15);        
         let len = self.leb128_read()? as usize;
         let value = std::str::from_utf8(&self.input[0..len]).unwrap();
         self.input = &self.input[len..];
@@ -231,8 +243,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
+        assert_eq!(self.parse_type().unwrap(), -18);
         let bit = self.parse_char()?;
         if bit == 0u8 {
+            self.parse_type();
             visitor.visit_none()
         } else {
             visitor.visit_some(self)
@@ -328,8 +342,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
     
     serde::forward_to_deserialize_any! {
-        char string bytes byte_buf ignored_any f32 f64
-        bool
+        char bytes byte_buf ignored_any f32 f64
     }
 }
 
