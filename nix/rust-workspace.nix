@@ -18,16 +18,6 @@ let
       "^.cargo/config$"
     ];
     inherit release doClippy doFmt doDoc;
-
-    override = oldAttrs: {
-      buildInputs = oldAttrs.buildInputs ++ [
-        libressl.dev
-      ] ++ lib.optional stdenv.isDarwin darwin.apple_sdk.frameworks.Security;
-
-      # Indicate to the 'openssl' Rust crate that OpenSSL/LibreSSL shall be linked statically rather than dynamically.
-      # See https://crates.io/crates/openssl -> Documentation -> Manual -> OPENSSL_STATIC for more details.
-      OPENSSL_STATIC = true;
-    };
   };
 in
 drv.overrideAttrs (oldAttrs: {
