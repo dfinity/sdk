@@ -8,4 +8,4 @@
 # depends on where the derivation is defined relative to `/nix/sources.nix`.
 #
 # With this overlay derivations can just use the `sources` argument from pkgs.
-self: super: { sources = import ../sources.nix; }
+self: super: { sources = super.sources // import ../sources.nix { pkgs = super; }; }

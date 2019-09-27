@@ -1,24 +1,17 @@
-self: super:
-
-let rust-workspace = super.callPackage ../rust-workspace.nix {
-  inherit (self) actorscript dfinity;
-}; in
-
-let js-user-library = super.callPackage ../../js-user-library/package.nix {
-  inherit (self) napalm;
-}; in
-
-{
-  dfinity-sdk = {
-    packages = {
-      inherit js-user-library;
-        inherit rust-workspace;
-        rust-workspace-debug = rust-workspace.override (_: {
-          release = false;
-          doClippy = true;
-          doFmt = true;
-          doDoc = true;
-        });
+self: super: {
+  dfinity-sdk = rec {
+    packages = rec {
+      js-user-library = super.callPackage ../../js-user-library/package.nix {
+        inherit (self) napalm;
+      };
+      rust-workspace = super.callPackage ../rust-workspace.nix {};
+      rust-workspace-debug = rust-workspace.override (_: {
+        release = false;
+        doClippy = true;
+        doFmt = true;
+        doDoc = true;
+      });
+      rust-workspace-doc = rust-workspace-debug.doc;
     };
 
     # This is to make sure CI evalutes shell derivations, builds their
@@ -32,7 +25,7 @@ let js-user-library = super.callPackage ../../js-user-library/package.nix {
 
     licenses = {
       # FIXME js-user-library
-      rust-workspace = super.lib.runtime.runtimeLicensesReport rust-workspace;
+      rust-workspace = super.lib.runtime.runtimeLicensesReport packages.rust-workspace;
     };
   };
 }
