@@ -3,6 +3,8 @@
 # needed since we define the main `nixpkgs` source in the `common`
 # repo which means we can't get it from the local `sources.json`. So
 # we pass it in as an argument instead.
+# See: https://dfinity.atlassian.net/browse/INF-435
+# niv: no_update
 with rec
 {
   sources_nixpkgs =
