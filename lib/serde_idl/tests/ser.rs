@@ -66,11 +66,11 @@ fn test_struct() {
                    field("tail", Type::Opt(Box::new(
                        Type::Knot(dfx_info::types::TypeId::of::<List>()))))])               
     );
-    check(list, "4449444c026c02a0d2aca8047c90eddae704016e0001002a00");    
+    all_check(list, "4449444c026c02a0d2aca8047c90eddae704016e0001002a00");    
 
     let list: Option<List> = None;
     // without memoization on the unrolled type, type table will have 3 entries.
-    check(list, "4449444c026e016c02a0d2aca8047c90eddae70400010000");
+    all_check(list, "4449444c026e016c02a0d2aca8047c90eddae70400010000");
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn test_mutual_recursion() {
     struct ListA { head: i32, tail: Box<List> };
 
     let list: List = None;
-    check(list, "4449444c026e016c02a0d2aca8047c90eddae70400010000");
+    all_check(list, "4449444c026e016c02a0d2aca8047c90eddae70400010000");
 }
 
 #[test]
@@ -134,7 +134,7 @@ fn test_generics() {
                    field("g1", Type::Int),
                    field("g2", Type::Bool)])
     );
-    check(res, "4449444c016c02eab3017cebb3017e01002a01")
+    all_check(res, "4449444c016c02eab3017cebb3017e01002a01")
 }
 
 #[test]

@@ -45,6 +45,7 @@ pub struct Deserializer<'de> {
     table: Vec<Vec<RawValue>>,
     types: Vec<RawValue>,
     current_type: VecDeque<RawValue>,
+    field_name: Option<&'static str>,
 }
 
 impl<'de> Deserializer<'de> {
@@ -55,6 +56,7 @@ impl<'de> Deserializer<'de> {
             types: Vec::new(),
             // TODO consider borrowing
             current_type: VecDeque::new(),
+            field_name: None,
         }
     }
     fn leb128_read(&mut self) -> Result<u64> {
@@ -134,65 +136,6 @@ impl<'de> Deserializer<'de> {
             Ok(op)
         }
     }
-
-    fn build_type(&self, hashmap: &mut HashMap<i64, Type>, ty: &[RawValue]) -> Result<Type> {
-        if ty.is_empty() {
-            return Err(Error::Message("empty ty".to_string()));
-        }
-        let t = ty[0].get_i64()?;
-        match t {
-            -1 => Ok(Type::Null),
-            -2 => Ok(Type::Bool),
-            -3 => Ok(Type::Nat),
-            -4 => Ok(Type::Int),
-            -15 => Ok(Type::Text),
-            -18 => {
-                let t1 = self.build_type(hashmap, &ty[1..])?;
-                Ok(Type::Opt(Box::new(t1)))
-            },
-            -19 => {
-                let t1 = self.build_type(hashmap, &ty[1..])?;
-                Ok(Type::Vec(Box::new(t1)))
-            },            
-            -20 => {
-                let mut iter = ty[1..].iter();
-                let len = iter.next().unwrap().get_u64()?;
-                let mut fs = Vec::new();
-                for _i in 0..len {
-                    let hash = iter.next().unwrap().get_u64()?;
-                    let t1 = self.build_type(hashmap, iter.as_slice())?;
-                    iter.next();
-                    fs.push(Field {id: hash.to_string(), hash: hash as u32, ty: t1 });
-                };
-                Ok(Type::Record(fs))
-            },
-            -21 => {
-                let mut iter = ty[1..].iter();
-                let len = iter.next().unwrap().get_u64()?;
-                let mut fs = Vec::new();
-                for _i in 0..len {
-                    let hash = iter.next().unwrap().get_u64()?;
-                    let t1 = self.build_type(hashmap, iter.as_slice())?;
-                    iter.next();
-                    fs.push(Field {id: hash.to_string(), hash: hash as u32, ty: t1 });
-                };
-                Ok(Type::Variant(fs))
-            },            
-            _ if t >= 0 => {
-                match hashmap.get(&t) {
-                    Some(t1) => Ok(t1.clone()),
-                    None => {
-                        hashmap.insert(t, Type::Unknown);
-                        let raw = &self.table[t as usize][..];
-                        let t1 = self.build_type(hashmap, &raw)?;
-                        hashmap.insert(t, t1.clone());
-                        Ok(t1)
-                    },
-                }
-            },
-            _ => Err(Error::Message(format!("Unknown type {}", t)))
-        }
-    }
 }
 
 macro_rules! primitive_impl {
@@ -247,7 +190,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         assert_eq!(self.parse_type().unwrap(), -18);
         let bit = self.parse_char()?;
         if bit == 0u8 {
-            self.parse_type()?;
+            //self.parse_type()? cannot be used as it will expand the type, which has no value
+            self.current_type.pop_front();
             visitor.visit_none()
         } else {
             visitor.visit_some(self)
@@ -341,7 +285,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        panic!("i'm here")
+        let v = visitor.visit_str(self.field_name.unwrap());
+        self.field_name = None;
+        v
     }
     
     serde::forward_to_deserialize_any! {
@@ -352,12 +298,16 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 struct DeserializeMap<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
     len: u64,
-    fields: &'static [&'static str],
+    fs: HashMap<u32, &'static str>,
 }
 
 impl<'a, 'de> DeserializeMap<'a, 'de> {
     fn new(de: &'a mut Deserializer<'de>, len: u64, fields: &'static [&'static str]) -> Self {
-        DeserializeMap { de, len, fields }
+        let mut fs = HashMap::new();
+        for s in fields.iter() {
+            assert_eq!(fs.insert(idl_hash(s), *s), None);
+        }
+        DeserializeMap { de, len, fs }
     }
 }
 
@@ -365,13 +315,16 @@ impl<'de, 'a> de::MapAccess<'de> for DeserializeMap<'a, 'de> {
     type Error = Error;
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
     where K: de::DeserializeSeed<'de> {
-        if self.len > 0 {
-            self.len -= 1;
+        if self.len == 0 {
             return Ok(None);
         }
-        seed.deserialize(&mut *self.de).map(Some)
-        //let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
-        //Ok(Some(*self.fields[0]))
+        self.len -= 1;
+        let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
+        if self.de.field_name.is_some() {
+            return Err(Error::Message("field_name already taken".to_string()));
+        }
+        self.de.field_name = Some(self.fs[&hash]);
+        seed.deserialize(&mut *self.de).map(Some)            
     }
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
     where V: de::DeserializeSeed<'de> {
