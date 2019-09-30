@@ -44,6 +44,7 @@ pkgs.mkShell {
       kill $(pgrep dfx)
       sleep 1
       kill $(pgrep nodemanager)
+      sleep 1
       kill $(pgrep client)
       exit 255; \
     }" EXIT
