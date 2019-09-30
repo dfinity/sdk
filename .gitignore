@@ -4,6 +4,9 @@ result*
 build/
 target/
 
+# Nix-related directories.
+.cargo-home/
+
 # IDEs
 .idea/
 .vscode/

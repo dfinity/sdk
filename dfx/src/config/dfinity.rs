@@ -3,6 +3,7 @@
 use crate::lib::error::DfxResult;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 
 pub const CONFIG_FILE_NAME: &str = "dfinity.json";
@@ -15,6 +16,7 @@ const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     address: None,
     port: None,
     nodes: None,
+    serve_root: None,
 };
 const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
 
@@ -28,6 +30,7 @@ pub struct ConfigDefaultsStart {
     pub address: Option<String>,
     pub nodes: Option<u64>,
     pub port: Option<u16>,
+    pub serve_root: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -55,11 +58,33 @@ impl ConfigCanistersCanister {
     }
 }
 
+fn to_socket_addr(s: &str) -> Option<SocketAddr> {
+    match s.to_socket_addrs() {
+        Ok(mut a) => a.next(),
+        Err(_) => None,
+    }
+}
+
 impl ConfigDefaultsStart {
     pub fn get_address(&self, default: &str) -> String {
         self.address
             .to_owned()
             .unwrap_or_else(|| default.to_string())
+    }
+    pub fn get_binding_socket_addr(&self, default: &str) -> Option<SocketAddr> {
+        to_socket_addr(default).and_then(|default_addr| {
+            let addr = self.get_address(default_addr.ip().to_string().as_str());
+            let port = self.get_port(default_addr.port());
+
+            to_socket_addr(format!("{}:{}", addr, port).as_str())
+        })
+    }
+    pub fn get_serve_root(&self, default: &str) -> PathBuf {
+        PathBuf::from(
+            self.serve_root
+                .to_owned()
+                .unwrap_or_else(|| default.to_string()),
+        )
     }
     pub fn get_nodes(&self, default: u64) -> u64 {
         self.nodes.unwrap_or(default)
@@ -119,7 +144,7 @@ impl Config {
         let mut curr = PathBuf::from(working_dir).canonicalize()?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
-                return Ok(curr);
+                return Ok(curr.join(CONFIG_FILE_NAME));
             } else {
                 curr.pop();
             }
@@ -127,7 +152,7 @@ impl Config {
 
         // Have to check if the config could be in the root (e.g. on VMs / CI).
         if curr.join(CONFIG_FILE_NAME).is_file() {
-            return Ok(curr);
+            return Ok(curr.join(CONFIG_FILE_NAME));
         }
 
         Err(std::io::Error::new(
@@ -136,16 +161,25 @@ impl Config {
         ))
     }
 
-    pub fn load_from(working_dir: &PathBuf) -> std::io::Result<Config> {
+    pub fn from_file(working_dir: &PathBuf) -> std::io::Result<Config> {
         let path = Config::resolve_config_path(working_dir)?;
         let content = std::fs::read(&path)?;
+        Config::from_slice(path, &content)
+    }
+
+    pub fn from_current_dir() -> std::io::Result<Config> {
+        Config::from_file(&std::env::current_dir()?)
+    }
+
+    fn from_slice(path: PathBuf, content: &[u8]) -> std::io::Result<Config> {
         let config = serde_json::from_slice(&content)?;
         let json = serde_json::from_slice(&content)?;
         Ok(Config { path, json, config })
     }
 
-    pub fn from_current_dir() -> std::io::Result<Config> {
-        Config::load_from(&std::env::current_dir()?)
+    /// Create a configuration from a string.
+    pub fn from_str(content: &str) -> std::io::Result<Config> {
+        Config::from_slice(PathBuf::from("-"), content.as_bytes())
     }
 
     pub fn get_path(&self) -> &PathBuf {
@@ -167,5 +201,125 @@ impl Config {
             serde_json::to_string_pretty(&self.json).unwrap(),
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find_dfinity_config_current_path() {
+        let root_dir = tempfile::tempdir().unwrap();
+        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
+
+        std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+        std::fs::write(&config_path, "{}").unwrap();
+
+        assert_eq!(
+            config_path,
+            Config::resolve_config_path(config_path.parent().unwrap()).unwrap(),
+        );
+    }
+
+    #[test]
+    fn find_dfinity_config_parent() {
+        let root_dir = tempfile::tempdir().unwrap();
+        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
+
+        std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+        std::fs::write(&config_path, "{}").unwrap();
+
+        assert!(
+            Config::resolve_config_path(config_path.parent().unwrap().parent().unwrap()).is_err()
+        );
+    }
+
+    #[test]
+    fn find_dfinity_config_subdir() {
+        let root_dir = tempfile::tempdir().unwrap();
+        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
+        let subdir_path = config_path.parent().unwrap().join("baz/blue");
+
+        std::fs::create_dir_all(&subdir_path).unwrap();
+        std::fs::write(&config_path, "{}").unwrap();
+
+        assert_eq!(
+            config_path,
+            Config::resolve_config_path(subdir_path.as_path()).unwrap(),
+        );
+    }
+
+    #[test]
+    fn config_defaults_start_addr() {
+        let config = Config::from_str(
+            r#"{
+            "defaults": {
+                "start": {
+                    "address": "localhost",
+                    "port": 8000
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            config
+                .get_config()
+                .get_defaults()
+                .get_start()
+                .get_binding_socket_addr("1.2.3.4:123"),
+            to_socket_addr("localhost:8000")
+        );
+    }
+
+    #[test]
+    fn config_defaults_start_addr_no_address() {
+        let config = Config::from_str(
+            r#"{
+            "defaults": {
+                "start": {
+                    "port": 8000
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            config
+                .get_config()
+                .get_defaults()
+                .get_start()
+                .get_binding_socket_addr("1.2.3.4:123"),
+            to_socket_addr("1.2.3.4:8000")
+        );
+    }
+
+    #[test]
+    fn config_defaults_start_addr_no_port() {
+        let config = Config::from_str(
+            r#"{
+            "defaults": {
+                "start": {
+                    "address": "localhost"
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            config
+                .get_config()
+                .get_defaults()
+                .get_start()
+                .get_binding_socket_addr("1.2.3.4:123"),
+            to_socket_addr("localhost:123")
+        );
     }
 }

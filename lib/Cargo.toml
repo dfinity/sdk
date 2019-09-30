@@ -1,2 +1,0 @@
-[workspace]
-members = ["dfx_info", "dfx_derive", "serde_idl"]

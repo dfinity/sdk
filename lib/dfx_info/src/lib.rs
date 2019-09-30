@@ -26,18 +26,21 @@ pub trait IDLType {
     fn _ty() -> Type;
     // only serialize the value encoding
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
-    where S: Serializer;
+    where
+        S: Serializer;
 }
 
 pub trait Serializer: Sized {
     type Error;
-    type Compound : Compound<Error=Self::Error>;
+    type Compound: Compound<Error = Self::Error>;
     fn serialize_bool(self, v: bool) -> Result<(), Self::Error>;
     fn serialize_int(self, v: i64) -> Result<(), Self::Error>;
     fn serialize_nat(self, v: u64) -> Result<(), Self::Error>;
     fn serialize_text(self, v: &str) -> Result<(), Self::Error>;
-    fn serialize_null(self, v:()) -> Result<(), Self::Error>;
-    fn serialize_option<T: ?Sized>(self, v: Option<&T>) -> Result<(), Self::Error> where T: IDLType;
+    fn serialize_null(self, v: ()) -> Result<(), Self::Error>;
+    fn serialize_option<T: ?Sized>(self, v: Option<&T>) -> Result<(), Self::Error>
+    where
+        T: IDLType;
     fn serialize_struct(self) -> Result<Self::Compound, Self::Error>;
     fn serialize_vec(self, len: usize) -> Result<Self::Compound, Self::Error>;
     fn serialize_variant(self, index: u64) -> Result<Self::Compound, Self::Error>;
@@ -45,5 +48,7 @@ pub trait Serializer: Sized {
 
 pub trait Compound {
     type Error;
-    fn serialize_element<T: ?Sized>(&mut self, v: &T) -> Result<(), Self::Error> where T: IDLType;
+    fn serialize_element<T: ?Sized>(&mut self, v: &T) -> Result<(), Self::Error>
+    where
+        T: IDLType;
 }

@@ -2,5 +2,5 @@
 , crossSystem ? null
 , config ? {}
 }: {
-  inherit (import ./. { inherit system crossSystem config; }) dfinity-sdk;
+  inherit (import ./nix { inherit system crossSystem config; }) dfinity-sdk;
 }

@@ -9,6 +9,7 @@ use std::vec::Vec;
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
 
+#[derive(Clone, Default)]
 pub struct IDLBuilder {
     type_ser: TypeSerialize,
     value_ser: ValueSerializer,
@@ -33,15 +34,19 @@ impl IDLBuilder {
         writer.write_all(&self.value_ser.value)?;
         Ok(())
     }
-    pub fn to_vec(&mut self) -> Result<Vec<u8>> {
+    pub fn serialize_to_vec(&mut self) -> Result<Vec<u8>> {
         let mut vec = Vec::new();
         self.serialize(&mut vec)?;
         Ok(vec)
     }
+    pub fn to_vec(&self) -> Result<Vec<u8>> {
+        let mut s2 = self.clone();
+        s2.serialize_to_vec()
+    }
 }
 
 /// A structure for serializing Rust values to IDL.
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ValueSerializer {
     value: Vec<u8>,
 }
@@ -53,10 +58,10 @@ impl ValueSerializer {
         ValueSerializer { value: Vec::new() }
     }
 
-    fn write_sleb128(&mut self, value: i64) -> () {
+    fn write_sleb128(&mut self, value: i64) {
         sleb128_encode(&mut self.value, value).unwrap();
     }
-    fn write_leb128(&mut self, value: u64) -> () {
+    fn write_leb128(&mut self, value: u64) {
         leb128_encode(&mut self.value, value).unwrap();
     }
 }
@@ -66,13 +71,16 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
     type Compound = Compound<'a>;
     fn serialize_bool(self, v: bool) -> Result<()> {
         let v = if v { 1 } else { 0 };
-        Ok(self.write_leb128(v))
+        self.write_leb128(v);
+        Ok(())
     }
     fn serialize_int(self, v: i64) -> Result<()> {
-        Ok(self.write_sleb128(v))
+        self.write_sleb128(v);
+        Ok(())
     }
     fn serialize_nat(self, v: u64) -> Result<()> {
-        Ok(self.write_leb128(v))
+        self.write_leb128(v);
+        Ok(())
     }
     fn serialize_text(self, v: &str) -> Result<()> {
         let mut buf = Vec::from(v.as_bytes());
@@ -88,7 +96,10 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
         T: dfx_info::IDLType,
     {
         match v {
-            None => Ok(self.write_leb128(0)),
+            None => {
+                self.write_leb128(0);
+                Ok(())
+            }
             Some(v) => {
                 self.write_leb128(1);
                 v.idl_serialize(self)
@@ -123,7 +134,7 @@ impl<'a> dfx_info::Compound for Compound<'a> {
 }
 
 /// A structure for serializing Rust values to IDL types.
-#[derive(Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TypeSerialize {
     type_table: Vec<Vec<u8>>,
     type_map: HashMap<Type, i32>,
@@ -151,7 +162,7 @@ impl TypeSerialize {
             // http://gallium.inria.fr/~fpottier/publis/gauthier-fpottier-icfp04.pdf
             let unrolled = dfx_info::types::unroll(t);
             if let Some(idx) = self.type_map.get(&unrolled) {
-                let idx = idx.clone();
+                let idx = *idx;
                 self.type_map.insert((*t).clone(), idx);
                 return Ok(());
             }
@@ -172,26 +183,26 @@ impl TypeSerialize {
                     self.encode(&mut buf, ty)?;
                 }
                 Type::Record(fs) => {
-                    for Field { id: _, hash: _, ty } in fs.iter() {
+                    for Field { ty, .. } in fs.iter() {
                         self.build_type(ty).unwrap();
                     }
 
                     sleb128_encode(&mut buf, -20)?;
                     leb128_encode(&mut buf, fs.len() as u64)?;
-                    for Field { id: _, hash, ty } in fs.iter() {
-                        leb128_encode(&mut buf, *hash as u64)?;
+                    for Field { hash, ty, .. } in fs.iter() {
+                        leb128_encode(&mut buf, u64::from(*hash))?;
                         self.encode(&mut buf, ty)?;
                     }
                 }
                 Type::Variant(fs) => {
-                    for Field { id: _, hash: _, ty } in fs.iter() {
+                    for Field { ty, .. } in fs.iter() {
                         self.build_type(ty).unwrap();
                     }
 
                     sleb128_encode(&mut buf, -21)?;
                     leb128_encode(&mut buf, fs.len() as u64)?;
-                    for Field { id: _, hash, ty } in fs.iter() {
-                        leb128_encode(&mut buf, *hash as u64)?;
+                    for Field { hash, ty, .. } in fs.iter() {
+                        leb128_encode(&mut buf, u64::from(*hash))?;
                         self.encode(&mut buf, ty)?;
                     }
                 }
@@ -219,15 +230,15 @@ impl TypeSerialize {
                 let idx = self
                     .type_map
                     .get(&ty)
-                    .expect(&format!("knot type {:?} not found", ty));
-                sleb128_encode(buf, *idx as i64)
-            }
+                    .unwrap_or_else(|| panic!("knot type {:?} not found", ty));
+                sleb128_encode(buf, i64::from(*idx))
+            },
             _ => {
                 let idx = self
                     .type_map
                     .get(&t)
-                    .expect(&format!("type {:?} not found", t));
-                sleb128_encode(buf, *idx as i64)
+                    .unwrap_or_else(|| panic!("type {:?} not found", t));
+                sleb128_encode(buf, i64::from(*idx))
             }
         }?;
         Ok(())
