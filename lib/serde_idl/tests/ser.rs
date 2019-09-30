@@ -27,6 +27,7 @@ fn test_integer() {
 #[test]
 fn test_text() {
     all_check("Hi ☃\n".to_string(), "4449444c00017107486920e298830a");
+    check("Hi ☃\n", "4449444c00017107486920e298830a");
 }
 
 #[test]
@@ -54,7 +55,7 @@ fn test_struct() {
 
     #[derive(Debug, Deserialize, IDLType)]
     struct B(bool, i32);
-    check(B(true,42), "4449444c016c02007e017c0100012a");
+    all_check(B(true,42), "4449444c016c02007e017c0100012a");
 
     #[derive(Debug, Deserialize, IDLType)]
     struct List { head: i32, tail: Option<Box<List>> }
@@ -104,23 +105,23 @@ fn test_variant() {
     enum Unit { Foo, Bar }
     all_check(Unit::Bar, "4449444c016b02b3d3c9017fe6fdd5017f010000");
 
-    let res: Result<&str,&str> = Ok("good");
-    check(res, "4449444c016b02bc8a0171c5fed2017101000004676f6f64");
+    let res: Result<String,String> = Ok("good".to_string());
+    all_check(res, "4449444c016b02bc8a0171c5fed2017101000004676f6f64");
     
     #[allow(dead_code)]
     #[derive(Debug, Deserialize, IDLType)]
-    enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
+    enum E { Foo, Bar(bool, i32), Baz{a: i32, b: u32} }
     
-    let v = E::Baz{a:42, b:42};
+    let v = E::Bar(true,42);
     assert_eq!(get_type(&v),
                Type::Variant(vec![
-                   field("Bar", Type::Record(vec![unnamed_field(0, Type::Bool)])),
+                   field("Bar", Type::Record(vec![unnamed_field(0, Type::Bool), unnamed_field(1, Type::Int)])),
                    field("Baz", Type::Record(vec![field("a", Type::Int),
                                                   field("b", Type::Nat)])),
                    field("Foo", Type::Null),                   
                    ])
     );
-    all_check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c01007e6c02617c627d0100012a2a");
+    all_check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c02007e017c6c02617c627d010000012a");
 }
 
 #[test]

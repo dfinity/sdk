@@ -424,15 +424,11 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
 impl<'de, 'a> de::VariantAccess<'de> for Compound<'a, 'de> {
     type Error = Error;
 
-    // If the `Visitor` expected this variant to be a unit variant, the input
-    // should have been the plain string case handled in `deserialize_enum`.
     fn unit_variant(self) -> Result<()> {
         assert_eq!(self.de.parse_type()?, -1);
         Ok(())
     }
 
-    // Newtype variants are represented in JSON as `{ NAME: VALUE }` so
-    // deserialize the value here.
     fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
     where
         T: de::DeserializeSeed<'de>,
@@ -440,8 +436,6 @@ impl<'de, 'a> de::VariantAccess<'de> for Compound<'a, 'de> {
         seed.deserialize(self.de)
     }
 
-    // Tuple variants are represented in JSON as `{ NAME: [DATA...] }` so
-    // deserialize the sequence of data here.
     fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
