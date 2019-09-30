@@ -17,6 +17,7 @@ pub enum DfxError {
     SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
     WabtError(wabt::Error),
+    AddrParseError(std::net::AddrParseError),
 
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
@@ -76,5 +77,11 @@ impl From<std::num::ParseIntError> for DfxError {
 impl From<wabt::Error> for DfxError {
     fn from(err: wabt::Error) -> DfxError {
         DfxError::WabtError(err)
+    }
+}
+
+impl From<std::net::AddrParseError> for DfxError {
+    fn from(err: std::net::AddrParseError) -> DfxError {
+        DfxError::AddrParseError(err)
     }
 }
