@@ -5,11 +5,13 @@ self: super: {
         inherit (self) napalm;
       };
       rust-workspace = super.callPackage ../rust-workspace.nix {};
-      rust-workspace-debug = rust-workspace.override (_: {
+      rust-workspace-debug = (rust-workspace.override (_: {
         release = false;
         doClippy = true;
         doFmt = true;
         doDoc = true;
+      })).overrideAttrs (oldAttrs: {
+        name = "${oldAttrs.name}-debug";
       });
       rust-workspace-doc = rust-workspace-debug.doc;
     };
