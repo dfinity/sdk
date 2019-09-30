@@ -341,7 +341,7 @@ interface DefaultOptions {
 }
 
 const defaultOptions: DefaultOptions = {
-  fetch: window.fetch.bind(window),
+  fetch: typeof window === "undefined" ? fetch : window.fetch.bind(window),
   host: "http://localhost:8000",
 };
 

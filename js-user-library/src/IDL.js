@@ -1,3 +1,5 @@
+const { TextEncoder } = require('text-encoding')
+
 const sleb = require('leb128/signed')
 const leb = require('leb128/unsigned')
 const Pipe = require('buffer-pipe')
@@ -5,12 +7,6 @@ const Pipe = require('buffer-pipe')
 const { zipWith } = require('./array');
 
 const type = o => Object.prototype.toString.call(o).slice(8, -1)
-
-// `TextEncoder` is defined at the top-level in later versions of Node.js, and
-// in browsers.
-if (typeof TextEncoder === "undefined") {
-  TextEncoder = require('util').TextEncoder;
-}
 
 /*
   This module provides a combinator library to create serializers/deserializers

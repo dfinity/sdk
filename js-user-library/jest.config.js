@@ -2,7 +2,6 @@ module.exports = {
   bail: false,
   setupFiles: [
     "./src/test-setup",
-    "whatwg-fetch",
   ],
   setupFilesAfterEnv: [
     "jest-expect-message",
