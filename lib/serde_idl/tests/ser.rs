@@ -101,8 +101,8 @@ fn test_tuple() {
 #[test]
 fn test_variant() {
     #[derive(Debug, Deserialize, IDLType)]
-    enum Unit { Foo }
-    check(Unit::Foo, "4449444c016b01e6fdd5017f010000");
+    enum Unit { Foo, Bar }
+    all_check(Unit::Bar, "4449444c016b02b3d3c9017fe6fdd5017f010000");
 
     let res: Result<&str,&str> = Ok("good");
     check(res, "4449444c016b02bc8a0171c5fed2017101000004676f6f64");
@@ -120,7 +120,7 @@ fn test_variant() {
                    field("Foo", Type::Null),                   
                    ])
     );
-    check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c01007e6c02617c627d010002");
+    all_check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c01007e6c02617c627d010002");
 }
 
 #[test]

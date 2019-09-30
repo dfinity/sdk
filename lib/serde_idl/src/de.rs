@@ -5,7 +5,6 @@ use super::error::{Error, Result};
 use super::idl_hash;
 use serde::Deserialize;
 use serde::de::{self, Visitor, DeserializeOwned};
-use dfx_info::types::{Type, Field};
 use std::collections::{HashMap, VecDeque};
 
 use leb128::read::{signed as sleb128_decode, unsigned as leb128_decode};
@@ -190,7 +189,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         assert_eq!(self.parse_type().unwrap(), -18);
         let bit = self.parse_char()?;
         if bit == 0u8 {
-            //self.parse_type()? cannot be used as it will expand the type, which has no value
+            //self.parse_type() cannot be used as it will expand the type, which has no value
             self.current_type.pop_front();
             visitor.visit_none()
         } else {
@@ -255,7 +254,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
     fn deserialize_struct<V>(
         mut self,
-        name: &'static str,
+        _name: &'static str,
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
@@ -263,28 +262,31 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         assert_eq!(self.parse_type().unwrap(), -20);
         let len = self.current_type.pop_front().unwrap().get_u64()?;
-        
-        println!("XX {} {:?}", name, fields);
         let value = visitor.visit_map(DeserializeMap::new(&mut self, len, fields))?;
         Ok(value)
     }
     
     fn deserialize_enum<V>(
-        self,
-        name: &'static str,
+        mut self,
+        _name: &'static str,
         variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        println!("XX {} {:?}", name, variants);
-        visitor.visit_bool(true)
+        assert_eq!(self.parse_type().unwrap(), -21);
+        let len = self.current_type.pop_front().unwrap().get_u64()?;
+        let value = visitor.visit_enum(DeserializeMap::new(&mut self, len, variants))?;
+        Ok(value)
     }
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
+        if self.field_name.is_none() {
+            return Err(Error::Message("empty field_name".to_string()));
+        }
         let v = visitor.visit_str(self.field_name.unwrap());
         self.field_name = None;
         v
@@ -329,5 +331,75 @@ impl<'de, 'a> de::MapAccess<'de> for DeserializeMap<'a, 'de> {
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
     where V: de::DeserializeSeed<'de> {
         seed.deserialize(&mut *self.de)
+    }
+}
+
+impl<'de, 'a> de::EnumAccess<'de> for DeserializeMap<'a, 'de> {
+    type Error = Error;
+    type Variant = Self;
+
+    fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant)>
+    where
+        V: de::DeserializeSeed<'de>,
+    {
+        let index = self.de.leb128_read()?;
+        if index >= self.len {
+            return Err(Error::Message(format!("variant index {} larger than length {}", index, self.len)));
+        }
+        for i in 0..self.len {
+            let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
+            let ty = self.de.current_type.pop_front().unwrap();
+            if i == index {
+                if self.de.field_name.is_some() {
+                    return Err(Error::Message("field_name already taken".to_string()));
+                }                
+                self.de.field_name = Some(self.fs[&hash]);
+                self.de.current_type.push_back(ty);
+            }
+        }        
+        let val = seed.deserialize(&mut *self.de)?;
+        Ok((val, self))
+    }
+}
+
+impl<'de, 'a> de::VariantAccess<'de> for DeserializeMap<'a, 'de> {
+    type Error = Error;
+
+    // If the `Visitor` expected this variant to be a unit variant, the input
+    // should have been the plain string case handled in `deserialize_enum`.
+    fn unit_variant(self) -> Result<()> {
+        assert_eq!(self.de.parse_type()?, -1);
+        Ok(())
+    }
+
+    // Newtype variants are represented in JSON as `{ NAME: VALUE }` so
+    // deserialize the value here.
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
+    where
+        T: de::DeserializeSeed<'de>,
+    {
+        seed.deserialize(self.de)
+    }
+
+    // Tuple variants are represented in JSON as `{ NAME: [DATA...] }` so
+    // deserialize the sequence of data here.
+    fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        de::Deserializer::deserialize_seq(self.de, visitor)
+    }
+
+    // Struct variants are represented in JSON as `{ NAME: { K: V, ... } }` so
+    // deserialize the inner map here.
+    fn struct_variant<V>(
+        self,
+        _fields: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        de::Deserializer::deserialize_map(self.de, visitor)
     }
 }
