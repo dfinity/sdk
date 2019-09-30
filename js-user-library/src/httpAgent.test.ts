@@ -43,7 +43,7 @@ test("call", async () => {
   expect(calls.length).toBe(1);
   expect(requestId).toEqual(expectedRequestId);
 
-  expect(calls[0][0]).toBe("http://localhost:8080/api/v1/submit");
+  expect(calls[0][0]).toBe("http://localhost:8000/api/v1/submit");
   expect(calls[0][1]).toEqual({
     method: "POST",
     headers: {
@@ -90,7 +90,7 @@ test("requestStatus", async () => {
   expect(calls.length).toBe(1);
   expect(response).toEqual(mockResponse);
 
-  expect(calls[0][0]).toBe("http://localhost:8080/api/v1/read");
+  expect(calls[0][0]).toBe("http://localhost:8000/api/v1/read");
   expect(calls[0][1]).toEqual({
     method: "POST",
     headers: {

@@ -12,8 +12,9 @@
       "output": "build/"
     },
     "start": {
-      "port": 8080,
-      "address": "127.0.0.1"
+      "port": 8000,
+      "address": "localhost",
+      "serve_root": "dist"
     }
   }
 }

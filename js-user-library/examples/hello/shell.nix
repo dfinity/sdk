@@ -4,10 +4,16 @@ let sdk = pkgs.dfinity-sdk.packages; in
 pkgs.mkShell {
   buildInputs = [
     sdk.rust-workspace # for dfx
+    pkgs.jq # for reading config
     pkgs.nodejs-10_x
   ];
   shellHook = ''
     set -e
+
+    pushd ../..
+    npm install
+    npm run bundle
+    popd
 
     npm install
     dfx build
@@ -28,17 +34,14 @@ pkgs.mkShell {
 
     npm run bundle
 
-    dfx start
-
-    npx forever start -c "npx serve -l 1234" dist
-    sleep 5s
-    open http://localhost:1234
+    dfx start > /dev/null 2>&1 &
+    open $(jq --raw-output '"http://\(.defaults.start.address):\(.defaults.start.port)"' dfinity.json)
 
     set +e
 
     # Clean up before we exit the shell
     trap "{ \
-      npx forever stopall
+      kill $(pgrep dfx)
       kill $(pgrep nodemanager)
       kill $(pgrep client)
       exit 255; \

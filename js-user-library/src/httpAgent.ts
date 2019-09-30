@@ -342,7 +342,7 @@ interface DefaultOptions {
 
 const defaultOptions: DefaultOptions = {
   fetch: window.fetch.bind(window),
-  host: "http://localhost:8080",
+  host: "http://localhost:8000",
 };
 
 
