@@ -1,28 +1,38 @@
 extern crate paste;
 
-use std::io::Read;
 use super::error::{Error, Result};
 use super::idl_hash;
-use serde::de::{self, Visitor, DeserializeOwned};
+use serde::de::{self, DeserializeOwned, Visitor};
 use std::collections::{BTreeMap, VecDeque};
+use std::io::Read;
 
 use leb128::read::{signed as sleb128_decode, unsigned as leb128_decode};
 
 pub fn from_bytes<T>(bytes: &[u8]) -> Result<T>
-where T: DeserializeOwned,
+where
+    T: DeserializeOwned,
 {
     let mut deserializer = Deserializer::from_bytes(bytes);
     deserializer.parse_table()?;
     let t = T::deserialize(&mut deserializer)?;
-    if deserializer.input.is_empty() && deserializer.current_type.is_empty() && deserializer.field_index.is_none() {
+    if deserializer.input.is_empty()
+        && deserializer.current_type.is_empty()
+        && deserializer.field_index.is_none()
+    {
         Ok(t)
     } else {
-        Err(Error::Message(format!("Trailing bytes: {:x?}, types: {:?}", deserializer.input, deserializer.current_type)))
+        Err(Error::Message(format!(
+            "Trailing bytes: {:x?}, types: {:?}",
+            deserializer.input, deserializer.current_type
+        )))
     }
 }
 
 #[derive(Clone, Debug)]
-enum RawValue { I(i64), U(u64) }
+enum RawValue {
+    I(i64),
+    U(u64),
+}
 impl RawValue {
     fn get_i64(&self) -> Result<i64> {
         match *self {
@@ -82,7 +92,7 @@ impl<'de> Deserializer<'de> {
             Err(Error::Message(format!("wrong magic number {}", magic)))
         }
     }
-    
+
     fn parse_table(&mut self) -> Result<()> {
         self.parse_magic()?;
         let len = self.leb128_read()?;
@@ -91,29 +101,29 @@ impl<'de> Deserializer<'de> {
             let ty = self.sleb128_read()?;
             buf.push(RawValue::I(ty));
             match ty {
-                -18 | -19 => { // opt, vec
+                -18 | -19 => {
+                    // opt, vec
                     buf.push(RawValue::I(self.sleb128_read()?));
-                },
-                -20 | -21 => { //record, variant
+                }
+                -20 | -21 => {
+                    //record, variant
                     let obj_len = self.leb128_read()?;
                     buf.push(RawValue::U(obj_len));
                     for _ in 0..obj_len {
                         buf.push(RawValue::U(self.leb128_read()?));
                         buf.push(RawValue::I(self.sleb128_read()?));
-                    };
-                },
-                _ => {
-                    return Err(Error::Message(format!("Unknown op_code {}", ty)))
+                    }
                 }
+                _ => return Err(Error::Message(format!("Unknown op_code {}", ty))),
             };
             self.table.push(buf);
-        };
+        }
         println!("{:?}", self.table);
         let len = self.leb128_read()?;
         for _i in 0..len {
             let ty = self.sleb128_read()?;
             self.types.push(RawValue::I(ty));
-        };
+        }
         self.current_type.push_back(self.types[0].clone());
         println!("{:?}", self.types);
         Ok(())
@@ -149,7 +159,8 @@ macro_rules! primitive_impl {
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
-    where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         unimplemented!()
     }
@@ -164,21 +175,27 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     primitive_impl!(u64, -3, leb128_read);
     primitive_impl!(bool, -2, parse_char == 1u8);
 
-    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value> where V: Visitor<'de> {
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
         assert_eq!(self.parse_type().unwrap(), -15);
         let len = self.leb128_read()? as usize;
         let value = self.parse_string(len)?;
-        visitor.visit_string(value)         
+        visitor.visit_string(value)
     }
-    
-    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value> where V: Visitor<'de> {
-        assert_eq!(self.parse_type().unwrap(), -15);        
+
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        assert_eq!(self.parse_type().unwrap(), -15);
         let len = self.leb128_read()? as usize;
         let value = std::str::from_utf8(&self.input[0..len]).unwrap();
         self.input = &self.input[len..];
         visitor.visit_borrowed_str(value)
     }
-    
+
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
@@ -200,21 +217,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         assert_eq!(self.parse_type().unwrap(), -1);
         visitor.visit_unit()
     }
-    fn deserialize_unit_struct<V>(
-        self,
-        _name: &'static str,
-        visitor: V,
-    ) -> Result<V::Value>
+    fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
         self.deserialize_unit(visitor)
     }
-    fn deserialize_newtype_struct<V>(
-        self,
-        _name: &'static str,
-        visitor: V,
-    ) -> Result<V::Value>
+    fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -230,14 +239,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 let value = visitor.visit_seq(Compound::new(&mut self, Style::Vector { len }));
                 self.current_type.pop_front();
                 value
-            },
+            }
             -20 => {
                 let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
                 visitor.visit_seq(Compound::new(&mut self, Style::Tuple { len, index: 0 }))
-            },
-            _ => {
-                Err(Error::Message("seq only takes vector or tuple".to_string()))
-            },
+            }
+            _ => Err(Error::Message("seq only takes vector or tuple".to_string())),
         }
     }
     fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
@@ -263,7 +270,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
-    where V: Visitor<'de>,
+    where
+        V: Visitor<'de>,
     {
         assert_eq!(self.parse_type().unwrap(), -20);
         let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
@@ -274,7 +282,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let value = visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))?;
         Ok(value)
     }
-    
+
     fn deserialize_enum<V>(
         mut self,
         _name: &'static str,
@@ -290,7 +298,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         for s in variants.iter() {
             assert_eq!(fs.insert(idl_hash(s), *s), None);
         }
-        let value = visitor.visit_enum(Compound::new(&mut self, Style::Enum{ len, fs }))?;
+        let value = visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))?;
         Ok(value)
     }
 
@@ -305,7 +313,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.field_index = None;
         v
     }
-    
+
     serde::forward_to_deserialize_any! {
         char bytes byte_buf ignored_any f32 f64 map
     }
@@ -313,10 +321,21 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
 #[derive(Debug)]
 enum Style {
-    Tuple {len: u32, index: u32},
-    Vector {len: u32},
-    Struct {len: u32, fs: BTreeMap<u32, &'static str>},
-    Enum {len: u32, fs: BTreeMap<u32, &'static str>},
+    Tuple {
+        len: u32,
+        index: u32,
+    },
+    Vector {
+        len: u32,
+    },
+    Struct {
+        len: u32,
+        fs: BTreeMap<u32, &'static str>,
+    },
+    Enum {
+        len: u32,
+        fs: BTreeMap<u32, &'static str>,
+    },
 }
 
 struct Compound<'a, 'de: 'a> {
@@ -338,7 +357,10 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
         T: de::DeserializeSeed<'de>,
     {
         match self.style {
-            Style::Tuple { ref len, ref mut index } => {
+            Style::Tuple {
+                ref len,
+                ref mut index,
+            } => {
                 if *index == *len {
                     return Ok(None);
                 }
@@ -346,7 +368,7 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                 assert_eq!(t_idx, *index);
                 *index += 1;
                 seed.deserialize(&mut *self.de).map(Some)
-            },
+            }
             Style::Vector { ref mut len } => {
                 if *len == 0 {
                     return Ok(None);
@@ -355,8 +377,8 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                 self.de.current_type.push_back(ty);
                 *len -= 1;
                 seed.deserialize(&mut *self.de).map(Some)
-            },
-            _ => Err(Error::Message("expect tuple".to_string()))
+            }
+            _ => Err(Error::Message("expect tuple".to_string())),
         }
     }
 }
@@ -364,9 +386,14 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
 impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
     type Error = Error;
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
-    where K: de::DeserializeSeed<'de> {
+    where
+        K: de::DeserializeSeed<'de>,
+    {
         match self.style {
-            Style::Struct { ref mut len, ref fs } => {
+            Style::Struct {
+                ref mut len,
+                ref fs,
+            } => {
                 if *len == 0 {
                     return Ok(None);
                 }
@@ -377,12 +404,14 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                 }
                 self.de.field_index = Some(fs[&hash]);
                 seed.deserialize(&mut *self.de).map(Some)
-            },
-            _ => Err(Error::Message("expect struct".to_string()))
+            }
+            _ => Err(Error::Message("expect struct".to_string())),
         }
     }
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
-    where V: de::DeserializeSeed<'de> {
+    where
+        V: de::DeserializeSeed<'de>,
+    {
         seed.deserialize(&mut *self.de)
     }
 }
@@ -399,7 +428,10 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
             Style::Enum { len, ref fs } => {
                 let index = self.de.leb128_read()? as u32;
                 if index >= len {
-                    return Err(Error::Message(format!("variant index {} larger than length {}", index, len)));
+                    return Err(Error::Message(format!(
+                        "variant index {} larger than length {}",
+                        index, len
+                    )));
                 }
                 for i in 0..len {
                     let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
@@ -407,16 +439,16 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     if i == index {
                         if self.de.field_index.is_some() {
                             return Err(Error::Message("field_index already taken".to_string()));
-                        }                
+                        }
                         self.de.field_index = Some(fs[&hash]);
                         // After we skip all the fields, ty will be the only thing left
                         self.de.current_type.push_back(ty);
                     }
-                }        
+                }
                 let val = seed.deserialize(&mut *self.de)?;
                 Ok((val, self))
-            },
-            _ => Err(Error::Message("expect enum".to_string()))
+            }
+            _ => Err(Error::Message("expect enum".to_string())),
         }
     }
 }
@@ -443,11 +475,7 @@ impl<'de, 'a> de::VariantAccess<'de> for Compound<'a, 'de> {
         de::Deserializer::deserialize_seq(self.de, visitor)
     }
 
-    fn struct_variant<V>(
-        self,
-        fields: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value>
+    fn struct_variant<V>(self, fields: &'static [&'static str], visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {

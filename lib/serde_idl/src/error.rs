@@ -1,8 +1,7 @@
+use serde::{de, ser};
 
-use serde::{de,ser};
-
-use std::io;
 use std::fmt::{self, Display};
+use std::io;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

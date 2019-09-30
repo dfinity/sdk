@@ -1,10 +1,10 @@
 #[macro_use]
 extern crate serde_idl;
-extern crate serde;
 extern crate dfx_info;
+extern crate serde;
 
-use dfx_info::{IDLType};
-use dfx_info::types::{Type, get_type};
+use dfx_info::types::{get_type, Type};
+use dfx_info::IDLType;
 use serde::Deserialize;
 use serde_idl::{from_bytes, idl_hash};
 
@@ -42,32 +42,43 @@ fn test_option() {
 #[test]
 fn test_struct() {
     #[derive(Debug, Deserialize, IDLType)]
-    struct A { foo: i32, bar: bool }
-    
+    struct A {
+        foo: i32,
+        bar: bool,
+    }
+
     let record = A { foo: 42, bar: true };
-    assert_eq!(get_type(&record),
-               Type::Record(vec![
-                   field("bar", Type::Bool),
-                   field("foo", Type::Int),                   
-               ])
+    assert_eq!(
+        get_type(&record),
+        Type::Record(vec![field("bar", Type::Bool), field("foo", Type::Int),])
     );
-    all_check(record, "4449444c016c02d3e3aa027e868eb7027c0100012a");    
+    all_check(record, "4449444c016c02d3e3aa027e868eb7027c0100012a");
 
     #[derive(Debug, Deserialize, IDLType)]
     struct B(bool, i32);
-    all_check(B(true,42), "4449444c016c02007e017c0100012a");
+    all_check(B(true, 42), "4449444c016c02007e017c0100012a");
 
     #[derive(Debug, Deserialize, IDLType)]
-    struct List { head: i32, tail: Option<Box<List>> }
-    
-    let list = List { head: 42, tail: None };
-    assert_eq!(get_type(&list),
-               Type::Record(vec![
-                   field("head", Type::Int),
-                   field("tail", Type::Opt(Box::new(
-                       Type::Knot(dfx_info::types::TypeId::of::<List>()))))])               
+    struct List {
+        head: i32,
+        tail: Option<Box<List>>,
+    }
+
+    let list = List {
+        head: 42,
+        tail: None,
+    };
+    assert_eq!(
+        get_type(&list),
+        Type::Record(vec![
+            field("head", Type::Int),
+            field(
+                "tail",
+                Type::Opt(Box::new(Type::Knot(dfx_info::types::TypeId::of::<List>())))
+            )
+        ])
     );
-    all_check(list, "4449444c026c02a0d2aca8047c90eddae704016e0001002a00");    
+    all_check(list, "4449444c026c02a0d2aca8047c90eddae704016e0001002a00");
 
     let list: Option<List> = None;
     // without memoization on the unrolled type, type table will have 3 entries.
@@ -78,7 +89,10 @@ fn test_struct() {
 fn test_mutual_recursion() {
     type List = Option<ListA>;
     #[derive(Debug, Deserialize, IDLType)]
-    struct ListA { head: i32, tail: Box<List> };
+    struct ListA {
+        head: i32,
+        tail: Box<List>,
+    };
 
     let list: List = None;
     all_check(list, "4449444c026e016c02a0d2aca8047c90eddae70400010000");
@@ -86,89 +100,141 @@ fn test_mutual_recursion() {
 
 #[test]
 fn test_vector() {
-    all_check(vec![0,1,2,3], "4449444c016d7c01000400010203");
-    all_check([0,1,2,3], "4449444c016d7c01000400010203");
-    let boxed_array: Box<[i32]> = Box::new([0,1,2,3]);
+    all_check(vec![0, 1, 2, 3], "4449444c016d7c01000400010203");
+    all_check([0, 1, 2, 3], "4449444c016d7c01000400010203");
+    let boxed_array: Box<[i32]> = Box::new([0, 1, 2, 3]);
     all_check(boxed_array, "4449444c016d7c01000400010203");
-    all_check([(42, "text".to_string())], "4449444c026d016c02007c01710100012a0474657874");
+    all_check(
+        [(42, "text".to_string())],
+        "4449444c026d016c02007c01710100012a0474657874",
+    );
     all_check([[[[()]]]], "4449444c046d016d026d036d7f010001010101");
 }
 
 #[test]
 fn test_tuple() {
-    all_check((42, "💩".to_string()), "4449444c016c02007c017101002a04f09f92a9");
+    all_check(
+        (42, "💩".to_string()),
+        "4449444c016c02007c017101002a04f09f92a9",
+    );
 }
 
 #[test]
 fn test_variant() {
     #[derive(Debug, Deserialize, IDLType)]
-    enum Unit { Foo, Bar }
+    enum Unit {
+        Foo,
+        Bar,
+    }
     all_check(Unit::Bar, "4449444c016b02b3d3c9017fe6fdd5017f010000");
 
-    let res: Result<String,String> = Ok("good".to_string());
+    let res: Result<String, String> = Ok("good".to_string());
     all_check(res, "4449444c016b02bc8a0171c5fed2017101000004676f6f64");
-    
+
     #[allow(dead_code)]
     #[derive(Debug, Deserialize, IDLType)]
-    enum E { Foo, Bar(bool, i32), Baz{a: i32, b: u32} }
-    
-    let v = E::Bar(true,42);
-    assert_eq!(get_type(&v),
-               Type::Variant(vec![
-                   field("Bar", Type::Record(vec![unnamed_field(0, Type::Bool), unnamed_field(1, Type::Int)])),
-                   field("Baz", Type::Record(vec![field("a", Type::Int),
-                                                  field("b", Type::Nat)])),
-                   field("Foo", Type::Null),                   
-                   ])
+    enum E {
+        Foo,
+        Bar(bool, i32),
+        Baz { a: i32, b: u32 },
+    }
+
+    let v = E::Bar(true, 42);
+    assert_eq!(
+        get_type(&v),
+        Type::Variant(vec![
+            field(
+                "Bar",
+                Type::Record(vec![
+                    unnamed_field(0, Type::Bool),
+                    unnamed_field(1, Type::Int)
+                ])
+            ),
+            field(
+                "Baz",
+                Type::Record(vec![field("a", Type::Int), field("b", Type::Nat)])
+            ),
+            field("Foo", Type::Null),
+        ])
     );
-    all_check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c02007e017c6c02617c627d010000012a");
+    all_check(
+        v,
+        "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c02007e017c6c02617c627d010000012a",
+    );
 }
 
 #[test]
 fn test_generics() {
     #[derive(Debug, Deserialize, IDLType)]
-    struct G<T, E> { g1: T, g2: E }
-    
+    struct G<T, E> {
+        g1: T,
+        g2: E,
+    }
+
     let res = G { g1: 42, g2: true };
-    assert_eq!(get_type(&res),
-               Type::Record(vec![
-                   field("g1", Type::Int),
-                   field("g2", Type::Bool)])
+    assert_eq!(
+        get_type(&res),
+        Type::Record(vec![field("g1", Type::Int), field("g2", Type::Bool)])
     );
     all_check(res, "4449444c016c02eab3017cebb3017e01002a01")
 }
 
 #[test]
 fn test_multiargs() {
-    checks(IDL!(&42, &Some(42), &Some(1), &Some(2)), "4449444c016e7c047c0000002a012a01010102");
-    checks(IDL!(&[(42, "text")], &(42, "text")), "4449444c026d016c02007c0171020001012a04746578742a0474657874");
+    checks(
+        IDL!(&42, &Some(42), &Some(1), &Some(2)),
+        "4449444c016e7c047c0000002a012a01010102",
+    );
+    checks(
+        IDL!(&[(42, "text")], &(42, "text")),
+        "4449444c026d016c02007c0171020001012a04746578742a0474657874",
+    );
 }
 
-fn check<T>(value: T, expected: &str) where T: IDLType {
+fn check<T>(value: T, expected: &str)
+where
+    T: IDLType,
+{
     let encoded = IDL!(&value);
     checks(encoded, expected);
 }
 
 fn all_check<T>(value: T, expected: &str)
-where T: IDLType + serde::de::DeserializeOwned,
+where
+    T: IDLType + serde::de::DeserializeOwned,
 {
     let expected = hex::decode(expected).unwrap();
     let decoded: T = from_bytes(&expected).unwrap();
     let encoded_from_value = IDL!(&value);
     let encoded_from_decoded = IDL!(&decoded);
-    assert_eq!(encoded_from_value, encoded_from_decoded, "\nValue\n{:x?}\nDecoded\n{:x?}\n", encoded_from_value, encoded_from_decoded);    
+    assert_eq!(
+        encoded_from_value, encoded_from_decoded,
+        "\nValue\n{:x?}\nDecoded\n{:x?}\n",
+        encoded_from_value, encoded_from_decoded
+    );
 }
 
 fn checks(encoded: Vec<u8>, expected: &str) {
     let expected = hex::decode(expected).unwrap();
-    assert_eq!(encoded, expected, "\nExpected\n{:x?}\nActual\n{:x?}\n", expected, encoded);
+    assert_eq!(
+        encoded, expected,
+        "\nExpected\n{:x?}\nActual\n{:x?}\n",
+        expected, encoded
+    );
 }
 
 fn field(id: &str, ty: Type) -> dfx_info::types::Field {
-    dfx_info::types::Field { id: id.to_string(), hash:idl_hash(id), ty: ty }
+    dfx_info::types::Field {
+        id: id.to_string(),
+        hash: idl_hash(id),
+        ty: ty,
+    }
 }
 
 fn unnamed_field(id: u32, ty: Type) -> dfx_info::types::Field {
-    dfx_info::types::Field { id: id.to_string(), hash:id, ty: ty }
+    dfx_info::types::Field {
+        id: id.to_string(),
+        hash: id,
+        ty: ty,
+    }
 }
-

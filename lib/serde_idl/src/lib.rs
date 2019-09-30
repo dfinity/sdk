@@ -1,8 +1,8 @@
 //! # Serde Dfinity IDL
 
-extern crate serde;
-extern crate leb128;
 extern crate dfx_info;
+extern crate leb128;
+extern crate serde;
 
 // Re-export the [items recommended by serde](https://serde.rs/conventions.html).
 //#[doc(inline)]
