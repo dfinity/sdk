@@ -42,6 +42,7 @@ pkgs.mkShell {
     # Clean up before we exit the shell
     trap "{ \
       kill $(pgrep dfx)
+      sleep 1
       kill $(pgrep nodemanager)
       kill $(pgrep client)
       exit 255; \
