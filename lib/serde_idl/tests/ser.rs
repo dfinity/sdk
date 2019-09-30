@@ -85,17 +85,17 @@ fn test_mutual_recursion() {
 
 #[test]
 fn test_vector() {
-    check(vec![0,1,2,3], "4449444c016d7c01000400010203");
-    check([0,1,2,3], "4449444c016d7c01000400010203");
+    all_check(vec![0,1,2,3], "4449444c016d7c01000400010203");
+    all_check([0,1,2,3], "4449444c016d7c01000400010203");
     let boxed_array: Box<[i32]> = Box::new([0,1,2,3]);
-    check(boxed_array, "4449444c016d7c01000400010203");
-    check([(42, "text")], "4449444c026d016c02007c01710100012a0474657874");
-    check([[[[()]]]], "4449444c046d016d026d036d7f010001010101");
+    all_check(boxed_array, "4449444c016d7c01000400010203");
+    all_check([(42, "text".to_string())], "4449444c026d016c02007c01710100012a0474657874");
+    all_check([[[[()]]]], "4449444c046d016d026d036d7f010001010101");
 }
 
 #[test]
 fn test_tuple() {
-    check((42, "💩"), "4449444c016c02007c017101002a04f09f92a9");
+    all_check((42, "💩".to_string()), "4449444c016c02007c017101002a04f09f92a9");
 }
 
 #[test]
@@ -111,7 +111,7 @@ fn test_variant() {
     #[derive(Debug, Deserialize, IDLType)]
     enum E { Foo, Bar(bool), Baz{a: i32, b: u32} }
     
-    let v = E::Foo;
+    let v = E::Baz{a:42, b:42};
     assert_eq!(get_type(&v),
                Type::Variant(vec![
                    field("Bar", Type::Record(vec![unnamed_field(0, Type::Bool)])),
@@ -120,7 +120,7 @@ fn test_variant() {
                    field("Foo", Type::Null),                   
                    ])
     );
-    all_check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c01007e6c02617c627d010002");
+    all_check(v, "4449444c036b03b3d3c90101bbd3c90102e6fdd5017f6c01007e6c02617c627d0100012a2a");
 }
 
 #[test]
