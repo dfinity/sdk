@@ -6,7 +6,7 @@ extern crate dfx_info;
 //use dfx_info::types::{get_type, Type};
 use dfx_info::IDLType;
 //use serde::Deserialize;
-use serde_idl::{from_bytes, idl_hash};
+use serde_idl::{from_bytes};
 
 fn test_check<T>(x:&T)
 where T: Eq + IDLType + serde::de::DeserializeOwned + std::fmt::Debug,
