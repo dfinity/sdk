@@ -38,6 +38,9 @@ pub enum DfxError {
     // number if they support public spec's errors (< 100).
     ClientError(u16, String),
     Unknown(String),
+
+    // Configuration path does not exist in the config file.
+    ConfigPathDoesNotExist(String),
 }
 
 /// The result of running a DFX command.
