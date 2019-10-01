@@ -59,7 +59,7 @@ pub struct Deserializer<'de> {
 impl<'de> Deserializer<'de> {
     pub fn from_bytes(input: &'de [u8]) -> Self {
         Deserializer {
-            input: input,
+            input,
             table: Vec::new(),
             types: Vec::new(),
             // TODO consider borrowing
@@ -193,7 +193,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let len = self.leb128_read()? as usize;
         let value = std::str::from_utf8(&self.input[0..len]).unwrap();
         self.input = &self.input[len..];
-        visitor.visit_borrowed_str(value)
+        visitor.visit_str(value)
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
@@ -338,7 +338,7 @@ enum Style {
     },
 }
 
-struct Compound<'a, 'de: 'a> {
+struct Compound<'a, 'de> {
     de: &'a mut Deserializer<'de>,
     style: Style,
 }
