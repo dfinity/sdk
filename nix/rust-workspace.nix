@@ -1,18 +1,17 @@
-{
-  buildDfinityRustPackage
-, stdenv
-, lib
-, darwin
-, libressl
-, cargo-graph
-, graphviz
-, dfinity
-, actorscript
-, runCommandNoCC
-, release ? true # is it a "release" build, as opposed to "debug" ?
+{ release ? true
 , doClippy ? false
 , doFmt ? false
 , doDoc ? false
+, actorscript
+, buildDfinityRustPackage
+, cargo-graph
+, darwin
+, dfinity
+, graphviz
+, lib
+, libressl
+, runCommandNoCC
+, stdenv
 }:
 let
   drv = buildDfinityRustPackage {
@@ -31,7 +30,7 @@ in
 drv.overrideAttrs (oldAttrs: {
   DFX_ASSETS = runCommandNoCC "dfx-assets" {} ''
     mkdir -p $out
-    cp ${dfinity.rust-workspace-debug}/bin/{client,nodemanager} $out
+    cp ${if release then dfinity.rust-workspace else dfinity.rust-workspace-debug}/bin/{client,nodemanager} $out
     cp ${actorscript.asc}/bin/asc $out
     cp ${actorscript.as-ide}/bin/as-ide $out
     cp ${actorscript.didc}/bin/didc $out
