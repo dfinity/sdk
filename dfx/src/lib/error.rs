@@ -1,4 +1,5 @@
 use crate::lib::api_client::ReadRejectCode;
+use ic_http_agent::{RequestIdError, RequestIdFromStringError};
 
 #[derive(Debug)]
 pub enum BuildErrorKind {
@@ -13,11 +14,14 @@ pub enum DfxError {
     IO(std::io::Error),
     ParseInt(std::num::ParseIntError),
     Reqwest(reqwest::Error),
+    SerdeCborFromServer(serde_cbor::error::Error, String),
     SerdeCbor(serde_cbor::error::Error),
     SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
     WabtError(wabt::Error),
     AddrParseError(std::net::AddrParseError),
+    HttpAgentError(RequestIdError),
+    RequestIdFromStringError(RequestIdFromStringError),
 
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
@@ -83,5 +87,17 @@ impl From<wabt::Error> for DfxError {
 impl From<std::net::AddrParseError> for DfxError {
     fn from(err: std::net::AddrParseError) -> DfxError {
         DfxError::AddrParseError(err)
+    }
+}
+
+impl From<RequestIdError> for DfxError {
+    fn from(err: RequestIdError) -> DfxError {
+        DfxError::HttpAgentError(err)
+    }
+}
+
+impl From<RequestIdFromStringError> for DfxError {
+    fn from(err: RequestIdFromStringError) -> DfxError {
+        DfxError::RequestIdFromStringError(err)
     }
 }

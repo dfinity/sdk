@@ -1,8 +1,8 @@
-use std::io::{Error, ErrorKind, Result};
-use std::path::PathBuf;
-
 use crate::config::dfx_version;
 use crate::util;
+use std::io::{Error, ErrorKind, Result};
+use std::os::unix::fs::PermissionsExt;
+use std::path::PathBuf;
 
 pub fn get_bin_cache_root() -> Result<PathBuf> {
     let home = match std::env::var("HOME") {
@@ -55,7 +55,21 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
     }
 
     if v == dfx_version() {
-        util::assets::binary_cache()?.unpack(p.as_path())?;
+        let mut binary_cache_assets = util::assets::binary_cache()?;
+        // Write binaries and set them to be executable.
+        for file in binary_cache_assets.entries()? {
+            let mut file = file?;
+
+            if file.header().entry_type().is_dir() {
+                continue;
+            }
+            file.unpack_in(p.as_path())?;
+
+            let full_path = p.join(file.path()?);
+            let mut perms = std::fs::metadata(full_path.as_path())?.permissions();
+            perms.set_mode(0o554);
+            std::fs::set_permissions(full_path.as_path(), perms)?;
+        }
         Ok(p)
     } else {
         Err(Error::new(
