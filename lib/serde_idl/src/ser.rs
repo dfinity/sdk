@@ -232,7 +232,7 @@ impl TypeSerialize {
                     .get(&ty)
                     .unwrap_or_else(|| panic!("knot type {:?} not found", ty));
                 sleb128_encode(buf, i64::from(*idx))
-            },
+            }
             _ => {
                 let idx = self
                     .type_map
