@@ -7,5 +7,5 @@ let src = builtins.fetchGit {
 }; in
 
 {
-  dfinity = (import src {}).dfinity;
+  dfinity = (import src { inherit (self) system; }).dfinity;
 }
