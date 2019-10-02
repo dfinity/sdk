@@ -39,7 +39,7 @@ where
             // based on the current profile:
             let arg_profile = match profile {
                 None | Some(Profile::Debug) => &"--debug",
-                Some(Profile::Release)      => &"--release",
+                Some(Profile::Release) => &"--release",
             };
             env.get_binary_command("asc")?
                 .arg(&input_path)
