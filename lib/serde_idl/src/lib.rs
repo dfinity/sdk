@@ -3,10 +3,9 @@
 extern crate dfx_info;
 extern crate leb128;
 extern crate serde;
+extern crate num_enum;
 
-// Re-export the [items recommended by serde](https://serde.rs/conventions.html).
-//#[doc(inline)]
-pub use crate::de::{from_bytes, IDLDeserialize};
+pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
 
 pub mod de;
@@ -14,7 +13,7 @@ pub mod error;
 pub mod ser;
 
 #[macro_export]
-macro_rules! IDL {
+macro_rules! Encode {
     ( $($x:expr),+ ) => {{
         let mut idl = serde_idl::ser::IDLBuilder::new();
         $(idl.arg($x);)+
@@ -31,6 +30,9 @@ macro_rules! Decode {
     }
 }
 
+// IDL hash function is specified in
+// https://github.com/dfinity-lab/actorscript/blob/master/design/IDL.md#shorthand-symbolic-field-ids
+// which comes from https://caml.inria.fr/pub/papers/garrigue-polymorphic_variants-ml98.pdf
 pub fn idl_hash(id: &str) -> u32 {
     let mut s: u32 = 0;
     for c in id.chars() {

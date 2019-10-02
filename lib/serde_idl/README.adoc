@@ -5,8 +5,8 @@
 [source,rust]
 #[macro_use]
 extern crate serde_idl;
-IDL!(&42, &Some(42), &[1,2,3])
-// IDL! macro expands to:
+Encode!(&42, &Some(42), &[1,2,3])
+// Encode! macro expands to:
 IDLBuilder::new().arg(&42).arg(&Some(42)).arg(&[1,2,3]).to_vec().unwrap(),
 
 
@@ -21,17 +21,23 @@ assert_eq!(serde_idl::get_type(&list),
                field("tail", Type::Opt(Box::new(
                    Type::Knot(TypeId::of::<List>()))))])               
 );
-assert_eq!(IDL!(&list),
+assert_eq!(Encode!(&list),
            hex::decode("4449444c026c02a0d2aca8047c90eddae704016e00002a00").unwrap());
 
-== Why not using serde
-We end up not using `serde`, since `serde` cannot derive type information, and we cannot easily sort the field index in `struct` and `enum` by the `idl_hash`.
+* Deserialization
+[source,rust]
+let bytes = Encode!(&[(42, "text")], &(42, "text"));
+assert_eq!(bytes, hex::decode("4449444c026d016c02007c0171020001012a04746578742a0474657874").unwrap());
+Decode!(&bytes, a: Vec<(i64, &str)>, b: (i64, &str));
+assert_eq!(a, [(42, "text")]);
+assert_eq!(b, (42, "text"));
 
 == Remaining items
-* Deserialization
 * Error handling
+# Limit recursion depth for deserialization
 * Ignore extra fields, future values (subtype)
 * Optimize for `new struct` type
+* Refactor serialization to use serde
 * Import `.did` file in Rust
 * Get rid of `std` dependency for `wasm` support
 

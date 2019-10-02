@@ -2,11 +2,28 @@ extern crate paste;
 
 use super::error::{Error, Result};
 use super::idl_hash;
-use serde::de::{self, DeserializeOwned, Visitor};
+use serde::de::{self, Visitor};
 use std::collections::{BTreeMap, VecDeque};
 use std::io::Read;
+use num_enum::TryFromPrimitive;
+use std::convert::TryFrom;
 
 use leb128::read::{signed as sleb128_decode, unsigned as leb128_decode};
+
+const MAGIC_NUMBER: &str = "DIDL";
+#[derive(Debug, PartialEq, TryFromPrimitive)]
+#[repr(i64)]
+enum Opcode {
+    Null = -1,
+    Bool = -2,
+    Nat = -3,
+    Int = -4,
+    Text = -15,
+    Opt = -18,
+    Vec = -19,
+    Record = -20,
+    Variant = -21,
+}
 
 pub struct IDLDeserialize<'de> {
     de: Deserializer<'de>,
@@ -29,29 +46,23 @@ impl<'de> IDLDeserialize<'de> {
             Ok(v)
         } else {
             Err(Error::Message(format!(
-                "Trailing types {:?}",
-                self.de.current_type
+                "Trailing types {:?}, field_index: {:?}",
+                self.de.current_type, self.de.field_index
             )))
         }
     }
     pub fn done(self) -> Result<()> {
-        if self.de.types.is_empty() && self.de.input.is_empty() {
-            Ok(())
-        } else {
-            Err(Error::Message(format!(
-                "Trailing character {:?}",
+        if !self.de.types.is_empty() {
+            return Err(Error::Message(format!("{} more values need to be deserialized", self.de.types.len())))
+        }
+        if !self.de.input.is_empty() {
+            return Err(Error::Message(format!(
+                "Trailing bytes {:?}",
                 self.de.input
             )))
         }
+        Ok(())
     }
-}
-
-pub fn from_bytes<T>(bytes: &[u8]) -> Result<T>
-where
-    T: DeserializeOwned,
-{
-    let mut de = IDLDeserialize::new(bytes);
-    de.get_value()
 }
 
 #[derive(Clone, Debug)]
@@ -112,7 +123,7 @@ impl<'de> Deserializer<'de> {
     }
     fn parse_magic(&mut self) -> Result<()> {
         let magic = self.parse_string(4)?;
-        if magic == "DIDL" {
+        if magic == MAGIC_NUMBER {
             Ok(())
         } else {
             Err(Error::Message(format!("wrong magic number {}", magic)))
@@ -126,13 +137,11 @@ impl<'de> Deserializer<'de> {
             let mut buf = Vec::new();
             let ty = self.sleb128_read()?;
             buf.push(RawValue::I(ty));
-            match ty {
-                -18 | -19 => {
-                    // opt, vec
+            match Opcode::try_from(ty) {
+                Ok(Opcode::Opt) | Ok(Opcode::Vec) => {
                     buf.push(RawValue::I(self.sleb128_read()?));
                 }
-                -20 | -21 => {
-                    //record, variant
+                Ok(Opcode::Record) | Ok(Opcode::Variant) => {
                     let obj_len = self.leb128_read()?;
                     buf.push(RawValue::U(obj_len));
                     for _ in 0..obj_len {
@@ -140,7 +149,7 @@ impl<'de> Deserializer<'de> {
                         buf.push(RawValue::I(self.sleb128_read()?));
                     }
                 }
-                _ => return Err(Error::Message(format!("Unknown op_code {}", ty))),
+                _ => return Err(Error::Message(format!("Unsupported op_code {}", ty))),
             };
             self.table.push(buf);
         }
@@ -152,7 +161,7 @@ impl<'de> Deserializer<'de> {
         Ok(())
     }
 
-    fn parse_type(&mut self) -> Result<i64> {
+    fn parse_type(&mut self) -> Result<Opcode> {
         let op = self.current_type.pop_front().unwrap().get_i64()?;
         if op >= 0 {
             self.current_type.pop_front();
@@ -162,17 +171,28 @@ impl<'de> Deserializer<'de> {
             }
             self.parse_type()
         } else {
-            Ok(op)
+            match Opcode::try_from(op) {
+                Ok(op) => Ok(op),
+                Err(e) => Err(Error::Message(e.to_string())),
+            }
         }
     }
 }
 
+macro_rules! check_type {
+    ($t:expr, $opcode:expr) => {{
+        if $t != $opcode {
+            return Err(Error::Message(format!("Type mismatch. Type on the wire: {:?}, Expect type: {:?}", $t, $opcode)))
+        }
+    }}
+}
+
 macro_rules! primitive_impl {
-    ($ty:ident, $opcode:literal, $method:ident $($cast:tt)*) => {
+    ($ty:ident, $opcode:expr, $method:ident $($cast:tt)*) => {
         paste::item! {
             fn [<deserialize_ $ty>]<V>(self, visitor: V) -> Result<V::Value>
             where V: Visitor<'de> {
-                assert_eq!(self.parse_type().unwrap(), $opcode);
+                check_type!(self.parse_type().unwrap(), $opcode);
                 visitor.[<visit_ $ty>](self.$method()? $($cast)*)
             }
         }
@@ -188,21 +208,21 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         unimplemented!()
     }
 
-    primitive_impl!(i8, -4, sleb128_read as i8);
-    primitive_impl!(i16, -4, sleb128_read as i16);
-    primitive_impl!(i32, -4, sleb128_read as i32);
-    primitive_impl!(i64, -4, sleb128_read);
-    primitive_impl!(u8, -3, leb128_read as u8);
-    primitive_impl!(u16, -3, leb128_read as u16);
-    primitive_impl!(u32, -3, leb128_read as u32);
-    primitive_impl!(u64, -3, leb128_read);
-    primitive_impl!(bool, -2, parse_char == 1u8);
+    primitive_impl!(i8, Opcode::Int, sleb128_read as i8);
+    primitive_impl!(i16, Opcode::Int, sleb128_read as i16);
+    primitive_impl!(i32, Opcode::Int, sleb128_read as i32);
+    primitive_impl!(i64, Opcode::Int, sleb128_read);
+    primitive_impl!(u8, Opcode::Nat, leb128_read as u8);
+    primitive_impl!(u16, Opcode::Nat, leb128_read as u16);
+    primitive_impl!(u32, Opcode::Nat, leb128_read as u32);
+    primitive_impl!(u64, Opcode::Nat, leb128_read);
+    primitive_impl!(bool, Opcode::Bool, parse_char == 1u8);
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        assert_eq!(self.parse_type().unwrap(), -15);
+        check_type!(self.parse_type().unwrap(), Opcode::Text);
         let len = self.leb128_read()? as usize;
         let value = self.parse_string(len)?;
         visitor.visit_string(value)
@@ -212,7 +232,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        assert_eq!(self.parse_type().unwrap(), -15);
+        check_type!(self.parse_type().unwrap(), Opcode::Text);
         let len = self.leb128_read()? as usize;
         let value = std::str::from_utf8(&self.input[0..len]).unwrap();
         self.input = &self.input[len..];
@@ -223,7 +243,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        assert_eq!(self.parse_type().unwrap(), -18);
+        check_type!(self.parse_type().unwrap(), Opcode::Opt);
         let bit = self.parse_char()?;
         if bit == 0u8 {
             //self.parse_type() cannot be used as it will expand the type, which has no value
@@ -237,7 +257,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        assert_eq!(self.parse_type().unwrap(), -1);
+        check_type!(self.parse_type().unwrap(), Opcode::Null);
         visitor.visit_unit()
     }
     fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
@@ -257,13 +277,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         match self.parse_type().unwrap() {
-            -19 => {
+            Opcode::Vec => {
                 let len = self.leb128_read()? as u32;
                 let value = visitor.visit_seq(Compound::new(&mut self, Style::Vector { len }));
                 self.current_type.pop_front();
                 value
             }
-            -20 => {
+            Opcode::Record => {
                 let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
                 visitor.visit_seq(Compound::new(&mut self, Style::Tuple { len, index: 0 }))
             }
@@ -296,11 +316,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        assert_eq!(self.parse_type().unwrap(), -20);
+        check_type!(self.parse_type().unwrap(), Opcode::Record);
         let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in fields.iter() {
-            assert_eq!(fs.insert(idl_hash(s), *s), None);
+            if fs.insert(idl_hash(s), *s) != None {
+                return Err(Error::Message(format!("hash collisiosn {}", s)));
+            }
         }
         let value = visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))?;
         Ok(value)
@@ -315,11 +337,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        assert_eq!(self.parse_type().unwrap(), -21);
+        check_type!(self.parse_type().unwrap(), Opcode::Variant);
         let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in variants.iter() {
-            assert_eq!(fs.insert(idl_hash(s), *s), None);
+            if fs.insert(idl_hash(s), *s) != None {
+                return Err(Error::Message(format!("hash collisiosn {}", s)));
+            }
         }
         let value = visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))?;
         Ok(value)
@@ -388,7 +412,9 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                     return Ok(None);
                 }
                 let t_idx = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
-                assert_eq!(t_idx, *index);
+                if t_idx != *index {
+                    return Err(Error::Message(format!("Expect vector index {}, but get {}", index, t_idx)));
+                }
                 *index += 1;
                 seed.deserialize(&mut *self.de).map(Some)
             }
@@ -480,7 +506,7 @@ impl<'de, 'a> de::VariantAccess<'de> for Compound<'a, 'de> {
     type Error = Error;
 
     fn unit_variant(self) -> Result<()> {
-        assert_eq!(self.de.parse_type()?, -1);
+        check_type!(self.de.parse_type()?, Opcode::Null);
         Ok(())
     }
 

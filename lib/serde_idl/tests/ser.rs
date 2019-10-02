@@ -28,6 +28,9 @@ fn test_integer() {
 fn test_text() {
     all_check("Hi ☃\n".to_string(), "4449444c00017107486920e298830a");
     check("Hi ☃\n", "4449444c00017107486920e298830a");
+    let bytes = hex::decode("4449444c00017107486920e298830a").unwrap();
+    Decode!(&bytes, text: &str);
+    assert_eq!(text, "Hi ☃\n");
 }
 
 #[test]
@@ -182,7 +185,7 @@ fn test_generics() {
 #[test]
 fn test_multiargs() {
     checks(
-        IDL!(&42, &Some(42), &Some(1), &Some(2)),
+        Encode!(&42, &Some(42), &Some(1), &Some(2)),
         "4449444c016e7c047c0000002a012a01010102",
     );
     let bytes = hex::decode("4449444c016e7c047c0000002a012a01010102").unwrap();
@@ -199,7 +202,7 @@ fn test_multiargs() {
     assert_eq!(d, Some(2));
 
     checks(
-        IDL!(&[(42, "text")], &(42, "text")),
+        Encode!(&[(42, "text")], &(42, "text")),
         "4449444c026d016c02007c0171020001012a04746578742a0474657874",
     );
     let bytes = hex::decode("4449444c026d016c02007c0171020001012a04746578742a0474657874").unwrap();
@@ -212,7 +215,7 @@ fn check<T>(value: T, expected: &str)
 where
     T: IDLType,
 {
-    let encoded = IDL!(&value);
+    let encoded = Encode!(&value);
     checks(encoded, expected);
 }
 
@@ -222,8 +225,8 @@ where
 {
     let expected = hex::decode(expected).unwrap();
     Decode!(&expected, decoded: T);
-    let encoded_from_value = IDL!(&value);
-    let encoded_from_decoded = IDL!(&decoded);
+    let encoded_from_value = Encode!(&value);
+    let encoded_from_decoded = Encode!(&decoded);
     assert_eq!(
         encoded_from_value, encoded_from_decoded,
         "\nValue\n{:x?}\nDecoded\n{:x?}\n",
