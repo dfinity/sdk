@@ -38,7 +38,7 @@ pub struct ConfigDefaultsBuild {
     pub output: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Profile {
     // debug is for development only
     Debug,

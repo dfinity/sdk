@@ -1,4 +1,4 @@
-use crate::config::dfinity::{ConfigCanistersCanister, Config, Profile};
+use crate::config::dfinity::{ConfigCanistersCanister, Profile};
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -11,7 +11,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name("canister").help("The canister name to build."))
 }
 
-fn build_file<T>(env: &T, config:&Config, input_path: &Path, output_path: &Path) -> DfxResult
+fn build_file<T>(env: &T, profile:Option<Profile>, input_path: &Path, output_path: &Path) -> DfxResult
 where
     T: BinaryResolverEnv,
 {
@@ -32,7 +32,7 @@ where
             let output_js_path = output_path.with_extension("js");
             // invoke the compiler in debug (development) or release mode,
             // based on the current profile:
-            match config.config.profile {
+            match profile {
                 None | Some(Profile::Debug) => {
                     env.get_binary_command("asc")?
                         .arg(&input_path)
@@ -103,7 +103,7 @@ where
                 let output_path = build_root.join(x.as_str()).with_extension("wasm");
                 std::fs::create_dir_all(output_path.parent().unwrap())?;
 
-                build_file(env, &config, &input_as_path, &output_path)?;
+                build_file(env, config.config.profile.clone(), &input_as_path, &output_path)?;
             }
         }
     }
