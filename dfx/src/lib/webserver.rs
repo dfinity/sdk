@@ -73,5 +73,8 @@ pub fn webserver(
     serve_dir: &Path,
 ) -> std::thread::JoinHandle<()> {
     let serve_dir = PathBuf::from(serve_dir);
-    std::thread::spawn(move || run_webserver(bind, client_api_uri, serve_dir).unwrap())
+    std::thread::Builder::new()
+        .name("Frontend".into())
+        .spawn(move || run_webserver(bind, client_api_uri, serve_dir).unwrap())
+        .unwrap()
 }
