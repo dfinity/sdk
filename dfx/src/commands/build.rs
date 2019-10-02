@@ -1,4 +1,4 @@
-use crate::config::dfinity::ConfigCanistersCanister;
+use crate::config::dfinity::{ConfigCanistersCanister, Config, Profile};
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -11,7 +11,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name("canister").help("The canister name to build."))
 }
 
-fn build_file<T>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult
+fn build_file<T>(env: &T, config:&Config, input_path: &Path, output_path: &Path) -> DfxResult
 where
     T: BinaryResolverEnv,
 {
@@ -30,12 +30,26 @@ where
         Some("as") => {
             let output_idl_path = output_path.with_extension("did");
             let output_js_path = output_path.with_extension("js");
-
-            env.get_binary_command("asc")?
-                .arg(&input_path)
-                .arg("-o")
-                .arg(&output_wasm_path)
-                .output()?;
+            // invoke the compiler in debug (development) or release mode,
+            // based on the current profile:
+            match config.config.profile {
+                None | Some(Profile::Debug) => {
+                    env.get_binary_command("asc")?
+                        .arg(&input_path)
+                        .arg("--debug")
+                        .arg("-o")
+                        .arg(&output_wasm_path)
+                        .output()?;
+                }
+                Some(Profile::Release) => {
+                    env.get_binary_command("asc")?
+                        .arg(&input_path)
+                        .arg("--release")
+                        .arg("-o")
+                        .arg(&output_wasm_path)
+                        .output()?;
+                }
+            }
             env.get_binary_command("asc")?
                 .arg("--idl")
                 .arg(&input_path)
@@ -89,7 +103,7 @@ where
                 let output_path = build_root.join(x.as_str()).with_extension("wasm");
                 std::fs::create_dir_all(output_path.parent().unwrap())?;
 
-                build_file(env, &input_as_path, &output_path)?;
+                build_file(env, &config, &input_as_path, &output_path)?;
             }
         }
     }
