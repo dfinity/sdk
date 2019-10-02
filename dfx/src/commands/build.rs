@@ -11,7 +11,12 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name("canister").help("The canister name to build."))
 }
 
-fn build_file<T>(env: &T, profile:Option<Profile>, input_path: &Path, output_path: &Path) -> DfxResult
+fn build_file<T>(
+    env: &T,
+    profile: Option<Profile>,
+    input_path: &Path,
+    output_path: &Path,
+) -> DfxResult
 where
     T: BinaryResolverEnv,
 {
@@ -103,7 +108,12 @@ where
                 let output_path = build_root.join(x.as_str()).with_extension("wasm");
                 std::fs::create_dir_all(output_path.parent().unwrap())?;
 
-                build_file(env, config.config.profile.clone(), &input_as_path, &output_path)?;
+                build_file(
+                    env,
+                    config.config.profile.clone(),
+                    &input_as_path,
+                    &output_path,
+                )?;
             }
         }
     }
@@ -156,9 +166,13 @@ mod tests {
             out_file: &out_file,
         };
 
-        build_file(&env, None,
-                   Path::new("/in/file.as"), Path::new("/out/file.wasm"))
-            .expect("Function failed.");
+        build_file(
+            &env,
+            None,
+            Path::new("/in/file.as"),
+            Path::new("/out/file.wasm"),
+        )
+        .expect("Function failed.");
 
         out_file.flush().expect("Could not flush.");
 
@@ -203,8 +217,8 @@ mod tests {
         assert!(!output_path.exists());
 
         std::fs::write(input_path.as_path(), wat).expect("Could not create input.");
-        build_file(&env, None,
-                   input_path.as_path(), output_path.as_path()).expect("Function failed.");
+        build_file(&env, None, input_path.as_path(), output_path.as_path())
+            .expect("Function failed.");
 
         assert!(output_path.exists());
     }
