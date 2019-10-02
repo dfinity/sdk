@@ -203,9 +203,9 @@ fn test_multiargs() {
         "4449444c026d016c02007c0171020001012a04746578742a0474657874",
     );
     let bytes = hex::decode("4449444c026d016c02007c0171020001012a04746578742a0474657874").unwrap();
-    Decode!(&bytes, a: Vec<(i64, String)>, b: (i64, String));
-    assert_eq!(a, [(42, "text".to_string())]);
-    assert_eq!(b, (42, "text".to_string()));
+    Decode!(&bytes, a: Vec<(i64, &str)>, b: (i64, &str));
+    assert_eq!(a, [(42, "text")]);
+    assert_eq!(b, (42, "text"));
 }
 
 fn check<T>(value: T, expected: &str)

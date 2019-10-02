@@ -216,7 +216,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let len = self.leb128_read()? as usize;
         let value = std::str::from_utf8(&self.input[0..len]).unwrap();
         self.input = &self.input[len..];
-        visitor.visit_string(value.to_owned())
+        visitor.visit_borrowed_str(value)
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
