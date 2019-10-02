@@ -169,7 +169,7 @@ mod tests {
 
         assert_eq!(
             s.trim(),
-            r#"asc /in/file.as -o /out/file.wasm
+            r#"asc /in/file.as --debug -o /out/file.wasm
                 asc --idl /in/file.as -o /out/file.did
                 didc --js /out/file.did -o /out/file.js"#
                 .replace("                ", "")
