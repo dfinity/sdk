@@ -5,9 +5,10 @@ v0.1, 2019-09-25
 :toc:
 
 == Overview
+
 `dfx` is the SDK's official CLI tool, which allows user to create, deploy and manage projects with the Internet Computer. It is currently compiled into a single static binary which includes all assets necessary for it to run (including, for example, other binaries that it writes to disk).
 
-This document covers how the `dfx` binary should be stored on the web, versioned, and URLs. It also covers how a user is expected to install the `dfx` binary, bootstrap and use it.
+This document covers how the `dfx` binary should be distributed and versioned on the web. It covers how a user is expected to install the `dfx` binary, bootstrap and use it for the first time.
 
 Managing binaries and `dfx` versions locally on the user machine is covered by <<./version-management.adoc>>.
 
