@@ -14,6 +14,7 @@ self: super: {
         name = "${oldAttrs.name}-debug";
       });
       rust-workspace-doc = rust-workspace-debug.doc;
+      e2e-tests = super.callPackage ../e2e-tests.nix {};
     };
 
     # This is to make sure CI evalutes shell derivations, builds their

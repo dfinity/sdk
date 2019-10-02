@@ -1,0 +1,9 @@
+= Public Spec
+
+== Goal
+This library contains typings and utility functions dealing with the public spec and the HTTP
+client. It might be shared in the future but for now is separated for the purpose of testing and
+development.
+
+== References
+The latest version of the https://hydra.dfinity.systems/latest/dfinity-ci-build/dfinity/dfinity.docs.x86_64-linux/dfinity/spec/public/index.html[public spec] is available internally on hydra.

@@ -1,9 +1,9 @@
-use crate::lib::api_client::{install_code, Blob};
+use crate::lib::api_client::install_code;
 use crate::lib::env::{ClientEnv, ProjectConfigEnv};
 use crate::lib::error::DfxResult;
-use crate::lib::CanisterId;
 use crate::util::clap::validators;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use ic_http_agent::{Blob, CanisterId};
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
 
