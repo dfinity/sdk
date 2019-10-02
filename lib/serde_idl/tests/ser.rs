@@ -6,7 +6,7 @@ extern crate serde;
 use dfx_info::types::{get_type, Type};
 use dfx_info::IDLType;
 use serde::Deserialize;
-use serde_idl::{from_bytes, idl_hash};
+use serde_idl::idl_hash;
 
 #[test]
 fn test_bool() {
@@ -185,10 +185,27 @@ fn test_multiargs() {
         IDL!(&42, &Some(42), &Some(1), &Some(2)),
         "4449444c016e7c047c0000002a012a01010102",
     );
+    let bytes = hex::decode("4449444c016e7c047c0000002a012a01010102").unwrap();
+    Decode!(
+        &bytes,
+        a: i32,
+        b: Option<i32>,
+        c: Option<i32>,
+        d: Option<i32>
+    );
+    assert_eq!(a, 42);
+    assert_eq!(b, Some(42));
+    assert_eq!(c, Some(1));
+    assert_eq!(d, Some(2));
+
     checks(
         IDL!(&[(42, "text")], &(42, "text")),
         "4449444c026d016c02007c0171020001012a04746578742a0474657874",
     );
+    let bytes = hex::decode("4449444c026d016c02007c0171020001012a04746578742a0474657874").unwrap();
+    Decode!(&bytes, a: Vec<(i64, String)>, b: (i64, String));
+    assert_eq!(a, [(42, "text".to_string())]);
+    assert_eq!(b, (42, "text".to_string()));
 }
 
 fn check<T>(value: T, expected: &str)
@@ -204,7 +221,7 @@ where
     T: IDLType + serde::de::DeserializeOwned,
 {
     let expected = hex::decode(expected).unwrap();
-    let decoded: T = from_bytes(&expected).unwrap();
+    Decode!(&expected, decoded: T);
     let encoded_from_value = IDL!(&value);
     let encoded_from_decoded = IDL!(&decoded);
     assert_eq!(

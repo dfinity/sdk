@@ -8,24 +8,50 @@ use std::io::Read;
 
 use leb128::read::{signed as sleb128_decode, unsigned as leb128_decode};
 
+pub struct IDLDeserialize<'de> {
+    de: Deserializer<'de>,
+}
+
+impl<'de> IDLDeserialize<'de> {
+    pub fn new(bytes: &'de [u8]) -> Self {
+        let mut de = Deserializer::from_bytes(bytes);
+        de.parse_table().unwrap();
+        IDLDeserialize { de }
+    }
+    pub fn get_value<T>(&mut self) -> Result<T>
+    where
+        T: de::Deserialize<'de>,
+    {
+        let ty = self.de.types.pop_front().unwrap();
+        self.de.current_type.push_back(ty.clone());
+        let v = T::deserialize(&mut self.de)?;
+        if self.de.current_type.is_empty() && self.de.field_index.is_none() {
+            Ok(v)
+        } else {
+            Err(Error::Message(format!(
+                "Trailing types {:?}",
+                self.de.current_type
+            )))
+        }
+    }
+    pub fn done(self) -> Result<()> {
+        if self.de.types.is_empty() && self.de.input.is_empty() {
+            Ok(())
+        } else {
+            Err(Error::Message(format!(
+                "Trailing character {:?}",
+                self.de.input
+            )))
+        }
+    }
+}
+
 pub fn from_bytes<T>(bytes: &[u8]) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    let mut deserializer = Deserializer::from_bytes(bytes);
-    deserializer.parse_table()?;
-    let t = T::deserialize(&mut deserializer)?;
-    if deserializer.input.is_empty()
-        && deserializer.current_type.is_empty()
-        && deserializer.field_index.is_none()
-    {
-        Ok(t)
-    } else {
-        Err(Error::Message(format!(
-            "Trailing bytes: {:x?}, types: {:?}",
-            deserializer.input, deserializer.current_type
-        )))
-    }
+    let mut de = IDLDeserialize::new(bytes);
+    de.get_value()
 }
 
 #[derive(Clone, Debug)]
@@ -51,7 +77,7 @@ impl RawValue {
 pub struct Deserializer<'de> {
     input: &'de [u8],
     table: Vec<Vec<RawValue>>,
-    types: Vec<RawValue>,
+    types: VecDeque<RawValue>,
     current_type: VecDeque<RawValue>,
     field_index: Option<&'static str>,
 }
@@ -61,7 +87,7 @@ impl<'de> Deserializer<'de> {
         Deserializer {
             input,
             table: Vec::new(),
-            types: Vec::new(),
+            types: VecDeque::new(),
             // TODO consider borrowing
             current_type: VecDeque::new(),
             field_index: None,
@@ -118,14 +144,11 @@ impl<'de> Deserializer<'de> {
             };
             self.table.push(buf);
         }
-        println!("{:?}", self.table);
         let len = self.leb128_read()?;
         for _i in 0..len {
             let ty = self.sleb128_read()?;
-            self.types.push(RawValue::I(ty));
+            self.types.push_back(RawValue::I(ty));
         }
-        self.current_type.push_back(self.types[0].clone());
-        println!("{:?}", self.types);
         Ok(())
     }
 
@@ -193,7 +216,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let len = self.leb128_read()? as usize;
         let value = std::str::from_utf8(&self.input[0..len]).unwrap();
         self.input = &self.input[len..];
-        visitor.visit_str(value)
+        visitor.visit_string(value.to_owned())
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>

@@ -6,12 +6,11 @@ extern crate serde;
 
 // Re-export the [items recommended by serde](https://serde.rs/conventions.html).
 //#[doc(inline)]
-pub use crate::de::{from_bytes, Deserializer};
+pub use crate::de::{from_bytes, IDLDeserialize};
 pub use crate::error::{Error, Result};
 
 pub mod de;
 pub mod error;
-#[macro_use]
 pub mod ser;
 
 #[macro_export]
@@ -21,6 +20,15 @@ macro_rules! IDL {
         $(idl.arg($x);)+
         idl.to_vec().unwrap()
     }}
+}
+
+#[macro_export]
+macro_rules! Decode {
+    ( $hex:expr, $($name:ident: $ty:ty),+ ) => {
+        let mut de = serde_idl::de::IDLDeserialize::new($hex);
+        $(let $name: $ty = de.get_value().unwrap();)+
+        de.done().unwrap();
+    }
 }
 
 pub fn idl_hash(id: &str) -> u32 {
