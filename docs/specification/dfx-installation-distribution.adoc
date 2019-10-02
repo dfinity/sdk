@@ -46,7 +46,7 @@ Example: https://sdk.dfinity.org/dfx/1.2.0/linux-x86_64/dfx-1.2.0.gz
 The user can then install that binary wherever he pleases.
 
 === Installer Download
-Variable installers should be made available for different platform. For example, on Mac OS, a user could download a `pkg` file that installs `dfx` directly for them.
+Variable installers should be made available for different platform. For example, on macOS, a user could download a `pkg` file that installs `dfx` directly for them.
 
 This could be distributed at the same location as other versions, replacing the `EXT` variable above with the extension of the installer the user should be looking for.
 
