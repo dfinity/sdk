@@ -68,5 +68,5 @@ export const requestIdOf = async (request: Request): Promise<RequestId> => {
 
   const concatenated: ArrayBuffer = concat(sorted.map(concat));
   const buffer = await hash(concatenated);
-  return Array.from(new Uint8Array(buffer)) as Array<Int>;
+  return Array.from(new Uint8Array(buffer)) as RequestId;
 };
