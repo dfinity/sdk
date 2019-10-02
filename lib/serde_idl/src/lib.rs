@@ -2,8 +2,8 @@
 
 extern crate dfx_info;
 extern crate leb128;
-extern crate serde;
 extern crate num_enum;
+extern crate serde;
 
 pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};

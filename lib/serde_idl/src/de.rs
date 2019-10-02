@@ -2,11 +2,11 @@ extern crate paste;
 
 use super::error::{Error, Result};
 use super::idl_hash;
+use num_enum::TryFromPrimitive;
 use serde::de::{self, Visitor};
 use std::collections::{BTreeMap, VecDeque};
-use std::io::Read;
-use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
+use std::io::Read;
 
 use leb128::read::{signed as sleb128_decode, unsigned as leb128_decode};
 
@@ -53,13 +53,16 @@ impl<'de> IDLDeserialize<'de> {
     }
     pub fn done(self) -> Result<()> {
         if !self.de.types.is_empty() {
-            return Err(Error::Message(format!("{} more values need to be deserialized", self.de.types.len())))
+            return Err(Error::Message(format!(
+                "{} more values need to be deserialized",
+                self.de.types.len()
+            )));
         }
         if !self.de.input.is_empty() {
             return Err(Error::Message(format!(
                 "Trailing bytes {:?}",
                 self.de.input
-            )))
+            )));
         }
         Ok(())
     }
@@ -182,9 +185,12 @@ impl<'de> Deserializer<'de> {
 macro_rules! check_type {
     ($t:expr, $opcode:expr) => {{
         if $t != $opcode {
-            return Err(Error::Message(format!("Type mismatch. Type on the wire: {:?}, Expect type: {:?}", $t, $opcode)))
+            return Err(Error::Message(format!(
+                "Type mismatch. Type on the wire: {:?}, Expect type: {:?}",
+                $t, $opcode
+            )));
         }
-    }}
+    }};
 }
 
 macro_rules! primitive_impl {
@@ -413,7 +419,10 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                 }
                 let t_idx = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
                 if t_idx != *index {
-                    return Err(Error::Message(format!("Expect vector index {}, but get {}", index, t_idx)));
+                    return Err(Error::Message(format!(
+                        "Expect vector index {}, but get {}",
+                        index, t_idx
+                    )));
                 }
                 *index += 1;
                 seed.deserialize(&mut *self.de).map(Some)
