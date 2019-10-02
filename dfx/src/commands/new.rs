@@ -97,7 +97,6 @@ where
     b.set_message("Looking for latest version...");
     b.enable_steady_tick(80);
 
-    std::thread::sleep(std::time::Duration::from_secs(1));
     if !env.is_installed()? {
         env.install()?;
         b.finish_with_message(
