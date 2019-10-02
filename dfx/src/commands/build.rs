@@ -37,24 +37,16 @@ where
             let output_js_path = output_path.with_extension("js");
             // invoke the compiler in debug (development) or release mode,
             // based on the current profile:
-            match profile {
-                None | Some(Profile::Debug) => {
-                    env.get_binary_command("asc")?
-                        .arg(&input_path)
-                        .arg("--debug")
-                        .arg("-o")
-                        .arg(&output_wasm_path)
-                        .output()?;
-                }
-                Some(Profile::Release) => {
-                    env.get_binary_command("asc")?
-                        .arg(&input_path)
-                        .arg("--release")
-                        .arg("-o")
-                        .arg(&output_wasm_path)
-                        .output()?;
-                }
-            }
+            let arg_profile = match profile {
+                None | Some(Profile::Debug) => &"--debug",
+                Some(Profile::Release)      => &"--release",
+            };
+            env.get_binary_command("asc")?
+                .arg(&input_path)
+                .arg(arg_profile)
+                .arg("-o")
+                .arg(&output_wasm_path)
+                .output()?;
             env.get_binary_command("asc")?
                 .arg("--idl")
                 .arg(&input_path)
