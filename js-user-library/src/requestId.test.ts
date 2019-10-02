@@ -6,7 +6,7 @@ import { hash, requestIdOf } from "./index";
 import { Int } from "./int";
 
 const toHex = (bytes: Array<Int>): string => {
-  return Array.from(bytes).map((x) => `00${x.toString(16)}`.slice(-2)).join("");
+  return bytes.map((x) => `00${x.toString(16)}`.slice(-2)).join("");
 };
 
 const testHashOfBlob = async (input: Array<Int>, expected: string) => {
