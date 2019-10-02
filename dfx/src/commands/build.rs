@@ -156,8 +156,7 @@ mod tests {
             out_file: &out_file,
         };
 
-        build_file(&env,
-                   &env.get_config().unwrap(),
+        build_file(&env, None,
                    Path::new("/in/file.as"), Path::new("/out/file.wasm"))
             .expect("Function failed.");
 
@@ -204,8 +203,7 @@ mod tests {
         assert!(!output_path.exists());
 
         std::fs::write(input_path.as_path(), wat).expect("Could not create input.");
-        build_file(&env,
-                   &env.get_config().unwrap(),
+        build_file(&env, None,
                    input_path.as_path(), output_path.as_path()).expect("Function failed.");
 
         assert!(output_path.exists());
