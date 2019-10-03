@@ -26,13 +26,13 @@ export type CborValue
   // Nested records: Major type 5 followed by string keys.
   | CborRecord;
 
-export const encode = (value: CborValue): ArrayBuffer => {
+export const encode = (value: CborValue): Buffer => {
   return borc.encode(
     new borc.Tagged(SEMANTIC_TAG, value),
   );
 };
 
-export const decode = (input: ArrayBuffer): CborValue => {
+export const decode = (input: Buffer): CborValue => {
   const decoder = new borc.Decoder({
     size: input.byteLength,
     tags: {
