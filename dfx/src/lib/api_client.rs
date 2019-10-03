@@ -63,7 +63,7 @@ pub enum ReadResponse<A> {
         reply: Option<A>,
     },
     Rejected {
-        reject_code: ReadRejectCode,
+        reject_code: u16,
         reject_message: String,
     },
     Unknown,
@@ -71,7 +71,7 @@ pub enum ReadResponse<A> {
 
 /// Response reject codes
 #[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
-#[repr(u8)]
+#[repr(u16)]
 pub enum ReadRejectCode {
     SysFatal = 1,
     SysTransient = 2,
@@ -422,7 +422,7 @@ mod tests {
             serde_cbor::from_slice(&serde_cbor::to_vec(&response).unwrap()).unwrap();
 
         let expected: ReadResponse<QueryResponseReply> = ReadResponse::Rejected {
-            reject_code: ReadRejectCode::SysFatal,
+            reject_code: 1, // ReadRejectCode::SysFatal,
             reject_message: reject_message.clone(),
         };
 
@@ -434,7 +434,7 @@ mod tests {
         let _ = env_logger::try_init();
 
         let response = ReadResponse::Rejected {
-            reject_code: ReadRejectCode::SysFatal,
+            reject_code: 1, // ReadRejectCode::SysFatal,
             reject_message: "Fatal error".to_string(),
         };
 
@@ -523,7 +523,7 @@ mod tests {
         _m.assert();
 
         match result {
-            Ok(()) => {}
+            Ok(_) => {}
             Err(e) => panic!("{:#?}", e),
         }
     }
@@ -549,7 +549,7 @@ mod tests {
         _m.assert();
 
         match result {
-            Ok(()) => panic!("Install succeeded."),
+            Ok(_) => panic!("Install succeeded."),
             Err(e) => match e {
                 DfxError::Reqwest(_err) => (),
                 _ => panic!("{:#?}", e),

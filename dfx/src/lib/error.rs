@@ -1,9 +1,10 @@
-use crate::lib::api_client::ReadRejectCode;
+// use crate::lib::api_client::ReadRejectCode;
 use ic_http_agent::{RequestIdError, RequestIdFromStringError};
 
 #[derive(Debug)]
 pub enum BuildErrorKind {
     InvalidExtension(String),
+    CompilerError,
 }
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
@@ -29,7 +30,7 @@ pub enum DfxError {
     // Cannot create a new project because the directory already exists.
     ProjectExists(),
 
-    ClientError(ReadRejectCode, String),
+    ClientError(u16, String),
     Unknown(String),
 }
 
