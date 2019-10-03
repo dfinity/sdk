@@ -85,6 +85,9 @@ pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> Result<
 
 pub fn binary_command_from_version(version: &str, name: &str) -> Result<std::process::Command> {
     let path = get_binary_path_from_version(version, name)?;
-    let cmd = std::process::Command::new(path);
+    let mut cmd = std::process::Command::new(path);
+    cmd.stdout(std::process::Stdio::inherit());
+    cmd.stderr(std::process::Stdio::inherit());
+
     Ok(cmd)
 }

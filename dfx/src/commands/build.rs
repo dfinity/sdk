@@ -35,30 +35,52 @@ where
         Some("as") => {
             let output_idl_path = output_path.with_extension("did");
             let output_js_path = output_path.with_extension("js");
+
             // invoke the compiler in debug (development) or release mode,
             // based on the current profile:
             let arg_profile = match profile {
                 None | Some(Profile::Debug) => "--debug",
                 Some(Profile::Release) => "--release",
             };
-            env.get_binary_command("asc")?
+
+            if !env
+                .get_binary_command("asc")?
                 .arg(&input_path)
                 .arg(arg_profile)
                 .arg("-o")
                 .arg(&output_wasm_path)
-                .output()?;
-            env.get_binary_command("asc")?
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
+
+            if !env
+                .get_binary_command("asc")?
                 .arg("--idl")
                 .arg(&input_path)
                 .arg("-o")
                 .arg(&output_idl_path)
-                .output()?;
-            env.get_binary_command("didc")?
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
+
+            if !env
+                .get_binary_command("didc")?
                 .arg("--js")
                 .arg(&output_idl_path)
                 .arg("-o")
                 .arg(&output_js_path)
-                .output()?;
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
 
             Ok(())
         }
