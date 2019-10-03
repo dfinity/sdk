@@ -18,12 +18,7 @@ pkgs.mkShell {
     npm install
     dfx build
 
-    # HACK: work around issues with generated JS bindings:
-    # * Nothing is exported
-    # * Depends on `require` instead of standards based imports
-    # * `require("IDL")` is inflexible
-    # * "Message" was renamed to "Func"
-    # * IDL.Obj vs arrays for arguments and return values?
+    # Until https://github.com/dfinity-lab/actorscript/pull/693 is merged
     echo "export default ({ IDL }) => {" > build/canisters/hello/main.js
     echo "  const Text = IDL.Text;" >> build/canisters/hello/main.js
     echo "  return new IDL.ActorInterface({" >> build/canisters/hello/main.js
