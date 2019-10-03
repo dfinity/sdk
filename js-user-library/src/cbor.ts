@@ -4,6 +4,10 @@ import borc from "borc";
 import { Buffer } from "buffer";
 import { Int } from "./int";
 
+// We currently use `Buffer` for blobs instead of `Uint8Array` because we use
+// `borc` for CBOR encoding and decoding, and a `Uint8Array` value doesn't
+// decode to the value that was encoded, meaning that `v != decode(encode(v))`.
+
 const SEMANTIC_TAG = 55799;
 
 interface CborRecord extends Record<string, CborValue> {}

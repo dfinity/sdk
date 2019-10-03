@@ -7,9 +7,6 @@ import { requestIdOf } from "./requestId";
 // TODO:
 // * Handle errors everywhere we `await`
 
-// We currently use `Buffer` for blobs instead of `Uint8Array` because we use
-// `borc` for CBOR encoding and decoding, and a `Uint8Array` value doesn't
-// decode to the value that was encoded, meaning that `v != decode(encode(v))`.
 export type CanisterId = Buffer;
 export type RequestId = Buffer;
 
