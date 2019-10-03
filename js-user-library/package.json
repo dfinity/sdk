@@ -21,6 +21,7 @@
     "test": "npm run lint && npm run type-check && jest --verbose"
   },
   "dependencies": {
+    "bignumber.js": "^9.0.0",
     "buffer": "^5.4.3",
     "core-js": "^3.2.1",
     "node-fetch": "^2.6.0",

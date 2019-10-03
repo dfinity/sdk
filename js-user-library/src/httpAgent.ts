@@ -1,3 +1,4 @@
+import BigNumber from "bignumber.js";
 import * as cbor from "./cbor";
 import { Int } from "./int";
 import { assertNever } from "./never";
@@ -6,8 +7,8 @@ import { requestIdOf } from "./requestId";
 // TODO:
 // * Handle errors everywhere we `await`
 
-export type CanisterId = Array<Int>;
-export type RequestId = Array<Int>;
+export type CanisterId = BigNumber;
+export type RequestId = BigNumber;
 
 // Common request fields.
 export interface Request extends Record<string, any> {

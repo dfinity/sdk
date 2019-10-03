@@ -1,3 +1,4 @@
+import BigNumber from "bignumber.js";
 import * as cbor from "./cbor";
 
 import {
@@ -15,7 +16,7 @@ test("call", async () => {
     }));
   });
 
-  const canisterId = [1] as CanisterId;
+  const canisterId = new BigNumber(1);
 
   const httpAgent = makeHttpAgent({
     canisterId,
@@ -68,7 +69,7 @@ test("requestStatus", async () => {
     }));
   });
 
-  const canisterId = [1] as CanisterId;
+  const canisterId = new BigNumber(1);
 
   const httpAgent = makeHttpAgent({
     canisterId,
