@@ -23,6 +23,7 @@ pub enum DfxError {
     AddrParseError(std::net::AddrParseError),
     HttpAgentError(RequestIdError),
     RequestIdFromStringError(RequestIdFromStringError),
+    SerdeIdlError(serde_idl::error::Error),
 
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
@@ -100,5 +101,11 @@ impl From<RequestIdError> for DfxError {
 impl From<RequestIdFromStringError> for DfxError {
     fn from(err: RequestIdFromStringError) -> DfxError {
         DfxError::RequestIdFromStringError(err)
+    }
+}
+
+impl From<serde_idl::error::Error> for DfxError {
+    fn from(err: serde_idl::error::Error) -> DfxError {
+        DfxError::SerdeIdlError(err)
     }
 }

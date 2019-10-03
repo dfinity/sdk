@@ -6,6 +6,7 @@ use ic_http_agent::{to_request_id, Blob, CanisterId, RequestId};
 use rand::Rng;
 use reqwest::r#async::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
+use serde_idl::EMPTY_DIDL;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[derive(Clone)]
@@ -188,7 +189,7 @@ pub fn query(
             request: CanisterQueryCall {
                 canister_id,
                 method_name,
-                arg: arg.unwrap_or_else(|| Blob(vec![])),
+                arg: arg.unwrap_or_else(|| Blob::from(EMPTY_DIDL)),
             },
         },
     )
@@ -213,22 +214,22 @@ pub fn install_code(
     canister_id: CanisterId,
     module: Blob,
     arg: Option<Blob>,
-) -> impl Future<Item = (), Error = DfxError> {
-    submit(
-        client,
-        SubmitRequest::InstallCode {
-            canister_id,
-            module,
-            arg: arg.unwrap_or_else(|| Blob(vec![])),
-            nonce: Some(random_blob()),
-        },
-    )
-    .and_then(|response| {
+) -> impl Future<Item = RequestId, Error = DfxError> {
+    let request = SubmitRequest::InstallCode {
+        canister_id,
+        module,
+        arg: arg.unwrap_or_else(|| Blob::from(EMPTY_DIDL)),
+        nonce: Some(random_blob()),
+    };
+
+    let request_id = to_request_id(&request).map_err(DfxError::from);
+
+    submit(client, request).and_then(|response| {
         result(
             response
                 .error_for_status()
-                .map(|_| ())
-                .map_err(DfxError::from),
+                .map_err(DfxError::from)
+                .and_then(|_| request_id),
         )
     })
 }
@@ -246,7 +247,7 @@ pub fn call(
     let request = SubmitRequest::Call {
         canister_id,
         method_name,
-        arg: arg.unwrap_or_else(|| Blob(vec![])),
+        arg: arg.unwrap_or_else(|| Blob::from(EMPTY_DIDL)),
         nonce: Some(random_blob()),
     };
     let request_id = to_request_id(&request).map_err(DfxError::from);
