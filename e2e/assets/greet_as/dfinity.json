@@ -3,8 +3,8 @@
   "version": 1,
   "dfx": "0.2.0-local-debug",
   "canisters": {
-    "counter": {
-      "main": "counter.as",
+    "greet": {
+      "main": "greet.as",
       "canister_id": 42
     }
   },

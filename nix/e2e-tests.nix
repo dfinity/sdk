@@ -1,5 +1,6 @@
 {   bats
 ,   coreutils
+,   curl
 ,   dfinity-sdk
 ,   runCommandNoCC
 ,   stdenv
@@ -7,7 +8,7 @@
 }:
 
 runCommandNoCC "e2e-tests" {
-    buildInputs = [ bats coreutils dfinity-sdk.packages.rust-workspace-debug stdenv.cc killall ];
+    buildInputs = [ bats coreutils curl dfinity-sdk.packages.rust-workspace-debug stdenv.cc killall ];
 } ''
     # We want $HOME/.cache to be in a new temporary directory.
     HOME=$(mktemp -d -t dfx-e2e-home-XXXX)
