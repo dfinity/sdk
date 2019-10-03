@@ -12,6 +12,8 @@ pkgs.mkShell {
     set -e
     export HOME=$TMP
 
+    # Ideally we would depend on pkgs.dfinity-sdk.js-user-library, and changes
+    # there would trigger a rebuild.
     pushd ../..
     npm install
     npm run bundle
