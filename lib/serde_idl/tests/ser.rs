@@ -15,6 +15,15 @@ fn test_bool() {
     assert_eq!(get_type(&true), Type::Bool);
 }
 
+fn check_error<F: FnOnce() -> R + std::panic::UnwindSafe, R>(f: F, str: &str) {
+    assert_eq!(
+        std::panic::catch_unwind(f)
+            .err()
+            .and_then(|a| a.downcast_ref::<String>().map(|s| { s.contains(str) })),
+        Some(true)
+    );
+}
+
 #[test]
 fn test_integer() {
     all_check(42, "4449444c00017c2a");
@@ -22,6 +31,10 @@ fn test_integer() {
     all_check(-1_234_567_890, "4449444c00017caefaa7b37b");
     all_check(Box::new(42), "4449444c00017c2a");
     assert_eq!(get_type(&42), Type::Int);
+    check_error(
+        || all_check(42u32, "4449444c00017c2a"),
+        "Type mismatch. Type on the wire: Int; Provided type: Nat",
+    );
 }
 
 #[test]
@@ -29,6 +42,7 @@ fn test_text() {
     all_check("Hi ☃\n".to_string(), "4449444c00017107486920e298830a");
     check("Hi ☃\n", "4449444c00017107486920e298830a");
     let bytes = hex::decode("4449444c00017107486920e298830a").unwrap();
+    all_checks("Hi ☃\n", &bytes);
     Decode!(&bytes, text: &str);
     assert_eq!(text, "Hi ☃\n");
 }
@@ -225,6 +239,20 @@ where
 {
     let expected = hex::decode(expected).unwrap();
     Decode!(&expected, decoded: T);
+    let encoded_from_value = Encode!(&value);
+    let encoded_from_decoded = Encode!(&decoded);
+    assert_eq!(
+        encoded_from_value, encoded_from_decoded,
+        "\nValue\n{:x?}\nDecoded\n{:x?}\n",
+        encoded_from_value, encoded_from_decoded
+    );
+}
+
+fn all_checks<'de, T>(value: T, bytes: &'de [u8])
+where
+    T: IDLType + serde::de::Deserialize<'de>,
+{
+    Decode!(bytes, decoded: T);
     let encoded_from_value = Encode!(&value);
     let encoded_from_decoded = Encode!(&decoded);
     assert_eq!(

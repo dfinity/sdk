@@ -119,7 +119,7 @@ impl<'de> Deserializer<'de> {
         self.input.read_exact(&mut buf)?;
         Ok(String::from_utf8(buf).unwrap())
     }
-    fn parse_char(&mut self) -> Result<u8> {
+    fn parse_byte(&mut self) -> Result<u8> {
         let mut buf = [0u8; 1];
         self.input.read_exact(&mut buf)?;
         Ok(buf[0])
@@ -180,17 +180,16 @@ impl<'de> Deserializer<'de> {
             }
         }
     }
-}
-
-macro_rules! check_type {
-    ($t:expr, $opcode:expr) => {{
-        if $t != $opcode {
+    fn check_type(&mut self, expected: Opcode) -> Result<()> {
+        let wire_type = self.parse_type()?;
+        if wire_type != expected {
             return Err(Error::Message(format!(
-                "Type mismatch. Type on the wire: {:?}, Expect type: {:?}",
-                $t, $opcode
+                "Type mismatch. Type on the wire: {:?}; Provided type: {:?}",
+                wire_type, expected
             )));
         }
-    }};
+        Ok(())
+    }
 }
 
 macro_rules! primitive_impl {
@@ -198,7 +197,7 @@ macro_rules! primitive_impl {
         paste::item! {
             fn [<deserialize_ $ty>]<V>(self, visitor: V) -> Result<V::Value>
             where V: Visitor<'de> {
-                check_type!(self.parse_type().unwrap(), $opcode);
+                self.check_type($opcode)?;
                 visitor.[<visit_ $ty>](self.$method()? $($cast)*)
             }
         }
@@ -222,13 +221,13 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     primitive_impl!(u16, Opcode::Nat, leb128_read as u16);
     primitive_impl!(u32, Opcode::Nat, leb128_read as u32);
     primitive_impl!(u64, Opcode::Nat, leb128_read);
-    primitive_impl!(bool, Opcode::Bool, parse_char == 1u8);
+    primitive_impl!(bool, Opcode::Bool, parse_byte == 1u8);
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Text);
+        self.check_type(Opcode::Text)?;
         let len = self.leb128_read()? as usize;
         let value = self.parse_string(len)?;
         visitor.visit_string(value)
@@ -238,7 +237,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Text);
+        self.check_type(Opcode::Text)?;
         let len = self.leb128_read()? as usize;
         let value = std::str::from_utf8(&self.input[0..len]).unwrap();
         self.input = &self.input[len..];
@@ -249,8 +248,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Opt);
-        let bit = self.parse_char()?;
+        self.check_type(Opcode::Opt)?;
+        let bit = self.parse_byte()?;
         if bit == 0u8 {
             //self.parse_type() cannot be used as it will expand the type, which has no value
             self.current_type.pop_front();
@@ -263,7 +262,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Null);
+        self.check_type(Opcode::Null)?;
         visitor.visit_unit()
     }
     fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
@@ -322,7 +321,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Record);
+        self.check_type(Opcode::Record)?;
         let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in fields.iter() {
@@ -343,7 +342,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Variant);
+        self.check_type(Opcode::Variant)?;
         let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in variants.iter() {
@@ -515,7 +514,7 @@ impl<'de, 'a> de::VariantAccess<'de> for Compound<'a, 'de> {
     type Error = Error;
 
     fn unit_variant(self) -> Result<()> {
-        check_type!(self.de.parse_type()?, Opcode::Null);
+        self.de.check_type(Opcode::Null)?;
         Ok(())
     }
 
