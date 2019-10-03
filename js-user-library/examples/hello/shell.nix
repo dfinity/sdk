@@ -5,10 +5,12 @@ pkgs.mkShell {
   buildInputs = [
     sdk.rust-workspace # for dfx
     pkgs.jq # for reading config
+    pkgs.mktemp
     pkgs.nodejs-10_x
   ];
   shellHook = ''
     set -e
+    export HOME=$TMP
 
     pushd ../..
     npm install
@@ -16,6 +18,12 @@ pkgs.mkShell {
     popd
 
     npm install
+
+    # Hack to make sure that binaries are installed
+    pushd $(mktemp -d)
+    dfx new temp # > /dev/null
+    popd
+
     dfx build
 
     # Until https://github.com/dfinity-lab/actorscript/pull/693 is merged
