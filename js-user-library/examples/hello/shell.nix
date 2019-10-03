@@ -27,25 +27,21 @@ pkgs.mkShell {
     echo "export default ({ IDL }) => {" > build/canisters/hello/main.js
     echo "  const Text = IDL.Text;" >> build/canisters/hello/main.js
     echo "  return new IDL.ActorInterface({" >> build/canisters/hello/main.js
-    # echo "    'greet': IDL.Func(IDL.Obj({'0': Text}), IDL.Obj({'0': Text}))" >> build/canisters/hello/main.js
-    echo "    'greet': IDL.Func([Text], [Text])" >> build/canisters/hello/main.js
+    echo "    'greet': IDL.Func(IDL.Obj({'0': Text}), IDL.Obj({'0': Text}))" >> build/canisters/hello/main.js
+    # echo "    'greet': IDL.Func([Text], [Text])" >> build/canisters/hello/main.js
     echo "  });" >> build/canisters/hello/main.js
     echo "};" >> build/canisters/hello/main.js
 
     npm run bundle
 
-    dfx start > /dev/null 2>&1 &
+    dfx start --background
     open $(jq --raw-output '"http://\(.defaults.start.address):\(.defaults.start.port)"' dfinity.json)
 
     set +e
 
     # Clean up before we exit the shell
     trap "{ \
-      kill $(pgrep dfx)
-      sleep 1
-      kill $(pgrep nodemanager)
-      sleep 1
-      kill $(pgrep client)
+      killall dfx nodemanager client
       exit 255; \
     }" EXIT
   '';

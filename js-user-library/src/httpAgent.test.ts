@@ -1,8 +1,7 @@
-import BigNumber from "bignumber.js";
+import { Buffer } from "buffer";
 import * as cbor from "./cbor";
 
 import {
-  CanisterId,
   Int,
   makeHttpAgent,
   Request,
@@ -16,7 +15,7 @@ test("call", async () => {
     }));
   });
 
-  const canisterId = new BigNumber(1);
+  const canisterId = Buffer.from([1]);
 
   const httpAgent = makeHttpAgent({
     canisterId,
@@ -59,7 +58,7 @@ test.todo("query");
 test("requestStatus", async () => {
   const mockResponse = {
     status: "replied",
-    reply: { arg: [] },
+    reply: { arg: Buffer.from([]) },
   };
 
   const mockFetch: jest.Mock = jest.fn((resource, init) => {
@@ -69,7 +68,7 @@ test("requestStatus", async () => {
     }));
   });
 
-  const canisterId = new BigNumber(1);
+  const canisterId = Buffer.from([1]);
 
   const httpAgent = makeHttpAgent({
     canisterId,

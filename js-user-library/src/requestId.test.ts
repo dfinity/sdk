@@ -1,19 +1,16 @@
 // tslint:disable-next-line: max-line-length
 // https://github.com/dfinity-lab/dfinity/blob/5fef1450c9ab16ccf18381379149e504b11c8218/docs/spec/public/index.adoc#request-ids
 
-import BigNumber from "bignumber.js";
+import { Buffer } from "buffer";
+import { toHex } from "./buffer";
 import { Request } from "./httpAgent";
 import { hash, requestIdOf } from "./index";
 import { Int } from "./int";
 
-const toHex = (bytes: Array<Int>): string => {
-  return bytes.map((x) => `00${x.toString(16)}`.slice(-2)).join("");
-};
-
 const testHashOfBlob = async (input: Array<Int>, expected: string) => {
   const buffer = new Uint8Array(input);
   const hashed = new Uint8Array(await hash(buffer));
-  const hex = toHex(Array.from(hashed) as Array<Int>);
+  const hex = toHex(Buffer.from(hashed));
   expect(hex).toBe(expected);
 };
 
@@ -80,8 +77,8 @@ test("requestIdOf", async () => {
   const requestId = await requestIdOf(request as Request);
 
   expect(
-    requestId,
+    toHex(requestId),
   ).toEqual(
-    new BigNumber("0x8781291c347db32a9d8c10eb62b710fce5a93be676474c42babc74c51858f94b"),
+    "8781291c347db32a9d8c10eb62b710fce5a93be676474c42babc74c51858f94b",
   );
 });

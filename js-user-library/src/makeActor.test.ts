@@ -1,4 +1,4 @@
-import BigNumber from "bignumber.js";
+import { Buffer } from "buffer";
 import * as cbor from "./cbor";
 
 import {
@@ -44,7 +44,7 @@ test("makeActor", async () => {
       }));
     });
 
-  const canisterId = new BigNumber(1);
+  const canisterId = Buffer.from([1]);
   const methodName = "greet";
   const arg: Array<Int> = [];
 
