@@ -23,7 +23,7 @@ pkgs.mkShell {
 
     # Hack to make sure that binaries are installed
     pushd $(mktemp -d)
-    dfx new temp # > /dev/null
+    dfx new temp &> /dev/null
     popd
 
     dfx build
