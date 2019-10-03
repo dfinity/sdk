@@ -1,5 +1,5 @@
 [package]
-name = "serde_idl"
+name = "serde-idl"
 version = "0.1.0"
 authors = ["Yan Chen <yan@dfinity.org>"]
 
