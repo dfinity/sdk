@@ -16,14 +16,16 @@ test("call", async () => {
   });
 
   const canisterId = Buffer.from([1]);
+  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
   const httpAgent = makeHttpAgent({
     canisterId,
-    fetch: mockFetch,
+    fetchFn: mockFetch,
+    nonceFn: () => nonce,
   });
 
   const methodName = "greet";
-  const arg: Array<Int> = [];
+  const arg: Array<Int> = []; // FIXME
 
   const { requestId, response } = await httpAgent.call({
     methodName,
@@ -32,6 +34,7 @@ test("call", async () => {
 
   const expectedRequest = {
     request_type: "call",
+    nonce,
     canister_id: canisterId,
     method_name: methodName,
     arg,
@@ -69,14 +72,17 @@ test("requestStatus", async () => {
   });
 
   const canisterId = Buffer.from([1]);
+  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
   const httpAgent = makeHttpAgent({
     canisterId,
-    fetch: mockFetch,
+    fetchFn: mockFetch,
+    nonceFn: () => nonce,
   });
 
   const requestId = await requestIdOf({
     request_type: "call",
+    nonce,
     canister_id: canisterId,
     method_name: "greet",
     arg: [],
@@ -98,6 +104,7 @@ test("requestStatus", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
+      nonce,
       request_id: requestId,
     }),
   });

@@ -2,7 +2,6 @@ import { Buffer } from "buffer";
 import * as cbor from "./cbor";
 
 import {
-  CanisterId,
   IDL as _IDL,
   Int,
   makeActor,
@@ -48,8 +47,16 @@ test("makeActor", async () => {
   const methodName = "greet";
   const arg: Array<Int> = [];
 
+  const nonces = [
+    Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+    Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
+    Buffer.from([2, 3, 4, 5, 6, 7, 8, 9, 0, 1]),
+    Buffer.from([3, 4, 5, 6, 7, 8, 9, 0, 1, 2]),
+  ];
+
   const expectedCallRequest = {
     request_type: "call",
+    nonce: nonces[0],
     canister_id: canisterId,
     method_name: methodName,
     arg,
@@ -57,9 +64,16 @@ test("makeActor", async () => {
 
   const expectedCallRequestId = await requestIdOf(expectedCallRequest);
 
+  let nonceCount = 0;
+
   const httpAgent = makeHttpAgent({
     canisterId,
-    fetch: mockFetch,
+    fetchFn: mockFetch,
+    nonceFn: () => {
+      const nonce = nonces[nonceCount];
+      nonceCount = nonceCount + 1;
+      return nonce;
+    },
   });
 
   const actor = makeActor(actorInterface)(httpAgent);
@@ -88,6 +102,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
+      nonce: nonces[1],
       request_id: expectedCallRequestId,
     }),
   });
@@ -100,6 +115,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
+      nonce: nonces[2],
       request_id: expectedCallRequestId,
     }),
   });
@@ -112,6 +128,7 @@ test("makeActor", async () => {
     },
     body: cbor.encode({
       request_type: "request-status",
+      nonce: nonces[3],
       request_id: expectedCallRequestId,
     }),
   });

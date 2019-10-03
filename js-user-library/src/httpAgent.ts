@@ -1,7 +1,9 @@
 import { Buffer } from "buffer";
+import { toHex } from "./buffer";
 import * as cbor from "./cbor";
 import { Int } from "./int";
 import { assertNever } from "./never";
+import { makeNonce } from "./nonce";
 import { requestIdOf } from "./requestId";
 
 // TODO:
@@ -14,8 +16,10 @@ export type RequestId = Buffer;
 export interface Request extends Record<string, any> {
   request_type: ReadRequestType | SubmitRequestType;
   // expiry?:;
-  // NOTE: `nonce` is optional in the spec, but we should probably provide it
-  // nonce: Array<Int>;
+  // NOTE: `nonce` is optional in the spec, but we require it so that requests
+  // are unique and we avoid a bug in the client when the same request is
+  // submitted more than once: https://dfinity.atlassian.net/browse/DFN-895
+  nonce: Buffer;
   // sender:;
   // sender_pubkey: Array<Int>;
   // sender_sig: Array<Int>;
@@ -64,7 +68,7 @@ interface QueryRequest extends Request {
   request_type: ReadRequestType.Query;
   canister_id: CanisterId;
   method_name: string;
-  arg: Array<Int>;
+  arg: Array<Int>; // FIXME
 }
 
 // An ADT that represents responses to a "query" read request.
@@ -92,17 +96,19 @@ enum QueryResponseStatus {
 // TODO: matchQueryResponse
 
 // Construct a "query" read request.
-const makeQueryRequest = ({
-  canisterId,
-  methodName,
-  arg,
-}: {
-  canisterId: CanisterId,
-  methodName: string,
-  arg: Array<Int>,
-}): QueryRequest => ({
+const makeQueryRequest = (
+  config: Config,
+  {
+    methodName,
+    arg,
+  }: {
+    methodName: string,
+    arg: Array<Int>,
+  },
+): QueryRequest => ({
   request_type: ReadRequestType.Query,
-  canister_id: canisterId,
+  nonce: config.nonceFn(),
+  canister_id: config.canisterId,
   method_name: methodName,
   arg,
 });
@@ -179,12 +185,16 @@ export const matchRequestStatusResponse = (
 };
 
 // Construct a "request-status" read request.
-const makeRequestStatusRequest = ({
-  requestId,
-}: {
-  requestId: RequestId,
-}): RequestStatusRequest => ({
+const makeRequestStatusRequest = (
+  config: Config,
+  {
+    requestId,
+  }: {
+    requestId: RequestId,
+  },
+): RequestStatusRequest => ({
   request_type: ReadRequestType.RequestStatus,
+  nonce: config.nonceFn(),
   request_id: requestId,
 });
 
@@ -236,17 +246,19 @@ interface CallRequest extends Request {
 }
 
 // Construct a "call" submit request.
-const makeCallRequest = ({
-  canisterId,
-  methodName,
-  arg,
-}: {
-  canisterId: CanisterId,
-  methodName: string,
-  arg: Array<Int>,
-}): CallRequest => ({
+const makeCallRequest = (
+  config: Config,
+  {
+    methodName,
+    arg,
+  }: {
+    methodName: string,
+    arg: Array<Int>,
+  },
+): CallRequest => ({
   request_type: SubmitRequestType.Call,
-  canister_id: canisterId,
+  nonce: config.nonceFn(),
+  canister_id: config.canisterId,
   method_name: methodName,
   arg,
 });
@@ -287,8 +299,7 @@ const call = (
   methodName: string,
   arg: Array<Int>,
 }): Promise<SubmitResponse> => {
-  const request = makeCallRequest({
-    canisterId: config.canisterId,
+  const request = makeCallRequest(config, {
     methodName,
     arg,
   });
@@ -302,7 +313,7 @@ const requestStatus = (
 }: {
   requestId: RequestId,
 }): Promise<RequestStatusResponse> => {
-  const request = makeRequestStatusRequest({ requestId });
+  const request = makeRequestStatusRequest(config, { requestId });
   const response = await read(config)(request);
   const body = await response.arrayBuffer();
   return cbor.decode(body) as RequestStatusResponse;
@@ -317,8 +328,7 @@ const query = (
   methodName: string,
   arg: Array<Int>,
 }): Promise<QueryResponse> => {
-  const request = makeQueryRequest({
-    canisterId: config.canisterId,
+  const request = makeQueryRequest(config, {
     methodName,
     arg,
   });
@@ -332,24 +342,28 @@ const API_VERSION = "v1";
 
 interface Options {
   canisterId: CanisterId;
-  fetch?: WindowOrWorkerGlobalScope["fetch"];
+  fetchFn?: WindowOrWorkerGlobalScope["fetch"];
   host?: string;
+  nonceFn?: () => Buffer;
 }
 
 interface DefaultOptions {
-  fetch: WindowOrWorkerGlobalScope["fetch"];
+  fetchFn: WindowOrWorkerGlobalScope["fetch"];
   host: string;
+  nonceFn: () => Buffer;
 }
 
 const defaultOptions: DefaultOptions = {
-  fetch: typeof window === "undefined" ? fetch : window.fetch.bind(window),
+  fetchFn: typeof window === "undefined" ? fetch : window.fetch.bind(window),
   host: "http://localhost:8000",
+  nonceFn: makeNonce,
 };
 
 
 interface Config {
   canisterId: CanisterId;
   host: string;
+  nonceFn: () => Buffer;
   runFetch(endpoint: Endpoint, body?: BodyInit | null): Promise<Response>;
 }
 
@@ -358,7 +372,7 @@ const makeConfig = (options: Options): Config => {
   return {
     ...withDefaults,
     runFetch: (endpoint, body) => {
-      return withDefaults.fetch(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
+      return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/cbor",
