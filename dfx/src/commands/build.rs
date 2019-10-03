@@ -38,8 +38,8 @@ where
             // invoke the compiler in debug (development) or release mode,
             // based on the current profile:
             let arg_profile = match profile {
-                None | Some(Profile::Debug) => &"--debug",
-                Some(Profile::Release) => &"--release",
+                None | Some(Profile::Debug) => "--debug",
+                Some(Profile::Release) => "--release",
             };
             env.get_binary_command("asc")?
                 .arg(&input_path)
