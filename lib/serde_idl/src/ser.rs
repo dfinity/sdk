@@ -45,14 +45,6 @@ impl IDLBuilder {
     }
 }
 
-/// Serializes a value to a vector.
-pub fn to_vec<T>(value: &T) -> Result<Vec<u8>>
-where
-    T: dfx_info::IDLType,
-{
-    IDLBuilder::new().arg(value).serialize_to_vec()
-}
-
 /// A structure for serializing Rust values to IDL.
 #[derive(Clone, Debug, Default)]
 pub struct ValueSerializer {

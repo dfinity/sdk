@@ -38,6 +38,14 @@ pub struct ConfigDefaultsBuild {
     pub output: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum Profile {
+    // debug is for development only
+    Debug,
+    // release is for production
+    Release,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigDefaults {
     pub build: Option<ConfigDefaultsBuild>,
@@ -46,6 +54,7 @@ pub struct ConfigDefaults {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigInterface {
+    pub profile: Option<Profile>,
     pub version: Option<u32>,
     pub dfx: Option<String>,
     pub canisters: Option<Map<String, Value>>,
@@ -135,7 +144,8 @@ impl ConfigInterface {
 pub struct Config {
     path: PathBuf,
     json: Value,
-    config: ConfigInterface,
+    // public interface to the config:
+    pub config: ConfigInterface,
 }
 
 #[allow(dead_code)]
