@@ -7,8 +7,8 @@ import { Request } from "./httpAgent";
 import { hash, requestIdOf } from "./index";
 
 const testHashOfBlob = async (input: Buffer, expected: string) => {
-  const hashed = await hash(input.buffer);
-  const hex = toHex(Buffer.from(hashed));
+  const hashed = await hash(input);
+  const hex = toHex(hashed);
   expect(hex).toBe(expected);
 };
 

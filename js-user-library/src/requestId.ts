@@ -1,72 +1,65 @@
 import { Buffer } from "buffer";
 import { CborValue } from "./cbor";
 import { Request, RequestId } from "./httpAgent";
-import { Int } from "./int";
 
 // The spec describes encoding for these types.
-type HashableValue = string | ArrayBuffer;
+type HashableValue = string | Buffer;
 
-export const hash = async (data: ArrayBuffer): Promise<ArrayBuffer> => {
-  return crypto.subtle.digest({ name: "SHA-256" }, data);
+export const hash = async (data: Buffer): Promise<Buffer> => {
+  const hashed = await crypto.subtle.digest({ name: "SHA-256" }, data.buffer);
+  return Buffer.from(hashed);
 };
 
-const hashValue = (value: HashableValue): Promise<ArrayBuffer> => {
+const hashValue = (value: HashableValue): Promise<Buffer> => {
   return isString(value)
     ? hashString(value as string)
-    : hashBlob(value as ArrayBuffer);
+    : hash(value as Buffer);
 };
 
-const hashBlob = (value: ArrayBuffer): Promise<ArrayBuffer> => {
-  return hash(new Uint8Array(value));
-};
-
-const hashString = (value: string): Promise<ArrayBuffer> => {
+const hashString = (value: string): Promise<Buffer> => {
   const encoder = new TextEncoder();
   const encoded = encoder.encode(value);
-  return hash(encoded);
+  return hash(Buffer.from(encoded));
 };
 
 const isString = (value: HashableValue): value is string => {
   return typeof value === "string";
 };
 
-const concat = (bs: Array<ArrayBuffer>): ArrayBuffer => {
-  const folded = bs.reduce((state: Uint8Array, b: ArrayBuffer): Uint8Array => {
+const concat = (bs: Array<Buffer>): Buffer => {
+  const folded = bs.reduce((state: Uint8Array, b: Buffer): Uint8Array => {
     return new Uint8Array([
       ...state,
-      ...(new Uint8Array(b)),
+      ...(new Uint8Array(b.buffer)),
     ]);
   }, new Uint8Array());
-  return folded.buffer;
+  return Buffer.from(folded);
 };
 
 export const requestIdOf = async (request: Request): Promise<RequestId> => {
   const { sender_pubkey, sender_sig, ...rest } = request;
 
-  const hashed: Array<Promise<[ArrayBuffer, ArrayBuffer]>> = Object
+  const hashed: Array<Promise<[Buffer, Buffer]>> = Object
     .entries(rest)
     .map(async ([key, value]: [string, CborValue]) => {
       const hashedKey = await hashString(key);
       // Behavior is undefined for ints and records. The spec only describes
       // encoding for strings and binary blobs.
-      const hashedValue = await hashValue(value as string | ArrayBuffer);
+      const hashedValue = await hashValue(value as string | Buffer);
 
       return [
         hashedKey,
         hashedValue,
-      ] as [ArrayBuffer, ArrayBuffer];
+      ] as [Buffer, Buffer];
     });
 
-  const traversed: Array<[ArrayBuffer, ArrayBuffer]> = await Promise.all(
-    hashed,
-  );
+  const traversed: Array<[Buffer, Buffer]> = await Promise.all(hashed);
 
-  const sorted: Array<[ArrayBuffer, ArrayBuffer]> = traversed
+  const sorted: Array<[Buffer, Buffer]> = traversed
     .sort(([k1, v1], [k2, v2]) => {
-      return Buffer.compare(Buffer.from(k1), Buffer.from(k2));
+      return Buffer.compare(k1, k2);
     });
 
-  const concatenated: ArrayBuffer = concat(sorted.map(concat));
-  const buffer = await hash(concatenated);
-  return Buffer.from(new Uint8Array(buffer));
+  const concatenated: Buffer = concat(sorted.map(concat));
+  return hash(concatenated);
 };
