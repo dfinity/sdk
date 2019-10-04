@@ -7,5 +7,5 @@ let src = builtins.fetchGit {
 }; in
 
 {
-  actorscript = (import src {});
+  actorscript = (import src { nixpkgs = self; });
 }
