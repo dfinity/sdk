@@ -16,7 +16,7 @@ test("call", async () => {
     }));
   });
 
-  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]);
 
   const httpAgent = makeHttpAgent({
     canisterId: "0000000000000001" as Hex,
@@ -71,8 +71,8 @@ test("requestStatus", async () => {
     }));
   });
 
-  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   const canisterId = "0000000000000001" as Hex;
+  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]);
 
   const httpAgent = makeHttpAgent({
     canisterId,

@@ -47,10 +47,10 @@ test("makeActor", async () => {
   const arg = Buffer.from([]);
 
   const nonces = [
-    Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
-    Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
-    Buffer.from([2, 3, 4, 5, 6, 7, 8, 9, 0, 1]),
-    Buffer.from([3, 4, 5, 6, 7, 8, 9, 0, 1, 2]),
+    Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]),
+    Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]),
+    Buffer.from([2, 3, 4, 5, 6, 7, 8, 9]),
+    Buffer.from([3, 4, 5, 6, 7, 8, 9, 0]),
   ];
 
   const expectedCallRequest = {
