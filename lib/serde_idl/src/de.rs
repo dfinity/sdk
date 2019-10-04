@@ -43,13 +43,19 @@ impl<'de> IDLDeserialize<'de> {
             .de
             .types
             .pop_front()
-            .ok_or(Error::Message("No more values to deserialize".to_string()))?;
+            .ok_or(Error::msg("No more values to deserialize"))?;
         self.de.current_type.push_back(ty.clone());
-        let v = T::deserialize(&mut self.de)?;
+        
+        let v = match T::deserialize(&mut self.de) {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(Error::msg(format!("{}. Trailing types {:?}, trailing bytes {:?}, table: {:?}", e, self.de.current_type, self.de.input, self.de.table)))
+            }
+        };
         if self.de.current_type.is_empty() && self.de.field_name.is_none() {
             Ok(v)
         } else {
-            Err(Error::Message(format!(
+            Err(Error::msg(format!(
                 "Trailing types {:?}, field_name {:?}",
                 self.de.current_type, self.de.field_name
             )))
@@ -57,13 +63,13 @@ impl<'de> IDLDeserialize<'de> {
     }
     pub fn done(self) -> Result<()> {
         if !self.de.types.is_empty() {
-            return Err(Error::Message(format!(
+            return Err(Error::msg(format!(
                 "{} more values need to be deserialized",
                 self.de.types.len()
             )));
         }
         if !self.de.input.is_empty() {
-            return Err(Error::Message(format!(
+            return Err(Error::msg(format!(
                 "Trailing bytes {:?}",
                 self.de.input
             )));
@@ -81,13 +87,13 @@ impl RawValue {
     fn get_i64(&self) -> Result<i64> {
         match *self {
             RawValue::I(i) => Ok(i),
-            _ => Err(Error::Message(format!("get_i64 fail: {:?}", *self))),
+            _ => Err(Error::msg(format!("get_i64 fail: {:?}", *self))),
         }
     }
     fn get_u64(&self) -> Result<u64> {
         match *self {
             RawValue::U(u) => Ok(u),
-            _ => Err(Error::Message(format!("get_u64 fail: {:?}", *self))),
+            _ => Err(Error::msg(format!("get_u64 fail: {:?}", *self))),
         }
     }
 }
@@ -111,27 +117,18 @@ impl<'de> Deserializer<'de> {
             field_name: None,
         }
     }
-    fn error(&self, msg: &str) -> Error {
-        Error::Message(msg.to_string())
-    }
-    fn error_states(&self, msg: &str) -> Error {
-        let msg = format!(
-            "{}. Trailing type {:?}, Trailing bytes {:?}",
-            msg, self.current_type, self.input
-        );
-        Error::Message(msg)
-    }
+
     fn leb128_read(&mut self) -> Result<u64> {
-        leb128_decode(&mut self.input).map_err(|e| self.error_states(&e.to_string()))
+        leb128_decode(&mut self.input).map_err(Error::msg)
     }
     fn sleb128_read(&mut self) -> Result<i64> {
-        sleb128_decode(&mut self.input).map_err(|e| self.error_states(&e.to_string()))
+        sleb128_decode(&mut self.input).map_err(Error::msg)
     }
     fn parse_string(&mut self, len: usize) -> Result<String> {
         let mut buf = Vec::new();
         buf.resize(len, 0);
         self.input.read_exact(&mut buf)?;
-        String::from_utf8(buf).map_err(|e| self.error(&e.to_string()))
+        String::from_utf8(buf).map_err(Error::msg)
     }
     fn parse_byte(&mut self) -> Result<u8> {
         let mut buf = [0u8; 1];
@@ -144,7 +141,7 @@ impl<'de> Deserializer<'de> {
         if buf == *MAGIC_NUMBER {
             Ok(())
         } else {
-            Err(self.error(&format!("wrong magic number {:?}", buf)))
+            Err(Error::msg(format!("wrong magic number {:?}", buf)))
         }
     }
 
@@ -167,7 +164,7 @@ impl<'de> Deserializer<'de> {
                         buf.push(RawValue::I(self.sleb128_read()?));
                     }
                 }
-                _ => return Err(self.error_states(&format!("Unsupported op_code {} in type table", ty))),
+                _ => return Err(Error::msg(format!("Unsupported op_code {} in type table", ty))),
             };
             self.table.push(buf);
         }
@@ -178,47 +175,38 @@ impl<'de> Deserializer<'de> {
         }
         Ok(())
     }
-    fn get_type_i64(&mut self) -> Result<i64> {
-        self.current_type
-            .pop_front()
-            .ok_or(self.error("empty current_type"))?
-            .get_i64()
-            .map_err(|e| self.error_states(&e.to_string()))
+    fn pop_current_type(&mut self) -> Result<RawValue> {
+        self.current_type.pop_front().ok_or(Error::EmptyType)
+    }
+    fn peek_current_type(&self) -> Result<&RawValue> {
+        self.current_type.front().ok_or(Error::EmptyType)        
     }
 
     fn parse_type(&mut self) -> Result<Opcode> {
-        //let op = self.current_type.pop_front().unwrap().get_i64()?;
-        let op = self.get_type_i64()?;
+        let op = self.pop_current_type()?.get_i64()?;
         if op >= 0 {
-            self.current_type.pop_front();
             let ty = &self.table[op as usize];
             for x in ty.iter().rev() {
                 self.current_type.push_front(x.clone());
             }
             self.parse_type()
         } else {
-            match Opcode::try_from(op) {
-                Ok(op) => Ok(op),
-                Err(e) => Err(Error::Message(e.to_string())),
-            }
+            Opcode::try_from(op).map_err(Error::msg)
         }
     }
     fn peek_type(&self) -> Result<Opcode> {
-        let op = self.current_type.front().unwrap().get_i64()?;
+        let op = self.peek_current_type()?.get_i64()?;
         let ty = if op >= 0 {
             self.table[op as usize][0].get_i64()?
         } else {
             op
         };
-        match Opcode::try_from(ty) {
-            Ok(op) => Ok(op),
-            Err(e) => Err(Error::Message(e.to_string())),
-        }
+        Opcode::try_from(ty).map_err(Error::msg)
     }
     fn check_type(&mut self, expected: Opcode) -> Result<()> {
         let wire_type = self.parse_type()?;
         if wire_type != expected {
-            return Err(Error::Message(format!(
+            return Err(Error::msg(format!(
                 "Type mismatch. Type on the wire: {:?}; Provided type: {:?}",
                 wire_type, expected
             )));
@@ -227,7 +215,7 @@ impl<'de> Deserializer<'de> {
     }
     fn set_field_name(&mut self, field: &'static str) -> Result<()> {
         if self.field_name.is_some() {
-            return Err(Error::Message("field_name already taken".to_string()));
+            return Err(Error::msg("field_name already taken"));
         }
         self.field_name = Some(field);
         Ok(())
@@ -292,9 +280,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         self.check_type(Opcode::Text)?;
         let len = self.leb128_read()? as usize;
-        let value = std::str::from_utf8(&self.input[0..len]).unwrap();
+        let value: Result<&str> = std::str::from_utf8(&self.input[0..len]).map_err(de::Error::custom);
         self.input = &self.input[len..];
-        visitor.visit_borrowed_str(value)
+        visitor.visit_borrowed_str(value?)
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
@@ -305,7 +293,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let bit = self.parse_byte()?;
         if bit == 0u8 {
             //self.parse_type() cannot be used as it will expand the type, which has no value
-            self.current_type.pop_front();
+            self.pop_current_type()?;
             visitor.visit_none()
         } else {
             visitor.visit_some(self)
@@ -334,22 +322,18 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        match self.parse_type().unwrap() {
+        match self.parse_type()? {
             Opcode::Vec => {
                 let len = self.leb128_read()? as u32;
                 let value = visitor.visit_seq(Compound::new(&mut self, Style::Vector { len }));
-                self.current_type.pop_front();
+                self.pop_current_type()?;
                 value
             }
             Opcode::Record => {
-                let len = self
-                    .current_type
-                    .pop_front()
-                    .ok_or(Error::Message("Cannot get length of record".to_string()))?
-                    .get_u64()? as u32;
+                let len = self.pop_current_type()?.get_u64()? as u32;
                 visitor.visit_seq(Compound::new(&mut self, Style::Tuple { len, index: 0 }))
             }
-            _ => Err(Error::Message("seq only takes vector or tuple".to_string())),
+            _ => Err(Error::msg("seq only takes vector or tuple")),
         }
     }
     fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
@@ -379,15 +363,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         self.check_type(Opcode::Record)?;
-        let len = self
-            .current_type
-            .pop_front()
-            .ok_or(Error::Message("Cannot get length of record".to_string()))?
-            .get_u64()? as u32;
+        let len = self.pop_current_type()?.get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in fields.iter() {
             if fs.insert(idl_hash(s), *s) != None {
-                return Err(Error::Message(format!("hash collisiosn {}", s)));
+                return Err(Error::msg(format!("hash collisiosn {}", s)));
             }
         }
         let value = visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))?;
@@ -404,15 +384,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         self.check_type(Opcode::Variant)?;
-        let len = self
-            .current_type
-            .pop_front()
-            .ok_or(Error::Message("Cannot get length of variant".to_string()))?
-            .get_u64()? as u32;
+        let len = self.pop_current_type()?.get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in variants.iter() {
             if fs.insert(idl_hash(s), *s) != None {
-                return Err(Error::Message(format!("hash collisiosn {}", s)));
+                return Err(Error::msg(format!("hash collisiosn {}", s)));
             }
         }
         let value = visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))?;
@@ -424,7 +400,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         if self.field_name.is_none() {
-            return Err(Error::Message("empty field_name".to_string()));
+            return Err(Error::msg("empty field_name"));
         }
         let v = visitor.visit_str(self.field_name.unwrap());
         self.field_name = None;
@@ -481,9 +457,9 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                 if *index == *len {
                     return Ok(None);
                 }
-                let t_idx = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
+                let t_idx = self.de.pop_current_type()?.get_u64()? as u32;
                 if t_idx != *index {
-                    return Err(Error::Message(format!(
+                    return Err(Error::msg(format!(
                         "Expect vector index {}, but get {}",
                         index, t_idx
                     )));
@@ -495,12 +471,12 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                 if *len == 0 {
                     return Ok(None);
                 }
-                let ty = self.de.current_type.front().unwrap().clone();
+                let ty = self.de.peek_current_type()?.clone();
                 self.de.current_type.push_back(ty);
                 *len -= 1;
                 seed.deserialize(&mut *self.de).map(Some)
             }
-            _ => Err(Error::Message("expect tuple".to_string())),
+            _ => Err(Error::msg("expect tuple")),
         }
     }
 }
@@ -520,7 +496,7 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                     return Ok(None);
                 }
                 *len -= 1;
-                let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
+                let hash = self.de.pop_current_type()?.get_u64()? as u32;
                 match fs.get(&hash) {
                     Some(field) => {
                         self.de.set_field_name(field)?;
@@ -532,7 +508,7 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                 }
                 seed.deserialize(&mut *self.de).map(Some)
             }
-            _ => Err(Error::Message("expect struct".to_string())),
+            _ => Err(Error::msg("expect struct")),
         }
     }
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
@@ -555,21 +531,21 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
             Style::Enum { len, ref fs } => {
                 let index = self.de.leb128_read()? as u32;
                 if index >= len {
-                    return Err(Error::Message(format!(
+                    return Err(Error::msg(format!(
                         "variant index {} larger than length {}",
                         index, len
                     )));
                 }
                 for i in 0..len {
-                    let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
-                    let ty = self.de.current_type.pop_front().unwrap();
+                    let hash = self.de.pop_current_type()?.get_u64()? as u32;
+                    let ty = self.de.pop_current_type()?;
                     if i == index {
                         match fs.get(&hash) {
                             Some(field) => {
                                 self.de.set_field_name(field)?;
                             }
                             None => {
-                                return Err(Error::Message(format!(
+                                return Err(Error::msg(format!(
                                     "Unknown variant hash {}",
                                     hash
                                 )))
@@ -582,7 +558,7 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                 let val = seed.deserialize(&mut *self.de)?;
                 Ok((val, self))
             }
-            _ => Err(Error::Message("expect enum".to_string())),
+            _ => Err(Error::msg("expect enum")),
         }
     }
 }

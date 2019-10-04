@@ -100,7 +100,7 @@ fn test_struct() {
         },
         "4449444c026c03d3e3aa027edbe3aa0201868eb7027c6c02d3e3aa027e868eb7027c010001000a2a",
     );
-    /*
+    
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct A2 {
         foo: i32,
@@ -115,7 +115,7 @@ fn test_struct() {
     let bytes = Encode!(&a2);
     test_decode(&bytes, &a1);
     let bytes = Encode!(&a1);
-    check_error(|| test_decode(&bytes, &a2), "missing field `baz`");*/
+    check_error(|| test_decode(&bytes, &a2), "missing field `baz`");
 
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct B(bool, i32);
