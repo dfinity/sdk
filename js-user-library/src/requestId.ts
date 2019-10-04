@@ -4,7 +4,7 @@ import { Request, RequestId } from "./httpAgent";
 import { Int } from "./int";
 
 // The spec describes encoding for these types.
-type HashableValue = string | Array<Int>;
+type HashableValue = string | ArrayBuffer;
 
 export const hash = async (data: ArrayBuffer): Promise<ArrayBuffer> => {
   return crypto.subtle.digest({ name: "SHA-256" }, data);
@@ -13,10 +13,10 @@ export const hash = async (data: ArrayBuffer): Promise<ArrayBuffer> => {
 const hashValue = (value: HashableValue): Promise<ArrayBuffer> => {
   return isString(value)
     ? hashString(value as string)
-    : hashBlob(value as Array<Int>);
+    : hashBlob(value as ArrayBuffer);
 };
 
-const hashBlob = (value: Array<Int>): Promise<ArrayBuffer> => {
+const hashBlob = (value: ArrayBuffer): Promise<ArrayBuffer> => {
   return hash(new Uint8Array(value));
 };
 
@@ -49,7 +49,7 @@ export const requestIdOf = async (request: Request): Promise<RequestId> => {
       const hashedKey = await hashString(key);
       // Behavior is undefined for ints and records. The spec only describes
       // encoding for strings and binary blobs.
-      const hashedValue = await hashValue(value as string | Array<Int>);
+      const hashedValue = await hashValue(value as string | ArrayBuffer);
 
       return [
         hashedKey,

@@ -5,18 +5,16 @@ import { Buffer } from "buffer";
 import { toHex } from "./buffer";
 import { Request } from "./httpAgent";
 import { hash, requestIdOf } from "./index";
-import { Int } from "./int";
 
-const testHashOfBlob = async (input: Array<Int>, expected: string) => {
-  const buffer = new Uint8Array(input);
-  const hashed = new Uint8Array(await hash(buffer));
+const testHashOfBlob = async (input: Buffer, expected: string) => {
+  const hashed = await hash(input.buffer);
   const hex = toHex(Buffer.from(hashed));
   expect(hex).toBe(expected);
 };
 
 const testHashOfString = async (input: string, expected: string) => {
   const encoded = (new TextEncoder()).encode(input);
-  return testHashOfBlob(Array.from(encoded) as Array<Int>, expected);
+  return testHashOfBlob(Buffer.from(encoded), expected);
 };
 
 test("hash", async () => {
@@ -38,7 +36,7 @@ test("hash", async () => {
       "0a3eb2ba16702a387e6321066dd952db7a31f9b5cc92981e0a92dd56802d3df9",
     ),
     testHashOfBlob(
-      [0, 0, 0, 0, 0, 0, 4, 210] as Array<Int>,
+      Buffer.from([0, 0, 0, 0, 0, 0, 4, 210]),
       "4d8c47c3c1c837964011441882d745f7e92d10a40cef0520447c63029eafe396",
     ),
     testHashOfString(
@@ -54,7 +52,7 @@ test("hash", async () => {
       "b25f03dedd69be07f356a06fe35c1b0ddc0de77dcd9066c4be0c6bbde14b23ff",
     ),
     testHashOfBlob(
-      [68, 73, 68, 76, 0, 253, 42] as Array<Int>,
+      Buffer.from([68, 73, 68, 76, 0, 253, 42]),
       "6c0b2ae49718f6995c02ac5700c9c789d7b7862a0d53e6d40a73f1fcd2f70189",
     ),
   ]);
@@ -66,12 +64,12 @@ test("requestIdOf", async () => {
     // 0x00000000000004D2
     // \x00\x00\x00\x00\x00\x00\x04\xD2
     // 0   0   0   0   0   0   4   210
-    canister_id: [0, 0, 0, 0, 0, 0, 4, 210] as Array<Int>,
+    canister_id: Buffer.from([0, 0, 0, 0, 0, 0, 4, 210]),
     method_name: "hello",
     // DIDL\x00\xFD*
     // D   I   D   L   \x00  \253  *
     // 68  73  68  76  0     253   42
-    arg: [68, 73, 68, 76, 0, 253, 42] as Array<Int>,
+    arg: Buffer.from([68, 73, 68, 76, 0, 253, 42]),
   };
 
   const requestId = await requestIdOf(request as Request);
