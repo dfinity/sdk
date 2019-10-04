@@ -315,7 +315,7 @@ const requestStatus = (
 }): Promise<RequestStatusResponse> => {
   const request = makeRequestStatusRequest(config, { requestId });
   const response = await read(config)(request);
-  const body = await response.arrayBuffer();
+  const body = Buffer.from(await response.arrayBuffer());
   return cbor.decode(body) as RequestStatusResponse;
 };
 
@@ -333,7 +333,7 @@ const query = (
     arg,
   });
   const response = await read(config)(request);
-  const body = await response.arrayBuffer();
+  const body = Buffer.from(await response.arrayBuffer());
   return cbor.decode(body) as QueryResponse;
 };
 

@@ -33,11 +33,16 @@ export const encode = (value: CborValue): Buffer => {
 };
 
 export const decode = (input: Buffer): CborValue => {
+  // For some reason, TypeScript allows values of type `ArrayBuffer` to be
+  // passed to this function. We only want instances of `Buffer` since anything
+  // else results in undefined behavior at runtime. This check is an additional
+  // safeguard in case we make a mistake.
+  const buffer = Buffer.isBuffer(input) ? input : Buffer.from(input);
   const decoder = new borc.Decoder({
-    size: input.byteLength,
+    size: buffer.byteLength,
     tags: {
       [SEMANTIC_TAG]: (value: CborValue): CborValue => value,
     },
   });
-  return decoder.decodeFirst(input);
+  return decoder.decodeFirst(buffer);
 };
