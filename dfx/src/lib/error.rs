@@ -30,6 +30,9 @@ pub enum DfxError {
     // Cannot create a new project because the directory already exists.
     ProjectExists(),
 
+    // Not in a project.
+    CommandMustBeRunInAProject(),
+
     // The client returned an error. It normally specifies the error as an
     // HTTP status (so 400-599), and has a string as the error message.
     // Once the client support errors from the public spec or as an enum,
