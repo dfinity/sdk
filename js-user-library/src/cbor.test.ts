@@ -1,4 +1,4 @@
-import { Buffer } from "buffer";
+import { Buffer } from "buffer/";
 import { decode, encode } from "./cbor";
 import { Int } from "./int";
 

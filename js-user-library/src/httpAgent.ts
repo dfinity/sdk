@@ -1,4 +1,4 @@
-import { Buffer } from "buffer";
+import { Buffer } from "buffer/";
 import { toHex } from "./buffer";
 import * as cbor from "./cbor";
 import { assertNever } from "./never";

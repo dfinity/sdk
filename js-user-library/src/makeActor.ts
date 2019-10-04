@@ -5,7 +5,7 @@ import {
 } from "./httpAgent";
 
 import retry from "async-retry";
-import { Buffer } from "buffer";
+import { Buffer } from "buffer/";
 import { zipWith } from "./array";
 import { toHex } from "./buffer";
 import _IDL from "./IDL";

@@ -1,4 +1,4 @@
-import { Buffer } from "buffer";
+import { Buffer } from "buffer/";
 
 export const makeNonce = (): Buffer => {
   return makeNonceFromDate(new Date());

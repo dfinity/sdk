@@ -1,4 +1,4 @@
-import { Buffer } from "buffer";
+import { Buffer } from "buffer/";
 import { CborValue } from "./cbor";
 import { Request, RequestId } from "./httpAgent";
 

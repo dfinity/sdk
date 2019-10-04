@@ -1,4 +1,4 @@
-import { Buffer } from "buffer";
+import { Buffer } from "buffer/";
 import * as cbor from "./cbor";
 
 import {

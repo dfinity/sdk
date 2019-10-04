@@ -1,7 +1,7 @@
 // tslint:disable-next-line: max-line-length
 // https://github.com/dfinity-lab/dfinity/blob/9bca65f8edd65701ea6bdb00e0752f9186bbc893/docs/spec/public/index.adoc#cbor-encoding-of-requests-and-responses
 import borc from "borc";
-import { Buffer } from "buffer";
+import { Buffer } from "buffer/";
 import { Int } from "./int";
 
 // We currently use `Buffer` for blobs instead of `Uint8Array` because we use
