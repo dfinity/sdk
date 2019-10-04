@@ -9,5 +9,5 @@ test("round trip", () => {
     c: Buffer.from([3]),
     d: { four: "four" },
   };
-  expect(decode(encode(input))).toEqual(input);
+  expect(input).toEqual(decode(encode(input)));
 });
