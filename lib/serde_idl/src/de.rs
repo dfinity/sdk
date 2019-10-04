@@ -39,7 +39,11 @@ impl<'de> IDLDeserialize<'de> {
     where
         T: de::Deserialize<'de>,
     {
-        let ty = self.de.types.pop_front().expect("No more values to deserialize");
+        let ty = self
+            .de
+            .types
+            .pop_front()
+            .ok_or(Error::Message("No more values to deserialize".to_string()))?;
         self.de.current_type.push_back(ty.clone());
         let v = T::deserialize(&mut self.de)?;
         if self.de.current_type.is_empty() && self.de.field_name.is_none() {
@@ -107,17 +111,27 @@ impl<'de> Deserializer<'de> {
             field_name: None,
         }
     }
+    fn error(&self, msg: &str) -> Error {
+        Error::Message(msg.to_string())
+    }
+    fn error_states(&self, msg: &str) -> Error {
+        let msg = format!(
+            "{}. Trailing type {:?}, Trailing bytes {:?}",
+            msg, self.current_type, self.input
+        );
+        Error::Message(msg)
+    }
     fn leb128_read(&mut self) -> Result<u64> {
-        Ok(leb128_decode(&mut self.input).expect("Should read unsigned number"))
+        leb128_decode(&mut self.input).map_err(|e| self.error_states(&e.to_string()))
     }
     fn sleb128_read(&mut self) -> Result<i64> {
-        Ok(sleb128_decode(&mut self.input).expect("Should read signed number"))
+        sleb128_decode(&mut self.input).map_err(|e| self.error_states(&e.to_string()))
     }
     fn parse_string(&mut self, len: usize) -> Result<String> {
         let mut buf = Vec::new();
         buf.resize(len, 0);
         self.input.read_exact(&mut buf)?;
-        Ok(String::from_utf8(buf).unwrap())
+        String::from_utf8(buf).map_err(|e| self.error(&e.to_string()))
     }
     fn parse_byte(&mut self) -> Result<u8> {
         let mut buf = [0u8; 1];
@@ -130,7 +144,7 @@ impl<'de> Deserializer<'de> {
         if buf == *MAGIC_NUMBER {
             Ok(())
         } else {
-            Err(Error::Message(format!("wrong magic number {:?}", buf)))
+            Err(self.error(&format!("wrong magic number {:?}", buf)))
         }
     }
 
@@ -153,7 +167,7 @@ impl<'de> Deserializer<'de> {
                         buf.push(RawValue::I(self.sleb128_read()?));
                     }
                 }
-                _ => return Err(Error::Message(format!("Unsupported op_code {} in type table", ty))),
+                _ => return Err(self.error_states(&format!("Unsupported op_code {} in type table", ty))),
             };
             self.table.push(buf);
         }
@@ -164,9 +178,17 @@ impl<'de> Deserializer<'de> {
         }
         Ok(())
     }
+    fn get_type_i64(&mut self) -> Result<i64> {
+        self.current_type
+            .pop_front()
+            .ok_or(self.error("empty current_type"))?
+            .get_i64()
+            .map_err(|e| self.error_states(&e.to_string()))
+    }
 
     fn parse_type(&mut self) -> Result<Opcode> {
-        let op = self.current_type.pop_front().unwrap().get_i64()?;
+        //let op = self.current_type.pop_front().unwrap().get_i64()?;
+        let op = self.get_type_i64()?;
         if op >= 0 {
             self.current_type.pop_front();
             let ty = &self.table[op as usize];
@@ -183,17 +205,16 @@ impl<'de> Deserializer<'de> {
     }
     fn peek_type(&self) -> Result<Opcode> {
         let op = self.current_type.front().unwrap().get_i64()?;
-        let ty =
-            if op >= 0 {
-                self.table[op as usize][0].get_i64()?
-            } else {
-                op
-            };
+        let ty = if op >= 0 {
+            self.table[op as usize][0].get_i64()?
+        } else {
+            op
+        };
         match Opcode::try_from(ty) {
             Ok(op) => Ok(op),
             Err(e) => Err(Error::Message(e.to_string())),
         }
-    }    
+    }
     fn check_type(&mut self, expected: Opcode) -> Result<()> {
         let wire_type = self.parse_type()?;
         if wire_type != expected {
@@ -321,7 +342,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 value
             }
             Opcode::Record => {
-                let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
+                let len = self
+                    .current_type
+                    .pop_front()
+                    .ok_or(Error::Message("Cannot get length of record".to_string()))?
+                    .get_u64()? as u32;
                 visitor.visit_seq(Compound::new(&mut self, Style::Tuple { len, index: 0 }))
             }
             _ => Err(Error::Message("seq only takes vector or tuple".to_string())),
@@ -354,7 +379,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         self.check_type(Opcode::Record)?;
-        let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
+        let len = self
+            .current_type
+            .pop_front()
+            .ok_or(Error::Message("Cannot get length of record".to_string()))?
+            .get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in fields.iter() {
             if fs.insert(idl_hash(s), *s) != None {
@@ -375,7 +404,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         self.check_type(Opcode::Variant)?;
-        let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
+        let len = self
+            .current_type
+            .pop_front()
+            .ok_or(Error::Message("Cannot get length of variant".to_string()))?
+            .get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in variants.iter() {
             if fs.insert(idl_hash(s), *s) != None {
@@ -491,11 +524,11 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                 match fs.get(&hash) {
                     Some(field) => {
                         self.de.set_field_name(field)?;
-                    },
+                    }
                     None => {
                         // This triggers call to deserialize_any to skip both type and value of this unknown field.
-                        self.de.set_field_name("____")?;
-                    },
+                        self.de.set_field_name("_")?;
+                    }
                 }
                 seed.deserialize(&mut *self.de).map(Some)
             }
@@ -534,10 +567,13 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                         match fs.get(&hash) {
                             Some(field) => {
                                 self.de.set_field_name(field)?;
-                            },
+                            }
                             None => {
-                                return Err(Error::Message(format!("Unknown variant hash {}", hash)))
-                            },
+                                return Err(Error::Message(format!(
+                                    "Unknown variant hash {}",
+                                    hash
+                                )))
+                            }
                         }
                         // After we skip all the fields, ty will be the only thing left
                         self.de.current_type.push_back(ty);
