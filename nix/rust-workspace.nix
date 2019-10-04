@@ -31,7 +31,7 @@ drv.overrideAttrs (oldAttrs: {
   DFX_ASSETS = runCommandNoCC "dfx-assets" {} ''
     mkdir -p $out
     cp ${if release then dfinity.rust-workspace else dfinity.rust-workspace-debug}/bin/{client,nodemanager} $out
-    cp ${actorscript.asc}/bin/asc $out
+    cp ${actorscript.asc-bin}/bin/asc $out
     cp ${actorscript.as-ide}/bin/as-ide $out
     cp ${actorscript.didc}/bin/didc $out
     cp ${actorscript.rts}/rts/as-rts.wasm $out
