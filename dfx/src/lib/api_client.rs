@@ -73,6 +73,7 @@ pub enum ReadResponse<A> {
 /// Response reject codes
 #[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(u16)]
+#[allow(dead_code)]
 pub enum ReadRejectCode {
     SysFatal = 1,
     SysTransient = 2,

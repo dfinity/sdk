@@ -71,7 +71,8 @@ where
                 reject_code,
                 reject_message,
             }) => Err(DfxError::ClientError(reject_code, reject_message)),
-            // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
+            // TODO(SDK-446): remove this matcher when moving api_client to ic_http_agent.
+            // `install` cannot return Unknown.
             Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
             Err(x) => Err(x),
         }

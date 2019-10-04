@@ -1,4 +1,3 @@
-// use crate::lib::api_client::ReadRejectCode;
 use ic_http_agent::{RequestIdError, RequestIdFromStringError};
 
 #[derive(Debug)]
@@ -31,6 +30,12 @@ pub enum DfxError {
     // Cannot create a new project because the directory already exists.
     ProjectExists(),
 
+    // The client returned an error. It normally specifies the error as an
+    // HTTP status (so 400-599), and has a string as the error message.
+    // Once the client support errors from the public spec or as an enum,
+    // we should update this type.
+    // We don't use StatusCode here because the client might return some other
+    // number if they support public spec's errors (< 100).
     ClientError(u16, String),
     Unknown(String),
 }
