@@ -9,7 +9,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     Message(String),
     EmptyType,
-    Eof,
     TrailingCharacters,
 }
 
@@ -41,7 +40,6 @@ impl std::error::Error for Error {
     fn description(&self) -> &str {
         match *self {
             Error::Message(ref msg) => msg,
-            Error::Eof => "unexpected end of input",
             Error::EmptyType => "empty current type",
             Error::TrailingCharacters => "trailing characters",
         }

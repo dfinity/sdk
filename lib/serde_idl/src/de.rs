@@ -32,7 +32,9 @@ pub struct IDLDeserialize<'de> {
 impl<'de> IDLDeserialize<'de> {
     pub fn new(bytes: &'de [u8]) -> Self {
         let mut de = Deserializer::from_bytes(bytes);
-        de.parse_table().unwrap();
+        de.parse_table()
+            .map_err(|e| de.dump_error_state(e))
+            .unwrap();
         IDLDeserialize { de }
     }
     pub fn get_value<T>(&mut self) -> Result<T>
@@ -43,15 +45,10 @@ impl<'de> IDLDeserialize<'de> {
             .de
             .types
             .pop_front()
-            .ok_or(Error::msg("No more values to deserialize"))?;
+            .ok_or_else(|| Error::msg("No more values to deserialize"))?;
         self.de.current_type.push_back(ty.clone());
-        
-        let v = match T::deserialize(&mut self.de) {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(Error::msg(format!("{}. Trailing types {:?}, trailing bytes {:?}, table: {:?}", e, self.de.current_type, self.de.input, self.de.table)))
-            }
-        };
+
+        let v = T::deserialize(&mut self.de).map_err(|e| self.de.dump_error_state(e))?;
         if self.de.current_type.is_empty() && self.de.field_name.is_none() {
             Ok(v)
         } else {
@@ -69,10 +66,7 @@ impl<'de> IDLDeserialize<'de> {
             )));
         }
         if !self.de.input.is_empty() {
-            return Err(Error::msg(format!(
-                "Trailing bytes {:?}",
-                self.de.input
-            )));
+            return Err(Error::msg(format!("Trailing bytes {:?}", self.de.input)));
         }
         Ok(())
     }
@@ -118,6 +112,17 @@ impl<'de> Deserializer<'de> {
         }
     }
 
+    fn dump_error_state(&self, e: Error) -> Error {
+        if self.field_name.is_some() {
+            eprintln!("Field name: {:?}", self.field_name);
+        }
+        eprintln!("Trailing type: {:?}", self.current_type);
+        eprintln!("Trailing value: {:?}", self.input);
+        eprintln!("Trailing value types: {:?}", self.types);
+        eprintln!("Table: {:?}", self.table);
+        Error::msg(e)
+    }
+
     fn leb128_read(&mut self) -> Result<u64> {
         leb128_decode(&mut self.input).map_err(Error::msg)
     }
@@ -137,11 +142,9 @@ impl<'de> Deserializer<'de> {
     }
     fn parse_magic(&mut self) -> Result<()> {
         let mut buf = [0u8; 4];
-        self.input.read(&mut buf)?;
-        if buf == *MAGIC_NUMBER {
-            Ok(())
-        } else {
-            Err(Error::msg(format!("wrong magic number {:?}", buf)))
+        match self.input.read(&mut buf) {
+            Ok(4) if buf == *MAGIC_NUMBER => Ok(()),
+            _ => Err(Error::msg(format!("wrong magic number {:?}", buf))),
         }
     }
 
@@ -164,7 +167,12 @@ impl<'de> Deserializer<'de> {
                         buf.push(RawValue::I(self.sleb128_read()?));
                     }
                 }
-                _ => return Err(Error::msg(format!("Unsupported op_code {} in type table", ty))),
+                _ => {
+                    return Err(Error::msg(format!(
+                        "Unsupported op_code {} in type table",
+                        ty
+                    )))
+                }
             };
             self.table.push(buf);
         }
@@ -179,7 +187,7 @@ impl<'de> Deserializer<'de> {
         self.current_type.pop_front().ok_or(Error::EmptyType)
     }
     fn peek_current_type(&self) -> Result<&RawValue> {
-        self.current_type.front().ok_or(Error::EmptyType)        
+        self.current_type.front().ok_or(Error::EmptyType)
     }
 
     fn parse_type(&mut self) -> Result<Opcode> {
@@ -241,6 +249,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let t = self.peek_type()?;
+        eprintln!("any: {:?}", t);
         match t {
             Opcode::Int => self.deserialize_i64(visitor),
             Opcode::Nat => self.deserialize_u64(visitor),
@@ -280,7 +289,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         self.check_type(Opcode::Text)?;
         let len = self.leb128_read()? as usize;
-        let value: Result<&str> = std::str::from_utf8(&self.input[0..len]).map_err(de::Error::custom);
+        let value: Result<&str> =
+            std::str::from_utf8(&self.input[0..len]).map_err(de::Error::custom);
         self.input = &self.input[len..];
         visitor.visit_borrowed_str(value?)
     }
@@ -503,6 +513,7 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                     }
                     None => {
                         // This triggers call to deserialize_any to skip both type and value of this unknown field.
+                        eprintln!("XX {} {}", hash, *len);
                         self.de.set_field_name("_")?;
                     }
                 }
@@ -545,10 +556,7 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                                 self.de.set_field_name(field)?;
                             }
                             None => {
-                                return Err(Error::msg(format!(
-                                    "Unknown variant hash {}",
-                                    hash
-                                )))
+                                return Err(Error::msg(format!("Unknown variant hash {}", hash)))
                             }
                         }
                         // After we skip all the fields, ty will be the only thing left

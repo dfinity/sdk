@@ -13,7 +13,8 @@ fn test_error() {
     );
     check_error(
         || test_decode(b"DIDL", &42),
-        "leb128::read::Error: failed to fill whole buffer");
+        "leb128::read::Error: failed to fill whole buffer",
+    );
     check_error(
         || test_decode(b"DIDL\0\0", &42),
         "No more values to deserialize",
@@ -100,7 +101,7 @@ fn test_struct() {
         },
         "4449444c026c03d3e3aa027edbe3aa0201868eb7027c6c02d3e3aa027e868eb7027c010001000a2a",
     );
-    
+
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct A2 {
         foo: i32,
@@ -111,7 +112,17 @@ fn test_struct() {
         bab: A1,
     }
     let a1 = A1 { foo: 42, bar: true };
-    let a2 = A2 { foo: 42, bar: true, baz: 1, bbb: 1, bib: 1, bab: A1 {foo: 10, bar: false } };
+    let a2 = A2 {
+        foo: 42,
+        bar: true,
+        baz: 1,
+        bbb: 1,
+        bib: 1,
+        bab: A1 {
+            foo: 10,
+            bar: false,
+        },
+    };
     let bytes = Encode!(&a2);
     test_decode(&bytes, &a1);
     let bytes = Encode!(&a1);
