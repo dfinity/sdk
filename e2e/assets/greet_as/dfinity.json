@@ -1,7 +1,7 @@
 {
   "// TODO": "Replace this file with `dfx config`.",
   "version": 1,
-  "dfx": "0.2.0-local-debug",
+  "dfx": "0.3.0-local-debug",
   "canisters": {
     "greet": {
       "main": "greet.as",
