@@ -3,6 +3,14 @@
 setup() {
     # We want to work from a temporary directory, different for every test.
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    export RUST_BACKTRACE=1
+
+    dfx new e2e-project
+    test -d e2e-project
+    test -f e2e-project/dfinity.json
+    cd e2e-project
+
+    echo PWD: $(pwd) >&2
 }
 
 teardown() {
@@ -25,17 +33,7 @@ install_asset() {
     cp -R $ASSET_ROOT/* .
 }
 
-@test "dfx new succeeds" {
-    dfx new e2e-project
-
-    test -d e2e-project
-    test -f e2e-project/dfinity.json
-}
-
 @test "build + install + call + request-status -- greet_as" {
-    dfx new e2e-project
-    cd e2e-project
-
     install_asset greet_as
     dfx_start
     dfx build
@@ -64,9 +62,6 @@ install_asset() {
 
 @test "build + install + call + request-status -- counter_wat" {
     skip "WAT not supporting IDL"
-    dfx new e2e-project
-    cd e2e-project
-
     install_asset counter_wat
 
     dfx build
@@ -107,9 +102,6 @@ install_asset() {
 }
 
 @test "build + install + call + request-status -- counter_as" {
-    dfx new e2e-project
-    cd e2e-project
-
     install_asset counter_as
     dfx_start
     dfx build
