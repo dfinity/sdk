@@ -45,7 +45,7 @@ test("makeActor", async () => {
 
   const canisterId = Buffer.from([1]);
   const methodName = "greet";
-  const arg: Array<Int> = [];
+  const arg = Buffer.from([]);
 
   const nonces = [
     Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),

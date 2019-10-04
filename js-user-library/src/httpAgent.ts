@@ -1,7 +1,6 @@
 import { Buffer } from "buffer";
 import { toHex } from "./buffer";
 import * as cbor from "./cbor";
-import { Int } from "./int";
 import { assertNever } from "./never";
 import { makeNonce } from "./nonce";
 import { requestIdOf } from "./requestId";
@@ -21,8 +20,8 @@ export interface Request extends Record<string, any> {
   // submitted more than once: https://dfinity.atlassian.net/browse/DFN-895
   nonce: Buffer;
   // sender:;
-  // sender_pubkey: Array<Int>;
-  // sender_sig: Array<Int>;
+  // sender_pubkey: Buffer;
+  // sender_sig: Buffer;
 }
 
 interface Response extends Record<string, any> {}
@@ -68,7 +67,7 @@ interface QueryRequest extends Request {
   request_type: ReadRequestType.Query;
   canister_id: CanisterId;
   method_name: string;
-  arg: Array<Int>; // FIXME
+  arg: Buffer;
 }
 
 // An ADT that represents responses to a "query" read request.
@@ -78,7 +77,7 @@ export type QueryResponse
 
 interface QueryResponseReplied extends Response {
   status: QueryResponseStatus.Replied;
-  reply: { arg: Array<Int> };
+  reply: { arg: Buffer };
 }
 
 interface QueryResponseRejected extends Response {
@@ -103,7 +102,7 @@ const makeQueryRequest = (
     arg,
   }: {
     methodName: string,
-    arg: Array<Int>,
+    arg: Buffer,
   },
 ): QueryRequest => ({
   request_type: ReadRequestType.Query,
@@ -133,7 +132,7 @@ interface RequestStatusResponsePending extends Response {
 
 interface RequestStatusResponseReplied extends Response {
   status: RequestStatusResponseStatus.Replied;
-  reply: { arg: Array<Int> };
+  reply: { arg: Buffer };
 }
 
 interface RequestStatusResponseRejected extends Response {
@@ -242,7 +241,7 @@ interface CallRequest extends Request {
   request_type: SubmitRequestType.Call;
   canister_id: CanisterId;
   method_name: string;
-  arg: Array<Int>;
+  arg: Buffer;
 }
 
 // Construct a "call" submit request.
@@ -253,7 +252,7 @@ const makeCallRequest = (
     arg,
   }: {
     methodName: string,
-    arg: Array<Int>,
+    arg: Buffer,
   },
 ): CallRequest => ({
   request_type: SubmitRequestType.Call,
@@ -297,7 +296,7 @@ const call = (
   arg,
 }: {
   methodName: string,
-  arg: Array<Int>,
+  arg: Buffer,
 }): Promise<SubmitResponse> => {
   const request = makeCallRequest(config, {
     methodName,
@@ -326,7 +325,7 @@ const query = (
   arg,
 }: {
   methodName: string,
-  arg: Array<Int>,
+  arg: Buffer,
 }): Promise<QueryResponse> => {
   const request = makeQueryRequest(config, {
     methodName,
@@ -392,7 +391,7 @@ enum Endpoint {
 export interface HttpAgent {
   call(fields: {
     methodName: string,
-    arg: Array<Int>,
+    arg: Buffer,
   }): Promise<SubmitResponse>;
 
   requestStatus(fields: {
@@ -401,7 +400,7 @@ export interface HttpAgent {
 
   query(fields: {
     methodName: string,
-    arg: Array<Int>,
+    arg: Buffer,
   }): Promise<QueryResponse>;
 }
 

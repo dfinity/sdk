@@ -25,7 +25,7 @@ test("call", async () => {
   });
 
   const methodName = "greet";
-  const arg: Array<Int> = []; // FIXME
+  const arg = Buffer.from([]);
 
   const { requestId, response } = await httpAgent.call({
     methodName,
@@ -85,7 +85,7 @@ test("requestStatus", async () => {
     nonce,
     canister_id: canisterId,
     method_name: "greet",
-    arg: [],
+    arg: Buffer.from([]),
   } as Request);
 
   const response = await httpAgent.requestStatus({
