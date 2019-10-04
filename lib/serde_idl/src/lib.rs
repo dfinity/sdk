@@ -7,6 +7,7 @@ extern crate serde;
 
 pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
+pub use serde::Deserialize;
 
 pub mod de;
 pub mod error;
@@ -26,7 +27,7 @@ macro_rules! Decode {
     ( $hex:expr, $($name:ident: $ty:ty),+ ) => {
         let mut de = serde_idl::de::IDLDeserialize::new($hex);
         $(let $name: $ty = de.get_value().unwrap();)+
-        de.done().unwrap();
+        de.done().unwrap()
     }
 }
 
