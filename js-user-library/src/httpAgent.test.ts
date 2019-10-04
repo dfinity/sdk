@@ -2,6 +2,7 @@ import { Buffer } from "buffer/";
 import * as cbor from "./cbor";
 
 import {
+  Hex,
   Int,
   makeHttpAgent,
   Request,
@@ -15,11 +16,10 @@ test("call", async () => {
     }));
   });
 
-  const canisterId = Buffer.from([1]);
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
   const httpAgent = makeHttpAgent({
-    canisterId,
+    canisterId: "0000000000000001" as Hex,
     fetchFn: mockFetch,
     nonceFn: () => nonce,
   });
@@ -35,7 +35,7 @@ test("call", async () => {
   const expectedRequest = {
     request_type: "call",
     nonce,
-    canister_id: canisterId,
+    canister_id: Buffer.from([0, 0, 0, 0, 0, 0, 0, 1]),
     method_name: methodName,
     arg,
   } as Request;
@@ -71,8 +71,8 @@ test("requestStatus", async () => {
     }));
   });
 
-  const canisterId = Buffer.from([1]);
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const canisterId = "0000000000000001" as Hex;
 
   const httpAgent = makeHttpAgent({
     canisterId,

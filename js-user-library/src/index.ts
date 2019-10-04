@@ -1,3 +1,4 @@
+export * from "./hex";
 export * from "./httpAgent";
 export * from "./int";
 

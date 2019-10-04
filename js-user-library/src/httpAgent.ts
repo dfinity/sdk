@@ -1,6 +1,8 @@
 import { Buffer } from "buffer/";
 import { toHex } from "./buffer";
 import * as cbor from "./cbor";
+import { Hex } from "./hex";
+import { Int } from "./int";
 import { assertNever } from "./never";
 import { makeNonce } from "./nonce";
 import { requestIdOf } from "./requestId";
@@ -340,7 +342,7 @@ const query = (
 const API_VERSION = "v1";
 
 interface Options {
-  canisterId: CanisterId;
+  canisterId: Hex;
   fetchFn?: WindowOrWorkerGlobalScope["fetch"];
   host?: string;
   nonceFn?: () => Buffer;
@@ -370,6 +372,7 @@ const makeConfig = (options: Options): Config => {
   const withDefaults = { ...defaultOptions, ...options };
   return {
     ...withDefaults,
+    canisterId: Buffer.from(options.canisterId, "hex"),
     runFetch: (endpoint, body) => {
       return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",
