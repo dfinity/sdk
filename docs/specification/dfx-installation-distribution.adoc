@@ -13,9 +13,11 @@ This document covers how the `dfx` binary should be distributed and versioned on
 Managing binaries and `dfx` versions locally on the user machine is covered by <<./version-management.adoc>>.
 
 == Installation
+
 Multiple distributions channels can be used to get the `dfx` binary installed on a user's machine. The user could go to https://sdk.dfinity.org to have a list of options available for him.
 
 === Shell
+
 The user launches their terminal to download and install the binary locally. The user runs the following line (or similar) in the shell (multiple variants could be made available for fish, powershell or others):
 [source,bash]
 ----
@@ -27,6 +29,7 @@ A sha256 of the `install.sh` script should be provided to allow the user to veri
 This does not require root access, but might explain to the user how to add the binary to their path variable.
 
 === Direct Download
+
 The user download the binary directly, from one of our S3 buckets. URL scheme looks like this:
 
 https://sdk.dfinity.org/dfx/${VERSION}/${PLATFORM}-${ARCH}/dfx-${V_VERSION}.{EXT}
@@ -47,11 +50,13 @@ Example: https://sdk.dfinity.org/dfx/1.2.0/linux-x86_64/dfx-1.2.0.gz
 The user can then install that binary wherever he pleases.
 
 === Installer Download
-Variable installers should be made available for different platform. For example, on macOS, a user could download a `pkg` file that installs `dfx` directly for them.
+
+Various installers should be made available for different platform. For example, on macOS, a user could download a `pkg` file that installs `dfx` directly for them.
 
 This could be distributed at the same location as other versions, replacing the `EXT` variable above with the extension of the installer the user should be looking for.
 
 === Package Manager
+
 It would be useful for the user to use the package manager they already have.
 
 For example, the following package managers should be supported:
@@ -60,25 +65,30 @@ For example, the following package managers should be supported:
 . `npm`. Most users working with frontends will have npm available, and it is available on almost every platforms.
 . `dpkg` and `apt-get`. Plus other linux package managers.
 
-The actual names on those package managers is currently to be determined.
+The actual names of the package managers officially supported is currently to be determined (out of scope of this document).
 
 === Github releases
+
 The user could go to GitHub and download a release directly. This would be very similar to a direct download but would be part of the github releases.
 
 === Using the Internet Computer
+
 On the IC launches, the binary should also be available through a canister. The user could then use a special command to download and install the binary on his machine.
 
 This section is to be finished.
 
 == Distribution
+
 This section details how to build and deploy the various distributions.
 
 === Release Tagging
+
 Tagging a release using the exact tag format `v{MAJOR}.{MINOR}.{PATCH}[-{PRERELEASE}]` would lead CI to build a release build of `dfx`, and run the e2e tests on it. After doing that, the CI process would upload it to S3 to be made available directly through direct download.
 
 Once the binaries are available for users to download, nothing needs to be done. All package managers should always verify and download the latest version.
 
 === Package Version Tagging
+
 In addition to direct version numbers, the user can use the following tags to download a version of `dfx`:
 
 . `latest`. The latest stable version of `dfx`.
@@ -87,6 +97,7 @@ In addition to direct version numbers, the user can use the following tags to do
 These tags should be available on package managers that support them (e.g. `npm install dfx@next`).
 
 === Package Version Listing
+
 Using the URL `https://sdk.dfinity.org/dfx/index.{html,json}` should list all available packages, in either an HTML human pleasant format, or a json machine readable one.
 
 The JSON schema could look like this:
@@ -113,6 +124,7 @@ The JSON schema could look like this:
 ----
 
 == TO BE DETERMINED
+
 What remains to be done prior to the final 1.0.0 release:
 
 . Find a proper name for the package managers namespace. Hopefully something unique to all managers so users can use the same name (e.g. `npm install dfx` and `brew install dfx`).
