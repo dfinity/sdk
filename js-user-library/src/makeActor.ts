@@ -5,6 +5,7 @@ import {
 } from "./httpAgent";
 
 import { zipWith } from "./array";
+import { toHex } from "./buffer";
 import _IDL from "./IDL";
 
 // Allows for one client for the lifetime of the actor:
@@ -63,7 +64,11 @@ export const makeActor = (
           }
           default: {
             if (i + 1 === maxRetries) {
-              return response; // TODO: throw
+              throw new Error([
+                "Failed to retrieve a reply for request:",
+                `  Request ID: ${toHex(requestId)}`,
+                `  Request status: ${response.status}`,
+              ].join("\n"));
             }
           }
         }

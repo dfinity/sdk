@@ -7,6 +7,10 @@ import { makeActor, makeHttpAgent } from "@internet-computer/js-user-library";
     canisterId: config.canisters.hello.canister_id,
   });
   const actor = makeActor(actorInterface)(httpAgent);
-  const reply = await actor.greet();
-  console.log(reply);
+  try {
+    const reply = await actor.greet();
+    console.log(reply);
+  } catch (error) {
+    console.error(error);
+  }
 })();
