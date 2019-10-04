@@ -21,6 +21,8 @@
     "test": "npm run lint && npm run type-check && jest --verbose"
   },
   "dependencies": {
+    "@types/async-retry": "^1.4.1",
+    "async-retry": "^1.2.3",
     "buffer": "^5.4.3",
     "core-js": "^3.2.1",
     "node-fetch": "^2.6.0",

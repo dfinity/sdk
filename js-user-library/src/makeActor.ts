@@ -4,6 +4,7 @@ import {
   RequestStatusResponseStatus,
 } from "./httpAgent";
 
+import retry from "async-retry";
 import { zipWith } from "./array";
 import { toHex } from "./buffer";
 import _IDL from "./IDL";
@@ -41,10 +42,9 @@ export const makeActor = (
         // response, // FIXME: check response is OK before continuing
       } = await httpAgent.call({ methodName, arg: [] });
 
-      const maxRetries = 3;
+      const maxAttempts = 3;
 
-      // NOTE: we may need to use something like `setInterval` here
-      for (let i = 0; i < maxRetries; i++) {
+      const reply = await retry(async (bail, attempts) => {
         const response: RequestStatusResponse = await httpAgent.requestStatus({
           requestId,
         });
@@ -56,31 +56,30 @@ export const makeActor = (
             // FIXME: Old code does something like the following:
             // tslint:disable-next-line: max-line-length
             // https://github.com/dfinity-lab/dev/blob/9030c90efe5b3de33670d4f4f0331482d51c5858/experimental/js-dfinity-client/src/IDL.js#L753
-            // TODO: throw if func.retTypes.length !== response.reply.arg.length
+            // TODO: throw if
+            //   func.retTypes.length !== response.reply.arg.length
             // TODO: handle IDL decoding failures
-            // return zipWith(func.retTypes, response.reply.arg, (x, y) => {
-            //   return x.decode(y);
-            // });
+            //   return zipWith(
+            //     func.retTypes,
+            //     response.reply.arg,
+            //     (x, y) => {
+            //       return x.decode(y);
+            //     },
+            //   );
           }
           default: {
-            if (i + 1 === maxRetries) {
-              throw new Error([
-                "Failed to retrieve a reply for request:",
-                `  Request ID: ${toHex(requestId)}`,
-                `  Request status: ${response.status}`,
-              ].join("\n"));
-            }
+            throw new Error([
+              `Failed to retrieve a reply for request after ${attempts} attempts:`,
+              `  Request ID: ${toHex(requestId)}`,
+              `  Request status: ${response.status}`,
+            ].join("\n"));
           }
         }
-        /*
-        // TODO: handle decoding failure
-        const responseBody = await response.arrayBuffer();
-        // TODO: throw if fn.retTypes.length !== args.length
-        const decoded = zipWith(fn.retTypes, responseBody, (x, y) => {
-          return x.decode(y);
-        });
-        */
-      }
+      }, {
+        retries: maxAttempts - 1,
+      });
+
+      return reply;
     }];
   }));
 };
