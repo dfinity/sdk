@@ -94,7 +94,19 @@ test("requestStatus", async () => {
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
-  expect(response.toString()).toEqual(mockResponse);
+
+  const {
+    reply: { arg: responseArg },
+    ...responseRest
+  } = response;
+
+  const {
+    reply: { arg: mockResponseArg },
+    ...mockResponseRest
+  } = mockResponse;
+
+  expect(responseRest).toEqual(mockResponseRest);
+  expect(responseArg.equals(mockResponseArg)).toBe(true);
 
   expect(calls[0][0]).toBe("http://localhost:8000/api/v1/read");
   expect(calls[0][1]).toEqual({
