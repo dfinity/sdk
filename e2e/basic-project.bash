@@ -32,7 +32,7 @@ install_asset() {
     test -f e2e-project/dfinity.json
 }
 
-@test "canister query -- greet" {
+@test "build + install + call + request-status -- greet_as" {
     dfx new e2e-project
     cd e2e-project
 
@@ -45,39 +45,21 @@ install_asset() {
     run dfx canister query 1 greet --type=string Banzai
     [[ $status == 0 ]]
     [[ "$output" == "Hello, Banzai!" ]]
-}
 
-@test "canister call wait -- greet" {
-    dfx new e2e-project
-    cd e2e-project
-
-    install_asset greet_as
-    dfx_start
-    dfx build
-    dfx canister install 1 build/greet.wasm --wait
-
+    # Using call --wait.
     run dfx canister call --wait 1 greet --type=string Bongalo
     echo $output
     [[ $status == 0 ]]
     [[ "$output" == "Hello, Bongalo!" ]]
-}
 
-@test "canister call + request-status -- greet" {
-    dfx new e2e-project
-    cd e2e-project
-
-    install_asset greet_as
-    dfx_start
-    dfx build
-    dfx canister install 1 build/greet.wasm --wait
-
-    run dfx canister call 1 greet --type=string Bongalo
+    # Using call and request-status.
+    run dfx canister call 1 greet --type=string Blueberry
     [[ $status == 0 ]]
 
     # At this point $output is the request ID.
     run dfx canister request-status $output
     [[ $status == 0 ]]
-    [[ "$output" == "Hello, Bongalo!" ]]
+    [[ "$output" == "Hello, Blueberry!" ]]
 }
 
 @test "build + install + call + request-status -- counter_wat" {
