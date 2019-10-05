@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 
-pub const CONFIG_FILE_NAME: &str = "dfinity.json";
+pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     build: None,
