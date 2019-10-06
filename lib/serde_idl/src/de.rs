@@ -184,32 +184,33 @@ impl<'de> Deserializer<'de> {
         Ok(())
     }
     fn pop_current_type(&mut self) -> Result<RawValue> {
-        self.current_type.pop_front().ok_or(Error::EmptyType)
+        let v = self.current_type.pop_front().ok_or(Error::EmptyType);
+        eprintln!("pop {:?}", v);
+        v
     }
     fn peek_current_type(&self) -> Result<&RawValue> {
-        self.current_type.front().ok_or(Error::EmptyType)
+        let v = self.current_type.front().ok_or(Error::EmptyType);
+        eprintln!("peek {:?}", v);
+        v
     }
 
     fn parse_type(&mut self) -> Result<Opcode> {
-        let op = self.pop_current_type()?.get_i64()?;
+        let mut op = self.pop_current_type()?.get_i64()?;
         if op >= 0 {
             let ty = &self.table[op as usize];
             for x in ty.iter().rev() {
                 self.current_type.push_front(x.clone());
             }
-            self.parse_type()
-        } else {
-            Opcode::try_from(op).map_err(Error::msg)
+            op = self.pop_current_type()?.get_i64()?;
         }
+        Opcode::try_from(op).map_err(Error::msg)
     }
     fn peek_type(&self) -> Result<Opcode> {
-        let op = self.peek_current_type()?.get_i64()?;
-        let ty = if op >= 0 {
-            self.table[op as usize][0].get_i64()?
-        } else {
-            op
-        };
-        Opcode::try_from(ty).map_err(Error::msg)
+        let mut op = self.peek_current_type()?.get_i64()?;
+        if op >= 0 {
+            op = self.table[op as usize][0].get_i64()?;
+        }
+        Opcode::try_from(op).map_err(Error::msg)
     }
     fn check_type(&mut self, expected: Opcode) -> Result<()> {
         let wire_type = self.parse_type()?;
@@ -221,12 +222,11 @@ impl<'de> Deserializer<'de> {
         }
         Ok(())
     }
-    fn set_field_name(&mut self, field: &'static str) -> Result<()> {
+    fn set_field_name(&mut self, field: &'static str) {
         if self.field_name.is_some() {
-            return Err(Error::msg("field_name already taken"));
+            panic!(format!("field_name already taken {:?}", self.field_name));
         }
         self.field_name = Some(field);
-        Ok(())
     }
 }
 
@@ -248,6 +248,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
+        if self.field_name.is_some() {
+            return self.deserialize_identifier(visitor)
+        }
         let t = self.peek_type()?;
         eprintln!("any: {:?}", t);
         match t {
@@ -365,7 +368,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
     fn deserialize_struct<V>(
         mut self,
-        _name: &'static str,
+        name: &'static str,
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
@@ -380,6 +383,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 return Err(Error::msg(format!("hash collisiosn {}", s)));
             }
         }
+        eprintln!("Struct {} {:?}", name, fields);
         let value = visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))?;
         Ok(value)
     }
@@ -409,10 +413,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        if self.field_name.is_none() {
-            return Err(Error::msg("empty field_name"));
-        }
         let v = visitor.visit_str(self.field_name.unwrap());
+        eprintln!("de_ident {:?}", self.field_name);
         self.field_name = None;
         v
     }
@@ -509,12 +511,13 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                 let hash = self.de.pop_current_type()?.get_u64()? as u32;
                 match fs.get(&hash) {
                     Some(field) => {
-                        self.de.set_field_name(field)?;
+                        eprintln!("Field {} {}", field, *len);
+                        self.de.set_field_name(field);
                     }
                     None => {
-                        // This triggers call to deserialize_any to skip both type and value of this unknown field.
-                        eprintln!("XX {} {}", hash, *len);
-                        self.de.set_field_name("_")?;
+                        // This triggers seed.deserialize to call deserialize_any to skip both type and value of this unknown field.
+                        eprintln!("Unknown {} {}", hash, *len);
+                        self.de.set_field_name("_");
                     }
                 }
                 seed.deserialize(&mut *self.de).map(Some)
@@ -553,7 +556,7 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     if i == index {
                         match fs.get(&hash) {
                             Some(field) => {
-                                self.de.set_field_name(field)?;
+                                self.de.set_field_name(field);
                             }
                             None => {
                                 return Err(Error::msg(format!("Unknown variant hash {}", hash)))

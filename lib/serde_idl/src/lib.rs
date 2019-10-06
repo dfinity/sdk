@@ -15,9 +15,9 @@ pub mod ser;
 
 #[macro_export]
 macro_rules! Encode {
-    ( $($x:expr),+ ) => {{
+    ( $($x:expr),* ) => {{
         let mut idl = serde_idl::ser::IDLBuilder::new();
-        $(idl.arg($x);)+
+        $(idl.arg($x);)*
         idl.to_vec().unwrap()
     }}
 }

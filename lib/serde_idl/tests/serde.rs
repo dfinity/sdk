@@ -103,32 +103,6 @@ fn test_struct() {
     );
 
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
-    struct A2 {
-        foo: i32,
-        bar: bool,
-        baz: u32,
-        bbb: u32,
-        bib: u32,
-        bab: A1,
-    }
-    let a1 = A1 { foo: 42, bar: true };
-    let a2 = A2 {
-        foo: 42,
-        bar: true,
-        baz: 1,
-        bbb: 1,
-        bib: 1,
-        bab: A1 {
-            foo: 10,
-            bar: false,
-        },
-    };
-    let bytes = Encode!(&a2);
-    test_decode(&bytes, &a1);
-    let bytes = Encode!(&a1);
-    check_error(|| test_decode(&bytes, &a2), "missing field `baz`");
-
-    #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct B(bool, i32);
     all_check(B(true, 42), "4449444c016c02007e017c0100012a");
 
@@ -153,6 +127,45 @@ fn test_struct() {
     let list: Option<List> = None;
     // without memoization on the unrolled type, type table will have 3 entries.
     all_check(list, "4449444c026e016c02a0d2aca8047c90eddae70400010000");
+}
+
+#[test]
+fn test_extra_fields() {
+    #[derive(PartialEq, Debug, Deserialize, IDLType)]
+    struct A1 {
+        foo: i32,
+        bar: bool,
+    }
+    #[derive(PartialEq, Debug, Deserialize, IDLType)]
+    enum E1 {
+        Foo,
+        Bar,
+    }    
+    #[derive(PartialEq, Debug, Deserialize, IDLType)]
+    struct A2 {
+        foo: i32,
+        bar: bool,
+        baz: u32,
+        bbb: u32,
+        bib: E1,
+        bab: A1,
+    }
+    let a1 = A1 { foo: 42, bar: true };
+    let a2 = A2 {
+        foo: 42,
+        bar: true,
+        baz: 1,
+        bbb: 1,
+        bib: E1::Foo,
+        bab: A1 {
+            foo: 10,
+            bar: false,
+        },
+    };
+    let bytes = Encode!(&a2);
+    test_decode(&bytes, &a1);
+    let bytes = Encode!(&a1);
+    check_error(|| test_decode(&bytes, &a2), "missing field `baz`");    
 }
 
 #[test]
