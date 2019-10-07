@@ -1,5 +1,5 @@
 import { Buffer } from "buffer/";
-import { toHex } from "./buffer";
+import { fromHex, toHex } from "./buffer";
 import * as cbor from "./cbor";
 import { Hex } from "./hex";
 import { Int } from "./int";
@@ -372,7 +372,7 @@ const makeConfig = (options: Options): Config => {
   const withDefaults = { ...defaultOptions, ...options };
   return {
     ...withDefaults,
-    canisterId: Buffer.from(options.canisterId, "hex"),
+    canisterId: fromHex(options.canisterId),
     runFetch: (endpoint, body) => {
       return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",
