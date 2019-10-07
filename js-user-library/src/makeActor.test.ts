@@ -1,5 +1,5 @@
 import { Buffer } from "buffer/";
-import { fromHex } from "./buffer";
+import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";
 
 import {
@@ -47,7 +47,7 @@ test("makeActor", async () => {
   const methodName = "greet";
   const arg = Buffer.from([]);
 
-  const canisterId = "0000000000000001" as Hex;
+  const canisterIdent = "0000000000000001" as Hex;
 
   const nonces = [
     Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]),
@@ -59,7 +59,7 @@ test("makeActor", async () => {
   const expectedCallRequest = {
     request_type: "call",
     nonce: nonces[0],
-    canister_id: fromHex(canisterId),
+    canister_id: canisterId.fromHex(canisterIdent),
     method_name: methodName,
     arg,
   } as Request;
@@ -69,7 +69,7 @@ test("makeActor", async () => {
   let nonceCount = 0;
 
   const httpAgent = makeHttpAgent({
-    canisterId,
+    canisterId: canisterIdent,
     fetchFn: mockFetch,
     nonceFn: () => {
       const nonce = nonces[nonceCount];

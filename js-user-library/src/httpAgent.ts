@@ -1,16 +1,15 @@
 import { Buffer } from "buffer/";
-import { fromHex, toHex } from "./buffer";
+import { CanisterId } from "./canisterId";
+import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";
 import { Hex } from "./hex";
-import { Int } from "./int";
 import { assertNever } from "./never";
 import { makeNonce } from "./nonce";
 import { RequestId, requestIdOf } from "./requestId";
 
 // TODO:
 // * Handle errors everywhere we `await`
-
-export type CanisterId = Buffer & { __canisterId__: void };
+// * Convert `CanisterId` back to being a `Buffer`
 
 // Common request fields.
 export interface Request extends Record<string, any> {
@@ -371,7 +370,7 @@ const makeConfig = (options: Options): Config => {
   const withDefaults = { ...defaultOptions, ...options };
   return {
     ...withDefaults,
-    canisterId: fromHex(options.canisterId) as CanisterId,
+    canisterId: canisterId.fromHex(options.canisterId),
     runFetch: (endpoint, body) => {
       return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",
