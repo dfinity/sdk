@@ -26,7 +26,9 @@ pkgs.mkShell {
     dfx new temp &> /dev/null
     popd
 
+    dfx start --background
     dfx build
+    dfx canister install 42 build/canisters/hello/main.wasm
 
     # Until https://github.com/dfinity-lab/actorscript/pull/693 is merged
     echo "export default ({ IDL }) => {" > build/canisters/hello/main.js
@@ -39,7 +41,6 @@ pkgs.mkShell {
 
     npm run bundle
 
-    dfx start --background
     open $(jq --raw-output '"http://\(.defaults.start.address):\(.defaults.start.port)"' dfinity.json)
 
     set +e
