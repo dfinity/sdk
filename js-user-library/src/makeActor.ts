@@ -61,7 +61,7 @@ export const makeActor = (
 
         switch (response.status) {
           case RequestStatusResponseStatus.Replied: {
-            return response.reply;
+            return response.reply.arg;
 
             // FIXME: Old code does something like the following:
             // tslint:disable-next-line: max-line-length
@@ -89,7 +89,7 @@ export const makeActor = (
         retries: maxAttempts - 1,
       });
 
-      return reply.arg;
+      return reply;
     }];
   }));
 };
