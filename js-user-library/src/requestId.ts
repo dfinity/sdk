@@ -1,6 +1,8 @@
 import { Buffer } from "buffer/";
 import { CborValue } from "./cbor";
-import { Request, RequestId } from "./httpAgent";
+import { Request } from "./httpAgent";
+
+export type RequestId = Buffer & { __requestId__: void };
 
 // The spec describes encoding for these types.
 type HashableValue = string | Buffer;
@@ -61,5 +63,5 @@ export const requestIdOf = async (request: Request): Promise<RequestId> => {
     });
 
   const concatenated: Buffer = concat(sorted.map(concat));
-  return hash(concatenated);
+  return hash(concatenated) as Promise<RequestId>;
 };

@@ -5,13 +5,12 @@ import { Hex } from "./hex";
 import { Int } from "./int";
 import { assertNever } from "./never";
 import { makeNonce } from "./nonce";
-import { requestIdOf } from "./requestId";
+import { RequestId, requestIdOf } from "./requestId";
 
 // TODO:
 // * Handle errors everywhere we `await`
 
-export type CanisterId = Buffer;
-export type RequestId = Buffer;
+export type CanisterId = Buffer & { __canisterId__: void };
 
 // Common request fields.
 export interface Request extends Record<string, any> {
@@ -372,7 +371,7 @@ const makeConfig = (options: Options): Config => {
   const withDefaults = { ...defaultOptions, ...options };
   return {
     ...withDefaults,
-    canisterId: fromHex(options.canisterId),
+    canisterId: fromHex(options.canisterId) as CanisterId,
     runFetch: (endpoint, body) => {
       return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",
