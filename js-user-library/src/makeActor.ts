@@ -40,8 +40,17 @@ export const makeActor = (
 
       const {
         requestId,
-        // response, // FIXME: check response is OK before continuing
+        response: callResponse,
       } = await httpAgent.call({ methodName, arg: Buffer.from([]) });
+
+      if (!callResponse.ok) {
+        throw new Error([
+          `Request failed:`,
+          `  Request ID: ${toHex(requestId)}`,
+          `  HTTP status code: ${callResponse.status}`,
+          `  HTTP status text: ${callResponse.statusText}`,
+        ].join("\n"));
+      }
 
       const maxAttempts = 3;
 
