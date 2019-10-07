@@ -27,7 +27,7 @@ pkgs.mkShell {
     popd
 
     dfx start --background
-    dfx build
+    dfx build hello
     dfx canister install 42 build/canisters/hello/main.wasm
 
     # Until https://github.com/dfinity-lab/actorscript/pull/693 is merged
