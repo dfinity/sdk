@@ -81,7 +81,7 @@ This section details how to build and deploy the various distributions.
 
 === Release Tagging
 
-Tagging a release using the exact tag format `v{MAJOR}.{MINOR}.{PATCH}[-{PRERELEASE}]` would lead CI to build a release build of `dfx`, and run the e2e tests on it. After doing that, the CI process would upload it to S3 to be made available directly through direct download.
+Tagging a release (on `git`) using the exact tag format `v{MAJOR}.{MINOR}.{PATCH}[-{PRERELEASE}]` would lead CI to build a release build of `dfx`, and run the e2e tests on it. After doing that, the CI process would upload it to S3 to be made available directly through direct download.
 
 Once the binaries are available for users to download, nothing needs to be done. All package managers should always verify and download the latest version.
 
