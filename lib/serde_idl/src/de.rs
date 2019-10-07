@@ -550,6 +550,7 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                         index, len
                     )));
                 }
+                let mut index_ty = None;
                 for i in 0..len {
                     let hash = self.de.pop_current_type()?.get_u64()? as u32;
                     let ty = self.de.pop_current_type()?;
@@ -559,13 +560,17 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                                 self.de.set_field_name(field);
                             }
                             None => {
-                                return Err(Error::msg(format!("Unknown variant hash {}", hash)))
+                                if !fs.is_empty() {
+                                    return Err(Error::msg(format!("Unknown variant hash {}", hash)));
+                                } else {
+                                    self.de.set_field_name("_");
+                                }
                             }
                         }
-                        // After we skip all the fields, ty will be the only thing left
-                        self.de.current_type.push_back(ty);
+                        index_ty = Some(ty);
                     }
                 }
+                self.de.current_type.push_front(index_ty.unwrap());
                 let val = seed.deserialize(&mut *self.de)?;
                 Ok((val, self))
             }

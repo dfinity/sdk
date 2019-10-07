@@ -51,7 +51,7 @@ fn test_integer() {
     all_check(-1_234_567_890, "4449444c00017caefaa7b37b");
     all_check(Box::new(42), "4449444c00017c2a");
     check_error(
-        || test_decode(&hex::decode("4449444c00017c2a").unwrap(), &42u32),
+        || test_decode(&hex("4449444c00017c2a"), &42u32),
         "Type mismatch. Type on the wire: Int; Provided type: Nat",
     );
 }
@@ -59,7 +59,7 @@ fn test_integer() {
 #[test]
 fn test_text() {
     all_check("Hi ☃\n".to_string(), "4449444c00017107486920e298830a");
-    let bytes = hex::decode("4449444c00017107486920e298830a").unwrap();
+    let bytes = hex("4449444c00017107486920e298830a");
     test_encode(&"Hi ☃\n", &bytes);
     test_decode(&bytes, &"Hi ☃\n");
 }
@@ -84,6 +84,12 @@ fn test_struct() {
     }
     let a1 = A1 { foo: 42, bar: true };
     all_check(a1, "4449444c016c02d3e3aa027e868eb7027c0100012a");
+
+    // Field name hash is larger than u32
+    check_error(|| {
+        test_decode(&hex("4449444c016c02a3e0d4b9bf86027e868eb7027c0100012a"), &A1 {foo: 42, bar: true})
+    }, "missing field `bar`");
+    
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct A11 {
         foo: i32,
@@ -101,6 +107,7 @@ fn test_struct() {
         },
         "4449444c026c03d3e3aa027edbe3aa0201868eb7027c6c02d3e3aa027e868eb7027c010001000a2a",
     );
+
 
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct B(bool, i32);
@@ -205,7 +212,7 @@ fn test_tuple() {
     check_error(
         || {
             test_decode(
-                &hex::decode("4449444c016c02007c027101002a04f09f92a9").unwrap(),
+                &hex("4449444c016c02007c027101002a04f09f92a9"),
                 &(42, "💩"),
             )
         },
@@ -224,12 +231,18 @@ fn test_variant() {
     check_error(
         || {
             test_decode(
-                &hex::decode("4449444c016b02b3d3c9017fe6fdd5017f010003").unwrap(),
+                &hex("4449444c016b02b3d3c9017fe6fdd5017f010003"),
                 &Unit::Bar,
             )
         },
         "variant index 3 larger than length 2",
     );
+
+    check_error(|| {
+        test_decode(
+            &hex("4449444c016b02b4d3c9017fe6fdd5017f010000"),
+            &Unit::Bar)
+    }, "Unknown variant hash 3303860");
 
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     enum Unit2 {
@@ -243,7 +256,6 @@ fn test_variant() {
     let res: Result<String, String> = Ok("good".to_string());
     all_check(res, "4449444c016b02bc8a0171c5fed2017101000004676f6f64");
 
-    #[allow(dead_code)]
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     enum E {
         Foo,
@@ -275,7 +287,7 @@ fn test_multiargs() {
     let bytes = Encode!(&42, &Some(42), &Some(1), &Some(2));
     assert_eq!(
         bytes,
-        hex::decode("4449444c016e7c047c0000002a012a01010102").unwrap()
+        hex("4449444c016e7c047c0000002a012a01010102")
     );
 
     Decode!(
@@ -298,7 +310,7 @@ fn test_multiargs() {
     let bytes = Encode!(&[(42, "text")], &(42, "text"));
     assert_eq!(
         bytes,
-        hex::decode("4449444c026d016c02007c0171020001012a04746578742a0474657874").unwrap()
+        hex("4449444c026d016c02007c0171020001012a04746578742a0474657874")
     );
 
     Decode!(&bytes, a: Vec<(i64, &str)>, b: (i64, String));
@@ -312,11 +324,15 @@ fn test_multiargs() {
     check_error(err, "No more values to deserialize");
 }
 
+fn hex(bytes: &str) -> Vec<u8> {
+    hex::decode(bytes).unwrap()
+}
+
 fn all_check<T>(value: T, bytes: &str)
 where
     T: PartialEq + IDLType + serde::de::DeserializeOwned + std::fmt::Debug,
 {
-    let bytes = hex::decode(bytes).unwrap();
+    let bytes = hex(bytes);
     test_encode(&value, &bytes);
     test_decode(&bytes, &value);
 }
