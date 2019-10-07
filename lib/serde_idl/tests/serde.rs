@@ -1,7 +1,7 @@
-extern crate serde_idl;
 extern crate dfx_info;
+extern crate serde_idl;
 
-use serde_idl::{Encode, Decode, IDLType, Deserialize};
+use serde_idl::{Decode, Deserialize, Encode, IDLType};
 
 #[test]
 fn test_error() {
@@ -278,7 +278,7 @@ fn test_generics() {
 fn test_multiargs() {
     let bytes = Encode!();
     assert_eq!(bytes, hex("4449444c0000"));
-    
+
     let bytes = Encode!(&42, &Some(42), &Some(1), &Some(2));
     assert_eq!(bytes, hex("4449444c016e7c047c0000002a012a01010102"));
 
