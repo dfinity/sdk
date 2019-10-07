@@ -215,12 +215,7 @@ fn test_tuple() {
         "4449444c016c02007c017101002a04f09f92a9",
     );
     check_error(
-        || {
-            test_decode(
-                &hex("4449444c016c02007c027101002a04f09f92a9"),
-                &(42, "💩"),
-            )
-        },
+        || test_decode(&hex("4449444c016c02007c027101002a04f09f92a9"), &(42, "💩")),
         "Expect vector index 1, but get 2",
     );
 }

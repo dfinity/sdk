@@ -184,14 +184,10 @@ impl<'de> Deserializer<'de> {
         Ok(())
     }
     fn pop_current_type(&mut self) -> Result<RawValue> {
-        let v = self.current_type.pop_front().ok_or(Error::EmptyType);
-        eprintln!("pop {:?}", v);
-        v
+        self.current_type.pop_front().ok_or(Error::EmptyType)
     }
     fn peek_current_type(&self) -> Result<&RawValue> {
-        let v = self.current_type.front().ok_or(Error::EmptyType);
-        eprintln!("peek {:?}", v);
-        v
+        self.current_type.front().ok_or(Error::EmptyType)
     }
 
     fn parse_type(&mut self) -> Result<Opcode> {
@@ -252,7 +248,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             return self.deserialize_identifier(visitor);
         }
         let t = self.peek_type()?;
-        eprintln!("any: {:?}", t);
         match t {
             Opcode::Int => self.deserialize_i64(visitor),
             Opcode::Nat => self.deserialize_u64(visitor),
@@ -511,12 +506,10 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                 let hash = self.de.pop_current_type()?.get_u64()? as u32;
                 match fs.get(&hash) {
                     Some(field) => {
-                        eprintln!("Field {} {}", field, *len);
                         self.de.set_field_name(field);
                     }
                     None => {
                         // This triggers seed.deserialize to call deserialize_any to skip both type and value of this unknown field.
-                        eprintln!("Unknown {} {}", hash, *len);
                         self.de.set_field_name("_");
                     }
                 }
