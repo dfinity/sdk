@@ -89,7 +89,7 @@ export const makeActor = (
         retries: maxAttempts - 1,
       });
 
-      return reply;
+      return reply.arg;
     }];
   }));
 };
