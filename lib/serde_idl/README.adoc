@@ -4,7 +4,7 @@
 * Example
 [source,rust]
 extern crate serde_idl;
-use serde_idl::{Encode, Decode};
+use serde_idl::{IDLType, Deserialize, Encode, Decode};
 // Serialization
 let bytes = Encode!(&[(42, "text")], &(42, "text"));
 // Deserialization
@@ -14,7 +14,6 @@ assert_eq!(b, (42i32, "text".to_string()));
 
 * Serialize/Deserialize struct/enum
 [source,rust]
-use serde_idl::{IDLType, Deserialize, Encode, Decode};
 #[derive(IDLType, Deserialize)]
 struct List {
     head: i32,
@@ -37,7 +36,7 @@ assert_eq!(List::ty(),
 
 
 == Remaining items
-# Limit recursion depth for deserialization
+* Limit recursion depth for deserialization
 * Support future values
 * Optimize for `new struct` type
 * Refactor serialization to use serde
