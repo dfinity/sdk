@@ -73,9 +73,7 @@ The user could go to GitHub and download a release directly. This would be very 
 
 === Using the Internet Computer
 
-On the IC launches, the binary should also be available through a canister. The user could then use a special command to download and install the binary on his machine.
-
-This section is to be finished.
+Once the IC launches, the `dfx` binary could also be available through a canister's static asset. The user could then use a special command to download and install the binary on his machine, from the IC directly.
 
 == Distribution
 
