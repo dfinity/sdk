@@ -1,7 +1,8 @@
-use crate::lib::api_client::install_code;
+use crate::lib::api_client::{install_code, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::{ClientEnv, ProjectConfigEnv};
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxError, DfxResult};
 use crate::util::clap::validators;
+use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
 use std::path::PathBuf;
@@ -16,6 +17,13 @@ pub fn construct() -> App<'static, 'static> {
                 .help("The canister ID (a number).")
                 .required(true)
                 .validator(validators::is_canister_id),
+        )
+        .arg(
+            Arg::with_name("wait")
+                .help("Wait for the result of the call, by polling the client.")
+                .long("wait")
+                .short("w")
+                .takes_value(false),
         )
         .arg(
             Arg::with_name("wasm")
@@ -42,7 +50,34 @@ where
     let install = install_code(client, canister_id, Blob(wasm), None);
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    runtime.block_on(install)?;
+    let request_id = runtime.block_on(install)?;
 
-    Ok(())
+    if args.is_present("wait") {
+        let request_status = request_status(env.get_client(), request_id);
+        let mut runtime = Runtime::new().expect("Unable to create a runtime");
+        match runtime.block_on(request_status) {
+            Ok(ReadResponse::Pending) => {
+                eprintln!("Pending");
+                println!("0x{}", String::from(request_id));
+                Ok(())
+            }
+            Ok(ReadResponse::Replied { reply }) => {
+                if let Some(QueryResponseReply { arg: blob }) = reply {
+                    print_idl_blob(&blob)?;
+                }
+                Ok(())
+            }
+            Ok(ReadResponse::Rejected {
+                reject_code,
+                reject_message,
+            }) => Err(DfxError::ClientError(reject_code, reject_message)),
+            // TODO(SDK-446): remove this matcher when moving api_client to ic_http_agent.
+            // `install` cannot return Unknown.
+            Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
+            Err(x) => Err(x),
+        }
+    } else {
+        println!("0x{}", String::from(request_id));
+        Ok(())
+    }
 }

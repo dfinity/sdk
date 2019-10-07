@@ -9,6 +9,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     Message(String),
     Eof,
+    InvalidState,
     TrailingCharacters,
 }
 
@@ -35,6 +36,7 @@ impl std::error::Error for Error {
         match *self {
             Error::Message(ref msg) => msg,
             Error::Eof => "unexpected end of input",
+            Error::InvalidState => "invalid state",
             Error::TrailingCharacters => "trailing characters",
         }
     }

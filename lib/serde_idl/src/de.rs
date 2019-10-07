@@ -39,7 +39,7 @@ impl<'de> IDLDeserialize<'de> {
     where
         T: de::Deserialize<'de>,
     {
-        let ty = self.de.types.pop_front().unwrap();
+        let ty = self.de.types.pop_front().ok_or(Error::Eof)?;
         self.de.current_type.push_back(ty.clone());
         let v = T::deserialize(&mut self.de)?;
         if self.de.current_type.is_empty() && self.de.field_index.is_none() {
@@ -165,7 +165,12 @@ impl<'de> Deserializer<'de> {
     }
 
     fn parse_type(&mut self) -> Result<Opcode> {
-        let op = self.current_type.pop_front().unwrap().get_i64()?;
+        let op = self
+            .current_type
+            .pop_front()
+            .ok_or(Error::InvalidState)?
+            .get_i64()?;
+
         if op >= 0 {
             self.current_type.pop_front();
             let ty = &self.table[op as usize];
@@ -198,7 +203,7 @@ macro_rules! primitive_impl {
         paste::item! {
             fn [<deserialize_ $ty>]<V>(self, visitor: V) -> Result<V::Value>
             where V: Visitor<'de> {
-                check_type!(self.parse_type().unwrap(), $opcode);
+                check_type!(self.parse_type()?, $opcode);
                 visitor.[<visit_ $ty>](self.$method()? $($cast)*)
             }
         }
@@ -228,7 +233,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Text);
+        check_type!(self.parse_type()?, Opcode::Text);
         let len = self.leb128_read()? as usize;
         let value = self.parse_string(len)?;
         visitor.visit_string(value)
@@ -238,7 +243,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Text);
+        check_type!(self.parse_type()?, Opcode::Text);
         let len = self.leb128_read()? as usize;
         let value = std::str::from_utf8(&self.input[0..len]).unwrap();
         self.input = &self.input[len..];
@@ -249,7 +254,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Opt);
+        check_type!(self.parse_type()?, Opcode::Opt);
         let bit = self.parse_char()?;
         if bit == 0u8 {
             //self.parse_type() cannot be used as it will expand the type, which has no value
@@ -263,7 +268,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Null);
+        check_type!(self.parse_type()?, Opcode::Null);
         visitor.visit_unit()
     }
     fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
@@ -282,7 +287,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        match self.parse_type().unwrap() {
+        match self.parse_type()? {
             Opcode::Vec => {
                 let len = self.leb128_read()? as u32;
                 let value = visitor.visit_seq(Compound::new(&mut self, Style::Vector { len }));
@@ -290,7 +295,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 value
             }
             Opcode::Record => {
-                let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
+                let len = self.current_type.pop_front().ok_or(Error::Eof)?.get_u64()? as u32;
                 visitor.visit_seq(Compound::new(&mut self, Style::Tuple { len, index: 0 }))
             }
             _ => Err(Error::Message("seq only takes vector or tuple".to_string())),
@@ -322,8 +327,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Record);
-        let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
+        check_type!(self.parse_type()?, Opcode::Record);
+        let len = self.current_type.pop_front().ok_or(Error::Eof)?.get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in fields.iter() {
             if fs.insert(idl_hash(s), *s) != None {
@@ -343,8 +348,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        check_type!(self.parse_type().unwrap(), Opcode::Variant);
-        let len = self.current_type.pop_front().unwrap().get_u64()? as u32;
+        check_type!(self.parse_type()?, Opcode::Variant);
+        let len = self.current_type.pop_front().ok_or(Error::Eof)?.get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in variants.iter() {
             if fs.insert(idl_hash(s), *s) != None {
@@ -362,9 +367,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         if self.field_index.is_none() {
             return Err(Error::Message("empty field_name".to_string()));
         }
-        let v = visitor.visit_str(self.field_index.unwrap());
-        self.field_index = None;
-        v
+        if let Some(i) = self.field_index.take() {
+            visitor.visit_str(i)
+        } else {
+            Err(Error::Eof)
+        }
     }
 
     serde::forward_to_deserialize_any! {
@@ -417,7 +424,12 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                 if *index == *len {
                     return Ok(None);
                 }
-                let t_idx = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
+                let t_idx = self
+                    .de
+                    .current_type
+                    .pop_front()
+                    .ok_or(Error::Eof)?
+                    .get_u64()? as u32;
                 if t_idx != *index {
                     return Err(Error::Message(format!(
                         "Expect vector index {}, but get {}",
@@ -456,7 +468,12 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                     return Ok(None);
                 }
                 *len -= 1;
-                let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
+                let hash = self
+                    .de
+                    .current_type
+                    .pop_front()
+                    .ok_or(Error::Eof)?
+                    .get_u64()? as u32;
                 if self.de.field_index.is_some() {
                     return Err(Error::Message("field_name already taken".to_string()));
                 }
@@ -492,8 +509,13 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     )));
                 }
                 for i in 0..len {
-                    let hash = self.de.current_type.pop_front().unwrap().get_u64()? as u32;
-                    let ty = self.de.current_type.pop_front().unwrap();
+                    let hash = self
+                        .de
+                        .current_type
+                        .pop_front()
+                        .ok_or(Error::Eof)?
+                        .get_u64()? as u32;
+                    let ty = self.de.current_type.pop_front().ok_or(Error::Eof)?;
                     if i == index {
                         if self.de.field_index.is_some() {
                             return Err(Error::Message("field_index already taken".to_string()));

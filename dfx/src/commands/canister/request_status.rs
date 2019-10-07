@@ -2,8 +2,9 @@ use crate::lib::api_client::{request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::util::clap::validators;
+use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::{Blob, RequestId};
+use ic_http_agent::RequestId;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
@@ -32,8 +33,8 @@ where
             Ok(())
         }
         Ok(ReadResponse::Replied { reply }) => {
-            if let Some(QueryResponseReply { arg: Blob(blob) }) = reply {
-                println!("{}", String::from_utf8_lossy(&blob));
+            if let Some(QueryResponseReply { arg: blob }) = reply {
+                print_idl_blob(&blob)?;
             }
             Ok(())
         }
