@@ -6,7 +6,7 @@ v0.1, 2019-09-25
 
 == Overview
 
-`dfx` is the SDK's official CLI tool, which allows user to create, deploy and manage projects with the Internet Computer. It is currently compiled into a single static binary which includes all assets necessary for it to run (including, for example, other binaries that it writes to disk).
+`dfx` is the SDK's official CLI tool, which allows user to create, deploy and manage projects with the Internet Computer. It is currently compiled into a single static binary (per platform) which includes all assets necessary for it to run (including, for example, other binaries that it writes to disk).
 
 This document covers how the `dfx` binary should be distributed and versioned on the web. It covers how a user is expected to install the `dfx` binary, bootstrap and use it for the first time.
 
@@ -14,7 +14,7 @@ Managing binaries and `dfx` versions locally on the user machine is covered by <
 
 == Installation
 
-Multiple distributions channels can be used to get the `dfx` binary installed on a user's machine. The user could go to https://sdk.dfinity.org to have a list of options available for him.
+Multiple distributions channels can be used to get the `dfx` binary installed on a user's machine. The user could go to https://sdk.dfinity.org to have a list of options available for them.
 
 === Shell
 
@@ -30,7 +30,7 @@ This does not require root access, but might explain to the user how to add the 
 
 === Direct Download
 
-The user download the binary directly, from one of our S3 buckets. URL scheme looks like this:
+The user downloads the binary directly, from one of our S3 buckets. URL scheme looks like this:
 
 https://sdk.dfinity.org/dfx/${VERSION}/${PLATFORM}-${ARCH}/dfx-${V_VERSION}.{EXT}
 
@@ -47,11 +47,11 @@ https://sdk.dfinity.org/dfx/${VERSION}/${PLATFORM}-${ARCH}/dfx-${V_VERSION}.{EXT
 
 Example: https://sdk.dfinity.org/dfx/1.2.0/linux-x86_64/dfx-1.2.0.gz
 
-The user can then install that binary wherever he pleases.
+The user can then install that binary wherever they please.
 
 === Installer Download
 
-Various installers should be made available for different platform. For example, on macOS, a user could download a `pkg` file that installs `dfx` directly for them.
+Various installers should be made available for different platforms. For example, on macOS, a user could download a `pkg` file that installs `dfx` directly for them.
 
 This could be distributed at the same location as other versions, replacing the `EXT` variable above with the extension of the installer the user should be looking for.
 
@@ -62,7 +62,7 @@ It would be useful for the user to use the package manager they already have.
 For example, the following package managers should be supported:
 
 . `brew`. On Mac, this is the most common package manager. No local compilation is necessary to use it, and it can be a binary distribution.
-. `npm`. Most users working with frontends will have npm available, and it is available on almost every platforms.
+. `npm`. Most users working with frontends will have npm available, and it is available on almost every platform.
 . `dpkg` and `apt-get`. Plus other linux package managers.
 
 The actual names of the package managers officially supported is currently to be determined (out of scope of this document).
@@ -73,7 +73,7 @@ The user could go to GitHub and download a release directly. This would be very 
 
 === Using the Internet Computer
 
-Once the IC launches, the `dfx` binary could also be available through a canister's static asset. The user could then use a special command to download and install the binary on his machine, from the IC directly.
+Once the IC launches, the `dfx` binary could also be available through a canister's static asset. The user could then use a special command to download and install the binary on their machine, from the IC directly.
 
 == Distribution
 
