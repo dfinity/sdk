@@ -61,7 +61,16 @@ export const makeActor = (
 
         switch (response.status) {
           case RequestStatusResponseStatus.Replied: {
-            return response.reply.arg;
+            // if (func.retTypes.length !== response.reply.arg.length) {
+            //   throw new Error([
+            //     "Reply did not match expected return type:",
+            //     `  Reply: ${response.reply.arg}`,
+            //     `  Return type: ${func.retTypes}`,
+            //   ].join("\n"));
+            // }
+
+            // FIXME: how to handle multiple return values?
+            return func.retTypes[0].decode(Buffer.from(response.reply.arg));
 
             // FIXME: Old code does something like the following:
             // tslint:disable-next-line: max-line-length

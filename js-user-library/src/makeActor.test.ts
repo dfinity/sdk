@@ -38,7 +38,10 @@ test("makeActor", async () => {
       }));
     })
     .mockImplementationOnce((resource, init) => {
-      const body = cbor.encode({ status: "replied", reply: "Hello, World!" });
+      const body = cbor.encode({
+        status: "replied",
+        reply: { arg: _IDL.Text.encode("Hello, World!") },
+      });
       return Promise.resolve(new Response(body, {
         status: 200,
       }));
