@@ -35,30 +35,54 @@ where
         Some("as") => {
             let output_idl_path = output_path.with_extension("did");
             let output_js_path = output_path.with_extension("js");
+            let as_rts_path = env.get_binary_command_path("as-rts.wasm")?;
+
             // invoke the compiler in debug (development) or release mode,
             // based on the current profile:
             let arg_profile = match profile {
                 None | Some(Profile::Debug) => "--debug",
                 Some(Profile::Release) => "--release",
             };
-            env.get_binary_command("asc")?
+
+            if !env
+                .get_binary_command("asc")?
+                .env("ASC_RTS", as_rts_path.as_path())
                 .arg(&input_path)
                 .arg(arg_profile)
                 .arg("-o")
                 .arg(&output_wasm_path)
-                .output()?;
-            env.get_binary_command("asc")?
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
+
+            if !env
+                .get_binary_command("asc")?
                 .arg("--idl")
                 .arg(&input_path)
                 .arg("-o")
                 .arg(&output_idl_path)
-                .output()?;
-            env.get_binary_command("didc")?
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
+
+            if !env
+                .get_binary_command("didc")?
                 .arg("--js")
                 .arg(&output_idl_path)
                 .arg("-o")
                 .arg(&output_js_path)
-                .output()?;
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
 
             Ok(())
         }
@@ -135,8 +159,10 @@ mod tests {
 
         impl<'a> BinaryResolverEnv for TestEnv<'a> {
             fn get_binary_command_path(&self, _binary_name: &str) -> io::Result<PathBuf> {
-                // This should not be used.
-                panic!("get_binary_command_path should not be called.")
+                // We need to implement this function as it's used to set the "ASC_RTS"
+                // environment variable. Since this test doesn't use environment variables
+                // we don't really care about its value.
+                Ok(PathBuf::new())
             }
             fn get_binary_command(&self, binary_name: &str) -> io::Result<process::Command> {
                 let stdout = self.out_file.try_clone()?;
