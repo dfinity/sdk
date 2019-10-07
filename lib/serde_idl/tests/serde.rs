@@ -86,10 +86,16 @@ fn test_struct() {
     all_check(a1, "4449444c016c02d3e3aa027e868eb7027c0100012a");
 
     // Field name hash is larger than u32
-    check_error(|| {
-        test_decode(&hex("4449444c016c02a3e0d4b9bf86027e868eb7027c0100012a"), &A1 {foo: 42, bar: true})
-    }, "missing field `bar`");
-    
+    check_error(
+        || {
+            test_decode(
+                &hex("4449444c016c02a3e0d4b9bf86027e868eb7027c0100012a"),
+                &A1 { foo: 42, bar: true },
+            )
+        },
+        "missing field `bar`",
+    );
+
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct A11 {
         foo: i32,
@@ -107,7 +113,6 @@ fn test_struct() {
         },
         "4449444c026c03d3e3aa027edbe3aa0201868eb7027c6c02d3e3aa027e868eb7027c010001000a2a",
     );
-
 
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct B(bool, i32);
@@ -147,7 +152,7 @@ fn test_extra_fields() {
     enum E1 {
         Foo,
         Bar,
-    }    
+    }
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     struct A2 {
         foo: i32,
@@ -172,7 +177,7 @@ fn test_extra_fields() {
     let bytes = Encode!(&a2);
     test_decode(&bytes, &a1);
     let bytes = Encode!(&a1);
-    check_error(|| test_decode(&bytes, &a2), "missing field `baz`");    
+    check_error(|| test_decode(&bytes, &a2), "missing field `baz`");
 }
 
 #[test]
@@ -229,20 +234,14 @@ fn test_variant() {
     }
     all_check(Unit::Bar, "4449444c016b02b3d3c9017fe6fdd5017f010000");
     check_error(
-        || {
-            test_decode(
-                &hex("4449444c016b02b3d3c9017fe6fdd5017f010003"),
-                &Unit::Bar,
-            )
-        },
+        || test_decode(&hex("4449444c016b02b3d3c9017fe6fdd5017f010003"), &Unit::Bar),
         "variant index 3 larger than length 2",
     );
 
-    check_error(|| {
-        test_decode(
-            &hex("4449444c016b02b4d3c9017fe6fdd5017f010000"),
-            &Unit::Bar)
-    }, "Unknown variant hash 3303860");
+    check_error(
+        || test_decode(&hex("4449444c016b02b4d3c9017fe6fdd5017f010000"), &Unit::Bar),
+        "Unknown variant hash 3303860",
+    );
 
     #[derive(PartialEq, Debug, Deserialize, IDLType)]
     enum Unit2 {
@@ -285,10 +284,7 @@ fn test_generics() {
 #[test]
 fn test_multiargs() {
     let bytes = Encode!(&42, &Some(42), &Some(1), &Some(2));
-    assert_eq!(
-        bytes,
-        hex("4449444c016e7c047c0000002a012a01010102")
-    );
+    assert_eq!(bytes, hex("4449444c016e7c047c0000002a012a01010102"));
 
     Decode!(
         &bytes,

@@ -249,7 +249,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         if self.field_name.is_some() {
-            return self.deserialize_identifier(visitor)
+            return self.deserialize_identifier(visitor);
         }
         let t = self.peek_type()?;
         eprintln!("any: {:?}", t);
@@ -561,7 +561,10 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                             }
                             None => {
                                 if !fs.is_empty() {
-                                    return Err(Error::msg(format!("Unknown variant hash {}", hash)));
+                                    return Err(Error::msg(format!(
+                                        "Unknown variant hash {}",
+                                        hash
+                                    )));
                                 } else {
                                     self.de.set_field_name("_");
                                 }
