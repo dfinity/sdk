@@ -94,9 +94,15 @@ impl RawValue {
 
 pub struct Deserializer<'de> {
     input: &'de [u8],
+    // Raw value of the type description table
     table: Vec<Vec<RawValue>>,
+    // Value types for deserialization
     types: VecDeque<RawValue>,
+    // The front of current_type queue always points to the type of the value we are deserailizing.
+    // The type info is cloned from table. Someone more familiar with Rust should see if we can
+    // rewrite this to avoid copying.
     current_type: VecDeque<RawValue>,
+    // field_name tells deserialize_identifier which field name to process.
     field_name: Option<&'static str>,
 }
 
@@ -106,7 +112,6 @@ impl<'de> Deserializer<'de> {
             input,
             table: Vec::new(),
             types: VecDeque::new(),
-            // TODO consider borrowing
             current_type: VecDeque::new(),
             field_name: None,
         }
@@ -147,7 +152,7 @@ impl<'de> Deserializer<'de> {
             _ => Err(Error::msg(format!("wrong magic number {:?}", buf))),
         }
     }
-
+    // Parse magic number, type table, and types from input.
     fn parse_table(&mut self) -> Result<()> {
         self.parse_magic()?;
         let len = self.leb128_read()?;
@@ -189,7 +194,9 @@ impl<'de> Deserializer<'de> {
     fn peek_current_type(&self) -> Result<&RawValue> {
         self.current_type.front().ok_or(Error::EmptyType)
     }
-
+    // Pop type opcode from the front of current_type.
+    // If the opcode is an index (>= 0), we push the corresponding entry from table,
+    // and pop the opcode from the front.
     fn parse_type(&mut self) -> Result<Opcode> {
         let mut op = self.pop_current_type()?.get_i64()?;
         if op >= 0 {
@@ -208,6 +215,7 @@ impl<'de> Deserializer<'de> {
         }
         Opcode::try_from(op).map_err(Error::msg)
     }
+    // Check if current_type matches the provided type
     fn check_type(&mut self, expected: Opcode) -> Result<()> {
         let wire_type = self.parse_type()?;
         if wire_type != expected {
@@ -218,6 +226,8 @@ impl<'de> Deserializer<'de> {
         }
         Ok(())
     }
+    // Should always call set_field_name to set the field_name. After deserialize_identifier
+    // processed the field_name, field_name will be reset to None.
     fn set_field_name(&mut self, field: &'static str) {
         if self.field_name.is_some() {
             panic!(format!("field_name already taken {:?}", self.field_name));
@@ -300,7 +310,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.check_type(Opcode::Opt)?;
         let bit = self.parse_byte()?;
         if bit == 0u8 {
-            //self.parse_type() cannot be used as it will expand the type, which has no value
+            // Skip the type T of Option<T>
             self.pop_current_type()?;
             visitor.visit_none()
         } else {
@@ -334,6 +344,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             Opcode::Vec => {
                 let len = self.leb128_read()? as u32;
                 let value = visitor.visit_seq(Compound::new(&mut self, Style::Vector { len }));
+                // Skip the type T of Vec<T>.
                 self.pop_current_type()?;
                 value
             }
@@ -363,7 +374,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
     fn deserialize_struct<V>(
         mut self,
-        name: &'static str,
+        _name: &'static str,
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
@@ -378,7 +389,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 return Err(Error::msg(format!("hash collisiosn {}", s)));
             }
         }
-        eprintln!("Struct {} {:?}", name, fields);
         let value = visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))?;
         Ok(value)
     }
@@ -409,7 +419,6 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         let v = visitor.visit_str(self.field_name.unwrap());
-        eprintln!("de_ident {:?}", self.field_name);
         self.field_name = None;
         v
     }
@@ -509,7 +518,8 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                         self.de.set_field_name(field);
                     }
                     None => {
-                        // This triggers seed.deserialize to call deserialize_any to skip both type and value of this unknown field.
+                        // This triggers seed.deserialize to call deserialize_ignore_any
+                        // to skip both type and value of this unknown field.
                         self.de.set_field_name("_");
                     }
                 }
@@ -559,6 +569,8 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                                         hash
                                     )));
                                 } else {
+                                    // Actual enum won't have empty fs. This can only be generated
+                                    // from deserialize_ignore_any
                                     self.de.set_field_name("_");
                                 }
                             }

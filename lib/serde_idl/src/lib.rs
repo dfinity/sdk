@@ -7,6 +7,7 @@ extern crate serde;
 
 pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
+pub use dfx_info::IDLType;
 pub use serde::Deserialize;
 
 pub mod de;
@@ -31,9 +32,8 @@ macro_rules! Decode {
     }
 }
 
-// IDL hash function is specified in
-// https://github.com/dfinity-lab/actorscript/blob/master/design/IDL.md#shorthand-symbolic-field-ids
-// which comes from https://caml.inria.fr/pub/papers/garrigue-polymorphic_variants-ml98.pdf
+// IDL hash function comes from
+// https://caml.inria.fr/pub/papers/garrigue-polymorphic_variants-ml98.pdf
 pub fn idl_hash(id: &str) -> u32 {
     let mut s: u32 = 0;
     for c in id.chars() {
