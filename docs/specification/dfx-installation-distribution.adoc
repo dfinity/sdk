@@ -30,7 +30,7 @@ This does not require root access, but might explain to the user how to add the 
 
 === Direct Download
 
-The user downloads the binary directly, from one of our S3 buckets. URL scheme looks like this:
+The user downloads the binary directly, with an URL scheme looking like this:
 
 https://sdk.dfinity.org/dfx/${VERSION}/${PLATFORM}-${ARCH}/dfx-${V_VERSION}.{EXT}
 
@@ -81,7 +81,7 @@ This section details how to build and deploy the various distributions.
 
 === Release Tagging
 
-Tagging a release (on `git`) using the exact tag format `v{MAJOR}.{MINOR}.{PATCH}[-{PRERELEASE}]` would lead CI to build a release build of `dfx`, and run the e2e tests on it. After doing that, the CI process would upload it to S3 to be made available directly through direct download.
+Tagging a release (on `git`) using the exact tag format `v{MAJOR}.{MINOR}.{PATCH}[-{PRERELEASE}]` would lead CI to build a release build of `dfx`, and run the e2e tests on it. After doing that, the CI process would upload it to some cloud storage to be made available directly through direct download.
 
 Once the binaries are available for users to download, nothing needs to be done. All package managers should always verify and download the latest version.
 
@@ -125,7 +125,7 @@ The JSON schema could look like this:
 
 What remains to be done prior to the final 1.0.0 release:
 
-. Find a proper name for the package managers namespace. Hopefully something unique to all managers so users can use the same name (e.g. `npm install dfx` and `brew install dfx`).
+. Find a proper name for the package managers namespace. Hopefully something unique to all managers so users can use the same name (e.g. `npm install @dfinity/dfx` and `brew install @dfinity/dfx`).
 . Figuring out which package managers on linux we want to support and how to support them.
 . Lay out the plan for using a canister for distributing `dfx`.
 . Figure out if we want to do LTS for some versions.
