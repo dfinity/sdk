@@ -6,6 +6,11 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use url::Url;
 
+/// The amount of time to wait for the client to answer, in seconds.
+/// Actix requests does not support having no timeout, so we have to put a reasonable value here,
+/// even though our normal canister commands don't have timeouts themselves.
+const FORWARD_REQUEST_TIMEOUT_IN_SECS: u64 = 20;
+
 fn forward(
     req: HttpRequest,
     payload: web::Payload,
@@ -18,7 +23,10 @@ fn forward(
 
     let forwarded_req = client
         .request_from(new_url.as_str(), req.head())
-        .no_decompress();
+        .no_decompress()
+        .timeout(std::time::Duration::from_secs(
+            FORWARD_REQUEST_TIMEOUT_IN_SECS,
+        ));
     let forwarded_req = if let Some(addr) = req.head().peer_addr {
         forwarded_req.header("x-forwarded-for", format!("{}", addr.ip()))
     } else {

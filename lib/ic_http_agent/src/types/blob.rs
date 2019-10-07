@@ -20,9 +20,9 @@ impl Blob {
     }
 }
 
-impl From<&[u8]> for Blob {
-    fn from(a: &[u8]) -> Blob {
-        Blob(a.to_vec())
+impl<T: AsRef<[u8]>> From<T> for Blob {
+    fn from(a: T) -> Blob {
+        Blob(a.as_ref().to_vec())
     }
 }
 

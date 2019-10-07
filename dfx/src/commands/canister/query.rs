@@ -2,8 +2,10 @@ use crate::lib::api_client::{query, QueryResponseReply, ReadResponse};
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::util::clap::validators;
+use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
+use serde_idl::Encode;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -22,10 +24,18 @@ pub fn construct() -> App<'static, 'static> {
                 .required(true),
         )
         .arg(
-            Arg::with_name("arguments")
-                .help("Arguments to pass to the method.")
+            Arg::with_name("argument")
+                .help("Argument to pass to the method.")
                 .takes_value(true)
                 .multiple(true),
+        )
+        .arg(
+            Arg::with_name("type")
+                .help("The type of the argument. Required when using an argument.")
+                .long("type")
+                .takes_value(true)
+                .requires("argument")
+                .possible_values(&["string", "number"]),
         )
 }
 
@@ -36,25 +46,37 @@ where
     // Read the config.
     let canister_id = args.value_of("canister").unwrap().parse::<CanisterId>()?;
     let method_name = args.value_of("method_name").unwrap();
-    let arguments: Option<Vec<&str>> = args.values_of("arguments").map(|args| args.collect());
+    let arguments: Option<&str> = args.value_of("argument");
+    let arg_type: Option<&str> = args.value_of("type");
+
+    let arg_value = if let Some(a) = arguments {
+        Some(match arg_type {
+            Some("string") => Ok(Encode!(&a)),
+            Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
+            Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
+            None => Err(DfxError::Unknown("Must specify a type.".to_owned())),
+        }?)
+    } else {
+        None
+    };
 
     let client = env.get_client();
     let install = query(
         client,
         canister_id,
         method_name.to_owned(),
-        arguments.map(|args| Blob(Vec::from(args[0]))),
+        arg_value.map(Blob::from),
     );
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     match runtime.block_on(install) {
         Ok(ReadResponse::Pending) => {
-            println!("Pending");
+            eprintln!("Pending");
             Ok(())
         }
         Ok(ReadResponse::Replied { reply }) => {
-            if let Some(QueryResponseReply { arg: Blob(blob) }) = reply {
-                println!("{}", String::from_utf8_lossy(&blob));
+            if let Some(QueryResponseReply { arg: blob }) = reply {
+                print_idl_blob(&blob)?;
             }
             Ok(())
         }

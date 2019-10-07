@@ -1,5 +1,6 @@
 {   bats
 ,   coreutils
+,   curl
 ,   dfinity-sdk
 ,   runCommandNoCC
 ,   stdenv
@@ -7,10 +8,12 @@
 }:
 
 runCommandNoCC "e2e-tests" {
-    buildInputs = [ bats coreutils dfinity-sdk.packages.rust-workspace-debug stdenv.cc killall ];
+    buildInputs = [ bats coreutils curl dfinity-sdk.packages.rust-workspace-debug stdenv.cc killall ];
 } ''
     # We want $HOME/.cache to be in a new temporary directory.
     HOME=$(mktemp -d -t dfx-e2e-home-XXXX)
 
-    timeout --preserve-status 120 bats --recursive ${../e2e}/* | tee $out
+    # Timeout of 10 minutes is enough for now. Reminder; CI might be running with
+    # less resources than a dev's computer, so e2e might take longer.
+    timeout --preserve-status 600 bats --recursive ${../e2e}/* | tee $out
 ''

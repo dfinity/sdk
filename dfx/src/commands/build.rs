@@ -1,4 +1,4 @@
-use crate::config::dfinity::ConfigCanistersCanister;
+use crate::config::dfinity::{ConfigCanistersCanister, Profile};
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -11,7 +11,12 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name("canister").help("The canister name to build."))
 }
 
-fn build_file<T>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult
+fn build_file<T>(
+    env: &T,
+    profile: Option<Profile>,
+    input_path: &Path,
+    output_path: &Path,
+) -> DfxResult
 where
     T: BinaryResolverEnv,
 {
@@ -30,24 +35,54 @@ where
         Some("as") => {
             let output_idl_path = output_path.with_extension("did");
             let output_js_path = output_path.with_extension("js");
+            let as_rts_path = env.get_binary_command_path("as-rts.wasm")?;
 
-            env.get_binary_command("asc")?
+            // invoke the compiler in debug (development) or release mode,
+            // based on the current profile:
+            let arg_profile = match profile {
+                None | Some(Profile::Debug) => "--debug",
+                Some(Profile::Release) => "--release",
+            };
+
+            if !env
+                .get_binary_command("asc")?
+                .env("ASC_RTS", as_rts_path.as_path())
                 .arg(&input_path)
+                .arg(arg_profile)
                 .arg("-o")
                 .arg(&output_wasm_path)
-                .output()?;
-            env.get_binary_command("asc")?
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
+
+            if !env
+                .get_binary_command("asc")?
                 .arg("--idl")
                 .arg(&input_path)
                 .arg("-o")
                 .arg(&output_idl_path)
-                .output()?;
-            env.get_binary_command("didc")?
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
+
+            if !env
+                .get_binary_command("didc")?
                 .arg("--js")
                 .arg(&output_idl_path)
                 .arg("-o")
                 .arg(&output_js_path)
-                .output()?;
+                .output()?
+                .status
+                .success()
+            {
+                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
+            }
 
             Ok(())
         }
@@ -89,7 +124,12 @@ where
                 let output_path = build_root.join(x.as_str()).with_extension("wasm");
                 std::fs::create_dir_all(output_path.parent().unwrap())?;
 
-                build_file(env, &input_as_path, &output_path)?;
+                build_file(
+                    env,
+                    config.config.profile.clone(),
+                    &input_as_path,
+                    &output_path,
+                )?;
             }
         }
     }
@@ -119,8 +159,10 @@ mod tests {
 
         impl<'a> BinaryResolverEnv for TestEnv<'a> {
             fn get_binary_command_path(&self, _binary_name: &str) -> io::Result<PathBuf> {
-                // This should not be used.
-                panic!("get_binary_command_path should not be called.")
+                // We need to implement this function as it's used to set the "ASC_RTS"
+                // environment variable. Since this test doesn't use environment variables
+                // we don't really care about its value.
+                Ok(PathBuf::new())
             }
             fn get_binary_command(&self, binary_name: &str) -> io::Result<process::Command> {
                 let stdout = self.out_file.try_clone()?;
@@ -142,8 +184,13 @@ mod tests {
             out_file: &out_file,
         };
 
-        build_file(&env, Path::new("/in/file.as"), Path::new("/out/file.wasm"))
-            .expect("Function failed.");
+        build_file(
+            &env,
+            None,
+            Path::new("/in/file.as"),
+            Path::new("/out/file.wasm"),
+        )
+        .expect("Function failed.");
 
         out_file.flush().expect("Could not flush.");
 
@@ -154,7 +201,7 @@ mod tests {
 
         assert_eq!(
             s.trim(),
-            r#"asc /in/file.as -o /out/file.wasm
+            r#"asc /in/file.as --debug -o /out/file.wasm
                 asc --idl /in/file.as -o /out/file.did
                 didc --js /out/file.did -o /out/file.js"#
                 .replace("                ", "")
@@ -188,7 +235,8 @@ mod tests {
         assert!(!output_path.exists());
 
         std::fs::write(input_path.as_path(), wat).expect("Could not create input.");
-        build_file(&env, input_path.as_path(), output_path.as_path()).expect("Function failed.");
+        build_file(&env, None, input_path.as_path(), output_path.as_path())
+            .expect("Function failed.");
 
         assert!(output_path.exists());
     }

@@ -14,6 +14,8 @@ pub mod de;
 pub mod error;
 pub mod ser;
 
+pub const EMPTY_DIDL: &[u8] = b"DIDL\0\0";
+
 #[macro_export]
 macro_rules! Encode {
     ( $($x:expr),* ) => {{
