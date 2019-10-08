@@ -51,11 +51,15 @@ The user can then install that binary wherever they please.
 
 === Installer Download
 
+**This section is out of scope for developer network.**
+
 Various installers should be made available for different platforms. For example, on macOS, a user could download a `pkg` file that installs `dfx` directly for them.
 
 This could be distributed at the same location as other versions, replacing the `EXT` variable above with the extension of the installer the user should be looking for.
 
 === Package Manager
+
+**This section is out of scope for developer network.**
 
 It would be useful for the user to use the package manager they already have.
 
@@ -73,6 +77,8 @@ The user could go to GitHub and download a release directly. This would be very 
 
 === Using the Internet Computer
 
+**This section is out of scope for developer network.**
+
 Once the IC launches, the `dfx` binary could also be available through a canister's static asset. The user could then use a special command to download and install the binary on their machine, from the IC directly.
 
 == Distribution
@@ -87,6 +93,8 @@ Once the binaries are available for users to download, nothing needs to be done.
 
 === Package Version Tagging
 
+**This section is out of scope for developer network.**
+
 In addition to direct version numbers, the user can use the following tags to download a version of `dfx`:
 
 . `latest`. The latest stable version of `dfx`.
@@ -95,6 +103,8 @@ In addition to direct version numbers, the user can use the following tags to do
 These tags should be available on package managers that support them (e.g. `npm install dfx@next`).
 
 === Package Version Listing
+
+**This section is out of scope for developer network.**
 
 Using the URL `https://sdk.dfinity.org/dfx/index.{html,json}` should list all available packages, in either an HTML human pleasant format, or a json machine readable one.
 
@@ -129,3 +139,4 @@ What remains to be done prior to the final 1.0.0 release:
 . Figuring out which package managers on linux we want to support and how to support them.
 . Lay out the plan for using a canister for distributing `dfx`.
 . Figure out if we want to do LTS for some versions.
+. Finish out of scope sections in this document.
