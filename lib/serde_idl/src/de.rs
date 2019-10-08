@@ -146,7 +146,7 @@ impl<'de> Deserializer<'de> {
             _ => Err(Error::msg(format!("wrong magic number {:?}", buf))),
         }
     }
-    // Parse magic number, type table, and types from input.
+    // Parse magic number, type table, and type seq from input.
     fn parse_table(&mut self) -> Result<()> {
         self.parse_magic()?;
         let len = self.leb128_read()?;
@@ -197,21 +197,21 @@ impl<'de> Deserializer<'de> {
     // and pop the opcode from the front.
     fn parse_type(&mut self) -> Result<Opcode> {
         let mut op = self.pop_current_type()?.get_i64()?;
-        if op >= 0 {
+        if op >= 0 && op < self.table.len() as i64 {
             let ty = &self.table[op as usize];
             for x in ty.iter().rev() {
                 self.current_type.push_front(x.clone());
             }
             op = self.pop_current_type()?.get_i64()?;
         }
-        Opcode::try_from(op).map_err(Error::msg)
+        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))
     }
     fn peek_type(&self) -> Result<Opcode> {
         let mut op = self.peek_current_type()?.get_i64()?;
-        if op >= 0 {
+        if op >= 0 && op < self.table.len() as i64 {
             op = self.table[op as usize][0].get_i64()?;
         }
-        Opcode::try_from(op).map_err(Error::msg)
+        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))
     }
     // Check if current_type matches the provided type
     fn check_type(&mut self, expected: Opcode) -> Result<()> {
