@@ -10,8 +10,7 @@ You can install `dfx` a few different ways.
 
 ==== via `curl` (recommended)
 
-[note]
-This section is not yet implemented.
+NOTE: This section is not yet implemented.
 
 [source,bash]
 curl https://sdk.dfinity.org/install.sh | sh
