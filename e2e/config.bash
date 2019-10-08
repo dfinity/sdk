@@ -1,33 +1,29 @@
 #!/usr/bin/env bats
 
+load utils/_
+
 setup() {
     # We want to work from a temporary directory, different for every test.
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+
+    dfx_new
 }
 
 @test "dfx config -- read/write" {
-    dfx new e2e-project
-    cd e2e-project
+    assert_command dfx config defaults/build/output
+    assert_eq '"canisters/"'
 
-    run dfx config defaults/build/output
-    [[ $status == 0 ]]
-    [[ "$output" == "\"canisters/\"" ]]
+    assert_command dfx config defaults.build.output
+    assert_eq '"canisters/"'
 
-    run dfx config defaults.build.output
-    [[ $status == 0 ]]
-    [[ "$output" == "\"canisters/\"" ]]
+    assert_command dfx config defaults/build/output "other/"
+    assert_eq ""
 
-    run dfx config defaults/build/output "other/"
-    [[ $status == 0 ]]
+    assert_command dfx config defaults/build/output
+    assert_eq '"other/"'
 
-    run dfx config defaults/build/output
-    [[ $status == 0 ]]
-    [[ "$output" == "\"other/\"" ]]
-
-    run dfx config non_existent
-    [[ $status == 255 ]]
+    assert_command_fail dfx config non_existent
 
     # We don't allow to change values that are non existent.
-    run dfx config non_existent 123
-    [[ $status != 0 ]]
+    assert_command_fail dfx config non_existent 123
 }
