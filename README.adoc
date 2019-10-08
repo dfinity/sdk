@@ -19,7 +19,7 @@ This command will install a binary compatible with your operating system, and ad
 
 ==== via GitHub Releases
 
-Find a release for your architecture here: https://github.com/dfinity-lab/sdk/releases
+Find a release for your architecture https://github.com/dfinity-lab/sdk/releases[here].
 
 === Getting Help
 
@@ -30,4 +30,4 @@ dfx help
 
 == Contributing to the DFINITY SDK
 
-See our contributing guidelines here: https://github.com/dfinity-lab/sdk/tree/master/.github/CONTRIBUTING.adoc
+See our contributing guidelines link:.github/CONTRIBUTING.adoc[here].
