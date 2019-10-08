@@ -1,3 +1,33 @@
 = Contributing to the DFINITY SDK
 
-TBD
+== Developing `dfx`
+
+Run `nix-shell` in the `dfx` directory to bring the right version of `rustc` and
+`cargo` into scope. Inside the shell use `cargo` to build and test the Rust
+packages (crates).
+
+== Documentation
+
+https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfinity-sdk.dfx.doc.x86_64-linux/dfx/index.html[Latest cargo docs].
+
+== CI
+
+To run the CI job manually either run:
+
+[source,bash]
+nix-build ci/ci.nix -A dfinity-sdk.dfx[.x86_64-linux|.x86_64-darwin]
+
+== Dependencies
+
+=== Licenses
+
+https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfinity-sdk.licenses.dfx.x86_64-linux/licenses.dfinity-sdk-dfx.html[Latest licenses of all dependencies of dfx (build for x86_64-linux)].
+
+=== Visualization
+
+https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfinity-sdk.dfx.x86_64-linux/dfx/cargo-graph.svg[Access the latest graph of dependencies between crates of the `dfx` crate (build for x86_64-linux)].
+
+To build and visualize this graph locally run:
+
+[source,bash]
+open $(nix-build -A dfinity-sdk.dfx.doc)/dfx/cargo-graph.svg
