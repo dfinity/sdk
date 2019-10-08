@@ -36,7 +36,7 @@ fn test_error() {
     );
     check_error(
         || test_decode(b"DIDL\0\x01\0\x01", &42),
-        "-index out of bounds: the len is 0 but the index is 0",
+        "index out of bounds: the len is 0 but the index is 0",
     );
 }
 
