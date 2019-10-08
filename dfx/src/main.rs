@@ -36,8 +36,8 @@ where
         (name, Some(args)) => (name, args),
         _ => {
             cli.write_help(&mut std::io::stderr())?;
-            println!();
-            println!();
+            eprintln!();
+            eprintln!();
             return Ok(());
         }
     };
@@ -49,8 +49,8 @@ where
         Some(cmd) => cmd.execute(env, subcommand_args),
         _ => {
             cli.write_help(&mut std::io::stderr())?;
-            println!();
-            println!();
+            eprintln!();
+            eprintln!();
             Err(DfxError::UnknownCommand(name.to_owned()))
         }
     }

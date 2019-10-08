@@ -11,6 +11,9 @@ self: super: {
           name = "${oldAttrs.name}-debug";
         });
         rust-workspace-doc = rust-workspace-debug.doc;
+
+        rust-workspace-standalone = (super.lib.standaloneRust rust-workspace "dfx");
+
         e2e-tests = super.callPackage ../e2e-tests.nix {};
     };
 

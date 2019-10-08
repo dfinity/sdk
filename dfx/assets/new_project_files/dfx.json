@@ -1,21 +1,20 @@
 {
-  "// TODO": "Replace this file with `dfx config`.",
   "version": 1,
-  "dfx": "0.3.0-local-debug",
+  "dfx": "{dfx_version}",
   "canisters": {
     "hello": {
-      "main": "counter.wat",
+      "main": "src/hello/main.as",
       "canister_id": 42
     }
   },
   "defaults": {
     "build": {
-      "output": "build/"
+      "output": "canisters/"
     },
     "start": {
       "port": 8000,
       "address": "127.0.0.1",
-      "serve_root": "app/"
+      "serve_root": "src/hello/public/"
     }
   }
 }

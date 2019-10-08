@@ -11,10 +11,10 @@ setup() {
 
 @test "dfx config -- read/write" {
     assert_command dfx config defaults/build/output
-    assert_eq '"build/"'
+    assert_eq '"canisters/"'
 
     assert_command dfx config defaults.build.output
-    assert_eq '"build/"'
+    assert_eq '"canisters/"'
 
     assert_command dfx config defaults/build/output "other/"
     assert_eq ""
