@@ -12,7 +12,7 @@ install_asset() {
 dfx_new() {
     dfx new e2e-project
     test -d e2e-project
-    test -f e2e-project/dfinity.json
+    test -f e2e-project/dfx.json
     cd e2e-project
 
     echo PWD: $(pwd) >&2

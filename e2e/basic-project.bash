@@ -20,7 +20,7 @@ teardown() {
     install_asset greet_as
     dfx_start
     dfx build
-    INSTALL_REQUEST_ID=$(dfx canister install 1 build/greet.wasm)
+    INSTALL_REQUEST_ID=$(dfx canister install 1 canisters/greet.wasm)
     dfx canister request-status $INSTALL_REQUEST_ID
 
     assert_command dfx canister query 1 greet --type=string Banzai
@@ -82,7 +82,7 @@ teardown() {
     install_asset counter_as
     dfx_start
     dfx build
-    dfx canister install 1 build/counter.wasm --wait
+    dfx canister install 1 canisters/counter.wasm --wait
 
     assert_command dfx canister call 1 read --wait
     assert_eq "0"
