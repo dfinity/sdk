@@ -1,14 +1,55 @@
 use ic_http_agent::{RequestIdError, RequestIdFromStringError};
+use std::fmt;
 
 #[derive(Debug)]
+/// An error happened during build.
 pub enum BuildErrorKind {
+    /// Invalid extension.
     InvalidExtension(String),
-    CompilerError,
+
+    /// A compiler error happened.
+    ActorScriptCompilerError(String),
+
+    /// An error happened during the generation of the Idl.
+    IdlGenerationError(String),
+
+    /// An error happened while generating the user library.
+    UserLibGenerationError(String),
+}
+
+impl fmt::Display for BuildErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use BuildErrorKind::*;
+
+        match self {
+            InvalidExtension(ext) => {
+                f.write_fmt(format_args!("Invalid extension: {}", ext))?;
+            }
+            ActorScriptCompilerError(stdout) => {
+                f.write_fmt(format_args!("ActorScript returned an error:\n{}", stdout))?;
+            }
+            IdlGenerationError(stdout) => {
+                f.write_fmt(format_args!(
+                    "IDL generation returned an error:\n{}",
+                    stdout
+                ))?;
+            }
+            UserLibGenerationError(stdout) => {
+                f.write_fmt(format_args!(
+                    "UserLib generation returned an error:\n{}",
+                    stdout
+                ))?;
+            }
+        };
+
+        Ok(())
+    }
 }
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
 pub enum DfxError {
+    // An error happened during build.
     BuildError(BuildErrorKind),
     Clap(clap::Error),
     IO(std::io::Error),

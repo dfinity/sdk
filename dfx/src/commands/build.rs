@@ -11,6 +11,85 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name("canister").help("The canister name to build."))
 }
 
+/// Compile an actorscript file.
+fn actorscript_compile<T: BinaryResolverEnv>(
+    env: &T,
+    input_path: &Path,
+    output_path: &Path,
+    profile: Option<Profile>,
+) -> DfxResult {
+    // Invoke the compiler in debug (development) or release mode, based on the current profile:
+    let arg_profile = match profile {
+        Some(Profile::Release) => "--release",
+        _ => "--debug",
+    };
+
+    let as_rts_path = env.get_binary_command_path("as-rts.wasm")?;
+    let output = env
+        .get_binary_command("asc")?
+        .env("ASC_RTS", as_rts_path.as_path())
+        .arg(&input_path)
+        .arg(arg_profile)
+        .arg("-o")
+        .arg(&output_path)
+        .output()?;
+
+    if !output.status.success() {
+        Err(DfxError::BuildError(
+            BuildErrorKind::ActorScriptCompilerError(
+                // We choose to join the strings and not the vector in case there is a weird
+                // incorrect character at the end of stdout.
+                String::from_utf8_lossy(&output.stdout).to_string()
+                    + &String::from_utf8_lossy(&output.stderr),
+            ),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+fn didl_compile<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult {
+    let output = env
+        .get_binary_command("asc")?
+        .arg("--idl")
+        .arg(&input_path)
+        .arg("-o")
+        .arg(&output_path)
+        .output()?;
+
+    if !output.status.success() {
+        Err(DfxError::BuildError(BuildErrorKind::IdlGenerationError(
+            String::from_utf8_lossy(&output.stdout).to_string(),
+        )))
+    } else {
+        Ok(())
+    }
+}
+
+fn build_user_lib<T: BinaryResolverEnv>(
+    env: &T,
+    input_path: &Path,
+    output_path: &Path,
+) -> DfxResult {
+    let output = env
+        .get_binary_command("didc")?
+        .arg("--js")
+        .arg(&input_path)
+        .arg("-o")
+        .arg(&output_path)
+        .output()?;
+
+    if !output.status.success() {
+        Err(DfxError::BuildError(
+            BuildErrorKind::UserLibGenerationError(
+                String::from_utf8_lossy(&output.stdout).to_string(),
+            ),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn build_file<T>(
     env: &T,
     profile: Option<Profile>,
@@ -35,54 +114,10 @@ where
         Some("as") => {
             let output_idl_path = output_path.with_extension("did");
             let output_js_path = output_path.with_extension("js");
-            let as_rts_path = env.get_binary_command_path("as-rts.wasm")?;
 
-            // invoke the compiler in debug (development) or release mode,
-            // based on the current profile:
-            let arg_profile = match profile {
-                None | Some(Profile::Debug) => "--debug",
-                Some(Profile::Release) => "--release",
-            };
-
-            if !env
-                .get_binary_command("asc")?
-                .env("ASC_RTS", as_rts_path.as_path())
-                .arg(&input_path)
-                .arg(arg_profile)
-                .arg("-o")
-                .arg(&output_wasm_path)
-                .output()?
-                .status
-                .success()
-            {
-                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
-            }
-
-            if !env
-                .get_binary_command("asc")?
-                .arg("--idl")
-                .arg(&input_path)
-                .arg("-o")
-                .arg(&output_idl_path)
-                .output()?
-                .status
-                .success()
-            {
-                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
-            }
-
-            if !env
-                .get_binary_command("didc")?
-                .arg("--js")
-                .arg(&output_idl_path)
-                .arg("-o")
-                .arg(&output_js_path)
-                .output()?
-                .status
-                .success()
-            {
-                return Err(DfxError::BuildError(BuildErrorKind::CompilerError));
-            }
+            actorscript_compile(env, &input_path, &output_wasm_path, profile)?;
+            didl_compile(env, &input_path, &output_idl_path)?;
+            build_user_lib(env, &output_idl_path, &output_js_path)?;
 
             Ok(())
         }
