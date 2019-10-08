@@ -1,6 +1,9 @@
 self: super: {
   dfinity-sdk = rec {
     packages = rec {
+        js-user-library = super.callPackage ../../js-user-library/package.nix {
+          inherit (self) napalm;
+        };
         rust-workspace = super.callPackage ../rust-workspace.nix {};
         rust-workspace-debug = (rust-workspace.override (_: {
           release = false;
