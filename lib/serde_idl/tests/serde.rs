@@ -31,6 +31,10 @@ fn test_error() {
         "Trailing bytes [1]",
     );
     check_error(
+        || test_decode(b"DIDL\0\x01\x7e", &true),
+        "io error failed to fill whole buffer",
+    );
+    check_error(
         || test_decode(b"DIDL\0\x01\0\x01", &42),
         "index out of bounds: the len is 0 but the index is 0",
     );
@@ -176,6 +180,22 @@ fn test_extra_fields() {
     test_decode(&bytes, &a1);
     let bytes = Encode!(&a1);
     check_error(|| test_decode(&bytes, &a2), "missing field `baz`");
+
+    #[derive(PartialEq, Debug, Deserialize, IDLType)]
+    enum E2 {
+        Foo,
+        Bar(A1, A2),
+        Baz,
+    }
+    let bytes = Encode!(&E1::Foo);
+    test_decode(&bytes, &E2::Foo);
+    let bytes = Encode!(&E2::Foo);
+    test_decode(&bytes, &E1::Foo);
+    let bytes = Encode!(&E2::Baz);
+    check_error(
+        || test_decode(&bytes, &E1::Bar),
+        "Unknown variant hash 3303867",
+    );
 }
 
 #[test]
@@ -235,15 +255,6 @@ fn test_variant() {
         || test_decode(&hex("4449444c016b02b4d3c9017fe6fdd5017f010000"), &Unit::Bar),
         "Unknown variant hash 3303860",
     );
-
-    #[derive(PartialEq, Debug, Deserialize, IDLType)]
-    enum Unit2 {
-        Foo,
-        Bar,
-        Baz,
-    }
-    let bytes = Encode!(&Unit2::Bar);
-    test_decode(&bytes, &Unit::Bar);
 
     let res: Result<String, String> = Ok("good".to_string());
     all_check(res, "4449444c016b02bc8a0171c5fed2017101000004676f6f64");
