@@ -49,8 +49,8 @@ where
         }
     } else {
         construct::<T>().write_help(&mut std::io::stderr())?;
-        println!();
-        println!();
+        eprintln!();
+        eprintln!();
         Ok(())
     }
 }
