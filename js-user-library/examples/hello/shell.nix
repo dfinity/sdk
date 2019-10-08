@@ -10,7 +10,7 @@ pkgs.mkShell {
   ];
   shellHook = ''
     set -e
-    export HOME=$TMP
+    export HOME=$(mktemp -d)
 
     # Ideally we would depend on pkgs.dfinity-sdk.js-user-library, and changes
     # there would trigger a rebuild.
