@@ -11,11 +11,11 @@ setup() {
 
     run dfx config defaults/build/output
     [[ $status == 0 ]]
-    [[ "$output" == "\"build/\"" ]]
+    [[ "$output" == "\"canisters/\"" ]]
 
     run dfx config defaults.build.output
     [[ $status == 0 ]]
-    [[ "$output" == "\"build/\"" ]]
+    [[ "$output" == "\"canisters/\"" ]]
 
     run dfx config defaults/build/output "other/"
     [[ $status == 0 ]]
