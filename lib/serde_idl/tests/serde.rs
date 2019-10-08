@@ -32,11 +32,11 @@ fn test_error() {
     );
     check_error(
         || test_decode(b"DIDL\0\x01\x7e", &true),
-        "io error failed to fill whole buffer",
+        "io error: failed to fill whole buffer",
     );
     check_error(
         || test_decode(b"DIDL\0\x01\0\x01", &42),
-        "index out of bounds: the len is 0 but the index is 0",
+        "-index out of bounds: the len is 0 but the index is 0",
     );
 }
 

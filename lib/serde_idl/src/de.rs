@@ -73,7 +73,7 @@ impl<'de> IDLDeserialize<'de> {
 }
 
 #[derive(Clone, Debug)]
-enum RawValue {
+pub enum RawValue {
     I(i64),
     U(u64),
 }
@@ -117,16 +117,9 @@ impl<'de> Deserializer<'de> {
         }
     }
 
-    fn dump_error_state(&self, e: Error) -> Error {
-        /*
-        if self.field_name.is_some() {
-            eprintln!("Field name: {:?}", self.field_name);
-        }
-        eprintln!("Trailing type: {:?}", self.current_type);
-        eprintln!("Trailing value: {:?}", self.input);
-        eprintln!("Trailing value types: {:?}", self.types);
-        eprintln!("Table: {:?}", self.table);*/
-        Error::msg(e)
+    fn dump_error_state(&self, mut e: Error) -> Error {
+        e.dump_states(self.input, &self.current_type);
+        e
     }
 
     fn leb128_read(&mut self) -> Result<u64> {
@@ -190,10 +183,14 @@ impl<'de> Deserializer<'de> {
         Ok(())
     }
     fn pop_current_type(&mut self) -> Result<RawValue> {
-        self.current_type.pop_front().ok_or(Error::EmptyType)
+        self.current_type
+            .pop_front()
+            .ok_or_else(|| Error::msg("empty current_type"))
     }
     fn peek_current_type(&self) -> Result<&RawValue> {
-        self.current_type.front().ok_or(Error::EmptyType)
+        self.current_type
+            .front()
+            .ok_or_else(|| Error::msg("empty current_type"))
     }
     // Pop type opcode from the front of current_type.
     // If the opcode is an index (>= 0), we push the corresponding entry from table,
