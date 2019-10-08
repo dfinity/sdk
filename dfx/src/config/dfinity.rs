@@ -20,12 +20,12 @@ const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
 };
 const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
     pub main: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigDefaultsStart {
     pub address: Option<String>,
     pub nodes: Option<u64>,
@@ -33,12 +33,12 @@ pub struct ConfigDefaultsStart {
     pub serve_root: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {
     pub output: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Profile {
     // debug is for development only
     Debug,
@@ -46,13 +46,13 @@ pub enum Profile {
     Release,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigDefaults {
     pub build: Option<ConfigDefaultsBuild>,
     pub start: Option<ConfigDefaultsStart>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigInterface {
     pub profile: Option<Profile>,
     pub version: Option<u32>,
@@ -141,6 +141,7 @@ impl ConfigInterface {
     }
 }
 
+#[derive(Clone)]
 pub struct Config {
     path: PathBuf,
     json: Value,
