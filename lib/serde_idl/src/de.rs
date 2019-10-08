@@ -118,13 +118,14 @@ impl<'de> Deserializer<'de> {
     }
 
     fn dump_error_state(&self, e: Error) -> Error {
+        /*
         if self.field_name.is_some() {
             eprintln!("Field name: {:?}", self.field_name);
         }
         eprintln!("Trailing type: {:?}", self.current_type);
         eprintln!("Trailing value: {:?}", self.input);
         eprintln!("Trailing value types: {:?}", self.types);
-        eprintln!("Table: {:?}", self.table);
+        eprintln!("Table: {:?}", self.table);*/
         Error::msg(e)
     }
 
