@@ -1,6 +1,4 @@
-#!
-
-load utils/batslib
+source ${BATSLIB}/load.bash
 load utils/assertions
 
 # Takes a name of the asset folder, and copy those files to the current project.
