@@ -25,6 +25,7 @@ self: super: {
     # `shell.nix` in the root to provide an environment which is the composition
     # of all the shells here.
     shells = {
+      js-user-library = import ../../js-user-library/shell.nix { pkgs = self; };
       rust-workspace = import ../rust-shell.nix { pkgs = self; };
     };
 
