@@ -1,7 +1,0 @@
-{
-  "canisters": {
-    "hello": {
-      "main": "app/canisters/hello/main.as"
-    }
-  }
-}
