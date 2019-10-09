@@ -15,6 +15,8 @@ self: super: {
         rust-workspace-standalone = (super.lib.standaloneRust rust-workspace "dfx");
 
         e2e-tests = super.callPackage ../e2e-tests.nix {};
+
+        public-folder = super.callPackage ../public.nix {};
     };
 
     # This is to make sure CI evalutes shell derivations, builds their
