@@ -77,11 +77,11 @@ fn main() {
         Err(DfxError::BuildError(err)) => {
             eprintln!("Build failed. Reason:");
             eprintln!("  {}", err);
-            ::std::process::exit(255)
+            std::process::exit(255)
         }
         Err(err) => {
             eprintln!("An error occured:\n{:#?}", err);
-            ::std::process::exit(255)
+            std::process::exit(255)
         }
     }
 }
