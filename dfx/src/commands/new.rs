@@ -3,7 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
-use indicatif::{HumanBytes, ProgressBar, ProgressDrawTarget};
+use indicatif::HumanBytes;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
