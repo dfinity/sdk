@@ -27,9 +27,9 @@ macro_rules! Encode {
 
 #[macro_export]
 macro_rules! Decode {
-    ( $hex:expr, $($name:ident: $ty:ty),+ ) => {
+    ( $hex:expr, $($name:ident: $ty:ty),* ) => {
         let mut de = serde_idl::de::IDLDeserialize::new($hex);
-        $(let $name: $ty = de.get_value().unwrap();)+
+        $(let $name: $ty = de.get_value().unwrap();)*
         de.done().unwrap()
     }
 }

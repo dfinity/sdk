@@ -52,10 +52,8 @@ impl<'de> IDLDeserialize<'de> {
         if self.de.current_type.is_empty() && self.de.field_name.is_none() {
             Ok(v)
         } else {
-            Err(Error::msg(format!(
-                "Trailing types {:?}, field_name {:?}",
-                self.de.current_type, self.de.field_name
-            )))
+            Err(Error::msg("Trailing type after deserializing a value"))
+                .map_err(|e| self.de.dump_error_state(e))
         }
     }
     pub fn done(self) -> Result<()> {
@@ -66,7 +64,8 @@ impl<'de> IDLDeserialize<'de> {
             )));
         }
         if !self.de.input.is_empty() {
-            return Err(Error::msg(format!("Trailing bytes {:?}", self.de.input)));
+            return Err(Error::msg("Trailing value after finishing deserialization"))
+                .map_err(|e| self.de.dump_error_state(e));
         }
         Ok(())
     }
@@ -117,9 +116,15 @@ impl<'de> Deserializer<'de> {
         }
     }
 
-    fn dump_error_state(&self, mut e: Error) -> Error {
-        e.dump_states(self.input, &self.current_type);
-        e
+    fn dump_error_state(&self, e: Error) -> Error {
+        let mut str = format!("Trailing type: {:?}\n", self.current_type);
+        str.push_str(&format!("Trailing value: {:x?}\n", self.input));
+        if self.field_name.is_some() {
+            str.push_str(&format!("Trailing field_name: {:?}\n", self.field_name));
+        }
+        str.push_str(&format!("Type table: {:?}\n", self.table));
+        str.push_str(&format!("Remaining value types: {:?}", self.types));
+        e.with_states(str)
     }
 
     fn leb128_read(&mut self) -> Result<u64> {

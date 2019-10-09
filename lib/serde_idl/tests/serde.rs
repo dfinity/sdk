@@ -28,7 +28,7 @@ fn test_error() {
     );
     check_error(
         || test_decode(b"DIDL\0\x01\x7e\x01\x01", &true),
-        "Trailing bytes [1]",
+        "Trailing value after finishing deserialization",
     );
     check_error(
         || test_decode(b"DIDL\0\x01\x7e", &true),
@@ -286,7 +286,8 @@ fn test_generics() {
 #[test]
 fn test_multiargs() {
     let bytes = Encode!();
-    assert_eq!(bytes, hex("4449444c0000"));
+    assert_eq!(bytes, serde_idl::EMPTY_DIDL);
+    Decode!(&bytes,);
 
     let bytes = Encode!(&42, &Some(42), &Some(1), &Some(2));
     assert_eq!(bytes, hex("4449444c016e7c047c0000002a012a01010102"));

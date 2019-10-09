@@ -1,7 +1,5 @@
 use serde::{de, ser};
 
-use super::de::RawValue;
-use std::collections::VecDeque;
 use std::fmt::{self, Debug, Display};
 use std::io;
 
@@ -9,26 +7,21 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 pub struct Error {
     message: String,
-    states: Option<ErrorState>,
-}
-
-pub struct ErrorState {
-    input: Vec<u8>,
-    current_type: VecDeque<RawValue>,
+    states: String,
 }
 
 impl Error {
     pub fn msg<T: Display>(msg: T) -> Self {
         Error {
             message: msg.to_string(),
-            states: None,
+            states: "".to_owned(),
         }
     }
-    pub fn dump_states(&mut self, input: &[u8], current_type: &VecDeque<RawValue>) {
-        self.states = Some(ErrorState {
-            input: input.to_vec(),
-            current_type: current_type.clone(),
-        });
+    pub fn with_states(self, msg: String) -> Self {
+        Error {
+            message: self.message,
+            states: msg,
+        }
     }
 }
 
@@ -53,17 +46,9 @@ impl Display for Error {
 impl Debug for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(&format!("\nMessage: \"{}\"\n", self.message))?;
-        if let Some(ref states) = self.states {
-            formatter.write_str(&format!("{:?}\n", states))?;
+        if !self.states.is_empty() {
+            formatter.write_str(&format!("States:\n{}\n", self.states))?;
         }
-        Ok(())
-    }
-}
-
-impl Debug for ErrorState {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&format!("Trailing types {:?}\n", self.current_type))?;
-        formatter.write_str(&format!("Trailing bytes {:x?}\n", self.input))?;
         Ok(())
     }
 }
