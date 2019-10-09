@@ -1,0 +1,5 @@
+= js-user-library
+
+== Development
+
+Run `nix-shell` in this directory, and then use `npm` as normal.
