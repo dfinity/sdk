@@ -49,7 +49,7 @@ impl fmt::Display for BuildErrorKind {
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
 pub enum DfxError {
-    // An error happened during build.
+    /// An error happened during build.
     BuildError(BuildErrorKind),
     Clap(clap::Error),
     IO(std::io::Error),
