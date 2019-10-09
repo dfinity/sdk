@@ -7,8 +7,8 @@
 ,   killall
 }:
 let batslib = builtins.fetchGit {
-    url = "ssh://git@github.com/ztombol/bats-support";
-    ref = "0.3.0";
+    url = "https://github.com/ztombol/bats-support";
+    ref = "refs/tags/v0.3.0";
     rev = "24a72e14349690bcbf7c151b9d2d1cdd32d36eb1";
 }; in
 
