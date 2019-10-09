@@ -1,6 +1,11 @@
 { napalm }:
 
-let package = napalm.buildPackage ./. {}; in
+let package = napalm.buildPackage ./. {
+  npmCommands = [
+    "npm install"
+    "npm run test"
+  ];
+}; in
 
 package.overrideAttrs (oldAttrs: {
   name = "dfinity-sdk-js-user-library";
