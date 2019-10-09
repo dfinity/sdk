@@ -8,7 +8,7 @@
 }:
 let batslib = builtins.fetchGit {
     url = "ssh://git@github.com/ztombol/bats-support";
-    ref = "0.3.0";
+    # ref = "0.3.0";  # TODO
     rev = "24a72e14349690bcbf7c151b9d2d1cdd32d36eb1";
 }; in
 
