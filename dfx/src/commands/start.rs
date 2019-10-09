@@ -63,7 +63,11 @@ where
     let client_pathbuf = env.get_binary_command_path("client")?;
     let nodemanager_pathbuf = env.get_binary_command_path("nodemanager")?;
 
-    let config = env.get_config().unwrap();
+    // Read the config.
+    let config = env
+        .get_config()
+        .map_or_else(|| Err(DfxError::CommandMustBeRunInAProject()), Ok)?;
+
     let address_and_port = args
         .value_of("host")
         .and_then(|host| Option::from(host.parse()))
