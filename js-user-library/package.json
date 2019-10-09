@@ -1,5 +1,17 @@
 {
   "private": true,
   "name": "@internet-computer/js-user-library",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "scripts": {
+    "test": "jest --verbose"
+  },
+  "dependencies": {
+    "buffer-pipe": "0.0.4",
+    "leb128": "0.0.5",
+    "text-encoding": "^0.7.0"
+  },
+  "devDependencies": {
+    "jest": "^24.9.0",
+    "jest-expect-message": "^1.0.2"
+  }
 }
