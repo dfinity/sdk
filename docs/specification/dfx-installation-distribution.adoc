@@ -135,7 +135,7 @@ The JSON schema could look like this:
 
 What remains to be done prior to the final 1.0.0 release:
 
-. Find a proper name for the package managers namespace. Hopefully something unique to all managers so users can use the same name (e.g. `npm install @dfinity/dfx` and `brew install @dfinity/dfx`).
+. Find a proper name for the package managers namespace. Hopefully something unique to all managers so users can use the same name (e.g. `npm install @internet-computer/dfx` and `brew install @internet-computer/dfx`).
 . Figuring out which package managers on linux we want to support and how to support them.
 . Lay out the plan for using a canister for distributing `dfx`.
 . Figure out if we want to do LTS for some versions.
