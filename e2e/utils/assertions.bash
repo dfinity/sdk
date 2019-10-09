@@ -23,7 +23,7 @@ assert_command() {
 assert_command_fail() {
     run "$@"
     [[ $status != 0 ]] || \
-        (  (echo "$*"; echo $output | batslib_decorate "Output") \
+        (  (echo "$*"; echo "$output" | batslib_decorate "Output") \
          | batslib_decorate "Command succeeded (should have failed)" \
          | fail)
 }
@@ -34,11 +34,11 @@ assert_command_fail() {
 #    $2 - The string to match against (output). By default it will use
 #         $output.
 assert_match() {
-    regex=$1
+    regex="$1"
     if [[ $# < 2 ]]; then
-        text=$output
+        text="$output"
     else
-        text=$2
+        text="$2"
     fi
     [[ "$text" =~ "$regex" ]] || \
         (batslib_print_kv_single_or_multi 10 "regex" "$regex" "actual" "$text" \
@@ -51,15 +51,15 @@ assert_match() {
 #    $1 - The expected value.
 #    $2 - The actual value.
 assert_eq() {
-    expected=$1
+    expected="$1"
     if [[ $# < 2 ]]; then
-        actual=$output
+        actual="$output"
     else
-        actual=$2
+        actual="$2"
     fi
 
     [[ "$actual" == "$expected" ]] || \
-        (batslib_print_kv_single_or_multi 10 "expected" $expected "actual" $actual \
+        (batslib_print_kv_single_or_multi 10 "expected" "$expected" "actual" "$actual" \
          | batslib_decorate "output does not match" \
          | fail)
 }
@@ -69,15 +69,15 @@ assert_eq() {
 #    $1 - The expected value.
 #    $2 - The actual value.
 assert_neq() {
-    expected=$1
+    expected="$1"
     if [[ $# < 2 ]]; then
-        actual=$output
+        actual="$output"
     else
-        actual=$2
+        actual="$2"
     fi
 
     [[ "$actual" != "$expected" ]] || \
-        (batslib_print_kv_single_or_multi 10 "expected" $expected "actual" $actual \
+        (batslib_print_kv_single_or_multi 10 "expected" "$expected" "actual" "$actual" \
          | batslib_decorate "output does not match" \
          | fail)
 }

@@ -72,8 +72,16 @@ fn main() {
         }
     };
 
-    if let Err(err) = result {
-        println!("An error occured:\n{:#?}", err);
-        ::std::process::exit(255)
+    match result {
+        Ok(()) => {}
+        Err(DfxError::BuildError(err)) => {
+            eprintln!("Build failed. Reason:");
+            eprintln!("  {}", err);
+            std::process::exit(255)
+        }
+        Err(err) => {
+            eprintln!("An error occured:\n{:#?}", err);
+            std::process::exit(255)
+        }
     }
 }
