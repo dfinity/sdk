@@ -1,5 +1,6 @@
 use crate::config::dfx_version;
 use crate::util;
+use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::io::{Error, ErrorKind, Result};
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
@@ -55,6 +56,22 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
     }
 
     if v == dfx_version() {
+        let b: Option<ProgressBar> = if atty::is(std::io::stderr()) {
+            let b = ProgressBar::new_spinner();
+            b.set_draw_target(ProgressDrawTarget::stderr());
+            b.set_message(&format!("Installing version {} of dfx...", v));
+            b.enable_steady_tick(80);
+            Some(b)
+        } else {
+            None
+        };
+
+        env.install()?;
+
+        if let Some(b) = b {
+            b.finish_with_message(&format!("Version v{} installed successfully.", v));
+        }
+
         let mut binary_cache_assets = util::assets::binary_cache()?;
         // Write binaries and set them to be executable.
         for file in binary_cache_assets.entries()? {
