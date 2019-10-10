@@ -1,7 +1,9 @@
+//! Deserialize Dfinity IDL binary data to Rust data structures
+
 extern crate paste;
 
 use super::error::{Error, Result};
-use super::idl_hash;
+use dfx_info::idl_hash;
 use num_enum::TryFromPrimitive;
 use serde::de::{self, Visitor};
 use std::collections::{BTreeMap, VecDeque};
@@ -25,11 +27,13 @@ enum Opcode {
     Variant = -21,
 }
 
+/// Use this struct to deserialize a sequence of Rust values (heterogeneous) from IDL binary message.
 pub struct IDLDeserialize<'de> {
     de: Deserializer<'de>,
 }
 
 impl<'de> IDLDeserialize<'de> {
+    /// Create a new deserializer with IDL binary message.
     pub fn new(bytes: &'de [u8]) -> Self {
         let mut de = Deserializer::from_bytes(bytes);
         de.parse_table()
@@ -37,6 +41,7 @@ impl<'de> IDLDeserialize<'de> {
             .unwrap();
         IDLDeserialize { de }
     }
+    /// Deserialize one value from deserializer.
     pub fn get_value<T>(&mut self) -> Result<T>
     where
         T: de::Deserialize<'de>,
@@ -56,6 +61,7 @@ impl<'de> IDLDeserialize<'de> {
                 .map_err(|e| self.de.dump_error_state(e))
         }
     }
+    /// Check if we have deserialized all the values from the message.
     pub fn done(self) -> Result<()> {
         if !self.de.types.is_empty() {
             return Err(Error::msg(format!(
@@ -72,7 +78,7 @@ impl<'de> IDLDeserialize<'de> {
 }
 
 #[derive(Clone, Debug)]
-pub enum RawValue {
+enum RawValue {
     I(i64),
     U(u64),
 }
@@ -91,7 +97,7 @@ impl RawValue {
     }
 }
 
-pub struct Deserializer<'de> {
+struct Deserializer<'de> {
     input: &'de [u8],
     // Raw value of the type description table
     table: Vec<Vec<RawValue>>,
@@ -102,11 +108,12 @@ pub struct Deserializer<'de> {
     // rewrite this to avoid copying.
     current_type: VecDeque<RawValue>,
     // field_name tells deserialize_identifier which field name to process.
+    // This field should always be set by set_field_name function.
     field_name: Option<&'static str>,
 }
 
 impl<'de> Deserializer<'de> {
-    pub fn from_bytes(input: &'de [u8]) -> Self {
+    fn from_bytes(input: &'de [u8]) -> Self {
         Deserializer {
             input,
             table: Vec::new(),
@@ -199,7 +206,7 @@ impl<'de> Deserializer<'de> {
     }
     // Pop type opcode from the front of current_type.
     // If the opcode is an index (>= 0), we push the corresponding entry from table,
-    // and pop the opcode from the front.
+    // to current_type queue, and pop the opcode from the front.
     fn parse_type(&mut self) -> Result<Opcode> {
         let mut op = self.pop_current_type()?.get_i64()?;
         if op >= 0 && op < self.table.len() as i64 {
@@ -211,6 +218,7 @@ impl<'de> Deserializer<'de> {
         }
         Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))
     }
+    // Same logic as parse_type, just not poping the current_type queue.
     fn peek_type(&self) -> Result<Opcode> {
         let mut op = self.peek_current_type()?.get_i64()?;
         if op >= 0 && op < self.table.len() as i64 {

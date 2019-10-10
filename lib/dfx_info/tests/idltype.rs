@@ -1,9 +1,7 @@
 extern crate dfx_info;
-extern crate serde_idl;
 
 use dfx_info::types::{get_type, Type};
-use dfx_info::IDLType;
-use serde_idl::idl_hash;
+use dfx_info::{idl_hash, IDLType};
 
 #[test]
 fn test_primitive() {

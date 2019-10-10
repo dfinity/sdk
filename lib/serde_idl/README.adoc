@@ -36,7 +36,7 @@ assert_eq!(List::ty(),
 
 
 == Remaining items
-* Limit recursion depth for deserialization
+* Limit recursion depth and heap size for deserialization
 * Support future values
 * Optimize for `new struct` type
 * Refactor serialization to use serde

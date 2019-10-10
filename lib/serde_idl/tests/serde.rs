@@ -68,8 +68,12 @@ fn test_text() {
 fn test_option() {
     all_check(Some(42), "4449444c016e7c0100012a");
     all_check(Some(Some(42)), "4449444c026e016e7c010001012a");
-    let opt: Option<i32> = None;
-    all_check(opt, "4449444c016e7c010000");
+    // Deserialize None of type Option<i32> to Option<String>
+    let none_i32: Option<i32> = None;
+    let none_str: Option<String> = None;
+    let bytes = Encode!(&none_i32);
+    test_decode(&bytes, &none_str);
+    all_check(none_i32, "4449444c016e7c010000");
     // Deserialize \mu T.Option<T> to a non-recursive type
     let v: Option<Option<Option<i32>>> = Some(Some(None));
     test_decode(b"DIDL\x01\x6e\0\x01\0\x01\x01\0", &v);
@@ -174,8 +178,10 @@ fn test_extra_fields() {
             bar: false,
         },
     };
+    // Decode A2 to A1
     let bytes = Encode!(&a2);
     test_decode(&bytes, &a1);
+    // Cannot Decode A1 to A2
     let bytes = Encode!(&a1);
     check_error(|| test_decode(&bytes, &a2), "missing field `baz`");
 
@@ -185,6 +191,7 @@ fn test_extra_fields() {
         Bar(A1, A2),
         Baz,
     }
+    // E1, E2 can be used interchangably as long as the variant matches
     let bytes = Encode!(&E1::Foo);
     test_decode(&bytes, &E2::Foo);
     let bytes = Encode!(&E2::Foo);
