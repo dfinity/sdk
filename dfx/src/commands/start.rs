@@ -66,7 +66,7 @@ where
     // Read the config.
     let config = env
         .get_config()
-        .map_or_else(|| Err(DfxError::CommandMustBeRunInAProject()), Ok)?;
+        .ok_or_else(DfxError::CommandMustBeRunInAProject)?;
 
     let address_and_port = args
         .value_of("host")
