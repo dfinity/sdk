@@ -137,7 +137,10 @@ where
     T: BinaryResolverEnv + ProjectConfigEnv,
 {
     // Read the config.
-    let config = env.get_config().unwrap();
+    let config = env
+        .get_config()
+        .ok_or_else(DfxError::CommandMustBeRunInAProject)?;
+
     // get_path() returns the full path of the config file. We need to get the dirname.
     let project_root = config.get_path().parent().unwrap();
 

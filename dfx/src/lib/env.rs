@@ -48,7 +48,7 @@ pub struct InProjectEnvironment {
 
 impl PlatformEnv for InProjectEnvironment {
     fn get_current_dir(&self) -> PathBuf {
-        let config_path = self.get_config().unwrap().get_path();
+        let config_path = self.config.get_path();
         PathBuf::from(config_path.parent().unwrap())
     }
 }

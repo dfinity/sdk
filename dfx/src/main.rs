@@ -60,12 +60,14 @@ fn main() {
     let result = {
         if Config::from_current_dir().is_ok() {
             // Build the environment.
-            let env = InProjectEnvironment::from_current_dir().unwrap();
+            let env = InProjectEnvironment::from_current_dir()
+                .expect("Could not create an project environment object.");
             let matches = cli(&env).get_matches();
 
             exec(&env, &matches, &(cli(&env)))
         } else {
-            let env = GlobalEnvironment::from_current_dir().unwrap();
+            let env = GlobalEnvironment::from_current_dir()
+                .expect("Could not create an global environment object.");
             let matches = cli(&env).get_matches();
 
             exec(&env, &matches, &(cli(&env)))
@@ -77,6 +79,10 @@ fn main() {
         Err(DfxError::BuildError(err)) => {
             eprintln!("Build failed. Reason:");
             eprintln!("  {}", err);
+            std::process::exit(255)
+        }
+        Err(DfxError::CommandMustBeRunInAProject()) => {
+            eprintln!("Command must be run in a project (with a dfx.json file).");
             std::process::exit(255)
         }
         Err(err) => {
