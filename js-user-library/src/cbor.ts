@@ -22,9 +22,10 @@ export type CborValue
   | CborRecord;
 
 export const encode = (value: CborValue): Uint8Array => {
-  return borc.encode(
+  const buffer = borc.encode(
     new borc.Tagged(SEMANTIC_TAG, value),
   );
+  return new Uint8Array(buffer);
 };
 
 export const decode = (input: Uint8Array): CborValue => {
