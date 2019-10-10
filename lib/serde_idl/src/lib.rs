@@ -31,6 +31,7 @@ extern crate num_enum;
 extern crate serde;
 
 pub use crate::de::IDLDeserialize;
+pub use crate::error::{Error, Result};
 pub use dfx_info::IDLType;
 pub use serde::Deserialize;
 
