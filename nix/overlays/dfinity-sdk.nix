@@ -1,6 +1,9 @@
 self: super: {
   dfinity-sdk = rec {
     packages = rec {
+        js-user-library = super.callPackage ../../js-user-library/package.nix {
+          inherit (self) napalm;
+        };
         rust-workspace = super.callPackage ../rust-workspace.nix {};
         rust-workspace-debug = (rust-workspace.override (_: {
           release = false;
@@ -11,7 +14,12 @@ self: super: {
           name = "${oldAttrs.name}-debug";
         });
         rust-workspace-doc = rust-workspace-debug.doc;
+
+        rust-workspace-standalone = (super.lib.standaloneRust rust-workspace "dfx");
+
         e2e-tests = super.callPackage ../e2e-tests.nix {};
+
+        public-folder = super.callPackage ../public.nix {};
     };
 
     # This is to make sure CI evalutes shell derivations, builds their
@@ -19,6 +27,7 @@ self: super: {
     # `shell.nix` in the root to provide an environment which is the composition
     # of all the shells here.
     shells = {
+      js-user-library = import ../../js-user-library/shell.nix { pkgs = self; };
       rust-workspace = import ../rust-shell.nix { pkgs = self; };
     };
 

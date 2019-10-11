@@ -37,7 +37,10 @@ where
     T: ClientEnv + ProjectConfigEnv,
 {
     // Read the config.
-    let config = env.get_config().unwrap();
+    let config = env
+        .get_config()
+        .ok_or_else(DfxError::CommandMustBeRunInAProject)?;
+
     let project_root = config.get_path().parent().unwrap();
 
     let canister_id = args.value_of("canister").unwrap().parse::<CanisterId>()?;

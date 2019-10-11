@@ -3,7 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
-use indicatif::{HumanBytes, ProgressBar, ProgressDrawTarget};
+use indicatif::HumanBytes;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -92,21 +92,6 @@ where
     }
 
     let dfx_version = env.get_version();
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-    b.set_message("Looking for latest version...");
-    b.enable_steady_tick(80);
-
-    if !env.is_installed()? {
-        env.install()?;
-        b.finish_with_message(
-            format!("Version v{} installed successfully.", env.get_version()).as_str(),
-        );
-    } else {
-        b.finish_with_message(
-            format!("Version v{} already installed.", env.get_version()).as_str(),
-        );
-    }
 
     eprintln!(r#"Creating new project "{}"..."#, project_name.display());
     if dry_run {

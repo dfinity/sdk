@@ -1,16 +1,13 @@
 #!/usr/bin/env bats
 
+load utils/_
+
 setup() {
     # We want to work from a temporary directory, different for every test.
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
     export RUST_BACKTRACE=1
 
-    dfx new e2e-project
-    test -d e2e-project
-    test -f e2e-project/dfinity.json
-    cd e2e-project
-
-    echo PWD: $(pwd) >&2
+    dfx_new
 }
 
 teardown() {
@@ -19,45 +16,25 @@ teardown() {
     killall dfx nodemanager client || true
 }
 
-# Create a new project and starts its client in the background.
-dfx_start() {
-    # Bats create a FD 3 for test output, but child processes inherit it and Bats will
-    # wait for it to close. Because `dfx start` leave a child process running, we need
-    # to close this pipe, otherwise Bats will wait indefinitely.
-    dfx start --background 3>&-
-}
-
-# Takes a name of the asset folder, and copy those files to the current project.
-install_asset() {
-    ASSET_ROOT=${BATS_TEST_DIRNAME}/assets/$1/
-    cp -R $ASSET_ROOT/* .
-}
-
 @test "build + install + call + request-status -- greet_as" {
     install_asset greet_as
     dfx_start
     dfx build
-    INSTALL_REQUEST_ID=$(dfx canister install 1 build/greet.wasm)
+    INSTALL_REQUEST_ID=$(dfx canister install 1 canisters/greet.wasm)
     dfx canister request-status $INSTALL_REQUEST_ID
 
-    run dfx canister query 1 greet --type=string Banzai
-    [[ $status == 0 ]]
-    [[ "$output" == "Hello, Banzai!" ]]
+    assert_command dfx canister query 1 greet --type=string Banzai
+    assert_eq "Hello, Banzai!"
 
     # Using call --wait.
-    run dfx canister call --wait 1 greet --type=string Bongalo
-    echo $output
-    [[ $status == 0 ]]
-    [[ "$output" == "Hello, Bongalo!" ]]
+    assert_command dfx canister call --wait 1 greet --type=string Bongalo
+    assert_eq "Hello, Bongalo!"
 
     # Using call and request-status.
-    run dfx canister call 1 greet --type=string Blueberry
-    [[ $status == 0 ]]
-
+    assert_command dfx canister call 1 greet --type=string Blueberry
     # At this point $output is the request ID.
-    run dfx canister request-status $output
-    [[ $status == 0 ]]
-    [[ "$output" == "Hello, Blueberry!" ]]
+    assert_command dfx canister request-status $output
+    assert_eq "Hello, Blueberry!"
 }
 
 @test "build + install + call + request-status -- counter_wat" {
@@ -105,36 +82,34 @@ install_asset() {
     install_asset counter_as
     dfx_start
     dfx build
-    dfx canister install 1 build/counter.wasm
+    dfx canister install 1 canisters/counter.wasm --wait
 
-    run dfx canister call 1 read --wait
-    [[ "$output" == "0" ]]
-    run dfx canister call 1 inc --wait
-    [[ "$output" == "" ]]
-    run dfx canister query 1 read
-    [[ "$output" == "1" ]]
+    assert_command dfx canister call 1 read --wait
+    assert_eq "0"
 
-    dfx canister call --wait 1 inc
-    run dfx canister query 1 read
-    [[ "$output" == "2" ]]
+    assert_command dfx canister call 1 inc --wait
+    assert_eq ""
+
+    assert_command dfx canister query 1 read
+    assert_eq "1"
 
     dfx canister call --wait 1 inc
-    run dfx canister query 1 read
-    [[ "$output" == "3" ]]
+    assert_command dfx canister query 1 read
+    assert_eq "2"
 
-    run dfx canister call 1 inc
-    [[ $status == 0 ]]
-    dfx canister request-status $output
-    [[ $status == 0 ]]
+    dfx canister call --wait 1 inc
+    assert_command dfx canister query 1 read
+    assert_eq "3"
+
+    assert_command dfx canister call 1 inc
+    assert_command dfx canister request-status $output
 
     # Call write.
-    run dfx canister call 1 write --type=number 1337 --wait
-    [[ $status == 0 ]]
+    assert_command dfx canister call 1 write --type=number 1337 --wait
+    assert_eq ""
 
     # Write has no return value. But we can _call_ read too.
-    run dfx canister call 1 read
-    [[ $status == 0 ]]
-    run dfx canister request-status $output
-    [[ $status == 0 ]]
-    [[ "$output" == "1337" ]]
+    assert_command dfx canister call 1 read
+    assert_command dfx canister request-status $output
+    assert_eq "1337"
 }
