@@ -59,10 +59,10 @@ const concat = (bs: Array<BinaryBlob>): BinaryBlob => {
 };
 
 export const requestIdOf = async (request: Request): Promise<RequestId> => {
-  const { sender_pubkey, sender_sig, ...rest } = request;
+  const { sender_pubkey, sender_sig, ...fields } = request;
 
   const hashed: Array<Promise<[BinaryBlob, BinaryBlob]>> = Object
-    .entries(rest)
+    .entries(fields)
     .map(async ([key, value]: [string, CborValue]) => {
       const hashedKey = await hashString(key);
       const hashedValue = await hashValue(value as HashableValue);
