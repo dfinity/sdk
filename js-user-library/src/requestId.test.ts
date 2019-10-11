@@ -1,7 +1,6 @@
 // tslint:disable-next-line: max-line-length
 // https://github.com/dfinity-lab/dfinity/blob/5fef1450c9ab16ccf18381379149e504b11c8218/docs/spec/public/index.adoc#request-ids
 
-// import { Buffer } from "buffer/";
 import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
 import { Request } from "./request";
