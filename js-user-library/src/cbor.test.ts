@@ -1,4 +1,5 @@
-import { toHex } from "./blob";
+import { BinaryBlob } from "./blob";
+import * as blob from "./blob";
 import { CborValue, decode, encode } from "./cbor";
 import { Int } from "./int";
 
@@ -6,14 +7,14 @@ test("round trip", () => {
   interface Data extends Record<string, CborValue> {
     a: Int;
     b: string;
-    c: Uint8Array;
+    c: BinaryBlob;
     d: { four: string };
   }
 
   const input: Data = {
     a: 1 as Int,
     b: "two",
-    c: Uint8Array.from([3]),
+    c: Uint8Array.from([3]) as BinaryBlob,
     d: { four: "four" },
   };
 
@@ -24,5 +25,5 @@ test("round trip", () => {
   const { c: inputC, ...inputRest } = input;
   const { c: outputC, ...outputRest } = output;
   expect(outputRest).toEqual(inputRest);
-  expect(toHex(outputC)).toBe(toHex(inputC));
+  expect(blob.toHex(outputC)).toBe(blob.toHex(inputC));
 });
