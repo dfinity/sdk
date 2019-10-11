@@ -3,15 +3,34 @@
   "name": "@internet-computer/js-user-library",
   "version": "0.1.0",
   "scripts": {
-    "test": "jest --verbose"
+    "build": "npm run test && npm run build:types && npm run build:js",
+    "build:js": "babel src --out-dir out --extensions '.js','.ts' --source-maps inline",
+    "build:types": "tsc --allowJs false --declaration --emitDeclarationOnly",
+    "lint": "tslint --project tsconfig.json --config tslint.json",
+    "lint:fix": "npm run lint -- --fix",
+    "test": "npm run lint && npm run type-check && jest --verbose",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "npm run type-check -- --watch"
   },
   "dependencies": {
+    "buffer": "^5.4.3",
     "buffer-pipe": "0.0.4",
+    "core-js": "^3.2.1",
     "leb128": "0.0.5",
+    "regenerator-runtime": "^0.13.3",
     "text-encoding": "^0.7.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
+    "@babel/preset-typescript": "^7.6.0",
+    "@types/jest": "^24.0.18",
+    "babel-jest": "^24.9.0",
+    "borc": "^2.1.1",
     "jest": "^24.9.0",
-    "jest-expect-message": "^1.0.2"
+    "jest-expect-message": "^1.0.2",
+    "tslint": "^5.20.0",
+    "typescript": "^3.6.3"
   }
 }
