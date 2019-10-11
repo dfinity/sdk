@@ -25,6 +25,7 @@
     "@babel/core": "^7.6.0",
     "@babel/preset-env": "^7.6.0",
     "@babel/preset-typescript": "^7.6.0",
+    "@trust/webcrypto": "^0.9.2",
     "@types/jest": "^24.0.18",
     "babel-jest": "^24.9.0",
     "borc": "^2.1.1",
