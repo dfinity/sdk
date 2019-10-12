@@ -1,4 +1,6 @@
-import { ReadRequestType } from "./readRequest";
-import { SubmitRequestType } from "./submitRequest";
+import { ReadRequestType } from "./readRequestType";
+import { SubmitRequestType } from "./submitRequestType";
 
-export type RequestType = ReadRequestType | SubmitRequestType;
+export type RequestType
+  = ReadRequestType
+  | SubmitRequestType;
