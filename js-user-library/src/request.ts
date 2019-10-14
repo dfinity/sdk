@@ -10,9 +10,9 @@ export interface AuthFields extends Record<string, any> {
 
 // TODO: add missing common fields from the spec; `expiry` and `sender`
 export interface AsyncFields extends Record<string, any> {
-  // NOTE: `nonce`, but we provide it so that requests are unique and we avoid a
-  // bug in the client when the same request is submitted more than once:
-  // https://dfinity.atlassian.net/browse/DFN-895
+  // NOTE: `nonce` is optional, but we provide it so that requests are unique
+  // and we avoid a bug in the client when the same request is submitted more
+  // than once: https://dfinity.atlassian.net/browse/DFN-895
   nonce?: Nonce;
 }
 
