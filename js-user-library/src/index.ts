@@ -1,1 +1,1 @@
-export * from "./httpAgent";
+export { HttpAgent, makeHttpAgent } from "./httpAgent";
