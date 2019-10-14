@@ -77,7 +77,7 @@ const defaultOptions: DefaultOptions = {
 };
 
 
-// `Config` is the internal representation if `Options`.
+// `Config` is the internal representation of `Options`.
 interface Config {
   canisterId: CanisterId;
   host: string;
