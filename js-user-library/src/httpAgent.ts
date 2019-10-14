@@ -1,3 +1,4 @@
+import { sign } from "tweetnacl";
 import { BinaryBlob } from "./blob";
 import { CallRequest } from "./callRequest";
 import { CanisterId } from "./canisterId";
@@ -14,6 +15,7 @@ import { RequestStatusRequest } from "./requestStatusRequest";
 import { RequestStatusResponse } from "./requestStatusResponse";
 import { Response } from "./response";
 import { SenderPubKey } from "./senderPubKey";
+import { SenderSecretKey } from "./senderSecretKey";
 import { SenderSig } from "./senderSig";
 import { SubmitRequest } from "./submitRequest";
 import { SubmitRequestType } from "./submitRequestType";
@@ -55,27 +57,29 @@ interface Options {
   fetchFn?: WindowOrWorkerGlobalScope["fetch"];
   host?: string;
   nonceFn?: () => Nonce;
-  senderPubKey: SenderPubKey;
-  senderSigFn?: (requestId: RequestId) => SenderSig;
+//  senderPubKey: SenderPubKey;
+  senderSecretKey: SenderSecretKey;
+//  senderSigFn: (requestId: RequestId) => SenderSig;
 }
 
 interface DefaultOptions {
   fetchFn: WindowOrWorkerGlobalScope["fetch"];
   host: string;
   nonceFn: () => Nonce;
-  senderSigFn: (requestId: RequestId) => SenderSig;
+//  senderSigFn: (requestId: RequestId) => SenderSig;
 }
 
 const defaultOptions: DefaultOptions = {
   fetchFn: typeof window === "undefined" ? fetch : window.fetch.bind(window),
   host: "http://localhost:8000",
   nonceFn: makeNonce,
-  senderSigFn: (requestId: RequestId): SenderSig => {
-    // TODO: calculate signature using `requestId`
-    return new Uint8Array(64) as SenderSig;
-  },
 };
 
+export const signMessage =
+  (message: RequestId, secretKey: SenderSecretKey) => sign(message, secretKey);
+// XXX Unused for the first pass
+const generateKeyPair = () => sign.keyPair();
+const pairKeys = generateKeyPair();
 
 // `Config` is the internal representation of `Options`.
 interface Config {
@@ -83,6 +87,7 @@ interface Config {
   host: string;
   nonceFn: () => Nonce;
   senderPubKey: SenderPubKey;
+//  senderSecretKey: SenderSecretKey;
   runFetch(endpoint: Endpoint, body?: BodyInit | null): Promise<Response>;
   senderSigFn(requestId: RequestId): SenderSig;
 }
@@ -94,6 +99,14 @@ const makeConfig = (options: Options): Config => {
   return {
     ...withDefaults,
     canisterId: canisterId.fromHex(options.canisterId),
+    senderPubKey:
+    (
+      sign.keyPair.fromSecretKey(options.senderSecretKey)
+    ).publicKey as SenderPubKey,
+    senderSigFn: (requestId: RequestId): SenderSig => {
+      const signature = signMessage(requestId, options.senderSecretKey);
+      return signature as SenderSig;
+    },
     runFetch: (endpoint, body) => {
       return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",

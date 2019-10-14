@@ -18,7 +18,8 @@
     "core-js": "^3.2.1",
     "leb128": "0.0.5",
     "regenerator-runtime": "^0.13.3",
-    "text-encoding": "^0.7.0"
+    "text-encoding": "^0.7.0",
+    "tweetnacl": "^1.0.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.6.0",
