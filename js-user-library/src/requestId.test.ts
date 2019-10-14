@@ -6,6 +6,8 @@ import * as blob from "./blob";
 import { Request } from "./request";
 import { hash, requestIdOf } from "./requestId";
 import { RequestType } from "./requestType";
+import { SenderPubKey } from "./senderPubKey";
+import { SenderSig } from "./senderSig";
 
 const testHashOfBlob = async (input: BinaryBlob, expected: string) => {
   const hashed = await hash(input);
@@ -78,8 +80,8 @@ test("requestIdOf", async () => {
     // These fields are not included in the example provided in the spec but we
     // provide them here to verify that they do not affect the request ID:
     // "Remove the fields that are only used for authentication"
-    sender_pubkey: new Uint8Array(32) as BinaryBlob,
-    sender_sig: new Uint8Array(64) as BinaryBlob,
+    sender_pubkey: new Uint8Array(32) as SenderPubKey,
+    sender_sig: new Uint8Array(64) as SenderSig,
   };
 
   const requestId = await requestIdOf(request);

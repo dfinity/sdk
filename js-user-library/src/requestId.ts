@@ -5,7 +5,7 @@ import { CborValue } from "./cbor";
 import { Hex } from "./hex";
 import * as int from "./int";
 import { Int } from "./int";
-import { Request } from "./request";
+import * as Request from "./request";
 
 export type RequestId = BinaryBlob & { __requestId__: void };
 
@@ -58,7 +58,15 @@ const concat = (bs: Array<BinaryBlob>): BinaryBlob => {
   }, new Uint8Array()) as BinaryBlob;
 };
 
-export const requestIdOf = async (request: Request): Promise<RequestId> => {
+export const requestIdOf = async (
+  request: Request.CommonFields,
+): Promise<RequestId> => {
+  // While the type signature of this function ensures the fields we care about
+  // are present, it does not prevent additional fields from being provided,
+  // including the fields used for authentication that we must omit when
+  // calculating the request ID. This is by design, since requests are expected
+  // to have more than just the common fields. As a result, we need to explictly
+  // ignore the authentication fields.
   const { sender_pubkey, sender_sig, ...fields } = request;
 
   const hashed: Array<Promise<[BinaryBlob, BinaryBlob]>> = Object

@@ -9,3 +9,4 @@
 
 window.crypto = require("@trust/webcrypto");
 window.TextEncoder = require("text-encoding").TextEncoder;
+require("whatwg-fetch");
