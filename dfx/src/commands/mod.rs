@@ -12,6 +12,7 @@ mod language_service;
 mod new;
 mod start;
 mod stop;
+mod upgrade;
 
 pub type CliExecFn<T> = fn(&T, &ArgMatches<'_>) -> DfxResult;
 pub struct CliCommand<T> {
@@ -51,5 +52,6 @@ where
         CliCommand::new(new::construct(), new::exec),
         CliCommand::new(start::construct(), start::exec),
         CliCommand::new(stop::construct(), stop::exec),
+        CliCommand::new(upgrade::construct(), upgrade::exec),
     ]
 }
