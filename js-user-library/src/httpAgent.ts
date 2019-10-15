@@ -1,4 +1,4 @@
-import { sign } from "tweetnacl";
+import * as auth from "./auth";
 import { BinaryBlob } from "./blob";
 import { CallRequest } from "./callRequest";
 import { CanisterId } from "./canisterId";
@@ -57,39 +57,41 @@ interface Options {
   fetchFn?: WindowOrWorkerGlobalScope["fetch"];
   host?: string;
   nonceFn?: () => Nonce;
-//  senderPubKey: SenderPubKey;
+  senderPubKey: SenderPubKey;
   senderSecretKey: SenderSecretKey;
-//  senderSigFn: (requestId: RequestId) => SenderSig;
+  senderSigFn?: (
+    secretKey: SenderSecretKey,
+  ) => (
+    requestId: RequestId,
+  ) => SenderSig;
 }
 
 interface DefaultOptions {
   fetchFn: WindowOrWorkerGlobalScope["fetch"];
   host: string;
   nonceFn: () => Nonce;
-//  senderSigFn: (requestId: RequestId) => SenderSig;
+  senderSigFn: (
+    secretKey: SenderSecretKey,
+  ) => (
+    requestId: RequestId,
+  ) => SenderSig;
 }
 
 const defaultOptions: DefaultOptions = {
   fetchFn: typeof window === "undefined" ? fetch : window.fetch.bind(window),
   host: "http://localhost:8000",
   nonceFn: makeNonce,
+  senderSigFn: auth.sign,
 };
-
-export const signMessage =
-  (message: RequestId, secretKey: SenderSecretKey) => sign(message, secretKey);
-// XXX Unused for the first pass
-const generateKeyPair = () => sign.keyPair();
-const pairKeys = generateKeyPair();
 
 // `Config` is the internal representation of `Options`.
 interface Config {
   canisterId: CanisterId;
   host: string;
   nonceFn: () => Nonce;
+  runFetch: (endpoint: Endpoint, body?: BodyInit | null) => Promise<Response>;
   senderPubKey: SenderPubKey;
-//  senderSecretKey: SenderSecretKey;
-  runFetch(endpoint: Endpoint, body?: BodyInit | null): Promise<Response>;
-  senderSigFn(requestId: RequestId): SenderSig;
+  senderSigFn: (requestId: RequestId) => SenderSig;
 }
 
 const API_VERSION = "v1";
@@ -99,14 +101,7 @@ const makeConfig = (options: Options): Config => {
   return {
     ...withDefaults,
     canisterId: canisterId.fromHex(options.canisterId),
-    senderPubKey:
-    (
-      sign.keyPair.fromSecretKey(options.senderSecretKey)
-    ).publicKey as SenderPubKey,
-    senderSigFn: (requestId: RequestId): SenderSig => {
-      const signature = signMessage(requestId, options.senderSecretKey);
-      return signature as SenderSig;
-    },
+    senderSigFn: withDefaults.senderSigFn(options.senderSecretKey),
     runFetch: (endpoint, body) => {
       return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",
