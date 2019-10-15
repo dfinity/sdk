@@ -241,7 +241,7 @@ pub fn install_code(
 
 /// Canister call
 ///
-/// Canister methods that can change the canister state. This return right away, and cannot wait
+/// Canister methods that can change the canister state. This returns right away, and cannot wait
 /// for the canister to be done.
 pub fn call(
     client: Client,
