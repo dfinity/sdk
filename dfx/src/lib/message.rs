@@ -1,12 +1,12 @@
 use std::fmt;
 
 pub enum UserMessage {
-	CallCanister,
-	CanisterId,
-	MethodName,
-	WaitForResult,
-	ArgumentType,
-	ArgumentValue,
+    CallCanister,
+    CanisterId,
+    MethodName,
+    WaitForResult,
+    ArgumentType,
+    ArgumentValue,
 }
 
 pub fn user_message_str(message: &UserMessage) -> &'static str {
