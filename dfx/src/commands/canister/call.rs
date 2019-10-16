@@ -1,6 +1,7 @@
 use crate::lib::api_client::{call, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::usr_msg;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -10,29 +11,29 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("call")
-        .about("Call a canister.")
+        .about(usr_msg("CALL_CANISTER"))
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help("The canister ID (a number) to call.")
+                .help(usr_msg("CANISTER_ID"))
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("method_name")
-                .help("The method name file to use.")
+                .help(usr_msg("METHOD_NAME"))
                 .required(true),
         )
         .arg(
             Arg::with_name("wait")
-                .help("Wait for the result of the call, by polling the client.")
+                .help(usr_msg("WAIT_FOR_RESULT"))
                 .long("wait")
                 .short("w")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("type")
-                .help("The type of the argument. Required when using an argument.")
+                .help(usr_msg("ARG_TYPE"))
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
@@ -40,7 +41,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("argument")
-                .help("Argument to pass to the method.")
+                .help(usr_msg("ARG_VALUE"))
                 .takes_value(true)
                 .required(false),
         )
