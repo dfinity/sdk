@@ -1,6 +1,0 @@
-[target.'cfg(target_os = "linux")']
-# "-C link-args..." is required to get the system API calls exported
-rustflags = ["-W", "rust-2018-idioms", "-C", "link-args=-Wl,--export-dynamic"]
-
-[build]
-rustflags = ["-W", "rust-2018-idioms"]
