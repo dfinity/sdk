@@ -1,7 +1,7 @@
 use crate::lib::api_client::{call, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::usr_msg;
+use crate::lib::message::{user_message_str, UserMessage};
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -11,29 +11,29 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("call")
-        .about(usr_msg("CALL_CANISTER"))
+        .about(user_message_str(&UserMessage::CallCanister))
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help(usr_msg("CANISTER_ID"))
+                .help(user_message_str(&UserMessage::CanisterId))
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("method_name")
-                .help(usr_msg("METHOD_NAME"))
+                .help(user_message_str(&UserMessage::MethodName))
                 .required(true),
         )
         .arg(
             Arg::with_name("wait")
-                .help(usr_msg("WAIT_FOR_RESULT"))
+                .help(user_message_str(&UserMessage::WaitForResult))
                 .long("wait")
                 .short("w")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("type")
-                .help(usr_msg("ARG_TYPE"))
+                .help(user_message_str(&UserMessage::ArgumentType))
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
@@ -41,7 +41,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("argument")
-                .help(usr_msg("ARG_VALUE"))
+                .help(user_message_str(&UserMessage::ArgumentValue))
                 .takes_value(true)
                 .required(false),
         )
