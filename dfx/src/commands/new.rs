@@ -1,5 +1,6 @@
 use crate::lib::env::{BinaryCacheEnv, PlatformEnv, VersionEnv};
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::{user_message_str, UserMessage};
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
@@ -12,15 +13,15 @@ const PROJECT_NAME: &str = "project_name";
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("new")
-        .about("Create a new project.")
+        .about(user_message_str(&UserMessage::CreateProject))
         .arg(
             Arg::with_name(PROJECT_NAME)
-                .help("The name of the project to create.")
+                .help(user_message_str(&UserMessage::ProjectName))
                 .required(true),
         )
         .arg(
             Arg::with_name(DRY_RUN)
-                .help("Do not write anything to the file system.")
+                .help(user_message_str(&UserMessage::DryRun))
                 .long("dry-run")
                 .takes_value(false),
         )

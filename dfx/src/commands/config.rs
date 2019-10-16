@@ -1,19 +1,18 @@
 use crate::lib::env::ProjectConfigEnv;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::{user_message_str, UserMessage};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use serde_json::value::Value;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("config")
-        .about("Configure options in the current DFINITY project.")
+        .about(user_message_str(&UserMessage::ConfigureOptions))
         .arg(
             Arg::with_name("config_path")
-                .help("The name of the configuration option to set or read.")
+                .help(user_message_str(&UserMessage::OptionName))
                 .required(true),
         )
-        .arg(Arg::with_name("value").help(
-            "The new value to set. If unspecified will output the current value in the config.",
-        ))
+        .arg(Arg::with_name("value").help(user_message_str(&UserMessage::OptionValue)))
 }
 
 pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {

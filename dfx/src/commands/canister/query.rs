@@ -1,6 +1,7 @@
 use crate::lib::api_client::{query, QueryResponseReply, ReadResponse};
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::{user_message_str, UserMessage};
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -10,28 +11,28 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("query")
-        .about("Query a canister.")
+        .about(user_message_str(&UserMessage::QueryCanister))
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help("The canister ID (a number) to query.")
+                .help(user_message_str(&UserMessage::CanisterId))
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("method_name")
-                .help("The name of the method to query.")
+                .help(user_message_str(&UserMessage::MethodName))
                 .required(true),
         )
         .arg(
             Arg::with_name("argument")
-                .help("Argument to pass to the method.")
+                .help(user_message_str(&UserMessage::ArgumentValue))
                 .takes_value(true)
                 .multiple(true),
         )
         .arg(
             Arg::with_name("type")
-                .help("The type of the argument. Required when using an argument.")
+                .help(user_message_str(&UserMessage::ArgumentType))
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
