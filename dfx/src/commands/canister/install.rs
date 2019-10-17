@@ -1,7 +1,7 @@
 use crate::lib::api_client::{install_code, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::{ClientEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::{user_message_str, UserMessage};
+use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -11,24 +11,24 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("install")
-        .about(user_message_str(&UserMessage::InstallCanister))
+        .about(UserMessage::InstallCanister.to_str()))
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help(user_message_str(&UserMessage::CanisterId))
+                .help(UserMessage::CanisterId.to_str()))
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("wait")
-                .help(user_message_str(&UserMessage::WaitForResult))
+                .help(UserMessage::WaitForResult.to_str()))
                 .long("wait")
                 .short("w")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("wasm")
-                .help(user_message_str(&UserMessage::WasmFile))
+                .help(UserMessage::WasmFile.to_str()))
                 .required(true),
         )
 }

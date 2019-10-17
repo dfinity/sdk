@@ -1,7 +1,7 @@
 use crate::lib::api_client::{request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::{user_message_str, UserMessage};
+use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -11,11 +11,11 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("request-status")
-        .about(user_message_str(&UserMessage::RequestCallStatus))
+        .about(UserMessage::RequestCallStatus.to_str())
         .arg(
             Arg::with_name("request_id")
                 .takes_value(true)
-                .help(user_message_str(&UserMessage::RequestId))
+                .help(UserMessage::RequestId.to_str()))
                 .required(true)
                 .validator(validators::is_request_id),
         )

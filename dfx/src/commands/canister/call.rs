@@ -1,7 +1,7 @@
 use crate::lib::api_client::{call, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::{user_message_str, UserMessage};
+use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -11,29 +11,29 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("call")
-        .about(user_message_str(&UserMessage::CallCanister))
+        .about(UserMessage::CallCanister.to_str())
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help(user_message_str(&UserMessage::CanisterId))
+                .help(UserMessage::CanisterId.to_str()))
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("method_name")
-                .help(user_message_str(&UserMessage::MethodName))
+                .help(UserMessage::MethodName.to_str()))
                 .required(true),
         )
         .arg(
             Arg::with_name("wait")
-                .help(user_message_str(&UserMessage::WaitForResult))
+                .help(UserMessage::WaitForResult.to_str()))
                 .long("wait")
                 .short("w")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("type")
-                .help(user_message_str(&UserMessage::ArgumentType))
+                .help(UserMessage::ArgumentType.to_str()))
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
@@ -41,7 +41,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("argument")
-                .help(user_message_str(&UserMessage::ArgumentValue))
+                .help(UserMessage::ArgumentValue.to_str()))
                 .takes_value(true)
                 .required(false),
         )
