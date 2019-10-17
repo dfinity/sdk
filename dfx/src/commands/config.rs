@@ -6,13 +6,13 @@ use serde_json::value::Value;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("config")
-        .about(UserMessage::ConfigureOptions.to_str()))
+        .about(UserMessage::ConfigureOptions.to_str())
         .arg(
             Arg::with_name("config_path")
-                .help(UserMessage::OptionName.to_str()))
+                .help(UserMessage::OptionName.to_str())
                 .required(true),
         )
-        .arg(Arg::with_name("value").help(UserMessage::OptionValue.to_str())))
+        .arg(Arg::with_name("value").help(UserMessage::OptionValue.to_str()))
 }
 
 pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {

@@ -15,25 +15,25 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help(UserMessage::CanisterId.to_str()))
+                .help(UserMessage::CanisterId.to_str())
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("method_name")
-                .help(UserMessage::MethodName.to_str()))
+                .help(UserMessage::MethodName.to_str())
                 .required(true),
         )
         .arg(
             Arg::with_name("wait")
-                .help(UserMessage::WaitForResult.to_str()))
+                .help(UserMessage::WaitForResult.to_str())
                 .long("wait")
                 .short("w")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("type")
-                .help(UserMessage::ArgumentType.to_str()))
+                .help(UserMessage::ArgumentType.to_str())
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
@@ -41,7 +41,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("argument")
-                .help(UserMessage::ArgumentValue.to_str()))
+                .help(UserMessage::ArgumentValue.to_str())
                 .takes_value(true)
                 .required(false),
         )

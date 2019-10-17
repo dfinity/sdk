@@ -8,8 +8,8 @@ use std::path::Path;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
-        .about(UserMessage::BuildCanister.to_str()))
-        .arg(Arg::with_name("canister").help(UserMessage::CanisterName.to_str())))
+        .about(UserMessage::BuildCanister.to_str())
+        .arg(Arg::with_name("canister").help(UserMessage::CanisterName.to_str()))
 }
 
 /// Compile an actorscript file.

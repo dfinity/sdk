@@ -11,24 +11,24 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("install")
-        .about(UserMessage::InstallCanister.to_str()))
+        .about(UserMessage::InstallCanister.to_str())
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help(UserMessage::CanisterId.to_str()))
+                .help(UserMessage::CanisterId.to_str())
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("wait")
-                .help(UserMessage::WaitForResult.to_str()))
+                .help(UserMessage::WaitForResult.to_str())
                 .long("wait")
                 .short("w")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("wasm")
-                .help(UserMessage::WasmFile.to_str()))
+                .help(UserMessage::WasmFile.to_str())
                 .required(true),
         )
 }

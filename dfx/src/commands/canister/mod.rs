@@ -26,7 +26,7 @@ where
     T: ClientEnv + ProjectConfigEnv,
 {
     SubCommand::with_name("canister")
-        .about(UserMessage::ManageCanister.to_str()))
+        .about(UserMessage::ManageCanister.to_str())
         .subcommands(
             builtins::<T>()
                 .into_iter()

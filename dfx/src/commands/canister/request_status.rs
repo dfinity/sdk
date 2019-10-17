@@ -15,7 +15,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("request_id")
                 .takes_value(true)
-                .help(UserMessage::RequestId.to_str()))
+                .help(UserMessage::RequestId.to_str())
                 .required(true)
                 .validator(validators::is_request_id),
         )

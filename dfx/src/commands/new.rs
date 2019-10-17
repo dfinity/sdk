@@ -13,15 +13,15 @@ const PROJECT_NAME: &str = "project_name";
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("new")
-        .about(UserMessage::CreateProject.to_str()))
+        .about(UserMessage::CreateProject.to_str())
         .arg(
             Arg::with_name(PROJECT_NAME)
-                .help(UserMessage::ProjectName.to_str()))
+                .help(UserMessage::ProjectName.to_str())
                 .required(true),
         )
         .arg(
             Arg::with_name(DRY_RUN)
-                .help(UserMessage::DryRun.to_str()))
+                .help(UserMessage::DryRun.to_str())
                 .long("dry-run")
                 .takes_value(false),
         )

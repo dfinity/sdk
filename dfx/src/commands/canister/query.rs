@@ -11,28 +11,28 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("query")
-        .about(UserMessage::QueryCanister.to_str()))
+        .about(UserMessage::QueryCanister.to_str())
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help(UserMessage::CanisterId.to_str()))
+                .help(UserMessage::CanisterId.to_str())
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("method_name")
-                .help(UserMessage::MethodName.to_str()))
+                .help(UserMessage::MethodName.to_str())
                 .required(true),
         )
         .arg(
             Arg::with_name("argument")
-                .help(UserMessage::ArgumentValue.to_str()))
+                .help(UserMessage::ArgumentValue.to_str())
                 .takes_value(true)
                 .multiple(true),
         )
         .arg(
             Arg::with_name("type")
-                .help(UserMessage::ArgumentType.to_str()))
+                .help(UserMessage::ArgumentType.to_str())
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
