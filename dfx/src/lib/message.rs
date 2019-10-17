@@ -21,19 +21,15 @@ pub enum UserMessage {
     CreateProject,
     ProjectName,
     DryRun,
-    CreatingProject,
-    DryRunning,
-    CreatingRepo,
     StartNode,
     NodeAddress,
     StartBackground,
-    InstallingDfx,
-    DfxInstalled,
 }
 
 impl UserMessage {
     pub fn to_str(&self) -> &str {
         match &self {
+
             // dfx canister call
             UserMessage::CallCanister => "Call a canister",
             UserMessage::CanisterId => "The canister ID (a number).",
@@ -69,18 +65,11 @@ impl UserMessage {
             UserMessage::CreateProject => "Create a new project.",
             UserMessage::ProjectName => "The name of the project to create.",
             UserMessage::DryRun => "Do not write anything to the file system.",
-            UserMessage::CreatingProject => "Creating new project {}...",
-            UserMessage::DryRunning => "Running in dry mode. Nothing will be committed to disk.",
-            UserMessage::CreatingRepo => "Creating git repository...",
 
             // dfx start
             UserMessage::StartNode => "Start a local network in the background.",
             UserMessage::NodeAddress => "The host (with port) to bind the frontend to.",
             UserMessage::StartBackground => "Exit the dfx leaving the client running. Will wait until the client replies before exiting.",
-
-            // dfx cache
-            UserMessage::InstallingDfx => "Installing version {} of dfx...",
-            UserMessage::DfxInstalled => "Version v{} installed successfully.",
         }
     }
 }
