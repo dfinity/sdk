@@ -1,14 +1,15 @@
 use crate::config::dfinity::{ConfigCanistersCanister, Profile};
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use std::ffi::OsStr;
 use std::path::Path;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
-        .about("Build a canister code, or all canisters if no argument is passed.")
-        .arg(Arg::with_name("canister").help("The canister name to build."))
+        .about(UserMessage::BuildCanister.to_str())
+        .arg(Arg::with_name("canister").help(UserMessage::CanisterName.to_str()))
 }
 
 /// Compile an actorscript file.
