@@ -41,7 +41,7 @@ export const makeActor = (
     return [methodName, async (...args: Array<any>) => {
       // TODO
       // * Throw if func.argTypes.length !== args.length
-      // * Encode arguments
+      // * Encode request arguments with the corresponding type
       const {
         requestId: requestIdent,
         response: callResponse,
@@ -70,7 +70,7 @@ export const makeActor = (
           case RequestStatusResponseStatus.Replied: {
             // TODO
             // * Throw if func.retTypes.length !== response.reply.arg.length
-            // * Decode response
+            // * Decode response arguments with the corresponding type
             return response.reply.arg;
           }
           default: {
