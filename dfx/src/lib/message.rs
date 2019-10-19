@@ -31,45 +31,45 @@ impl UserMessage {
         match &self {
 
             // dfx canister call
-            UserMessage::CallCanister => "Call a canister",
-            UserMessage::CanisterId => "The canister ID (a number).",
-            UserMessage::MethodName => "The method name file to use.",
-            UserMessage::WaitForResult => "Wait for the result of the call, by polling the client.",
-            UserMessage::ArgumentType => "The type of the argument. Required when using an argument.",
-            UserMessage::ArgumentValue => "Argument to pass to the method.",
+            UserMessage::CallCanister => "Calls a method on a deployed canister.",
+            UserMessage::CanisterId => "Specifies the numeric canister identifier to call.",
+            UserMessage::MethodName => "Specifies the method name to call on the canister.",
+            UserMessage::WaitForResult => "Waits for the result of the call to be returned by polling the client.",
+            UserMessage::ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
+            UserMessage::ArgumentValue => "Specifies the argument to pass to the method.",
 
             // dfx canister install
-            UserMessage::InstallCanister => "Install a canister.",
-            UserMessage::WasmFile => "The WebAssembly (wasm) file to use.",
+            UserMessage::InstallCanister => "Installs compiled code as a canister on the client.",
+            UserMessage::WasmFile => "Specifies the path of the .wasm file to install.",
 
             // dfx canister mod
-            UserMessage::ManageCanister => "Manage canisters from a network.",
+            UserMessage::ManageCanister => "Manages canisters deployed on a network client.",
 
             // dfx canister query
-            UserMessage::QueryCanister => "Query a canister.",
+            UserMessage::QueryCanister => "Sends a query request to a canister.",
 
             // dfx canister request_status
-            UserMessage::RequestCallStatus => "Request the status of a call to a canister.",
-            UserMessage::RequestId => "The request ID to call. This is an hexadecimal string starting with 0x.",
+            UserMessage::RequestCallStatus => "Requests the status of a specified call from a canister.",
+            UserMessage::RequestId => "Specifies the request identifier. The request identifier is an hexadecimal string starting with 0x.",
 
             // dfx build
-            UserMessage::BuildCanister => "Build a canister code, or all canisters if no argument is passed.",
-            UserMessage::CanisterName => "The canister name to build.",
+            UserMessage::BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
+            UserMessage::CanisterName => "Specifies the canister name to build. If you don't specify this argument, all canisters are built.",
 
             // dfx config
-            UserMessage::ConfigureOptions => "Configure options in the current DFINITY project.",
-            UserMessage::OptionName => "The name of the configuration option to set or read.",
-            UserMessage::OptionValue => "The new value to set. If unspecified will output the current value in the config.",
+            UserMessage::ConfigureOptions => "Configures project options for your currently-selected project.",
+            UserMessage::OptionName => "Specifies the name of the configuration option to set or read. Use the period delineated path to specify the option to set or read.",
+            UserMessage::OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
 
             // dfx new
-            UserMessage::CreateProject => "Create a new project.",
-            UserMessage::ProjectName => "The name of the project to create.",
-            UserMessage::DryRun => "Do not write anything to the file system.",
+            UserMessage::CreateProject => "Creates a new project.",
+            UserMessage::ProjectName => "Specifies the name of the project to create.",
+            UserMessage::DryRun => "Provides a preview the directories and files to be created without adding them to the file system.",
 
             // dfx start
-            UserMessage::StartNode => "Start a local network in the background.",
-            UserMessage::NodeAddress => "The host (with port) to bind the frontend to.",
-            UserMessage::StartBackground => "Exit the dfx leaving the client running. Will wait until the client replies before exiting.",
+            UserMessage::StartNode => "Starts the local network client.",
+            UserMessage::NodeAddress => "Specifies the host name and port number to bind the frontend to.",
+            UserMessage::StartBackground => "Exits the dfx leaving the client running. Will wait until the client replies before exiting.",
         }
     }
 }

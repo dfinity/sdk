@@ -1,12 +1,20 @@
 ===============================================================================
-                    Welcome to the Internet Computer!
+        Welcome to the internet computer developer community!
                         You're using dfx {0}
 
 {1}
 
-A couple of things you can do to get started:
+To learn more before you start coding, see the documentation available online:
+
+- Quick Start:        https://sdk.dfinity.org/quickstart
+- Developer's Guide:  https://sdk.dfinity.org/developers-guide
+- Language Reference: https://sdk.dfinity.org/language-reference
+
+If you want to work on programs right away, try the following commands to get started:
+
     cd {2}
-    dfx start
-    dfx send 42 Hello
+    dfx help
+    dfx new --help
+    dfx config --help
 
 ===============================================================================
