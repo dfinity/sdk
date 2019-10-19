@@ -30,6 +30,9 @@ export const makeActor = (
   makeActorInterface: ({ IDL }: { IDL: typeof _IDL }) => _IDL.ActorInterface,
 ) => (
   httpAgent: HttpAgent,
+// The return type here represents a record whose values may be any function.
+// By using "rest parameter syntax" we can type variadic functions in a
+// homogenous record, as well as process the arguments as an Array.
 ): Record<string, (...args: Array<any>) => any> => {
   const actorInterface = makeActorInterface({ IDL: _IDL });
   const entries = Object.entries(actorInterface.__fields);
