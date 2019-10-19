@@ -1,6 +1,7 @@
 use crate::commands::CliCommand;
 use crate::lib::env::{ClientEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
 
 mod call;
@@ -25,7 +26,7 @@ where
     T: ClientEnv + ProjectConfigEnv,
 {
     SubCommand::with_name("canister")
-        .about("Manage canisters from a network.")
+        .about(UserMessage::ManageCanister.to_str())
         .subcommands(
             builtins::<T>()
                 .into_iter()
