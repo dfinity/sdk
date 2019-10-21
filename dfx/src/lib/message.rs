@@ -24,6 +24,10 @@ pub enum UserMessage {
     StartNode,
     NodeAddress,
     StartBackground,
+    InvalidType,
+    MustSpecifyType,
+    UnableToCreateRuntime,
+    UnknownResponse,
 }
 
 impl UserMessage {
@@ -70,6 +74,12 @@ impl UserMessage {
             UserMessage::StartNode => "Starts the local network client.",
             UserMessage::NodeAddress => "Specifies the host name and port number to bind the frontend to.",
             UserMessage::StartBackground => "Exits the dfx leaving the client running. Will wait until the client replies before exiting.",
+
+            // errors
+            UserMessage::InvalidType => "Invalid type",
+            UserMessage::MustSpecifyType => "Must specify type",
+            UserMessage::UnableToCreateRuntime => "Unable to create runtime",
+            UserMessage::UnknownResponse => "Unknown response",
         }
     }
 }

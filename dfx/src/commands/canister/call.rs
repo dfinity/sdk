@@ -63,8 +63,12 @@ where
         Some(Blob::from(match arg_type {
             Some("string") => Ok(Encode!(&a)),
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
-            Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
-            None => Err(DfxError::Unknown("Must specify a type.".to_owned())),
+            Some(v) => Err(DfxError::Unknown(format!(
+                "{}: {}",
+                UserMessage::InvalidType.to_str(),
+                v
+            ))),
+            None => Err(DfxError::Unknown(UserMessage::MustSpecifyType.to_string())),
         }?))
     } else {
         None
@@ -73,12 +77,12 @@ where
     let client = env.get_client();
     let call_future = call(client, canister_id, method_name.to_owned(), arg_value);
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let mut runtime = Runtime::new().expect(UserMessage::UnableToCreateRuntime.to_str());
     let request_id = runtime.block_on(call_future)?;
 
     if args.is_present("wait") {
         let request_status = request_status(env.get_client(), request_id);
-        let mut runtime = Runtime::new().expect("Unable to create a runtime");
+        let mut runtime = Runtime::new().expect(UserMessage::UnableToCreateRuntime.to_str());
         match runtime.block_on(request_status) {
             Ok(ReadResponse::Pending) => {
                 eprintln!("Pending");
@@ -96,7 +100,9 @@ where
                 reject_message,
             }) => Err(DfxError::ClientError(reject_code, reject_message)),
             // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
-            Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
+            Ok(ReadResponse::Unknown) => {
+                Err(DfxError::Unknown(UserMessage::UnknownResponse.to_string()))
+            }
             Err(x) => Err(x),
         }
     } else {
