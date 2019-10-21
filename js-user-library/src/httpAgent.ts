@@ -1,3 +1,4 @@
+import { sign } from "./auth";
 import { BinaryBlob } from "./blob";
 import { CallRequest } from "./callRequest";
 import { CanisterId } from "./canisterId";
@@ -14,6 +15,7 @@ import { RequestStatusRequest } from "./requestStatusRequest";
 import { RequestStatusResponse } from "./requestStatusResponse";
 import { Response } from "./response";
 import { SenderPubKey } from "./senderPubKey";
+import { SenderSecretKey } from "./senderSecretKey";
 import { SenderSig } from "./senderSig";
 import { SubmitRequest } from "./submitRequest";
 import { SubmitRequestType } from "./submitRequestType";
@@ -56,26 +58,27 @@ interface Options {
   host?: string;
   nonceFn?: () => Nonce;
   senderPubKey: SenderPubKey;
-  senderSigFn?: (requestId: RequestId) => SenderSig;
+  senderSecretKey: SenderSecretKey;
+  senderSigFn?: SigningConstructedFn;
 }
+
+type SigningConstructedFn = (
+    secretKey: SenderSecretKey,
+  ) => (requestId: RequestId) => SenderSig;
 
 interface DefaultOptions {
   fetchFn: WindowOrWorkerGlobalScope["fetch"];
   host: string;
   nonceFn: () => Nonce;
-  senderSigFn: (requestId: RequestId) => SenderSig;
+  senderSigFn: SigningConstructedFn;
 }
 
 const defaultOptions: DefaultOptions = {
   fetchFn: typeof window === "undefined" ? fetch : window.fetch.bind(window),
   host: "http://localhost:8000",
   nonceFn: makeNonce,
-  senderSigFn: (requestId: RequestId): SenderSig => {
-    // TODO: calculate signature using `requestId`
-    return new Uint8Array(64) as SenderSig;
-  },
+  senderSigFn: sign,
 };
-
 
 // `Config` is the internal representation of `Options`.
 interface Config {
@@ -94,6 +97,11 @@ const makeConfig = (options: Options): Config => {
   return {
     ...withDefaults,
     canisterId: canisterId.fromHex(options.canisterId),
+    // TODO We should be validating that this is the right public key.
+    senderPubKey: options.senderPubKey,
+    // If we set an override test function use that. Otherwise produce
+    // a signing function.
+    senderSigFn: withDefaults.senderSigFn(options.senderSecretKey),
     runFetch: (endpoint, body) => {
       return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
         method: "POST",

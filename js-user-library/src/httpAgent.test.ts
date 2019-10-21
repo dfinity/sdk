@@ -1,14 +1,17 @@
+import { createKeyPairFromSeed, sign, verify } from "./auth";
 import { BinaryBlob } from "./blob";
 import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";
 import { Hex } from "./hex";
 import { makeHttpAgent } from "./index";
 import { Nonce } from "./nonce";
-import { Request } from "./request";
+import { CommonFields, Request } from "./request";
 import { requestIdOf } from "./requestId";
 import { RequestType } from "./requestType";
 import { SenderPubKey } from "./senderPubKey";
+import { SenderSecretKey } from "./senderSecretKey";
 import { SenderSig } from "./senderSig";
+
 
 test("call", async () => {
   const mockFetch: jest.Mock = jest.fn((resource, init) => {
@@ -19,15 +22,19 @@ test("call", async () => {
 
   const canisterIdent = "0000000000000001" as Hex;
   const nonce = Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
-  const senderPubKey = new Uint8Array(32) as SenderPubKey;
-  const senderSig = new Uint8Array(64) as SenderSig;
+  const seed = Uint8Array.from(
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+  const keyPair = createKeyPairFromSeed(seed);
+  const senderPubKey = keyPair.publicKey as SenderPubKey;
+  const senderSecretKey = keyPair.secretKey as SenderSecretKey;
 
   const httpAgent = makeHttpAgent({
     canisterId: canisterIdent,
     fetchFn: mockFetch,
     nonceFn: () => nonce,
+    senderSecretKey,
     senderPubKey,
-    senderSigFn: () => senderSig,
   });
 
   const methodName = "greet";
@@ -38,17 +45,32 @@ test("call", async () => {
     arg,
   });
 
-  const expectedRequest: Request = {
+  const mockPartialRequest: CommonFields = {
     request_type: "call" as RequestType,
     nonce,
     canister_id: canisterId.fromHex(canisterIdent),
     method_name: methodName,
+    // We need a request id for the signature and at the same time we
+    // are checking that signature does not impact the request id.
     arg,
-    sender_pubkey: senderPubKey,
+  };
+
+  const mockPartialsRequestId = await requestIdOf(mockPartialRequest);
+  const senderSig =
+    sign(senderSecretKey)(mockPartialsRequestId);
+  // Just sanity checking our life.
+  expect(
+    verify(mockPartialsRequestId, senderSig, senderPubKey))
+    .toBe(true);
+
+  const expectedRequest: Request = {
+    ...mockPartialRequest,
+    sender_pubkey: keyPair.publicKey as SenderPubKey,
     sender_sig: senderSig,
   };
 
   const expectedRequestId = await requestIdOf(expectedRequest);
+  expect(expectedRequestId).toEqual(mockPartialsRequestId);
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
@@ -67,6 +89,7 @@ test("call", async () => {
 test.todo("query");
 
 test("requestStatus", async () => {
+
   const mockResponse = {
     status: "replied",
     reply: { arg: Uint8Array.from([]) as BinaryBlob },
@@ -81,15 +104,23 @@ test("requestStatus", async () => {
 
   const canisterIdent = "0000000000000001" as Hex;
   const nonce = Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
-  const senderPubKey = new Uint8Array(32) as SenderPubKey;
-  const senderSig = new Uint8Array(64) as SenderSig;
+
+  const seed = Uint8Array.from(
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+  const keyPair = createKeyPairFromSeed(seed);
+  const senderSecretKey = keyPair.secretKey as SenderSecretKey;
+  const senderPubKey = keyPair.publicKey as SenderPubKey;
+
 
   const httpAgent = makeHttpAgent({
     canisterId: canisterIdent,
     fetchFn: mockFetch,
     nonceFn: () => nonce,
+    senderSecretKey,
     senderPubKey,
-    senderSigFn: () => senderSig,
+    senderSigFn: (x) => (req) =>
+      Uint8Array.from([0])  as SenderSig,
   });
 
   const requestId = await requestIdOf({
@@ -109,7 +140,7 @@ test("requestStatus", async () => {
     nonce,
     request_id: requestId,
     sender_pubkey: senderPubKey,
-    sender_sig: senderSig,
+    sender_sig: Uint8Array.from([0]) as SenderSig,
   };
 
   const { calls, results } = mockFetch.mock;
