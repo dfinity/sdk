@@ -7,6 +7,7 @@ import { Nonce } from "./nonce";
 import { Request } from "./request";
 import { requestIdOf } from "./requestId";
 import { SenderPubKey } from "./senderPubKey";
+import { SenderSecretKey } from "./senderSecretKey";
 import { SenderSig } from "./senderSig";
 
 import {
@@ -61,7 +62,8 @@ test("makeActor", async () => {
 
   const canisterIdent = "0000000000000001" as Hex;
   const senderPubKey = new Uint8Array(32) as SenderPubKey;
-  const senderSig = new Uint8Array(64) as SenderSig;
+  const senderSecretKey = new Uint8Array(32) as SenderSecretKey;
+  const senderSig = Uint8Array.from([0]) as SenderSig;
 
   const nonces = [
     Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce,
@@ -92,8 +94,10 @@ test("makeActor", async () => {
       nonceCount = nonceCount + 1;
       return nonce;
     },
+    senderSecretKey,
     senderPubKey,
-    senderSigFn: () => senderSig,
+    senderSigFn: (x) => (req) =>
+      Uint8Array.from([0])  as SenderSig,
   });
 
   const actor = makeActor(actorInterface)(httpAgent);
