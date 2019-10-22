@@ -9,6 +9,8 @@ import * as Request from "./request";
 
 export type RequestId = BinaryBlob & { __requestId__: void };
 
+export const toHex = (requestId: RequestId): Hex => blob.toHex(requestId);
+
 // The spec describes encoding for these types.
 // The exception here is integers, which are used in the current implementation
 // of the HTTP handler.
