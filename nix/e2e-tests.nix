@@ -2,6 +2,7 @@
 ,   coreutils
 ,   curl
 ,   dfinity-sdk
+,   netcat
 ,   runCommandNoCC
 ,   stdenv
 ,   killall
@@ -13,7 +14,7 @@ let batslib = builtins.fetchGit {
 }; in
 
 runCommandNoCC "e2e-tests" {
-    buildInputs = [ bats batslib coreutils curl dfinity-sdk.packages.rust-workspace-debug stdenv.cc killall ];
+    buildInputs = [ bats batslib coreutils curl dfinity-sdk.packages.rust-workspace-debug stdenv.cc killall netcat ];
 } ''
     # We want $HOME/.cache to be in a new temporary directory.
     export HOME=$(mktemp -d -t dfx-e2e-home-XXXX)
