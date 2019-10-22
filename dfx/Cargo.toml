@@ -33,6 +33,7 @@ serde_cbor = "0.10.1"
 serde_repr = "0.1.5"
 serde_json = "1.0.40"
 serde-idl = { "path" = "../lib/serde_idl" }
+idl_value = { "path" = "../lib/idl_value" }
 tar = "0.4.26"
 tokio = "0.1"
 url = "2.1.0"
