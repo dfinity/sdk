@@ -78,7 +78,7 @@ where
                 .get_defaults()
                 .get_start()
                 .get_binding_socket_addr("localhost:8000")
-                .unwrap())
+                .expect("could not get socket_addr"))
         })?;
     let frontend_url = format!(
         "http://{}:{}",
@@ -119,7 +119,9 @@ where
 
                 // If the nodemanager itself fails, we are probably deeper into troubles than
                 // we can solve at this point and the user is better rerunning the server.
-                let mut child = cmd.spawn().unwrap();
+                let mut child = cmd.spawn().unwrap_or_else(|e| {
+                    panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e)
+                });
                 if child.wait().is_err() {
                     break;
                 }
