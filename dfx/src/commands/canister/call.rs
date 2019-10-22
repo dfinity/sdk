@@ -6,9 +6,9 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
+use idl_value;
 use serde_idl::Encode;
 use tokio::runtime::Runtime;
-use idl_value;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("call")
@@ -77,7 +77,7 @@ where
                     };
                 }
                 Ok(idl.to_vec().unwrap())
-            },
+            }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
             None => Err(DfxError::Unknown("Must specify a type.".to_owned())),
         }?))
