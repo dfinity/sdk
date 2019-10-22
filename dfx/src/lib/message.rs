@@ -26,7 +26,7 @@ pub enum UserMessage {
     StartBackground,
     InvalidType,
     MustSpecifyType,
-    UnableToCreateRuntime,
+    // UnableToCreateRuntime,
     UnknownResponse,
 }
 
@@ -78,7 +78,7 @@ impl UserMessage {
             // errors
             UserMessage::InvalidType => "Invalid type",
             UserMessage::MustSpecifyType => "Must specify type",
-            UserMessage::UnableToCreateRuntime => "Unable to create runtime",
+            // UserMessage::UnableToCreateRuntime => "Unable to create runtime",
             UserMessage::UnknownResponse => "Unknown response",
         }
     }
