@@ -13,7 +13,7 @@ setup() {
 teardown() {
     # Kill the node manager, the dfx and the client. Ignore errors (ie. if processes aren't
     # running).
-    killall dfx nodemanager client || true
+    killall dfx nodemanager client |& sed 's/^/killall: /' || true
 }
 
 @test "build + install + call + request-status -- greet_as" {

@@ -24,5 +24,9 @@ dfx_start() {
     # wait for it to close. Because `dfx start` leave a child process running, we need
     # to close this pipe, otherwise Bats will wait indefinitely.
     dfx start --background "$@" 3>&-
+
+    timeout 5 sh -c \
+        'until nc -z localhost 8080; do echo waiting for client; sleep 1; done' \
+        || (echo "could not connect to client on port 8080" && exit 1)
 }
 
