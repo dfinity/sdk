@@ -40,6 +40,7 @@ pub use serde::Deserialize;
 pub mod de;
 pub mod error;
 pub mod ser;
+pub mod value;
 
 pub const EMPTY_DIDL: &[u8] = b"DIDL\0\0";
 
