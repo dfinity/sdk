@@ -9,7 +9,7 @@
 set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-https://hydra-int.dfinity.systems/latest/dfinity-ci-build/sdk}"
+DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-https://sdk.dfinity.systems/dfx/latest/}"
 
 
 sdk_install_dir() {
@@ -37,7 +37,9 @@ main() {
     local _arch="$RETVAL"
     assert_nz "$_arch" "arch"
 
-    local _dfx_url="${DFX_RELEASE_ROOT}/dfinity-sdk.packages.rust-workspace-standalone.${_arch}/bin/bin/dfx"
+    # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
+    # thus, make sure this handles archives
+    local _dfx_url="${DFX_RELEASE_ROOT}/${_arch}/dfx-latest.tar.gz"
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
