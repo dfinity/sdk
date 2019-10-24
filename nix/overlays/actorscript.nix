@@ -3,7 +3,7 @@ self: super:
 let src = builtins.fetchGit {
   url = "ssh://git@github.com/dfinity-lab/actorscript";
   ref = "master";
-  rev = "71e333aacd83e05d94c5720cb07419bcd0a1858e";
+  rev = "a5f8c29d4f17553655fe75fe4fe1092fad746908";
 }; in
 
 {
