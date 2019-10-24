@@ -25,7 +25,7 @@ pub fn construct<T>() -> App<'static, 'static>
 where
     T: ClientEnv + ProjectConfigEnv,
 {
-    SubCommand::with_name("canister")
+    SubCommand::with_name("deployment_id")
         .about(UserMessage::ManageCanister.to_str())
         .subcommands(
             builtins::<T>()

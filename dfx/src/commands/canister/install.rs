@@ -13,7 +13,7 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("install")
         .about(UserMessage::InstallCanister.to_str())
         .arg(
-            Arg::with_name("canister")
+            Arg::with_name("deployment_id")
                 .takes_value(true)
                 .help(UserMessage::CanisterId.to_str())
                 .required(true)
@@ -44,7 +44,7 @@ where
 
     let project_root = config.get_path().parent().unwrap();
 
-    let canister_id = args.value_of("canister").unwrap().parse::<CanisterId>()?;
+    let canister_id = args.value_of("deployment_id").unwrap().parse::<CanisterId>()?;
     let wasm_path = args.value_of("wasm").unwrap();
     let wasm_path = PathBuf::from(project_root).join(wasm_path);
 
