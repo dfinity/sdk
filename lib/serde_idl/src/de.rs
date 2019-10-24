@@ -97,6 +97,13 @@ impl RawValue {
     }
 }
 
+#[derive(Debug)]
+enum FieldLabel {
+    Named(&'static str),
+    Id(u32),
+    Skip,
+}
+
 struct Deserializer<'de> {
     input: &'de [u8],
     // Raw value of the type description table
@@ -109,7 +116,7 @@ struct Deserializer<'de> {
     current_type: VecDeque<RawValue>,
     // field_name tells deserialize_identifier which field name to process.
     // This field should always be set by set_field_name function.
-    field_name: Option<&'de str>,
+    field_name: Option<FieldLabel>,
 }
 
 impl<'de> Deserializer<'de> {
@@ -241,7 +248,7 @@ impl<'de> Deserializer<'de> {
     }
     // Should always call set_field_name to set the field_name. After deserialize_identifier
     // processed the field_name, field_name will be reset to None.
-    fn set_field_name(&mut self, field: &'de str) {
+    fn set_field_name(&mut self, field: FieldLabel) {
         if self.field_name.is_some() {
             panic!(format!("field_name already taken {:?}", self.field_name));
         }
@@ -260,8 +267,6 @@ macro_rules! primitive_impl {
         }
     };
 }
-
-const UNKNOWN_FIELD: &str = "I DON'T KNOW!";
 
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
@@ -311,14 +316,23 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 let mut fs = BTreeMap::new();
                 for i in 0..len {
                     let hash = self.current_type[2*i as usize].get_u64()? as u32;
-                    if fs.insert(hash, UNKNOWN_FIELD) != None {
+                    if fs.insert(hash, None) != None {
                         return Err(Error::msg(format!("hash collision {}", hash)));
                     }
                 }
                 visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))
             },
             Opcode::Variant => {
-                self.deserialize_enum("_", &[], visitor)
+                self.check_type(Opcode::Variant)?;
+                let len = self.pop_current_type()?.get_u64()? as u32;
+                let mut fs = BTreeMap::new();
+                for i in 0..len {
+                    let hash = self.current_type[2*i as usize].get_u64()? as u32;
+                    if fs.insert(hash, None) != None {
+                        return Err(Error::msg(format!("hash collisiosn {}", hash)));
+                    }
+                }
+                visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))
             },
         }
     }
@@ -437,7 +451,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let len = self.pop_current_type()?.get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in fields.iter() {
-            if fs.insert(idl_hash(s), *s) != None {
+            if fs.insert(idl_hash(s), Some(*s)) != None {
                 return Err(Error::msg(format!("hash collision {}", s)));
             }
         }
@@ -458,7 +472,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let len = self.pop_current_type()?.get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in variants.iter() {
-            if fs.insert(idl_hash(s), *s) != None {
+            if fs.insert(idl_hash(s), Some(*s)) != None {
                 return Err(Error::msg(format!("hash collision {}", s)));
             }
         }
@@ -470,8 +484,12 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        let v = visitor.visit_str(self.field_name.unwrap());
-        println!("IDENT {:?}", self.field_name);
+        let label = self.field_name.as_ref().unwrap();
+        let v = match label {
+            FieldLabel::Named(name) => visitor.visit_str(name),
+            FieldLabel::Id(hash) => visitor.visit_u32(*hash),
+            FieldLabel::Skip => visitor.visit_str("_"),
+        };
         self.field_name = None;
         v
     }
@@ -492,11 +510,11 @@ enum Style {
     },
     Struct {
         len: u32,
-        fs: BTreeMap<u32, &'static str>,
+        fs: BTreeMap<u32, Option<&'static str>>,
     },
     Enum {
         len: u32,
-        fs: BTreeMap<u32, &'static str>,
+        fs: BTreeMap<u32, Option<&'static str>>,
     },
 }
 
@@ -567,13 +585,12 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                 *len -= 1;
                 let hash = self.de.pop_current_type()?.get_u64()? as u32;
                 match fs.get(&hash) {
-                    Some(field) => {
-                        self.de.set_field_name(field);
-                    }
+                    Some(None) => self.de.set_field_name(FieldLabel::Id(hash)),
+                    Some(Some(field)) => self.de.set_field_name(FieldLabel::Named(field)),
                     None => {
                         // This triggers seed.deserialize to call deserialize_ignore_any
                         // to skip both type and value of this unknown field.
-                        self.de.set_field_name("_");
+                        self.de.set_field_name(FieldLabel::Skip);
                     }
                 }
                 seed.deserialize(&mut *self.de).map(Some)
@@ -612,8 +629,9 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     let ty = self.de.pop_current_type()?;
                     if i == index {
                         match fs.get(&hash) {
-                            Some(field) => {
-                                self.de.set_field_name(field);
+                            Some(None) => self.de.set_field_name(FieldLabel::Id(hash)),
+                            Some(Some(field)) => {
+                                self.de.set_field_name(FieldLabel::Named(field));
                             }
                             None => {
                                 if !fs.is_empty() {
@@ -624,7 +642,7 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                                 } else {
                                     // Actual enum won't have empty fs. This can only be generated
                                     // from deserialize_ignored_any
-                                    self.de.set_field_name("_");
+                                    self.de.set_field_name(FieldLabel::Skip);
                                 }
                             }
                         }

@@ -17,8 +17,8 @@ pub enum IDLValue {
 
 #[derive(Debug, PartialEq)]
 pub struct IDLField {
-    id: IDLValue,
-    val: IDLValue,
+    pub id: u32,
+    pub val: IDLValue,
 }
 
 impl<'de> Deserialize<'de> for IDLValue {
@@ -70,10 +70,27 @@ impl<'de> Deserialize<'de> for IDLValue {
             where V: de::MapAccess<'de> {
                 let mut vec = Vec::new();
                 while let Some((key, value)) = visitor.next_entry()? {
-                    let f = IDLField { id: key, val: value };
-                    vec.push(f);
+                    if let IDLValue::Nat(hash) = key {
+                        let f = IDLField { id: hash as u32, val: value };
+                        vec.push(f);
+                    } else {
+                        unreachable!()
+                    }
                 }
                 Ok(IDLValue::Record(vec))
+            }
+            fn visit_enum<V>(self, data: V) -> Result<IDLValue, V::Error>
+            where V: de::EnumAccess<'de> {
+                use serde::de::VariantAccess;                
+                let (variant, visitor) = data.variant::<IDLValue>()?;
+                if let IDLValue::Nat(hash) = variant {
+                    //let val = visitor.struct_variant(&[], self)?;
+                    visitor.unit_variant()?;
+                    let f = IDLField { id: hash as u32, val: IDLValue::Null };
+                    Ok(IDLValue::Variant(Box::new(f)))
+                } else {
+                    unreachable!()
+                }
             }
         }
 
