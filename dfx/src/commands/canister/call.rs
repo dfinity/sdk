@@ -77,12 +77,14 @@ where
     let client = env.get_client();
     let call_future = call(client, canister_id, method_name.to_owned(), arg_value);
 
-    let mut runtime = Runtime::new().expect(&UserMessage::UnableToCreateRuntime.to_string());
+    let mut runtime = Runtime::new()
+        .unwrap_or_else(|_| panic!(UserMessage::UnableToCreateRuntime.to_str().to_string()));
     let request_id = runtime.block_on(call_future)?;
 
     if args.is_present("wait") {
         let request_status = request_status(env.get_client(), request_id);
-        let mut runtime = Runtime::new().expect(&UserMessage::UnableToCreateRuntime.to_string());
+        let mut runtime = Runtime::new()
+            .unwrap_or_else(|_| panic!(UserMessage::UnableToCreateRuntime.to_str().to_string()));
         match runtime.block_on(request_status) {
             Ok(ReadResponse::Pending) => {
                 eprintln!("Pending");
