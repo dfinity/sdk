@@ -61,7 +61,11 @@ impl<'de> IDLDeserialize<'de> {
                 .map_err(|e| self.de.dump_error_state(e))
         }
     }
-    /// Check if we have deserialized all the values from the message.
+    /// Check if we finish deserializing all values.
+    pub fn is_done(&self) -> bool {
+        self.de.types.is_empty()
+    }
+    /// Return error if there are unprocessed bytes in the input.
     pub fn done(self) -> Result<()> {
         if !self.de.types.is_empty() {
             return Err(Error::msg(format!(

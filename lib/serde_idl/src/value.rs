@@ -1,10 +1,10 @@
+use dfx_info::types::{Field, Type};
 use serde::de;
 use serde::de::{Deserialize, Visitor};
-use dfx_info::types::{Type, Field};
 use std::fmt;
 use std::ops::Deref;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum IDLValue {
     Bool(bool),
     Null,
@@ -17,16 +17,22 @@ pub enum IDLValue {
     Variant(Box<IDLField>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IDLField {
     pub id: u32,
     pub val: IDLValue,
 }
 
 impl dfx_info::IDLType for IDLValue {
-    fn ty() -> Type { unreachable!(); }
-    fn id() -> dfx_info::types::TypeId { unreachable!(); }
-    fn _ty() -> Type { unreachable!(); }
+    fn ty() -> Type {
+        unreachable!();
+    }
+    fn id() -> dfx_info::types::TypeId {
+        unreachable!();
+    }
+    fn _ty() -> Type {
+        unreachable!();
+    }
     fn value_ty(&self) -> Type {
         match *self {
             IDLValue::Null => Type::Null,
@@ -37,7 +43,7 @@ impl dfx_info::IDLType for IDLValue {
             IDLValue::Opt(ref v) => {
                 let t = v.deref().value_ty();
                 Type::Opt(Box::new(t))
-            },
+            }
             IDLValue::Vec(ref vec) => {
                 let t = if vec.is_empty() {
                     Type::Null
@@ -45,23 +51,32 @@ impl dfx_info::IDLType for IDLValue {
                     vec[0].value_ty()
                 };
                 Type::Vec(Box::new(t))
-            },
+            }
             IDLValue::Record(ref vec) => {
-                let fs: Vec<_> = vec.iter().map(|IDLField {id, val}| Field {
-                    id: id.to_string(),
-                    hash: *id,
-                    ty: val.value_ty(),
-                }).collect();
+                let fs: Vec<_> = vec
+                    .iter()
+                    .map(|IDLField { id, val }| Field {
+                        id: id.to_string(),
+                        hash: *id,
+                        ty: val.value_ty(),
+                    })
+                    .collect();
                 Type::Record(fs)
-            },
+            }
             IDLValue::Variant(ref v) => {
-                let f = Field { id: v.id.to_string(), hash: v.id, ty: v.val.value_ty() };
+                let f = Field {
+                    id: v.id.to_string(),
+                    hash: v.id,
+                    ty: v.val.value_ty(),
+                };
                 Type::Variant(vec![f])
-            },
+            }
         }
     }
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
-    where S: dfx_info::Serializer {
+    where
+        S: dfx_info::Serializer,
+    {
         use dfx_info::Compound;
         match *self {
             IDLValue::Null => serializer.serialize_null(()),
@@ -69,28 +84,26 @@ impl dfx_info::IDLType for IDLValue {
             IDLValue::Int(i) => serializer.serialize_int(i),
             IDLValue::Nat(n) => serializer.serialize_nat(n),
             IDLValue::Text(ref s) => serializer.serialize_text(s),
-            IDLValue::Opt(ref v) => {
-                serializer.serialize_option(Some(v.deref()))
-            },
+            IDLValue::Opt(ref v) => serializer.serialize_option(Some(v.deref())),
             IDLValue::Vec(ref vec) => {
                 let mut ser = serializer.serialize_vec(vec.len())?;
                 for e in vec.iter() {
                     ser.serialize_element(&e)?;
-                };
+                }
                 Ok(())
-            },
+            }
             IDLValue::Record(ref vec) => {
                 let mut ser = serializer.serialize_struct()?;
                 for f in vec.iter() {
                     ser.serialize_element(&f.val)?;
-                };
+                }
                 Ok(())
-            },
+            }
             IDLValue::Variant(ref v) => {
                 let mut ser = serializer.serialize_variant(0)?;
                 ser.serialize_element(&v.val)?;
                 Ok(())
-            },
+            }
         }
     }
 }

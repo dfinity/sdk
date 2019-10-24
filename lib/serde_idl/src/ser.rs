@@ -29,7 +29,9 @@ impl IDLBuilder {
     }
     // Only works for IDLValue
     pub fn value_arg<'a, T>(&'a mut self, value: &T) -> &'a mut Self
-    where T: dfx_info::IDLType {
+    where
+        T: dfx_info::IDLType,
+    {
         self.type_ser.push_type(&value.value_ty()).unwrap();
         value.idl_serialize(&mut self.value_ser).unwrap();
         self

@@ -36,6 +36,7 @@ pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
 pub use dfx_info::IDLType;
 pub use serde::Deserialize;
+pub use crate::value::IDLValue;
 
 pub mod de;
 pub mod error;
@@ -65,10 +66,22 @@ macro_rules! Decode {
 }
 
 /// Encode vec of IDLValue into IDL message.
-pub fn encode_value(values: &Vec<&value::IDLValue>) -> Result<Vec<u8>> {
+pub fn encode_value(values: &Vec<IDLValue>) -> Result<Vec<u8>> {
     let mut idl = ser::IDLBuilder::new();
     for v in values.iter() {
-        idl.value_arg(*v);
+        idl.value_arg(v);
     }
     idl.to_vec()
+}
+
+/// Decode IDL message to a vector of IDLValues.
+pub fn decode_value(bytes: &[u8]) -> Result<Vec<IDLValue>> {
+    let mut de = de::IDLDeserialize::new(bytes);
+    let mut vec = Vec::new();
+    while !de.is_done() {
+        let v = de.get_value::<IDLValue>()?;
+        vec.push(v);
+    }
+    de.done()?;
+    Ok(vec)
 }

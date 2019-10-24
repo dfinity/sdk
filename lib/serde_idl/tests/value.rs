@@ -42,16 +42,14 @@ fn test() {
 #[test]
 fn test_variant() {
     use IDLValue::*;
-    let value =
-        Variant(Box::new(IDLField {
-            id: 3303859,
-            val: Null,
-        }));
+    let value = Variant(Box::new(IDLField {
+        id: 3303859,
+        val: Null,
+    }));
     let bytes = hex("4449444c016b02b3d3c9017fe6fdd5017f010000");
     test_decode(&bytes, &value);
-    let encoded = serde_idl::encode_value(&vec![&value]).unwrap();
+    let encoded = serde_idl::encode_value(&vec![value.clone()]).unwrap();
     test_decode(&encoded, &value);
-    
 }
 
 fn check(v: IDLValue, bytes: &str) {
@@ -61,9 +59,12 @@ fn check(v: IDLValue, bytes: &str) {
 }
 
 fn test_encode(v: &IDLValue, expected: &[u8]) {
-    let encoded = serde_idl::encode_value(&vec![v]).unwrap();
-    assert_eq!(encoded, expected, "\nActual\n{:x?}\nExpected\n{:x?}\n",
-        encoded, expected);
+    let encoded = serde_idl::encode_value(&vec![v.clone()]).unwrap();
+    assert_eq!(
+        encoded, expected,
+        "\nActual\n{:x?}\nExpected\n{:x?}\n",
+        encoded, expected
+    );
 }
 
 fn test_decode(bytes: &[u8], expected: &IDLValue) {
