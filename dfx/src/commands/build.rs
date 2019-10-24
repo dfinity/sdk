@@ -158,9 +158,11 @@ where
             let v: ConfigCanistersCanister = serde_json::from_value(v.to_owned())?;
 
             println!("Building {}...", k);
-            if let Some(x) = v.main {
-                let input_as_path = project_root.join(x.as_str());
-                let output_path = build_root.join(x.as_str()).with_extension("wasm");
+            if let Some(path) = v.main {
+                let path = Path::new(&path);
+                let input_as_path = project_root.join(path);
+                let path = path.strip_prefix("src/").unwrap_or(&path);
+                let output_path = build_root.join(path).with_extension("wasm");
                 std::fs::create_dir_all(output_path.parent().unwrap())?;
 
                 build_file(
