@@ -159,8 +159,10 @@ where
 
             println!("Building {}...", k);
             if let Some(path) = v.main {
-                let input_as_path = project_root.join(path.as_str());
-                let output_path = build_root.join(path.as_str()).with_extension("wasm");
+                let path = Path::new(&path);
+                let input_as_path = project_root.join(path);
+                let path = path.strip_prefix("src/").unwrap_or(&path);
+                let output_path = build_root.join(path).with_extension("wasm");
                 std::fs::create_dir_all(output_path.parent().unwrap())?;
 
                 build_file(
