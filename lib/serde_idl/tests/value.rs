@@ -4,7 +4,7 @@ use serde_idl::value::{IDLField, IDLValue};
 use serde_idl::Decode;
 
 #[test]
-fn test_decode() {
+fn test() {
     use IDLValue::*;
     check(Bool(true), "4449444c00017e01");
     check(Int(1_234_567_890), "4449444c00017cd285d8cc04");
@@ -37,19 +37,38 @@ fn test_decode() {
         ]),
         "4449444c016c02d3e3aa027e868eb7027c0100012a",
     );
-    check(
+}
+
+#[test]
+fn test_variant() {
+    use IDLValue::*;
+    let value =
         Variant(Box::new(IDLField {
             id: 3303859,
             val: Null,
-        })),
-        "4449444c016b02b3d3c9017fe6fdd5017f010000",
-    );
+        }));
+    let bytes = hex("4449444c016b02b3d3c9017fe6fdd5017f010000");
+    test_decode(&bytes, &value);
+    let encoded = serde_idl::encode_value(&vec![&value]).unwrap();
+    test_decode(&encoded, &value);
+    
 }
 
 fn check(v: IDLValue, bytes: &str) {
     let bytes = hex(bytes);
-    Decode!(&bytes, decoded: IDLValue);
-    assert_eq!(decoded, v);
+    test_decode(&bytes, &v);
+    test_encode(&v, &bytes);
+}
+
+fn test_encode(v: &IDLValue, expected: &[u8]) {
+    let encoded = serde_idl::encode_value(&vec![v]).unwrap();
+    assert_eq!(encoded, expected, "\nActual\n{:x?}\nExpected\n{:x?}\n",
+        encoded, expected);
+}
+
+fn test_decode(bytes: &[u8], expected: &IDLValue) {
+    Decode!(bytes, decoded: IDLValue);
+    assert_eq!(decoded, *expected);
 }
 
 fn int_vec(v: &Vec<i64>) -> IDLValue {

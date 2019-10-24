@@ -63,3 +63,12 @@ macro_rules! Decode {
         de.done().unwrap()
     }
 }
+
+/// Encode vec of IDLValue into IDL message.
+pub fn encode_value(values: &Vec<&value::IDLValue>) -> Result<Vec<u8>> {
+    let mut idl = ser::IDLBuilder::new();
+    for v in values.iter() {
+        idl.value_arg(*v);
+    }
+    idl.to_vec()
+}

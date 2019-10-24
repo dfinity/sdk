@@ -68,9 +68,11 @@ where
                 let args = idl::ArgsParser::new().parse(&a).unwrap();
                 let mut msg = serde_idl::ser::IDLBuilder::new();
                 for arg in args {
-                    msg.arg(&arg);
+                    msg.value_arg(&arg);
                 }
-                Ok(msg.to_vec()?)
+                let res = msg.to_vec()?;
+                println!("{:x?}", res);
+                Ok(res)
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
             None => Err(DfxError::Unknown("Must specify a type.".to_owned())),

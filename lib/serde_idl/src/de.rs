@@ -224,7 +224,6 @@ impl<'de> Deserializer<'de> {
             op = self.pop_current_type()?.get_i64()?;
         }
         let r = Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))?;
-        println!("Parse {:?}", r);
         Ok(r)
     }
     // Same logic as parse_type, but not poping the current_type queue.

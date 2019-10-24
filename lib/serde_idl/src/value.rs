@@ -1,7 +1,8 @@
 use serde::de;
 use serde::de::{Deserialize, Visitor};
-use dfx_info::types::{Type, TypeId};
+use dfx_info::types::{Type, Field};
 use std::fmt;
+use std::ops::Deref;
 
 #[derive(Debug, PartialEq)]
 pub enum IDLValue {
@@ -24,14 +25,73 @@ pub struct IDLField {
 
 impl dfx_info::IDLType for IDLValue {
     fn ty() -> Type { unreachable!(); }
-    fn id() -> TypeId { unreachable!(); }
+    fn id() -> dfx_info::types::TypeId { unreachable!(); }
     fn _ty() -> Type { unreachable!(); }
     fn value_ty(&self) -> Type {
-        Type::Null
+        match *self {
+            IDLValue::Null => Type::Null,
+            IDLValue::Bool(_) => Type::Bool,
+            IDLValue::Int(_) => Type::Int,
+            IDLValue::Nat(_) => Type::Nat,
+            IDLValue::Text(_) => Type::Text,
+            IDLValue::Opt(ref v) => {
+                let t = v.deref().value_ty();
+                Type::Opt(Box::new(t))
+            },
+            IDLValue::Vec(ref vec) => {
+                let t = if vec.is_empty() {
+                    Type::Null
+                } else {
+                    vec[0].value_ty()
+                };
+                Type::Vec(Box::new(t))
+            },
+            IDLValue::Record(ref vec) => {
+                let fs: Vec<_> = vec.iter().map(|IDLField {id, val}| Field {
+                    id: id.to_string(),
+                    hash: *id,
+                    ty: val.value_ty(),
+                }).collect();
+                Type::Record(fs)
+            },
+            IDLValue::Variant(ref v) => {
+                let f = Field { id: v.id.to_string(), hash: v.id, ty: v.val.value_ty() };
+                Type::Variant(vec![f])
+            },
+        }
     }
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
     where S: dfx_info::Serializer {
-        serializer.serialize_null(())
+        use dfx_info::Compound;
+        match *self {
+            IDLValue::Null => serializer.serialize_null(()),
+            IDLValue::Bool(b) => serializer.serialize_bool(b),
+            IDLValue::Int(i) => serializer.serialize_int(i),
+            IDLValue::Nat(n) => serializer.serialize_nat(n),
+            IDLValue::Text(ref s) => serializer.serialize_text(s),
+            IDLValue::Opt(ref v) => {
+                serializer.serialize_option(Some(v.deref()))
+            },
+            IDLValue::Vec(ref vec) => {
+                let mut ser = serializer.serialize_vec(vec.len())?;
+                for e in vec.iter() {
+                    ser.serialize_element(&e)?;
+                };
+                Ok(())
+            },
+            IDLValue::Record(ref vec) => {
+                let mut ser = serializer.serialize_struct()?;
+                for f in vec.iter() {
+                    ser.serialize_element(&f.val)?;
+                };
+                Ok(())
+            },
+            IDLValue::Variant(ref v) => {
+                let mut ser = serializer.serialize_variant(0)?;
+                ser.serialize_element(&v.val)?;
+                Ok(())
+            },
+        }
     }
 }
 

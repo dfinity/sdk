@@ -27,6 +27,13 @@ impl IDLBuilder {
         value.idl_serialize(&mut self.value_ser).unwrap();
         self
     }
+    // Only works for IDLValue
+    pub fn value_arg<'a, T>(&'a mut self, value: &T) -> &'a mut Self
+    where T: dfx_info::IDLType {
+        self.type_ser.push_type(&value.value_ty()).unwrap();
+        value.idl_serialize(&mut self.value_ser).unwrap();
+        self
+    }
     pub fn serialize<W: io::Write>(&mut self, mut writer: W) -> Result<()> {
         writer.write_all(b"DIDL")?;
         self.type_ser.serialize()?;
