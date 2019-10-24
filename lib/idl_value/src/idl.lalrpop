@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use serde_idl::value::IDLValue;
+use serde_idl::value::{IDLValue, IDLField};
 
 grammar;
 
@@ -12,6 +12,13 @@ Arg: IDLValue = {
     Num => IDLValue::Int(<>),
     Text => IDLValue::Text(<>),
     "opt" <Arg> => IDLValue::Opt(Box::new(<>)),
+    "vec" "{" <SemicolonSep<Arg>> "}" => IDLValue::Vec(<>),
+    "record" "{" <SemicolonSep<Field>> "}" => IDLValue::Record(<>),
+    "variant" "{" <Field> "}" => IDLValue::Variant(Box::new(<>)),
+}
+
+Field: IDLField = {
+    <n:Num> "=" <v:Arg> => IDLField { id: n as u32, val: v },
 }
 
 Num: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
@@ -20,6 +27,17 @@ Text: String = r"[[:alpha:]]\w*" => String::from_str(<>).unwrap();
 // Also allows trailing commas
 CommaSep<T>: Vec<T> = {
     <v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+SemicolonSep<T>: Vec<T> = {
+    <v:(<T> ";")*> <e:T?> => match e {
         None => v,
         Some(e) => {
             let mut v = v;

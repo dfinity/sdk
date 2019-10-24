@@ -34,9 +34,9 @@ extern crate serde;
 
 pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
+pub use crate::value::IDLValue;
 pub use dfx_info::IDLType;
 pub use serde::Deserialize;
-pub use crate::value::IDLValue;
 
 pub mod de;
 pub mod error;
