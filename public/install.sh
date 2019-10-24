@@ -9,7 +9,7 @@
 set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-https://sdk.dfinity.systems/dfx/latest/}"
+DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-https://sdk-int.dfinity.systems/downloads/dfx/latest/}"
 
 
 sdk_install_dir() {
