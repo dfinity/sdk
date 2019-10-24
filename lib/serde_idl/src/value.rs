@@ -1,5 +1,6 @@
 use serde::de;
 use serde::de::{Deserialize, Visitor};
+use dfx_info::types::{Type, TypeId};
 use std::fmt;
 
 #[derive(Debug, PartialEq)]
@@ -21,11 +22,26 @@ pub struct IDLField {
     pub val: IDLValue,
 }
 
+impl dfx_info::IDLType for IDLValue {
+    fn ty() -> Type { unreachable!(); }
+    fn id() -> TypeId { unreachable!(); }
+    fn _ty() -> Type { unreachable!(); }
+    fn value_ty(&self) -> Type {
+        Type::Null
+    }
+    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
+    where S: dfx_info::Serializer {
+        serializer.serialize_null(())
+    }
+}
+
 impl<'de> Deserialize<'de> for IDLValue {
     fn deserialize<D>(deserializer: D) -> Result<IDLValue, D::Error>
-    where D: serde::Deserializer<'de> {
+    where
+        D: serde::Deserializer<'de>,
+    {
         struct IDLValueVisitor;
-        
+
         impl<'de> Visitor<'de> for IDLValueVisitor {
             type Value = IDLValue;
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -44,14 +60,18 @@ impl<'de> Deserialize<'de> for IDLValue {
                 Ok(IDLValue::Text(value))
             }
             fn visit_str<E>(self, value: &str) -> Result<IDLValue, E>
-            where E: serde::de::Error {
+            where
+                E: serde::de::Error,
+            {
                 self.visit_string(String::from(value))
             }
             fn visit_none<E>(self) -> Result<IDLValue, E> {
                 Ok(IDLValue::Null)
             }
             fn visit_some<D>(self, deserializer: D) -> Result<IDLValue, D::Error>
-            where D: serde::Deserializer<'de> {
+            where
+                D: serde::Deserializer<'de>,
+            {
                 let v = Deserialize::deserialize(deserializer)?;
                 Ok(IDLValue::Opt(Box::new(v)))
             }
@@ -59,7 +79,9 @@ impl<'de> Deserialize<'de> for IDLValue {
                 Ok(IDLValue::Null)
             }
             fn visit_seq<V>(self, mut visitor: V) -> Result<IDLValue, V::Error>
-            where V: de::SeqAccess<'de> {
+            where
+                V: de::SeqAccess<'de>,
+            {
                 let mut vec = Vec::new();
                 while let Some(elem) = visitor.next_element()? {
                     vec.push(elem);
@@ -67,11 +89,16 @@ impl<'de> Deserialize<'de> for IDLValue {
                 Ok(IDLValue::Vec(vec))
             }
             fn visit_map<V>(self, mut visitor: V) -> Result<IDLValue, V::Error>
-            where V: de::MapAccess<'de> {
+            where
+                V: de::MapAccess<'de>,
+            {
                 let mut vec = Vec::new();
                 while let Some((key, value)) = visitor.next_entry()? {
                     if let IDLValue::Nat(hash) = key {
-                        let f = IDLField { id: hash as u32, val: value };
+                        let f = IDLField {
+                            id: hash as u32,
+                            val: value,
+                        };
                         vec.push(f);
                     } else {
                         unreachable!()
@@ -80,13 +107,18 @@ impl<'de> Deserialize<'de> for IDLValue {
                 Ok(IDLValue::Record(vec))
             }
             fn visit_enum<V>(self, data: V) -> Result<IDLValue, V::Error>
-            where V: de::EnumAccess<'de> {
-                use serde::de::VariantAccess;                
+            where
+                V: de::EnumAccess<'de>,
+            {
+                use serde::de::VariantAccess;
                 let (variant, visitor) = data.variant::<IDLValue>()?;
                 if let IDLValue::Nat(hash) = variant {
                     //let val = visitor.struct_variant(&[], self)?;
                     visitor.unit_variant()?;
-                    let f = IDLField { id: hash as u32, val: IDLValue::Null };
+                    let f = IDLField {
+                        id: hash as u32,
+                        val: IDLValue::Null,
+                    };
                     Ok(IDLValue::Variant(Box::new(f)))
                 } else {
                     unreachable!()
@@ -97,4 +129,3 @@ impl<'de> Deserialize<'de> for IDLValue {
         deserializer.deserialize_any(IDLValueVisitor)
     }
 }
-

@@ -1,9 +1,9 @@
 use std::str::FromStr;
-use crate::value::IDLValue;
+use serde_idl::value::IDLValue;
 
 grammar;
 
-pub Args = CommaSep<Arg>;
+pub Args = "(" <CommaSep<Arg>> ")";
 
 Arg: IDLValue = {
     "true" => IDLValue::Bool(true),
@@ -11,6 +11,7 @@ Arg: IDLValue = {
     "null" => IDLValue::Null,
     Num => IDLValue::Int(<>),
     Text => IDLValue::Text(<>),
+    "opt" <Arg> => IDLValue::Opt(Box::new(<>)),
 }
 
 Num: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();

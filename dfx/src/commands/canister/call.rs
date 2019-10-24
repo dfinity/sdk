@@ -6,8 +6,8 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
-use idl_value;
 use serde_idl::Encode;
+use idl_value::idl;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -65,18 +65,12 @@ where
             Some("string") => Ok(Encode!(&a)),
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
             Some("idl") => {
-                use idl_value::value::IDLValue;
-                let args = idl_value::idl::ArgsParser::new().parse(&a).unwrap();
-                let mut idl = serde_idl::ser::IDLBuilder::new();
+                let args = idl::ArgsParser::new().parse(&a).unwrap();
+                let mut msg = serde_idl::ser::IDLBuilder::new();
                 for arg in args {
-                    match arg {
-                        IDLValue::Int(ref n) => idl.arg(n),
-                        IDLValue::Text(ref str) => idl.arg(str),
-                        IDLValue::Bool(ref b) => idl.arg(b),
-                        _ => return Err(DfxError::Unknown(format!("unknown idl: {:?}", arg))),
-                    };
+                    msg.arg(&arg);
                 }
-                Ok(idl.to_vec().unwrap())
+                Ok(msg.to_vec()?)
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
             None => Err(DfxError::Unknown("Must specify a type.".to_owned())),

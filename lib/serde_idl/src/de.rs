@@ -315,25 +315,25 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 let len = self.pop_current_type()?.get_u64()? as u32;
                 let mut fs = BTreeMap::new();
                 for i in 0..len {
-                    let hash = self.current_type[2*i as usize].get_u64()? as u32;
+                    let hash = self.current_type[2 * i as usize].get_u64()? as u32;
                     if fs.insert(hash, None) != None {
                         return Err(Error::msg(format!("hash collision {}", hash)));
                     }
                 }
                 visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))
-            },
+            }
             Opcode::Variant => {
                 self.check_type(Opcode::Variant)?;
                 let len = self.pop_current_type()?.get_u64()? as u32;
                 let mut fs = BTreeMap::new();
                 for i in 0..len {
-                    let hash = self.current_type[2*i as usize].get_u64()? as u32;
+                    let hash = self.current_type[2 * i as usize].get_u64()? as u32;
                     if fs.insert(hash, None) != None {
                         return Err(Error::msg(format!("hash collisiosn {}", hash)));
                     }
                 }
                 visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))
-            },
+            }
         }
     }
 
@@ -629,7 +629,10 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     let ty = self.de.pop_current_type()?;
                     if i == index {
                         match fs.get(&hash) {
-                            Some(None) => self.de.set_field_name(FieldLabel::Id(hash)),
+                            Some(None) => {
+                                // TODO: We also need to transmit back which VariantAccess function to call
+                                self.de.set_field_name(FieldLabel::Id(hash));
+                            }
                             Some(Some(field)) => {
                                 self.de.set_field_name(FieldLabel::Named(field));
                             }
