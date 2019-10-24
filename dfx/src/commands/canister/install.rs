@@ -44,7 +44,10 @@ where
 
     let project_root = config.get_path().parent().unwrap();
 
-    let canister_id = args.value_of("deployment_id").unwrap().parse::<CanisterId>()?;
+    let canister_id = args
+        .value_of("deployment_id")
+        .unwrap()
+        .parse::<CanisterId>()?;
     let wasm_path = args.value_of("wasm").unwrap();
     let wasm_path = PathBuf::from(project_root).join(wasm_path);
 
