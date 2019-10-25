@@ -27,11 +27,11 @@ fn test() {
     check(
         Record(vec![
             IDLField {
-                id: 4895187,
+                id: 4_895_187,
                 val: Bool(true),
             },
             IDLField {
-                id: 5097222,
+                id: 5_097_222,
                 val: Int(42),
             },
         ]),
@@ -43,7 +43,7 @@ fn test() {
 fn test_variant() {
     use IDLValue::*;
     let value = Variant(Box::new(IDLField {
-        id: 3303859,
+        id: 3_303_859,
         val: Null,
     }));
     let bytes = hex("4449444c016b02b3d3c9017fe6fdd5017f010000");
