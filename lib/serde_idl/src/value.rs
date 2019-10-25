@@ -124,10 +124,10 @@ impl<'de> Deserialize<'de> for IDLValue {
                 Ok(IDLValue::Bool(value))
             }
             fn visit_i64<E>(self, value: i64) -> Result<IDLValue, E> {
-                Ok(IDLValue::Int(value.into()))
+                Ok(IDLValue::Int(value))
             }
             fn visit_u64<E>(self, value: u64) -> Result<IDLValue, E> {
-                Ok(IDLValue::Nat(value.into()))
+                Ok(IDLValue::Nat(value))
             }
             fn visit_string<E>(self, value: String) -> Result<IDLValue, E> {
                 Ok(IDLValue::Text(value))

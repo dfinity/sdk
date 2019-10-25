@@ -3,6 +3,7 @@
 extern crate serde_idl;
 
 //lalrpop_mod!(pub idl);
+#[allow(clippy::all)]
 pub mod idl;
 
 #[test]
