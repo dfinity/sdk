@@ -1,4 +1,4 @@
-use serde_idl::value::{IDLField, IDLValue};
+use crate::value::{IDLField, IDLValue};
 use std::str::FromStr;
 
 grammar;

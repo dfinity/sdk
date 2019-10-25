@@ -6,8 +6,7 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
-use idl_value::idl;
-use serde_idl::Encode;
+use serde_idl::{Encode, ArgsParser, encode_value};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -65,8 +64,8 @@ where
             Some("string") => Ok(Encode!(&a)),
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
             Some("idl") => {
-                let args = idl::ArgsParser::new().parse(&a).unwrap();
-                let res = serde_idl::encode_value(&args)?;
+                let args = ArgsParser::new().parse(&a).unwrap();
+                let res = encode_value(&args)?;
                 println!("{:x?}", res);
                 Ok(res)
             }

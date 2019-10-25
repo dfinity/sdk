@@ -53,7 +53,7 @@ impl dfx_info::IDLType for IDLValue {
                 Type::Vec(Box::new(t))
             }
             IDLValue::Record(ref vec) => {
-                let fs: Vec<_> = vec
+                let mut fs: Vec<_> = vec
                     .iter()
                     .map(|IDLField { id, val }| Field {
                         id: id.to_string(),
@@ -61,6 +61,7 @@ impl dfx_info::IDLType for IDLValue {
                         ty: val.value_ty(),
                     })
                     .collect();
+                fs.sort_unstable_by_key(|Field { hash, .. }| *hash);
                 Type::Record(fs)
             }
             IDLValue::Variant(ref v) => {
