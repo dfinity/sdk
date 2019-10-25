@@ -85,6 +85,10 @@ fn main() {
             eprintln!("Command must be run in a project (with a dfx.json file).");
             std::process::exit(255)
         }
+        Err(DfxError::ConfigPathDoesNotExist(config_path)) => {
+            eprintln!("Config path does not exist: {}", config_path);
+            std::process::exit(255)
+        }
         Err(err) => {
             eprintln!("An error occured:\n{:#?}", err);
             std::process::exit(255)
