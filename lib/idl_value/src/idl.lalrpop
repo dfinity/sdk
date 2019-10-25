@@ -1,5 +1,5 @@
+use serde_idl::value::{IDLField, IDLValue};
 use std::str::FromStr;
-use serde_idl::value::{IDLValue, IDLField};
 
 grammar;
 
