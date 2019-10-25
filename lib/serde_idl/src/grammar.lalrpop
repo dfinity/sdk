@@ -1,4 +1,5 @@
 use crate::value::{IDLField, IDLValue};
+use dfx_info::idl_hash;
 use std::str::FromStr;
 
 grammar;
@@ -13,12 +14,17 @@ Arg: IDLValue = {
     Text => IDLValue::Text(<>),
     "opt" <Arg> => IDLValue::Opt(Box::new(<>)),
     "vec" "{" <SemicolonSep<Arg>> "}" => IDLValue::Vec(<>),
-    "record" "{" <SemicolonSep<Field>> "}" => IDLValue::Record(<>),
+    "record" "{" <SemicolonSep<Field>> "}" => {
+        let mut fs = <>;
+        fs.sort_unstable_by_key(|IDLField { id, .. }| *id);
+        IDLValue::Record(fs)
+     }, 
     "variant" "{" <Field> "}" => IDLValue::Variant(Box::new(<>)),
 }
 
 Field: IDLField = {
     <n:Num> "=" <v:Arg> => IDLField { id: n as u32, val: v },
+    <n:Text> "=" <v:Arg> => IDLField { id: idl_hash(&n), val: v },
 }
 
 Num: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();

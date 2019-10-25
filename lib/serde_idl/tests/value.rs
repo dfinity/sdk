@@ -1,10 +1,19 @@
 extern crate serde_idl;
 
 use serde_idl::value::{IDLField, IDLValue};
-use serde_idl::Decode;
+use serde_idl::{decode_value, encode_value, ArgsParser, Decode};
 
 #[test]
-fn test() {
+fn test_parser() {
+    parse_check("(true)");
+    parse_check("(test, variant {5=null})");
+    parse_check("(opt null, record {}, vec{1;2;3})");
+    parse_check("(record {1=42;44=test;2=false})");
+    parse_check("(record {label=42; 43=record {test=test; msg=hello}; long_label=opt null}, variant {C=null})");
+}
+
+#[test]
+fn test_value() {
     use IDLValue::*;
     check(Bool(true), "4449444c00017e01");
     check(Int(1_234_567_890), "4449444c00017cd285d8cc04");
@@ -51,6 +60,13 @@ fn test_variant() {
     test_decode(&bytes, &value);
     let encoded = serde_idl::encode_value(&[value.clone()]).unwrap();
     test_decode(&encoded, &value);
+}
+
+fn parse_check(str: &str) {
+    let args = ArgsParser::new().parse(str).unwrap();
+    let encoded = encode_value(&args).unwrap();
+    let decoded = decode_value(&encoded).unwrap();
+    assert_eq!(args, decoded);
 }
 
 fn check(v: IDLValue, bytes: &str) {

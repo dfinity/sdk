@@ -44,14 +44,13 @@ fn parse() {
                     id: 1,
                     val: IDLValue::Int(42)
                 },
-                // Parser donesn't do sorting, serialization will sort.
-                IDLField {
-                    id: 44,
-                    val: IDLValue::Text("test".to_owned())
-                },
                 IDLField {
                     id: 2,
                     val: IDLValue::Bool(false)
+                },
+                IDLField {
+                    id: 44,
+                    val: IDLValue::Text("test".to_owned())
                 },
             ]),
             IDLValue::Variant(Box::new(IDLField {
