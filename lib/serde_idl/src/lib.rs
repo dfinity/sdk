@@ -34,16 +34,16 @@ extern crate serde;
 
 pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
-pub use crate::value::IDLValue;
 pub use crate::grammar::ArgsParser;
+pub use crate::value::IDLValue;
 pub use dfx_info::IDLType;
 pub use serde::Deserialize;
 
 pub mod de;
 pub mod error;
+pub mod grammar;
 pub mod ser;
 pub mod value;
-pub mod grammar;
 
 pub const EMPTY_DIDL: &[u8] = b"DIDL\0\0";
 

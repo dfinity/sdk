@@ -48,7 +48,7 @@ fn parse() {
                 IDLField {
                     id: 44,
                     val: IDLValue::Text("test".to_owned())
-                },                
+                },
                 IDLField {
                     id: 2,
                     val: IDLValue::Bool(false)

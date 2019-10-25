@@ -6,7 +6,7 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
-use serde_idl::{Encode, ArgsParser, encode_value};
+use serde_idl::{encode_value, ArgsParser, Encode};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
