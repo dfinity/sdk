@@ -10,7 +10,7 @@ fn test() {
     check(Int(1_234_567_890), "4449444c00017cd285d8cc04");
     check(Opt(Box::new(Int(42))), "4449444c016e7c0100012a");
     check(Text("Hi ☃\n".to_string()), "4449444c00017107486920e298830a");
-    check(int_vec(&vec![0, 1, 2, 3]), "4449444c016d7c01000400010203");
+    check(int_vec(&[0, 1, 2, 3]), "4449444c016d7c01000400010203");
     check(
         Record(vec![
             IDLField {
@@ -48,7 +48,7 @@ fn test_variant() {
     }));
     let bytes = hex("4449444c016b02b3d3c9017fe6fdd5017f010000");
     test_decode(&bytes, &value);
-    let encoded = serde_idl::encode_value(&vec![value.clone()]).unwrap();
+    let encoded = serde_idl::encode_value(&[value.clone()]).unwrap();
     test_decode(&encoded, &value);
 }
 
@@ -59,7 +59,7 @@ fn check(v: IDLValue, bytes: &str) {
 }
 
 fn test_encode(v: &IDLValue, expected: &[u8]) {
-    let encoded = serde_idl::encode_value(&vec![v.clone()]).unwrap();
+    let encoded = serde_idl::encode_value(&[v.clone()]).unwrap();
     assert_eq!(
         encoded, expected,
         "\nActual\n{:x?}\nExpected\n{:x?}\n",
@@ -72,7 +72,7 @@ fn test_decode(bytes: &[u8], expected: &IDLValue) {
     assert_eq!(decoded, *expected);
 }
 
-fn int_vec(v: &Vec<i64>) -> IDLValue {
+fn int_vec(v: &[i64]) -> IDLValue {
     let vec: Vec<_> = v.iter().map(|n| IDLValue::Int(*n)).collect();
     IDLValue::Vec(vec)
 }
