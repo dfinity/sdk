@@ -9,7 +9,7 @@
 set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-https://hydra-int.dfinity.systems/latest/dfinity-ci-build/sdk}"
+DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-https://sdk-int.dfinity.systems/downloads/dfx/latest/}"
 
 
 sdk_install_dir() {
@@ -32,15 +32,19 @@ main() {
     need_cmd chmod
     need_cmd mkdir
     need_cmd rm
+    need_cmd tar
 
     get_architecture || return 1
     local _arch="$RETVAL"
     assert_nz "$_arch" "arch"
 
-    local _dfx_url="${DFX_RELEASE_ROOT}/dfinity-sdk.packages.rust-workspace-standalone.${_arch}/bin/bin/dfx"
+    # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
+    # thus, make sure this handles archives
+    local _dfx_url="${DFX_RELEASE_ROOT}/${_arch}/dfx-latest.tar.gz"
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
+    local _dfx_archive="${_dir}/dfx.tar.gz"
     local _dfx_file="${_dir}/dfx"
 
     _ansi_escapes_are_valid=false
@@ -57,7 +61,8 @@ main() {
     log "Checking for latest release..."
 
     ensure mkdir -p "$_dir"
-    ensure downloader "$_dfx_url" "$_dfx_file"
+    ensure downloader "$_dfx_url" "$_dfx_archive"
+    tar -xf "$_dfx_archive" -O > "$_dfx_file"
     ensure chmod u+x "$_dfx_file"
 
     local _install_dir

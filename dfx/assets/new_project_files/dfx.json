@@ -3,8 +3,7 @@
   "dfx": "{dfx_version}",
   "canisters": {
     "hello": {
-      "main": "src/hello/main.as",
-      "canister_id": 42
+      "main": "src/hello/main.as"
     }
   },
   "defaults": {
