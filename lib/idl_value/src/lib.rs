@@ -1,8 +1,9 @@
-#[macro_use]
-extern crate lalrpop_util;
+//#[macro_use]
+//extern crate lalrpop_util;
 extern crate serde_idl;
 
-lalrpop_mod!(pub idl);
+//lalrpop_mod!(pub idl);
+pub mod idl;
 
 #[test]
 fn test() {
