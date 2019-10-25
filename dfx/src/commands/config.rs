@@ -39,12 +39,10 @@ pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
         // JSON. By default we will just assume the type is string (if all parsing fails).
         let value = serde_json::from_str::<Value>(arg_value)
             .unwrap_or_else(|_| Value::String(arg_value.to_owned()));
-
         *config
             .get_mut_json()
             .pointer_mut(config_path.as_str())
-            .unwrap() = value;
-
+            .ok_or(DfxError::ConfigPathDoesNotExist(config_path))? = value;
         config.save()
     } else if let Some(value) = config.get_json().pointer(config_path.as_str()) {
         println!("{}", value);
