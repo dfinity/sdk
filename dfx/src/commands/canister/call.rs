@@ -69,7 +69,9 @@ where
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
             None => {
-                let (_method, args) = serde_idl::grammar::MethodCallParser::new().parse(&a).unwrap();
+                let (_method, args) = serde_idl::grammar::MethodCallParser::new()
+                    .parse(&a)
+                    .unwrap();
                 Ok(encode_value(&args)?)
             }
         }?))
