@@ -65,12 +65,13 @@ where
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
             Some("idl") => {
                 let args = ArgsParser::new().parse(&a).unwrap();
-                let res = encode_value(&args)?;
-                println!("{:x?}", res);
-                Ok(res)
+                Ok(encode_value(&args)?)
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
-            None => Err(DfxError::Unknown("Must specify a type.".to_owned())),
+            None => {
+                let (_method, args) = serde_idl::grammar::MethodCallParser::new().parse(&a).unwrap();
+                Ok(encode_value(&args)?)
+            }
         }?))
     } else {
         None

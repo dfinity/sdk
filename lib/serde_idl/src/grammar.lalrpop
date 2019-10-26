@@ -1,10 +1,12 @@
-use crate::value::{IDLField, IDLValue};
+use crate::value::{IDLField, IDLValue, IDLArgs};
 use dfx_info::idl_hash;
 use std::str::FromStr;
 
 grammar;
 
-pub Args = "(" <CommaSep<Arg>> ")";
+pub MethodCall: (Option<String>, IDLArgs) = <Text?> <Args>;
+
+pub Args: IDLArgs = "(" <CommaSep<Arg>> ")" => IDLArgs { args: <> };
 
 Arg: IDLValue = {
     "true" => IDLValue::Bool(true),

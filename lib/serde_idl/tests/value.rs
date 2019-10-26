@@ -1,6 +1,6 @@
 extern crate serde_idl;
 
-use serde_idl::value::{IDLField, IDLValue};
+use serde_idl::value::{IDLArgs, IDLField, IDLValue};
 use serde_idl::{decode_value, encode_value, ArgsParser, Decode};
 
 #[test]
@@ -58,7 +58,7 @@ fn test_variant() {
     }));
     let bytes = hex("4449444c016b02b3d3c9017fe6fdd5017f010000");
     test_decode(&bytes, &value);
-    let encoded = serde_idl::encode_value(&[value.clone()]).unwrap();
+    let encoded = serde_idl::encode_value(&IDLArgs::new(&[value.clone()])).unwrap();
     test_decode(&encoded, &value);
 }
 
@@ -66,7 +66,9 @@ fn parse_check(str: &str) {
     let args = ArgsParser::new().parse(str).unwrap();
     let encoded = encode_value(&args).unwrap();
     let decoded = decode_value(&encoded).unwrap();
-    assert_eq!(args, decoded);
+    let output = format!("{}", decoded);
+    let back_args = ArgsParser::new().parse(&output).unwrap();
+    assert_eq!(args, back_args);
 }
 
 fn check(v: IDLValue, bytes: &str) {
@@ -76,7 +78,7 @@ fn check(v: IDLValue, bytes: &str) {
 }
 
 fn test_encode(v: &IDLValue, expected: &[u8]) {
-    let encoded = serde_idl::encode_value(&[v.clone()]).unwrap();
+    let encoded = serde_idl::encode_value(&IDLArgs::new(&[v.clone()])).unwrap();
     assert_eq!(
         encoded, expected,
         "\nActual\n{:x?}\nExpected\n{:x?}\n",

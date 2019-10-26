@@ -24,17 +24,17 @@ teardown() {
     dfx canister request-status $INSTALL_REQUEST_ID
 
     assert_command dfx canister query 1 greet --type=string Banzai
-    assert_eq "Hello, Banzai!"
+    assert_eq "(Hello, Banzai!)"
 
     # Using call --wait.
     assert_command dfx canister call --wait 1 greet --type=string Bongalo
-    assert_eq "Hello, Bongalo!"
+    assert_eq "(Hello, Bongalo!)"
 
     # Using call and request-status.
     assert_command dfx canister call 1 greet --type=string Blueberry
     # At this point $output is the request ID.
     assert_command dfx canister request-status $output
-    assert_eq "Hello, Blueberry!"
+    assert_eq "(Hello, Blueberry!)"
 }
 
 @test "build + install + call + request-status -- counter_wat" {
@@ -85,31 +85,31 @@ teardown() {
     dfx canister install 1 canisters/counter.wasm --wait
 
     assert_command dfx canister call 1 read --wait
-    assert_eq "0"
+    assert_eq "(0)"
 
     assert_command dfx canister call 1 inc --wait
-    assert_eq ""
+    assert_eq "()"
 
     assert_command dfx canister query 1 read
-    assert_eq "1"
-
-    dfx canister call --wait 1 inc
-    assert_command dfx canister query 1 read
-    assert_eq "2"
+    assert_eq "(1)"
 
     dfx canister call --wait 1 inc
     assert_command dfx canister query 1 read
-    assert_eq "3"
+    assert_eq "(2)"
+
+    dfx canister call --wait 1 inc
+    assert_command dfx canister query 1 read
+    assert_eq "(3)"
 
     assert_command dfx canister call 1 inc
     assert_command dfx canister request-status $output
 
     # Call write.
     assert_command dfx canister call 1 write --type=number 1337 --wait
-    assert_eq ""
+    assert_eq "()"
 
     # Write has no return value. But we can _call_ read too.
     assert_command dfx canister call 1 read
     assert_command dfx canister request-status $output
-    assert_eq "1337"
+    assert_eq "(1337)"
 }

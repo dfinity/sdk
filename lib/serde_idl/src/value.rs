@@ -23,6 +23,67 @@ pub struct IDLField {
     pub val: IDLValue,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct IDLArgs {
+    pub args: Vec<IDLValue>,
+}
+
+impl IDLArgs {
+    pub fn new(args: &[IDLValue]) -> Self {
+        IDLArgs {
+            args: args.to_owned(),
+        }
+    }
+}
+
+impl fmt::Display for IDLArgs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(")?;
+        let len = self.args.len();
+        for i in 0..len {
+            write!(f, "{}", self.args[i])?;
+            if i < len - 1 {
+                write!(f, ", ")?;
+            }
+        }
+        write!(f, ")")
+    }
+}
+
+impl fmt::Display for IDLValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            IDLValue::Null => write!(f, "null"),
+            IDLValue::Bool(b) => write!(f, "{}", b),
+            IDLValue::Int(i) => write!(f, "{}", i),
+            IDLValue::Nat(n) => write!(f, "{}", n),
+            IDLValue::Text(ref s) => write!(f, "{}", s),
+            IDLValue::Opt(ref v) => write!(f, "opt {}", v),
+            IDLValue::Vec(ref vec) => {
+                write!(f, "vec {{ ")?;
+                for e in vec.iter() {
+                    write!(f, "{}; ", e)?;
+                }
+                write!(f, "}}")
+            }
+            IDLValue::Record(ref fs) => {
+                write!(f, "record {{ ")?;
+                for e in fs.iter() {
+                    write!(f, "{}; ", e)?;
+                }
+                write!(f, "}}")
+            }
+            IDLValue::Variant(ref v) => write!(f, "variant {{ {} }}", v),
+        }
+    }
+}
+
+impl fmt::Display for IDLField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} = {}", self.id, self.val)
+    }
+}
+
 impl dfx_info::IDLType for IDLValue {
     fn ty() -> Type {
         unreachable!();
