@@ -2,6 +2,7 @@
 
 use super::error::{Error, Result};
 
+use super::value::IDLValue;
 use dfx_info::types::{Field, Type};
 use std::collections::HashMap;
 use std::io;
@@ -28,10 +29,8 @@ impl IDLBuilder {
         self
     }
     // Only works for IDLValue
-    pub fn value_arg<'a, T>(&'a mut self, value: &T) -> &'a mut Self
-    where
-        T: dfx_info::IDLType,
-    {
+    pub fn value_arg<'a>(&'a mut self, value: &IDLValue) -> &'a mut Self {
+        use dfx_info::IDLType;
         self.type_ser.push_type(&value.value_ty()).unwrap();
         value.idl_serialize(&mut self.value_ser).unwrap();
         self

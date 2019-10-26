@@ -26,6 +26,28 @@
 //! Decode!(&bytes, l: List);
 //! # }
 //! ```
+//!
+//! # Operating on untyped IDL values
+//!
+//! Any valid IDL message can be manipulated in the `IDLArgs` data structure, which contains
+//! a vector of untyped enum structure called `IDLValue`.
+//!
+//! The binary representation of IDL message can be manipulated via `encode_value`/`decode_value` functions.
+//! The textual representation of IDL message can be parsed into `IDLArgs` via `ArgsParser::new().parse(str)`.
+//!
+//! As an example, the following assertions should always be true.
+//!
+//! ```
+//! use serde_idl::{encode_value, decode_value, ArgsParser, IDLArgs};
+//! let idl_text = "(42,opt true, vec {1;2;3}, opt record {label=text; 42=haha})";
+//! let args: IDLArgs = ArgsParser::new().parse(idl_text).unwrap();
+//! let encoded: Vec<u8> = encode_value(&args).unwrap();
+//! let decoded: IDLArgs = decode_value(&encoded).unwrap();
+//! assert_eq!(args, decoded);
+//! let output: String = format!("{}", decoded);
+//! let back_args: IDLArgs = ArgsParser::new().parse(&output).unwrap();
+//! assert_eq!(args, back_args);
+//! ```
 
 extern crate dfx_info;
 extern crate leb128;
@@ -67,7 +89,7 @@ macro_rules! Decode {
     }
 }
 
-/// Encode vec of IDLValue into IDL message.
+/// Encode untyped IDLArgs into IDL message.
 pub fn encode_value(values: &IDLArgs) -> Result<Vec<u8>> {
     let mut idl = ser::IDLBuilder::new();
     for v in values.args.iter() {
@@ -76,7 +98,7 @@ pub fn encode_value(values: &IDLArgs) -> Result<Vec<u8>> {
     idl.to_vec()
 }
 
-/// Decode IDL message to a vector of IDLValues.
+/// Decode IDL message to untyped IDLArgs.
 pub fn decode_value(bytes: &[u8]) -> Result<IDLArgs> {
     let mut de = de::IDLDeserialize::new(bytes);
     let mut args = Vec::new();
