@@ -1,7 +1,7 @@
 extern crate serde_idl;
 
+use serde_idl::grammar::ArgsParser;
 use serde_idl::value::{IDLField, IDLValue};
-use serde_idl::ArgsParser;
 
 #[test]
 fn parse() {

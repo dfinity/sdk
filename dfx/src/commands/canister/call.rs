@@ -6,7 +6,7 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
-use serde_idl::{encode_value, ArgsParser, Encode};
+use serde_idl::{Encode, IDLArgs};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -64,15 +64,13 @@ where
             Some("string") => Ok(Encode!(&a)),
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
             Some("idl") => {
-                let args = ArgsParser::new().parse(&a).unwrap();
-                Ok(encode_value(&args)?)
+                let args = IDLArgs::from_str(&a).unwrap();
+                Ok(args.to_bytes()?)
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
             None => {
-                let (_method, args) = serde_idl::grammar::MethodCallParser::new()
-                    .parse(&a)
-                    .unwrap();
-                Ok(encode_value(&args)?)
+                let args = IDLArgs::from_str(&a).unwrap();
+                Ok(args.to_bytes()?)
             }
         }?))
     } else {

@@ -28,11 +28,35 @@ pub struct IDLArgs {
     pub args: Vec<IDLValue>,
 }
 
+pub type ParserError<'a> = lalrpop_util::ParseError<usize, crate::grammar::Token<'a>, &'static str>;
+
 impl IDLArgs {
     pub fn new(args: &[IDLValue]) -> Self {
         IDLArgs {
             args: args.to_owned(),
         }
+    }
+    pub fn to_bytes(&self) -> crate::Result<Vec<u8>> {
+        let mut idl = crate::ser::IDLBuilder::new();
+        for v in self.args.iter() {
+            idl.value_arg(v);
+        }
+        idl.to_vec()
+    }
+    pub fn from_bytes(bytes: &[u8]) -> crate::Result<Self> {
+        let mut de = crate::de::IDLDeserialize::new(bytes);
+        let mut args = Vec::new();
+        while !de.is_done() {
+            let v = de.get_value::<IDLValue>()?;
+            args.push(v);
+        }
+        de.done()?;
+        Ok(IDLArgs { args })
+    }
+    // from_str cannot be implemented in FromStr trait due to lifetime.
+    #[allow(clippy::style)]
+    pub fn from_str(str: &str) -> Result<Self, ParserError> {
+        crate::grammar::ArgsParser::new().parse(str)
     }
 }
 
