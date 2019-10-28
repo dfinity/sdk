@@ -106,7 +106,7 @@ teardown() {
     assert_command dfx canister request-status $output
 
     # Call write.
-    assert_command dfx canister call 1 write --type=number 1337" --wait
+    assert_command dfx canister call 1 write --type=number 1337 --wait
     # Enable after https://github.com/dfinity-lab/motoko/pull/770    
     # assert_eq "(null)"
 
