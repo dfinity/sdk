@@ -237,10 +237,10 @@ fn test_tuple() {
         (42, "💩".to_string()),
         "4449444c016c02007c017101002a04f09f92a9",
     );
-    let none:Option<String> = None;
-    let bytes = hex("4449444c046c04007c017e020103026d7c6e036c02a0d2aca8047c90eddae7040201002b010302030400");
-    test_decode(&bytes, 
-        &(43,true,[2,3,4],none));
+    let none: Option<String> = None;
+    let bytes =
+        hex("4449444c046c04007c017e020103026d7c6e036c02a0d2aca8047c90eddae7040201002b010302030400");
+    test_decode(&bytes, &(43, true, [2, 3, 4], none));
     check_error(
         || test_decode(&hex("4449444c016c02007c027101002a04f09f92a9"), &(42, "💩")),
         "Expect vector index 1, but get 2",

@@ -9,6 +9,6 @@ pub fn print_idl_blob(blob: &Blob) -> Result<(), serde_idl::Error> {
         let hex_string = hex::encode(&(*blob.0));
         println!("Error deserializing blob {}", hex_string);
     }
-    println!("{}", result?);    
+    println!("{}", result?);
     Ok(())
 }
