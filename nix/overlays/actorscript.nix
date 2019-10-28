@@ -6,6 +6,16 @@ let src = builtins.fetchGit {
   rev = "71e333aacd83e05d94c5720cb07419bcd0a1858e";
 }; in
 
+let actorscript = import src { nixpkgs = self; }; in
+
 {
-  actorscript = (import src { nixpkgs = self; });
+  actorscript = actorscript // {
+    stdlib = actorscript.stdlib.overrideAttrs (oldAttrs: {
+      installPhase = ''
+        mkdir -p $out
+        cp ${src}/stdlib/*.as $out
+        rm $out/*Test.as
+      '';
+    });
+  };
 }
