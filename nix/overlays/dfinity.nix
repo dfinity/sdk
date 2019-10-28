@@ -3,7 +3,7 @@ self: super:
 let src = builtins.fetchGit {
   url = "ssh://git@github.com/dfinity-lab/dfinity";
   # ref = "v0.2.0"; # TODO
-  rev = "b6d5e10dabb2665a7468809ecf49d1952b79a84a";
+  rev = "f8c94d70ef76e6301aa226b52386cc5dfcc9f24a";
 }; in
 
 {
