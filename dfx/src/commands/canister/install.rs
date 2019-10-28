@@ -5,7 +5,7 @@ use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::{Blob, SetDeploymentId};
+use ic_http_agent::{Blob, CanisterId};
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
 

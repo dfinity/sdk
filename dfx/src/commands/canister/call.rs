@@ -5,7 +5,7 @@ use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::{Blob, DeploymentId};
+use ic_http_agent::{Blob, CanisterId};
 use serde_idl::Encode;
 use tokio::runtime::Runtime;
 
