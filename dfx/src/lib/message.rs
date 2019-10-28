@@ -2,7 +2,8 @@ use std::fmt;
 
 pub enum UserMessage {
     CallCanister,
-    CanisterId,
+    DeploymentId,
+    SetDeploymentId,
     MethodName,
     WaitForResult,
     ArgumentType,
@@ -32,7 +33,8 @@ impl UserMessage {
 
             // dfx canister call
             UserMessage::CallCanister => "Calls a method on a deployed canister.",
-            UserMessage::CanisterId => "Specifies the numeric canister identifier to call.",
+            UserMessage::SetDeploymentId => "Specifies the numeric identifier to assign this deployment.",
+            UserMessage::DeploymentId => "Specifies the deployment identifier to call.",            
             UserMessage::MethodName => "Specifies the method name to call on the canister.",
             UserMessage::WaitForResult => "Waits for the result of the call to be returned by polling the client.",
             UserMessage::ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
