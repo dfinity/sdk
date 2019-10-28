@@ -21,6 +21,6 @@ teardown() {
     dfx build
     dfx canister install 1 canisters/print.wasm --wait
     dfx canister call 1 hello --wait
-    tail -2 stderr.txt | head -1
+    run bash -c 'tail -2 stderr.txt | head -1'
     assert_eq "debug.print: Hello, World! from DFINITY"
 }
