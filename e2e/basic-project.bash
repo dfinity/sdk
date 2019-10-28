@@ -88,8 +88,8 @@ teardown() {
     assert_eq "(0)"
 
     assert_command dfx canister call 1 inc --wait
-    # Enable after https://github.com/dfinity-lab/motoko/pull/770
-    # assert_eq "(null)"
+    # Enable after bumping Mokoto repo
+    # assert_eq "()"
 
     assert_command dfx canister query 1 read
     assert_eq "(1)"
@@ -107,8 +107,8 @@ teardown() {
 
     # Call write.
     assert_command dfx canister call 1 write --type=number 1337 --wait
-    # Enable after https://github.com/dfinity-lab/motoko/pull/770    
-    # assert_eq "(null)"
+    # Enable after bumping Mokoto repo
+    # assert_eq "()"
 
     # Write has no return value. But we can _call_ read too.
     assert_command dfx canister call 1 read
