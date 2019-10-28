@@ -1,3 +1,4 @@
 import Prelude "as:stdlib/prelude.as";
-
-Prelude.printLn("Hello, stdlib!");
+actor {
+  Prelude.printLn("Hello, stdlib!");
+}
