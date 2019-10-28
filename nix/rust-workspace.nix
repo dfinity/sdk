@@ -37,9 +37,7 @@ drv.overrideAttrs (oldAttrs: {
     cp ${actorscript.as-ide}/bin/as-ide $out
     cp ${actorscript.didc}/bin/didc $out
     cp ${actorscript.rts}/rts/as-rts.wasm $out
-    # Extracting the stdlib here simplifies things when passing it as a package
-    # to `asc`. Everything in `DFX_ASSETS` is archived as a tarball anyway.
-    mkdir $out/stdlib && tar -C $out/stdlib -xvf ${actorscript.stdlib}/stdlib.tar
+    mkdir $out/stdlib && cp -R ${actorscript.stdlib}/. $out/stdlib
   '';
 
   nativeBuildInputs = oldAttrs.nativeBuildInputs ++ lib.optionals doDoc [
