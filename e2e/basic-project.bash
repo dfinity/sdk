@@ -23,15 +23,15 @@ teardown() {
     INSTALL_REQUEST_ID=$(dfx canister install 1 canisters/greet.wasm)
     dfx canister request-status $INSTALL_REQUEST_ID
 
-    assert_command dfx canister query 1 greet --type=string Banzai
+    assert_command dfx canister query 1 greet "(Banzai)"
     assert_eq "(Hello, Banzai!)"
 
     # Using call --wait.
-    assert_command dfx canister call --wait 1 greet --type=string Bongalo
+    assert_command dfx canister call --wait 1 greet "(Bongalo)"
     assert_eq "(Hello, Bongalo!)"
 
     # Using call and request-status.
-    assert_command dfx canister call 1 greet --type=string Blueberry
+    assert_command dfx canister call 1 greet "(Blueberry)"
     # At this point $output is the request ID.
     assert_command dfx canister request-status $output
     assert_eq "(Hello, Blueberry!)"
@@ -106,7 +106,7 @@ teardown() {
     assert_command dfx canister request-status $output
 
     # Call write.
-    assert_command dfx canister call 1 write --type=number 1337 --wait
+    assert_command dfx canister call 1 write "(1337)" --wait
     # Enable after https://github.com/dfinity-lab/motoko/pull/770    
     # assert_eq "(null)"
 
@@ -114,4 +114,14 @@ teardown() {
     assert_command dfx canister call 1 read
     assert_command dfx canister request-status $output
     assert_eq "(1337)"
+}
+
+@test "build + install + call -- counter_idl_as" {
+    install_asset counter_idl_as
+    dfx_start
+    dfx build
+    dfx canister install 1 canisters/counter_idl.wasm --wait
+
+    assert_command dfx canister call 1 inc "(42,false,testzZ,vec{1;2;3},opt record{head=42; tail=opt record{head=43; tail=none}})" --wait
+    assert_eq "(record { 0 = 43; 1 = true; 2 = uftu{[; 3 = vec { 2; 3; 4; }; 4 = opt record { 1158359328 = 43; 1291237008 = opt record { 1158359328 = 44; 1291237008 = none; }; }; })"
 }
