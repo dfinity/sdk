@@ -42,8 +42,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("argument")
                 .help(UserMessage::ArgumentValue.to_str())
-                .takes_value(true)
-                .required(false),
+                .takes_value(true),
         )
 }
 
@@ -63,15 +62,11 @@ where
         Some(Blob::from(match arg_type {
             Some("string") => Ok(Encode!(&a)),
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
-            Some("idl") => {
+            Some("idl") | None => {
                 let args = IDLArgs::from_str(&a).unwrap();
                 Ok(args.to_bytes()?)
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
-            None => {
-                let args = IDLArgs::from_str(&a).unwrap();
-                Ok(args.to_bytes()?)
-            }
         }?))
     } else {
         None
