@@ -12,6 +12,7 @@ Arg: IDLValue = {
     "null" => IDLValue::Null,
     Num => IDLValue::Int(<>),
     Text => IDLValue::Text(<>),
+    "none" => IDLValue::None,
     "opt" <Arg> => IDLValue::Opt(Box::new(<>)),
     "vec" "{" <SepBy<Arg, ";">> "}" => IDLValue::Vec(<>),
     "record" "{" <SepBy<Field, ";">> "}" => {

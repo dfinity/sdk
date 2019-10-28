@@ -136,7 +136,7 @@ impl<'de> Deserializer<'de> {
 
     fn dump_error_state(&self, e: Error) -> Error {
         let mut str = format!("Trailing type: {:?}\n", self.current_type);
-        str.push_str(&format!("Trailing value: {:x?}\n", self.input));
+        str.push_str(&format!("Trailing value: {:02x?}\n", self.input));
         if self.field_name.is_some() {
             str.push_str(&format!("Trailing field_name: {:?}\n", self.field_name));
         }
@@ -332,7 +332,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                 for i in 0..len {
                     let hash = self.current_type[2 * i as usize].get_u64()? as u32;
                     if fs.insert(hash, None) != None {
-                        return Err(Error::msg(format!("hash collisiosn {}", hash)));
+                        return Err(Error::msg(format!("hash collision {}", hash)));
                     }
                 }
                 visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))
@@ -562,7 +562,7 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                     return Ok(None);
                 }
                 let ty = self.de.peek_current_type()?.clone();
-                self.de.current_type.push_back(ty);
+                self.de.current_type.push_front(ty);
                 *len -= 1;
                 seed.deserialize(&mut *self.de).map(Some)
             }

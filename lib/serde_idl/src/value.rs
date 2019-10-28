@@ -11,6 +11,7 @@ pub enum IDLValue {
     Text(String),
     Int(i64),
     Nat(u64),
+    None,
     Opt(Box<IDLValue>),
     Vec(Vec<IDLValue>),
     Record(Vec<IDLField>),
@@ -55,7 +56,7 @@ impl IDLArgs {
     }
     // from_str cannot be implemented in FromStr trait due to lifetime.
     #[allow(clippy::style)]
-    pub fn from_str(str: &str) -> Result<Self, ParserError> {
+    pub fn from_str(str: &str) -> Result<Self, ParserError<'_>> {
         crate::grammar::ArgsParser::new().parse(str)
     }
 }
@@ -82,6 +83,7 @@ impl fmt::Display for IDLValue {
             IDLValue::Int(i) => write!(f, "{}", i),
             IDLValue::Nat(n) => write!(f, "{}", n),
             IDLValue::Text(ref s) => write!(f, "{}", s),
+            IDLValue::None => write!(f, "none"),
             IDLValue::Opt(ref v) => write!(f, "opt {}", v),
             IDLValue::Vec(ref vec) => {
                 write!(f, "vec {{ ")?;
@@ -125,6 +127,7 @@ impl dfx_info::IDLType for IDLValue {
             IDLValue::Int(_) => Type::Int,
             IDLValue::Nat(_) => Type::Nat,
             IDLValue::Text(_) => Type::Text,
+            IDLValue::None => Type::Opt(Box::new(Type::Null)),
             IDLValue::Opt(ref v) => {
                 let t = v.deref().value_ty();
                 Type::Opt(Box::new(t))
@@ -169,6 +172,7 @@ impl dfx_info::IDLType for IDLValue {
             IDLValue::Int(i) => serializer.serialize_int(i),
             IDLValue::Nat(n) => serializer.serialize_nat(n),
             IDLValue::Text(ref s) => serializer.serialize_text(s),
+            IDLValue::None => serializer.serialize_option::<Option<String>>(None),
             IDLValue::Opt(ref v) => serializer.serialize_option(Some(v.deref())),
             IDLValue::Vec(ref vec) => {
                 let mut ser = serializer.serialize_vec(vec.len())?;
@@ -224,7 +228,7 @@ impl<'de> Deserialize<'de> for IDLValue {
                 self.visit_string(String::from(value))
             }
             fn visit_none<E>(self) -> Result<IDLValue, E> {
-                Ok(IDLValue::Null)
+                Ok(IDLValue::None)
             }
             fn visit_some<D>(self, deserializer: D) -> Result<IDLValue, D::Error>
             where
