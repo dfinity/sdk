@@ -17,8 +17,10 @@ teardown() {
 
 @test "print_as" {
     install_asset print_as
-    dfx_start
+    dfx_start 2>stderr.txt
     dfx build
     dfx canister install 1 canisters/print.wasm --wait
-    assert_eq "FIXME"
+    dfx canister call 1 hello --wait
+    tail -2 stderr.txt | head -1
+    assert_eq "debug.print: Hello, World! from DFINITY"
 }
