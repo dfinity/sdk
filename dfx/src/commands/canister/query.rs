@@ -5,7 +5,7 @@ use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::{Blob, CanisterId};
+use ic_http_agent::{Blob, DeploymentId};
 use serde_idl::Encode;
 use tokio::runtime::Runtime;
 
@@ -15,7 +15,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("deployment_id")
                 .takes_value(true)
-                .help(UserMessage::CanisterId.to_str())
+                .help(UserMessage::DeploymentId.to_str())
                 .required(true)
                 .validator(validators::is_canister_id),
         )
