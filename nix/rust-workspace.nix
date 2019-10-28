@@ -38,6 +38,7 @@ drv.overrideAttrs (oldAttrs: {
     cp ${actorscript.as-ide}/bin/as-ide $out
     cp ${actorscript.didc}/bin/didc $out
     cp ${actorscript.rts}/rts/as-rts.wasm $out
+    mkdir $out/stdlib && cp -R ${actorscript.stdlib}/. $out/stdlib
   '';
 
   nativeBuildInputs = oldAttrs.nativeBuildInputs ++ lib.optionals doDoc [
