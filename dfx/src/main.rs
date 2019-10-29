@@ -74,24 +74,23 @@ fn main() {
         }
     };
 
-    match result {
-        Ok(()) => {}
-        Err(DfxError::BuildError(err)) => {
-            eprintln!("Build failed. Reason:");
-            eprintln!("  {}", err);
-            std::process::exit(255)
+    if let Err(err) = result {
+        match err {
+            DfxError::BuildError(err) => {
+                eprintln!("Build failed. Reason:");
+                eprintln!("  {}", err);
+            }
+            DfxError::CommandMustBeRunInAProject() => {
+                eprintln!("Command must be run in a project (with a dfx.json file).");
+            }
+            DfxError::ConfigPathDoesNotExist(config_path) => {
+                eprintln!("Config path does not exist: {}", config_path);
+            }
+            err => {
+                eprintln!("An error occured:\n{:#?}", err);
+            }
         }
-        Err(DfxError::CommandMustBeRunInAProject()) => {
-            eprintln!("Command must be run in a project (with a dfx.json file).");
-            std::process::exit(255)
-        }
-        Err(DfxError::ConfigPathDoesNotExist(config_path)) => {
-            eprintln!("Config path does not exist: {}", config_path);
-            std::process::exit(255)
-        }
-        Err(err) => {
-            eprintln!("An error occured:\n{:#?}", err);
-            std::process::exit(255)
-        }
+
+        std::process::exit(255);
     }
 }
