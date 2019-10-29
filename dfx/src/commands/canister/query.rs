@@ -13,9 +13,9 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("query")
         .about(UserMessage::QueryCanister.to_str())
         .arg(
-            Arg::with_name("canister")
+            Arg::with_name("deployment_id")
                 .takes_value(true)
-                .help(UserMessage::CanisterId.to_str())
+                .help(UserMessage::DeploymentId.to_str())
                 .required(true)
                 .validator(validators::is_canister_id),
         )
@@ -45,7 +45,10 @@ where
     T: ClientEnv,
 {
     // Read the config.
-    let canister_id = args.value_of("canister").unwrap().parse::<CanisterId>()?;
+    let canister_id = args
+        .value_of("deployment_id")
+        .unwrap()
+        .parse::<CanisterId>()?;
     let method_name = args.value_of("method_name").unwrap();
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
