@@ -15,6 +15,9 @@ pub enum BuildErrorKind {
 
     /// An error happened while generating the user library.
     UserLibGenerationError(String),
+
+    /// An error happened while compiling WAT to WASM.
+    WatCompileError(wabt::Error),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -40,6 +43,9 @@ impl fmt::Display for BuildErrorKind {
                     stdout
                 ))?;
             }
+            WatCompileError(e) => {
+                f.write_fmt(format_args!("Error while compiling WAT to WASM: {}", e))?;
+            }
         };
 
         Ok(())
@@ -59,7 +65,6 @@ pub enum DfxError {
     SerdeCbor(serde_cbor::error::Error),
     SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
-    WabtError(wabt::Error),
     AddrParseError(std::net::AddrParseError),
     HttpAgentError(RequestIdError),
     RequestIdFromStringError(RequestIdFromStringError),
@@ -129,12 +134,6 @@ impl From<std::io::Error> for DfxError {
 impl From<std::num::ParseIntError> for DfxError {
     fn from(err: std::num::ParseIntError) -> DfxError {
         DfxError::ParseInt(err)
-    }
-}
-
-impl From<wabt::Error> for DfxError {
-    fn from(err: wabt::Error) -> DfxError {
-        DfxError::WabtError(err)
     }
 }
 

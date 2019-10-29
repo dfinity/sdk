@@ -116,7 +116,8 @@ where
         // TODO(SDK-441): Revisit supporting compilation from WAT files.
         Some("wat") => {
             let wat = std::fs::read(input_path)?;
-            let wasm = wabt::wat2wasm(wat)?;
+            let wasm = wabt::wat2wasm(wat)
+                .map_err(|e| DfxError::BuildError(BuildErrorKind::WatCompileError(e)))?;
 
             std::fs::write(&output_wasm_path, wasm)?;
 
