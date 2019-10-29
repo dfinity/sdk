@@ -69,10 +69,10 @@ pub enum DfxError {
     UnknownCommand(String),
 
     // Cannot create a new project because the directory already exists.
-    ProjectExists(),
+    ProjectExists,
 
     // Not in a project.
-    CommandMustBeRunInAProject(),
+    CommandMustBeRunInAProject,
 
     // The client returned an error. It normally specifies the error as an
     // HTTP status (so 400-599), and has a string as the error message.

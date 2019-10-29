@@ -150,7 +150,7 @@ where
     // Read the config.
     let config = env
         .get_config()
-        .ok_or_else(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     // get_path() returns the full path of the config file. We need to get the dirname.
     let project_root = config.get_path().parent().unwrap();

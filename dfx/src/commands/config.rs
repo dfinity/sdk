@@ -19,7 +19,7 @@ pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
     // Cannot use the `env` variable as we need a mutable copy.
     let mut config = env
         .get_config()
-        .ok_or_else(DfxError::CommandMustBeRunInAProject)?
+        .ok_or(DfxError::CommandMustBeRunInAProject)?
         .clone();
 
     let config_path = args.value_of("config_path").unwrap();
