@@ -92,6 +92,9 @@ fn main() {
             DfxError::ClientError(code, message) => {
                 eprintln!("Client error (code {}): {}", code, message);
             }
+            DfxError::Unknown(err) => {
+                eprintln!("Unknown error: {}", err);
+            }
             DfxError::ConfigPathDoesNotExist(config_path) => {
                 eprintln!("Config path does not exist: {}", config_path);
             }
