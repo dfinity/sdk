@@ -12,8 +12,8 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name("canister").help(UserMessage::CanisterName.to_str()))
 }
 
-/// Compile an actorscript file.
-fn actorscript_compile<T: BinaryResolverEnv>(
+/// Compile a motoko file.
+fn motoko_compile<T: BinaryResolverEnv>(
     env: &T,
     input_path: &Path,
     output_path: &Path,
@@ -25,12 +25,12 @@ fn actorscript_compile<T: BinaryResolverEnv>(
         _ => "--debug",
     };
 
-    let as_rts_path = env.get_binary_command_path("mo-rts.wasm")?;
+    let mo_rts_path = env.get_binary_command_path("mo-rts.wasm")?;
     let stdlib_path = env.get_binary_command_path("stdlib")?;
 
     let output = env
         .get_binary_command("moc")?
-        .env("MOC_RTS", as_rts_path.as_path())
+        .env("MOC_RTS", mo_rts_path.as_path())
         .arg(&input_path)
         .arg(arg_profile)
         .arg("-o")
@@ -41,14 +41,12 @@ fn actorscript_compile<T: BinaryResolverEnv>(
         .output()?;
 
     if !output.status.success() {
-        Err(DfxError::BuildError(
-            BuildErrorKind::ActorScriptCompilerError(
-                // We choose to join the strings and not the vector in case there is a weird
-                // incorrect character at the end of stdout.
-                String::from_utf8_lossy(&output.stdout).to_string()
-                    + &String::from_utf8_lossy(&output.stderr),
-            ),
-        ))
+        Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
+            // We choose to join the strings and not the vector in case there is a weird
+            // incorrect character at the end of stdout.
+            String::from_utf8_lossy(&output.stdout).to_string()
+                + &String::from_utf8_lossy(&output.stderr),
+        )))
     } else {
         Ok(())
     }
@@ -70,7 +68,8 @@ fn didl_compile<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &
 
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::IdlGenerationError(
-            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stdout).to_string()
+                + &String::from_utf8_lossy(&output.stderr),
         )))
     } else {
         Ok(())
@@ -93,7 +92,8 @@ fn build_user_lib<T: BinaryResolverEnv>(
     if !output.status.success() {
         Err(DfxError::BuildError(
             BuildErrorKind::UserLibGenerationError(
-                String::from_utf8_lossy(&output.stdout).to_string(),
+                String::from_utf8_lossy(&output.stdout).to_string()
+                    + &String::from_utf8_lossy(&output.stderr),
             ),
         ))
     } else {
@@ -126,7 +126,7 @@ where
             let output_idl_path = output_path.with_extension("did");
             let output_js_path = output_path.with_extension("js");
 
-            actorscript_compile(env, &input_path, &output_wasm_path, profile)?;
+            motoko_compile(env, &input_path, &output_wasm_path, profile)?;
             didl_compile(env, &input_path, &output_idl_path)?;
             build_user_lib(env, &output_idl_path, &output_js_path)?;
 

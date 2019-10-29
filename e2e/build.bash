@@ -16,7 +16,7 @@ teardown() {
     killall dfx nodemanager client || true
 }
 
-@test "build fails on invalid actorscript" {
+@test "build fails on invalid motoko" {
     install_asset invalid_as
     assert_command_fail dfx build
     assert_match "syntax error"
