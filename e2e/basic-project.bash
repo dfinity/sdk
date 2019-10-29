@@ -16,8 +16,8 @@ teardown() {
     killall dfx nodemanager client |& sed 's/^/killall: /' || true
 }
 
-@test "build + install + call + request-status -- greet_as" {
-    install_asset greet_as
+@test "build + install + call + request-status -- greet_mo" {
+    install_asset greet_mo
     dfx_start
     dfx build
     INSTALL_REQUEST_ID=$(dfx canister install 1 canisters/greet.wasm)
@@ -78,8 +78,8 @@ teardown() {
     [[ "$output" == "D" ]]
 }
 
-@test "build + install + call + request-status -- counter_as" {
-    install_asset counter_as
+@test "build + install + call + request-status -- counter_mo" {
+    install_asset counter_mo
     dfx_start
     dfx build
     dfx canister install 1 canisters/counter.wasm --wait
@@ -114,8 +114,8 @@ teardown() {
     assert_eq "(1337)"
 }
 
-@test "build + install + call -- counter_idl_as" {
-    install_asset counter_idl_as
+@test "build + install + call -- counter_idl_mo" {
+    install_asset counter_idl_mo
     dfx_start
     dfx build
     dfx canister install 1 canisters/counter_idl.wasm --wait
