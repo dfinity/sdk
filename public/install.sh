@@ -6,6 +6,8 @@
 # install the DFINITY SDK. It just does platform detection, downloads the installer
 # and runs it.
 
+# You are NOT AUTHORIZED to remove any license agreements or prompts from the following script.
+
 set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
@@ -33,6 +35,11 @@ main() {
     need_cmd mkdir
     need_cmd rm
     need_cmd tar
+
+    if ! confirm_license; then
+    	echo "Please accept the license to continue.";
+    	exit;
+    fi
 
     get_architecture || return 1
     local _arch="$RETVAL"
@@ -223,5 +230,35 @@ check_help_for() {
 
     test "$_ok" = "y"
 }
+
+confirm_license() {
+    local prompt header license
+    header="\n DFINITY SDK \n Please READ the following license \n\n"
+    license="DFINITY Stiftung -- All rights reserved. This is an ALPHA version of the Software Development Kit (SDK). \n\
+Permission is hereby granted to use AS IS this install script and the downloaded SDK binary and accompannying library. \n\
+It comes with NO WARRANTY. You MAY NOT MODIFY OR ALTER the install script or SDK software provided.\n"
+
+    prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
+    printf "$header"
+    printf "$license\n\n"
+
+    while true; do
+	read -r -p "$prompt " resp
+	case "$resp" in
+	    # Continue on yes or y.
+	    [Yy][Ee][Ss]|[Yy])
+		return 0
+		;;
+	    # Exit on no or n
+	    [Nn][Oo]|[Nn])
+		return 1
+		;;
+	    *) # invalid
+		printf "Answer with a yes or no to continue. "
+		;;
+	esac
+  done
+}
+
 
 main "$@" || exit 1
