@@ -89,6 +89,9 @@ fn main() {
             DfxError::CommandMustBeRunInAProject => {
                 eprintln!("Command must be run in a project directory (with a dfx.json file).");
             }
+            DfxError::ClientError(code, message) => {
+                eprintln!("Client error (code {}): {}", code, message);
+            }
             DfxError::ConfigPathDoesNotExist(config_path) => {
                 eprintln!("Config path does not exist: {}", config_path);
             }
