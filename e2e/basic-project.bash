@@ -23,18 +23,18 @@ teardown() {
     INSTALL_REQUEST_ID=$(dfx canister install 1 canisters/greet.wasm)
     dfx canister request-status $INSTALL_REQUEST_ID
 
-    assert_command dfx canister query 1 greet --type=string Banzai
-    assert_eq "Hello, Banzai!"
+    assert_command dfx canister query 1 greet "(Banzai)"
+    assert_eq "(Hello, Banzai!)"
 
     # Using call --wait.
-    assert_command dfx canister call --wait 1 greet --type=string Bongalo
-    assert_eq "Hello, Bongalo!"
+    assert_command dfx canister call --wait 1 greet "(Bongalo)"
+    assert_eq "(Hello, Bongalo!)"
 
     # Using call and request-status.
-    assert_command dfx canister call 1 greet --type=string Blueberry
+    assert_command dfx canister call 1 greet "(Blueberry)"
     # At this point $output is the request ID.
     assert_command dfx canister request-status $output
-    assert_eq "Hello, Blueberry!"
+    assert_eq "(Hello, Blueberry!)"
 }
 
 @test "build + install + call + request-status -- counter_wat" {
@@ -85,31 +85,41 @@ teardown() {
     dfx canister install 1 canisters/counter.wasm --wait
 
     assert_command dfx canister call 1 read --wait
-    assert_eq "0"
+    assert_eq "(0)"
 
     assert_command dfx canister call 1 inc --wait
-    assert_eq ""
+    assert_eq "()"
 
     assert_command dfx canister query 1 read
-    assert_eq "1"
-
-    dfx canister call --wait 1 inc
-    assert_command dfx canister query 1 read
-    assert_eq "2"
+    assert_eq "(1)"
 
     dfx canister call --wait 1 inc
     assert_command dfx canister query 1 read
-    assert_eq "3"
+    assert_eq "(2)"
+
+    dfx canister call --wait 1 inc
+    assert_command dfx canister query 1 read
+    assert_eq "(3)"
 
     assert_command dfx canister call 1 inc
     assert_command dfx canister request-status $output
 
     # Call write.
     assert_command dfx canister call 1 write --type=number 1337 --wait
-    assert_eq ""
+    assert_eq "()"
 
     # Write has no return value. But we can _call_ read too.
     assert_command dfx canister call 1 read
     assert_command dfx canister request-status $output
-    assert_eq "1337"
+    assert_eq "(1337)"
+}
+
+@test "build + install + call -- counter_idl_as" {
+    install_asset counter_idl_as
+    dfx_start
+    dfx build
+    dfx canister install 1 canisters/counter_idl.wasm --wait
+
+    assert_command dfx canister call 1 inc "(42,false,testzZ,vec{1;2;3},opt record{head=42; tail=opt record{head=43; tail=none}})" --wait
+    assert_eq "(43, true, uftu{[, vec { 2; 3; 4; }, opt record { 1158359328 = 43; 1291237008 = opt record { 1158359328 = 44; 1291237008 = none; }; })"
 }

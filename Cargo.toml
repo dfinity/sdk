@@ -4,5 +4,5 @@ members = [
     "lib/dfx_derive",
     "lib/dfx_info",
     "lib/ic_http_agent",
-    "lib/serde_idl"
+    "lib/serde_idl",
 ]
