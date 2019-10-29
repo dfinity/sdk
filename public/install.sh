@@ -58,6 +58,11 @@ main() {
         fi
     fi
 
+    log "Creating uninstall script in ~/.cache/dfinity"
+    mkdir -p ${HOME}/.cache/dfinity/
+    # Ensure there is a way to uninstall dfinity sdk.
+    install_uninstall_script
+
     log "Checking for latest release..."
 
     ensure mkdir -p "$_dir"
@@ -196,6 +201,52 @@ downloader() {
         err "Unknown downloader"   # should not reach here
     fi
 }
+
+install_uninstall_script() {
+    set +u
+    uninstall_script=$(cat <<EOF
+    set -e
+
+    uninstall() {
+
+    check_rm \"\$DFX_INSTALL_ROOT\"/dfx
+    check_rm \"\${HOME}/bin/dfx\"
+    check_rm /usr/local/bin/dfx /usr/bin/dfx
+
+    # Now clean the cache.
+    clean_cache
+    }
+
+    check_rm() {
+    local file
+    shift
+    for file in "$@"
+    do
+	[ -e "${file}" ] && rm "${file}"
+    done
+    }
+
+    clean_cache() {
+    # Check if home is unset or set to empty.
+    if [ -z \"\$HOME\" ]; then
+	exit "HOME environment variable unset."
+    fi
+
+    rm -Rf \${HOME}/.cache/dfinity
+    }
+    uninstall
+    EOF
+    )
+    set -u
+    # Being a bit more paranoid and rechecking.
+    assert_nz "${HOME}"
+    uninstall_file_path=${HOME}/.cache/dfinity/uninstall.sh;
+    log "uninstall path= ${uninstall_file_path}"
+    touch uninstall_file_path;
+    printf "$uninstall_script" > "${uninstall_file_path}";
+    ensure chmod u+x "${uninstall_file_path}";
+}
+
 
 check_help_for() {
     local _cmd
