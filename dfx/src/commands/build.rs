@@ -26,6 +26,8 @@ fn actorscript_compile<T: BinaryResolverEnv>(
     };
 
     let as_rts_path = env.get_binary_command_path("as-rts.wasm")?;
+    let stdlib_path = env.get_binary_command_path("stdlib")?;
+
     let output = env
         .get_binary_command("asc")?
         .env("ASC_RTS", as_rts_path.as_path())
@@ -33,6 +35,9 @@ fn actorscript_compile<T: BinaryResolverEnv>(
         .arg(arg_profile)
         .arg("-o")
         .arg(&output_path)
+        .arg("--package")
+        .arg("stdlib")
+        .arg(&stdlib_path.as_path())
         .output()?;
 
     if !output.status.success() {
@@ -50,12 +55,17 @@ fn actorscript_compile<T: BinaryResolverEnv>(
 }
 
 fn didl_compile<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult {
+    let stdlib_path = env.get_binary_command_path("stdlib")?;
+
     let output = env
         .get_binary_command("asc")?
         .arg("--idl")
         .arg(&input_path)
         .arg("-o")
         .arg(&output_path)
+        .arg("--package")
+        .arg("stdlib")
+        .arg(&stdlib_path.as_path())
         .output()?;
 
     if !output.status.success() {
@@ -158,9 +168,11 @@ where
             let v: ConfigCanistersCanister = serde_json::from_value(v.to_owned())?;
 
             println!("Building {}...", k);
-            if let Some(x) = v.main {
-                let input_as_path = project_root.join(x.as_str());
-                let output_path = build_root.join(x.as_str()).with_extension("wasm");
+            if let Some(path) = v.main {
+                let path = Path::new(&path);
+                let input_as_path = project_root.join(path);
+                let path = path.strip_prefix("src/").unwrap_or(&path);
+                let output_path = build_root.join(path).with_extension("wasm");
                 std::fs::create_dir_all(output_path.parent().unwrap())?;
 
                 build_file(
@@ -197,11 +209,12 @@ mod tests {
         }
 
         impl<'a> BinaryResolverEnv for TestEnv<'a> {
-            fn get_binary_command_path(&self, _binary_name: &str) -> io::Result<PathBuf> {
+            fn get_binary_command_path(&self, binary_name: &str) -> io::Result<PathBuf> {
                 // We need to implement this function as it's used to set the "ASC_RTS"
-                // environment variable. Since this test doesn't use environment variables
-                // we don't really care about its value.
-                Ok(PathBuf::new())
+                // environment variable and pass the stdlib package. For the
+                // purposes of this test we just return the name of the binary
+                // that was requested.
+                Ok(PathBuf::from(binary_name))
             }
             fn get_binary_command(&self, binary_name: &str) -> io::Result<process::Command> {
                 let stdout = self.out_file.try_clone()?;
@@ -240,8 +253,8 @@ mod tests {
 
         assert_eq!(
             s.trim(),
-            r#"asc /in/file.as --debug -o /out/file.wasm
-                asc --idl /in/file.as -o /out/file.did
+            r#"asc /in/file.as --debug -o /out/file.wasm --package stdlib stdlib
+                asc --idl /in/file.as -o /out/file.did --package stdlib stdlib
                 didc --js /out/file.did -o /out/file.js"#
                 .replace("                ", "")
         );
