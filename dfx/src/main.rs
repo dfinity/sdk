@@ -98,6 +98,9 @@ fn main() {
             DfxError::ConfigPathDoesNotExist(config_path) => {
                 eprintln!("Config path does not exist: {}", config_path);
             }
+            DfxError::InvalidArgument(e) => {
+                eprintln!("Invalid argument: {}", e);
+            }
             err => {
                 eprintln!("An error occured:\n{:#?}", err);
             }

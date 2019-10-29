@@ -65,7 +65,6 @@ pub enum DfxError {
     SerdeCbor(serde_cbor::error::Error),
     SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
-    AddrParseError(std::net::AddrParseError),
     HttpAgentError(RequestIdError),
     RequestIdFromStringError(RequestIdFromStringError),
     SerdeIdlError(serde_idl::error::Error),
@@ -90,6 +89,7 @@ pub enum DfxError {
 
     // Configuration path does not exist in the config file.
     ConfigPathDoesNotExist(String),
+    InvalidArgument(String),
 }
 
 /// The result of running a DFX command.
@@ -134,12 +134,6 @@ impl From<std::io::Error> for DfxError {
 impl From<std::num::ParseIntError> for DfxError {
     fn from(err: std::num::ParseIntError) -> DfxError {
         DfxError::ParseInt(err)
-    }
-}
-
-impl From<std::net::AddrParseError> for DfxError {
-    fn from(err: std::net::AddrParseError) -> DfxError {
-        DfxError::AddrParseError(err)
     }
 }
 
