@@ -25,12 +25,12 @@ fn actorscript_compile<T: BinaryResolverEnv>(
         _ => "--debug",
     };
 
-    let as_rts_path = env.get_binary_command_path("as-rts.wasm")?;
+    let as_rts_path = env.get_binary_command_path("mo-rts.wasm")?;
     let stdlib_path = env.get_binary_command_path("stdlib")?;
 
     let output = env
-        .get_binary_command("asc")?
-        .env("ASC_RTS", as_rts_path.as_path())
+        .get_binary_command("moc")?
+        .env("MOC_RTS", as_rts_path.as_path())
         .arg(&input_path)
         .arg(arg_profile)
         .arg("-o")
@@ -58,7 +58,7 @@ fn didl_compile<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &
     let stdlib_path = env.get_binary_command_path("stdlib")?;
 
     let output = env
-        .get_binary_command("asc")?
+        .get_binary_command("moc")?
         .arg("--idl")
         .arg(&input_path)
         .arg("-o")
@@ -122,7 +122,7 @@ where
 
             Ok(())
         }
-        Some("as") => {
+        Some("mo") => {
             let output_idl_path = output_path.with_extension("did");
             let output_js_path = output_path.with_extension("js");
 
@@ -210,7 +210,7 @@ mod tests {
 
         impl<'a> BinaryResolverEnv for TestEnv<'a> {
             fn get_binary_command_path(&self, binary_name: &str) -> io::Result<PathBuf> {
-                // We need to implement this function as it's used to set the "ASC_RTS"
+                // We need to implement this function as it's used to set the "MOC_RTS"
                 // environment variable and pass the stdlib package. For the
                 // purposes of this test we just return the name of the binary
                 // that was requested.
@@ -239,7 +239,7 @@ mod tests {
         build_file(
             &env,
             None,
-            Path::new("/in/file.as"),
+            Path::new("/in/file.mo"),
             Path::new("/out/file.wasm"),
         )
         .expect("Function failed.");
@@ -253,8 +253,8 @@ mod tests {
 
         assert_eq!(
             s.trim(),
-            r#"asc /in/file.as --debug -o /out/file.wasm --package stdlib stdlib
-                asc --idl /in/file.as -o /out/file.did --package stdlib stdlib
+            r#"moc /in/file.mo --debug -o /out/file.wasm --package stdlib stdlib
+                moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib
                 didc --js /out/file.did -o /out/file.js"#
                 .replace("                ", "")
         );
