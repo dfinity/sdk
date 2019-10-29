@@ -54,10 +54,12 @@ impl IDLArgs {
         de.done()?;
         Ok(IDLArgs { args })
     }
-    // from_str cannot be implemented in FromStr trait due to lifetime.
-    #[allow(clippy::style)]
-    pub fn from_str(str: &str) -> Result<Self, ParserError<'_>> {
-        crate::grammar::ArgsParser::new().parse(str)
+}
+
+impl std::str::FromStr for IDLArgs {
+    type Err = crate::Error;
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        Ok(crate::grammar::ArgsParser::new().parse(str)?)
     }
 }
 
@@ -275,6 +277,7 @@ impl<'de> Deserialize<'de> for IDLValue {
                 use serde::de::VariantAccess;
                 let (variant, visitor) = data.variant::<IDLValue>()?;
                 if let IDLValue::Nat(hash) = variant {
+                    //TODO assume enums are unit type for now.
                     //let val = visitor.struct_variant(&[], self)?;
                     visitor.unit_variant()?;
                     let f = IDLField {

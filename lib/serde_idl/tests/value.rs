@@ -63,11 +63,11 @@ fn test_variant() {
 }
 
 fn parse_check(str: &str) {
-    let args = IDLArgs::from_str(str).unwrap();
+    let args = str.parse::<IDLArgs>().unwrap();
     let encoded = args.to_bytes().unwrap();
     let decoded = IDLArgs::from_bytes(&encoded).unwrap();
     let output = decoded.to_string();
-    let back_args = IDLArgs::from_str(&output).unwrap();
+    let back_args = output.parse::<IDLArgs>().unwrap();
     assert_eq!(args, back_args);
 }
 

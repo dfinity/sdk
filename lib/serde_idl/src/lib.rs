@@ -38,12 +38,12 @@
 //! ```
 //! use serde_idl::{IDLArgs};
 //! let idl_text = "(42,opt true, vec {1;2;3}, opt record {label=text; 42=haha})";
-//! let args = IDLArgs::from_str(idl_text).unwrap();
+//! let args: IDLArgs = idl_text.parse().unwrap();
 //! let encoded: Vec<u8> = args.to_bytes().unwrap();
 //! let decoded: IDLArgs = IDLArgs::from_bytes(&encoded).unwrap();
 //! assert_eq!(args, decoded);
 //! let output: String = decoded.to_string();
-//! let back_args: IDLArgs = IDLArgs::from_str(&output).unwrap();
+//! let back_args: IDLArgs = output.parse().unwrap();
 //! assert_eq!(args, back_args);
 //! ```
 
