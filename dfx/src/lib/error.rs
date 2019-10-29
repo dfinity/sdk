@@ -52,7 +52,7 @@ pub enum DfxError {
     /// An error happened during build.
     BuildError(BuildErrorKind),
     Clap(clap::Error),
-    IO(std::io::Error),
+    Io(std::io::Error),
     ParseInt(std::num::ParseIntError),
     Reqwest(reqwest::Error),
     SerdeCborFromServer(serde_cbor::error::Error, String),
@@ -122,7 +122,7 @@ impl From<serde_json::Error> for DfxError {
 
 impl From<std::io::Error> for DfxError {
     fn from(err: std::io::Error) -> DfxError {
-        DfxError::IO(err)
+        DfxError::Io(err)
     }
 }
 
