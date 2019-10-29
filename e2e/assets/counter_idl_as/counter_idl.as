@@ -1,6 +1,7 @@
 type List<T> = ?{head : T; tail : List<T>};
 
 actor {
+    //TODO Bug fix for inline polymorphic type
     //public type List<T> = ?{head : T; tail : List<T>};
     func map(l: List<Int>) : List<Int> = {
         switch l {

@@ -66,7 +66,7 @@ where
             Some("string") => Ok(Encode!(&a)),
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
             Some("idl") | None => {
-                let args = IDLArgs::from_str(&a).unwrap();
+                let args: IDLArgs = a.parse()?;
                 Ok(args.to_bytes()?)
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
