@@ -59,7 +59,6 @@ pub enum DfxError {
     BuildError(BuildErrorKind),
     Clap(clap::Error),
     Io(std::io::Error),
-    ParseInt(std::num::ParseIntError),
     Reqwest(reqwest::Error),
     SerdeCborFromServer(serde_cbor::error::Error, String),
     SerdeCbor(serde_cbor::error::Error),
@@ -122,12 +121,6 @@ impl From<serde_json::Error> for DfxError {
 impl From<std::io::Error> for DfxError {
     fn from(err: std::io::Error) -> DfxError {
         DfxError::Io(err)
-    }
-}
-
-impl From<std::num::ParseIntError> for DfxError {
-    fn from(err: std::num::ParseIntError) -> DfxError {
-        DfxError::ParseInt(err)
     }
 }
 
