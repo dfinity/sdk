@@ -80,6 +80,9 @@ fn main() {
                 eprintln!("Build failed. Reason:");
                 eprintln!("  {}", err);
             }
+            DfxError::ProjectExists() => {
+                eprintln!("Cannot create a new project because the directory already exists.");
+            }
             DfxError::CommandMustBeRunInAProject() => {
                 eprintln!("Command must be run in a project directory (with a dfx.json file).");
             }
