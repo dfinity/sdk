@@ -80,6 +80,9 @@ fn main() {
                 eprintln!("Build failed. Reason:");
                 eprintln!("  {}", err);
             }
+            DfxError::UnknownCommand(command) => {
+                eprintln!("Unknown command: {}", command);
+            }
             DfxError::ProjectExists => {
                 eprintln!("Cannot create a new project because the directory already exists.");
             }
