@@ -107,12 +107,6 @@ impl From<reqwest::Error> for DfxError {
     }
 }
 
-impl From<reqwest::UrlError> for DfxError {
-    fn from(err: reqwest::UrlError) -> DfxError {
-        DfxError::Url(err)
-    }
-}
-
 impl From<serde_cbor::Error> for DfxError {
     fn from(err: serde_cbor::Error) -> DfxError {
         DfxError::SerdeCbor(err)
