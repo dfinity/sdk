@@ -128,13 +128,14 @@ where
                 "application/cbor".parse().unwrap(),
             );
 
-            result(serde_cbor::to_vec(&request).map_err(DfxError::SerdeCbor)).and_then(
-                move |cbor| {
-                    let body = http_request.body_mut();
-                    body.get_or_insert(reqwest::r#async::Body::from(cbor));
-                    client.execute(http_request).map_err(DfxError::Reqwest)
-                },
-            )
+            result(serde_cbor::to_vec(&request).map_err(|e| {
+                DfxError::InvalidData(format!("Unable to serialize read request: {}", e))
+            }))
+            .and_then(move |cbor| {
+                let body = http_request.body_mut();
+                body.get_or_insert(reqwest::r#async::Body::from(cbor));
+                client.execute(http_request).map_err(DfxError::Reqwest)
+            })
         })
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
         .and_then(|buf| match serde_cbor::from_slice(&buf) {
@@ -169,7 +170,10 @@ fn submit(
             "application/cbor".parse().unwrap(),
         );
 
-        result(serde_cbor::to_vec(&request).map_err(DfxError::SerdeCbor)).and_then(move |cbor| {
+        result(serde_cbor::to_vec(&request).map_err(|e| {
+            DfxError::InvalidData(format!("Unable to serialize submit request: {}", e))
+        }))
+        .and_then(move |cbor| {
             let body = http_request.body_mut();
             body.get_or_insert(reqwest::r#async::Body::from(cbor));
             client.execute(http_request).map_err(DfxError::Reqwest)

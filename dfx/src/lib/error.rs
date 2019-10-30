@@ -61,7 +61,6 @@ pub enum DfxError {
     Io(std::io::Error),
     Reqwest(reqwest::Error),
     SerdeCborFromServer(serde_cbor::error::Error, String),
-    SerdeCbor(serde_cbor::error::Error),
     Url(reqwest::UrlError),
     HttpAgentError(RequestIdError),
 
@@ -101,12 +100,6 @@ impl From<clap::Error> for DfxError {
 impl From<reqwest::Error> for DfxError {
     fn from(err: reqwest::Error) -> DfxError {
         DfxError::Reqwest(err)
-    }
-}
-
-impl From<serde_cbor::Error> for DfxError {
-    fn from(err: serde_cbor::Error) -> DfxError {
-        DfxError::SerdeCbor(err)
     }
 }
 
