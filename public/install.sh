@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 # Borrowed from rustup (https://sh.rustup.rs)
 
@@ -65,7 +65,7 @@ main() {
     fi
 
     log "Creating uninstall script in ~/.cache/dfinity"
-    mkdir -p ${HOME}/.cache/dfinity/
+    mkdir -p "${HOME}/.cache/dfinity/"
     # Ensure there is a way to uninstall dfinity sdk.
     install_uninstall_script
 
@@ -87,7 +87,7 @@ main() {
 }
 
 get_architecture() {
-    local _ostype _cputype _bitness _arch
+    local _ostype _cputype _arch
     _ostype="$(uname -s)"
     _cputype="$(uname -m)"
 
@@ -212,45 +212,46 @@ downloader() {
 install_uninstall_script() {
     set +u
     uninstall_script=$(
-        cat <<EOF
-    uninstall() {
+        cat <<'EOF'
+#!/usr/bin/env sh
 
-    check_rm "\\"\${DFX_INSTALL_ROOT}\\"/dfx"
-    check_rm \"\${HOME}/bin/dfx\"
+uninstall() {
+    check_rm "${DFX_INSTALL_ROOT}/dfx"
+    check_rm "${HOME}/bin/dfx"
     check_rm /usr/local/bin/dfx /usr/bin/dfx
 
     # Now clean the cache.
     clean_cache
-    }
+}
 
-    check_rm() {
+check_rm() {
     local file
-    for file in \"\$@\"
+    for file in "$@"
     do
-	[ -e \"\${file}\" ] && rm \"\${file}\"
+        [ -e "${file}" ] && rm "${file}"
     done
-    }
+}
 
-    clean_cache() {
+clean_cache() {
     # Check if home is unset or set to empty.
-    if [ -z \"\$HOME\" ]; then
-	exit "HOME environment variable unset."
+    if [ -z "$HOME" ]; then
+        exit "HOME environment variable unset."
     fi
 
-    rm -Rf \${HOME}/.cache/dfinity
-    }
-    uninstall
+    rm -Rf "${HOME}/.cache/dfinity"
+}
 
+uninstall
 EOF
     )
 
     set -u
     # Being a bit more paranoid and rechecking.
     assert_nz "${HOME}"
-    uninstall_file_path=${HOME}/.cache/dfinity/uninstall.sh
-    log "uninstall path= ${uninstall_file_path}"
-    touch ${uninstall_file_path}
-    printf "$uninstall_script" >"${uninstall_file_path}"
+    uninstall_file_path="${HOME}/.cache/dfinity/uninstall.sh"
+    log "uninstall path=${uninstall_file_path}"
+    touch "${uninstall_file_path}"
+    printf "%s" "$uninstall_script" >"${uninstall_file_path}"
     ensure chmod u+x "${uninstall_file_path}"
 }
 
@@ -293,16 +294,18 @@ OR ALTER the install script or SDK software provided.\n"
 
     prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
 
-    if ! [[ $- == *i* ]]; then
-        printf "Please run in an interactive terminal.\n"
-        printf 'Hint: Run  sh -ci "$(curl -L  https://sdk-int.dfinity.systems/install.sh)"'
+    # we test if there is a terminal present (that is, STDIN is a TTY)
+    if ! [ -t 0 ]; then
+        printf "%s\n" "Please run in an interactive terminal."
+        # shellcheck disable=SC2016
+        printf "%s" 'Hint: Run  sh -ci "$(curl -L  https://sdk-int.dfinity.systems/install.sh)"'
         exit 0
     fi
-    printf "$header"
-    printf "$license\n\n"
-    printf "$prompt\n"
+    printf "%b" "$header"
+    printf "%b\n\n" "$license"
+    printf "%b\n" "$prompt"
     while true; do
-        read resp
+        read -r resp
         case "$resp" in
             # Continue on yes or y.
             [Yy][Ee][Ss] | [Yy])
@@ -316,8 +319,8 @@ OR ALTER the install script or SDK software provided.\n"
                 # invalid input
                 # Send out an ANSI escape code to move up and then to delete the
                 # line. Keeping it separate for convenience.
-                printf "\033[2A"
-                echo -en "\r\033[KAnswer with a yes or no to continue. [y/N]"
+                printf "%b\n" "\033[2A"
+                printf "%b " "\r\033[KAnswer with a yes or no to continue. [y/N]"
                 ;;
         esac
     done
