@@ -33,15 +33,36 @@ in {
       "dfx";
 
     # The following prepares a manifest for copying install.sh
+    # The release part also checks if the install.sh script is well formatted and has no shellcheck issues.
+    # We ignore 'local' warning by shellcheck, because any existing sh implementation supports it.
     # TODO: streamline mkRelease and this
     install-sh-release =
-      let version = "latest";
+      let
+        version = "latest";
+        shfmtOpts = "-p -i 4 -ci -bn -s";
+        shellcheckOpts = "-s sh -S warning";
       in self.lib.linuxOnly (super.runCommandNoCC "install-sh-release" {
         inherit version;
         installSh = ../../public/install.sh;
-        buildInputs = [ self.jo ];
+        buildInputs = [ self.jo self.shfmt self.shellcheck ];
       } ''
         set -Eeuo pipefail
+        # Check if we have an sh compatible script
+        shckResult="$(shellcheck -Cnever -f gcc ${shellcheckOpts} "$installSh" | grep -v "In POSIX sh, 'local' is undefined." || true)"
+        if [ -n "$shckResult" ] ; then
+          echo "There are some shellcheck warnings:"
+          echo $shckResult
+          echo "Please run:"
+          echo "shellcheck ${shellcheckOpts} public/install.sh"
+          exit 1
+        fi
+
+        # Check if the file is properly formatted
+        if ! shfmt ${shfmtOpts} -d $installSh; then
+          echo "Please run:"
+          echo "shfmt ${shfmtOpts} -w public/install.sh"
+          exit 1
+        fi
         # Building the artifacts
         mkdir -p $out
 
