@@ -62,7 +62,6 @@ pub enum DfxError {
     Reqwest(reqwest::Error),
     SerdeCborFromServer(serde_cbor::error::Error, String),
     SerdeCbor(serde_cbor::error::Error),
-    SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
     HttpAgentError(RequestIdError),
     SerdeIdlError(serde_idl::error::Error),
@@ -108,12 +107,6 @@ impl From<reqwest::Error> for DfxError {
 impl From<serde_cbor::Error> for DfxError {
     fn from(err: serde_cbor::Error) -> DfxError {
         DfxError::SerdeCbor(err)
-    }
-}
-
-impl From<serde_json::Error> for DfxError {
-    fn from(err: serde_json::Error) -> DfxError {
-        DfxError::SerdeJson(err)
     }
 }
 

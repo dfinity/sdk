@@ -1,4 +1,4 @@
-use crate::config::dfinity::{ConfigCanistersCanister, Profile};
+use crate::config::dfinity::Profile;
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -166,10 +166,8 @@ where
 
     if let Some(canisters) = &config.get_config().canisters {
         for (k, v) in canisters {
-            let v: ConfigCanistersCanister = serde_json::from_value(v.to_owned())?;
-
             println!("Building {}...", k);
-            if let Some(path) = v.main {
+            if let Some(path) = &v.main {
                 let path = Path::new(&path);
                 let input_as_path = project_root.join(path);
                 let path = path.strip_prefix("src/").unwrap_or(&path);
