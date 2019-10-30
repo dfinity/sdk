@@ -1,4 +1,4 @@
 Some Invalid Code
-No way this is valid ActorScript, right?
+No way this is valid Motoko, right?
 
         // Who knows...

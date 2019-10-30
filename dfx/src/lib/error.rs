@@ -8,7 +8,7 @@ pub enum BuildErrorKind {
     InvalidExtension(String),
 
     /// A compiler error happened.
-    ActorScriptCompilerError(String),
+    MotokoCompilerError(String),
 
     /// An error happened during the generation of the Idl.
     IdlGenerationError(String),
@@ -25,8 +25,8 @@ impl fmt::Display for BuildErrorKind {
             InvalidExtension(ext) => {
                 f.write_fmt(format_args!("Invalid extension: {}", ext))?;
             }
-            ActorScriptCompilerError(stdout) => {
-                f.write_fmt(format_args!("ActorScript returned an error:\n{}", stdout))?;
+            MotokoCompilerError(stdout) => {
+                f.write_fmt(format_args!("Motoko returned an error:\n{}", stdout))?;
             }
             IdlGenerationError(stdout) => {
                 f.write_fmt(format_args!(
