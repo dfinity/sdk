@@ -300,7 +300,7 @@ OR ALTER the install script or SDK software provided.\n"
     if ! [ -t 0 ]; then
         printf "%s\n" "Please run in an interactive terminal."
         # shellcheck disable=SC2016
-        printf "%s" 'Hint: Run  sh -ci "$(curl -L  https://sdk-int.dfinity.systems/install.sh)"'
+        printf "%s\n" 'Hint: Run  sh -ci "$(curl -L  https://sdk-int.dfinity.systems/install.sh)"'
         exit 0
     fi
     printf "%b" "$header"
