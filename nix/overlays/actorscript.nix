@@ -2,8 +2,8 @@ self: super:
 
 let src = builtins.fetchGit {
   url = "ssh://git@github.com/dfinity-lab/actorscript";
-  ref = "master";
-  rev = "62a3e50336ac3d99960a9b75e83fc8f972066909";
+  ref = "nm-recover";
+  rev = "df7308d4b38b0f8044cb4afda7e0e11fbce7806a";
 }; in
 
 let actorscript = import src { nixpkgs = self; }; in
