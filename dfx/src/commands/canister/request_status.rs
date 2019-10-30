@@ -36,7 +36,8 @@ where
         }
         Ok(ReadResponse::Replied { reply }) => {
             if let Some(QueryResponseReply { arg: blob }) = reply {
-                print_idl_blob(&blob)?;
+                print_idl_blob(&blob)
+                    .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
             }
             Ok(())
         }

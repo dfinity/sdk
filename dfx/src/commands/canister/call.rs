@@ -72,8 +72,12 @@ where
                 ))
             })?)),
             Some("idl") | None => {
-                let args: IDLArgs = a.parse()?;
-                Ok(args.to_bytes()?)
+                let args: IDLArgs = a
+                    .parse()
+                    .map_err(|e| DfxError::InvalidArgument(format!("Invalid IDL: {}", e)))?;
+                Ok(args.to_bytes().map_err(|e| {
+                    DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
+                })?)
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
         }?))
@@ -98,7 +102,8 @@ where
             }
             Ok(ReadResponse::Replied { reply }) => {
                 if let Some(QueryResponseReply { arg: blob }) = reply {
-                    print_idl_blob(&blob)?;
+                    print_idl_blob(&blob)
+                        .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
                 }
                 Ok(())
             }

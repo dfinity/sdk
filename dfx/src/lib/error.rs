@@ -64,7 +64,6 @@ pub enum DfxError {
     SerdeCbor(serde_cbor::error::Error),
     Url(reqwest::UrlError),
     HttpAgentError(RequestIdError),
-    SerdeIdlError(serde_idl::error::Error),
 
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
@@ -87,6 +86,7 @@ pub enum DfxError {
     // Configuration path does not exist in the config file.
     ConfigPathDoesNotExist(String),
     InvalidArgument(String),
+    InvalidData(String),
 }
 
 /// The result of running a DFX command.
@@ -119,11 +119,5 @@ impl From<std::io::Error> for DfxError {
 impl From<RequestIdError> for DfxError {
     fn from(err: RequestIdError) -> DfxError {
         DfxError::HttpAgentError(err)
-    }
-}
-
-impl From<serde_idl::error::Error> for DfxError {
-    fn from(err: serde_idl::error::Error) -> DfxError {
-        DfxError::SerdeIdlError(err)
     }
 }
