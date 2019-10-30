@@ -29,7 +29,7 @@ pub struct IDLArgs {
     pub args: Vec<IDLValue>,
 }
 
-pub type ParserError<'a> =
+pub type ParserError =
     lalrpop_util::ParseError<usize, crate::lexer::Token, crate::lexer::LexicalError>;
 
 impl IDLArgs {
