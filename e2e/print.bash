@@ -15,8 +15,8 @@ teardown() {
     killall dfx nodemanager client |& sed 's/^/killall: /' || true
 }
 
-@test "print_as" {
-    install_asset print_as
+@test "print_mo" {
+    install_asset print_mo
     dfx_start 2>stderr.txt
     dfx build
     dfx canister install 1 canisters/print.wasm --wait

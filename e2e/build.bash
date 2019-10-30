@@ -17,7 +17,7 @@ teardown() {
 }
 
 @test "build fails on invalid motoko" {
-    install_asset invalid_as
+    install_asset invalid_mo
     assert_command_fail dfx build
     assert_match "syntax error"
 }
