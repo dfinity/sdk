@@ -25,7 +25,8 @@ pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: ClientEnv,
 {
-    let request_id = RequestId::from_str(&args.value_of("request_id").unwrap()[2..])?;
+    let request_id = RequestId::from_str(&args.value_of("request_id").unwrap()[2..])
+        .map_err(|e| DfxError::InvalidArgument(format!("Invalid request ID: {:?}", e)))?; // FIXME Default formatter for RequestIdFromStringError
     let request_status = request_status(env.get_client(), request_id);
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     match runtime.block_on(request_status) {

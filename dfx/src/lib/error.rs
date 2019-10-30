@@ -1,4 +1,4 @@
-use ic_http_agent::{RequestIdError, RequestIdFromStringError};
+use ic_http_agent::RequestIdError;
 use std::fmt;
 
 #[derive(Debug)]
@@ -65,7 +65,6 @@ pub enum DfxError {
     SerdeJson(serde_json::error::Error),
     Url(reqwest::UrlError),
     HttpAgentError(RequestIdError),
-    RequestIdFromStringError(RequestIdFromStringError),
     SerdeIdlError(serde_idl::error::Error),
 
     /// An unknown command was used. The argument is the command itself.
@@ -127,12 +126,6 @@ impl From<std::io::Error> for DfxError {
 impl From<RequestIdError> for DfxError {
     fn from(err: RequestIdError) -> DfxError {
         DfxError::HttpAgentError(err)
-    }
-}
-
-impl From<RequestIdFromStringError> for DfxError {
-    fn from(err: RequestIdFromStringError) -> DfxError {
-        DfxError::RequestIdFromStringError(err)
     }
 }
 
