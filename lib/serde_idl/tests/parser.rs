@@ -30,7 +30,7 @@ fn parse_literals() {
 
 #[test]
 fn parse_more_literals() {
-    let args = parse_args("(true, null, 42, \"random\", false)");
+    let args = parse_args("(true, null, 42, \"random\", \"string with whitespace\", +42, -42, false)");
     assert_eq!(
         args.args,
         vec![
@@ -38,10 +38,14 @@ fn parse_more_literals() {
             IDLValue::Null,
             IDLValue::Int(42),
             IDLValue::Text("random".to_owned()),
+            IDLValue::Text("string with whitespace".to_owned()),
+            IDLValue::Int(42),
+            IDLValue::Int(-42),
             IDLValue::Bool(false)
         ]
     );
-    assert_eq!(format!("{}", args), "(true, null, 42, \"random\", false)");
+    assert_eq!(format!("{}", args),
+               "(true, null, 42, \"random\", \"string with whitespace\", 42, -42, false)");
 }
 
 #[test]

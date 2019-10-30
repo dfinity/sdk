@@ -8,6 +8,7 @@ extern {
     type Location = usize;
     type Error = LexicalError;
     enum Token {
+        "nat_literal" => Token::NatLiteral(<u64>),
         "int_literal" => Token::IntLiteral(<i64>),
         "bool_literal" => Token::BooleanLiteral(<bool>),
         "text_literal" => Token::TextLiteral(<String>),
@@ -33,6 +34,7 @@ pub Args: IDLArgs = "(" <SepBy<Arg, ",">> ")" => IDLArgs { args: <> };
 Arg: IDLValue = {
     "bool_literal" => IDLValue::Bool(<>),
     "int_literal" => IDLValue::Int(<>),
+    "nat_literal" => IDLValue::Nat(<>),
     "text_literal" => IDLValue::Text(<>),
     "null" => IDLValue::Null,
     "none" => IDLValue::None,

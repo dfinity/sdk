@@ -8,11 +8,13 @@ pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 pub enum LexicalError {
     UnknownEscape(char),
     NonTerminatedString(usize),
+    ExpectedDigit,
 }
 
 impl fmt::Display for LexicalError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            LexicalError::ExpectedDigit => write!(fmt, "Expected a digit"),
             LexicalError::UnknownEscape(c) => write!(fmt, "Unknown escape \\{}", c),
             LexicalError::NonTerminatedString(pos) => {
                 write!(fmt, "Unclosed string literal starting at {}", pos)
@@ -40,6 +42,7 @@ pub enum Token {
     Label(String),
     TextLiteral(String),
     IntLiteral(i64),
+    NatLiteral(u64),
     BooleanLiteral(bool),
 }
 
@@ -76,6 +79,25 @@ impl<'input> Lexer<'input> {
             } else {
                 break;
             }
+        }
+    }
+
+    fn read_digits(&mut self, buffer: &mut String) -> Result<usize, LexicalError> {
+        let mut len = 0;
+        while let Some((_, c)) = self.peek() {
+            if c.is_digit(10) {
+                len += 1;
+                buffer.push(self.next_char().unwrap().1)
+            } else {
+                break;
+            }
+        }
+
+        if len == 0 {
+            // Not a single digit was read, this is an error
+            Err(LexicalError::ExpectedDigit)
+        } else {
+            Ok(len)
         }
     }
 
@@ -120,19 +142,23 @@ impl<'input> Iterator for Lexer<'input> {
             Some((i, ',')) => Some(Ok((i, Token::Comma, i + 1))),
             Some((i, '=')) => Some(Ok((i, Token::Equals, i + 1))),
             Some((i, '"')) => Some(self.read_string_literal(i)),
+            Some((i, c @ '+')) | Some((i, c @ '-')) => {
+                let mut res = c.to_string();
+                let digit_len = self.read_digits(&mut res);
+                Some(digit_len.map(|len| {
+                    (
+                        i,
+                        Token::IntLiteral(res.parse::<i64>().unwrap()),
+                        i + 1 + len,
+                    )
+                }))
+            }
             Some((i, c)) if c.is_digit(10) => {
                 let mut res = c.to_string();
-                let mut len = 1;
-                while let Some((_, c)) = self.peek() {
-                    if c.is_digit(10) {
-                        len += 1;
-                        res.push(self.next_char().unwrap().1)
-                    } else {
-                        break;
-                    }
-                }
+                let len = self.read_digits(&mut res).unwrap_or(0) + 1;
                 Some(Ok((
                     i,
+                    // TODO: This should be a Nat in the future
                     Token::IntLiteral(res.parse::<i64>().unwrap()),
                     i + len,
                 )))
