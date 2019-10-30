@@ -60,8 +60,8 @@ pub use serde::Deserialize;
 
 pub mod de;
 pub mod error;
-pub mod lexer;
 pub mod grammar;
+pub mod lexer;
 pub mod ser;
 pub mod value;
 

@@ -61,7 +61,8 @@ fn parse_vec() {
 
 #[test]
 fn parse_optional_record() {
-    let args = parse_args("(opt record {}, record { 1=42;44=\"test\"; 2=false }, variant { 5=null })");
+    let args =
+        parse_args("(opt record {}, record { 1=42;44=\"test\"; 2=false }, variant { 5=null })");
     assert_eq!(
         args.args,
         vec![
@@ -94,8 +95,9 @@ fn parse_optional_record() {
 
 #[test]
 fn parse_nested_record() {
-    let args =
-        parse_args("(record {label=42; 43=record {test=\"test\"; msg=\"hello\"}; long_label=opt null})");
+    let args = parse_args(
+        "(record {label=42; 43=record {test=\"test\"; msg=\"hello\"}; long_label=opt null})",
+    );
     assert_eq!(
         args.args,
         vec![IDLValue::Record(vec![

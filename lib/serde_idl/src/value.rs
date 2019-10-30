@@ -29,7 +29,8 @@ pub struct IDLArgs {
     pub args: Vec<IDLValue>,
 }
 
-pub type ParserError<'a> = lalrpop_util::ParseError<usize, crate::lexer::Token, crate::lexer::LexicalError>;
+pub type ParserError<'a> =
+    lalrpop_util::ParseError<usize, crate::lexer::Token, crate::lexer::LexicalError>;
 
 impl IDLArgs {
     pub fn new(args: &[IDLValue]) -> Self {
