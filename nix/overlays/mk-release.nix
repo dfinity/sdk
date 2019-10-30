@@ -1,4 +1,4 @@
-{ stdenv, lib, gzip, jo, patchelf }:
+{ stdenv, lib, gzip, jo, patchelf, isMaster ? false }:
 rname: version: from: what:
 stdenv.mkDerivation {
   name = "${rname}-release";
@@ -6,6 +6,7 @@ stdenv.mkDerivation {
   phases = [ "buildPhase" ];
   buildInputs = [ gzip jo patchelf ];
   allowedRequisites = [];
+  inherit isMaster;
   buildPhase = ''
     # Building the artifacts
     mkdir -p $out
@@ -15,26 +16,6 @@ stdenv.mkDerivation {
     collection=$(mktemp -d)
     cp ${from}/bin/${what} $collection/${what}
     chmod 0755 $collection/${what}
-
-    ${lib.optionalString stdenv.isLinux ''
-    mkdir $collection/lib
-    ldd ${from}/bin/${what} | { grep "=> /" || true; } | awk '{print $3}' | xargs -I '{}' cp '{}' $collection/lib/
-    # $ORIGIN is relative to the executable (ld convention)
-    patchelf --set-rpath '$ORIGIN/lib' $collection/${what}
-    # Wrapper to use system's dynamic loader, as it might be the case
-    # that the binary still references one from the nix store
-    # This will not work on NixOS
-    mv $collection/${what}{,.wrapped}
-    cat >$collection/${what} <<'EOF'
-    #!/usr/bin/env bash
-    CURRENT_SCRIPT_DIR="$(
-    cd "''${BASH_SOURCE[0]%/*}"
-    pwd
-    )"
-    $CURRENT_SCRIPT_DIR/lib/ld-linux-x86-64.so.* $CURRENT_SCRIPT_DIR/${what}.wrapped "$@"
-    EOF
-    chmod 0755 $collection/${what}
-    ''}
 
     tar -cvzf "$out/$the_release" -C $collection/ .
 
