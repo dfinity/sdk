@@ -29,7 +29,7 @@ pub struct IDLArgs {
     pub args: Vec<IDLValue>,
 }
 
-pub type ParserError<'a> = lalrpop_util::ParseError<usize, crate::grammar::Token<'a>, &'static str>;
+pub type ParserError<'a> = lalrpop_util::ParseError<usize, crate::lexer::Token, crate::lexer::LexicalError>;
 
 impl IDLArgs {
     pub fn new(args: &[IDLValue]) -> Self {
@@ -59,7 +59,8 @@ impl IDLArgs {
 impl std::str::FromStr for IDLArgs {
     type Err = crate::Error;
     fn from_str(str: &str) -> Result<Self, Self::Err> {
-        Ok(crate::grammar::ArgsParser::new().parse(str)?)
+        let lexer = crate::lexer::Lexer::new(str);
+        Ok(crate::grammar::ArgsParser::new().parse(lexer)?)
     }
 }
 
@@ -84,7 +85,9 @@ impl fmt::Display for IDLValue {
             IDLValue::Bool(b) => write!(f, "{}", b),
             IDLValue::Int(i) => write!(f, "{}", i),
             IDLValue::Nat(n) => write!(f, "{}", n),
-            IDLValue::Text(ref s) => write!(f, "{}", s),
+            // Use the debug formatter for strings here to recover
+            // escape sequences and the surrounding quotes
+            IDLValue::Text(ref s) => write!(f, "{:?}", s),
             IDLValue::None => write!(f, "none"),
             IDLValue::Opt(ref v) => write!(f, "opt {}", v),
             IDLValue::Vec(ref vec) => {

@@ -37,7 +37,7 @@
 //!
 //! ```
 //! use serde_idl::{IDLArgs};
-//! let idl_text = "(42,opt true, vec {1;2;3}, opt record {label=text; 42=haha})";
+//! let idl_text = "(42,opt true, vec {1;2;3}, opt record {label=\"text\"; 42=\"haha\"})";
 //! let args: IDLArgs = idl_text.parse().unwrap();
 //! let encoded: Vec<u8> = args.to_bytes().unwrap();
 //! let decoded: IDLArgs = IDLArgs::from_bytes(&encoded).unwrap();
@@ -60,6 +60,7 @@ pub use serde::Deserialize;
 
 pub mod de;
 pub mod error;
+pub mod lexer;
 pub mod grammar;
 pub mod ser;
 pub mod value;

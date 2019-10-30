@@ -1,17 +1,40 @@
 use crate::value::{IDLField, IDLValue, IDLArgs};
+use crate::lexer::{Token, LexicalError};
 use dfx_info::idl_hash;
-use std::str::FromStr;
 
 grammar;
+
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+    enum Token {
+        "int_literal" => Token::IntLiteral(<i64>),
+        "bool_literal" => Token::BooleanLiteral(<bool>),
+        "text_literal" => Token::TextLiteral(<String>),
+        "label" => Token::Label(<String>),
+        "null" => Token::Null,
+        "none" => Token::None,
+        "opt" => Token::Opt,
+        "vec" => Token::Vec,
+        "record" => Token::Record,
+        "variant" => Token::Variant,
+        "=" => Token::Equals,
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+        "{" => Token::LBrace,
+        "}" => Token::RBrace,
+        "," => Token::Comma,
+        ";" => Token::Semi,
+    }
+}
 
 pub Args: IDLArgs = "(" <SepBy<Arg, ",">> ")" => IDLArgs { args: <> };
 
 Arg: IDLValue = {
-    "true" => IDLValue::Bool(true),
-    "false" => IDLValue::Bool(false),
+    "bool_literal" => IDLValue::Bool(<>),
+    "int_literal" => IDLValue::Int(<>),
+    "text_literal" => IDLValue::Text(<>),
     "null" => IDLValue::Null,
-    Num => IDLValue::Int(<>),
-    Text => IDLValue::Text(<>),
     "none" => IDLValue::None,
     "opt" <Arg> => IDLValue::Opt(Box::new(<>)),
     "vec" "{" <SepBy<Arg, ";">> "}" => IDLValue::Vec(<>),
@@ -19,17 +42,14 @@ Arg: IDLValue = {
         let mut fs = <>;
         fs.sort_unstable_by_key(|IDLField { id, .. }| *id);
         IDLValue::Record(fs)
-     }, 
+     },
     "variant" "{" <Field> "}" => IDLValue::Variant(Box::new(<>)),
 }
 
 Field: IDLField = {
-    <n:Num> "=" <v:Arg> => IDLField { id: n as u32, val: v },
-    <n:Text> "=" <v:Arg> => IDLField { id: idl_hash(&n), val: v },
+    <n:"int_literal"> "=" <v:Arg> => IDLField { id: n as u32, val: v },
+    <n:"label"> "=" <v:Arg> => IDLField { id: idl_hash(&n), val: v },
 }
-
-Num: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
-Text: String = r"[[:alpha:]]\w*" => String::from_str(<>).unwrap();
 
 // Also allows trailing separator
 SepBy<T, S>: Vec<T> = {
