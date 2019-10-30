@@ -13,7 +13,6 @@ set -u
 # If DFX_RELEASE_ROOT is unset or empty, default it.
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-https://sdk-int.dfinity.systems/downloads/dfx/latest/}"
 
-
 sdk_install_dir() {
     if [ "${DFX_INSTALL_ROOT:-}" ]; then
         # By default we install to a home directory.
@@ -37,8 +36,8 @@ main() {
     need_cmd tar
 
     if ! confirm_license; then
-    	echo "Please accept the license to continue.";
-    	exit;
+        echo "Please accept the license to continue."
+        exit
     fi
 
     get_architecture || return 1
@@ -58,9 +57,9 @@ main() {
     if [ -t 2 ]; then
         if [ "${TERM+set}" = 'set' ]; then
             case "$TERM" in
-                xterm*|rxvt*|urxvt*|linux*|vt*)
+                xterm* | rxvt* | urxvt* | linux* | vt*)
                     _ansi_escapes_are_valid=true
-                ;;
+                    ;;
             esac
         fi
     fi
@@ -74,7 +73,7 @@ main() {
 
     ensure mkdir -p "$_dir"
     ensure downloader "$_dfx_url" "$_dfx_archive"
-    tar -xf "$_dfx_archive" -O > "$_dfx_file"
+    tar -xf "$_dfx_archive" -O >"$_dfx_file"
     ensure chmod u+x "$_dfx_file"
 
     local _install_dir
@@ -123,6 +122,7 @@ get_architecture() {
 
         *)
             err "unknown CPU type: $_cputype"
+            ;;
 
     esac
 
@@ -155,7 +155,7 @@ need_cmd() {
 }
 
 check_cmd() {
-    command -v "$1" > /dev/null 2>&1
+    command -v "$1" >/dev/null 2>&1
 }
 
 assert_nz() {
@@ -205,13 +205,14 @@ downloader() {
             wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2"
         fi
     else
-        err "Unknown downloader"   # should not reach here
+        err "Unknown downloader" # should not reach here
     fi
 }
 
 install_uninstall_script() {
     set +u
-    uninstall_script=$(cat <<EOF
+    uninstall_script=$(
+        cat <<EOF
     uninstall() {
 
     check_rm "\\"\${DFX_INSTALL_ROOT}\\"/dfx"
@@ -246,13 +247,12 @@ EOF
     set -u
     # Being a bit more paranoid and rechecking.
     assert_nz "${HOME}"
-    uninstall_file_path=${HOME}/.cache/dfinity/uninstall.sh;
+    uninstall_file_path=${HOME}/.cache/dfinity/uninstall.sh
     log "uninstall path= ${uninstall_file_path}"
-    touch ${uninstall_file_path};
-    printf "$uninstall_script" > "${uninstall_file_path}";
-    ensure chmod u+x "${uninstall_file_path}";
+    touch ${uninstall_file_path}
+    printf "$uninstall_script" >"${uninstall_file_path}"
+    ensure chmod u+x "${uninstall_file_path}"
 }
-
 
 check_help_for() {
     local _cmd
@@ -294,34 +294,33 @@ OR ALTER the install script or SDK software provided.\n"
     prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
 
     if ! [[ $- == *i* ]]; then
-	printf "Please run in an interactive terminal.\n";
-	printf "Hint: Run  sh -ci \"\$(curl -L  https://sdk-int.dfinity.systems/install.sh)\"";
-	exit 0;
+        printf "Please run in an interactive terminal.\n"
+        printf 'Hint: Run  sh -ci "$(curl -L  https://sdk-int.dfinity.systems/install.sh)"'
+        exit 0
     fi
     printf "$header"
     printf "$license\n\n"
     printf "$prompt\n"
     while true; do
-	read resp
-	case "$resp" in
-	    # Continue on yes or y.
-	    [Yy][Ee][Ss]|[Yy])
-		return 0
-		;;
-	    # Exit on no or n
-	    [Nn][Oo]|[Nn])
-		return 1
-		;;
-	    *)
-		# invalid input
-		# Send out an ANSI escape code to move up and then to delete the
-		# line. Keeping it separate for convenience.
-		printf "\033[2A"
-		echo -en "\r\033[KAnswer with a yes or no to continue. [y/N]"
-		;;
-	esac
-  done
+        read resp
+        case "$resp" in
+            # Continue on yes or y.
+            [Yy][Ee][Ss] | [Yy])
+                return 0
+                ;;
+            # Exit on no or n
+            [Nn][Oo] | [Nn])
+                return 1
+                ;;
+            *)
+                # invalid input
+                # Send out an ANSI escape code to move up and then to delete the
+                # line. Keeping it separate for convenience.
+                printf "\033[2A"
+                echo -en "\r\033[KAnswer with a yes or no to continue. [y/N]"
+                ;;
+        esac
+    done
 }
-
 
 main "$@" || exit 1
