@@ -61,7 +61,11 @@ impl<'de> IDLDeserialize<'de> {
                 .map_err(|e| self.de.dump_error_state(e))
         }
     }
-    /// Check if we have deserialized all the values from the message.
+    /// Check if we finish deserializing all values.
+    pub fn is_done(&self) -> bool {
+        self.de.types.is_empty()
+    }
+    /// Return error if there are unprocessed bytes in the input.
     pub fn done(self) -> Result<()> {
         if !self.de.types.is_empty() {
             return Err(Error::msg(format!(
@@ -97,6 +101,13 @@ impl RawValue {
     }
 }
 
+#[derive(Debug)]
+enum FieldLabel {
+    Named(&'static str),
+    Id(u32),
+    Skip,
+}
+
 struct Deserializer<'de> {
     input: &'de [u8],
     // Raw value of the type description table
@@ -109,7 +120,7 @@ struct Deserializer<'de> {
     current_type: VecDeque<RawValue>,
     // field_name tells deserialize_identifier which field name to process.
     // This field should always be set by set_field_name function.
-    field_name: Option<&'static str>,
+    field_name: Option<FieldLabel>,
 }
 
 impl<'de> Deserializer<'de> {
@@ -125,7 +136,7 @@ impl<'de> Deserializer<'de> {
 
     fn dump_error_state(&self, e: Error) -> Error {
         let mut str = format!("Trailing type: {:?}\n", self.current_type);
-        str.push_str(&format!("Trailing value: {:x?}\n", self.input));
+        str.push_str(&format!("Trailing value: {:02x?}\n", self.input));
         if self.field_name.is_some() {
             str.push_str(&format!("Trailing field_name: {:?}\n", self.field_name));
         }
@@ -216,9 +227,10 @@ impl<'de> Deserializer<'de> {
             }
             op = self.pop_current_type()?.get_i64()?;
         }
-        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))
+        let r = Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))?;
+        Ok(r)
     }
-    // Same logic as parse_type, just not poping the current_type queue.
+    // Same logic as parse_type, but not poping the current_type queue.
     fn peek_type(&self) -> Result<Opcode> {
         let mut op = self.peek_current_type()?.get_i64()?;
         if op >= 0 && op < self.table.len() as i64 {
@@ -239,7 +251,7 @@ impl<'de> Deserializer<'de> {
     }
     // Should always call set_field_name to set the field_name. After deserialize_identifier
     // processed the field_name, field_name will be reset to None.
-    fn set_field_name(&mut self, field: &'static str) {
+    fn set_field_name(&mut self, field: FieldLabel) {
         if self.field_name.is_some() {
             panic!(format!("field_name already taken {:?}", self.field_name));
         }
@@ -261,7 +273,9 @@ macro_rules! primitive_impl {
 
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     type Error = Error;
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
+
+    // Skipping unused field types
+    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -279,6 +293,50 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             Opcode::Opt => self.deserialize_option(visitor),
             Opcode::Record => self.deserialize_struct("_", &[], visitor),
             Opcode::Variant => self.deserialize_enum("_", &[], visitor),
+        }
+    }
+
+    // Used for deserializing to IDLValue
+    fn deserialize_any<V>(mut self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        if self.field_name.is_some() {
+            return self.deserialize_identifier(visitor);
+        }
+        let t = self.peek_type()?;
+        match t {
+            Opcode::Int => self.deserialize_i64(visitor),
+            Opcode::Nat => self.deserialize_u64(visitor),
+            Opcode::Bool => self.deserialize_bool(visitor),
+            Opcode::Text => self.deserialize_string(visitor),
+            Opcode::Null => self.deserialize_unit(visitor),
+            Opcode::Vec => self.deserialize_seq(visitor),
+            Opcode::Opt => self.deserialize_option(visitor),
+            Opcode::Record => {
+                self.check_type(Opcode::Record)?;
+                let len = self.pop_current_type()?.get_u64()? as u32;
+                let mut fs = BTreeMap::new();
+                for i in 0..len {
+                    let hash = self.current_type[2 * i as usize].get_u64()? as u32;
+                    if fs.insert(hash, None) != None {
+                        return Err(Error::msg(format!("hash collision {}", hash)));
+                    }
+                }
+                visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))
+            }
+            Opcode::Variant => {
+                self.check_type(Opcode::Variant)?;
+                let len = self.pop_current_type()?.get_u64()? as u32;
+                let mut fs = BTreeMap::new();
+                for i in 0..len {
+                    let hash = self.current_type[2 * i as usize].get_u64()? as u32;
+                    if fs.insert(hash, None) != None {
+                        return Err(Error::msg(format!("hash collision {}", hash)));
+                    }
+                }
+                visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))
+            }
         }
     }
 
@@ -396,8 +454,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let len = self.pop_current_type()?.get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in fields.iter() {
-            if fs.insert(idl_hash(s), *s) != None {
-                return Err(Error::msg(format!("hash collisiosn {}", s)));
+            if fs.insert(idl_hash(s), Some(*s)) != None {
+                return Err(Error::msg(format!("hash collision {}", s)));
             }
         }
         let value = visitor.visit_map(Compound::new(&mut self, Style::Struct { len, fs }))?;
@@ -417,8 +475,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let len = self.pop_current_type()?.get_u64()? as u32;
         let mut fs = BTreeMap::new();
         for s in variants.iter() {
-            if fs.insert(idl_hash(s), *s) != None {
-                return Err(Error::msg(format!("hash collisiosn {}", s)));
+            if fs.insert(idl_hash(s), Some(*s)) != None {
+                return Err(Error::msg(format!("hash collision {}", s)));
             }
         }
         let value = visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))?;
@@ -429,13 +487,18 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        let v = visitor.visit_str(self.field_name.unwrap());
+        let label = self.field_name.as_ref().unwrap();
+        let v = match label {
+            FieldLabel::Named(name) => visitor.visit_str(name),
+            FieldLabel::Id(hash) => visitor.visit_u32(*hash),
+            FieldLabel::Skip => visitor.visit_str("_"),
+        };
         self.field_name = None;
         v
     }
 
     serde::forward_to_deserialize_any! {
-        char bytes byte_buf ignored_any f32 f64 map
+        char bytes byte_buf f32 f64 map
     }
 }
 
@@ -450,11 +513,11 @@ enum Style {
     },
     Struct {
         len: u32,
-        fs: BTreeMap<u32, &'static str>,
+        fs: BTreeMap<u32, Option<&'static str>>,
     },
     Enum {
         len: u32,
-        fs: BTreeMap<u32, &'static str>,
+        fs: BTreeMap<u32, Option<&'static str>>,
     },
 }
 
@@ -499,11 +562,11 @@ impl<'de, 'a> de::SeqAccess<'de> for Compound<'a, 'de> {
                     return Ok(None);
                 }
                 let ty = self.de.peek_current_type()?.clone();
-                self.de.current_type.push_back(ty);
+                self.de.current_type.push_front(ty);
                 *len -= 1;
                 seed.deserialize(&mut *self.de).map(Some)
             }
-            _ => Err(Error::msg("expect tuple")),
+            _ => Err(Error::msg("expect vector or tuple")),
         }
     }
 }
@@ -525,13 +588,12 @@ impl<'de, 'a> de::MapAccess<'de> for Compound<'a, 'de> {
                 *len -= 1;
                 let hash = self.de.pop_current_type()?.get_u64()? as u32;
                 match fs.get(&hash) {
-                    Some(field) => {
-                        self.de.set_field_name(field);
-                    }
+                    Some(None) => self.de.set_field_name(FieldLabel::Id(hash)),
+                    Some(Some(field)) => self.de.set_field_name(FieldLabel::Named(field)),
                     None => {
                         // This triggers seed.deserialize to call deserialize_ignore_any
                         // to skip both type and value of this unknown field.
-                        self.de.set_field_name("_");
+                        self.de.set_field_name(FieldLabel::Skip);
                     }
                 }
                 seed.deserialize(&mut *self.de).map(Some)
@@ -570,8 +632,12 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     let ty = self.de.pop_current_type()?;
                     if i == index {
                         match fs.get(&hash) {
-                            Some(field) => {
-                                self.de.set_field_name(field);
+                            Some(None) => {
+                                // TODO: We also need to transmit back which VariantAccess function to call
+                                self.de.set_field_name(FieldLabel::Id(hash));
+                            }
+                            Some(Some(field)) => {
+                                self.de.set_field_name(FieldLabel::Named(field));
                             }
                             None => {
                                 if !fs.is_empty() {
@@ -581,8 +647,8 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                                     )));
                                 } else {
                                     // Actual enum won't have empty fs. This can only be generated
-                                    // from deserialize_ignore_any
-                                    self.de.set_field_name("_");
+                                    // from deserialize_ignored_any
+                                    self.de.set_field_name(FieldLabel::Skip);
                                 }
                             }
                         }

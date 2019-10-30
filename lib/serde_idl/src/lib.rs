@@ -26,6 +26,26 @@
 //! Decode!(&bytes, l: List);
 //! # }
 //! ```
+//!
+//! # Operating on untyped IDL values
+//!
+//! Any valid IDL message can be manipulated in the `IDLArgs` data structure, which contains
+//! a vector of untyped enum structure called `IDLValue`.
+//!
+//! `IDLArgs` supports both binary and textual IDL format.
+//! As an example, the following assertions should always be true.
+//!
+//! ```
+//! use serde_idl::{IDLArgs};
+//! let idl_text = "(42,opt true, vec {1;2;3}, opt record {label=text; 42=haha})";
+//! let args: IDLArgs = idl_text.parse().unwrap();
+//! let encoded: Vec<u8> = args.to_bytes().unwrap();
+//! let decoded: IDLArgs = IDLArgs::from_bytes(&encoded).unwrap();
+//! assert_eq!(args, decoded);
+//! let output: String = decoded.to_string();
+//! let back_args: IDLArgs = output.parse().unwrap();
+//! assert_eq!(args, back_args);
+//! ```
 
 extern crate dfx_info;
 extern crate leb128;
@@ -34,12 +54,15 @@ extern crate serde;
 
 pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
+pub use crate::value::IDLArgs;
 pub use dfx_info::IDLType;
 pub use serde::Deserialize;
 
 pub mod de;
 pub mod error;
+pub mod grammar;
 pub mod ser;
+pub mod value;
 
 pub const EMPTY_DIDL: &[u8] = b"DIDL\0\0";
 

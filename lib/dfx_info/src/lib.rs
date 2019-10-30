@@ -24,6 +24,10 @@ pub trait IDLType {
     }
     fn id() -> TypeId;
     fn _ty() -> Type;
+    // only used for serialize IDLValue
+    fn value_ty(&self) -> Type {
+        unreachable!();
+    }
     // only serialize the value encoding
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
     where

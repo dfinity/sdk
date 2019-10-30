@@ -6,7 +6,7 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
-use serde_idl::Encode;
+use serde_idl::{Encode, IDLArgs};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -27,8 +27,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("argument")
                 .help(UserMessage::ArgumentValue.to_str())
-                .takes_value(true)
-                .multiple(true),
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("type")
@@ -36,7 +35,7 @@ pub fn construct() -> App<'static, 'static> {
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
-                .possible_values(&["string", "number"]),
+                .possible_values(&["string", "number", "idl"]),
         )
 }
 
@@ -57,8 +56,11 @@ where
         Some(match arg_type {
             Some("string") => Ok(Encode!(&a)),
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
+            Some("idl") | None => {
+                let args: IDLArgs = a.parse()?;
+                Ok(args.to_bytes()?)
+            }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
-            None => Err(DfxError::Unknown("Must specify a type.".to_owned())),
         }?)
     } else {
         None

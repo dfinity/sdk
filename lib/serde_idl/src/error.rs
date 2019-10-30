@@ -64,3 +64,9 @@ impl From<io::Error> for Error {
         Error::msg(format!("io error: {}", e))
     }
 }
+
+impl<'a> From<crate::value::ParserError<'a>> for Error {
+    fn from(e: crate::value::ParserError<'a>) -> Error {
+        Error::msg(format!("IDL parser error: {}", e))
+    }
+}

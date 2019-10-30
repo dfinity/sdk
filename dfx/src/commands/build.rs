@@ -70,7 +70,8 @@ fn didl_compile<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &
 
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::IdlGenerationError(
-            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stdout).to_string()
+                + &String::from_utf8_lossy(&output.stderr),
         )))
     } else {
         Ok(())
@@ -93,7 +94,8 @@ fn build_user_lib<T: BinaryResolverEnv>(
     if !output.status.success() {
         Err(DfxError::BuildError(
             BuildErrorKind::UserLibGenerationError(
-                String::from_utf8_lossy(&output.stdout).to_string(),
+                String::from_utf8_lossy(&output.stdout).to_string()
+                    + &String::from_utf8_lossy(&output.stderr),
             ),
         ))
     } else {
