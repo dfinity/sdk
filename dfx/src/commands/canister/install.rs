@@ -1,6 +1,7 @@
 use crate::lib::api_client::{install_code, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::{ClientEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -10,24 +11,24 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("install")
-        .about("Install a canister.")
+        .about(UserMessage::InstallCanister.to_str())
         .arg(
-            Arg::with_name("canister")
+            Arg::with_name("deployment_id")
                 .takes_value(true)
-                .help("The canister ID (a number).")
+                .help(UserMessage::SetDeploymentId.to_str())
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("wait")
-                .help("Wait for the result of the call, by polling the client.")
+                .help(UserMessage::WaitForResult.to_str())
                 .long("wait")
                 .short("w")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("wasm")
-                .help("The wasm file to use.")
+                .help(UserMessage::WasmFile.to_str())
                 .required(true),
         )
 }
@@ -43,7 +44,10 @@ where
 
     let project_root = config.get_path().parent().unwrap();
 
-    let canister_id = args.value_of("canister").unwrap().parse::<CanisterId>()?;
+    let canister_id = args
+        .value_of("deployment_id")
+        .unwrap()
+        .parse::<CanisterId>()?;
     let wasm_path = args.value_of("wasm").unwrap();
     let wasm_path = PathBuf::from(project_root).join(wasm_path);
 

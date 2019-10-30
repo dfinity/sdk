@@ -24,6 +24,10 @@ pub trait IDLType {
     }
     fn id() -> TypeId;
     fn _ty() -> Type;
+    // only used for serialize IDLValue
+    fn value_ty(&self) -> Type {
+        unreachable!();
+    }
     // only serialize the value encoding
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
     where
@@ -51,4 +55,14 @@ pub trait Compound {
     fn serialize_element<T: ?Sized>(&mut self, v: &T) -> Result<(), Self::Error>
     where
         T: IDLType;
+}
+
+// IDL hash function comes from
+// https://caml.inria.fr/pub/papers/garrigue-polymorphic_variants-ml98.pdf
+pub fn idl_hash(id: &str) -> u32 {
+    let mut s: u32 = 0;
+    for c in id.chars() {
+        s = s.wrapping_mul(223).wrapping_add(c as u32);
+    }
+    s
 }

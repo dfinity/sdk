@@ -3,7 +3,7 @@
 let package = napalm.buildPackage ./. {
   npmCommands = [
     "npm install"
-    "npm run test"
+    "npm run build"
   ];
 }; in
 

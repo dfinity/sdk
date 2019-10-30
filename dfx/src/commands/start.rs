@@ -1,6 +1,7 @@
 use crate::lib::api_client::{ping, Client, ClientConfig};
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::UserMessage;
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use indicatif::{ProgressBar, ProgressDrawTarget};
@@ -14,16 +15,16 @@ const IC_CLIENT_BIND_ADDR: &str = "http://localhost:8080/api";
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("start")
-        .about("Start a local network in the background.")
+        .about(UserMessage::StartNode.to_str())
         .arg(
             Arg::with_name("host")
-                .help("The host (with port) to bind the frontend to.")
+                .help(UserMessage::NodeAddress.to_str())
                 .long("host")
                 .takes_value(true),
         )
         .arg(
             Arg::with_name("background")
-                .help("Exit the dfx leaving the client running. Will wait until the client replies before exiting.")
+                .help(UserMessage::StartBackground.to_str())
                 .long("background")
                 .takes_value(false),
         )
@@ -77,7 +78,7 @@ where
                 .get_defaults()
                 .get_start()
                 .get_binding_socket_addr("localhost:8000")
-                .unwrap())
+                .expect("could not get socket_addr"))
         })?;
     let frontend_url = format!(
         "http://{}:{}",
@@ -118,7 +119,9 @@ where
 
                 // If the nodemanager itself fails, we are probably deeper into troubles than
                 // we can solve at this point and the user is better rerunning the server.
-                let mut child = cmd.spawn().unwrap();
+                let mut child = cmd.spawn().unwrap_or_else(|e| {
+                    panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e)
+                });
                 if child.wait().is_err() {
                     break;
                 }

@@ -1,27 +1,39 @@
 use serde::{de, ser};
 
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::io;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
-pub enum Error {
-    Message(String),
-    Eof,
-    InvalidState,
-    TrailingCharacters,
+pub struct Error {
+    message: String,
+    states: String,
+}
+
+impl Error {
+    pub fn msg<T: Display>(msg: T) -> Self {
+        Error {
+            message: msg.to_string(),
+            states: "".to_owned(),
+        }
+    }
+    pub fn with_states(self, msg: String) -> Self {
+        Error {
+            message: self.message,
+            states: msg,
+        }
+    }
 }
 
 impl ser::Error for Error {
     fn custom<T: Display>(msg: T) -> Self {
-        Error::Message(msg.to_string())
+        Error::msg(msg.to_string())
     }
 }
 
 impl de::Error for Error {
     fn custom<T: Display>(msg: T) -> Self {
-        Error::Message(msg.to_string())
+        Error::msg(msg.to_string())
     }
 }
 
@@ -31,19 +43,30 @@ impl Display for Error {
     }
 }
 
+impl Debug for Error {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&format!("\nMessage: \"{}\"\n", self.message))?;
+        if !self.states.is_empty() {
+            formatter.write_str(&format!("States:\n{}\n", self.states))?;
+        }
+        Ok(())
+    }
+}
+
 impl std::error::Error for Error {
     fn description(&self) -> &str {
-        match *self {
-            Error::Message(ref msg) => msg,
-            Error::Eof => "unexpected end of input",
-            Error::InvalidState => "invalid state",
-            Error::TrailingCharacters => "trailing characters",
-        }
+        &self.message
     }
 }
 
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Error {
-        Error::Message(format!("io error {}", e))
+        Error::msg(format!("io error: {}", e))
+    }
+}
+
+impl<'a> From<crate::value::ParserError<'a>> for Error {
+    fn from(e: crate::value::ParserError<'a>) -> Error {
+        Error::msg(format!("IDL parser error: {}", e))
     }
 }

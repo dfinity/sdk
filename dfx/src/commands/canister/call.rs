@@ -1,48 +1,48 @@
 use crate::lib::api_client::{call, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::env::ClientEnv;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, CanisterId};
-use serde_idl::Encode;
+use serde_idl::{Encode, IDLArgs};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("call")
-        .about("Call a canister.")
+        .about(UserMessage::CallCanister.to_str())
         .arg(
-            Arg::with_name("canister")
+            Arg::with_name("deployment_id")
                 .takes_value(true)
-                .help("The canister ID (a number) to call.")
+                .help(UserMessage::DeploymentId.to_str())
                 .required(true)
                 .validator(validators::is_canister_id),
         )
         .arg(
             Arg::with_name("method_name")
-                .help("The method name file to use.")
+                .help(UserMessage::MethodName.to_str())
                 .required(true),
         )
         .arg(
             Arg::with_name("wait")
-                .help("Wait for the result of the call, by polling the client.")
+                .help(UserMessage::WaitForResult.to_str())
                 .long("wait")
                 .short("w")
                 .takes_value(false),
         )
         .arg(
             Arg::with_name("type")
-                .help("The type of the argument. Required when using an argument.")
+                .help(UserMessage::ArgumentType.to_str())
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
-                .possible_values(&["string", "number"]),
+                .possible_values(&["string", "number", "idl"]),
         )
         .arg(
             Arg::with_name("argument")
-                .help("Argument to pass to the method.")
-                .takes_value(true)
-                .required(false),
+                .help(UserMessage::ArgumentValue.to_str())
+                .takes_value(true),
         )
 }
 
@@ -51,7 +51,10 @@ where
     T: ClientEnv,
 {
     // Read the config.
-    let canister_id = args.value_of("canister").unwrap().parse::<CanisterId>()?;
+    let canister_id = args
+        .value_of("deployment_id")
+        .unwrap()
+        .parse::<CanisterId>()?;
     let method_name = args.value_of("method_name").unwrap();
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
@@ -62,8 +65,11 @@ where
         Some(Blob::from(match arg_type {
             Some("string") => Ok(Encode!(&a)),
             Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
+            Some("idl") | None => {
+                let args: IDLArgs = a.parse()?;
+                Ok(args.to_bytes()?)
+            }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
-            None => Err(DfxError::Unknown("Must specify a type.".to_owned())),
         }?))
     } else {
         None

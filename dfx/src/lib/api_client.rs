@@ -22,7 +22,7 @@ impl Client {
             url: reqwest::Url::parse(config.url.as_str())
                 .expect("Invalid client URL.")
                 .join("api/v1/")
-                .unwrap(),
+                .expect("Error joining path in client URL."),
         }
     }
 
@@ -127,11 +127,14 @@ where
                 reqwest::header::CONTENT_TYPE,
                 "application/cbor".parse().unwrap(),
             );
-            let body = http_request.body_mut();
-            body.get_or_insert(reqwest::r#async::Body::from(
-                serde_cbor::to_vec(&request).unwrap(),
-            ));
-            client.execute(http_request).map_err(DfxError::Reqwest)
+
+            result(serde_cbor::to_vec(&request).map_err(DfxError::SerdeCbor)).and_then(
+                move |cbor| {
+                    let body = http_request.body_mut();
+                    body.get_or_insert(reqwest::r#async::Body::from(cbor));
+                    client.execute(http_request).map_err(DfxError::Reqwest)
+                },
+            )
         })
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
         .and_then(|buf| match serde_cbor::from_slice(&buf) {
@@ -165,11 +168,12 @@ fn submit(
             reqwest::header::CONTENT_TYPE,
             "application/cbor".parse().unwrap(),
         );
-        let body = http_request.body_mut();
-        body.get_or_insert(reqwest::r#async::Body::from(
-            serde_cbor::to_vec(&request).unwrap(),
-        ));
-        client.execute(http_request).map_err(DfxError::Reqwest)
+
+        result(serde_cbor::to_vec(&request).map_err(DfxError::SerdeCbor)).and_then(move |cbor| {
+            let body = http_request.body_mut();
+            body.get_or_insert(reqwest::r#async::Body::from(cbor));
+            client.execute(http_request).map_err(DfxError::Reqwest)
+        })
     })
 }
 
@@ -237,7 +241,7 @@ pub fn install_code(
 
 /// Canister call
 ///
-/// Canister methods that can change the canister state. This return right away, and cannot wait
+/// Canister methods that can change the canister state. This returns right away, and cannot wait
 /// for the canister to be done.
 pub fn call(
     client: Client,

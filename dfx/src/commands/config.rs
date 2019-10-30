@@ -1,19 +1,18 @@
 use crate::lib::env::ProjectConfigEnv;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use serde_json::value::Value;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("config")
-        .about("Configure options in the current DFINITY project.")
+        .about(UserMessage::ConfigureOptions.to_str())
         .arg(
             Arg::with_name("config_path")
-                .help("The name of the configuration option to set or read.")
+                .help(UserMessage::OptionName.to_str())
                 .required(true),
         )
-        .arg(Arg::with_name("value").help(
-            "The new value to set. If unspecified will output the current value in the config.",
-        ))
+        .arg(Arg::with_name("value").help(UserMessage::OptionValue.to_str()))
 }
 
 pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
@@ -40,12 +39,10 @@ pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
         // JSON. By default we will just assume the type is string (if all parsing fails).
         let value = serde_json::from_str::<Value>(arg_value)
             .unwrap_or_else(|_| Value::String(arg_value.to_owned()));
-
         *config
             .get_mut_json()
             .pointer_mut(config_path.as_str())
-            .unwrap() = value;
-
+            .ok_or(DfxError::ConfigPathDoesNotExist(config_path))? = value;
         config.save()
     } else if let Some(value) = config.get_json().pointer(config_path.as_str()) {
         println!("{}", value);
