@@ -34,6 +34,7 @@ main() {
     need_cmd mkdir
     need_cmd rm
     need_cmd tar
+    need_cmd sed
 
     if ! confirm_license; then
         echo "Please accept the license to continue."
@@ -211,8 +212,10 @@ downloader() {
 
 install_uninstall_script() {
     set +u
+    # Fix automatically applied formatting (via sed) in the final script.
+    # We use -E option as it is the POSIX standard.
     uninstall_script=$(
-        cat <<'EOF' | sed -r 's/^ {12}//'
+        cat <<'EOF' | sed -E 's/^ {12}//'
             uninstall() {
                 check_rm "${DFX_INSTALL_ROOT}/dfx"
                 check_rm "${HOME}/bin/dfx"
