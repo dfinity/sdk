@@ -140,7 +140,10 @@ where
         .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
         .and_then(|buf| match serde_cbor::from_slice(&buf) {
             Ok(r) => ok(r),
-            Err(e) => err(DfxError::SerdeCborFromServer(e, hex::encode(&buf))),
+            Err(e) => err(DfxError::InvalidData(format!(
+                "Unable to deserialize read response: {}",
+                e
+            ))),
         })
 }
 

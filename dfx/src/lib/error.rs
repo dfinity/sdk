@@ -60,7 +60,6 @@ pub enum DfxError {
     Clap(clap::Error),
     Io(std::io::Error),
     Reqwest(reqwest::Error),
-    SerdeCborFromServer(serde_cbor::error::Error, String),
     Url(reqwest::UrlError),
     HttpAgentError(RequestIdError),
 
