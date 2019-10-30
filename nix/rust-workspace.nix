@@ -2,7 +2,7 @@
 , doClippy ? false
 , doFmt ? false
 , doDoc ? false
-, actorscript
+, motoko
 , buildDfinityRustPackage
 , cargo-graph
 , darwin
@@ -33,11 +33,11 @@ drv.overrideAttrs (oldAttrs: {
     mkdir -p $out
     cp ${dfinity.nodemanager}/bin/nodemanager $out
     cp ${dfinity.ic-client}/bin/client $out
-    cp ${actorscript.asc-bin}/bin/asc $out
-    cp ${actorscript.as-ide}/bin/as-ide $out
-    cp ${actorscript.didc}/bin/didc $out
-    cp ${actorscript.rts}/rts/as-rts.wasm $out
-    mkdir $out/stdlib && cp -R ${actorscript.stdlib}/. $out/stdlib
+    cp ${motoko.moc-bin}/bin/moc $out
+    cp ${motoko.mo-ide}/bin/mo-ide $out
+    cp ${motoko.didc}/bin/didc $out
+    cp ${motoko.rts}/rts/mo-rts.wasm $out
+    mkdir $out/stdlib && cp -R ${motoko.stdlib}/. $out/stdlib
   '';
 
   nativeBuildInputs = oldAttrs.nativeBuildInputs ++ lib.optionals doDoc [

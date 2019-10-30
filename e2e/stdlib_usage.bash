@@ -9,7 +9,7 @@ setup() {
     dfx_new
 }
 
-@test "build -- stdlib_usage_as" {
-    install_asset stdlib_usage_as
+@test "build -- stdlib_usage_mo" {
+    install_asset stdlib_usage_mo
     assert_command dfx build
 }

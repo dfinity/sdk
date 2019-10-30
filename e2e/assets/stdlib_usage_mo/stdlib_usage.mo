@@ -1,4 +1,4 @@
-import Prelude "as:stdlib/prelude.as";
+import Prelude "mo:stdlib/prelude.mo";
 actor {
   Prelude.printLn("Hello, stdlib!");
 }
