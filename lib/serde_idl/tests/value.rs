@@ -6,10 +6,10 @@ use serde_idl::Decode;
 #[test]
 fn test_parser() {
     parse_check("(true)");
-    parse_check("(test, variant {5=null})");
+    parse_check("(\"test\", variant {5=null})");
     parse_check("(opt null, record {}, vec{1;2;3})");
-    parse_check("(record {1=42;44=test;2=false})");
-    parse_check("(record {label=42; 43=record {test=test; msg=hello}; long_label=opt null}, variant {C=null})");
+    parse_check("(record {1=42;44=\"test\";2=false})");
+    parse_check("(record {label=42; 43=record {test=\"test\"; msg=\"hello\"}; long_label=opt null}, variant {C=null})");
 }
 
 #[test]

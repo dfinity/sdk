@@ -1,4 +1,4 @@
-{ stdenv, lib, gzip, jo, patchelf }:
+{ stdenv, lib, gzip, jo, patchelf, isMaster ? false }:
 rname: version: from: what:
 stdenv.mkDerivation {
   name = "${rname}-release";
@@ -6,6 +6,7 @@ stdenv.mkDerivation {
   phases = [ "buildPhase" ];
   buildInputs = [ gzip jo patchelf ];
   allowedRequisites = [];
+  inherit isMaster;
   buildPhase = ''
     # Building the artifacts
     mkdir -p $out
