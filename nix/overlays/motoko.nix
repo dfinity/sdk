@@ -3,7 +3,7 @@ self: super:
 let src = builtins.fetchGit {
   url = "ssh://git@github.com/dfinity-lab/motoko";
   ref = "master";
-  rev = "a82dd5ae3ac2aca5e2f5b91303c6efb2ba913613";
+  rev = "4015ec7496459eb07fc9c7b2185e5e92b9e3e130";
 }; in
 
 let motoko = import src { nixpkgs = self; }; in
