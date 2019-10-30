@@ -29,11 +29,10 @@ let
   };
 in
 drv.overrideAttrs (oldAttrs: {
-  # The nodemanager does not have a standalone build, but the client does and we need it.
   DFX_ASSETS = runCommandNoCC "dfx-assets" {} ''
     mkdir -p $out
-    cp ${if release then dfinity.rust-workspace else dfinity.rust-workspace-debug}/bin/nodemanager $out
-    cp ${if release then dfinity.ic-client else dfinity.rust-workspace-debug}/bin/client $out
+    cp ${dfinity.nodemanager}/bin/nodemanager $out
+    cp ${dfinity.ic-client}/bin/client $out
     cp ${motoko.moc-bin}/bin/moc $out
     cp ${motoko.mo-ide}/bin/mo-ide $out
     cp ${motoko.didc}/bin/didc $out
