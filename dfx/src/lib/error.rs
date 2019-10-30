@@ -1,4 +1,3 @@
-use ic_http_agent::RequestIdError;
 use std::fmt;
 
 #[derive(Debug)]
@@ -61,7 +60,6 @@ pub enum DfxError {
     Io(std::io::Error),
     Reqwest(reqwest::Error),
     Url(reqwest::UrlError),
-    HttpAgentError(RequestIdError),
 
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
@@ -105,11 +103,5 @@ impl From<reqwest::Error> for DfxError {
 impl From<std::io::Error> for DfxError {
     fn from(err: std::io::Error) -> DfxError {
         DfxError::Io(err)
-    }
-}
-
-impl From<RequestIdError> for DfxError {
-    fn from(err: RequestIdError) -> DfxError {
-        DfxError::HttpAgentError(err)
     }
 }

@@ -233,8 +233,9 @@ pub fn install_code(
         arg: arg.unwrap_or_else(|| Blob::from(EMPTY_DIDL)),
         nonce: Some(random_blob()),
     };
-
-    let request_id = to_request_id(&request).map_err(DfxError::from);
+    let request_id = to_request_id(&request).map_err(|e| {
+        DfxError::InvalidData(format!("Unable to derive request ID from request: {}", e))
+    });
 
     submit(client, request).and_then(|response| {
         result(
@@ -262,7 +263,9 @@ pub fn call(
         arg: arg.unwrap_or_else(|| Blob::from(EMPTY_DIDL)),
         nonce: Some(random_blob()),
     };
-    let request_id = to_request_id(&request).map_err(DfxError::from);
+    let request_id = to_request_id(&request).map_err(|e| {
+        DfxError::InvalidData(format!("Unable to derive request ID from request: {}", e))
+    });
 
     submit(client, request).and_then(|response| {
         result(
