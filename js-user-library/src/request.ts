@@ -5,6 +5,7 @@ import { SenderSig } from "./senderSig";
 
 export interface AuthFields extends Record<string, any> {
   sender_pubkey: SenderPubKey;
+  // TODO(eftychis) We should add the sender field, i.e. entity_id here.
   sender_sig: SenderSig;
 }
 
