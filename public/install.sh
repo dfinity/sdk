@@ -212,11 +212,9 @@ downloader() {
 install_uninstall_script() {
     set +u
     uninstall_script=$(cat <<EOF
-    set -e
-
     uninstall() {
 
-    check_rm \"\$DFX_INSTALL_ROOT\"/dfx
+    check_rm "\\"\${DFX_INSTALL_ROOT}\\"/dfx"
     check_rm \"\${HOME}/bin/dfx\"
     check_rm /usr/local/bin/dfx /usr/bin/dfx
 
@@ -226,10 +224,9 @@ install_uninstall_script() {
 
     check_rm() {
     local file
-    shift
-    for file in "$@"
+    for file in \"\$@\"
     do
-	[ -e "${file}" ] && rm "${file}"
+	[ -e \"\${file}\" ] && rm \"\${file}\"
     done
     }
 
@@ -242,14 +239,16 @@ install_uninstall_script() {
     rm -Rf \${HOME}/.cache/dfinity
     }
     uninstall
-    EOF
+
+EOF
     )
+
     set -u
     # Being a bit more paranoid and rechecking.
     assert_nz "${HOME}"
     uninstall_file_path=${HOME}/.cache/dfinity/uninstall.sh;
     log "uninstall path= ${uninstall_file_path}"
-    touch uninstall_file_path;
+    touch ${uninstall_file_path};
     printf "$uninstall_script" > "${uninstall_file_path}";
     ensure chmod u+x "${uninstall_file_path}";
 }
@@ -284,17 +283,26 @@ check_help_for() {
 
 confirm_license() {
     local prompt header license
-    header="\n DFINITY SDK \n Please READ the following license \n\n"
-    license="DFINITY Stiftung -- All rights reserved. This is an ALPHA version of the Software Development Kit (SDK). \n\
-Permission is hereby granted to use AS IS this install script and the downloaded SDK binary and accompannying library. \n\
-It comes with NO WARRANTY. You MAY NOT MODIFY OR ALTER the install script or SDK software provided.\n"
+    header="\n DFINITY SDK \n Please READ the following license: \n\n"
+
+    license="DFINITY Foundation -- All rights reserved. This is an ALPHA version
+of the Motoko Software Development Kit (SDK). Permission is hereby granted
+to use AS IS and only subject to the Alpha Motoko SDK License Agreement which
+can be found here [insert URL].  It comes with NO WARRANTY. You MAY NOT MODIFY
+OR ALTER the install script or SDK software provided.\n"
 
     prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
+
+    if ! [[ $- == *i* ]]; then
+	printf "Please run in an interactive terminal.\n";
+	printf "Hint: Run  sh -ci \"\$(curl -L  https://sdk-int.dfinity.systems/install.sh)\"";
+	exit 0;
+    fi
     printf "$header"
     printf "$license\n\n"
-
+    printf "$prompt\n"
     while true; do
-	read -r -p "$prompt " resp
+	read resp
 	case "$resp" in
 	    # Continue on yes or y.
 	    [Yy][Ee][Ss]|[Yy])
@@ -304,8 +312,12 @@ It comes with NO WARRANTY. You MAY NOT MODIFY OR ALTER the install script or SDK
 	    [Nn][Oo]|[Nn])
 		return 1
 		;;
-	    *) # invalid
-		printf "Answer with a yes or no to continue. "
+	    *)
+		# invalid input
+		# Send out an ANSI escape code to move up and then to delete the
+		# line. Keeping it separate for convenience.
+		printf "\033[2A"
+		echo -en "\r\033[KAnswer with a yes or no to continue. [y/N]"
 		;;
 	esac
   done
