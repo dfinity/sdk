@@ -9,7 +9,7 @@ fn parse_args(input: &str) -> IDLArgs {
     ArgsParser::new().parse(lexer).unwrap()
 }
 
-fn parse_args_err<'a>(input: &'a str) -> Result<IDLArgs, ParserError<'a>> {
+fn parse_args_err(input: &str) -> Result<IDLArgs, ParserError<'_>> {
     let lexer = Lexer::new(input);
     ArgsParser::new().parse(lexer)
 }
