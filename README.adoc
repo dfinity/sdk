@@ -13,7 +13,7 @@ You can install `dfx` a few different ways.
 NOTE: This section is not yet implemented.
 
 [source,bash]
-sh -ci "$(curl -L https://sdk.dfinity.org/install.sh)"
+sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
 
 This command will install a binary compatible with your operating system, and add it to `/usr/local/bin`.
 
