@@ -89,7 +89,7 @@ where
     let project_name = Path::new(args.value_of(PROJECT_NAME).unwrap());
 
     if project_name.exists() {
-        return Err(DfxError::ProjectExists());
+        return Err(DfxError::ProjectExists);
     }
 
     let dfx_version = env.get_version();

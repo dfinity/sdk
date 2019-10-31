@@ -79,7 +79,9 @@ main() {
     local _install_dir
     _install_dir="$(sdk_install_dir)"
     mkdir -p "${_install_dir}" || true
-    mv "$_dfx_file" "${_install_dir}" || sudo mv "$_dfx_file" "${_install_dir}"
+
+    mv "$_dfx_file" "${_install_dir}" || sudo mv "$_dfx_file" "${_install_dir}" \
+        || err "Failed to install the DFINITY Developement Kit: please check your permissions and try again."
 
     log "Installed $_install_dir/dfx"
 
@@ -298,7 +300,7 @@ OR ALTER the install script or SDK software provided.\n"
     if ! [ -t 0 ]; then
         printf "%s\n" "Please run in an interactive terminal."
         # shellcheck disable=SC2016
-        printf "%s" 'Hint: Run  sh -ci "$(curl -L  https://sdk-int.dfinity.systems/install.sh)"'
+        printf "%s\n" 'Hint: Run  sh -ci "$(curl -L  https://sdk-int.dfinity.systems/install.sh)"'
         exit 0
     fi
     printf "%b" "$header"

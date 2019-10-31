@@ -47,7 +47,8 @@ where
     let canister_id = args
         .value_of("deployment_id")
         .unwrap()
-        .parse::<CanisterId>()?;
+        .parse::<CanisterId>()
+        .map_err(|e| DfxError::InvalidArgument(format!("Invalid deployment ID: {}", e)))?;
     let method_name = args.value_of("method_name").unwrap();
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
@@ -55,10 +56,19 @@ where
     let arg_value = if let Some(a) = arguments {
         Some(match arg_type {
             Some("string") => Ok(Encode!(&a)),
-            Some("number") => Ok(Encode!(&a.parse::<u64>()?)),
+            Some("number") => Ok(Encode!(&a.parse::<u64>().map_err(|e| {
+                DfxError::InvalidArgument(format!(
+                    "Argument is not a valid 64-bit unsigned integer: {}",
+                    e
+                ))
+            })?)),
             Some("idl") | None => {
-                let args: IDLArgs = a.parse()?;
-                Ok(args.to_bytes()?)
+                let args: IDLArgs = a
+                    .parse()
+                    .map_err(|e| DfxError::InvalidArgument(format!("Invalid IDL: {}", e)))?;
+                Ok(args.to_bytes().map_err(|e| {
+                    DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
+                })?)
             }
             Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
         }?)
@@ -82,7 +92,8 @@ where
         }
         Ok(ReadResponse::Replied { reply }) => {
             if let Some(QueryResponseReply { arg: blob }) = reply {
-                print_idl_blob(&blob)?;
+                print_idl_blob(&blob)
+                    .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
             }
             Ok(())
         }

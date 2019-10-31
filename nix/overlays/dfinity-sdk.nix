@@ -46,6 +46,7 @@ in {
         shellcheckOpts = "-s sh -S warning";
       in self.lib.linuxOnly (super.runCommandNoCC "install-sh-release" {
         inherit version;
+        inherit (self) isMaster;
         installSh = ../../public/install.sh;
         buildInputs = [ self.jo self.shfmt self.shellcheck ];
       } ''
