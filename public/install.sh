@@ -11,7 +11,8 @@
 set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-https://sdk-int.dfinity.systems/downloads/dfx/latest}"
+SDK_WEBSITE="https://sdk.dfinity.org"
+DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx/latest}"
 
 sdk_install_dir() {
     if [ "${DFX_INSTALL_ROOT:-}" ]; then
@@ -299,8 +300,7 @@ OR ALTER the install script or SDK software provided.\n"
     # we test if there is a terminal present (that is, STDIN is a TTY)
     if ! [ -t 0 ]; then
         printf "%s\n" "Please run in an interactive terminal."
-        # shellcheck disable=SC2016
-        printf "%s\n" 'Hint: Run  sh -ci "$(curl -L  https://sdk-int.dfinity.systems/install.sh)"'
+        printf "%s\n" "Hint: Run  sh -ci \"\$(curl -L $SDK_WEBSITE/install.sh)\""
         exit 0
     fi
     printf "%b" "$header"
