@@ -40,14 +40,15 @@ where
     // Read the config.
     let config = env
         .get_config()
-        .ok_or_else(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     let project_root = config.get_path().parent().unwrap();
 
     let canister_id = args
         .value_of("deployment_id")
         .unwrap()
-        .parse::<CanisterId>()?;
+        .parse::<CanisterId>()
+        .map_err(|e| DfxError::InvalidArgument(format!("Invalid deployment ID: {}", e)))?;
     let wasm_path = args.value_of("wasm").unwrap();
     let wasm_path = PathBuf::from(project_root).join(wasm_path);
 
@@ -70,7 +71,8 @@ where
             }
             Ok(ReadResponse::Replied { reply }) => {
                 if let Some(QueryResponseReply { arg: blob }) = reply {
-                    print_idl_blob(&blob)?;
+                    print_idl_blob(&blob)
+                        .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
                 }
                 Ok(())
             }

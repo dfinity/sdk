@@ -1,4 +1,4 @@
-use crate::config::dfinity::{ConfigCanistersCanister, Profile};
+use crate::config::dfinity::Profile;
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -116,7 +116,8 @@ where
         // TODO(SDK-441): Revisit supporting compilation from WAT files.
         Some("wat") => {
             let wat = std::fs::read(input_path)?;
-            let wasm = wabt::wat2wasm(wat)?;
+            let wasm = wabt::wat2wasm(wat)
+                .map_err(|e| DfxError::BuildError(BuildErrorKind::WatCompileError(e)))?;
 
             std::fs::write(&output_wasm_path, wasm)?;
 
@@ -150,7 +151,7 @@ where
     // Read the config.
     let config = env
         .get_config()
-        .ok_or_else(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     // get_path() returns the full path of the config file. We need to get the dirname.
     let project_root = config.get_path().parent().unwrap();
@@ -165,10 +166,8 @@ where
 
     if let Some(canisters) = &config.get_config().canisters {
         for (k, v) in canisters {
-            let v: ConfigCanistersCanister = serde_json::from_value(v.to_owned())?;
-
             println!("Building {}...", k);
-            if let Some(path) = v.main {
+            if let Some(path) = &v.main {
                 let path = Path::new(&path);
                 let input_as_path = project_root.join(path);
                 let path = path.strip_prefix("src/").unwrap_or(&path);

@@ -74,20 +74,38 @@ fn main() {
         }
     };
 
-    match result {
-        Ok(()) => {}
-        Err(DfxError::BuildError(err)) => {
-            eprintln!("Build failed. Reason:");
-            eprintln!("  {}", err);
-            std::process::exit(255)
+    if let Err(err) = result {
+        match err {
+            DfxError::BuildError(err) => {
+                eprintln!("Build failed. Reason:");
+                eprintln!("  {}", err);
+            }
+            DfxError::UnknownCommand(command) => {
+                eprintln!("Unknown command: {}", command);
+            }
+            DfxError::ProjectExists => {
+                eprintln!("Cannot create a new project because the directory already exists.");
+            }
+            DfxError::CommandMustBeRunInAProject => {
+                eprintln!("Command must be run in a project directory (with a dfx.json file).");
+            }
+            DfxError::ClientError(code, message) => {
+                eprintln!("Client error (code {}): {}", code, message);
+            }
+            DfxError::Unknown(err) => {
+                eprintln!("Unknown error: {}", err);
+            }
+            DfxError::ConfigPathDoesNotExist(config_path) => {
+                eprintln!("Config path does not exist: {}", config_path);
+            }
+            DfxError::InvalidArgument(e) => {
+                eprintln!("Invalid argument: {}", e);
+            }
+            err => {
+                eprintln!("An error occured:\n{:#?}", err);
+            }
         }
-        Err(DfxError::CommandMustBeRunInAProject()) => {
-            eprintln!("Command must be run in a project (with a dfx.json file).");
-            std::process::exit(255)
-        }
-        Err(err) => {
-            eprintln!("An error occured:\n{:#?}", err);
-            std::process::exit(255)
-        }
+
+        std::process::exit(255);
     }
 }

@@ -67,7 +67,7 @@ where
     // Read the config.
     let config = env
         .get_config()
-        .ok_or_else(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     let address_and_port = args
         .value_of("host")
@@ -79,7 +79,8 @@ where
                 .get_start()
                 .get_binding_socket_addr("localhost:8000")
                 .expect("could not get socket_addr"))
-        })?;
+        })
+        .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;
     let frontend_url = format!(
         "http://{}:{}",
         address_and_port.ip(),
