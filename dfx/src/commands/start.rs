@@ -143,9 +143,9 @@ where
             .as_path(),
     );
 
-    b.set_message("Pinging the DFINITY client...");
+    b.set_message("Pinging the Internet Computer client...");
     ping_and_wait(&frontend_url)?;
-    b.finish_with_message("DFINITY client started...");
+    b.finish_with_message("Internet Computer client started...");
 
     frontend_watchdog.join().unwrap();
     client_watchdog.join().unwrap();
