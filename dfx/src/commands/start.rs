@@ -143,9 +143,9 @@ where
             .as_path(),
     );
 
-    b.set_message("Pinging the Internet Computer client...");
+    b.set_message("Pinging the internet computer client...");
     ping_and_wait(&frontend_url)?;
-    b.finish_with_message("Internet Computer client started...");
+    b.finish_with_message("Internet computer client started...");
 
     frontend_watchdog.join().unwrap();
     client_watchdog.join().unwrap();
