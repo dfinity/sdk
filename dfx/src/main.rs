@@ -101,6 +101,9 @@ fn main() {
             DfxError::InvalidArgument(e) => {
                 eprintln!("Invalid argument: {}", e);
             }
+            DfxError::InvalidData(e) => {
+                eprintln!("Invalid data: {}", e);
+            }
             err => {
                 eprintln!("An error occured:\n{:#?}", err);
             }
