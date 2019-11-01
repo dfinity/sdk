@@ -18,11 +18,19 @@ sdk_install_dir() {
     if [ "${DFX_INSTALL_ROOT:-}" ]; then
         # By default we install to a home directory.
         printf %s "${DFX_INSTALL_ROOT}"
-    elif [ -d /usr/local/bin ]; then
+    elif [ -d /usr/local/bin ] && [ -w /usr/local/bin ]; then
         printf %s /usr/local/bin
-    elif [ -d /usr/bin ]; then
+    elif [ "$(uname -s)" = Darwin ]; then
+        # OS X does not allow users to write to /usr/bin by default. In case the
+        # user is missing a /usr/local/bin we need to create it. Even if it is
+        # not "writeable" we expect the user to have access to super user
+        # privileges during the installation.
+        mkdir -p /usr/local/bin 2>/dev/null || sudo mkdir -p /usr/local/bin || true
+        printf %s /usr/local/bin
+    elif [ -d /usr/bin ] && [ -w /usr/bin ]; then
         printf %s /usr/bin
     else
+        # This is our last choice.
         printf %s "${HOME}/bin"
     fi
 }
@@ -79,6 +87,7 @@ main() {
 
     local _install_dir
     _install_dir="$(sdk_install_dir)"
+    printf "%s\n" "Will install in: ${_install_dir}"
     mkdir -p "${_install_dir}" || true
 
     mv "$_dfx_file" "${_install_dir}" || sudo mv "$_dfx_file" "${_install_dir}" \
@@ -214,6 +223,9 @@ downloader() {
 
 install_uninstall_script() {
     set +u
+    local uninstall_file_path
+    local uninstall_script
+
     uninstall_script=$(
         cat <<'EOF'
 #!/usr/bin/env sh
@@ -247,7 +259,6 @@ clean_cache() {
 uninstall
 EOF
     )
-
     set -u
     # Being a bit more paranoid and rechecking.
     assert_nz "${HOME}"
@@ -290,10 +301,9 @@ confirm_license() {
     header="\n DFINITY SDK \n Please READ the following license: \n\n"
 
     license="DFINITY Foundation -- All rights reserved. This is an ALPHA version
-of the Motoko Software Development Kit (SDK). Permission is hereby granted
-to use AS IS and only subject to the Alpha Motoko SDK License Agreement which
-can be found here [insert URL].  It comes with NO WARRANTY. You MAY NOT MODIFY
-OR ALTER the install script or SDK software provided.\n"
+of the DFINITY Canister Software Development Kit (SDK). Permission is hereby granted
+to use AS IS and only subject to the Alpha DFINITY Canister SDK License Agreement which
+can be found here [https://sdk.dfinity.org/sdk-license-agreement]. It comes with NO WARRANTY.\n"
 
     prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
 
