@@ -323,8 +323,8 @@ can be found here [https://sdk.dfinity.org/sdk-license-agreement]. It comes with
             [Yy][Ee][Ss] | [Yy])
                 return 0
                 ;;
-            # Exit on no or n
-            [Nn][Oo] | [Nn])
+            # Exit on no or n, or <enter>
+            [Nn][Oo] | [Nn] | '')
                 return 1
                 ;;
             *)
