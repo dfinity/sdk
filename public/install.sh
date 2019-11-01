@@ -44,6 +44,7 @@ main() {
     need_cmd rm
     need_cmd tar
     need_cmd gzip
+    need_cmd touch
 
     if ! confirm_license; then
         echo "Please accept the license to continue."
