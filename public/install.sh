@@ -300,10 +300,9 @@ confirm_license() {
     header="\n DFINITY SDK \n Please READ the following license: \n\n"
 
     license="DFINITY Foundation -- All rights reserved. This is an ALPHA version
-of the Motoko Software Development Kit (SDK). Permission is hereby granted
-to use AS IS and only subject to the Alpha Motoko SDK License Agreement which
-can be found here [insert URL].  It comes with NO WARRANTY. You MAY NOT MODIFY
-OR ALTER the install script or SDK software provided.\n"
+of the DFINITY Canister Software Development Kit (SDK). Permission is hereby granted
+to use AS IS and only subject to the Alpha DFINITY Canister SDK License Agreement which
+can be found here [https://sdk.dfinity.org/sdk-license-agreement]. It comes with NO WARRANTY.\n"
 
     prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
 
