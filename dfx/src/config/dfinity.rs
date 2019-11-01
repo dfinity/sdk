@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxError, DfxResult};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -68,10 +68,16 @@ impl ConfigCanistersCanister {
     }
 }
 
-fn to_socket_addr(s: &str) -> Option<SocketAddr> {
+fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
     match s.to_socket_addrs() {
-        Ok(mut a) => a.next(),
-        Err(_) => None,
+        Ok(mut a) => match a.next() {
+            Some(res) => Ok(res),
+            None => Err(DfxError::from(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "Empty iterator",
+            ))),
+        },
+        Err(err) => Err(DfxError::from(err)),
     }
 }
 
@@ -81,7 +87,7 @@ impl ConfigDefaultsStart {
             .to_owned()
             .unwrap_or_else(|| default.to_string())
     }
-    pub fn get_binding_socket_addr(&self, default: &str) -> Option<SocketAddr> {
+    pub fn get_binding_socket_addr(&self, default: &str) -> DfxResult<SocketAddr> {
         to_socket_addr(default).and_then(|default_addr| {
             let addr = self.get_address(default_addr.ip().to_string().as_str());
             let port = self.get_port(default_addr.port());
@@ -284,8 +290,9 @@ mod tests {
                 .get_config()
                 .get_defaults()
                 .get_start()
-                .get_binding_socket_addr("1.2.3.4:123"),
-            to_socket_addr("localhost:8000")
+                .get_binding_socket_addr("1.2.3.4:123")
+                .ok(),
+            to_socket_addr("localhost:8000").ok()
         );
     }
 
@@ -307,8 +314,9 @@ mod tests {
                 .get_config()
                 .get_defaults()
                 .get_start()
-                .get_binding_socket_addr("1.2.3.4:123"),
-            to_socket_addr("1.2.3.4:8000")
+                .get_binding_socket_addr("1.2.3.4:123")
+                .ok(),
+            to_socket_addr("1.2.3.4:8000").ok()
         );
     }
 
@@ -330,8 +338,9 @@ mod tests {
                 .get_config()
                 .get_defaults()
                 .get_start()
-                .get_binding_socket_addr("1.2.3.4:123"),
-            to_socket_addr("localhost:123")
+                .get_binding_socket_addr("1.2.3.4:123")
+                .ok(),
+            to_socket_addr("localhost:123").ok()
         );
     }
 }
