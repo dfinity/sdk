@@ -314,7 +314,8 @@ can be found here [https://sdk.dfinity.org/sdk-license-agreement]. It comes with
     prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
 
     # we test if there is a terminal present (that is, STDIN is a TTY)
-    if ! [ -t 0 ]; then
+    # Just -t 0 alone doesn't work for SSH connections, so test for a socket
+    if ! [ -t 0 ] && ! [ -p /dev/stdin ]; then
         printf "%s\n" "Please run in an interactive terminal."
         printf "%s\n" "Hint: Run  sh -ci \"\$(curl -fsSL $SDK_WEBSITE/install.sh)\""
         exit 0
