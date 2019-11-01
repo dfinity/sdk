@@ -43,6 +43,7 @@ main() {
     need_cmd mkdir
     need_cmd rm
     need_cmd tar
+    need_cmd gzip
 
     if ! confirm_license; then
         echo "Please accept the license to continue."
