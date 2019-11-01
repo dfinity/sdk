@@ -14,6 +14,9 @@ set -u
 SDK_WEBSITE="https://sdk.dfinity.org"
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx/latest}"
 
+# The SHA and the time of the last commit that touched this file.
+SCRIPT_COMMIT_DESC="@revision@"
+
 sdk_install_dir() {
     if [ "${DFX_INSTALL_ROOT:-}" ]; then
         # By default we install to a home directory.
@@ -36,6 +39,18 @@ sdk_install_dir() {
 }
 
 main() {
+    _ansi_escapes_are_valid=false
+    if [ -t 2 ]; then
+        if [ "${TERM+set}" = 'set' ]; then
+            case "$TERM" in
+                xterm* | rxvt* | urxvt* | linux* | vt*)
+                    _ansi_escapes_are_valid=true
+                    ;;
+            esac
+        fi
+    fi
+    log "Executing DFINITY SDK install script, commit: $SCRIPT_COMMIT_DESC"
+
     downloader --check
     need_cmd uname
     need_cmd mktemp
@@ -43,6 +58,8 @@ main() {
     need_cmd mkdir
     need_cmd rm
     need_cmd tar
+    need_cmd gzip
+    need_cmd touch
 
     if ! confirm_license; then
         echo "Please accept the license to continue."
@@ -61,17 +78,6 @@ main() {
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
     local _dfx_archive="${_dir}/dfx.tar.gz"
     local _dfx_file="${_dir}/dfx"
-
-    _ansi_escapes_are_valid=false
-    if [ -t 2 ]; then
-        if [ "${TERM+set}" = 'set' ]; then
-            case "$TERM" in
-                xterm* | rxvt* | urxvt* | linux* | vt*)
-                    _ansi_escapes_are_valid=true
-                    ;;
-            esac
-        fi
-    fi
 
     log "Creating uninstall script in ~/.cache/dfinity"
     mkdir -p "${HOME}/.cache/dfinity/"
