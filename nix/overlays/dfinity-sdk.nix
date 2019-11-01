@@ -44,9 +44,35 @@ in {
         version = "latest";
         shfmtOpts = "-p -i 4 -ci -bn -s";
         shellcheckOpts = "-s sh -S warning";
+        # We want to include the last revision of the install script into
+        # the released version of the script
+        revision = super.lib.fileContents (
+          let
+            commondir = super.lib.gitDir + "/commondir";
+            isWorktree = builtins.pathExists commondir;
+            mainGitDir = super.lib.gitDir + "/${super.lib.fileContents commondir}";
+            worktree = super.lib.optionalString isWorktree (
+              super.lib.dropString (builtins.stringLength (toString mainGitDir))
+                (toString super.lib.gitDir));
+          in super.runCommandNoCC "install_sh_timestamp" {
+            git_dir = builtins.path {
+              name = "sdk-git-dir";
+              path = if isWorktree
+                     then mainGitDir
+                     else super.lib.gitDir;
+            };
+            nativeBuildInputs = [ self.git ];
+            preferLocalBuild = true;
+            allowSubstitutes = false;
+          } ''
+            cd $git_dir${worktree}
+            git log -n 1 --pretty=format:%h-%cI -- public/install.sh > $out
+          ''
+        );
       in self.lib.linuxOnly (super.runCommandNoCC "install-sh-release" {
         inherit version;
         inherit (self) isMaster;
+        inherit revision;
         installSh = ../../public/install.sh;
         buildInputs = [ self.jo self.shfmt self.shellcheck ];
       } ''
@@ -70,17 +96,21 @@ in {
         # Building the artifacts
         mkdir -p $out
 
+        # we stamp the file with the revision
+        substitute "$installSh" $out/install.sh \
+          --subst-var revision
+
         # Creating the manifest
         manifest_file=$out/manifest.json
 
-        sha256hash=($(sha256sum "$installSh")) # using this to autosplit on space
-        sha1hash=($(sha1sum "$installSh")) # using this to autosplit on space
+        sha256hash=($(sha256sum "$out/install.sh")) # using this to autosplit on space
+        sha1hash=($(sha1sum "$out/install.sh")) # using this to autosplit on space
 
         jo -pa \
           $(jo package="public" \
               version="$version" \
               name="installer" \
-              file="$installSh" \
+              file="$out/install.sh" \
               sha256hash="$sha256hash" \
               sha1hash="$sha1hash") >$manifest_file
 
