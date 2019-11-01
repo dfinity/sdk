@@ -96,7 +96,7 @@ main() {
     printf "%s\n" "Will install in: ${_install_dir}"
     mkdir -p "${_install_dir}" || true
 
-    mv "$_dfx_file" "${_install_dir}" || sudo mv "$_dfx_file" "${_install_dir}" \
+    mv "$_dfx_file" "${_install_dir}" 2>/dev/null || sudo mv "$_dfx_file" "${_install_dir}" \
         || err "Failed to install the DFINITY Developement Kit: please check your permissions and try again."
 
     log "Installed $_install_dir/dfx"
