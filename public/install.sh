@@ -60,6 +60,8 @@ main() {
     need_cmd tar
     need_cmd gzip
     need_cmd touch
+    # For instance in Debian sudo can be missing.
+    need_cmd sudo
 
     if ! confirm_license; then
         echo "Please accept the license to continue."
