@@ -25,10 +25,9 @@ pub fn construct() -> App<'static, 'static> {
                 .required(true),
         )
         .arg(
-            Arg::with_name("wait")
-                .help(UserMessage::WaitForResult.to_str())
-                .long("wait")
-                .short("w")
+            Arg::with_name("async")
+                .help(UserMessage::AsyncResult.to_str())
+                .long("async")
                 .takes_value(false),
         )
         .arg(
@@ -91,7 +90,10 @@ where
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let request_id = runtime.block_on(call_future)?;
 
-    if args.is_present("wait") {
+    if args.is_present("async") {
+        println!("0x{}", String::from(request_id));
+        Ok(())
+    } else {
         let request_status = request_status(env.get_client(), request_id);
         let mut runtime = Runtime::new().expect("Unable to create a runtime");
         match runtime.block_on(request_status) {
@@ -115,8 +117,5 @@ where
             Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
             Err(x) => Err(x),
         }
-    } else {
-        println!("0x{}", String::from(request_id));
-        Ok(())
     }
 }
