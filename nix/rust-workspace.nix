@@ -43,7 +43,7 @@ drv.overrideAttrs (oldAttrs: {
   nativeBuildInputs = oldAttrs.nativeBuildInputs ++ lib.optionals doDoc [
     cargo-graph
     graphviz
-  ];
+  ] ++ [stdenv.cc];
 
   postDoc = oldAttrs.postDoc + ''
     pushd dfx
