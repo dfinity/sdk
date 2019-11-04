@@ -5,4 +5,5 @@ members = [
     "lib/dfx_info",
     "lib/ic_http_agent",
     "lib/serde_idl",
+    "lib/idl_wasm",
 ]

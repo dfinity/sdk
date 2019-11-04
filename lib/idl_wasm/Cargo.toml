@@ -1,0 +1,11 @@
+[package]
+name = "idl-wasm"
+version = "0.1.0"
+authors = ["Yan Chen <yan.chen@dfinity.org>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+serde-idl = { "path" = "../serde_idl" }
+wasm-bindgen = "0.2"
