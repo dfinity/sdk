@@ -38,7 +38,7 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
     let (canister_name, canister): (String, ConfigCanistersCanister) =
         match (config.canisters.as_ref(), canister_name) {
             (None, _) => Err(DfxError::InvalidData(format!(
-                "Missing field defaults.start.serve_root in {0}",
+                "Missing field 'canisters' in {0}",
                 dfx_json
             ))),
 
