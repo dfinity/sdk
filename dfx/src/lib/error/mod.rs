@@ -52,7 +52,7 @@ pub enum DfxError {
 }
 
 /// The result of running a DFX command.
-pub type DfxResult<T=()> = Result<T, DfxError>;
+pub type DfxResult<T = ()> = Result<T, DfxError>;
 
 impl From<clap::Error> for DfxError {
     fn from(err: clap::Error) -> DfxError {
