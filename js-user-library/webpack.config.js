@@ -3,26 +3,11 @@ const webpack = require("webpack");
 const config = {
   mode: "development",
   entry: [
-    "./src/index",
+    "./out/index.js",
   ],
   devtool: "inline-source-map",
   output: {
     libraryTarget: "umd",
-  },
-  module: {
-    rules: [
-      {
-        test: /\.(ts)$/,
-        exclude: /node_modules/,
-        loader: "babel-loader",
-      },
-    ],
-  },
-  resolve: {
-    extensions: [
-      ".js",
-      ".ts",
-    ],
   },
 };
 
