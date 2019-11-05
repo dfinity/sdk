@@ -25,6 +25,7 @@ pub enum UserMessage {
     StopNode,
     NodeAddress,
     StartBackground,
+    StartIDE,
 }
 
 impl UserMessage {
@@ -76,6 +77,8 @@ impl UserMessage {
 
             // dfx stop
             UserMessage::StopNode => "Stops the local network client.",
+            // dfx ide
+            UserMessage::StartIDE => "Starts Motoko IDE Language Server"
         }
     }
 }

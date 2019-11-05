@@ -13,6 +13,8 @@ pub enum DfxError {
     /// An error happened while managing the cache.
     CacheError(CacheErrorKind),
 
+    IdeError(String),
+
     Clap(clap::Error),
     Io(std::io::Error),
     Reqwest(reqwest::Error),
@@ -50,7 +52,7 @@ pub enum DfxError {
 }
 
 /// The result of running a DFX command.
-pub type DfxResult<T = ()> = Result<T, DfxError>;
+pub type DfxResult<T=()> = Result<T, DfxError>;
 
 impl From<clap::Error> for DfxError {
     fn from(err: clap::Error) -> DfxError {
