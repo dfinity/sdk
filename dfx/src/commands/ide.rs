@@ -13,6 +13,8 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name(CANISTER_ARG).help(UserMessage::CanisterName.to_str()))
 }
 
+// Don't read anything from stdin or output anything to stdout while this function is being
+// executed or LSP will become very unhappy
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: BinaryResolverEnv + ProjectConfigEnv,
