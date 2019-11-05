@@ -19,7 +19,10 @@ fn test_value() {
     check(Int(1_234_567_890), "4449444c00017cd285d8cc04");
     check(Opt(Box::new(Int(42))), "4449444c016e7c0100012a");
     //check(Null, "4449444c016e7c010000");
-    check(Text("Hi ☃\n".to_string()), "4449444c00017107486920e298830a");
+    check(
+        Text("Hi ☃\n".to_string()),
+        "4449444c00017107486920e298830a",
+    );
     check(int_vec(&[0, 1, 2, 3]), "4449444c016d7c01000400010203");
     check(
         Record(vec![

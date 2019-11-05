@@ -43,10 +43,12 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
             ))),
 
             (Some(canisters), Some(cn)) => {
-                let c = canisters.get(cn).ok_or_else(|| DfxError::InvalidArgument(format!(
-                    "Canister {0} cannot not be found in {1}",
-                    cn, dfx_json
-                )))?;
+                let c = canisters.get(cn).ok_or_else(|| {
+                    DfxError::InvalidArgument(format!(
+                        "Canister {0} cannot not be found in {1}",
+                        cn, dfx_json
+                    ))
+                })?;
                 Ok((cn.to_string(), c.clone()))
             }
             (Some(canisters), None) => {
@@ -62,10 +64,12 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
             }
         }?;
 
-    canister.main.ok_or_else(|| DfxError::InvalidData(format!(
-        "Canister {0} lacks a 'main' element in {1}",
-        canister_name, dfx_json
-    )))
+    canister.main.ok_or_else(|| {
+        DfxError::InvalidData(format!(
+            "Canister {0} lacks a 'main' element in {1}",
+            canister_name, dfx_json
+        ))
+    })
 }
 
 fn run_ide<T: BinaryResolverEnv>(env: &T, main_path: String) -> DfxResult {
