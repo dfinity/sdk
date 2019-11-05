@@ -3,6 +3,7 @@ use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
 
@@ -68,6 +69,8 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
 fn run_ide<T: BinaryResolverEnv>(env: &T, main_path: String) -> DfxResult {
     let output = env
         .get_binary_command("mo-ide")?
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
         .arg("--canister-main")
         .arg(main_path)
         .output()?;
