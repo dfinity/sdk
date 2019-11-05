@@ -5,7 +5,7 @@ pub enum UserMessage {
     DeploymentId,
     SetDeploymentId,
     MethodName,
-    WaitForResult,
+    AsyncResult,
     ArgumentType,
     ArgumentValue,
     InstallCanister,
@@ -34,9 +34,9 @@ impl UserMessage {
             // dfx canister call
             UserMessage::CallCanister => "Calls a method on a deployed canister.",
             UserMessage::SetDeploymentId => "Specifies the numeric identifier to assign this deployment.",
-            UserMessage::DeploymentId => "Specifies the deployment identifier to call.",            
+            UserMessage::DeploymentId => "Specifies the deployment identifier to call.",
             UserMessage::MethodName => "Specifies the method name to call on the canister.",
-            UserMessage::WaitForResult => "Waits for the result of the call to be returned by polling the client.",
+            UserMessage::AsyncResult => "Do not wait for the result of the call to be returned by polling the client. Instead return a response ID.",
             UserMessage::ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
             UserMessage::ArgumentValue => "Specifies the argument to pass to the method.",
 
