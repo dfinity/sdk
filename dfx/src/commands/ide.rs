@@ -42,10 +42,10 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
                 format!("Missing field defaults.start.serve_root in {0}", dfx_json))),
 
         (Some(canisters), Some(cn)) => {
-            let can = canisters.get(cn).ok_or(
+            let c = canisters.get(cn).ok_or(
                 DfxError::InvalidArgument(
                     format!("Canister {0} cannot not be found in {1}", cn, dfx_json)))?;
-            Ok((cn.to_string(), can.clone()))
+            Ok((cn.to_string(), c.clone()))
         },
         (Some(canisters), None) =>
             if canisters.len() == 1 {
