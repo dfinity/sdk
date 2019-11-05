@@ -1,6 +1,7 @@
 { pkgs ? (import ./. {}).pkgs }:
 pkgs.mkCompositeShell {
   name = "dfinity-sdk-rust-env";
+  buildInputs = [pkgs.rls];
   inputsFrom = [
 
     (pkgs.dfinity-sdk.packages.rust-workspace-debug.overrideAttrs (oldAttrs: {
