@@ -19,7 +19,7 @@ let
     then localCommonSrc
     else builtins.fetchGit {
       url = "ssh://git@github.com/dfinity-lab/common";
-      rev = "90ebf67c410745b113a4ea2308b2c94fda2f0787";
+      rev = "b4cd9e11b5e36bbdea3cf4674c15c9f689d9f318";
     };
 in import commonSrc {
   inherit system crossSystem config;
