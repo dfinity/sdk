@@ -219,10 +219,13 @@ impl Config {
     }
 
     pub fn save(&self) -> DfxResult {
-        std::fs::write(
-            &self.path,
-            serde_json::to_string_pretty(&self.json).unwrap(),
-        )?;
+        let json_pretty = serde_json::to_string_pretty(&self.json).or_else(|e| {
+            Err(DfxError::InvalidData(format!(
+                "Failed to serialize -- {}",
+                e
+            )))
+        })?;
+        std::fs::write(&self.path, json_pretty)?;
         Ok(())
     }
 }

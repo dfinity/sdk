@@ -54,11 +54,15 @@ where
 
     let canister_name = args.value_of("canister_name").unwrap();
     let canister_info = CanisterInfo::load(config, canister_name)?;
-    let canister_id = canister_info.get_canister_id().ok_or_else(|| {
-        DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
+    // Read the config.
+    let canister_id = args
+        .value_of("deployment_id")
+        .ok_or_else(|| DfxError::InvalidArgument("deployment id".to_string()))?
+        .parse::<CanisterId>()
+        .map_err(|e| DfxError::InvalidArgument(format!("Invalid deployment ID: {}", e)))?;
+    let method_name = args.value_of("method name").ok_or_else(|| {
+        DfxError::InvalidArgument("method name argument provided invalid".to_string())
     })?;
-
-    let method_name = args.value_of("method_name").unwrap();
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
 

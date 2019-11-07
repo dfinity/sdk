@@ -16,7 +16,7 @@ pub enum DfxError {
     IdeError(String),
 
     Clap(clap::Error),
-    Io(std::io::Error),
+    IO(std::io::Error),
     Reqwest(reqwest::Error),
     Url(reqwest::UrlError),
 
@@ -48,6 +48,7 @@ pub enum DfxError {
     // Configuration path does not exist in the config file.
     ConfigPathDoesNotExist(String),
     InvalidArgument(String),
+    InvalidConfiguration(String),
     InvalidData(String),
 }
 
@@ -68,6 +69,6 @@ impl From<reqwest::Error> for DfxError {
 
 impl From<std::io::Error> for DfxError {
     fn from(err: std::io::Error) -> DfxError {
-        DfxError::Io(err)
+        DfxError::IO(err)
     }
 }
