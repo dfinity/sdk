@@ -158,6 +158,7 @@ impl<'input> Iterator for Lexer<'input> {
                 let len = self.read_digits(&mut res).unwrap_or(0) + 1;
                 Some(Ok((
                     i,
+                    // TODO: We should decide the type based on IDL signature.
                     Token::NatLiteral(res.parse::<u64>().unwrap()),
                     i + len,
                 )))

@@ -85,9 +85,12 @@ impl fmt::Display for IDLValue {
             IDLValue::Null => write!(f, "null"),
             IDLValue::Bool(b) => write!(f, "{}", b),
             IDLValue::Int(i) => {
-                if i >= 0 { write!(f, "+{}", i) }
-                else { write!(f, "{}", i) }
-            },
+                if i >= 0 {
+                    write!(f, "+{}", i)
+                } else {
+                    write!(f, "{}", i)
+                }
+            }
             IDLValue::Nat(n) => write!(f, "{}", n),
             // Use the debug formatter for strings here to recover
             // escape sequences and the surrounding quotes
