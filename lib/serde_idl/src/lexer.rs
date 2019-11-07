@@ -158,8 +158,7 @@ impl<'input> Iterator for Lexer<'input> {
                 let len = self.read_digits(&mut res).unwrap_or(0) + 1;
                 Some(Ok((
                     i,
-                    // TODO: This should be a Nat in the future
-                    Token::IntLiteral(res.parse::<i64>().unwrap()),
+                    Token::NatLiteral(res.parse::<u64>().unwrap()),
                     i + len,
                 )))
             }
