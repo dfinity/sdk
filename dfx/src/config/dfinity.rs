@@ -200,6 +200,11 @@ impl Config {
         Config::from_slice(PathBuf::from("-"), content.as_bytes())
     }
 
+    #[cfg(test)]
+    pub fn from_str_and_path(path: PathBuf, content: &str) -> std::io::Result<Config> {
+        Config::from_slice(path, content.as_bytes())
+    }
+
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }

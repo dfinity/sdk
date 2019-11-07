@@ -26,3 +26,8 @@ teardown() {
     assert_command dfx build
     assert_match "Building hello..."
 }
+
+@test "build outputs the canister ID" {
+    assert_command dfx build
+    [[ -f canisters/hello/_canister.id ]]
+}
