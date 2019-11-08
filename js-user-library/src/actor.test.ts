@@ -58,7 +58,14 @@ test("makeActor", async () => {
     });
 
   const methodName = "greet";
-  const arg = Uint8Array.from([]);
+
+  // Manually send the magic bytes until we address argument ancoding and
+  // decoding.
+  //
+  // DIDL\x00\x00
+  // D   I   D   L   \x00  \x00
+  // 68  73  68  76  0     0
+  const arg = Uint8Array.from([68, 73, 68, 76, 0, 0]) as BinaryBlob;
 
   const canisterIdent = "0000000000000001" as Hex;
   const senderPubKey = new Uint8Array(32) as SenderPubKey;
