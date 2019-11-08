@@ -119,6 +119,6 @@ teardown() {
     dfx build
     dfx canister install 1 canisters/counter_idl.wasm
 
-    assert_command dfx canister call 1 inc '(+42,false,"testzZ",vec{1;2;3},opt record{head=+42; tail=opt record{head=+43; tail=none}})'
+    assert_command dfx canister call 1 inc '(42,false,"testzZ",vec{1;2;3},opt record{head=+42; tail=opt record{head=+43; tail=none}})'
     assert_eq "(+43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = +43; 1291237008 = opt record { 1158359328 = +44; 1291237008 = none; }; })"
 }
