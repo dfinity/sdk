@@ -1,5 +1,5 @@
 actor HelloActor {
   public func hello() : async () {
-    print("Hello, World! from DFINITY \n");
+    debugPrint("Hello, World! from DFINITY \n");
   }
 };
