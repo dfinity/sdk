@@ -4,8 +4,8 @@ import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";
 import { Hex } from "./hex";
 import { Nonce } from "./nonce";
-import { Request } from "./request";
 import { requestIdOf } from "./requestId";
+import { RequestType } from "./requestType";
 import { SenderPubKey } from "./senderPubKey";
 import { SenderSecretKey } from "./senderSecretKey";
 import { SenderSig } from "./senderSig";
@@ -80,14 +80,14 @@ test("makeActor", async () => {
   ];
 
   const expectedCallRequest = {
-    request_type: "call",
+    request_type: "call" as RequestType,
     nonce: nonces[0],
     canister_id: canisterId.fromHex(canisterIdent),
     method_name: methodName,
     arg,
     sender_pubkey: senderPubKey,
     sender_sig: senderSig,
-  } as Request;
+  };
 
   const expectedCallRequestId = await requestIdOf(expectedCallRequest);
 
