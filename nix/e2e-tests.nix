@@ -8,6 +8,7 @@
 ,   killall
 }:
 let batslib = builtins.fetchGit {
+    name = "batslib-sources";
     url = "https://github.com/ztombol/bats-support";
     ref = "refs/tags/v0.3.0";
     rev = "24a72e14349690bcbf7c151b9d2d1cdd32d36eb1";
