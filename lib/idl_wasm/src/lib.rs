@@ -1,10 +1,10 @@
 extern crate serde_idl;
 extern crate wasm_bindgen;
-extern crate serde_json;
 extern crate js_sys;
 
 use serde_idl::IDLArgs;
 use serde_idl::value::IDLValue;
+use js_sys::{Array};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -17,8 +17,13 @@ fn to_idlvalue(val: &JsValue) -> Result<IDLValue, JsValue> {
     if js_sys::Number::is_integer(&val) {
         let v = val.as_f64().unwrap() as i64;
         Ok(IDLValue::Int(v))
+    } else if val.is_null() {
+        Ok(IDLValue::Null)
     } else if let Some(v) = val.as_bool() {
         Ok(IDLValue::Bool(v))
+    } else if let Some(v) = val.as_string() {
+        // TODO use dyn_ref to avoid copying
+        Ok(IDLValue::Text(v))
     } else if val.is_object() {
         let iterator = js_sys::try_iter(val)?.ok_or_else(|| "Not iterable JS values")?;
         let mut vec = Vec::new();
@@ -33,50 +38,38 @@ fn to_idlvalue(val: &JsValue) -> Result<IDLValue, JsValue> {
     }
 }
 
+fn to_jsvalue(val: &IDLValue) -> Result<JsValue, JsValue> {
+    match *val {
+        IDLValue::Null => Ok(JsValue::null()),
+        IDLValue::Bool(b) => Ok(JsValue::from_bool(b)),
+        IDLValue::Int(i) => Ok(JsValue::from_f64(i as f64)),
+        IDLValue::Nat(n) => Ok(JsValue::from_f64(n as f64)),
+        IDLValue::Text(ref s) => Ok(JsValue::from_str(s)),
+        _ => Err(JsValue::from_str("Unsupported type"))
+    }
+}
+
 #[wasm_bindgen]
-pub fn js_encode(val: &JsValue) -> Result<Vec<u8>, JsValue> {
+pub fn js_encode(vals: Box<[JsValue]>) -> Result<Vec<u8>, JsValue> {
     let mut idl = serde_idl::ser::IDLBuilder::new();
-    let v = to_idlvalue(val)?;
-    idl.value_arg(&v);
+    for v in vals.iter() {
+        let v = to_idlvalue(v)?;
+        idl.value_arg(&v);
+    }
     idl.to_vec().map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[wasm_bindgen]
-pub fn decode(bytes: &[u8]) -> Result<String, JsValue> {
-    let args = IDLArgs::from_bytes(bytes).map_err(|e| JsValue::from_str(&e.to_string()))?;
-    // Remove Serialize trait for IDLArgs when removing the following line.
-    serde_json::to_string(&args).map_err(|e| JsValue::from_str(&e.to_string()))
+pub fn js_decode(bytes: &[u8]) -> Result<Array, JsValue> {
+    let mut de = serde_idl::de::IDLDeserialize::new(bytes);
+    let args = Array::new();
+    while !de.is_done() {
+        let v = de.get_value::<IDLValue>().map_err(|e| e.to_string())?;
+        let v = to_jsvalue(&v)?;
+        args.push(&v);
+    }
+    de.done().map_err(|e| e.to_string())?;
+    Ok(args)
 }
 
-/*
-#[wasm_bindgen]
-pub enum Type {
-    Null,
-    Bool,
-    Nat,
-    Int,
-    Text,
-    Opt,
-    Vec,
-    Record,
-    Variant,
-}
 
-#[wasm_bindgen]
-pub struct Value {
-    pub ty: Type,
-    pub bval: bool,
-    pub nat: u64,
-    pub int: i64,
-    //pub opt: Option<Box<Value>>,
-    pub vec: Vec<Value>,
-    pub record: Vec<Field>,
-    pub variant: Field,
-}
-
-#[wasm_bindgen]
-pub struct Field {
-    pub id: u32,
-    pub val: Value,
-}
-*/

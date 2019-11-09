@@ -3,9 +3,8 @@ use serde::de;
 use serde::de::{Deserialize, Visitor};
 use std::fmt;
 use std::ops::Deref;
-use serde::Serialize;
 
-#[derive(Serialize, Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum IDLValue {
     Bool(bool),
     Null,
@@ -19,13 +18,13 @@ pub enum IDLValue {
     Variant(Box<IDLField>),
 }
 
-#[derive(Serialize, Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IDLField {
     pub id: u32,
     pub val: IDLValue,
 }
 
-#[derive(Serialize, Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IDLArgs {
     pub args: Vec<IDLValue>,
 }
