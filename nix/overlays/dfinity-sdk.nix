@@ -28,12 +28,15 @@ in {
 
         public-folder = super.callPackage ../public.nix {};
     };
-
-    dfx-release = mkRelease "dfx"
-      # This is not the tagged version, but something afterwards
-      "latest" # once INF-495 is in, we will use: packages.rust-workspace.version
-      packages.rust-workspace-standalone
-      "dfx";
+    inherit (self) doRelease;
+    dfx-release = if !doRelease
+                  then mkRelease "dfx"
+                    # This is not the tagged version, but something afterwards
+                    "latest" # once INF-495 is in, we will use: packages.rust-workspace.version
+                    packages.rust-workspace-standalone
+                    "dfx"
+                  else false;
+    # We still want to be able to update the install script without cutting a release -- for now.
 
     # The following prepares a manifest for copying install.sh
     # The release part also checks if the install.sh script is well formatted and has no shellcheck issues.
@@ -93,6 +96,8 @@ in {
           echo "shfmt ${shfmtOpts} -w public/install.sh"
           exit 1
         fi
+
+        # We keep releasing the install script.
         # Building the artifacts
         mkdir -p $out
 
@@ -101,7 +106,7 @@ in {
           --subst-var revision
 
         # Creating the manifest
-        manifest_file=$out/manifest.json
+        manifest_file=$out/_manifest.json
 
         sha256hash=($(sha256sum "$out/install.sh")) # using this to autosplit on space
         sha1hash=($(sha1sum "$out/install.sh")) # using this to autosplit on space
@@ -119,7 +124,6 @@ in {
         echo "upload manifest $manifest_file" >> \
           $out/nix-support/hydra-build-products
       '');
-
     # This is to make sure CI evalutes shell derivations, builds their
     # dependencies and populates the hydra cache with them. We also use this in
     # `shell.nix` in the root to provide an environment which is the composition

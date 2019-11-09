@@ -2,6 +2,7 @@
 , crossSystem ? null
 , config ? {}
 , overlays ? []
+, doRelease ? false
 }: {
-  inherit (import ./nix { inherit system crossSystem config overlays; }) dfinity-sdk;
+  inherit (import ./nix { inherit system crossSystem config overlays doRelease; }) dfinity-sdk;
 }
