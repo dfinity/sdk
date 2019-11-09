@@ -1,17 +1,20 @@
+extern crate js_sys;
 extern crate serde_idl;
 extern crate wasm_bindgen;
-extern crate js_sys;
 
-use serde_idl::IDLArgs;
+use js_sys::Array;
 use serde_idl::value::IDLValue;
-use js_sys::{Array};
+use serde_idl::IDLArgs;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 #[wasm_bindgen]
 pub fn encode(str: &str) -> Result<Vec<u8>, JsValue> {
-    let args: IDLArgs = str.parse().map_err(|e:serde_idl::Error| JsValue::from_str(&e.to_string()))?;
-    args.to_bytes().map_err(|e| JsValue::from_str(&e.to_string()))
+    let args: IDLArgs = str
+        .parse()
+        .map_err(|e: serde_idl::Error| JsValue::from_str(&e.to_string()))?;
+    args.to_bytes()
+        .map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 fn to_idlvalue(val: &JsValue) -> Result<IDLValue, JsValue> {
@@ -52,11 +55,12 @@ fn to_jsvalue(val: &IDLValue) -> Result<JsValue, JsValue> {
                 res.push(&v);
             }
             Ok(res.unchecked_into::<JsValue>())
-        },
-        _ => Err(JsValue::from_str("Unsupported type"))
+        }
+        _ => Err(JsValue::from_str("Unsupported type")),
     }
 }
 
+#[allow(clippy::perf)]
 #[wasm_bindgen]
 pub fn js_encode(vals: Box<[JsValue]>) -> Result<Vec<u8>, JsValue> {
     let mut idl = serde_idl::ser::IDLBuilder::new();
@@ -79,5 +83,3 @@ pub fn js_decode(bytes: &[u8]) -> Result<Array, JsValue> {
     de.done().map_err(|e| e.to_string())?;
     Ok(args)
 }
-
-
