@@ -9,6 +9,7 @@ mod canister;
 mod config;
 mod new;
 mod start;
+mod stop;
 
 pub type CliExecFn<T> = fn(&T, &ArgMatches<'_>) -> DfxResult;
 pub struct CliCommand<T> {
@@ -45,5 +46,6 @@ where
         CliCommand::new(config::construct(), config::exec),
         CliCommand::new(new::construct(), new::exec),
         CliCommand::new(start::construct(), start::exec),
+        CliCommand::new(stop::construct(), stop::exec),
     ]
 }

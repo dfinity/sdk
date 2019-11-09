@@ -3,7 +3,7 @@ use crate::config::{cache, dfx_version};
 use crate::lib::api_client::{Client, ClientConfig};
 use crate::lib::error::DfxResult;
 use std::cell::RefCell;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// An environment that contains the platform and general environment.
 pub trait PlatformEnv {
@@ -26,6 +26,7 @@ pub trait BinaryResolverEnv {
 pub trait ProjectConfigEnv {
     fn is_in_project(&self) -> bool;
     fn get_config(&self) -> Option<&Config>;
+    fn get_dfx_root(&self) -> Option<&Path>;
 }
 
 /// An environment that can create clients from environment.
@@ -42,6 +43,7 @@ pub trait VersionEnv {
 pub struct InProjectEnvironment {
     version: String,
     config: Config,
+    temp_dir: PathBuf,
     client: RefCell<Option<Client>>,
 }
 
@@ -77,6 +79,9 @@ impl ProjectConfigEnv for InProjectEnvironment {
     fn get_config(&self) -> Option<&Config> {
         Some(&self.config)
     }
+    fn get_dfx_root(&self) -> Option<&Path> {
+        Some(&self.temp_dir)
+    }
 }
 
 impl ClientEnv for InProjectEnvironment {
@@ -110,6 +115,8 @@ impl VersionEnv for InProjectEnvironment {
 impl InProjectEnvironment {
     pub fn from_current_dir() -> DfxResult<InProjectEnvironment> {
         let config = Config::from_current_dir()?;
+        let temp_dir = config.get_path().parent().unwrap().join(".dfx");
+        std::fs::create_dir_all(&temp_dir)?;
 
         Ok(InProjectEnvironment {
             version: config
@@ -117,6 +124,7 @@ impl InProjectEnvironment {
                 .get_dfx()
                 .unwrap_or_else(|| dfx_version().to_owned()),
             config,
+            temp_dir,
             client: RefCell::new(None),
         })
     }
@@ -155,6 +163,9 @@ impl ProjectConfigEnv for GlobalEnvironment {
         false
     }
     fn get_config(&self) -> Option<&Config> {
+        None
+    }
+    fn get_dfx_root(&self) -> Option<&Path> {
         None
     }
 }

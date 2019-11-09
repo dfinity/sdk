@@ -22,6 +22,7 @@ pub enum UserMessage {
     ProjectName,
     DryRun,
     StartNode,
+    StopNode,
     NodeAddress,
     StartBackground,
 }
@@ -72,6 +73,9 @@ impl UserMessage {
 
             // misc
             UserMessage::CanisterName => "Specifies the canister name. If you don't specify this argument, all canisters are processed.",
+
+            // dfx stop
+            UserMessage::StopNode => "Stop the local network client.",
         }
     }
 }
