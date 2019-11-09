@@ -6,6 +6,7 @@ use serde_idl::IDLArgs;
 use serde_idl::value::IDLValue;
 use js_sys::{Array};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
 #[wasm_bindgen]
 pub fn encode(str: &str) -> Result<Vec<u8>, JsValue> {
@@ -24,12 +25,11 @@ fn to_idlvalue(val: &JsValue) -> Result<IDLValue, JsValue> {
     } else if let Some(v) = val.as_string() {
         // TODO use dyn_ref to avoid copying
         Ok(IDLValue::Text(v))
-    } else if val.is_object() {
-        let iterator = js_sys::try_iter(val)?.ok_or_else(|| "Not iterable JS values")?;
+    } else if let Some(v) = val.dyn_ref::<Array>() {
+        // TODO check if it's a tuple or vector
         let mut vec = Vec::new();
-        for x in iterator {
-            let x = x?;
-            let x = to_idlvalue(&x)?;
+        for x in v.values() {
+            let x = to_idlvalue(&x?)?;
             vec.push(x);
         }
         Ok(IDLValue::Vec(vec))
@@ -45,6 +45,14 @@ fn to_jsvalue(val: &IDLValue) -> Result<JsValue, JsValue> {
         IDLValue::Int(i) => Ok(JsValue::from_f64(i as f64)),
         IDLValue::Nat(n) => Ok(JsValue::from_f64(n as f64)),
         IDLValue::Text(ref s) => Ok(JsValue::from_str(s)),
+        IDLValue::Vec(ref vec) => {
+            let res = Array::new();
+            for v in vec.iter() {
+                let v = to_jsvalue(&v)?;
+                res.push(&v);
+            }
+            Ok(res.unchecked_into::<JsValue>())
+        },
         _ => Err(JsValue::from_str("Unsupported type"))
     }
 }
