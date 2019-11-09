@@ -193,7 +193,6 @@ mod tests {
 
     use std::env::temp_dir;
     use std::fs;
-    use std::io;
     use std::io::{Read, Write};
     use std::path::PathBuf;
     use std::process;
@@ -208,14 +207,14 @@ mod tests {
         }
 
         impl<'a> BinaryResolverEnv for TestEnv<'a> {
-            fn get_binary_command_path(&self, binary_name: &str) -> io::Result<PathBuf> {
+            fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf> {
                 // We need to implement this function as it's used to set the "MOC_RTS"
                 // environment variable and pass the stdlib package. For the
                 // purposes of this test we just return the name of the binary
                 // that was requested.
                 Ok(PathBuf::from(binary_name))
             }
-            fn get_binary_command(&self, binary_name: &str) -> io::Result<process::Command> {
+            fn get_binary_command(&self, binary_name: &str) -> DfxResult<process::Command> {
                 let stdout = self.out_file.try_clone()?;
                 let stderr = self.out_file.try_clone()?;
 
@@ -267,10 +266,10 @@ mod tests {
         struct TestEnv {}
 
         impl BinaryResolverEnv for TestEnv {
-            fn get_binary_command_path(&self, _binary_name: &str) -> io::Result<PathBuf> {
+            fn get_binary_command_path(&self, _binary_name: &str) -> DfxResult<PathBuf> {
                 panic!("get_binary_command_path should not be called.")
             }
-            fn get_binary_command(&self, _binary_name: &str) -> io::Result<process::Command> {
+            fn get_binary_command(&self, _binary_name: &str) -> DfxResult<process::Command> {
                 panic!("get_binary_command should not be called.")
             }
         }
