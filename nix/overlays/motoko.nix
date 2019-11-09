@@ -4,7 +4,7 @@ let src = builtins.fetchGit {
   name = "motoko-sources";
   url = "ssh://git@github.com/dfinity-lab/motoko";
   ref = "master";
-  rev = "b5573dfceaf963256d244eb1e9f5468415f1678b";
+  rev = "c1d1a41c52437fe2fce2d4ce8a9ebe19c83a39e5";
 }; in
 
 let motoko = import src { nixpkgs = self; }; in
