@@ -1,9 +1,11 @@
+extern crate dfx_info;
 extern crate js_sys;
 extern crate serde_idl;
 extern crate wasm_bindgen;
 
-use js_sys::Array;
-use serde_idl::value::IDLValue;
+use dfx_info::idl_hash;
+use js_sys::{Array, Object};
+use serde_idl::value::{IDLField, IDLValue};
 use serde_idl::IDLArgs;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -26,16 +28,34 @@ fn to_idlvalue(val: &JsValue) -> Result<IDLValue, JsValue> {
     } else if let Some(v) = val.as_bool() {
         Ok(IDLValue::Bool(v))
     } else if let Some(v) = val.as_string() {
-        // TODO use dyn_ref to avoid copying
         Ok(IDLValue::Text(v))
-    } else if let Some(v) = val.dyn_ref::<Array>() {
+    } else if let Some(arr) = val.dyn_ref::<Array>() {
         // TODO check if it's a tuple or vector
         let mut vec = Vec::new();
-        for x in v.values() {
+        for x in arr.values() {
             let x = to_idlvalue(&x?)?;
             vec.push(x);
         }
         Ok(IDLValue::Vec(vec))
+    } else if let Some(obj) = val.dyn_ref::<Object>() {
+        let mut vec = Vec::new();
+        let arr = Object::entries(obj);
+        for x in arr.values() {
+            let x = x?;
+            let kv = x.dyn_ref::<Array>().unwrap_throw();
+            let k = kv
+                .get(0)
+                .as_string()
+                .expect_throw("label needs to be string");
+            let v = to_idlvalue(&kv.get(1))?;
+            let field = IDLField {
+                id: idl_hash(&k),
+                val: v,
+            };
+            vec.push(field);
+        }
+        // TODO sorting
+        Ok(IDLValue::Record(vec))
     } else {
         Err(JsValue::from_str("Unknown type"))
     }
@@ -55,6 +75,17 @@ fn to_jsvalue(val: &IDLValue) -> Result<JsValue, JsValue> {
                 res.push(&v);
             }
             Ok(res.unchecked_into::<JsValue>())
+        }
+        IDLValue::Record(ref vec) => {
+            let fs = Array::new();
+            for IDLField { id, val } in vec.iter() {
+                let k = JsValue::from_f64(f64::from(*id));
+                let v = to_jsvalue(&val)?;
+                let f = Array::of2(&k, &v);
+                fs.push(&f);
+            }
+            let obj = Object::from_entries(&fs.unchecked_into::<JsValue>())?;
+            Ok(obj.unchecked_into::<JsValue>())
         }
         _ => Err(JsValue::from_str("Unsupported type")),
     }
