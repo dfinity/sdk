@@ -64,7 +64,7 @@ assert_match() {
     else
         text="$2"
     fi
-    [[ "$text" =~ "$regex" ]] || \
+    [[ "$text" =~ $regex ]] || \
         (batslib_print_kv_single_or_multi 10 "regex" "$regex" "actual" "$text" \
          | batslib_decorate "output does not match" \
          | fail)
