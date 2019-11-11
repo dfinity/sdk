@@ -6,7 +6,7 @@ To get started, you might want to explore the project directory structure and th
 
 To learn more before you start working with {project_name}, see the following documentation available online:
 
-- [Quick Start](https://sdk.dfinity.org/quickstart)
+- [Quick Start](https://sdk.dfinity.org/developers-guide/quickstart.html)
 - [Developer's Guide](https://sdk.dfinity.org/developers-guide)
 - [Language Reference](https://sdk.dfinity.org/language-reference)
 
