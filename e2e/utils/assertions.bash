@@ -7,7 +7,19 @@
 # Returns:
 #   none
 assert_command() {
-    run "$@"
+    eval "$( ("$@") \
+        2> >(out2=$(cat); declare -x -p out2) \
+         > >(out1=$(cat); declare -x -p out1); \
+        status=$?; declare -x -p status \
+    )"
+
+    stderr="$out2"
+    stdout="$out1"
+    output="$( \
+        [ "$stderr" ] && echo $stderr || true; \
+        [ "$stdout" ] && echo $stdout || true; \
+    )"
+
     [[ $status == 0 ]] || \
         (  (echo "$*"; echo "$output" | batslib_decorate "Output") \
          | batslib_decorate "Command failed" \
@@ -21,7 +33,19 @@ assert_command() {
 # Returns:
 #   none
 assert_command_fail() {
-    run "$@"
+    eval "$( ("$@") \
+        2> >(out2=$(cat); declare -x -p out2) \
+         > >(out1=$(cat); declare -x -p out1); \
+        status=$?; declare -x -p status \
+    )"
+
+    stderr="$out2"
+    stdout="$out1"
+    output="$(
+        [ "$stderr" ] && echo $stderr || true;
+        [ "$stdout" ] && echo $stdout || true;
+    )"
+
     [[ $status != 0 ]] || \
         (  (echo "$*"; echo "$output" | batslib_decorate "Output") \
          | batslib_decorate "Command succeeded (should have failed)" \

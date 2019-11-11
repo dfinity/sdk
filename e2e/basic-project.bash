@@ -32,7 +32,7 @@ teardown() {
     # Using call --async and request-status.
     assert_command dfx canister call --async hello greet '("Blueberry")'
     # At this point $output is the request ID.
-    assert_command dfx canister request-status $output
+    assert_command dfx canister request-status $stdout
     assert_eq '("Hello, Blueberry!")'
 }
 
@@ -52,29 +52,29 @@ teardown() {
     done
 
     run dfx canister query 42 read
-    [[ "$output" == "A" ]]
+    [[ "$stdout" == "A" ]]
     run dfx canister query 42 read
-    [[ "$output" == "A" ]]
+    [[ "$stdout" == "A" ]]
 
     dfx canister call 42 write
     run dfx canister query 42 read
-    [[ "$output" == "B" ]]
+    [[ "$stdout" == "B" ]]
 
     dfx canister call 42 write
     run dfx canister query 42 read
-    [[ "$output" == "C" ]]
+    [[ "$stdout" == "C" ]]
 
     run dfx canister call 42 write --async
     [[ $status == 0 ]]
-    dfx canister request-status $output
+    dfx canister request-status $stdout
     [[ $status == 0 ]]
 
     # Write has no return value. But we can _call_ read too.
     run dfx canister call 42 read --async
     [[ $status == 0 ]]
-    run dfx canister request-status $output
+    run dfx canister request-status $stdout
     [[ $status == 0 ]]
-    [[ "$output" == "D" ]]
+    [[ "$stdout" == "D" ]]
 }
 
 @test "build + install + call + request-status -- counter_mo" {
@@ -101,7 +101,7 @@ teardown() {
     assert_eq "(3)"
 
     assert_command dfx canister call hello inc --async
-    assert_command dfx canister request-status $output
+    assert_command dfx canister request-status $stdout
 
     # Call write.
     assert_command dfx canister call hello write --type=number 1337
@@ -109,7 +109,7 @@ teardown() {
 
     # Write has no return value. But we can _call_ read too.
     assert_command dfx canister call hello read --async
-    assert_command dfx canister request-status $output
+    assert_command dfx canister request-status $stdout
     assert_eq "(1337)"
 }
 

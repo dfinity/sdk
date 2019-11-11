@@ -94,6 +94,7 @@ where
     let request_id = runtime.block_on(call_future)?;
 
     if args.is_present("async") {
+        eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
         Ok(())
     } else {
@@ -101,7 +102,7 @@ where
         let mut runtime = Runtime::new().expect("Unable to create a runtime");
         match runtime.block_on(request_status) {
             Ok(ReadResponse::Pending) => {
-                eprintln!("Pending");
+                eprint!("Request ID: ");
                 println!("0x{}", String::from(request_id));
                 Ok(())
             }

@@ -55,7 +55,7 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
 
     match runtime.block_on(request_status) {
         Ok(ReadResponse::Pending) => {
-            eprintln!("Pending");
+            eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
             Ok(())
         }
@@ -92,6 +92,7 @@ where
         let request_id = install_canister(&client, &canister_info)?;
 
         if args.is_present("async") {
+            eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
             Ok(())
         } else {
@@ -105,6 +106,7 @@ where
                 let request_id = install_canister(&client, &canister_info)?;
 
                 if args.is_present("async") {
+                    eprint!("Request ID: ");
                     println!("0x{}", String::from(request_id));
                 } else {
                     wait_on_request_status(&client, request_id)?;

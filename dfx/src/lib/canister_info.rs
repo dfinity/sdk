@@ -94,6 +94,9 @@ impl CanisterInfo {
     pub fn get_output_root(&self) -> &Path {
         self.output_root.as_path()
     }
+    pub fn get_canister_id_path(&self) -> &Path {
+        self.canister_id_path.as_path()
+    }
 
     pub fn get_canister_id(&self) -> Option<CanisterId> {
         let canister_id = self.canister_id.replace(None).or_else(|| {
@@ -107,7 +110,7 @@ impl CanisterInfo {
         canister_id
     }
 
-    pub fn create_canister_id(&self) -> DfxResult {
+    pub fn generate_canister_id(&self) -> DfxResult<CanisterId> {
         // Generate a random u64.
         let time_since_the_epoch = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -115,10 +118,6 @@ impl CanisterInfo {
         let cid = u64::from(time_since_the_epoch.as_millis() as u32).shl(32)
             + u64::from(thread_rng().gen::<u32>());
 
-        std::fs::write(
-            self.canister_id_path.as_path(),
-            CanisterId::from(cid).into_blob().0,
-        )
-        .map_err(DfxError::from)
+        Ok(CanisterId::from(cid))
     }
 }

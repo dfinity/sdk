@@ -123,7 +123,11 @@ where
             std::fs::write(&output_wasm_path, wasm)?;
 
             // Write the CID.
-            canister_info.create_canister_id()?;
+            std::fs::write(
+                canister_info.get_canister_id_path(),
+                canister_info.generate_canister_id()?.into_blob().0,
+            )
+            .map_err(DfxError::from)?;
 
             Ok(())
         }
@@ -139,7 +143,11 @@ where
             build_user_lib(env, &output_idl_path, &output_js_path)?;
 
             // Write the CID.
-            canister_info.create_canister_id()?;
+            std::fs::write(
+                canister_info.get_canister_id_path(),
+                canister_info.generate_canister_id()?.into_blob().0,
+            )
+            .map_err(DfxError::from)?;
 
             Ok(())
         }
