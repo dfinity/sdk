@@ -18,6 +18,7 @@ pub enum DfxError {
     Reqwest(reqwest::Error),
     Url(reqwest::UrlError),
 
+    CanisterNameMissing(),
     CannotFindCanisterName(String),
     CannotFindBuildOutputForCanister(String),
 

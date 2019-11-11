@@ -20,6 +20,13 @@ pub fn construct() -> App<'static, 'static> {
                 .required(false),
         )
         .arg(
+            Arg::with_name("all")
+                .long("all")
+                .required_unless("canister_name")
+                .help(UserMessage::InstallAll.to_str())
+                .takes_value(false),
+        )
+        .arg(
             Arg::with_name("async")
                 .help(UserMessage::AsyncResult.to_str())
                 .long("async")
@@ -98,7 +105,7 @@ where
         } else {
             wait_on_request_status(&client, request_id)
         }
-    } else {
+    } else if args.is_present("all") {
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
@@ -114,5 +121,7 @@ where
             }
         }
         Ok(())
+    } else {
+        Err(DfxError::CanisterNameMissing())
     }
 }

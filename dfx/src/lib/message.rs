@@ -7,6 +7,7 @@ pub enum UserMessage {
     ArgumentType,
     ArgumentValue,
     InstallCanister,
+    InstallAll,
     ManageCanister,
     QueryCanister,
     RequestCallStatus,
@@ -37,6 +38,7 @@ impl UserMessage {
 
             // dfx canister install
             UserMessage::InstallCanister => "Installs compiled code as a canister on the client.",
+            UserMessage::InstallAll => "Install all canisters configured in dfx.json.",
 
             // dfx canister mod
             UserMessage::ManageCanister => "Manages canisters deployed on a network client.",
@@ -50,7 +52,6 @@ impl UserMessage {
 
             // dfx build
             UserMessage::BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
-            UserMessage::CanisterName => "Specifies the canister name. If you don't specify this argument, all canisters are processed.",
 
             // dfx config
             UserMessage::ConfigureOptions => "Configures project options for your currently-selected project.",
@@ -66,6 +67,9 @@ impl UserMessage {
             UserMessage::StartNode => "Starts the local network client.",
             UserMessage::NodeAddress => "Specifies the host name and port number to bind the frontend to.",
             UserMessage::StartBackground => "Exits the dfx leaving the client running. Will wait until the client replies before exiting.",
+
+            // misc
+            UserMessage::CanisterName => "Specifies the canister name. If you don't specify this argument, all canisters are processed.",
         }
     }
 }
