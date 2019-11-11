@@ -73,12 +73,22 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
 }
 
 fn run_ide<T: BinaryResolverEnv>(env: &T, main_path: String) -> DfxResult {
+    let stdlib_path = env.get_binary_command_path("stdlib")?;
+
     let output = env
         .get_binary_command("mo-ide")?
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
+
+        // Point at the right canister
         .arg("--canister-main")
         .arg(main_path)
+
+        // Tell the IDE where the stdlib is located
+        .arg("--package")
+        .arg("stdlib")
+        .arg(&stdlib_path.as_path())
+
         .output()?;
 
     if !output.status.success() {
