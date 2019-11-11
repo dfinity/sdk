@@ -6,6 +6,7 @@ pub use cache::CacheErrorKind;
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
+/// Provides dfx user facing errors.
 pub enum DfxError {
     /// An error happened during build.
     BuildError(BuildErrorKind),
@@ -16,7 +17,7 @@ pub enum DfxError {
     IdeError(String),
 
     Clap(clap::Error),
-    IO(std::io::Error),
+    Io(std::io::Error),
     Reqwest(reqwest::Error),
     Url(reqwest::UrlError),
 
@@ -30,25 +31,32 @@ pub enum DfxError {
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
 
-    // Cannot create a new project because the directory already exists.
+    /// Cannot create a new project because the directory already exists.
     ProjectExists,
 
-    // Not in a project.
+    /// Not in a project.
     CommandMustBeRunInAProject,
 
-    // The client returned an error. It normally specifies the error as an
-    // HTTP status (so 400-599), and has a string as the error message.
-    // Once the client support errors from the public spec or as an enum,
-    // we should update this type.
-    // We don't use StatusCode here because the client might return some other
-    // number if they support public spec's errors (< 100).
+    /// The client returned an error. It normally specifies the error as an
+    /// HTTP status (so 400-599), and has a string as the error message.
+    /// Once the client support errors from the public spec or as an enum,
+    /// we should update this type.
+    /// We don't use StatusCode here because the client might return some other
+    /// number if they support public spec's errors (< 100).
     ClientError(u16, String),
+
+    /// This option is used when the source/cause of the error is
+    /// ambiguous. If the cause is known use or add a new option.
     Unknown(String),
 
-    // Configuration path does not exist in the config file.
+    /// Configuration path does not exist in the config file.
     ConfigPathDoesNotExist(String),
+    /// Argument provided is invalid.
     InvalidArgument(String),
+    #[allow(dead_code)]
+    /// Configuration provided is invalid.
     InvalidConfiguration(String),
+    /// Data provided is invalid.
     InvalidData(String),
 }
 
@@ -69,6 +77,6 @@ impl From<reqwest::Error> for DfxError {
 
 impl From<std::io::Error> for DfxError {
     fn from(err: std::io::Error) -> DfxError {
-        DfxError::IO(err)
+        DfxError::Io(err)
     }
 }

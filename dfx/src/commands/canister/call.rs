@@ -57,9 +57,9 @@ where
     // Read the config.
     let canister_id = args
         .value_of("deployment_id")
-        .ok_or_else(|| DfxError::InvalidArgument("deployment id".to_string()))?
+        .ok_or_else(|| DfxError::InvalidArgument("deployment_id".to_string()))?
         .parse::<CanisterId>()
-        .map_err(|e| DfxError::InvalidArgument(format!("Invalid deployment ID: {}", e)))?;
+        .map_err(|e| DfxError::InvalidArgument(format!("invalid deployment_id: {}", e)))?;
     let method_name = args.value_of("method name").ok_or_else(|| {
         DfxError::InvalidArgument("method name argument provided invalid".to_string())
     })?;

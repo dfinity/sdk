@@ -218,6 +218,15 @@ impl Config {
         &self.config
     }
 
+    pub fn get_project_root(&self) -> &Path {
+        // a configuration path contains a file name specifically. As
+        // such we should be returning at least root as parent. If
+        // this is invariance is broken, we must fail.
+        self.path.parent().expect(
+            "An incorrect configuration path was set with no parent, i.e. did not include root",
+        )
+    }
+
     pub fn save(&self) -> DfxResult {
         let json_pretty = serde_json::to_string_pretty(&self.json).or_else(|e| {
             Err(DfxError::InvalidData(format!(

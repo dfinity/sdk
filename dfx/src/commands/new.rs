@@ -116,7 +116,7 @@ where
 
         let mut s = String::new();
         file.read_to_string(&mut s)
-            .or_else(|e| Err(DfxError::IO(e)))?;
+            .or_else(|e| Err(DfxError::Io(e)))?;
 
         // Perform replacements.
         let s = s.replace("{project_name}", project_name_str);
@@ -143,27 +143,22 @@ where
             .arg("init")
             .current_dir(&project_name)
             .status();
-        let is_success = init_status
-            .or_else(|e| {
-                Err(DfxError::IO(std::io::Error::new(
-                    e.kind(),
-                    format!("Unable to execute git {}", e),
-                )))
-            })?
-            .success();
-        if is_success {
-            eprintln!("Creating git repository...");
-            std::process::Command::new("git")
-                .arg("add")
-                .current_dir(&project_name)
-                .arg(".")
-                .output()?;
-            std::process::Command::new("git")
-                .arg("commit")
-                .current_dir(&project_name)
-                .arg("-a")
-                .arg("--message=Initial commit.")
-                .output()?;
+
+        if let Ok(s) = init_status {
+            if s.success() {
+                eprintln!("Creating git repository...");
+                std::process::Command::new("git")
+                    .arg("add")
+                    .current_dir(&project_name)
+                    .arg(".")
+                    .output()?;
+                std::process::Command::new("git")
+                    .arg("commit")
+                    .current_dir(&project_name)
+                    .arg("-a")
+                    .arg("--message=Initial commit.")
+                    .output()?;
+            }
         }
     }
 
