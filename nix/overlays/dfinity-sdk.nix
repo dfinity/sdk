@@ -29,11 +29,7 @@ in {
         public-folder = super.callPackage ../public.nix {};
     };
 
-    dfx-release = mkRelease "dfx"
-      # This is not the tagged version, but something afterwards
-      "latest" # once INF-495 is in, we will use: packages.rust-workspace.version
-      packages.rust-workspace-standalone
-      "dfx";
+    dfx-release = mkRelease "dfx" self.releaseVersion packages.rust-workspace-standalone "dfx";
 
     # The following prepares a manifest for copying install.sh
     # The release part also checks if the install.sh script is well formatted and has no shellcheck issues.
@@ -41,7 +37,7 @@ in {
     # TODO: streamline mkRelease and this
     install-sh-release =
       let
-        version = "latest";
+        version = self.releaseVersion;
         shfmtOpts = "-p -i 4 -ci -bn -s";
         shellcheckOpts = "-s sh -S warning";
         # We want to include the last revision of the install script into
