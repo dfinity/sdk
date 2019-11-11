@@ -9,10 +9,10 @@ actor {
           case (?v) { ?{head=v.head+1; tail=map(v.tail)} };
         }
     };
-    public func inc(i: Int, b: Bool, str: Text, vec: [Int], l: List<Int>) : async (Int, Bool, Text, [Int], List<Int>) {
-        let arr = Array_tabulate<Int>(
+    public func inc(i: Int, b: Bool, str: Text, vec: [Nat], l: List<Int>) : async (Int, Bool, Text, [Nat], List<Int>) {
+        let arr = Array_tabulate<Nat>(
           vec.len(),
-          func (i : Int) : Int {
+          func (i : Nat) : Nat {
               vec[i]+1;
           });
 
