@@ -74,6 +74,7 @@ in {
         inherit (self) isMaster;
         inherit revision;
         installSh = ../../public/install.sh;
+        manifest = ../../public/manifest.json;
         buildInputs = [ self.jo self.shfmt self.shellcheck ];
       } ''
         set -Eeuo pipefail
@@ -96,23 +97,35 @@ in {
         # Building the artifacts
         mkdir -p $out
 
+
+        cp $manifest $out/manifest.json
         # we stamp the file with the revision
         substitute "$installSh" $out/install.sh \
           --subst-var revision
 
         # Creating the manifest
-        manifest_file=$out/manifest.json
+        manifest_file=$out/_manifest.json
 
-        sha256hash=($(sha256sum "$out/install.sh")) # using this to autosplit on space
-        sha1hash=($(sha1sum "$out/install.sh")) # using this to autosplit on space
+        sha256hashinstall=($(sha256sum "$out/install.sh")) # using this to autosplit on space
+        sha1hashinstall=($(sha1sum "$out/install.sh")) # using this to autosplit on space
+
+
+        sha256manifest=($(sha256sum "$out/manifest.json")) # using this to autosplit on space
+        sha1manifest=($(sha1sum "$out/manifest.json")) # using this to autosplit on space
 
         jo -pa \
           $(jo package="public" \
               version="$version" \
               name="installer" \
               file="$out/install.sh" \
-              sha256hash="$sha256hash" \
-              sha1hash="$sha1hash") >$manifest_file
+              sha256hash="$sha256hashinstall" \
+              sha1hash="$sha1hashinstall") \
+          $(jo package="public" \
+              version="$version" \
+              name="manifest.json" \
+              file="$out/manifest.json" \
+              sha256hash="$sha256manifest" \
+              sha1hash="$sha1manifest") >$manifest_file
 
         # Marking the manifest for publishing
         mkdir -p $out/nix-support
