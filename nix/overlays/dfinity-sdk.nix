@@ -104,7 +104,7 @@ in {
           --subst-var revision
 
         # Creating the manifest
-        manifest_file=$out/_manifest.json
+        hydra_manifest_file=$out/_manifest.json
 
         sha256hashinstall=($(sha256sum "$out/install.sh")) # using this to autosplit on space
         sha1hashinstall=($(sha1sum "$out/install.sh")) # using this to autosplit on space
@@ -125,11 +125,11 @@ in {
               name="manifest.json" \
               file="$out/manifest.json" \
               sha256hash="$sha256manifest" \
-              sha1hash="$sha1manifest") >$manifest_file
+              sha1hash="$sha1manifest") >$hydra_manifest_file
 
         # Marking the manifest for publishing
         mkdir -p $out/nix-support
-        echo "upload manifest $manifest_file" >> \
+        echo "upload manifest $hydra_manifest_file" >> \
           $out/nix-support/hydra-build-products
       '');
 
