@@ -97,8 +97,9 @@ in {
         # Building the artifacts
         mkdir -p $out
 
+        version_manifest_file=$out/manifest.json
 
-        cp $manifest $out/manifest.json
+        cp $manifest $version_manifest_file
         # we stamp the file with the revision
         substitute "$installSh" $out/install.sh \
           --subst-var revision
@@ -110,8 +111,8 @@ in {
         sha1hashinstall=($(sha1sum "$out/install.sh")) # using this to autosplit on space
 
 
-        sha256manifest=($(sha256sum "$out/manifest.json")) # using this to autosplit on space
-        sha1manifest=($(sha1sum "$out/manifest.json")) # using this to autosplit on space
+        sha256manifest=($(sha256sum "$version_manifest_file")) # using this to autosplit on space
+        sha1manifest=($(sha1sum "$version_manifest_file")) # using this to autosplit on space
 
         jo -pa \
           $(jo package="public" \
@@ -123,7 +124,7 @@ in {
           $(jo package="public" \
               version="$version" \
               name="manifest.json" \
-              file="$out/manifest.json" \
+              file="$version_manifest_file" \
               sha256hash="$sha256manifest" \
               sha1hash="$sha1manifest") >$hydra_manifest_file
 
