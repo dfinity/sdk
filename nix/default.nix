@@ -4,6 +4,7 @@
 , crossSystem ? null
 , config ? {}
 , overlays ? []
+, releaseVersion ? "latest"
 }:
 let
   # The `common` repo provides code (mostly Nix) that is used in the
@@ -20,9 +21,9 @@ let
     else builtins.fetchGit {
       name = "common-sources";
       url = "ssh://git@github.com/dfinity-lab/common";
-      rev = "d5af3fda55af07de25f06fc46a2bf5f83424f02b";
+      rev = "bbf39c31e08b4ab7db82f799a3e3c693a0fdced6";
     };
 in import commonSrc {
   inherit system crossSystem config;
-  overlays = import ./overlays ++ overlays;
+  overlays = import ./overlays ++ [ (_self: _super: { inherit releaseVersion; }) ] ++ overlays;
  }
