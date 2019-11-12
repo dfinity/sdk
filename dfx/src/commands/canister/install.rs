@@ -16,7 +16,8 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("canister_name")
                 .takes_value(true)
-                .help(UserMessage::CanisterName.to_str())
+                .required_unless("all")
+                .help(UserMessage::InstallCanisterName.to_str())
                 .required(false),
         )
         .arg(

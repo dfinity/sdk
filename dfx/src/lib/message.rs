@@ -8,6 +8,7 @@ pub enum UserMessage {
     ArgumentValue,
     InstallCanister,
     InstallAll,
+    InstallCanisterName,
     ManageCanister,
     QueryCanister,
     RequestCallStatus,
@@ -39,6 +40,7 @@ impl UserMessage {
             // dfx canister install
             UserMessage::InstallCanister => "Installs compiled code as a canister on the client.",
             UserMessage::InstallAll => "Install all canisters configured in dfx.json.",
+            UserMessage::InstallCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
 
             // dfx canister mod
             UserMessage::ManageCanister => "Manages canisters deployed on a network client.",
