@@ -102,7 +102,7 @@ impl CanisterInfo {
         let canister_id = self.canister_id.replace(None).or_else(|| {
             std::fs::read(&self.canister_id_path)
                 .ok()
-                .and_then(|cid| Some(CanisterId::from(Blob::from(cid))))
+                .map(|cid| CanisterId::from(Blob::from(cid)))
         });
 
         self.canister_id.replace(canister_id.clone());

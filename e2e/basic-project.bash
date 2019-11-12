@@ -104,7 +104,7 @@ teardown() {
     assert_command dfx canister request-status $stdout
 
     # Call write.
-    assert_command dfx canister call hello write --type=number 1337
+    assert_command dfx canister call hello write '(1337)'
     assert_eq "()"
 
     # Write has no return value. But we can _call_ read too.
@@ -119,6 +119,6 @@ teardown() {
     dfx build
     dfx canister install --all
 
-    assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=43; tail=none}})'
-    assert_eq "(43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = 43; 1291237008 = opt record { 1158359328 = 44; 1291237008 = none; }; })"
+    assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=none}})'
+    assert_eq "(+43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = +43; 1291237008 = opt record { 1158359328 = +44; 1291237008 = none; }; })"
 }

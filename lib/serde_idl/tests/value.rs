@@ -5,7 +5,7 @@ use serde_idl::Decode;
 
 #[test]
 fn test_parser() {
-    parse_check("(true)");
+    parse_check("(true,42,+42,-42)");
     parse_check("(\"test\", variant {5=null})");
     parse_check("(opt null, record {}, vec{1;2;3})");
     parse_check("(record {1=42;44=\"test\";2=false})");
