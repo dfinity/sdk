@@ -16,18 +16,8 @@ teardown() {
     killall dfx nodemanager client || true
 }
 
-@test "build fails on invalid motoko" {
-    install_asset invalid_mo
-    assert_command_fail dfx build
-    assert_match "syntax error"
-}
-
-@test "build succeeds on default project" {
-    assert_command dfx build
-    assert_match "Building hello..."
-}
-
-@test "build outputs the canister ID" {
-    assert_command dfx build
-    [[ -f canisters/hello/_canister.id ]]
+@test "install fails if no argument is provided" {
+    assert_command_fail dfx canister install
+    assert_match "required arguments were not provided"
+    assert_match "--all"
 }

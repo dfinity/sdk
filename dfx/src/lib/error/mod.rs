@@ -18,6 +18,10 @@ pub enum DfxError {
     Reqwest(reqwest::Error),
     Url(reqwest::UrlError),
 
+    CanisterNameMissing(),
+    CannotFindCanisterName(String),
+    CannotFindBuildOutputForCanister(String),
+
     /// An unknown command was used. The argument is the command itself.
     UnknownCommand(String),
 
