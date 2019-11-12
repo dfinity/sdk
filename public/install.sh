@@ -17,11 +17,27 @@ DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx/latest}"
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
 
+validate_install_dir() {
+    local dir="${1%/}"
+
+    # We test it's a directory and writeable.
+    ! [ -d $dir ] && return 1
+    ! [ -w $dir ] && return 2
+
+    # We also test it's in the $PATH of the user.
+    case ":$PATH:" in
+        *:$dir:*) ;;
+        *) return 3 ;;
+    esac
+
+    return 0
+}
+
 sdk_install_dir() {
     if [ "${DFX_INSTALL_ROOT:-}" ]; then
-        # By default we install to a home directory.
+        # If user specifies an actual dir, use that.
         printf %s "${DFX_INSTALL_ROOT}"
-    elif [ -d /usr/local/bin ] && [ -w /usr/local/bin ]; then
+    elif validate_install_dir /usr/local/bin; then
         printf %s /usr/local/bin
     elif [ "$(uname -s)" = Darwin ]; then
         # OS X does not allow users to write to /usr/bin by default. In case the
@@ -30,7 +46,7 @@ sdk_install_dir() {
         # privileges during the installation.
         mkdir -p /usr/local/bin 2>/dev/null || sudo mkdir -p /usr/local/bin || true
         printf %s /usr/local/bin
-    elif [ -d /usr/bin ] && [ -w /usr/bin ]; then
+    elif validate_install_dir /usr/bin; then
         printf %s /usr/bin
     else
         # This is our last choice.
