@@ -87,6 +87,12 @@ impl fmt::Display for CanisterId {
     }
 }
 
+impl Into<Blob> for CanisterId {
+    fn into(self) -> Blob {
+        self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

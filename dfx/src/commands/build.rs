@@ -1,4 +1,5 @@
-use crate::config::dfinity::Profile;
+use crate::config::dfinity::{Config, Profile};
+use crate::lib::canister_info::CanisterInfo;
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -15,9 +16,9 @@ pub fn construct() -> App<'static, 'static> {
 /// Compile a motoko file.
 fn motoko_compile<T: BinaryResolverEnv>(
     env: &T,
+    profile: Option<Profile>,
     input_path: &Path,
     output_path: &Path,
-    profile: Option<Profile>,
 ) -> DfxResult {
     // Invoke the compiler in debug (development) or release mode, based on the current profile:
     let arg_profile = match profile {
@@ -101,17 +102,16 @@ fn build_user_lib<T: BinaryResolverEnv>(
     }
 }
 
-fn build_file<T>(
-    env: &T,
-    profile: Option<Profile>,
-    input_path: &Path,
-    output_path: &Path,
-) -> DfxResult
+fn build_file<T>(env: &T, config: &Config, name: &str) -> DfxResult
 where
     T: BinaryResolverEnv,
 {
-    let output_wasm_path = output_path.with_extension("wasm");
+    let canister_info = CanisterInfo::load(config, name)?;
+    let config = config.get_config();
+    let profile = config.profile.clone();
+    let input_path = canister_info.get_main_path();
 
+    let output_wasm_path = canister_info.get_output_wasm_path();
     match input_path.extension().and_then(OsStr::to_str) {
         // TODO(SDK-441): Revisit supporting compilation from WAT files.
         Some("wat") => {
@@ -119,17 +119,35 @@ where
             let wasm = wabt::wat2wasm(wat)
                 .map_err(|e| DfxError::BuildError(BuildErrorKind::WatCompileError(e)))?;
 
+            std::fs::create_dir_all(canister_info.get_output_root())?;
             std::fs::write(&output_wasm_path, wasm)?;
+
+            // Write the CID.
+            std::fs::write(
+                canister_info.get_canister_id_path(),
+                canister_info.generate_canister_id()?.into_blob().0,
+            )
+            .map_err(DfxError::from)?;
 
             Ok(())
         }
-        Some("mo") => {
-            let output_idl_path = output_path.with_extension("did");
-            let output_js_path = output_path.with_extension("js");
 
-            motoko_compile(env, &input_path, &output_wasm_path, profile)?;
+        Some("mo") => {
+            let output_idl_path = canister_info.get_output_idl_path();
+            let output_js_path = canister_info.get_output_js_path();
+
+            std::fs::create_dir_all(canister_info.get_output_root())?;
+
+            motoko_compile(env, profile, &input_path, &output_wasm_path)?;
             didl_compile(env, &input_path, &output_idl_path)?;
             build_user_lib(env, &output_idl_path, &output_js_path)?;
+
+            // Write the CID.
+            std::fs::write(
+                canister_info.get_canister_id_path(),
+                canister_info.generate_canister_id()?.into_blob().0,
+            )
+            .map_err(DfxError::from)?;
 
             Ok(())
         }
@@ -153,34 +171,10 @@ where
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    // get_path() returns the full path of the config file. We need to get the dirname.
-    let project_root = config.get_path().parent().unwrap();
-
-    let build_root = project_root.join(
-        config
-            .get_config()
-            .get_defaults()
-            .get_build()
-            .get_output("build/"),
-    );
-
     if let Some(canisters) = &config.get_config().canisters {
-        for (k, v) in canisters {
+        for k in canisters.keys() {
             println!("Building {}...", k);
-            if let Some(path) = &v.main {
-                let path = Path::new(&path);
-                let input_as_path = project_root.join(path);
-                let path = path.strip_prefix("src/").unwrap_or(&path);
-                let output_path = build_root.join(path).with_extension("wasm");
-                std::fs::create_dir_all(output_path.parent().unwrap())?;
-
-                build_file(
-                    env,
-                    config.config.profile.clone(),
-                    &input_as_path,
-                    &output_path,
-                )?;
-            }
+            build_file(env, &config, &k)?;
         }
     }
 
@@ -234,13 +228,17 @@ mod tests {
             out_file: &out_file,
         };
 
-        build_file(
+        motoko_compile(
             &env,
             None,
             Path::new("/in/file.mo"),
             Path::new("/out/file.wasm"),
         )
         .expect("Function failed.");
+        didl_compile(&env, Path::new("/in/file.mo"), Path::new("/out/file.did"))
+            .expect("Function failed");
+        build_user_lib(&env, Path::new("/out/file.did"), Path::new("/out/file.js"))
+            .expect("Function failed");
 
         out_file.flush().expect("Could not flush.");
 
@@ -280,14 +278,31 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let temp_path = temp_dir.into_path();
         let input_path = temp_path.join("input.wat");
-        let output_path = temp_path.join("output.wasm");
+        let output_path = temp_path.join("out/name/input.wasm");
 
         assert!(!output_path.exists());
 
         std::fs::write(input_path.as_path(), wat).expect("Could not create input.");
-        build_file(&env, None, input_path.as_path(), output_path.as_path())
-            .expect("Function failed.");
+        let config = Config::from_str_and_path(
+            temp_path.join("dfx.json"),
+            r#"
+            {
+                "canisters": {
+                    "name": {
+                        "main": "input.wat"
+                    }
+                },
+                "defaults": {
+                    "build": {
+                        "output": "out/"
+                    }
+                }
+            }
+        "#,
+        )
+        .unwrap();
 
+        build_file(&env, &config, "name").expect("Function failed - build_file");
         assert!(output_path.exists());
     }
 }
