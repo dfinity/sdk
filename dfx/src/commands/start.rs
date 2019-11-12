@@ -7,6 +7,7 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::process::Command;
 use std::time::{Duration, Instant};
+use sysinfo::{System, SystemExt};
 use tokio::prelude::FutureExt;
 use tokio::runtime::Runtime;
 
@@ -88,6 +89,23 @@ where
     );
     let project_root = config.get_path().parent().unwrap();
 
+    let pid_file_path = env.get_dfx_root().unwrap().join("pid");
+    if pid_file_path.exists() {
+        // Read and verify it's not running. If it is just return.
+        if let Ok(s) = std::fs::read_to_string(&pid_file_path) {
+            if let Ok(pid) = s.parse::<i32>() {
+                // If we find the pid in the file, we tell the user and don't start!
+                let system = System::new();
+                if let Some(_process) = system.get_process(pid) {
+                    return Err(DfxError::DfxAlreadyRunningInBackground());
+                }
+            }
+        }
+    }
+
+    // We are doing this here to make sure we can write to the temp pid file.
+    std::fs::write(&pid_file_path, "")?;
+
     if args.is_present("background") {
         // Background strategy is different; we spawn `dfx` with the same arguments
         // (minus --background), ping and exit.
@@ -123,6 +141,12 @@ where
                 let mut child = cmd.spawn().unwrap_or_else(|e| {
                     panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e)
                 });
+
+                // Update the pid file.
+                if let Ok(pid) = sysinfo::get_current_pid() {
+                    let _ = std::fs::write(&pid_file_path, pid.to_string());
+                }
+
                 if child.wait().is_err() {
                     break;
                 }

@@ -10,9 +10,7 @@ setup() {
 }
 
 teardown() {
-    # Kill the node manager, the dfx and the client. Ignore errors (ie. if processes aren't
-    # running).
-    killall dfx nodemanager client |& sed 's/^/killall: /' || true
+    dfx stop
 }
 
 @test "print_mo" {
