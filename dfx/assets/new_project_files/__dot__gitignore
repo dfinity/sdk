@@ -9,3 +9,6 @@
 
 # Build artifacts
 build/
+
+# dfx temporary files
+.dfx/
