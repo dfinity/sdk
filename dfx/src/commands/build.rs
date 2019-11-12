@@ -1,6 +1,7 @@
 use crate::config::dfinity::{Config, Profile};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
+use crate::lib::error::DfxError::BuildError;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -106,7 +107,11 @@ fn build_file<T>(env: &T, config: &Config, name: &str) -> DfxResult
 where
     T: BinaryResolverEnv,
 {
-    let canister_info = CanisterInfo::load(config, name)?;
+    let canister_info = CanisterInfo::load(config, name).map_err(|_| {
+        BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
+            name.to_owned(),
+        ))
+    })?;
     let config = config.get_config();
     let profile = config.profile.clone();
     let input_path = canister_info.get_main_path();
@@ -162,7 +167,7 @@ where
     Ok(())
 }
 
-pub fn exec<T>(env: &T, _args: &ArgMatches<'_>) -> DfxResult
+pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: BinaryResolverEnv + ProjectConfigEnv,
 {
@@ -171,7 +176,11 @@ where
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    if let Some(canisters) = &config.get_config().canisters {
+    // Get the canister name (if any).
+    if let Some(canister_name) = args.value_of("canister") {
+        println!("Building {}...", canister_name);
+        build_file(env, &config, &canister_name)?;
+    } else if let Some(canisters) = &config.get_config().canisters {
         for k in canisters.keys() {
             println!("Building {}...", k);
             build_file(env, &config, &k)?;

@@ -17,6 +17,9 @@ pub enum BuildErrorKind {
 
     /// An error happened while compiling WAT to WASM.
     WatCompileError(wabt::Error),
+
+    /// Could not find the canister to build in the config.
+    CanisterNameIsNotInConfigError(String),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -39,6 +42,10 @@ impl fmt::Display for BuildErrorKind {
             WatCompileError(e) => {
                 f.write_fmt(format_args!("Error while compiling WAT to WASM: {}", e))
             }
+            CanisterNameIsNotInConfigError(name) => f.write_fmt(format_args!(
+                r#"Could not find the canister named "{}" in the dfx.json configuration."#,
+                name,
+            )),
         }
     }
 }
