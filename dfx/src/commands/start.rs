@@ -7,7 +7,7 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::process::Command;
 use std::time::{Duration, Instant};
-use sysinfo::{ProcessExt, System, SystemExt};
+use sysinfo::{System, SystemExt};
 use tokio::prelude::FutureExt;
 use tokio::runtime::Runtime;
 
@@ -94,16 +94,10 @@ where
         // Read and verify it's not running. If it is just return.
         if let Ok(s) = std::fs::read_to_string(&pid_file_path) {
             if let Ok(pid) = s.parse::<i32>() {
-                // List all processes in the hope to find the pid in the file. If it's
-                // there we tell the user and don't start!
+                // If we find the pid in the file, we tell the user and don't start!
                 let system = System::new();
-                for process in system.get_process_list().values() {
-                    if process.pid() == pid {
-                        eprintln!(r#"dfx already running... Use "dfx stop" to kill it."#);
-                        eprintln!("");
-
-                        return Ok(());
-                    }
+                if let Some(_process) = system.get_process(pid) {
+                    return Err(DfxError::DfxAlreadyRunningInBackground());
                 }
             }
         }
@@ -150,7 +144,7 @@ where
 
                 // Update the pid file.
                 if let Ok(pid) = sysinfo::get_current_pid() {
-                    std::fs::write(&pid_file_path, pid.to_string()).unwrap();
+                    let _ = std::fs::write(&pid_file_path, pid.to_string());
                 }
 
                 if child.wait().is_err() {

@@ -52,9 +52,7 @@ where
     }
 
     // We ignore errors here because there is no effect for the user. We're just being nice.
-    #[allow(unused_must_use)]
-    {
-        std::fs::remove_file(&pid_file_path);
-    }
+    let _ = std::fs::remove_file(&pid_file_path);
+
     Ok(())
 }
