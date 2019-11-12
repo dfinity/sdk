@@ -38,8 +38,8 @@ validate_install_dir() {
     local dir="${1%/}"
 
     # We test it's a directory and writeable.
-    ! [ -d $dir ] && return 1
-    ! [ -w $dir ] && return 2
+    ! [ -d "$dir" ] && return 1
+    ! [ -w "$dir" ] && return 2
 
     # We also test it's in the $PATH of the user.
     case ":$PATH:" in
@@ -95,6 +95,7 @@ main() {
     need_cmd touch
     # For instance in Debian sudo can be missing.
     need_cmd sudo
+    need_cmd awk
 
     if ! confirm_license; then
         echo "Please accept the license to continue."
@@ -133,11 +134,16 @@ main() {
     _install_dir="$(sdk_install_dir)"
     printf "%s\n" "Will install in: ${_install_dir}"
     mkdir -p "${_install_dir}" || true
-
+    printf "%s\n" "Temporary folder: ${_dfx_file}"
+    version="$(retrieve_version ${_dfx_file})"
+    printf "%s\n" "In process to be installed version: ${version}"
     mv "$_dfx_file" "${_install_dir}" 2>/dev/null || sudo mv "$_dfx_file" "${_install_dir}" \
         || err "Failed to install the DFINITY Developement Kit: please check your permissions and try again."
 
     log "Installed $_install_dir/dfx"
+    mkdir -p "${HOME}/.cache/dfinity/${version}/"
+    # We want a version of dfx to be kept available in the cache.
+    cp "${_install_dir}/dfx" "${HOME}/.cache/dfinity/${version}/dfx"
 
     ignore rm -rf "$_dir"
 }
@@ -341,6 +347,12 @@ check_help_for() {
     done
 
     test "$_ok" = "y"
+}
+
+retrieve_version() {
+    local bin="${1}"
+    version="$(${bin} --version | awk '{print $(NF)}')"
+    printf %s "${version}"
 }
 
 confirm_license() {
