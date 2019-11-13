@@ -97,7 +97,12 @@ pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: VersionEnv,
 {
-    let current_version = Version::parse(env.get_version())
+    let current_version = if let Some(version) = args.value_of("current-version") {
+        version
+    } else {
+        env.get_version()
+    };
+    let current_version = Version::parse(current_version)
         .map_err(|e| DfxError::InvalidData(format!("invalid version: {}", e)))?;
     println!("Current version: {}", current_version);
     let release_root = args.value_of("release-root").unwrap();
