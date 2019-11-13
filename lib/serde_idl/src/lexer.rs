@@ -7,6 +7,8 @@ pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 #[derive(Debug)]
 pub enum LexicalError {
     UnknownEscape(char),
+    OutOfRangeUnicode(u32),
+    ParseNumber(String),
     NonTerminatedString(usize),
     ExpectedDigit,
 }
@@ -16,6 +18,10 @@ impl fmt::Display for LexicalError {
         match self {
             LexicalError::ExpectedDigit => write!(fmt, "Expected a digit"),
             LexicalError::UnknownEscape(c) => write!(fmt, "Unknown escape \\{}", c),
+            LexicalError::ParseNumber(s) => write!(fmt, "Error parsing number {}", s),
+            LexicalError::OutOfRangeUnicode(u) => {
+                write!(fmt, "Unicode escape out of range {:x?}", u)
+            }
             LexicalError::NonTerminatedString(pos) => {
                 write!(fmt, "Unclosed string literal starting at {}", pos)
             }
@@ -27,6 +33,8 @@ impl fmt::Display for LexicalError {
 pub enum Token {
     Equals,
     Dot,
+    Plus,
+    Minus,
     LParen,
     RParen,
     LBrace,
@@ -39,10 +47,9 @@ pub enum Token {
     Variant,
     None,
     Opt,
-    Label(String),
+    Id(String),
     TextLiteral(String),
-    IntLiteral(i64),
-    NatLiteral(u64),
+    NumberLiteral(String),
     BooleanLiteral(bool),
 }
 
@@ -82,17 +89,40 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    fn read_digits(&mut self, buffer: &mut String) -> Result<usize, LexicalError> {
+    fn read_num(&mut self, buffer: &mut String) -> Result<usize, LexicalError> {
         let mut len = 0;
         while let Some((_, c)) = self.peek() {
-            if c.is_digit(10) {
+            if c.is_ascii_digit() {
                 len += 1;
                 buffer.push(self.next_char().unwrap().1)
+            } else if c == '_' {
+                len += 1;
+                self.next_char();
             } else {
                 break;
             }
         }
+        if len == 0 {
+            // Not a single digit was read, this is an error
+            Err(LexicalError::ExpectedDigit)
+        } else {
+            Ok(len)
+        }
+    }
 
+    fn read_hexnum(&mut self, buffer: &mut String) -> Result<usize, LexicalError> {
+        let mut len = 0;
+        while let Some((_, c)) = self.peek() {
+            if c.is_ascii_hexdigit() {
+                len += 1;
+                buffer.push(self.next_char().unwrap().1)
+            } else if c == '_' {
+                len += 1;
+                self.next_char();
+            } else {
+                break;
+            }
+        }
         if len == 0 {
             // Not a single digit was read, this is an error
             Err(LexicalError::ExpectedDigit)
@@ -115,9 +145,29 @@ impl<'input> Lexer<'input> {
                 }
                 Some((_, '\\')) => match self.next_char() {
                     Some((_, 'n')) => result.push('\n'),
+                    Some((_, 'r')) => result.push('\r'),
                     Some((_, 't')) => result.push('\t'),
                     Some((_, '\\')) => result.push('\\'),
                     Some((_, '"')) => result.push('"'),
+                    Some((_, '\'')) => result.push('\''),
+                    Some((_, 'u')) => match self.next_char() {
+                        Some((_, '{')) => {
+                            let mut hex = String::new();
+                            self.read_hexnum(&mut hex)?;
+                            match self.next_char() {
+                                Some((_, '}')) => {
+                                    let c: u32 = u32::from_str_radix(&hex, 16)
+                                        .map_err(|_| LexicalError::ParseNumber(hex))?;
+                                    let char = std::char::from_u32(c)
+                                        .ok_or(LexicalError::OutOfRangeUnicode(c))?;
+                                    result.push(char);
+                                }
+                                _ => return Err(LexicalError::NonTerminatedString(start_position)),
+                            }
+                        }
+                        Some((_, c)) => return Err(LexicalError::UnknownEscape(c)),
+                        None => return Err(LexicalError::NonTerminatedString(start_position)),
+                    },
                     Some((_, c)) => return Err(LexicalError::UnknownEscape(c)),
                     None => return Err(LexicalError::NonTerminatedString(start_position)),
                 },
@@ -141,32 +191,18 @@ impl<'input> Iterator for Lexer<'input> {
             Some((i, ';')) => Some(Ok((i, Token::Semi, i + 1))),
             Some((i, ',')) => Some(Ok((i, Token::Comma, i + 1))),
             Some((i, '=')) => Some(Ok((i, Token::Equals, i + 1))),
+            Some((i, '+')) => Some(Ok((i, Token::Plus, i + 1))),
+            Some((i, '-')) => Some(Ok((i, Token::Minus, i + 1))),
             Some((i, '"')) => Some(self.read_string_literal(i)),
-            Some((i, c @ '+')) | Some((i, c @ '-')) => {
+            Some((i, c)) if c.is_ascii_digit() => {
                 let mut res = c.to_string();
-                let digit_len = self.read_digits(&mut res);
-                Some(digit_len.map(|len| {
-                    (
-                        i,
-                        Token::IntLiteral(res.parse::<i64>().unwrap()),
-                        i + 1 + len,
-                    )
-                }))
+                let len = self.read_num(&mut res).unwrap_or(0) + 1;
+                Some(Ok((i, Token::NumberLiteral(res), i + len)))
             }
-            Some((i, c)) if c.is_digit(10) => {
-                let mut res = c.to_string();
-                let len = self.read_digits(&mut res).unwrap_or(0) + 1;
-                Some(Ok((
-                    i,
-                    // TODO: We should decide the type based on IDL signature.
-                    Token::NatLiteral(res.parse::<u64>().unwrap()),
-                    i + len,
-                )))
-            }
-            Some((i, c)) if c.is_alphabetic() => {
+            Some((i, c)) if c.is_ascii_alphabetic() => {
                 let mut res = c.to_string();
                 while let Some((_, c)) = self.peek() {
-                    if c.is_alphabetic() || c == '_' {
+                    if c.is_ascii_alphanumeric() || c == '_' {
                         res.push(self.next_char().unwrap().1)
                     } else {
                         break;
@@ -181,7 +217,7 @@ impl<'input> Iterator for Lexer<'input> {
                     "vec" => Ok((Token::Vec, 3)),
                     "record" => Ok((Token::Record, 6)),
                     "variant" => Ok((Token::Variant, 7)),
-                    label => Ok((Token::Label(label.to_string()), label.len())),
+                    id => Ok((Token::Id(id.to_string()), id.len())),
                 };
                 Some(tok.map(|(token, len)| (i, token, i + len)))
             }

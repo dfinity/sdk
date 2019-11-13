@@ -29,16 +29,29 @@ fn parse_literals() {
 }
 
 #[test]
+fn parse_string_literals() {
+    let args = parse_args("(\"\", \"\\u{10ffff}\\n\")");
+    assert_eq!(
+        args.args,
+        vec![
+            IDLValue::Text("".to_owned()),
+            IDLValue::Text("\u{10ffff}\n".to_owned())
+        ]
+    );
+    let args = parse_args("(\"\\u{d800}\")");
+}
+
+#[test]
 fn parse_more_literals() {
     let args =
-        parse_args("(true, null, 42, \"random\", \"string with whitespace\", +42, -42, false)");
+        parse_args("(true, null, 4_2, \"哈哈\", \"string with whitespace\", +42, -42, false)");
     assert_eq!(
         args.args,
         vec![
             IDLValue::Bool(true),
             IDLValue::Null,
             IDLValue::Nat(42),
-            IDLValue::Text("random".to_owned()),
+            IDLValue::Text("哈哈".to_owned()),
             IDLValue::Text("string with whitespace".to_owned()),
             IDLValue::Int(42),
             IDLValue::Int(-42),
@@ -47,7 +60,7 @@ fn parse_more_literals() {
     );
     assert_eq!(
         format!("{}", args),
-        "(true, null, 42, \"random\", \"string with whitespace\", +42, -42, false)"
+        "(true, null, 42, \"哈哈\", \"string with whitespace\", +42, -42, false)"
     );
 }
 
