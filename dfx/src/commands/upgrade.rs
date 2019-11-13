@@ -30,6 +30,14 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
+fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    semver::Version::parse(&version)
+        .map_err(|e| serde::de::Error::custom(format!("invalid SemVer: {}", e)))
+}
+
 fn deserialize_tags<'de, D>(deserializer: D) -> Result<HashMap<String, Version>, D::Error>
 where
     D: Deserializer<'de>,
@@ -38,11 +46,7 @@ where
     let mut result = HashMap::<String, Version>::new();
 
     for (tag, version) in tags.into_iter() {
-        result.insert(
-            tag,
-            semver::Version::parse(&version)
-                .map_err(|e| serde::de::Error::custom(format!("invalid SemVer version: {}", e)))?,
-        );
+        result.insert(tag, parse_semver::<D>(&version)?);
     }
 
     Ok(result)
@@ -55,11 +59,8 @@ where
     let versions: Vec<String> = Deserialize::deserialize(deserializer)?;
     let mut result = Vec::with_capacity(versions.len());
 
-    for version in versions.into_iter() {
-        result.push(
-            semver::Version::parse(&version)
-                .map_err(|e| serde::de::Error::custom(format!("invalid SemVer version: {}", e)))?,
-        );
+    for version in versions.iter() {
+        result.push(parse_semver::<D>(version)?);
     }
 
     Ok(result)
