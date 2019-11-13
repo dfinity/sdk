@@ -107,7 +107,8 @@ main() {
 
     # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
     # thus, make sure this handles archives
-    local _version="$(downloader ${DFX_MANIFEST_JSON_URL} - | get_tag_from_manifest_json latest)" || return 2
+    local _version
+    _version="$(downloader ${DFX_MANIFEST_JSON_URL} - | get_tag_from_manifest_json latest)" || return 2
     local _dfx_url="${DFX_RELEASE_ROOT}/${_version}/${_arch}/dfx-${_version}.tar.gz"
 
     local _dir
