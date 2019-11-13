@@ -8,9 +8,9 @@ extern {
     type Location = usize;
     type Error = LexicalError;
     enum Token {
-        "number_literal" => Token::NumberLiteral(<String>),
-        "bool_literal" => Token::BooleanLiteral(<bool>),
-        "text_literal" => Token::TextLiteral(<String>),
+        "number" => Token::Number(<String>),
+        "bool" => Token::Boolean(<bool>),
+        "text" => Token::Text(<String>),
         "id" => Token::Id(<String>),
         "null" => Token::Null,
         "none" => Token::None,
@@ -33,11 +33,11 @@ extern {
 pub Args: IDLArgs = "(" <SepBy<Arg, ",">> ")" => IDLArgs { args: <> };
 
 Arg: IDLValue = {
-    "bool_literal" => IDLValue::Bool(<>),
-    "+" <"number_literal"> => IDLValue::Int(<>.parse::<i64>().unwrap()),
-    "-" <"number_literal"> => IDLValue::Int(format!("-{}", <>).parse::<i64>().unwrap()),
-    "number_literal" => IDLValue::Nat(<>.parse::<u64>().unwrap()),
-    "text_literal" => IDLValue::Text(<>),
+    "bool" => IDLValue::Bool(<>),
+    "+" <"number"> => IDLValue::Int(<>.parse::<i64>().unwrap()),
+    "-" <"number"> => IDLValue::Int(format!("-{}", <>).parse::<i64>().unwrap()),
+    "number" => IDLValue::Nat(<>.parse::<u64>().unwrap()),
+    "text" => IDLValue::Text(<>),
     "null" => IDLValue::Null,
     "none" => IDLValue::None,
     "opt" <Arg> => IDLValue::Opt(Box::new(<>)),
@@ -51,13 +51,13 @@ Arg: IDLValue = {
 }
 
 Field: IDLField = {
-    <n:"number_literal"> "=" <v:Arg> => IDLField { id: n.parse::<u32>().unwrap(), val: v },
+    <n:"number"> "=" <v:Arg> => IDLField { id: n.parse::<u32>().unwrap(), val: v },
     <n:Name> "=" <v:Arg> => IDLField { id: idl_hash(&n), val: v },
 }
 
 Name: String = {
     "id" => <>,
-    "text_literal" => <>,
+    "text" => <>,
 }
 
 // Also allows trailing separator

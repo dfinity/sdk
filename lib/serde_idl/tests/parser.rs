@@ -38,7 +38,11 @@ fn parse_string_literals() {
             IDLValue::Text("\u{10ffff}\n".to_owned())
         ]
     );
-    let args = parse_args("(\"\\u{d800}\")");
+    let args = parse_args_err("(\"\\u{d800}\")");
+    assert_eq!(
+        format!("{}", args.unwrap_err()),
+        "Unicode escape out of range d800"
+    );
 }
 
 #[test]

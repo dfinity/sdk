@@ -8,17 +8,17 @@ pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 pub enum LexicalError {
     UnknownEscape(char),
     OutOfRangeUnicode(u32),
-    ParseNumber(String),
+    ParseError(String),
     NonTerminatedString(usize),
-    ExpectedDigit,
+    Eof,
 }
 
 impl fmt::Display for LexicalError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LexicalError::ExpectedDigit => write!(fmt, "Expected a digit"),
+            LexicalError::Eof => write!(fmt, "Unexpected eof"),
             LexicalError::UnknownEscape(c) => write!(fmt, "Unknown escape \\{}", c),
-            LexicalError::ParseNumber(s) => write!(fmt, "Error parsing number {}", s),
+            LexicalError::ParseError(s) => write!(fmt, "Error parsing {}", s),
             LexicalError::OutOfRangeUnicode(u) => {
                 write!(fmt, "Unicode escape out of range {:x?}", u)
             }
@@ -48,9 +48,9 @@ pub enum Token {
     None,
     Opt,
     Id(String),
-    TextLiteral(String),
-    NumberLiteral(String),
-    BooleanLiteral(bool),
+    Text(String),
+    Number(String),
+    Boolean(bool),
 }
 
 impl fmt::Display for Token {
@@ -104,7 +104,7 @@ impl<'input> Lexer<'input> {
         }
         if len == 0 {
             // Not a single digit was read, this is an error
-            Err(LexicalError::ExpectedDigit)
+            Err(LexicalError::Eof)
         } else {
             Ok(len)
         }
@@ -125,7 +125,7 @@ impl<'input> Lexer<'input> {
         }
         if len == 0 {
             // Not a single digit was read, this is an error
-            Err(LexicalError::ExpectedDigit)
+            Err(LexicalError::Eof)
         } else {
             Ok(len)
         }
@@ -157,7 +157,7 @@ impl<'input> Lexer<'input> {
                             match self.next_char() {
                                 Some((_, '}')) => {
                                     let c: u32 = u32::from_str_radix(&hex, 16)
-                                        .map_err(|_| LexicalError::ParseNumber(hex))?;
+                                        .map_err(|_| LexicalError::ParseError(hex))?;
                                     let char = std::char::from_u32(c)
                                         .ok_or(LexicalError::OutOfRangeUnicode(c))?;
                                     result.push(char);
@@ -175,7 +175,7 @@ impl<'input> Lexer<'input> {
                 None => return Err(LexicalError::NonTerminatedString(start_position)),
             }
         }
-        Ok((start_position, Token::TextLiteral(result), end_position))
+        Ok((start_position, Token::Text(result), end_position))
     }
 }
 
@@ -197,7 +197,7 @@ impl<'input> Iterator for Lexer<'input> {
             Some((i, c)) if c.is_ascii_digit() => {
                 let mut res = c.to_string();
                 let len = self.read_num(&mut res).unwrap_or(0) + 1;
-                Some(Ok((i, Token::NumberLiteral(res), i + len)))
+                Some(Ok((i, Token::Number(res), i + len)))
             }
             Some((i, c)) if c.is_ascii_alphabetic() => {
                 let mut res = c.to_string();
@@ -209,8 +209,8 @@ impl<'input> Iterator for Lexer<'input> {
                     }
                 }
                 let tok = match res.as_str() {
-                    "true" => Ok((Token::BooleanLiteral(true), 4)),
-                    "false" => Ok((Token::BooleanLiteral(false), 5)),
+                    "true" => Ok((Token::Boolean(true), 4)),
+                    "false" => Ok((Token::Boolean(false), 5)),
                     "none" => Ok((Token::None, 4)),
                     "null" => Ok((Token::Null, 4)),
                     "opt" => Ok((Token::Opt, 3)),
