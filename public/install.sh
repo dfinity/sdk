@@ -13,7 +13,7 @@ set -u
 # If DFX_RELEASE_ROOT is unset or empty, default it.
 SDK_WEBSITE="https://sdk.dfinity.org"
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/dfx}"
-DFX_MANIFEST_JSON_URL="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/dfx/manifest.json}"
+DFX_MANIFEST_JSON_URL="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/manifest.json}"
 
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
