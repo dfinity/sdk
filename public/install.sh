@@ -13,10 +13,26 @@ set -u
 # If DFX_RELEASE_ROOT is unset or empty, default it.
 LATEST="0.4.3"
 SDK_WEBSITE="https://sdk.dfinity.org"
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE}/downloads/dfx/${LATEST}"
+DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/dfx}"
+DFX_MANIFEST_JSON_URL="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/dfx/manifest.json}"
 
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
+
+# Get the version of a tag from the manifest JSON file.
+# Arguments:
+#   $1 - The tag to get.
+#   STDIN - The manifest file.
+# Returns:
+#   0 if the tag was found, 1 if it wasn't.
+#   Prints out the version number.
+get_tag_from_manifest_json() {
+    # Find the tag in the file. Then get the last digits.
+    # The first grep returns `"tag_name": "1.2.3` (without the last quote).
+    cat | tr -d '\n' \
+    | grep -o \"$1\":[[:space:]]*\"\[-a-zA-Z0-9.\]\* \
+    | grep -o \[0-9.\]\*\$
+}
 
 validate_install_dir() {
     local dir="${1%/}"
@@ -91,7 +107,8 @@ main() {
 
     # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
     # thus, make sure this handles archives
-    local _dfx_url="${DFX_RELEASE_ROOT}/${_arch}/dfx-${LATEST}.tar.gz"
+    local _version="$(downloader ${DFX_MANIFEST_JSON_URL} - | get_tag_from_manifest_json latest)" || return 2
+    local _dfx_url="${DFX_RELEASE_ROOT}/${_version}/${_arch}/dfx-${_version}.tar.gz"
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
@@ -215,6 +232,9 @@ ignore() {
 
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
+# Arguments:
+#   $1 - URL to download.
+#   $2 - Path to output the download. Use - to output to stdout.
 downloader() {
     local _dld
     if check_cmd curl; then
