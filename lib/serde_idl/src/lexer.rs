@@ -53,6 +53,11 @@ pub enum Token {
     Boolean(bool),
 }
 
+pub struct TmpIDLField {
+    pub has_id: bool,
+    pub inner: crate::value::IDLField,
+}
+
 fn hex_to_char(hex: &str) -> Result<char, LexicalError> {
     let c = u32::from_str_radix(hex, 16).map_err(|_| LexicalError::ParseError(hex.to_owned()))?;
     std::char::from_u32(c).ok_or(LexicalError::OutOfRangeUnicode(c))
@@ -211,7 +216,7 @@ impl<'input> Iterator for Lexer<'input> {
                         };
                         Some(Ok((i, Token::Number(res), i + len)))
                     } else {
-                        return Some(Err(LexicalError::UnknownChar('x')))
+                        return Some(Err(LexicalError::UnknownChar('x')));
                     }
                 } else {
                     // Parse decimal number

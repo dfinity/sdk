@@ -1,5 +1,5 @@
 use crate::value::{IDLField, IDLValue, IDLArgs};
-use crate::lexer::{Token, LexicalError};
+use crate::lexer::{Token, LexicalError, TmpIDLField};
 use dfx_info::idl_hash;
 
 grammar;
@@ -42,17 +42,37 @@ Arg: IDLValue = {
     "none" => IDLValue::None,
     "opt" <Arg> => IDLValue::Opt(Box::new(<>)),
     "vec" "{" <SepBy<Arg, ";">> "}" => IDLValue::Vec(<>),
-    "record" "{" <SepBy<Field, ";">> "}" => {
-        let mut fs = <>;
+    "record" "{" <SepBy<RecordField, ";">> "}" => {
+        let mut id: u32 = 0;
+        let mut fs: Vec<IDLField> = <>.iter().map(|f| {
+          if f.has_id {
+            id = f.inner.id + 1;
+            f.inner.clone()
+          } else {
+            id = id + 1;
+            IDLField { id: id - 1, val: f.inner.val.clone() }
+          }
+        }).collect();
         fs.sort_unstable_by_key(|IDLField { id, .. }| *id);
         IDLValue::Record(fs)
      },
-    "variant" "{" <Field> "}" => IDLValue::Variant(Box::new(<>)),
+    "variant" "{" <VariantField> "}" => IDLValue::Variant(Box::new(<>)),
 }
 
 Field: IDLField = {
     <n:"number"> "=" <v:Arg> => IDLField { id: n.parse::<u32>().unwrap(), val: v },
     <n:Name> "=" <v:Arg> => IDLField { id: idl_hash(&n), val: v },
+}
+
+VariantField: IDLField = {
+    Field => <>,
+    Name => IDLField { id: idl_hash(&<>), val: IDLValue::Null },
+    "number" => IDLField { id: <>.parse::<u32>().unwrap(), val: IDLValue::Null },
+}
+
+RecordField: TmpIDLField = {
+    Field => TmpIDLField { has_id: true, inner: <> },
+    Arg => TmpIDLField { has_id: false, inner: IDLField { id:0, val:<> } },
 }
 
 Name: String = {

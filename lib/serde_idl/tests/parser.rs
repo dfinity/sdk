@@ -153,3 +153,15 @@ fn parse_nested_record() {
     );
     assert_eq!(format!("{}", args), "(record { 43 = record { 5446209 = \"hello\"; 1291438162 = \"test\"; }; 1350385585 = opt null; 1873743348 = 42; })");
 }
+
+#[test]
+fn parse_shorthand() {
+    let args =
+        parse_args("(record { 42; record {}; true; record { 42; 0x2a=42; 42; 42 }; opt 42 })");
+    assert_eq!(format!("{}", args), "(record { 0 = 42; 1 = record { }; 2 = true; 3 = record { 0 = 42; 42 = 42; 43 = 42; 44 = 42; }; 4 = opt 42; })");
+    let args = parse_args("(variant { 0x2a }, variant { label })");
+    assert_eq!(
+        format!("{}", args),
+        "(variant { 42 = null }, variant { 1873743348 = null })"
+    );
+}
