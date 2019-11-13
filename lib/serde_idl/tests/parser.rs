@@ -30,12 +30,13 @@ fn parse_literals() {
 
 #[test]
 fn parse_string_literals() {
-    let args = parse_args("(\"\", \"\\u{10ffff}\\n\")");
+    let args = parse_args("(\"\", \"\\u{10ffff}\\n\", \"\\0a\\0dd\")");
     assert_eq!(
         args.args,
         vec![
             IDLValue::Text("".to_owned()),
-            IDLValue::Text("\u{10ffff}\n".to_owned())
+            IDLValue::Text("\u{10ffff}\n".to_owned()),
+            IDLValue::Text("\n\rd".to_owned()),
         ]
     );
     let args = parse_args_err("(\"\\u{d800}\")");
@@ -43,12 +44,14 @@ fn parse_string_literals() {
         format!("{}", args.unwrap_err()),
         "Unicode escape out of range d800"
     );
+    let result = parse_args_err("(\"\\q\")");
+    assert_eq!(format!("{}", result.unwrap_err()), "Unexpected character q");
 }
 
 #[test]
 fn parse_more_literals() {
     let args =
-        parse_args("(true, null, 4_2, \"哈哈\", \"string with whitespace\", +42, -42, false)");
+        parse_args("(true, null, 4_2, \"哈哈\", \"string with whitespace\", +0x2a, -42, false)");
     assert_eq!(
         args.args,
         vec![
@@ -120,7 +123,7 @@ fn parse_optional_record() {
 #[test]
 fn parse_nested_record() {
     let args = parse_args(
-        "(record {label=42; 43=record {test=\"test\"; msg=\"hello\"}; long_label=opt null})",
+        "(record {label=42; 0x2b=record {test=\"test\"; msg=\"hello\"}; long_label=opt null})",
     );
     assert_eq!(
         args.args,
@@ -149,16 +152,4 @@ fn parse_nested_record() {
         ])]
     );
     assert_eq!(format!("{}", args), "(record { 43 = record { 5446209 = \"hello\"; 1291438162 = \"test\"; }; 1350385585 = opt null; 1873743348 = 42; })");
-}
-
-#[test]
-fn parse_escape_sequence() {
-    let result = parse_args("(\"\\n\")");
-    assert_eq!(format!("{}", result), "(\"\\n\")")
-}
-
-#[test]
-fn parse_illegal_escape_sequence() {
-    let result = parse_args_err("(\"\\q\")");
-    assert_eq!(format!("{}", result.unwrap_err()), "Unknown escape \\q")
 }
