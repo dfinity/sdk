@@ -18,7 +18,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("release-root")
-                .default_value("http://localhost:8080/")
+                .default_value("https://sdk.dfinity.org")
                 .hidden(true)
                 .long("release-root")
                 .takes_value(true),
