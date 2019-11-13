@@ -29,9 +29,9 @@ get_tag_from_manifest_json() {
     # Find the tag in the file. Then get the last digits.
     # The first grep returns `"tag_name": "1.2.3` (without the last quote).
     cat \
-      | tr -d '\n' \
-      | grep -o "\"$1\":[[:space:]]*\"\[-a-zA-Z0-9.\]\*" \
-      | grep -o \[0-9.\]\*\$
+        | tr -d '\n' \
+        | grep -o "\"$1\":[[:space:]]*\"\[-a-zA-Z0-9.\]\*" \
+        | grep -o \[0-9.\]\*\$
 }
 
 validate_install_dir() {
