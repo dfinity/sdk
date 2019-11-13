@@ -120,6 +120,7 @@ where
 
     if latest_version > current_version {
         println!("New version available: {}", latest_version);
+        println!(r#"Run 'sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"' to install"#);
     } else {
         println!("Already up to date");
     }
