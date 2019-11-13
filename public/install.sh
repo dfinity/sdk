@@ -11,7 +11,6 @@
 set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
-LATEST="0.4.3"
 SDK_WEBSITE="https://sdk.dfinity.org"
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/dfx}"
 DFX_MANIFEST_JSON_URL="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/dfx/manifest.json}"
@@ -29,9 +28,10 @@ SCRIPT_COMMIT_DESC="@revision@"
 get_tag_from_manifest_json() {
     # Find the tag in the file. Then get the last digits.
     # The first grep returns `"tag_name": "1.2.3` (without the last quote).
-    cat | tr -d '\n' \
-    | grep -o \"$1\":[[:space:]]*\"\[-a-zA-Z0-9.\]\* \
-    | grep -o \[0-9.\]\*\$
+    cat \
+      | tr -d '\n' \
+      | grep -o "\"$1\":[[:space:]]*\"\[-a-zA-Z0-9.\]\*" \
+      | grep -o \[0-9.\]\*\$
 }
 
 validate_install_dir() {
