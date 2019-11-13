@@ -11,8 +11,9 @@
 set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
+LATEST="0.4.3"
 SDK_WEBSITE="https://sdk.dfinity.org"
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx/0.4.3}"
+DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE}/downloads/dfx/${LATEST}"
 
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
@@ -90,7 +91,7 @@ main() {
 
     # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
     # thus, make sure this handles archives
-    local _dfx_url="${DFX_RELEASE_ROOT}/${_arch}/dfx-latest.tar.gz"
+    local _dfx_url="${DFX_RELEASE_ROOT}/${_arch}/dfx-${LATEST}.tar.gz"
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
