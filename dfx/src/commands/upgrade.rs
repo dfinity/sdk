@@ -80,8 +80,18 @@ fn get_latest_version(release_root: &str) -> DfxResult<Version> {
     let manifest_url = url
         .join("manifest.json")
         .map_err(|e| DfxError::InvalidArgument(format!("invalid manifest URL: {}", e)))?;
-    let manifest: Manifest = reqwest::get(manifest_url)
-        .map_err(DfxError::Reqwest)?
+    println!("Fetching manifest {}", manifest_url);
+    let mut response = reqwest::get(manifest_url).map_err(DfxError::Reqwest)?;
+    let status_code = response.status();
+
+    if !status_code.is_success() {
+        return Err(DfxError::InvalidData(format!(
+            "unable to fetch manifest: {}",
+            status_code.canonical_reason().unwrap_or("unknown error"),
+        )));
+    }
+
+    let manifest: Manifest = response
         .json()
         .map_err(|e| DfxError::InvalidData(format!("invalid manifest: {}", e)))?;
     manifest
