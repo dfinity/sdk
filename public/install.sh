@@ -11,7 +11,7 @@
 set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
-LATEST="0.4.3"
+LATEST="@version@"
 SDK_WEBSITE="https://sdk.dfinity.org"
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE}/downloads/dfx/${LATEST}"
 

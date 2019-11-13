@@ -98,7 +98,8 @@ in {
         cp $manifest $version_manifest_file
         # we stamp the file with the revision
         substitute "$installSh" $out/install.sh \
-          --subst-var revision
+          --subst-var revision \
+          --subst-var version
 
         # Creating the manifest
         hydra_manifest_file=$out/_manifest.json
