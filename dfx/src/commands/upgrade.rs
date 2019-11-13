@@ -97,9 +97,7 @@ fn get_latest_version(release_root: &str) -> DfxResult<Version> {
     manifest
         .tags
         .get("latest")
-        .ok_or(DfxError::InvalidData(
-            "expected field 'latest' in 'tags'".to_string(),
-        ))
+        .ok_or_else(|| DfxError::InvalidData("expected field 'latest' in 'tags'".to_string()))
         .map(|v| v.clone())
 }
 
