@@ -1,29 +1,35 @@
+import BigNumber from "bignumber.js";
 import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
+import { CanisterId } from "./canisterId";
+import * as canisterId from "./canisterId";
 import { CborValue, decode, encode } from "./cbor";
-import { Int } from "./int";
+import { Hex } from "./hex";
 
 test("round trip", () => {
   interface Data extends Record<string, CborValue> {
-    a: Int;
+    a: BigNumber;
     b: string;
     c: BinaryBlob;
     d: { four: string };
+    e: CanisterId;
   }
 
   const input: Data = {
-    a: 1 as Int,
+    a: new BigNumber(1),
     b: "two",
     c: Uint8Array.from([3]) as BinaryBlob,
     d: { four: "four" },
+    e: canisterId.fromHex("0000000000000001" as Hex),
   };
 
   const output = decode(encode(input)) as Data;
 
-  // A `Uint8Array` value doesn't decode exactly to the value that was encoded,
+  // A `Uint8Array` values don't decode exactly to the value that was encoded,
   // but their hexadecimal representions are the same.
-  const { c: inputC, ...inputRest } = input;
-  const { c: outputC, ...outputRest } = output;
+  const { c: inputC, e: inputE, ...inputRest } = input;
+  const { c: outputC, e: outputE, ...outputRest } = output;
   expect(outputRest).toEqual(inputRest);
   expect(blob.toHex(outputC)).toBe(blob.toHex(inputC));
+  expect(canisterId.toHex(outputE)).toBe(canisterId.toHex(inputE));
 });

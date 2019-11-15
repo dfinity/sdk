@@ -11,6 +11,8 @@ declare module "borc" {
   export function encode(o: any): ArrayBuffer
 
   class Tagged {
+    public tag: Number;
+    public value: any;
     constructor(tag: Number, value: any)
   }
 }
