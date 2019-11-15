@@ -307,7 +307,6 @@ mod tests {
             .expect("Function failed");
         build_did_js(&env, Path::new("/out/file.did"), Path::new("/out/file.did.js"))
             .expect("Function failed");
-        // TODO: build_canister_js
 
         out_file.flush().expect("Could not flush.");
 
