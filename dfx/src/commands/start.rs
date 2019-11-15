@@ -4,7 +4,9 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use crossbeam::unbounded;
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use std::io::{Error, ErrorKind};
 use std::process::Command;
 use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt};
@@ -125,12 +127,20 @@ where
     b.set_message("Starting up the client...");
     b.enable_steady_tick(80);
 
+    // Must be unbounded, as a killed child should not deadlock.
+    let (request_stop, rcv_wait) = unbounded();
+    let (broadcast_stop, is_killed) = unbounded();
+
+    // TODO(eftychis): we need a proper manager type when we start
+    // spawning multiple client processes and registry.
     let client_watchdog = std::thread::Builder::new()
         .name("NodeManager".into())
         .spawn(move || {
             let client = client_pathbuf.as_path();
             let nodemanager = nodemanager_pathbuf.as_path();
-            loop {
+            // We use unwrap() here to transmit an error to the parent
+            // thread.
+            while is_killed.is_empty() {
                 let mut cmd = std::process::Command::new(nodemanager);
                 cmd.args(&[client]);
                 cmd.stdout(std::process::Stdio::inherit());
@@ -139,7 +149,11 @@ where
                 // If the nodemanager itself fails, we are probably deeper into troubles than
                 // we can solve at this point and the user is better rerunning the server.
                 let mut child = cmd.spawn().unwrap_or_else(|e| {
-                    panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e)
+                    request_stop
+                        .try_send(true)
+                        .expect("Client thread couldn't signal parent to stop");
+                    // we still want to send a message
+                    panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
                 });
 
                 // Update the pid file.
@@ -151,7 +165,15 @@ where
                     break;
                 }
             }
+            // We DO want to panic here, if we can not signal our
+            // parent. This is interpreted as an error via join by the
+            // parent thread.
+            request_stop
+                .send(true)
+                .expect("Could not signal parent thread from client runner")
         })?;
+
+    // TODOXXX: Figure out webserver.
     let frontend_watchdog = webserver(
         address_and_port,
         url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),
@@ -171,7 +193,26 @@ where
     ping_and_wait(&frontend_url)?;
     b.finish_with_message("Internet Computer client started...");
 
-    frontend_watchdog.join().unwrap();
-    client_watchdog.join().unwrap();
+    rcv_wait.recv().or_else(|e| {
+        Err(DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed while waiting for the manager -- {:?}", e),
+        )))
+    })?;
+    broadcast_stop
+        .send(true)
+        .expect("Failed to signal children");
+    frontend_watchdog.join().or_else(|e| {
+        Err(DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed while running frontend proxy thead -- {:?}", e),
+        )))
+    })?;
+    client_watchdog.join().or_else(|e| {
+        Err(DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed while running client thread -- {:?}", e),
+        )))
+    })?;
     Ok(())
 }

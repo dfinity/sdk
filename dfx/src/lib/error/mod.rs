@@ -49,6 +49,7 @@ pub enum DfxError {
     ConfigPathDoesNotExist(String),
     InvalidArgument(String),
     InvalidData(String),
+    RuntimeError(std::io::Error),
 }
 
 /// The result of running a DFX command.
