@@ -2,7 +2,6 @@ import { sign } from "./auth";
 import { BinaryBlob } from "./blob";
 import { CallRequest } from "./callRequest";
 import { CanisterId } from "./canisterId";
-import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";
 import { Hex } from "./hex";
 import { makeNonce, Nonce } from "./nonce";
@@ -96,7 +95,7 @@ const makeConfig = (options: Options): Config => {
   const withDefaults = { ...defaultOptions, ...options };
   return {
     ...withDefaults,
-    canisterId: canisterId.fromHex(options.canisterId),
+    canisterId: new CanisterId(options.canisterId),
     // TODO We should be validating that this is the right public key.
     senderPubKey: options.senderPubKey,
     // If we set an override test function use that. Otherwise produce

@@ -1,8 +1,8 @@
 import BigNumber from "bignumber.js";
-import borc from "borc";
 import { Buffer } from "buffer/";
 import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
+import { CanisterId } from "./canisterId";
 import { CborValue } from "./cbor";
 import { Hex } from "./hex";
 import * as Request from "./request";
@@ -12,7 +12,7 @@ export type RequestId = BinaryBlob & { __requestId__: void };
 export const toHex = (requestId: RequestId): Hex => blob.toHex(requestId);
 
 // The spec describes encoding for these types.
-type HashableValue = string | Uint8Array | BigNumber | borc.Tagged;
+type HashableValue = string | Uint8Array | BigNumber | CanisterId;
 
 export const hash = async (data: Uint8Array): Promise<BinaryBlob> => {
   const hashed = await crypto.subtle.digest({ name: "SHA-256" }, data);
@@ -20,8 +20,8 @@ export const hash = async (data: Uint8Array): Promise<BinaryBlob> => {
 };
 
 const hashValue = (value: HashableValue): Promise<Uint8Array> => {
-  if (isTagged(value)) {
-    return hashValue(value.value);
+  if (isCanisterId(value)) {
+    return hashValue(value.hex);
   } else if (isString(value)) {
     return hashString(value as string);
   } else if (isBigNumber(value)) {
@@ -54,8 +54,8 @@ const isString = (value: HashableValue): value is string => {
   return typeof value === "string";
 };
 
-const isTagged = (value: HashableValue): value is borc.Tagged => {
-  return value instanceof borc.Tagged;
+const isCanisterId = (value: HashableValue): value is CanisterId => {
+  return value instanceof CanisterId;
 };
 
 const concat = (bs: Array<BinaryBlob>): BinaryBlob => {
