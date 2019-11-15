@@ -1,7 +1,6 @@
 {
   "canisters": {
     "hello": {
-      "deployment_id": 1,
       "main": "src/hello/main.mo"
     }
   },
