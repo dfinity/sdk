@@ -1,4 +1,16 @@
 {
+    "bats-support": {
+        "branch": "v0.3.0",
+        "description": "Supporting library for Bats test helpers",
+        "homepage": null,
+        "owner": "ztombol",
+        "repo": "bats-support",
+        "rev": "24a72e14349690bcbf7c151b9d2d1cdd32d36eb1",
+        "sha256": "1sm1y752jrz41qm4bxivk1363ac5zpkyshkk156aqf2p5qjxgpp0",
+        "type": "tarball",
+        "url": "https://github.com/ztombol/bats-support/archive/24a72e14349690bcbf7c151b9d2d1cdd32d36eb1.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "napalm": {
         "branch": "master",
         "description": "Support for building npm packages in Nix and lightweight npm registry",

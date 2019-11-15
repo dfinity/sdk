@@ -12,16 +12,49 @@ set -u
 
 # If DFX_RELEASE_ROOT is unset or empty, default it.
 SDK_WEBSITE="https://sdk.dfinity.org"
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx/latest}"
+DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
+DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
 
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
 
+# Get the version of a tag from the manifest JSON file.
+# Arguments:
+#   $1 - The tag to get.
+#   STDIN - The manifest file.
+# Returns:
+#   0 if the tag was found, 1 if it wasn't.
+#   Prints out the version number.
+get_tag_from_manifest_json() {
+    # Find the tag in the file. Then get the last digits.
+    # The first grep returns `"tag_name": "1.2.3` (without the last quote).
+    cat \
+        | tr -d '\n' \
+        | grep -o "\"$1\":[[:space:]]*\"[a-zA-Z0-9.]*" \
+        | grep -o "[0-9.]*$"
+}
+
+validate_install_dir() {
+    local dir="${1%/}"
+
+    # We test it's a directory and writeable.
+    ! [ -d $dir ] && return 1
+    ! [ -w $dir ] && return 2
+
+    # We also test it's in the $PATH of the user.
+    case ":$PATH:" in
+        *:$dir:*) ;;
+        *) return 3 ;;
+    esac
+
+    return 0
+}
+
 sdk_install_dir() {
     if [ "${DFX_INSTALL_ROOT:-}" ]; then
-        # By default we install to a home directory.
+        # If user specifies an actual dir, use that.
         printf %s "${DFX_INSTALL_ROOT}"
-    elif [ -d /usr/local/bin ] && [ -w /usr/local/bin ]; then
+    elif validate_install_dir /usr/local/bin; then
         printf %s /usr/local/bin
     elif [ "$(uname -s)" = Darwin ]; then
         # OS X does not allow users to write to /usr/bin by default. In case the
@@ -30,7 +63,7 @@ sdk_install_dir() {
         # privileges during the installation.
         mkdir -p /usr/local/bin 2>/dev/null || sudo mkdir -p /usr/local/bin || true
         printf %s /usr/local/bin
-    elif [ -d /usr/bin ] && [ -w /usr/bin ]; then
+    elif validate_install_dir /usr/bin; then
         printf %s /usr/bin
     else
         # This is our last choice.
@@ -74,7 +107,10 @@ main() {
 
     # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
     # thus, make sure this handles archives
-    local _dfx_url="${DFX_RELEASE_ROOT}/${_arch}/dfx-latest.tar.gz"
+    local _version
+    _version="$(downloader ${DFX_MANIFEST_JSON_URL} - | get_tag_from_manifest_json latest)" || return 2
+    log "Version found: $_version"
+    local _dfx_url="${DFX_RELEASE_ROOT}/${_version}/${_arch}/dfx-${_version}.tar.gz"
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
@@ -198,6 +234,9 @@ ignore() {
 
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
+# Arguments:
+#   $1 - URL to download.
+#   $2 - Path to output the download. Use - to output to stdout.
 downloader() {
     local _dld
     if check_cmd curl; then
@@ -347,4 +386,4 @@ can be found here [https://sdk.dfinity.org/sdk-license-agreement]. It comes with
     done
 }
 
-main "$@" || exit 1
+main "$@" || exit $?

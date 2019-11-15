@@ -1,18 +1,14 @@
 use crate::config::dfx_version;
+use crate::lib::error::DfxError::CacheError;
+use crate::lib::error::{CacheErrorKind, DfxResult};
 use crate::util;
 use indicatif::{ProgressBar, ProgressDrawTarget};
-use std::io::{Error, ErrorKind, Result};
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
-pub fn get_bin_cache_root() -> Result<PathBuf> {
-    let home = match std::env::var("HOME") {
-        Ok(h) => Ok(h),
-        Err(_) => Err(Error::new(
-            ErrorKind::Other,
-            "Could not find the HOME directory.",
-        )),
-    }?;
+pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
+    let home = std::env::var("HOME")
+        .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
 
     let p = PathBuf::from(home)
         .join(".cache")
@@ -20,36 +16,26 @@ pub fn get_bin_cache_root() -> Result<PathBuf> {
         .join("versions");
 
     if !p.exists() {
-        std::fs::create_dir_all(&p)?;
+        if let Err(e) = std::fs::create_dir_all(&p) {
+            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
+        }
     } else if !p.is_dir() {
-        return Err(Error::new(
-            ErrorKind::Other,
-            "Cache root is not a directory.",
-        ));
+        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
     }
 
     Ok(p)
 }
 
-pub fn get_bin_cache(v: &str) -> Result<PathBuf> {
+pub fn get_bin_cache(v: &str) -> DfxResult<PathBuf> {
     let root = get_bin_cache_root()?;
     Ok(root.join(v))
 }
 
-pub fn is_version_installed(v: &str) -> Result<bool> {
-    match get_bin_cache(v) {
-        Ok(v) => Ok(v.is_dir()),
-        Err(err) => {
-            if err.kind() == ErrorKind::Other {
-                Ok(false)
-            } else {
-                Err(err)
-            }
-        }
-    }
+pub fn is_version_installed(v: &str) -> DfxResult<bool> {
+    get_bin_cache(v).and_then(|c| Ok(c.is_dir()))
 }
 
-pub fn install_version(v: &str) -> Result<PathBuf> {
+pub fn install_version(v: &str) -> DfxResult<PathBuf> {
     let p = get_bin_cache(v)?;
     if is_version_installed(v).unwrap_or(false) {
         return Ok(p);
@@ -88,20 +74,17 @@ pub fn install_version(v: &str) -> Result<PathBuf> {
 
         Ok(p)
     } else {
-        Err(Error::new(
-            ErrorKind::Other,
-            format!("Unknown version: {}", v),
-        ))
+        Err(CacheError(CacheErrorKind::UnknownDfxVersion(v.to_owned())))
     }
 }
 
-pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> Result<PathBuf> {
+pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> DfxResult<PathBuf> {
     install_version(version)?;
 
     Ok(get_bin_cache(version)?.join(binary_name))
 }
 
-pub fn binary_command_from_version(version: &str, name: &str) -> Result<std::process::Command> {
+pub fn binary_command_from_version(version: &str, name: &str) -> DfxResult<std::process::Command> {
     let path = get_binary_path_from_version(version, name)?;
     let cmd = std::process::Command::new(path);
 
