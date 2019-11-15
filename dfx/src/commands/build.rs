@@ -305,8 +305,12 @@ mod tests {
         .expect("Function failed.");
         didl_compile(&env, Path::new("/in/file.mo"), Path::new("/out/file.did"))
             .expect("Function failed");
-        build_did_js(&env, Path::new("/out/file.did"), Path::new("/out/file.did.js"))
-            .expect("Function failed");
+        build_did_js(
+            &env,
+            Path::new("/out/file.did"),
+            Path::new("/out/file.did.js"),
+        )
+        .expect("Function failed");
 
         out_file.flush().expect("Could not flush.");
 
