@@ -41,10 +41,18 @@ pub enum Token {
     RBrace,
     Semi,
     Comma,
+    Colon,
+    Arrow,
     Null,
     Vec,
     Record,
     Variant,
+    Func,
+    Service,
+    Oneway,
+    Query,
+    Type,
+    Import,
     None,
     Opt,
     Id(String),
@@ -196,9 +204,16 @@ impl<'input> Iterator for Lexer<'input> {
             Some((i, '}')) => Some(Ok((i, Token::RBrace, i + 1))),
             Some((i, ';')) => Some(Ok((i, Token::Semi, i + 1))),
             Some((i, ',')) => Some(Ok((i, Token::Comma, i + 1))),
+            Some((i, ':')) => Some(Ok((i, Token::Colon, i + 1))),
             Some((i, '=')) => Some(Ok((i, Token::Equals, i + 1))),
             Some((i, '+')) => Some(Ok((i, Token::Plus, i + 1))),
-            Some((i, '-')) => Some(Ok((i, Token::Minus, i + 1))),
+            Some((i, '-')) => match self.peek() {
+                Some((_, '>')) => {
+                    self.next_char();
+                    Some(Ok((i, Token::Arrow, i + 2)))
+                }
+                _ => Some(Ok((i, Token::Minus, i + 1))),
+            },
             Some((i, '"')) => Some(self.read_string_literal(i)),
             Some((i, c)) if c.is_ascii_digit() => {
                 if let Some((_, 'x')) = self.peek() {
@@ -244,6 +259,12 @@ impl<'input> Iterator for Lexer<'input> {
                     "vec" => Ok((Token::Vec, 3)),
                     "record" => Ok((Token::Record, 6)),
                     "variant" => Ok((Token::Variant, 7)),
+                    "func" => Ok((Token::Func, 4)),
+                    "service" => Ok((Token::Service, 7)),
+                    "oneway" => Ok((Token::Oneway, 6)),
+                    "query" => Ok((Token::Query, 5)),
+                    "type" => Ok((Token::Type, 4)),
+                    "import" => Ok((Token::Import, 6)),
                     id => Ok((Token::Id(id.to_string()), id.len())),
                 };
                 Some(tok.map(|(token, len)| (i, token, i + len)))

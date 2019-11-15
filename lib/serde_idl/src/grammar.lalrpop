@@ -1,4 +1,5 @@
 use crate::value::{IDLField, IDLValue, IDLArgs};
+use crate::types::{IDLType, PrimType, Label, TypeField, FuncType, FuncMode, Binding, Dec, IDLProg};
 use crate::lexer::{Token, LexicalError, TmpIDLField};
 use dfx_info::idl_hash;
 
@@ -18,6 +19,12 @@ extern {
         "vec" => Token::Vec,
         "record" => Token::Record,
         "variant" => Token::Variant,
+        "func" => Token::Func,
+        "service" => Token::Service,
+        "oneway" => Token::Oneway,
+        "query" => Token::Query,
+        "type" => Token::Type,
+        "import" => Token::Import,
         "+" => Token::Plus,
         "-" => Token::Minus,
         "=" => Token::Equals,
@@ -27,9 +34,13 @@ extern {
         "}" => Token::RBrace,
         "," => Token::Comma,
         ";" => Token::Semi,
+        ":" => Token::Colon,
+        "->" => Token::Arrow,
     }
 }
 
+
+// Value
 pub Args: IDLArgs = "(" <SepBy<Arg, ",">> ")" => IDLArgs { args: <> };
 
 Arg: IDLValue = {
@@ -75,6 +86,66 @@ RecordField: TmpIDLField = {
     Arg => TmpIDLField { has_id: false, inner: IDLField { id:0, val:<> } },
 }
 
+// Type
+Typ: IDLType = {
+    PrimTyp => <>,
+    "opt" <Typ> => IDLType::OptT(Box::new(<>)),
+    "vec" <Typ> => IDLType::VecT(Box::new(<>)),
+    "record" "{" <SepBy<FieldTyp, ";">> "}" => IDLType::RecordT(<>),
+    "variant" "{" <SepBy<FieldTyp, ";">> "}" => IDLType::VariantT(<>),
+    "func" <FuncTyp> => IDLType::FuncT(<>),
+    "service" <ActorTyp> => IDLType::ServT(<>),
+}
+
+PrimTyp: IDLType = {
+    "id" => {
+      match PrimType::from_str(&<>) {
+        Some(p) => IDLType::PrimT(p),
+        None => IDLType::VarT(<>),
+      }
+    },
+}
+
+FieldTyp: TypeField = {
+    <n:"number"> ":" <t:Typ> => TypeField { label: Label::Id(n.parse::<u32>().unwrap()), typ: t },
+    <n:Name> ":" <t:Typ> => TypeField { label: Label::Named(n), typ: t },    
+}
+
+FuncTyp: FuncType = {
+    "(" <args:SepBy<Typ, ",">> ")" "->" "(" <rets:SepBy<Typ, ",">> ")" <modes:FuncMode*> =>
+        FuncType { modes, args, rets },
+}
+
+FuncMode: FuncMode = {
+    "oneway" => FuncMode::Oneway,
+    "query" => FuncMode::Query,
+}
+
+ActorTyp: Vec<Binding> = {
+    "{" <SepBy<MethTyp, ";">> "}" => <>
+}
+
+MethTyp: Binding = {
+    <n:Name> ":" <f:FuncTyp> => Binding { id: n, typ: IDLType::FuncT(f) },
+    <n:Name> ":" <id:"id"> => Binding { id: n, typ: IDLType::VarT(id) },
+}
+
+// Type declarations
+Def: Dec = {
+    "type" <id:"id"> "=" <t:Typ> => Dec::TypD(Binding { id: id, typ: t }),
+    "import" <"text"> => Dec::ImportD(<>),
+}
+
+Actor: Binding = {
+    "service" <id:"id"> <t:ActorTyp> => Binding { id: id, typ: IDLType::ServT(t) },
+    "service" <id:"id"> ":" <t:"id"> => Binding { id: id, typ: IDLType::VarT(t) },
+}
+
+pub IDLProg: IDLProg = {
+    <decs:SepBy<Def, ";">> <actor:Actor?> => IDLProg { decs, actor }
+}
+
+// Common util
 Name: String = {
     "id" => <>,
     "text" => <>,
