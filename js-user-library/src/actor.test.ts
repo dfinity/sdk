@@ -1,6 +1,6 @@
 import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
-import { CanisterId } from "./canisterId";
+import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";
 import { Hex } from "./hex";
 import { Nonce } from "./nonce";
@@ -82,7 +82,7 @@ test("makeActor", async () => {
   const expectedCallRequest = {
     request_type: "call" as RequestType,
     nonce: nonces[0],
-    canister_id: new CanisterId(canisterIdent),
+    canister_id: canisterId.fromHex(canisterIdent),
     method_name: methodName,
     arg,
     sender_pubkey: senderPubKey,

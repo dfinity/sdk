@@ -1,6 +1,6 @@
 import { createKeyPairFromSeed, sign, verify } from "./auth";
 import { BinaryBlob } from "./blob";
-import { CanisterId } from "./canisterId";
+import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";
 import { Hex } from "./hex";
 import { makeHttpAgent } from "./index";
@@ -48,7 +48,7 @@ test("call", async () => {
   const mockPartialRequest: CommonFields = {
     request_type: "call" as RequestType,
     nonce,
-    canister_id: new CanisterId(canisterIdent),
+    canister_id: canisterId.fromHex(canisterIdent),
     method_name: methodName,
     // We need a request id for the signature and at the same time we
     // are checking that signature does not impact the request id.
@@ -126,7 +126,7 @@ test("requestStatus", async () => {
   const requestId = await requestIdOf({
     request_type: "call" as RequestType,
     nonce,
-    canister_id: new CanisterId(canisterIdent),
+    canister_id: canisterId.fromHex(canisterIdent),
     method_name: "greet",
     arg: Uint8Array.from([]),
   });

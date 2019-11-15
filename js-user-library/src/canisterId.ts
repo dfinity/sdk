@@ -1,16 +1,16 @@
+import borc from "borc";
+import * as blob from "./blob";
+import { CborTag } from "./cbor";
 import { Hex } from "./hex";
 
-// Canister IDs are represented as u64. We use `borc` for CBOR encoding and
-// decoding, which supports `bignumber.js` out of the box.
-export class CanisterId {
-  public hex: Hex;
+// Canister IDs are represented as u64 in the HTTP handler of the client.
+export type CanisterId = borc.Tagged & { __canisterID__: void };
 
-  constructor(hex: Hex) {
-    this.hex = hex;
-  }
+export const fromHex = (hex: Hex): CanisterId => {
+  return new borc.Tagged(
+    CborTag.Uint64LittleEndian,
+    blob.fromHex(hex),
+  ) as CanisterId;
+};
 
-  public encodeCBOR(gen: { pushAny: (_: any) => boolean }) {
-    // TODO: encode
-    return gen.pushAny(this.hex);
-  }
-}
+export const toHex = (id: CanisterId) => blob.toHex(id.value);
