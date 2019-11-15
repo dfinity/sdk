@@ -305,7 +305,7 @@ mod tests {
         .expect("Function failed.");
         didl_compile(&env, Path::new("/in/file.mo"), Path::new("/out/file.did"))
             .expect("Function failed");
-        build_did_js(&env, Path::new("/out/file.did"), Path::new("/out/file.js"))
+        build_did_js(&env, Path::new("/out/file.did"), Path::new("/out/file.did.js"))
             .expect("Function failed");
         // TODO: build_canister_js
 
@@ -320,7 +320,7 @@ mod tests {
             s.trim(),
             r#"moc /in/file.mo --debug -o /out/file.wasm --package stdlib stdlib
                 moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib
-                didc --js /out/file.did -o /out/file.js"#
+                didc --js /out/file.did -o /out/file.did.js"#
                 .replace("                ", "")
         );
     }
