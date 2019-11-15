@@ -1,3 +1,8 @@
+# The goal of this nix-shell is to provide a somewhat clean environment for the
+# state of the SDK as it exists on the current branch. We do this by not
+# relying on, or modifying, any global paths where the SDK may have previously
+# been installed.
+
 let pkgs = (import ../../.. {}).pkgs; in
 let sdk = pkgs.dfinity-sdk.packages; in
 
@@ -12,8 +17,15 @@ pkgs.mkShell {
     set -e
     export HOME=$(mktemp -d)
 
+    # Temporarily remove the "dfx" field in dfx.json so that we can use the
+    # version of dfx in the rust workspace. Otherwise, dfx can complain that a
+    # version matching the project can't be found. Preferably we would set this
+    # to the version reported by `dfx --version` but can't due to SDK-613.
+    version=$(dfx config dfx)
+    dfx config dfx null
+
     # Ideally we would depend on pkgs.dfinity-sdk.js-user-library, and changes
-    # there would trigger a rebuild.
+    # there would trigger a rebuild when entering this shell.
     pushd ../..
     npm install
     npm run bundle
@@ -28,7 +40,7 @@ pkgs.mkShell {
 
     dfx start --background
     dfx build hello
-    dfx canister install $(jq --raw-output '.canisters.hello.deployment_id' dfx.json) canisters/hello/main.wasm
+    dfx canister install hello
 
     npm run bundle
 
@@ -38,7 +50,8 @@ pkgs.mkShell {
 
     # Clean up before we exit the shell
     trap "{ \
-      killall dfx nodemanager client
+      dfx stop; \
+      dfx config dfx "''${version}"; \
       exit 255; \
     }" EXIT
   '';
