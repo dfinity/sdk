@@ -3,8 +3,7 @@ use crate::config::{cache, dfx_version};
 use crate::lib::api_client::{Client, ClientConfig};
 use crate::lib::error::DfxResult;
 use std::cell::RefCell;
-use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// An environment that contains the platform and general environment.
 pub trait PlatformEnv {
@@ -13,20 +12,21 @@ pub trait PlatformEnv {
 
 /// An environment that manages the global binary cache.
 pub trait BinaryCacheEnv {
-    fn is_installed(&self) -> io::Result<bool>;
-    fn install(&self) -> io::Result<()>;
+    fn is_installed(&self) -> DfxResult<bool>;
+    fn install(&self) -> DfxResult<()>;
 }
 
 /// An environment that can resolve binaries from the user-level cache.
 pub trait BinaryResolverEnv {
-    fn get_binary_command_path(&self, binary_name: &str) -> io::Result<PathBuf>;
-    fn get_binary_command(&self, binary_name: &str) -> io::Result<std::process::Command>;
+    fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf>;
+    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command>;
 }
 
 /// An environment that can get the project configuration.
 pub trait ProjectConfigEnv {
     fn is_in_project(&self) -> bool;
     fn get_config(&self) -> Option<&Config>;
+    fn get_dfx_root(&self) -> Option<&Path>;
 }
 
 /// An environment that can create clients from environment.
@@ -43,6 +43,7 @@ pub trait VersionEnv {
 pub struct InProjectEnvironment {
     version: String,
     config: Config,
+    temp_dir: PathBuf,
     client: RefCell<Option<Client>>,
 }
 
@@ -54,19 +55,19 @@ impl PlatformEnv for InProjectEnvironment {
 }
 
 impl BinaryCacheEnv for InProjectEnvironment {
-    fn is_installed(&self) -> io::Result<bool> {
+    fn is_installed(&self) -> DfxResult<bool> {
         cache::is_version_installed(self.version.as_str())
     }
-    fn install(&self) -> io::Result<()> {
+    fn install(&self) -> DfxResult<()> {
         cache::install_version(self.version.as_str()).map(|_| ())
     }
 }
 
 impl BinaryResolverEnv for InProjectEnvironment {
-    fn get_binary_command_path(&self, binary_name: &str) -> io::Result<PathBuf> {
+    fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf> {
         cache::get_binary_path_from_version(self.version.as_str(), binary_name)
     }
-    fn get_binary_command(&self, binary_name: &str) -> io::Result<std::process::Command> {
+    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command> {
         cache::binary_command_from_version(self.version.as_str(), binary_name)
     }
 }
@@ -77,6 +78,9 @@ impl ProjectConfigEnv for InProjectEnvironment {
     }
     fn get_config(&self) -> Option<&Config> {
         Some(&self.config)
+    }
+    fn get_dfx_root(&self) -> Option<&Path> {
+        Some(&self.temp_dir)
     }
 }
 
@@ -111,6 +115,8 @@ impl VersionEnv for InProjectEnvironment {
 impl InProjectEnvironment {
     pub fn from_current_dir() -> DfxResult<InProjectEnvironment> {
         let config = Config::from_current_dir()?;
+        let temp_dir = config.get_path().parent().unwrap().join(".dfx");
+        std::fs::create_dir_all(&temp_dir)?;
 
         Ok(InProjectEnvironment {
             version: config
@@ -118,6 +124,7 @@ impl InProjectEnvironment {
                 .get_dfx()
                 .unwrap_or_else(|| dfx_version().to_owned()),
             config,
+            temp_dir,
             client: RefCell::new(None),
         })
     }
@@ -134,19 +141,19 @@ impl PlatformEnv for GlobalEnvironment {
 }
 
 impl BinaryCacheEnv for GlobalEnvironment {
-    fn is_installed(&self) -> io::Result<bool> {
+    fn is_installed(&self) -> DfxResult<bool> {
         cache::is_version_installed(self.version.as_str())
     }
-    fn install(&self) -> io::Result<()> {
+    fn install(&self) -> DfxResult<()> {
         cache::install_version(self.version.as_str()).map(|_| ())
     }
 }
 
 impl BinaryResolverEnv for GlobalEnvironment {
-    fn get_binary_command_path(&self, binary_name: &str) -> std::io::Result<PathBuf> {
+    fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf> {
         cache::get_binary_path_from_version(self.version.as_str(), binary_name)
     }
-    fn get_binary_command(&self, binary_name: &str) -> std::io::Result<std::process::Command> {
+    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command> {
         cache::binary_command_from_version(self.version.as_str(), binary_name)
     }
 }
@@ -156,6 +163,9 @@ impl ProjectConfigEnv for GlobalEnvironment {
         false
     }
     fn get_config(&self) -> Option<&Config> {
+        None
+    }
+    fn get_dfx_root(&self) -> Option<&Path> {
         None
     }
 }

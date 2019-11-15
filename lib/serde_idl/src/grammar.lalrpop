@@ -49,7 +49,7 @@ Arg: IDLValue = {
 }
 
 Field: IDLField = {
-    <n:"int_literal"> "=" <v:Arg> => IDLField { id: n as u32, val: v },
+    <n:"nat_literal"> "=" <v:Arg> => IDLField { id: n as u32, val: v },
     <n:"label"> "=" <v:Arg> => IDLField { id: idl_hash(&n), val: v },
 }
 

@@ -37,7 +37,7 @@ fn parse_more_literals() {
         vec![
             IDLValue::Bool(true),
             IDLValue::Null,
-            IDLValue::Int(42),
+            IDLValue::Nat(42),
             IDLValue::Text("random".to_owned()),
             IDLValue::Text("string with whitespace".to_owned()),
             IDLValue::Int(42),
@@ -47,7 +47,7 @@ fn parse_more_literals() {
     );
     assert_eq!(
         format!("{}", args),
-        "(true, null, 42, \"random\", \"string with whitespace\", 42, -42, false)"
+        "(true, null, 42, \"random\", \"string with whitespace\", +42, -42, false)"
     );
 }
 
@@ -57,10 +57,10 @@ fn parse_vec() {
     assert_eq!(
         args.args,
         vec![IDLValue::Vec(vec![
-            IDLValue::Int(1),
-            IDLValue::Int(2),
-            IDLValue::Int(3),
-            IDLValue::Int(4)
+            IDLValue::Nat(1),
+            IDLValue::Nat(2),
+            IDLValue::Nat(3),
+            IDLValue::Nat(4)
         ])]
     );
     assert_eq!(format!("{}", args), "(vec { 1; 2; 3; 4; })");
@@ -77,7 +77,7 @@ fn parse_optional_record() {
             IDLValue::Record(vec![
                 IDLField {
                     id: 1,
-                    val: IDLValue::Int(42)
+                    val: IDLValue::Nat(42)
                 },
                 IDLField {
                     id: 2,
@@ -127,7 +127,7 @@ fn parse_nested_record() {
             },
             IDLField {
                 id: 1_873_743_348,
-                val: IDLValue::Int(42)
+                val: IDLValue::Nat(42)
             }
         ])]
     );

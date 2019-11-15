@@ -11,29 +11,29 @@ setup() {
 }
 
 teardown() {
-    # Kill the node manager, the dfx and the client. Ignore errors (ie. if processes aren't
-    # running).
-    killall dfx nodemanager client |& sed 's/^/killall: /' || true
+    dfx stop
+
+    # Verify that processes are killed.
+    ! ( ps | grep \ dfx\ start )
 }
 
 @test "build + install + call + request-status -- greet_mo" {
     install_asset greet_mo
     dfx_start
     dfx build
-    INSTALL_REQUEST_ID=$(dfx canister install 1 canisters/greet.wasm)
+    INSTALL_REQUEST_ID=$(dfx canister install hello --async)
     dfx canister request-status $INSTALL_REQUEST_ID
 
-    assert_command dfx canister query 1 greet '("Banzai")'
+    assert_command dfx canister query hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
 
-    # Using call --wait.
-    assert_command dfx canister call --wait 1 greet '("Bongalo")'
+    assert_command dfx canister call hello greet '("Bongalo")'
     assert_eq '("Hello, Bongalo!")'
 
-    # Using call and request-status.
-    assert_command dfx canister call 1 greet '("Blueberry")'
+    # Using call --async and request-status.
+    assert_command dfx canister call --async hello greet '("Blueberry")'
     # At this point $output is the request ID.
-    assert_command dfx canister request-status $output
+    assert_command dfx canister request-status $stdout
     assert_eq '("Hello, Blueberry!")'
 }
 
@@ -49,68 +49,68 @@ teardown() {
     # 64 times. This is important because query returns a byte, and 64 is
     # "A" in UTF8. We then just compare and work around the alphabet.
     for _x in {0..64}; do
-        dfx canister call --wait 42 write
+        dfx canister call 42 write
     done
 
     run dfx canister query 42 read
-    [[ "$output" == "A" ]]
+    [[ "$stdout" == "A" ]]
     run dfx canister query 42 read
-    [[ "$output" == "A" ]]
+    [[ "$stdout" == "A" ]]
 
-    dfx canister call --wait 42 write
+    dfx canister call 42 write
     run dfx canister query 42 read
-    [[ "$output" == "B" ]]
+    [[ "$stdout" == "B" ]]
 
-    dfx canister call --wait 42 write
+    dfx canister call 42 write
     run dfx canister query 42 read
-    [[ "$output" == "C" ]]
+    [[ "$stdout" == "C" ]]
 
-    run dfx canister call 42 write
+    run dfx canister call 42 write --async
     [[ $status == 0 ]]
-    dfx canister request-status $output
+    dfx canister request-status $stdout
     [[ $status == 0 ]]
 
     # Write has no return value. But we can _call_ read too.
-    run dfx canister call 42 read
+    run dfx canister call 42 read --async
     [[ $status == 0 ]]
-    run dfx canister request-status $output
+    run dfx canister request-status $stdout
     [[ $status == 0 ]]
-    [[ "$output" == "D" ]]
+    [[ "$stdout" == "D" ]]
 }
 
 @test "build + install + call + request-status -- counter_mo" {
     install_asset counter_mo
     dfx_start
     dfx build
-    dfx canister install 1 canisters/counter.wasm --wait
+    dfx canister install hello
 
-    assert_command dfx canister call 1 read --wait
+    assert_command dfx canister call hello read
     assert_eq "(0)"
 
-    assert_command dfx canister call 1 inc --wait
+    assert_command dfx canister call hello inc
     assert_eq "()"
 
-    assert_command dfx canister query 1 read
+    assert_command dfx canister query hello read
     assert_eq "(1)"
 
-    dfx canister call --wait 1 inc
-    assert_command dfx canister query 1 read
+    dfx canister call hello inc
+    assert_command dfx canister query hello read
     assert_eq "(2)"
 
-    dfx canister call --wait 1 inc
-    assert_command dfx canister query 1 read
+    dfx canister call hello inc
+    assert_command dfx canister query hello read
     assert_eq "(3)"
 
-    assert_command dfx canister call 1 inc
-    assert_command dfx canister request-status $output
+    assert_command dfx canister call hello inc --async
+    assert_command dfx canister request-status $stdout
 
     # Call write.
-    assert_command dfx canister call 1 write --type=number 1337 --wait
+    assert_command dfx canister call hello write '(1337)'
     assert_eq "()"
 
     # Write has no return value. But we can _call_ read too.
-    assert_command dfx canister call 1 read
-    assert_command dfx canister request-status $output
+    assert_command dfx canister call hello read --async
+    assert_command dfx canister request-status $stdout
     assert_eq "(1337)"
 }
 
@@ -118,8 +118,8 @@ teardown() {
     install_asset counter_idl_mo
     dfx_start
     dfx build
-    dfx canister install 1 canisters/counter_idl.wasm --wait
+    dfx canister install --all
 
-    assert_command dfx canister call 1 inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=43; tail=none}})' --wait
-    assert_eq "(43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = 43; 1291237008 = opt record { 1158359328 = 44; 1291237008 = none; }; })"
+    assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=none}})'
+    assert_eq "(+43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = +43; 1291237008 = opt record { 1158359328 = +44; 1291237008 = none; }; })"
 }
