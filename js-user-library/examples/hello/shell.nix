@@ -15,7 +15,8 @@ pkgs.mkShell {
   ];
   shellHook = ''
     set -e
-    export HOME=$(mktemp -d)
+    temp_home=$(mktemp -d)
+    export HOME="$temp_home"
 
     # Temporarily remove the "dfx" field in dfx.json so that we can use the
     # version of dfx in the rust workspace. Otherwise, dfx can complain that a
@@ -34,9 +35,11 @@ pkgs.mkShell {
     npm install
 
     # Hack to make sure that binaries are installed
-    pushd $(mktemp -d)
+    temp_project=$(mktemp -d)
+    pushd "$temp_project"
     dfx new temp &> /dev/null
     popd
+    rm -rf "$temp_project"
 
     dfx start --background
     dfx build hello
@@ -52,6 +55,7 @@ pkgs.mkShell {
     trap "{ \
       dfx stop; \
       dfx config dfx "''${version}"; \
+      rm -rf "$temp_home"; \
       exit 255; \
     }" EXIT
   '';
