@@ -34,6 +34,9 @@ export const encode = (value: CborValue): BinaryBlob => {
   const buffer = borc.encode(
     new borc.Tagged(CborTag.Semantic, value),
   );
+  if (buffer == null) {
+    throw new Error(`Unable to encode value: ${value}`);
+  }
   return new Uint8Array(buffer) as BinaryBlob;
 };
 
