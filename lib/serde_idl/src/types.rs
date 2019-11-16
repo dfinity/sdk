@@ -137,15 +137,9 @@ impl IDLType {
             IDLType::FuncT(func) => Doc::text("func").append(Doc::space()).append(func.to_doc()),
             IDLType::OptT(ref t) => Doc::text("opt").append(Doc::space()).append(t.to_doc()),
             IDLType::VecT(ref t) => Doc::text("vec").append(Doc::space()).append(t.to_doc()),
-            IDLType::RecordT(ref fs) => Doc::text("record")
-                .append(Doc::space())
-                .append(fields_to_doc(fs)),
-            IDLType::VariantT(ref fs) => Doc::text("variant")
-                .append(Doc::space())
-                .append(fields_to_doc(fs)),
-            IDLType::ServT(ref serv) => Doc::text("service")
-                .append(Doc::space())
-                .append(meths_to_doc(serv)),
+            IDLType::RecordT(ref fs) => Doc::text("record ").append(fields_to_doc(fs)),
+            IDLType::VariantT(ref fs) => Doc::text("variant ").append(fields_to_doc(fs)),
+            IDLType::ServT(ref serv) => Doc::text("service ").append(meths_to_doc(serv)),
         }
         .nest(2)
         .group()
@@ -184,6 +178,7 @@ fn fields_to_doc(fields: &[TypeField]) -> Doc<BoxDoc<()>> {
             .nest(2)
             .group(),
         )
+        .append(Doc::space())
         .append(Doc::text("}"))
 }
 
@@ -191,8 +186,10 @@ fn meths_to_doc(meths: &[Binding]) -> Doc<BoxDoc<()>> {
     Doc::text("{")
         .append(
             Doc::concat(meths.iter().map(|meth| {
-                let doc =
-                    Doc::space().append(Doc::text(format!("{}:", meth.id)).append(Doc::space()));
+                let doc = Doc::newline().append(
+                    // good
+                    Doc::text(format!("{}:", meth.id)).append(Doc::space()),
+                );
                 let doc = match meth.typ {
                     IDLType::VarT(ref var) => doc.append(Doc::text(var)),
                     IDLType::FuncT(ref func) => doc.append(func.to_doc()),
@@ -204,6 +201,7 @@ fn meths_to_doc(meths: &[Binding]) -> Doc<BoxDoc<()>> {
             }))
             .group(),
         )
+        .append(Doc::space())
         .append(Doc::text("}"))
 }
 
