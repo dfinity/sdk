@@ -2,28 +2,31 @@ extern crate serde_idl;
 
 use serde_idl::grammar::IDLProgParser;
 use serde_idl::lexer::Lexer;
-use serde_idl::types::*;
-use serde_idl::value::ParserError;
+use serde_idl::types::IDLProg;
 
 fn parse_idl(input: &str) -> IDLProg {
     let lexer = Lexer::new(input);
     IDLProgParser::new().parse(lexer).unwrap()
 }
 
-fn parse_idl_err(input: &str) -> Result<IDLProg, ParserError> {
-    let lexer = Lexer::new(input);
-    IDLProgParser::new().parse(lexer)
-}
-
 #[test]
 fn parse_idl_prog() {
     let prog = r#"
+import "test.did";
 type my_type = nat;
+type List = record { head: int; tail: List };
+type broker = service {
+  find : (text) ->
+    (service {up:() -> (); current:() -> (nat)});
+};
+
 service server {
-  f : (nat) -> ();
-  g : (my_type) -> (int) query;
+  f : (nat, opt bool) -> () oneway;
+  g : (my_type, List, opt List) -> (int) query;
+  h : (vec opt text, variant { A: nat; B: opt text }) -> (record { id: nat; 0x2a: record {} });
 }
     "#;
     let ast = parse_idl(&prog);
-    assert_eq!(format!("{}", ast), "", "\n\n{}\n", ast);
+    let output = ast.to_pretty(80);
+    assert_eq!(output, "", "\n\n{}\n", output);
 }

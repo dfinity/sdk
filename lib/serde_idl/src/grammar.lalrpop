@@ -108,7 +108,7 @@ PrimTyp: IDLType = {
 
 FieldTyp: TypeField = {
     <n:"number"> ":" <t:Typ> => TypeField { label: Label::Id(n.parse::<u32>().unwrap()), typ: t },
-    <n:Name> ":" <t:Typ> => TypeField { label: Label::Named(n), typ: t },    
+    <n:Name> ":" <t:Typ> => TypeField { label: Label::Named(n), typ: t },
 }
 
 FuncTyp: FuncType = {
