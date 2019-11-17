@@ -99,7 +99,7 @@ Typ: IDLType = {
 
 PrimTyp: IDLType = {
     "id" => {
-      match PrimType::from_str(&<>) {
+      match PrimType::str_to_enum(&<>) {
         Some(p) => IDLType::PrimT(p),
         None => IDLType::VarT(<>),
       }

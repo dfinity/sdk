@@ -1,6 +1,5 @@
 extern crate pretty;
 use self::pretty::{BoxDoc, Doc};
-use std::fmt;
 
 #[derive(Debug)]
 pub enum IDLType {
@@ -14,7 +13,31 @@ pub enum IDLType {
     ServT(Vec<Binding>),
 }
 
-#[derive(Debug)]
+macro_rules! enum_to_doc {
+    (pub enum $name:ident {
+        $($variant:ident),*,
+    }) => {
+        #[derive(Debug)]
+        pub enum $name {
+            $($variant),*
+        }
+        impl $name {
+            fn to_doc(&self) -> Doc<BoxDoc<()>> {
+                match self {
+                    $($name::$variant => Doc::text(stringify!($variant).to_lowercase())),*
+                }
+            }
+            pub fn str_to_enum(str: &str) -> Option<Self> {
+                $(if str == stringify!($variant).to_lowercase() {
+                    return Some($name::$variant);
+                });*
+                return None;
+            }
+        }
+    };
+}
+
+enum_to_doc! {
 pub enum PrimType {
     Nat,
     Int,
@@ -23,28 +46,13 @@ pub enum PrimType {
     Null,
     Reserved,
     Empty,
-}
+}}
 
-impl PrimType {
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "nat" => Some(PrimType::Nat),
-            "int" => Some(PrimType::Int),
-            "bool" => Some(PrimType::Bool),
-            "text" => Some(PrimType::Text),
-            "null" => Some(PrimType::Null),
-            "reserved" => Some(PrimType::Reserved),
-            "empty" => Some(PrimType::Empty),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Debug)]
+enum_to_doc! {
 pub enum FuncMode {
     Oneway,
     Query,
-}
+}}
 
 #[derive(Debug)]
 pub struct FuncType {
@@ -120,19 +128,19 @@ impl Dec {
 }
 
 impl Binding {
-    pub fn to_doc(&self) -> Doc<BoxDoc<()>> {
+    fn to_doc(&self) -> Doc<BoxDoc<()>> {
         Doc::text(format!("{} =", self.id))
             .append(Doc::space())
             .append(self.typ.to_doc())
             .nest(2)
-            .group() // good
+            .group()
     }
 }
 
 impl IDLType {
     pub fn to_doc(&self) -> Doc<BoxDoc<()>> {
         match self {
-            IDLType::PrimT(p) => Doc::as_string(format!("{:?}", p)),
+            IDLType::PrimT(p) => p.to_doc(),
             IDLType::VarT(var) => Doc::text(var),
             IDLType::FuncT(func) => Doc::text("func").append(Doc::space()).append(func.to_doc()),
             IDLType::OptT(ref t) => Doc::text("opt").append(Doc::space()).append(t.to_doc()),
@@ -146,24 +154,18 @@ impl IDLType {
     }
 }
 
-impl fmt::Display for Label {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Label::Id(n) => write!(f, "{}", n),
-            Label::Named(name) => write!(f, "{}", name),
-            Label::Unnamed(n) => write!(f, "{}", n),
-        }
-    }
-}
-
 impl TypeField {
     fn to_doc(&self) -> Doc<BoxDoc<()>> {
-        Doc::as_string(&self.label)
-            .append(Doc::text(":"))
+        let doc = match &self.label {
+            Label::Id(n) => Doc::as_string(n),
+            Label::Named(name) => Doc::text(name),
+            Label::Unnamed(_) => Doc::nil(),
+        };
+        doc.append(Doc::text(":"))
             .append(Doc::space())
             .append(self.typ.to_doc())
             .nest(2)
-            .group() // good
+            .group()
     }
 }
 
@@ -184,23 +186,17 @@ fn fields_to_doc(fields: &[TypeField]) -> Doc<BoxDoc<()>> {
 
 fn meths_to_doc(meths: &[Binding]) -> Doc<BoxDoc<()>> {
     Doc::text("{")
-        .append(
-            Doc::concat(meths.iter().map(|meth| {
-                let doc = Doc::newline().append(
-                    // good
-                    Doc::text(format!("{}:", meth.id)).append(Doc::space()),
-                );
-                let doc = match meth.typ {
-                    IDLType::VarT(ref var) => doc.append(Doc::text(var)),
-                    IDLType::FuncT(ref func) => doc.append(func.to_doc()),
-                    _ => unreachable!(),
-                }
-                .nest(2)
-                .group(); // good
-                doc.append(Doc::text(";"))
-            }))
-            .group(),
-        )
+        .append(Doc::concat(meths.iter().map(|meth| {
+            let doc = Doc::newline().append(Doc::text(format!("{}:", meth.id)));
+            let doc = match meth.typ {
+                IDLType::VarT(ref var) => doc.append(Doc::space().append(Doc::text(var))),
+                IDLType::FuncT(ref func) => doc.append(Doc::space().append(func.to_doc()).nest(2)),
+                _ => unreachable!(),
+            }
+            .nest(2)
+            .group();
+            doc.append(Doc::text(";"))
+        })))
         .append(Doc::space())
         .append(Doc::text("}"))
 }
@@ -212,6 +208,7 @@ fn args_to_doc(args: &[IDLType]) -> Doc<BoxDoc<()>> {
                 args.iter().map(|arg| arg.to_doc()),
                 Doc::text(",").append(Doc::space()),
             )
+            .nest(1)
             .group(),
         )
         .append(")")
@@ -221,11 +218,10 @@ impl FuncType {
     fn to_doc(&self) -> Doc<BoxDoc<()>> {
         args_to_doc(&self.args)
             .append(Doc::space())
-            .append(Doc::text("->"))
-            .append(Doc::space())
+            .append(Doc::text("-> "))
             .append(args_to_doc(&self.rets))
             .append(Doc::concat(
-                self.modes.iter().map(|m| Doc::text(format!(" {:?}", m))),
+                self.modes.iter().map(|m| Doc::space().append(m.to_doc())),
             ))
     }
 }
