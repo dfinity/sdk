@@ -137,6 +137,7 @@ in {
     shells = {
       js-user-library = import ../../js-user-library/shell.nix { pkgs = self; };
       rust-workspace = import ../rust-shell.nix { pkgs = self; };
+      e2e-tests = import ../../e2e/shell.nix { pkgs = self; };
     };
 
     licenses = {
