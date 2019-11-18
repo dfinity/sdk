@@ -7,7 +7,7 @@ let src = builtins.fetchGit {
   rev = "c1d1a41c52437fe2fce2d4ce8a9ebe19c83a39e5";
 }; in
 
-let motoko = import src { nixpkgs = self; }; in
+let motoko = import src { }; in
 
 {
   motoko = motoko // {
