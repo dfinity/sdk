@@ -23,7 +23,7 @@ macro_rules! enum_to_doc {
             $($variant),*
         }
         impl $name {
-            fn to_doc(&self) -> Doc<BoxDoc<()>> {
+            fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
                 match self {
                     $($name::$variant => Doc::text(stringify!($variant).to_lowercase())),*
                 }
@@ -114,7 +114,7 @@ pub struct IDLProg {
 }
 
 impl IDLProg {
-    pub fn to_doc(&self) -> Doc<BoxDoc<()>> {
+    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         let doc = Doc::concat(
             self.decs
                 .iter()
@@ -140,7 +140,7 @@ impl IDLProg {
 }
 
 impl Dec {
-    pub fn to_doc(&self) -> Doc<BoxDoc<()>> {
+    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         match *self {
             Dec::TypD(ref b) => Doc::text("type ").append(b.to_doc()),
             Dec::ImportD(ref file) => Doc::text(format!("import \"{}\"", file)),
@@ -149,7 +149,7 @@ impl Dec {
 }
 
 impl Binding {
-    fn to_doc(&self) -> Doc<BoxDoc<()>> {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         Doc::text(format!("{} =", self.id))
             .append(Doc::space())
             .append(self.typ.to_doc())
@@ -159,7 +159,7 @@ impl Binding {
 }
 
 impl IDLType {
-    pub fn to_doc(&self) -> Doc<BoxDoc<()>> {
+    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         match self {
             IDLType::PrimT(p) => p.to_doc(),
             IDLType::VarT(var) => Doc::text(var),
@@ -176,7 +176,7 @@ impl IDLType {
 }
 
 impl FuncType {
-    fn to_doc(&self) -> Doc<BoxDoc<()>> {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         args_to_doc(&self.args)
             .append(Doc::space())
             .append(Doc::text("-> "))
@@ -188,7 +188,7 @@ impl FuncType {
 }
 
 impl TypeField {
-    fn to_doc(&self) -> Doc<BoxDoc<()>> {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         let colon = Doc::text(":").append(Doc::space());
         let doc = match &self.label {
             Label::Id(n) => Doc::as_string(n).append(colon),
@@ -199,7 +199,7 @@ impl TypeField {
     }
 }
 
-fn fields_to_doc(fields: &[TypeField]) -> Doc<BoxDoc<()>> {
+fn fields_to_doc(fields: &[TypeField]) -> Doc<'_, BoxDoc<'_, ()>> {
     Doc::text("{")
         .append(
             Doc::concat(
@@ -214,7 +214,7 @@ fn fields_to_doc(fields: &[TypeField]) -> Doc<BoxDoc<()>> {
         .append(Doc::text("}"))
 }
 
-fn meths_to_doc(meths: &[Binding]) -> Doc<BoxDoc<()>> {
+fn meths_to_doc(meths: &[Binding]) -> Doc<'_, BoxDoc<'_, ()>> {
     Doc::text("{")
         .append(Doc::concat(meths.iter().map(|meth| {
             let doc = Doc::newline().append(Doc::text(format!("{}:", meth.id)));
@@ -231,7 +231,7 @@ fn meths_to_doc(meths: &[Binding]) -> Doc<BoxDoc<()>> {
         .append(Doc::text("}"))
 }
 
-fn args_to_doc(args: &[IDLType]) -> Doc<BoxDoc<()>> {
+fn args_to_doc(args: &[IDLType]) -> Doc<'_, BoxDoc<'_, ()>> {
     Doc::text("(")
         .append(
             Doc::intersperse(
