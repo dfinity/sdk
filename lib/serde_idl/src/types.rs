@@ -1,7 +1,8 @@
 extern crate pretty;
 use self::pretty::{BoxDoc, Doc};
+use dfx_info::idl_hash;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IDLType {
     PrimT(PrimType),
     VarT(String),
@@ -17,7 +18,7 @@ macro_rules! enum_to_doc {
     (pub enum $name:ident {
         $($variant:ident),*,
     }) => {
-        #[derive(Debug)]
+        #[derive(Debug, Clone)]
         pub enum $name {
             $($variant),*
         }
@@ -40,7 +41,17 @@ macro_rules! enum_to_doc {
 enum_to_doc! {
 pub enum PrimType {
     Nat,
+    Nat8,
+    Nat16,
+    Nat32,
+    Nat64,
     Int,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
     Bool,
     Text,
     Null,
@@ -54,21 +65,31 @@ pub enum FuncMode {
     Query,
 }}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FuncType {
     pub modes: Vec<FuncMode>,
     pub args: Vec<IDLType>,
     pub rets: Vec<IDLType>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Label {
     Id(u32),
     Named(String),
     Unnamed(u32),
 }
 
-#[derive(Debug)]
+impl Label {
+    pub fn get_id(&self) -> u32 {
+        match *self {
+            Label::Id(n) => n,
+            Label::Named(ref n) => idl_hash(n),
+            Label::Unnamed(n) => n,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct TypeField {
     pub label: Label,
     pub typ: IDLType,
@@ -80,7 +101,7 @@ pub enum Dec {
     ImportD(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Binding {
     pub id: String,
     pub typ: IDLType,
@@ -154,18 +175,27 @@ impl IDLType {
     }
 }
 
+impl FuncType {
+    fn to_doc(&self) -> Doc<BoxDoc<()>> {
+        args_to_doc(&self.args)
+            .append(Doc::space())
+            .append(Doc::text("-> "))
+            .append(args_to_doc(&self.rets))
+            .append(Doc::concat(
+                self.modes.iter().map(|m| Doc::space().append(m.to_doc())),
+            ))
+    }
+}
+
 impl TypeField {
     fn to_doc(&self) -> Doc<BoxDoc<()>> {
+        let colon = Doc::text(":").append(Doc::space());
         let doc = match &self.label {
-            Label::Id(n) => Doc::as_string(n),
-            Label::Named(name) => Doc::text(name),
+            Label::Id(n) => Doc::as_string(n).append(colon),
+            Label::Named(name) => Doc::text(name).append(colon),
             Label::Unnamed(_) => Doc::nil(),
         };
-        doc.append(Doc::text(":"))
-            .append(Doc::space())
-            .append(self.typ.to_doc())
-            .nest(2)
-            .group()
+        doc.append(self.typ.to_doc()).nest(2).group()
     }
 }
 
@@ -212,16 +242,4 @@ fn args_to_doc(args: &[IDLType]) -> Doc<BoxDoc<()>> {
             .group(),
         )
         .append(")")
-}
-
-impl FuncType {
-    fn to_doc(&self) -> Doc<BoxDoc<()>> {
-        args_to_doc(&self.args)
-            .append(Doc::space())
-            .append(Doc::text("-> "))
-            .append(args_to_doc(&self.rets))
-            .append(Doc::concat(
-                self.modes.iter().map(|m| Doc::space().append(m.to_doc())),
-            ))
-    }
 }

@@ -23,6 +23,7 @@ extern {
         "service" => Token::Service,
         "oneway" => Token::Oneway,
         "query" => Token::Query,
+        "blob" => Token::Blob,
         "type" => Token::Type,
         "import" => Token::Import,
         "+" => Token::Plus,
@@ -91,13 +92,30 @@ Typ: IDLType = {
     PrimTyp => <>,
     "opt" <Typ> => IDLType::OptT(Box::new(<>)),
     "vec" <Typ> => IDLType::VecT(Box::new(<>)),
-    "record" "{" <SepBy<FieldTyp, ";">> "}" => IDLType::RecordT(<>),
-    "variant" "{" <SepBy<FieldTyp, ";">> "}" => IDLType::VariantT(<>),
+    "blob" => IDLType::VecT(Box::new(IDLType::PrimT(PrimType::Nat8))),
+    "record" "{" <SepBy<RecordFieldTyp, ";">> "}" => {
+        let mut id: u32 = 0;
+        let mut fs: Vec<TypeField> = <>.iter().map(|f| {
+          let label = match f.label {
+              Label::Unnamed(_) => { id = id + 1; Label::Unnamed(id - 1) },
+              ref l => { id = l.get_id() + 1; l.clone() },
+          };
+          TypeField { label, typ: f.typ.clone() }
+        }).collect();
+        fs.sort_unstable_by_key(|TypeField { label, .. }| label.get_id());
+        IDLType::RecordT(fs)
+    },
+    "variant" "{" <SepBy<VariantFieldTyp, ";">> "}" => {
+        let mut fs = <>;
+        fs.sort_unstable_by_key(|TypeField { label, .. }| label.get_id());
+        IDLType::VariantT(fs)
+    },
     "func" <FuncTyp> => IDLType::FuncT(<>),
     "service" <ActorTyp> => IDLType::ServT(<>),
 }
 
 PrimTyp: IDLType = {
+    "null" => IDLType::PrimT(PrimType::Null),
     "id" => {
       match PrimType::str_to_enum(&<>) {
         Some(p) => IDLType::PrimT(p),
@@ -111,9 +129,25 @@ FieldTyp: TypeField = {
     <n:Name> ":" <t:Typ> => TypeField { label: Label::Named(n), typ: t },
 }
 
+RecordFieldTyp: TypeField = {
+    FieldTyp => <>,
+    Typ => TypeField { label: Label::Unnamed(0), typ: <> },
+}
+
+VariantFieldTyp: TypeField = {
+    FieldTyp => <>,
+    Name => TypeField { label: Label::Named(<>), typ: IDLType::PrimT(PrimType::Null) },
+    "number" => TypeField { label: Label::Id(<>.parse::<u32>().unwrap()), typ: IDLType::PrimT(PrimType::Null) },
+}
+
 FuncTyp: FuncType = {
-    "(" <args:SepBy<Typ, ",">> ")" "->" "(" <rets:SepBy<Typ, ",">> ")" <modes:FuncMode*> =>
+    "(" <args:SepBy<ArgTyp, ",">> ")" "->" "(" <rets:SepBy<ArgTyp, ",">> ")" <modes:FuncMode*> =>
         FuncType { modes, args, rets },
+}
+
+ArgTyp: IDLType = {
+    Typ => <>,
+    Name ":" <Typ> => <>,
 }
 
 FuncMode: FuncMode = {
