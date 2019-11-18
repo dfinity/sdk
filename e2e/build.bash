@@ -11,9 +11,10 @@ setup() {
 }
 
 teardown() {
-    # Kill the node manager, the dfx and the client. Ignore errors (ie. if processes aren't
-    # running).
-    killall dfx nodemanager client || true
+    dfx stop
+
+    # Verify that processes are killed.
+    ! ( ps | grep \ dfx\ start )
 }
 
 @test "build fails on invalid motoko" {
@@ -25,4 +26,17 @@ teardown() {
 @test "build succeeds on default project" {
     assert_command dfx build
     assert_match "Building hello..."
+}
+
+@test "build outputs the canister ID" {
+    assert_command dfx build
+    [[ -f canisters/hello/_canister.id ]]
+}
+
+@test "build can take a single argument" {
+    assert_command dfx build hello
+    assert_match "Building hello..."
+
+    assert_command_fail dfx build unknown_canister
+    assert_match "Could not find.*unknown_canister.*"
 }

@@ -29,11 +29,7 @@ in {
         public-folder = super.callPackage ../public.nix {};
     };
 
-    dfx-release = mkRelease "dfx"
-      # This is not the tagged version, but something afterwards
-      "latest" # once INF-495 is in, we will use: packages.rust-workspace.version
-      packages.rust-workspace-standalone
-      "dfx";
+    dfx-release = mkRelease "dfx" self.releaseVersion packages.rust-workspace-standalone "dfx";
 
     # The following prepares a manifest for copying install.sh
     # The release part also checks if the install.sh script is well formatted and has no shellcheck issues.
@@ -41,7 +37,7 @@ in {
     # TODO: streamline mkRelease and this
     install-sh-release =
       let
-        version = "latest";
+        version = self.releaseVersion;
         shfmtOpts = "-p -i 4 -ci -bn -s";
         shellcheckOpts = "-s sh -S warning";
         # We want to include the last revision of the install script into
@@ -74,6 +70,7 @@ in {
         inherit (self) isMaster;
         inherit revision;
         installSh = ../../public/install.sh;
+        manifest = ../../public/manifest.json;
         buildInputs = [ self.jo self.shfmt self.shellcheck ];
       } ''
         set -Eeuo pipefail
@@ -96,27 +93,40 @@ in {
         # Building the artifacts
         mkdir -p $out
 
+        version_manifest_file=$out/manifest.json
+
+        cp $manifest $version_manifest_file
         # we stamp the file with the revision
         substitute "$installSh" $out/install.sh \
           --subst-var revision
 
         # Creating the manifest
-        manifest_file=$out/manifest.json
+        hydra_manifest_file=$out/_manifest.json
 
-        sha256hash=($(sha256sum "$out/install.sh")) # using this to autosplit on space
-        sha1hash=($(sha1sum "$out/install.sh")) # using this to autosplit on space
+        sha256hashinstall=($(sha256sum "$out/install.sh")) # using this to autosplit on space
+        sha1hashinstall=($(sha1sum "$out/install.sh")) # using this to autosplit on space
+
+
+        sha256manifest=($(sha256sum "$version_manifest_file")) # using this to autosplit on space
+        sha1manifest=($(sha1sum "$version_manifest_file")) # using this to autosplit on space
 
         jo -pa \
           $(jo package="public" \
               version="$version" \
               name="installer" \
               file="$out/install.sh" \
-              sha256hash="$sha256hash" \
-              sha1hash="$sha1hash") >$manifest_file
+              sha256hash="$sha256hashinstall" \
+              sha1hash="$sha1hashinstall") \
+          $(jo package="public" \
+              version="$version" \
+              name="manifest.json" \
+              file="$version_manifest_file" \
+              sha256hash="$sha256manifest" \
+              sha1hash="$sha1manifest") >$hydra_manifest_file
 
         # Marking the manifest for publishing
         mkdir -p $out/nix-support
-        echo "upload manifest $manifest_file" >> \
+        echo "upload manifest $hydra_manifest_file" >> \
           $out/nix-support/hydra-build-products
       '');
 

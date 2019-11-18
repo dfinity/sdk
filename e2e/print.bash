@@ -10,17 +10,15 @@ setup() {
 }
 
 teardown() {
-    # Kill the node manager, the dfx and the client. Ignore errors (ie. if processes aren't
-    # running).
-    killall dfx nodemanager client |& sed 's/^/killall: /' || true
+    dfx stop
 }
 
 @test "print_mo" {
     install_asset print_mo
     dfx_start 2>stderr.txt
     dfx build
-    dfx canister install 1 canisters/print.wasm
-    dfx canister call 1 hello
+    dfx canister install hello
+    dfx canister call hello hello
     run cat stderr.txt
     assert_match "debug.print: Hello, World! from DFINITY"
 }

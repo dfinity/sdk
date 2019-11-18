@@ -6,7 +6,7 @@
 
 To learn more before you start coding, see the documentation available online:
 
-- Quick Start:        https://sdk.dfinity.org/quickstart
+- Quick Start:        https://sdk.dfinity.org/developers-guide/quickstart.html
 - Developer's Guide:  https://sdk.dfinity.org/developers-guide
 - Language Reference: https://sdk.dfinity.org/language-reference
 

@@ -2,14 +2,13 @@ use std::fmt;
 
 pub enum UserMessage {
     CallCanister,
-    DeploymentId,
-    SetDeploymentId,
     MethodName,
     AsyncResult,
     ArgumentType,
     ArgumentValue,
     InstallCanister,
-    WasmFile,
+    InstallAll,
+    InstallCanisterName,
     ManageCanister,
     QueryCanister,
     RequestCallStatus,
@@ -23,6 +22,7 @@ pub enum UserMessage {
     ProjectName,
     DryRun,
     StartNode,
+    StopNode,
     NodeAddress,
     StartBackground,
 }
@@ -33,8 +33,6 @@ impl UserMessage {
 
             // dfx canister call
             UserMessage::CallCanister => "Calls a method on a deployed canister.",
-            UserMessage::SetDeploymentId => "Specifies the numeric identifier to assign this deployment.",
-            UserMessage::DeploymentId => "Specifies the deployment identifier to call.",
             UserMessage::MethodName => "Specifies the method name to call on the canister.",
             UserMessage::AsyncResult => "Do not wait for the result of the call to be returned by polling the client. Instead return a response ID.",
             UserMessage::ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
@@ -42,7 +40,8 @@ impl UserMessage {
 
             // dfx canister install
             UserMessage::InstallCanister => "Installs compiled code as a canister on the client.",
-            UserMessage::WasmFile => "Specifies the path of the .wasm file to install.",
+            UserMessage::InstallAll => "Install all canisters configured in dfx.json.",
+            UserMessage::InstallCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
 
             // dfx canister mod
             UserMessage::ManageCanister => "Manages canisters deployed on a network client.",
@@ -56,7 +55,6 @@ impl UserMessage {
 
             // dfx build
             UserMessage::BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
-            UserMessage::CanisterName => "Specifies the canister name to build. If you don't specify this argument, all canisters are built.",
 
             // dfx config
             UserMessage::ConfigureOptions => "Configures project options for your currently-selected project.",
@@ -72,6 +70,12 @@ impl UserMessage {
             UserMessage::StartNode => "Starts the local network client.",
             UserMessage::NodeAddress => "Specifies the host name and port number to bind the frontend to.",
             UserMessage::StartBackground => "Exits the dfx leaving the client running. Will wait until the client replies before exiting.",
+
+            // misc
+            UserMessage::CanisterName => "Specifies the canister name. If you don't specify this argument, all canisters are processed.",
+
+            // dfx stop
+            UserMessage::StopNode => "Stops the local network client.",
         }
     }
 }
