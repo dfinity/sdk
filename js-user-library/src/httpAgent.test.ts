@@ -27,8 +27,8 @@ test("call", async () => {
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   const keyPair = createKeyPairFromSeed(seed);
-  const senderPubKey = keyPair.publicKey as SenderPubKey;
-  const senderSecretKey = keyPair.secretKey as SenderSecretKey;
+  const senderPubKey = keyPair.publicKey;
+  const senderSecretKey = keyPair.secretKey;
 
   const httpAgent = makeHttpAgent({
     canisterId: canisterIdent,
@@ -66,7 +66,7 @@ test("call", async () => {
 
   const expectedRequest: Request = {
     ...mockPartialRequest,
-    sender_pubkey: keyPair.publicKey as SenderPubKey,
+    sender_pubkey: keyPair.publicKey,
     sender_sig: senderSig,
   };
 
@@ -110,8 +110,8 @@ test("requestStatus", async () => {
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   const keyPair = createKeyPairFromSeed(seed);
-  const senderSecretKey = keyPair.secretKey as SenderSecretKey;
-  const senderPubKey = keyPair.publicKey as SenderPubKey;
+  const senderSecretKey = keyPair.secretKey;
+  const senderPubKey = keyPair.publicKey;
 
 
   const httpAgent = makeHttpAgent({
