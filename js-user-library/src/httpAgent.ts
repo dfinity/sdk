@@ -140,7 +140,6 @@ const submit = (
   request: SubmitRequest,
 ): Promise<SubmitResponse> => {
   const body = cbor.encode(request);
-  (console).log("submit request body:", blob.toHex(body));
   const response = await config.runFetch(Endpoint.Submit, body);
   const requestId = await requestIdOf(request);
   return { requestId, response };
