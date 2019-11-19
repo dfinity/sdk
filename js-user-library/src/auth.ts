@@ -1,3 +1,4 @@
+import { Buffer } from "buffer/";
 import tweetnacl from "tweetnacl";
 import { RequestId } from "./requestId";
 import { SenderPubKey } from "./senderPubKey";
@@ -15,7 +16,8 @@ export const sign = (
 ) => (
   requestId: RequestId,
 ): SenderSig => {
-  return tweetnacl.sign.detached(requestId, secretKey) as SenderSig;
+  const signature = tweetnacl.sign.detached(requestId, secretKey);
+  return Buffer.from(signature) as SenderSig;
 };
 
 export const verify = (
@@ -29,11 +31,19 @@ export const verify = (
 export const createKeyPairFromSeed = (
   seed: Uint8Array,
 ): KeyPair => {
- return tweetnacl.sign.keyPair.fromSeed(seed) as KeyPair;
-
+  const { publicKey, secretKey } = tweetnacl.sign.keyPair.fromSeed(seed);
+  return {
+    publicKey: Buffer.from(publicKey),
+    secretKey: Buffer.from(secretKey),
+  } as KeyPair;
 };
 
 // TODO/Note/XXX(eftychis): Unused for the first pass. This provides
 // us with key generation for the client.
-export const generateKeyPair = (): KeyPair =>
-  tweetnacl.sign.keyPair() as KeyPair;
+export const generateKeyPair = (): KeyPair => {
+  const { publicKey, secretKey } = tweetnacl.sign.keyPair();
+  return {
+    publicKey: Buffer.from(publicKey),
+    secretKey: Buffer.from(secretKey),
+  } as KeyPair;
+};
