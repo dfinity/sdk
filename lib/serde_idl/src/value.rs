@@ -92,9 +92,7 @@ impl fmt::Display for IDLValue {
                 }
             }
             IDLValue::Nat(n) => write!(f, "{}", n),
-            // Use the debug formatter for strings here to recover
-            // escape sequences and the surrounding quotes
-            IDLValue::Text(ref s) => write!(f, "{:?}", s),
+            IDLValue::Text(ref s) => write!(f, "\"{}\"", s),
             IDLValue::None => write!(f, "none"),
             IDLValue::Opt(ref v) => write!(f, "opt {}", v),
             IDLValue::Vec(ref vec) => {
