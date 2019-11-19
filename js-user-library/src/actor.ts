@@ -1,3 +1,4 @@
+import { Buffer } from "buffer/";
 import { BinaryBlob } from "./blob";
 import { HttpAgent } from "./httpAgent";
 import _IDL from "./IDL";
@@ -53,7 +54,7 @@ export const makeActor = (
         // DIDL\x00\x00
         // D   I   D   L   \x00  \x00
         // 68  73  68  76  0     0
-        arg: Uint8Array.from([68, 73, 68, 76, 0, 0]) as BinaryBlob,
+        arg: Buffer.from([68, 73, 68, 76, 0, 0]) as BinaryBlob,
       });
 
       if (!callResponse.ok) {

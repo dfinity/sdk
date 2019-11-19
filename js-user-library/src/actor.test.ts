@@ -1,3 +1,4 @@
+import { Buffer } from "buffer/";
 import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
 import * as canisterId from "./canisterId";
@@ -23,7 +24,7 @@ test("makeActor", async () => {
     });
   };
 
-  const expectedReplyArg = new Uint8Array(
+  const expectedReplyArg = new Buffer(
     _IDL.Text.encode("Hello, World!").buffer,
   ) as BinaryBlob;
 
@@ -65,18 +66,18 @@ test("makeActor", async () => {
   // DIDL\x00\x00
   // D   I   D   L   \x00  \x00
   // 68  73  68  76  0     0
-  const arg = Uint8Array.from([68, 73, 68, 76, 0, 0]) as BinaryBlob;
+  const arg = Buffer.from([68, 73, 68, 76, 0, 0]) as BinaryBlob;
 
   const canisterIdent = "0000000000000001" as Hex;
-  const senderPubKey = new Uint8Array(32) as SenderPubKey;
-  const senderSecretKey = new Uint8Array(32) as SenderSecretKey;
-  const senderSig = Uint8Array.from([0]) as SenderSig;
+  const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
+  const senderSecretKey = Buffer.alloc(32, 0) as SenderSecretKey;
+  const senderSig = Buffer.from([0]) as SenderSig;
 
   const nonces = [
-    Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce,
-    Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8]) as Nonce,
-    Uint8Array.from([2, 3, 4, 5, 6, 7, 8, 9]) as Nonce,
-    Uint8Array.from([3, 4, 5, 6, 7, 8, 9, 0]) as Nonce,
+    Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce,
+    Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]) as Nonce,
+    Buffer.from([2, 3, 4, 5, 6, 7, 8, 9]) as Nonce,
+    Buffer.from([3, 4, 5, 6, 7, 8, 9, 0]) as Nonce,
   ];
 
   const expectedCallRequest = {
@@ -104,7 +105,7 @@ test("makeActor", async () => {
     senderSecretKey,
     senderPubKey,
     senderSigFn: (x) => (req) =>
-      Uint8Array.from([0])  as SenderSig,
+      Buffer.from([0]) as SenderSig,
   });
 
   const actor = makeActor(actorInterface)(httpAgent);

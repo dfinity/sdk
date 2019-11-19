@@ -5,6 +5,8 @@ import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
 import { CborValue } from "./cbor";
 import { Hex } from "./hex";
+import { Int } from "./int";
+import * as int from "./int";
 import * as Request from "./request";
 
 export type RequestId = BinaryBlob & { __requestId__: void };
@@ -12,11 +14,17 @@ export type RequestId = BinaryBlob & { __requestId__: void };
 export const toHex = (requestId: RequestId): Hex => blob.toHex(requestId);
 
 // The spec describes encoding for these types.
-type HashableValue = string | Uint8Array | BigNumber | borc.Tagged;
+type HashableValue = string | Uint8Array | Int | BigNumber | borc.Tagged;
 
-export const hash = async (data: Uint8Array): Promise<BinaryBlob> => {
-  const hashed = await crypto.subtle.digest({ name: "SHA-256" }, data);
-  return new Uint8Array(hashed) as BinaryBlob;
+export const hash = async (data: BinaryBlob): Promise<BinaryBlob> => {
+  const hashed: ArrayBuffer = await crypto.subtle.digest({
+    name: "SHA-256",
+  }, data.buffer);
+  return Buffer.from(hashed) as BinaryBlob;
+};
+
+const padHex = (hex: Hex): Hex => {
+  return `${"0000000000000000".slice(hex.length)}${hex}` as Hex;
 };
 
 const hashValue = (value: HashableValue): Promise<Uint8Array> => {
@@ -26,8 +34,12 @@ const hashValue = (value: HashableValue): Promise<Uint8Array> => {
     return hashString(value as string);
   } else if (isBigNumber(value)) {
     // HTTP handler expects canister_id to be an u64 & hashed in this way.
-    const hex = value.toString(16);
-    const padded = `${"0000000000000000".slice(hex.length)}${hex}` as Hex;
+    const hex = value.toString(16) as Hex;
+    const padded = padHex(hex);
+    return hash(blob.fromHex(padded));
+  } else if (isInt(value)) {
+    const hex = int.toHex(value);
+    const padded = padHex(hex);
     return hash(blob.fromHex(padded));
   } else if (isBlob(value)) {
     return hash(value as BinaryBlob);
@@ -38,8 +50,8 @@ const hashValue = (value: HashableValue): Promise<Uint8Array> => {
 
 const hashString = (value: string): Promise<BinaryBlob> => {
   const encoder = new TextEncoder();
-  const encoded = encoder.encode(value);
-  return hash(encoded);
+  const encoded: Uint8Array = encoder.encode(value);
+  return hash(Buffer.from(encoded) as BinaryBlob);
 };
 
 const isBigNumber = (value: HashableValue): value is BigNumber => {
@@ -47,7 +59,11 @@ const isBigNumber = (value: HashableValue): value is BigNumber => {
 };
 
 const isBlob = (value: HashableValue): value is BinaryBlob => {
-  return value instanceof Uint8Array;
+  return value instanceof Buffer;
+};
+
+const isInt = (value: HashableValue): value is Int => {
+  return typeof value === "number";
 };
 
 const isString = (value: HashableValue): value is string => {

@@ -1,3 +1,4 @@
+import { Buffer } from "buffer/";
 import { createKeyPairFromSeed, sign, verify } from "./auth";
 import { BinaryBlob } from "./blob";
 import * as canisterId from "./canisterId";
@@ -21,8 +22,8 @@ test("call", async () => {
   });
 
   const canisterIdent = "0000000000000001" as Hex;
-  const nonce = Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
-  const seed = Uint8Array.from(
+  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
+  const seed = Buffer.from(
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   const keyPair = createKeyPairFromSeed(seed);
@@ -38,7 +39,7 @@ test("call", async () => {
   });
 
   const methodName = "greet";
-  const arg = Uint8Array.from([]) as BinaryBlob;
+  const arg = Buffer.from([]) as BinaryBlob;
 
   const { requestId, response } = await httpAgent.call({
     methodName,
@@ -92,7 +93,7 @@ test("requestStatus", async () => {
 
   const mockResponse = {
     status: "replied",
-    reply: { arg: Uint8Array.from([]) as BinaryBlob },
+    reply: { arg: Buffer.from([]) as BinaryBlob },
   };
 
   const mockFetch: jest.Mock = jest.fn((resource, init) => {
@@ -103,9 +104,9 @@ test("requestStatus", async () => {
   });
 
   const canisterIdent = "0000000000000001" as Hex;
-  const nonce = Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
+  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
 
-  const seed = Uint8Array.from(
+  const seed = Buffer.from(
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   const keyPair = createKeyPairFromSeed(seed);
@@ -120,7 +121,7 @@ test("requestStatus", async () => {
     senderSecretKey,
     senderPubKey,
     senderSigFn: (x) => (req) =>
-      Uint8Array.from([0])  as SenderSig,
+      Buffer.from([0]) as SenderSig,
   });
 
   const requestId = await requestIdOf({
@@ -128,7 +129,7 @@ test("requestStatus", async () => {
     nonce,
     canister_id: canisterId.fromHex(canisterIdent),
     method_name: "greet",
-    arg: Uint8Array.from([]),
+    arg: Buffer.from([]),
   });
 
   const response = await httpAgent.requestStatus({
@@ -140,7 +141,7 @@ test("requestStatus", async () => {
     nonce,
     request_id: requestId,
     sender_pubkey: senderPubKey,
-    sender_sig: Uint8Array.from([0]) as SenderSig,
+    sender_sig: Buffer.from([0]) as SenderSig,
   };
 
   const { calls, results } = mockFetch.mock;

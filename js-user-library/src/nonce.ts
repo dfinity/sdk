@@ -1,3 +1,4 @@
+import { Buffer } from "buffer/";
 import { BinaryBlob } from "./blob";
 
 export type Nonce = BinaryBlob & { __nonce__: void };
@@ -8,5 +9,5 @@ export const makeNonce = (): Nonce => {
 
 const makeNonceFromDate = (date: Date): Nonce => {
   const ints = date.getTime().toString().split("").map((x) => parseInt(x, 10));
-  return Uint8Array.from(ints) as Nonce;
+  return Buffer.from(ints) as Nonce;
 };
