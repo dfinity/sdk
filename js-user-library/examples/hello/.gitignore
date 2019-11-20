@@ -1,0 +1,13 @@
+# Various IDEs and Editors
+.vscode/
+.idea/
+**/*~
+
+# Mac OSX temporary files
+.DS_Store
+**/.DS_Store
+
+# Build artifacts
+build/
+canisters/
+public/main.js
