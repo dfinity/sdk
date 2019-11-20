@@ -13,6 +13,11 @@ const test_ = (typ, val, hex, str) => {
   testDecode(typ, val, hex, str)
 }
 
+const test_args = (typs, vals, hex, str) => {
+  expect(IDL.encode(typs, vals), `Encode ${str}`).toEqual(Buffer.from(hex, 'hex'))
+  expect(IDL.decode(typs, Buffer.from(hex, 'hex')), `Decode ${str}`).toEqual(vals)
+}
+
 test('IDL hash', () => {
   const testHash = (string, hash) => {
     expect(IDL.idlHash(string), `IDL Hash of ${string}`).toBe(hash)
@@ -118,4 +123,7 @@ test('IDL encoding', () => {
   List2.fill(IDL.Obj({head: IDL.Int, tail: List1}))
   test_(List1, null, '4449444c026e016c02a0d2aca8047c90eddae70400010000', 'Empty list')
   test_(List1, {head: 1, tail: {head: 2, tail: null} }, '4449444c026e016c02a0d2aca8047c90eddae7040001000101010200', 'List')
+
+  // Test for multiple arguments
+  test_args([IDL.Nat, IDL.Opt(IDL.Text), Result], [42, "test", { ok:'good' }], '4449444c026e716b029cc20171e58eb40271037d00012a0104746573740004676f6f64', 'Multiple arguments')
 })
