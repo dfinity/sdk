@@ -126,4 +126,5 @@ test('IDL encoding', () => {
 
   // Test for multiple arguments
   test_args([IDL.Nat, IDL.Opt(IDL.Text), Result], [42, "test", { ok:'good' }], '4449444c026e716b029cc20171e58eb40271037d00012a0104746573740004676f6f64', 'Multiple arguments')
+  test_args([], [], '4449444c0000', 'empty args')
 })
