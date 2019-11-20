@@ -1,5 +1,7 @@
 import { Buffer } from "buffer/";
 import { BinaryBlob } from "./blob";
+import * as blob from "./blob";
+import { Hex } from "./hex";
 import { HttpAgent } from "./httpAgent";
 import _IDL from "./IDL";
 import * as requestId from "./requestId";
@@ -43,18 +45,20 @@ export const makeActor = (
       // TODO
       // * Throw if func.argTypes.length !== args.length
       // * Encode request arguments with the corresponding type
+
+      // IDL.js encoding produces a feross/safe-buffer `Buffer`. We need to
+      // convert to a ferross/buffer `Buffer` so that our `instanceof` checks
+      // succeed. TODO: reconcile these `Buffer` types.
+      const safeBuffer = func.argTypes[0].encode(args[0]);
+      const hex = safeBuffer.toString("hex") as Hex;
+      const arg = blob.fromHex(hex);
+
       const {
         requestId: requestIdent,
         response: callResponse,
       } = await httpAgent.call({
         methodName,
-        // Manually send the magic bytes until we address argument ancoding and
-        // decoding.
-        //
-        // DIDL\x00\x00
-        // D   I   D   L   \x00  \x00
-        // 68  73  68  76  0     0
-        arg: Buffer.from([68, 73, 68, 76, 0, 0]) as BinaryBlob,
+        arg,
       });
 
       if (!callResponse.ok) {
@@ -78,7 +82,7 @@ export const makeActor = (
             // TODO
             // * Throw if func.retTypes.length !== response.reply.arg.length
             // * Decode response arguments with the corresponding type
-            return response.reply.arg;
+            return func.retTypes[0].decode(Buffer.from(response.reply.arg));
           }
           default: {
             throw new Error([
