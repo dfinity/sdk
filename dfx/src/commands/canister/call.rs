@@ -6,7 +6,7 @@ use crate::lib::message::UserMessage;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::Blob;
-use serde_idl::{Encode, IDLArgs};
+use serde_idl::{Encode, IDLArgs, IDLProg};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -57,6 +57,12 @@ where
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
+
+    let idl_path = canister_info.get_output_idl_path();
+    let idl_ast: IDLProg = std::fs::read_to_string(idl_path)?
+        .parse()
+        .map_err(|e| DfxError::InvalidData(format!("Invalid IDL file: {}", e)))?;
+    println!("{}", idl_ast.to_pretty(80));
 
     let method_name = args.value_of("method_name").unwrap();
     let arguments: Option<&str> = args.value_of("argument");

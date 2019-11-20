@@ -113,6 +113,14 @@ pub struct IDLProg {
     pub actor: Option<Binding>,
 }
 
+impl std::str::FromStr for IDLProg {
+    type Err = crate::Error;
+    fn from_str(str: &str) -> Result<Self, Self::Err> {
+        let lexer = crate::lexer::Lexer::new(str);
+        Ok(crate::grammar::IDLProgParser::new().parse(lexer)?)
+    }
+}
+
 impl IDLProg {
     pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         let doc = Doc::concat(
