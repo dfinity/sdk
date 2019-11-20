@@ -49,7 +49,7 @@ export const makeActor = (
       // IDL.js encoding produces a feross/safe-buffer `Buffer`. We need to
       // convert to a ferross/buffer `Buffer` so that our `instanceof` checks
       // succeed. TODO: reconcile these `Buffer` types.
-      const safeBuffer = func.argTypes[0].encode(args[0]);
+      const safeBuffer = _IDL.encode(func.argTypes, args);
       const hex = safeBuffer.toString("hex") as Hex;
       const arg = blob.fromHex(hex);
 
@@ -82,7 +82,7 @@ export const makeActor = (
             // TODO
             // * Throw if func.retTypes.length !== response.reply.arg.length
             // * Decode response arguments with the corresponding type
-            return func.retTypes[0].decode(Buffer.from(response.reply.arg));
+            return _IDL.decode(func.retTypes, Buffer.from(response.reply.arg));
           }
           default: {
             throw new Error([

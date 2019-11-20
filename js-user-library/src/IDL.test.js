@@ -1,11 +1,11 @@
 const IDL = require('./IDL')
 
 const testEncode = (typ, val, hex, str) => {
-  expect(typ.encode(val), `Encode ${str}`).toEqual(Buffer.from(hex, 'hex'))
+  expect(IDL.encode([typ], [val]), `Encode ${str}`).toEqual(Buffer.from(hex, 'hex'))
 }
 
 const testDecode = (typ, val, hex, str) => {
-  expect(typ.decode(Buffer.from(hex, 'hex')), `Decode ${str}`).toEqual(val)
+  expect(IDL.decode([typ], Buffer.from(hex, 'hex'))[0], `Decode ${str}`).toEqual(val)
 }
 
 const test_ = (typ, val, hex, str) => {

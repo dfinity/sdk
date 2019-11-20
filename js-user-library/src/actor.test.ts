@@ -25,7 +25,7 @@ test("makeActor", async () => {
   };
 
   const expectedReplyArg = blob.fromHex(
-    _IDL.Text.encode("Hello, World!").toString("hex") as Hex,
+    _IDL.encode([_IDL.Text], ["Hello, World!"]).toString("hex") as Hex,
   );
 
   const mockFetch: jest.Mock = jest.fn()
@@ -62,7 +62,7 @@ test("makeActor", async () => {
   const argValue = "Name";
 
   const arg = blob.fromHex(
-    _IDL.Text.encode(argValue).toString("hex") as Hex,
+    _IDL.encode([_IDL.Text], [argValue]).toString("hex") as Hex,
   );
 
   const canisterIdent = "0000000000000001" as Hex;
@@ -111,7 +111,7 @@ test("makeActor", async () => {
   expect(
     reply,
   ).toEqual(
-    _IDL.Text.decode(expectedReplyArg),
+    _IDL.decode([_IDL.Text], expectedReplyArg),
   );
 
   const { calls, results } = mockFetch.mock;
