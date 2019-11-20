@@ -14,7 +14,7 @@ export type RequestId = BinaryBlob & { __requestId__: void };
 export const toHex = (requestId: RequestId): Hex => blob.toHex(requestId);
 
 // The spec describes encoding for these types.
-type HashableValue = string | Uint8Array | Int | BigNumber | borc.Tagged;
+type HashableValue = string | Buffer | Int | BigNumber | borc.Tagged;
 
 export const hash = async (data: BinaryBlob): Promise<BinaryBlob> => {
   const hashed: ArrayBuffer = await crypto.subtle.digest({
