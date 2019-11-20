@@ -3,9 +3,10 @@ self: super:
 let src = builtins.fetchGit {
   name = "dfinity-sources";
   url = "ssh://git@github.com/dfinity-lab/dfinity";
-  rev = "86f4f3343c8b4e9c54c0f8542b9f63a48359c866";
+  ref = "master";
+  rev = "5c7efff0524adbf97d85b27adb180e6137a3428f";
 }; in
 
 {
-  dfinity = (import src { inherit (self) system; }).dfinity;
+  dfinity = (import src { inherit (self) system; }).dfinity.rs;
 }

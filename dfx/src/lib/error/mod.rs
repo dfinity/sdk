@@ -13,6 +13,8 @@ pub enum DfxError {
     /// An error happened while managing the cache.
     CacheError(CacheErrorKind),
 
+    IdeError(String),
+
     Clap(clap::Error),
     Io(std::io::Error),
     Reqwest(reqwest::Error),
