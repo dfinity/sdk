@@ -16,7 +16,7 @@ paste = "0.1"
 num_enum = "0.4.1"
 dfx_info = { path = "../dfx_info" }
 lalrpop-util = "0.17.2"
-regex = "0.2.1"
+pretty = "0.5"
 
 [dev-dependencies]
 serde_derive = "1.0"

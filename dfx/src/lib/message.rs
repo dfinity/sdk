@@ -25,6 +25,7 @@ pub enum UserMessage {
     StopNode,
     NodeAddress,
     StartBackground,
+    StartIDE,
 }
 
 impl UserMessage {
@@ -75,7 +76,9 @@ impl UserMessage {
             UserMessage::CanisterName => "Specifies the canister name. If you don't specify this argument, all canisters are processed.",
 
             // dfx stop
-            UserMessage::StopNode => "Stop the local network client.",
+            UserMessage::StopNode => "Stops the local network client.",
+            // dfx ide
+            UserMessage::StartIDE => "Starts Motoko IDE Language Server"
         }
     }
 }

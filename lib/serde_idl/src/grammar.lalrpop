@@ -1,5 +1,6 @@
 use crate::value::{IDLField, IDLValue, IDLArgs};
-use crate::lexer::{Token, LexicalError};
+use crate::types::{IDLType, PrimType, Label, TypeField, FuncType, FuncMode, Binding, Dec, IDLProg};
+use crate::lexer::{Token, LexicalError, TmpIDLField};
 use dfx_info::idl_hash;
 
 grammar;
@@ -8,17 +9,25 @@ extern {
     type Location = usize;
     type Error = LexicalError;
     enum Token {
-        "nat_literal" => Token::NatLiteral(<u64>),
-        "int_literal" => Token::IntLiteral(<i64>),
-        "bool_literal" => Token::BooleanLiteral(<bool>),
-        "text_literal" => Token::TextLiteral(<String>),
-        "label" => Token::Label(<String>),
+        "number" => Token::Number(<String>),
+        "bool" => Token::Boolean(<bool>),
+        "text" => Token::Text(<String>),
+        "id" => Token::Id(<String>),
         "null" => Token::Null,
         "none" => Token::None,
         "opt" => Token::Opt,
         "vec" => Token::Vec,
         "record" => Token::Record,
         "variant" => Token::Variant,
+        "func" => Token::Func,
+        "service" => Token::Service,
+        "oneway" => Token::Oneway,
+        "query" => Token::Query,
+        "blob" => Token::Blob,
+        "type" => Token::Type,
+        "import" => Token::Import,
+        "+" => Token::Plus,
+        "-" => Token::Minus,
         "=" => Token::Equals,
         "(" => Token::LParen,
         ")" => Token::RParen,
@@ -26,31 +35,154 @@ extern {
         "}" => Token::RBrace,
         "," => Token::Comma,
         ";" => Token::Semi,
+        ":" => Token::Colon,
+        "->" => Token::Arrow,
     }
 }
 
+
+// Value
 pub Args: IDLArgs = "(" <SepBy<Arg, ",">> ")" => IDLArgs { args: <> };
 
 Arg: IDLValue = {
-    "bool_literal" => IDLValue::Bool(<>),
-    "int_literal" => IDLValue::Int(<>),
-    "nat_literal" => IDLValue::Nat(<>),
-    "text_literal" => IDLValue::Text(<>),
+    "bool" => IDLValue::Bool(<>),
+    "+" <"number"> => IDLValue::Int(<>.parse::<i64>().unwrap()),
+    "-" <"number"> => IDLValue::Int(format!("-{}", <>).parse::<i64>().unwrap()),
+    "number" => IDLValue::Nat(<>.parse::<u64>().unwrap()),
+    "text" => IDLValue::Text(<>),
     "null" => IDLValue::Null,
     "none" => IDLValue::None,
     "opt" <Arg> => IDLValue::Opt(Box::new(<>)),
     "vec" "{" <SepBy<Arg, ";">> "}" => IDLValue::Vec(<>),
-    "record" "{" <SepBy<Field, ";">> "}" => {
-        let mut fs = <>;
+    "record" "{" <SepBy<RecordField, ";">> "}" => {
+        let mut id: u32 = 0;
+        let mut fs: Vec<IDLField> = <>.iter().map(|f| {
+          if f.has_id {
+            id = f.inner.id + 1;
+            f.inner.clone()
+          } else {
+            id = id + 1;
+            IDLField { id: id - 1, val: f.inner.val.clone() }
+          }
+        }).collect();
         fs.sort_unstable_by_key(|IDLField { id, .. }| *id);
         IDLValue::Record(fs)
      },
-    "variant" "{" <Field> "}" => IDLValue::Variant(Box::new(<>)),
+    "variant" "{" <VariantField> "}" => IDLValue::Variant(Box::new(<>)),
 }
 
 Field: IDLField = {
-    <n:"nat_literal"> "=" <v:Arg> => IDLField { id: n as u32, val: v },
-    <n:"label"> "=" <v:Arg> => IDLField { id: idl_hash(&n), val: v },
+    <n:"number"> "=" <v:Arg> => IDLField { id: n.parse::<u32>().unwrap(), val: v },
+    <n:Name> "=" <v:Arg> => IDLField { id: idl_hash(&n), val: v },
+}
+
+VariantField: IDLField = {
+    Field => <>,
+    Name => IDLField { id: idl_hash(&<>), val: IDLValue::Null },
+    "number" => IDLField { id: <>.parse::<u32>().unwrap(), val: IDLValue::Null },
+}
+
+RecordField: TmpIDLField = {
+    Field => TmpIDLField { has_id: true, inner: <> },
+    Arg => TmpIDLField { has_id: false, inner: IDLField { id:0, val:<> } },
+}
+
+// Type
+Typ: IDLType = {
+    PrimTyp => <>,
+    "opt" <Typ> => IDLType::OptT(Box::new(<>)),
+    "vec" <Typ> => IDLType::VecT(Box::new(<>)),
+    "blob" => IDLType::VecT(Box::new(IDLType::PrimT(PrimType::Nat8))),
+    "record" "{" <SepBy<RecordFieldTyp, ";">> "}" => {
+        let mut id: u32 = 0;
+        let mut fs: Vec<TypeField> = <>.iter().map(|f| {
+          let label = match f.label {
+              Label::Unnamed(_) => { id = id + 1; Label::Unnamed(id - 1) },
+              ref l => { id = l.get_id() + 1; l.clone() },
+          };
+          TypeField { label, typ: f.typ.clone() }
+        }).collect();
+        fs.sort_unstable_by_key(|TypeField { label, .. }| label.get_id());
+        IDLType::RecordT(fs)
+    },
+    "variant" "{" <SepBy<VariantFieldTyp, ";">> "}" => {
+        let mut fs = <>;
+        fs.sort_unstable_by_key(|TypeField { label, .. }| label.get_id());
+        IDLType::VariantT(fs)
+    },
+    "func" <FuncTyp> => IDLType::FuncT(<>),
+    "service" <ActorTyp> => IDLType::ServT(<>),
+}
+
+PrimTyp: IDLType = {
+    "null" => IDLType::PrimT(PrimType::Null),
+    "id" => {
+      match PrimType::str_to_enum(&<>) {
+        Some(p) => IDLType::PrimT(p),
+        None => IDLType::VarT(<>),
+      }
+    },
+}
+
+FieldTyp: TypeField = {
+    <n:"number"> ":" <t:Typ> => TypeField { label: Label::Id(n.parse::<u32>().unwrap()), typ: t },
+    <n:Name> ":" <t:Typ> => TypeField { label: Label::Named(n), typ: t },
+}
+
+RecordFieldTyp: TypeField = {
+    FieldTyp => <>,
+    Typ => TypeField { label: Label::Unnamed(0), typ: <> },
+}
+
+VariantFieldTyp: TypeField = {
+    FieldTyp => <>,
+    Name => TypeField { label: Label::Named(<>), typ: IDLType::PrimT(PrimType::Null) },
+    "number" => TypeField { label: Label::Id(<>.parse::<u32>().unwrap()), typ: IDLType::PrimT(PrimType::Null) },
+}
+
+FuncTyp: FuncType = {
+    "(" <args:SepBy<ArgTyp, ",">> ")" "->" "(" <rets:SepBy<ArgTyp, ",">> ")" <modes:FuncMode*> =>
+        FuncType { modes, args, rets },
+}
+
+ArgTyp: IDLType = {
+    Typ => <>,
+    Name ":" <Typ> => <>,
+}
+
+FuncMode: FuncMode = {
+    "oneway" => FuncMode::Oneway,
+    "query" => FuncMode::Query,
+}
+
+ActorTyp: Vec<Binding> = {
+    "{" <SepBy<MethTyp, ";">> "}" => <>
+}
+
+MethTyp: Binding = {
+    <n:Name> ":" <f:FuncTyp> => Binding { id: n, typ: IDLType::FuncT(f) },
+    <n:Name> ":" <id:"id"> => Binding { id: n, typ: IDLType::VarT(id) },
+}
+
+// Type declarations
+Def: Dec = {
+    "type" <id:"id"> "=" <t:Typ> => Dec::TypD(Binding { id: id, typ: t }),
+    "import" <"text"> => Dec::ImportD(<>),
+}
+
+Actor: Binding = {
+    "service" <id:"id"> <t:ActorTyp> => Binding { id: id, typ: IDLType::ServT(t) },
+    "service" <id:"id"> ":" <t:"id"> => Binding { id: id, typ: IDLType::VarT(t) },
+}
+
+pub IDLProg: IDLProg = {
+    <decs:SepBy<Def, ";">> <actor:Actor?> => IDLProg { decs, actor }
+}
+
+// Common util
+Name: String = {
+    "id" => <>,
+    "text" => <>,
 }
 
 // Also allows trailing separator

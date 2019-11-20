@@ -155,7 +155,7 @@ where
         // the format!() rule (and so it cannot be moved in the util::assets module).
         include_str!("../../assets/welcome.txt"),
         dfx_version,
-        assets::color_logo(),
+        assets::dfinity_logo(),
         project_name.to_str().unwrap()
     );
 
