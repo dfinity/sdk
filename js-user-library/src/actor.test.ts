@@ -111,7 +111,7 @@ test("makeActor", async () => {
   expect(
     reply,
   ).toEqual(
-    _IDL.decode([_IDL.Text], expectedReplyArg),
+    _IDL.decode([_IDL.Text], expectedReplyArg)[0],
   );
 
   const { calls, results } = mockFetch.mock;
