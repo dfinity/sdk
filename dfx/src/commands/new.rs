@@ -7,6 +7,7 @@ use console::style;
 use indicatif::HumanBytes;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 
 const DRY_RUN: &str = "dry_run";
 const PROJECT_NAME: &str = "project_name";
@@ -128,24 +129,48 @@ where
     }
 
     if !dry_run {
-        // Check that git is available.
-        let init_status = std::process::Command::new("git")
-            .arg("init")
-            .current_dir(&project_name)
-            .status();
-        if init_status.is_ok() && init_status.unwrap().success() {
-            eprintln!("Creating git repository...");
-            std::process::Command::new("git")
-                .arg("add")
+        let mut should_git = true;
+
+        // If on mac, we should validate that XCode toolchain was installed.
+        #[cfg(target_os = "macos")]
+        {
+            if let Ok(code) = std::process::Command::new("xcode-select")
+                .arg("-p")
+                .stderr(Stdio::null())
+                .stdout(Stdio::null())
+                .status()
+            {
+                if !code.success() {
+                    // git is not installed.
+                    should_git = false;
+                }
+            } else {
+                // Could not find XCode Toolchain on Mac, that's weird.
+                should_git = false;
+            }
+        }
+
+        if should_git {
+            let init_status = std::process::Command::new("git")
+                .arg("init")
                 .current_dir(&project_name)
-                .arg(".")
-                .output()?;
-            std::process::Command::new("git")
-                .arg("commit")
-                .current_dir(&project_name)
-                .arg("-a")
-                .arg("--message=Initial commit.")
-                .output()?;
+                .stderr(Stdio::null())
+                .stdout(Stdio::null())
+                .status();
+            if init_status.is_ok() && init_status.unwrap().success() {
+                eprintln!("Creating git repository...");
+                std::process::Command::new("git")
+                    .arg("add")
+                    .current_dir(&project_name)
+                    .arg(".")
+                    .output()?;
+                std::process::Command::new("git")
+                    .arg("commit")
+                    .current_dir(&project_name)
+                    .arg("-a")
+                    .arg("--message=Initial commit.")
+                    .output()?;
+            }
         }
     }
 
