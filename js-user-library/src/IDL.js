@@ -562,7 +562,7 @@ class Func {
 function encode(argTypes, args) {
   if (args.length !== argTypes.length) {
     throw Error('Wrong number of message arguments')
-  }  
+  }
   const T = new TypeTable()
   argTypes.map(t => t.buildType(T))
   
@@ -580,6 +580,9 @@ function encode(argTypes, args) {
  * @returns {bool|string|number|Array|Object} value deserialised to JS type
 */
 function decode(retTypes, bytes) {
+  if (type(bytes) === 'Error') {
+    throw bytes
+  }
   const decodeType = b => {
     if (b.buffer.length < magicNumber.length) {
       throw new Error('Message length smaller than magic number')
