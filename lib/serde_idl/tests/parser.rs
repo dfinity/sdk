@@ -29,16 +29,36 @@ fn parse_literals() {
 }
 
 #[test]
+fn parse_string_literals() {
+    let args = parse_args("(\"\", \"\\u{10ffff}\\n\", \"\\0a\\0dd\")");
+    assert_eq!(
+        args.args,
+        vec![
+            IDLValue::Text("".to_owned()),
+            IDLValue::Text("\u{10ffff}\n".to_owned()),
+            IDLValue::Text("\n\rd".to_owned()),
+        ]
+    );
+    let args = parse_args_err("(\"\\u{d800}\")");
+    assert_eq!(
+        format!("{}", args.unwrap_err()),
+        "Unicode escape out of range d800"
+    );
+    let result = parse_args_err("(\"\\q\")");
+    assert_eq!(format!("{}", result.unwrap_err()), "Unexpected character q");
+}
+
+#[test]
 fn parse_more_literals() {
     let args =
-        parse_args("(true, null, 42, \"random\", \"string with whitespace\", +42, -42, false)");
+        parse_args("(true, null, 4_2, \"哈哈\", \"string with whitespace\", +0x2a, -42, false)");
     assert_eq!(
         args.args,
         vec![
             IDLValue::Bool(true),
             IDLValue::Null,
             IDLValue::Nat(42),
-            IDLValue::Text("random".to_owned()),
+            IDLValue::Text("哈哈".to_owned()),
             IDLValue::Text("string with whitespace".to_owned()),
             IDLValue::Int(42),
             IDLValue::Int(-42),
@@ -47,7 +67,7 @@ fn parse_more_literals() {
     );
     assert_eq!(
         format!("{}", args),
-        "(true, null, 42, \"random\", \"string with whitespace\", +42, -42, false)"
+        "(true, null, 42, \"哈哈\", \"string with whitespace\", +42, -42, false)"
     );
 }
 
@@ -103,7 +123,7 @@ fn parse_optional_record() {
 #[test]
 fn parse_nested_record() {
     let args = parse_args(
-        "(record {label=42; 43=record {test=\"test\"; msg=\"hello\"}; long_label=opt null})",
+        "(record {label=42; 0x2b=record {test=\"test\"; msg=\"hello\"}; long_label=opt null})",
     );
     assert_eq!(
         args.args,
@@ -135,13 +155,13 @@ fn parse_nested_record() {
 }
 
 #[test]
-fn parse_escape_sequence() {
-    let result = parse_args("(\"\\n\")");
-    assert_eq!(format!("{}", result), "(\"\\n\")")
-}
-
-#[test]
-fn parse_illegal_escape_sequence() {
-    let result = parse_args_err("(\"\\q\")");
-    assert_eq!(format!("{}", result.unwrap_err()), "Unknown escape \\q")
+fn parse_shorthand() {
+    let args =
+        parse_args("(record { 42; record {}; true; record { 42; 0x2a=42; 42; 42 }; opt 42 })");
+    assert_eq!(format!("{}", args), "(record { 0 = 42; 1 = record { }; 2 = true; 3 = record { 0 = 42; 42 = 42; 43 = 42; 44 = 42; }; 4 = opt 42; })");
+    let args = parse_args("(variant { 0x2a }, variant { label })");
+    assert_eq!(
+        format!("{}", args),
+        "(variant { 42 = null }, variant { 1873743348 = null })"
+    );
 }
