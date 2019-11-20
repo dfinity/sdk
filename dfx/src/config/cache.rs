@@ -90,3 +90,17 @@ pub fn binary_command_from_version(version: &str, name: &str) -> DfxResult<std::
 
     Ok(cmd)
 }
+
+pub fn list_versions() -> DfxResult<Vec<String>> {
+    let root = get_bin_cache_root()?;
+    let mut result: Vec<String> = Vec::new();
+
+    for entry in std::fs::read_dir(root)? {
+        let entry = entry?;
+        if let Some(version) = entry.file_name().to_str() {
+            result.push(version.to_owned());
+        }
+    }
+
+    Ok(result)
+}

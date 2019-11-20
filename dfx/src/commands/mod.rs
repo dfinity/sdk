@@ -11,6 +11,7 @@ mod ide;
 mod new;
 mod start;
 mod stop;
+mod version;
 
 pub type CliExecFn<T> = fn(&T, &ArgMatches<'_>) -> DfxResult;
 pub struct CliCommand<T> {
@@ -49,5 +50,6 @@ where
         CliCommand::new(start::construct(), start::exec),
         CliCommand::new(stop::construct(), stop::exec),
         CliCommand::new(ide::construct(), ide::exec),
+        CliCommand::new(version::construct(), version::exec),
     ]
 }
