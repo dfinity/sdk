@@ -80,6 +80,9 @@ fn main() {
                 eprintln!("Build failed. Reason:");
                 eprintln!("  {}", err);
             }
+            DfxError::IdeError(msg) => {
+                eprintln!("The Motoko Language Server returned an error:\n{}", msg);
+            }
             DfxError::UnknownCommand(command) => {
                 eprintln!("Unknown command: {}", command);
             }

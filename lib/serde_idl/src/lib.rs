@@ -63,6 +63,7 @@ pub mod error;
 pub mod grammar;
 pub mod lexer;
 pub mod ser;
+pub mod types;
 pub mod value;
 
 pub const EMPTY_DIDL: &[u8] = b"DIDL\0\0";
