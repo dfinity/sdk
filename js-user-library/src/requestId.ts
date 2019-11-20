@@ -27,7 +27,7 @@ const padHex = (hex: Hex): Hex => {
   return `${"0000000000000000".slice(hex.length)}${hex}` as Hex;
 };
 
-const hashValue = (value: HashableValue): Promise<Uint8Array> => {
+const hashValue = (value: HashableValue): Promise<Buffer> => {
   if (isTagged(value)) {
     return hashValue(value.value);
   } else if (isString(value)) {
