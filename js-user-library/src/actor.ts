@@ -47,7 +47,13 @@ export const makeActor = (
         response: callResponse,
       } = await httpAgent.call({
         methodName,
-        arg: Uint8Array.from([]) as BinaryBlob,
+        // Manually send the magic bytes until we address argument ancoding and
+        // decoding.
+        //
+        // DIDL\x00\x00
+        // D   I   D   L   \x00  \x00
+        // 68  73  68  76  0     0
+        arg: Uint8Array.from([68, 73, 68, 76, 0, 0]) as BinaryBlob,
       });
 
       if (!callResponse.ok) {
