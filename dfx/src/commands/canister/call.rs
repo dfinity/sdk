@@ -1,12 +1,12 @@
 use crate::lib::api_client::{call, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::env::{ClientEnv, ProjectConfigEnv};
+use crate::lib::env::{BinaryResolverEnv, ClientEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::util::print_idl_blob;
+use crate::util::{load_idl_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::Blob;
-use serde_idl::{Encode, IDLArgs, IDLProg};
+use serde_idl::{Encode, IDLArgs};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -46,7 +46,7 @@ pub fn construct() -> App<'static, 'static> {
 
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
-    T: ClientEnv + ProjectConfigEnv,
+    T: ClientEnv + ProjectConfigEnv + BinaryResolverEnv,
 {
     let config = env
         .get_config()
@@ -58,11 +58,8 @@ where
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
 
-    let idl_path = canister_info.get_output_idl_path();
-    let idl_ast: IDLProg = std::fs::read_to_string(idl_path)?
-        .parse()
-        .map_err(|e| DfxError::InvalidData(format!("Invalid IDL file: {}", e)))?;
-    println!("{}", idl_ast.to_pretty(80));
+    let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
+    println!("{}", idl_ast.unwrap().to_pretty(80));
 
     let method_name = args.value_of("method_name").unwrap();
     let arguments: Option<&str> = args.value_of("argument");
