@@ -58,12 +58,15 @@ where
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
 
-    let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
-    println!("{}", idl_ast.unwrap().to_pretty(80));
-
     let method_name = args.value_of("method_name").unwrap();
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
+
+    let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
+    if let Some(ast) = idl_ast {
+        let func = ast.get_method_type(&method_name);
+        println!("{}", serde_idl::types::to_pretty(&func.unwrap(), 80));
+    }
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.

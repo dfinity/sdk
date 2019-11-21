@@ -21,6 +21,9 @@ pub fn print_idl_blob(blob: &Blob) -> Result<(), serde_idl::Error> {
     Ok(())
 }
 
+/// Parse IDL file into AST. This is a best effort function: it will succeed if
+/// the IDL file can be type checked by didc, parsed in Rust parser, and has an
+/// actor in the IDL file. If anything fails, it returns None.
 pub fn load_idl_file<T>(env: &T, idl_path: &std::path::Path) -> Option<IDLProg>
 where
     T: BinaryResolverEnv,
@@ -33,9 +36,18 @@ where
     if valid_idl.is_err() || !valid_idl.unwrap().success() {
         return None;
     }
-
-    match std::fs::read_to_string(idl_path) {
-        Ok(str) => str.parse::<IDLProg>().ok(),
+    let idl_file = std::fs::read_to_string(idl_path);
+    if idl_file.is_err() {
+        return None;
+    }
+    match idl_file.unwrap().parse::<IDLProg>() {
+        Ok(ast) => {
+            if ast.actor.is_some() {
+                Some(ast)
+            } else {
+                None
+            }
+        }
         Err(_) => None,
     }
 }

@@ -1,5 +1,6 @@
 extern crate pretty;
 use self::pretty::{BoxDoc, Doc};
+use crate::{Error, Result};
 use dfx_info::idl_hash;
 
 #[derive(Debug, Clone)]
@@ -113,16 +114,74 @@ pub struct IDLProg {
     pub actor: Option<Binding>,
 }
 
+impl IDLProg {
+    fn find_type(&self, id: &str) -> Result<IDLType> {
+        for dec in self.decs.iter() {
+            if let Dec::TypD(bind) = dec {
+                if bind.id == *id {
+                    return Ok(bind.typ.clone());
+                }
+            }
+        }
+        Err(Error::msg(format!("cannot find variable {}", id)))
+    }
+    fn as_meths(&self, t: &IDLType) -> Result<IDLType> {
+        match t {
+            IDLType::ServT(_) => Ok(t.clone()),
+            IDLType::VarT(id) => self.as_meths(&self.find_type(id)?),
+            _ => Err(Error::msg("as_meths failed")),
+        }
+    }
+    fn as_func(&self, t: &IDLType) -> Result<IDLType> {
+        match t {
+            IDLType::FuncT(_) => Ok(t.clone()),
+            IDLType::VarT(id) => self.as_func(&self.find_type(id)?),
+            _ => Err(Error::msg("as_func failed")),
+        }
+    }
+
+    pub fn get_method_type(&self, method_name: &str) -> Option<IDLType> {
+        let actor = self.actor.as_ref()?;
+        let meths = self.as_meths(&actor.typ);
+        match meths {
+            Ok(IDLType::ServT(meths)) => {
+                for meth in meths {
+                    if meth.id == *method_name {
+                        return self.as_func(&meth.typ).ok();
+                    }
+                }
+                None
+            }
+            _ => None,
+        }
+    }
+}
+
 impl std::str::FromStr for IDLProg {
     type Err = crate::Error;
-    fn from_str(str: &str) -> Result<Self, Self::Err> {
+    fn from_str(str: &str) -> Result<Self> {
         let lexer = crate::lexer::Lexer::new(str);
         Ok(crate::grammar::IDLProgParser::new().parse(lexer)?)
     }
 }
 
-impl IDLProg {
-    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
+// Pretty printing
+
+pub trait ToDoc {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>>;
+}
+
+pub fn to_pretty<T>(doc: &T, width: usize) -> String
+where
+    T: ToDoc,
+{
+    let mut w = Vec::new();
+    doc.to_doc().render(width, &mut w).unwrap();
+    String::from_utf8(w).unwrap()
+}
+
+impl ToDoc for IDLProg {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         let doc = Doc::concat(
             self.decs
                 .iter()
@@ -140,15 +199,10 @@ impl IDLProg {
             doc
         }
     }
-    pub fn to_pretty(&self, width: usize) -> String {
-        let mut w = Vec::new();
-        self.to_doc().render(width, &mut w).unwrap();
-        String::from_utf8(w).unwrap()
-    }
 }
 
-impl Dec {
-    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
+impl ToDoc for Dec {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         match *self {
             Dec::TypD(ref b) => Doc::text("type ").append(b.to_doc()),
             Dec::ImportD(ref file) => Doc::text(format!("import \"{}\"", file)),
@@ -156,7 +210,7 @@ impl Dec {
     }
 }
 
-impl Binding {
+impl ToDoc for Binding {
     fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         Doc::text(format!("{} =", self.id))
             .append(Doc::space())
@@ -166,8 +220,8 @@ impl Binding {
     }
 }
 
-impl IDLType {
-    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
+impl ToDoc for IDLType {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         match self {
             IDLType::PrimT(p) => p.to_doc(),
             IDLType::VarT(var) => Doc::text(var),
@@ -183,7 +237,7 @@ impl IDLType {
     }
 }
 
-impl FuncType {
+impl ToDoc for FuncType {
     fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         args_to_doc(&self.args)
             .append(Doc::space())
@@ -195,7 +249,7 @@ impl FuncType {
     }
 }
 
-impl TypeField {
+impl ToDoc for TypeField {
     fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         let colon = Doc::text(":").append(Doc::space());
         let doc = match &self.label {
