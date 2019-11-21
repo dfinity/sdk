@@ -82,6 +82,32 @@ pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> DfxResult {
     Ok(())
 }
 
+pub fn init_git(project_name: &Path) -> DfxResult {
+    let init_status = std::process::Command::new("git")
+        .arg("init")
+        .current_dir(project_name)
+        .stderr(Stdio::null())
+        .stdout(Stdio::null())
+        .status();
+
+    if init_status.is_ok() && init_status.unwrap().success() {
+        eprintln!("Creating git repository...");
+        std::process::Command::new("git")
+            .arg("add")
+            .current_dir(project_name)
+            .arg(".")
+            .output()?;
+        std::process::Command::new("git")
+            .arg("commit")
+            .current_dir(project_name)
+            .arg("-a")
+            .arg("--message=Initial commit.")
+            .output()?;
+    }
+
+    Ok(())
+}
+
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: BinaryCacheEnv + PlatformEnv + VersionEnv,
@@ -129,11 +155,10 @@ where
     }
 
     if !dry_run {
-        let mut should_git = true;
-
         // If on mac, we should validate that XCode toolchain was installed.
         #[cfg(target_os = "macos")]
         {
+            let mut should_git = true;
             if let Ok(code) = std::process::Command::new("xcode-select")
                 .arg("-p")
                 .stderr(Stdio::null())
@@ -148,29 +173,15 @@ where
                 // Could not find XCode Toolchain on Mac, that's weird.
                 should_git = false;
             }
+
+            if should_git {
+                init_git(&project_name)?;
+            }
         }
 
-        if should_git {
-            let init_status = std::process::Command::new("git")
-                .arg("init")
-                .current_dir(&project_name)
-                .stderr(Stdio::null())
-                .stdout(Stdio::null())
-                .status();
-            if init_status.is_ok() && init_status.unwrap().success() {
-                eprintln!("Creating git repository...");
-                std::process::Command::new("git")
-                    .arg("add")
-                    .current_dir(&project_name)
-                    .arg(".")
-                    .output()?;
-                std::process::Command::new("git")
-                    .arg("commit")
-                    .current_dir(&project_name)
-                    .arg("-a")
-                    .arg("--message=Initial commit.")
-                    .output()?;
-            }
+        #[cfg(not(target_os = "macos"))]
+        {
+            init_git(&project_name)?;
         }
     }
 
