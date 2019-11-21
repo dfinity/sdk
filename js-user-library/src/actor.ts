@@ -42,15 +42,6 @@ export const makeActor = (
   return Object.fromEntries(entries.map((entry) => {
     const [methodName, func] = entry as [string, _IDL.Func];
     return [methodName, async (...args: Array<any>) => {
-      if (func.argTypes.length !== args.length) {
-        throw new Error([
-          "Function called with incorrect number of arguments:",
-          `  Function name: ${methodName}`,
-          `  Type: ${func.argTypes}`,
-          `  Arguments: ${args}`,
-        ].join("\n"));
-      }
-
       // IDL.js encoding produces a feross/safe-buffer `Buffer`. We need to
       // convert to a ferross/buffer `Buffer` so that our `instanceof` checks
       // succeed. TODO: reconcile these `Buffer` types.
@@ -88,16 +79,6 @@ export const makeActor = (
               func.retTypes,
               Buffer.from(response.reply.arg),
             );
-
-            if (func.retTypes.length !== returnValue.length) {
-              throw new Error([
-                "Function return value has incorrect number of arguments:",
-                `  Function name: ${methodName}`,
-                `  Type: ${func.retTypes}`,
-                `  Arguments: ${response.reply.arg}`,
-                `  Decoded value: ${returnValue}`,
-              ].join("\n"));
-            }
 
             // IDL functions can have multiple return values, so decoding always
             // produces an array. Ensure that functions with single return
