@@ -8,10 +8,7 @@ export interface Func {
 interface JsArray extends Array<JsValue> {}
 type JsValue = boolean | string | number | JsArray | object
 
-export interface Type {
-  encodeGo(x: JsValue): Buffer
-  decodeGo(x: Buffer): JsValue
-}
+export interface Type {}
 
 export interface Text extends Type {}
 
