@@ -237,7 +237,7 @@ const query = (
     arg,
   });
   const response = await read(config)(request);
-  const body = Uint8Array.from(await response.arrayBuffer());
+  const body = new Uint8Array(await response.arrayBuffer());
   return cbor.decode(body) as QueryResponse;
 };
 
@@ -252,7 +252,7 @@ const requestStatus = (
 }): Promise<RequestStatusResponse> => {
   const request = await makeRequestStatusRequest(config, { requestId });
   const response = await read(config)(request);
-  const body = Uint8Array.from(await response.arrayBuffer());
+  const body = new Uint8Array(await response.arrayBuffer());
   return cbor.decode(body) as RequestStatusResponse;
 };
 
