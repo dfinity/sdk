@@ -8,5 +8,5 @@ let src = builtins.fetchGit {
 }; in
 
 {
-  motoko = import src { };
+  motoko = import src { nixpkgs = self; };
 }
