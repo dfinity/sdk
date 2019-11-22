@@ -10,4 +10,4 @@
 # Build artifacts
 build/
 canisters/
-public/main.js
+public/index.js

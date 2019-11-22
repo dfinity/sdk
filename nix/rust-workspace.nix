@@ -12,6 +12,7 @@
 , libressl
 , runCommandNoCC
 , stdenv
+, dfinity-sdk
 }:
 let
   drv = buildDfinityRustPackage {
@@ -38,6 +39,7 @@ drv.overrideAttrs (oldAttrs: {
     cp ${motoko.didc}/bin/didc $out
     cp ${motoko.rts}/rts/mo-rts.wasm $out
     mkdir $out/stdlib && cp -R ${motoko.stdlib}/. $out/stdlib
+    mkdir $out/js-user-library && cp -R ${dfinity-sdk.packages.js-user-library}/. $out/js-user-library
   '';
 
   nativeBuildInputs = oldAttrs.nativeBuildInputs ++ lib.optionals doDoc [

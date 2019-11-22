@@ -1,10 +1,7 @@
 {
-  "version": 1,
-  "dfx": "0.4.0",
   "canisters": {
     "hello": {
-      "main": "src/hello/main.mo",
-      "deployment_id": 1
+      "main": "src/hello/main.mo"
     }
   },
   "defaults": {
@@ -12,9 +9,11 @@
       "output": "canisters/"
     },
     "start": {
-      "port": 8000,
       "address": "localhost",
+      "port": 8000,
       "serve_root": "public/"
     }
-  }
+  },
+  "dfx": "0.4.0",
+  "version": 1
 }
