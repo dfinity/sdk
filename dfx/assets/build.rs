@@ -50,5 +50,6 @@ fn main() {
 
     let path = env::var("DFX_ASSETS").unwrap();
     add_assets("binary_cache", &mut f, &path);
+    add_assets("language_bindings", &mut f, "assets/language_bindings");
     add_assets("new_project_files", &mut f, "assets/new_project_files");
 }

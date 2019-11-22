@@ -4,8 +4,11 @@ use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::DfxError::BuildError;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use ic_http_agent::CanisterId;
 use std::ffi::OsStr;
+use std::io::Read;
 use std::path::Path;
 
 pub fn construct() -> App<'static, 'static> {
@@ -78,11 +81,7 @@ fn didl_compile<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &
     }
 }
 
-fn build_user_lib<T: BinaryResolverEnv>(
-    env: &T,
-    input_path: &Path,
-    output_path: &Path,
-) -> DfxResult {
+fn build_did_js<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult {
     let output = env
         .get_binary_command("didc")?
         .arg("--js")
@@ -92,15 +91,64 @@ fn build_user_lib<T: BinaryResolverEnv>(
         .output()?;
 
     if !output.status.success() {
-        Err(DfxError::BuildError(
-            BuildErrorKind::UserLibGenerationError(
-                String::from_utf8_lossy(&output.stdout).to_string()
-                    + &String::from_utf8_lossy(&output.stderr),
-            ),
-        ))
+        Err(DfxError::BuildError(BuildErrorKind::DidJsGenerationError(
+            String::from_utf8_lossy(&output.stdout).to_string()
+                + &String::from_utf8_lossy(&output.stderr),
+        )))
     } else {
         Ok(())
     }
+}
+
+fn build_canister_js(
+    canister_id: CanisterId,
+    did_js_path: &Path,
+    js_user_lib_path: &Path,
+    output_canister_js_path: &Path,
+) -> DfxResult {
+    let mut language_bindings = assets::language_bindings()?;
+
+    for entry in language_bindings.entries()? {
+        let mut file = entry?;
+
+        if file.header().entry_type().is_dir() {
+            continue;
+        }
+
+        let mut file_contents = String::new();
+        file.read_to_string(&mut file_contents)?;
+
+        let did_js_path_str = did_js_path.to_str().ok_or_else(|| {
+            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+                "Unable to convert .did.js path to a string: {:#?}",
+                did_js_path
+            )))
+        })?;
+
+        let js_user_lib_path_str = js_user_lib_path.to_str().ok_or_else(|| {
+            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+                "Unable to convert JS user lib path to a string: {:#?}",
+                js_user_lib_path
+            )))
+        })?;
+
+        let with_canister_id =
+            file_contents.replace("{canister_id}", &format!("\"{}\"", &canister_id.to_hex()));
+        let with_did_js = with_canister_id.replace("{did_js}", did_js_path_str);
+        let with_js_user_lib = with_did_js.replace("{js_user_lib}", js_user_lib_path_str);
+        let new_file_contents = with_js_user_lib;
+
+        let output_canister_js_path_str = output_canister_js_path.to_str().ok_or_else(|| {
+            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+                "Unable to convert output canister js path to a string: {:#?}",
+                output_canister_js_path
+            )))
+        })?;
+
+        std::fs::write(output_canister_js_path_str, new_file_contents)?;
+    }
+
+    Ok(())
 }
 
 fn build_file<T>(env: &T, config: &Config, name: &str) -> DfxResult
@@ -139,18 +187,29 @@ where
 
         Some("mo") => {
             let output_idl_path = canister_info.get_output_idl_path();
-            let output_js_path = canister_info.get_output_js_path();
+            let output_did_js_path = canister_info.get_output_did_js_path();
 
             std::fs::create_dir_all(canister_info.get_output_root())?;
 
             motoko_compile(env, profile, &input_path, &output_wasm_path)?;
             didl_compile(env, &input_path, &output_idl_path)?;
-            build_user_lib(env, &output_idl_path, &output_js_path)?;
+            build_did_js(env, &output_idl_path, &output_did_js_path)?;
+
+            let canister_id = canister_info.generate_canister_id()?;
+            let js_user_lib_path = env.get_binary_command_path("js-user-library")?;
+            let output_canister_js_path = canister_info.get_output_canister_js_path();
+
+            build_canister_js(
+                canister_id.to_owned(),
+                &output_did_js_path,
+                &js_user_lib_path,
+                &output_canister_js_path,
+            )?;
 
             // Write the CID.
             std::fs::write(
                 canister_info.get_canister_id_path(),
-                canister_info.generate_canister_id()?.into_blob().0,
+                canister_id.into_blob().0,
             )
             .map_err(DfxError::from)?;
 
@@ -246,8 +305,12 @@ mod tests {
         .expect("Function failed.");
         didl_compile(&env, Path::new("/in/file.mo"), Path::new("/out/file.did"))
             .expect("Function failed");
-        build_user_lib(&env, Path::new("/out/file.did"), Path::new("/out/file.js"))
-            .expect("Function failed");
+        build_did_js(
+            &env,
+            Path::new("/out/file.did"),
+            Path::new("/out/file.did.js"),
+        )
+        .expect("Function failed");
 
         out_file.flush().expect("Could not flush.");
 
@@ -260,7 +323,7 @@ mod tests {
             s.trim(),
             r#"moc /in/file.mo --debug -o /out/file.wasm --package stdlib stdlib
                 moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib
-                didc --js /out/file.did -o /out/file.js"#
+                didc --js /out/file.did -o /out/file.did.js"#
                 .replace("                ", "")
         );
     }

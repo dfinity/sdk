@@ -4,5 +4,8 @@ module.exports = {
   mode: "development",
   entry: "./src/hello/index.js",
   devtool: 'inline-source-map',
-  output: { path: path.resolve(__dirname, "public") },
+  output: {
+    filename: "index.js",
+    path: path.resolve(__dirname, "public"),
+  },
 };

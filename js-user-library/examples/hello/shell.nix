@@ -1,3 +1,8 @@
+# The goal of this nix-shell is to provide a somewhat clean environment for the
+# state of the SDK as it exists on the current branch. We do this by not
+# relying on, or modifying, any global paths where the SDK may have previously
+# been installed.
+
 let pkgs = (import ../../.. {}).pkgs; in
 let sdk = pkgs.dfinity-sdk.packages; in
 
@@ -10,10 +15,18 @@ pkgs.mkShell {
   ];
   shellHook = ''
     set -e
-    export HOME=$(mktemp -d)
+    temp_home=$(mktemp -d)
+    export HOME="$temp_home"
+
+    # Temporarily remove the "dfx" field in dfx.json so that we can use the
+    # version of dfx in the rust workspace. Otherwise, dfx can complain that a
+    # version matching the project can't be found. Preferably we would set this
+    # to the version reported by `dfx --version` but can't due to SDK-613.
+    version=$(dfx config dfx)
+    dfx config dfx null
 
     # Ideally we would depend on pkgs.dfinity-sdk.js-user-library, and changes
-    # there would trigger a rebuild.
+    # there would trigger a rebuild when entering this shell.
     pushd ../..
     npm install
     npm run bundle
@@ -22,13 +35,15 @@ pkgs.mkShell {
     npm install
 
     # Hack to make sure that binaries are installed
-    pushd $(mktemp -d)
+    temp_project=$(mktemp -d)
+    pushd "$temp_project"
     dfx new temp &> /dev/null
     popd
+    rm -rf "$temp_project"
 
     dfx start --background
     dfx build hello
-    dfx canister install $(jq --raw-output '.canisters.hello.deployment_id' dfx.json) canisters/hello/main.wasm
+    dfx canister install hello
 
     npm run bundle
 
@@ -38,7 +53,9 @@ pkgs.mkShell {
 
     # Clean up before we exit the shell
     trap "{ \
-      killall dfx nodemanager client
+      dfx stop; \
+      dfx config dfx "''${version}"; \
+      rm -rf "$temp_home"; \
       exit 255; \
     }" EXIT
   '';
