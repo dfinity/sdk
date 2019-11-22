@@ -4,13 +4,7 @@ pkgs.mkCompositeShell {
   buildInputs = [pkgs.rls];
   inputsFrom = [
 
-    (pkgs.dfinity-sdk.packages.rust-workspace-debug.overrideAttrs (oldAttrs: {
-      # _oldAttrs.configurePhase refers to the dfinity-application-and-others-deps
-      # derivation which is the build of all 3rd-party Rust dependencies. Since in this
-      # nix-shell we use cargo locally to build all dependencies we don't need to depend
-      # on this derivation saving a lot of time downloading/building.
-      configurePhase = "";
-
+    (pkgs.dfinity-sdk.packages.shell.overrideAttrs (oldAttrs: {
       # for some odd reason this is needed in the shell:
       # https://dfinity.atlassian.net/browse/INF-542
       nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ pkgs.stdenv.cc ];

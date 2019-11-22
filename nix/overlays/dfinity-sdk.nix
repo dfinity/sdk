@@ -1,23 +1,19 @@
 self: super:
 let
   mkRelease = super.callPackage ./mk-release.nix {};
-
+  rust-package' = super.callPackage ../rust-workspace.nix {};
+  # remove some stuff leftover by callPackage
+  rust-package = removeAttrs rust-package'
+    [ "override" "overrideDerivation" ];
+  rust-workspace = rust-package.build;
 in {
   dfinity-sdk = rec {
-    packages = rec {
+    packages = rust-package // rec {
+        inherit rust-workspace;
+        rust-workspace-debug = rust-package.debug;
         js-user-library = super.callPackage ../../js-user-library/package.nix {
           inherit (self) napalm;
         };
-        rust-workspace = super.callPackage ../rust-workspace.nix {};
-        rust-workspace-debug = (rust-workspace.override (_: {
-          release = false;
-          doClippy = true;
-          doFmt = true;
-          doDoc = true;
-        })).overrideAttrs (oldAttrs: {
-          name = "${oldAttrs.name}-debug";
-        });
-        rust-workspace-doc = rust-workspace-debug.doc;
 
         rust-workspace-standalone = super.lib.standaloneRust
           { drv = rust-workspace;
