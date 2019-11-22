@@ -55,19 +55,6 @@ impl IDLArgs {
         de.done()?;
         Ok(IDLArgs { args })
     }
-    pub fn from_bytes_with_type(
-        bytes: &[u8],
-        _types: &[crate::types::IDLType],
-    ) -> crate::Result<Self> {
-        let mut de = crate::de::IDLDeserialize::new(bytes);
-        let mut args = Vec::new();
-        while !de.is_done() {
-            let v = de.get_value::<IDLValue>()?;
-            args.push(v);
-        }
-        de.done()?;
-        Ok(IDLArgs { args })
-    }
 }
 
 impl std::str::FromStr for IDLArgs {

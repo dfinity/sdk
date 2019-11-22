@@ -1,9 +1,9 @@
-use crate::lib::api_client::{call, request_status, QueryResponseReply, ReadResponse};
+use crate::lib::api_client::{call, query, request_status, QueryResponseReply, ReadResponse};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::env::{BinaryResolverEnv, ClientEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::util::{load_idl_file, print_idl_blob_with_type};
+use crate::util::{load_idl_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::Blob;
 use serde_idl::{Encode, IDLArgs};
@@ -63,10 +63,7 @@ where
     let arg_type: Option<&str> = args.value_of("type");
 
     let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
-    /*if let Some(ast) = idl_ast {
-        let ret_types = ast.get_method_type(&method_name);
-        println!("{}", serde_idl::types::to_pretty(&func.unwrap(), 80));
-    }*/
+    let is_query_method = idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
@@ -94,40 +91,47 @@ where
     };
 
     let client = env.get_client();
-    let call_future = call(client, canister_id, method_name.to_owned(), arg_value);
-
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    let request_id = runtime.block_on(call_future)?;
-
-    if args.is_present("async") {
-        eprint!("Request ID: ");
-        println!("0x{}", String::from(request_id));
-        Ok(())
-    } else {
-        let request_status = request_status(env.get_client(), request_id);
-        let mut runtime = Runtime::new().expect("Unable to create a runtime");
-        match runtime.block_on(request_status) {
-            Ok(ReadResponse::Pending) => {
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");    
+    let (response, request_id) =
+        if is_query_method == Some(true) {
+            let future = query(client, canister_id, method_name.to_owned(), arg_value.map(Blob::from));
+            (runtime.block_on(future), None)
+        } else {
+            let future = call(client, canister_id, method_name.to_owned(), arg_value);
+            let request_id = runtime.block_on(future)?;
+            if args.is_present("async") {
                 eprint!("Request ID: ");
                 println!("0x{}", String::from(request_id));
-                Ok(())
+                return Ok(());
+            } else {
+                let request_status = request_status(env.get_client(), request_id);
+                let mut runtime = Runtime::new().expect("Unable to create a runtime");
+                (runtime.block_on(request_status), Some(request_id))
             }
-            Ok(ReadResponse::Replied { reply }) => {
-                if let Some(QueryResponseReply { arg: blob }) = reply {
-                    let ret_typs =
-                        idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.rets));
-                    print_idl_blob_with_type(&blob, &ret_typs.unwrap())
-                        .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
-                }
-                Ok(())
+        };
+    match response {
+        Ok(ReadResponse::Pending) => {
+            if is_query_method == Some(true) {
+                eprintln!("Pending");
+            } else {
+                eprint!("Request ID: ");
+                println!("0x{}", String::from(request_id.unwrap()));
             }
-            Ok(ReadResponse::Rejected {
-                reject_code,
-                reject_message,
-            }) => Err(DfxError::ClientError(reject_code, reject_message)),
-            // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
-            Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
-            Err(x) => Err(x),
+            Ok(())
         }
+        Ok(ReadResponse::Replied { reply }) => {
+            if let Some(QueryResponseReply { arg: blob }) = reply {
+                print_idl_blob(&blob)
+                    .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+            }
+            Ok(())
+        }
+        Ok(ReadResponse::Rejected {
+            reject_code,
+            reject_message,
+        }) => Err(DfxError::ClientError(reject_code, reject_message)),
+        // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
+        Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
+        Err(x) => Err(x),
     }
 }

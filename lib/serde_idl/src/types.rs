@@ -73,6 +73,17 @@ pub struct FuncType {
     pub rets: Vec<IDLType>,
 }
 
+impl FuncType {
+    pub fn is_query(&self) -> bool {
+        for m in self.modes.iter() {
+            if let FuncMode::Query = m {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Label {
     Id(u32),

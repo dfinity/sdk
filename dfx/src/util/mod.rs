@@ -16,19 +16,6 @@ pub fn print_idl_blob(blob: &Blob) -> Result<(), serde_idl::Error> {
     Ok(())
 }
 
-pub fn print_idl_blob_with_type(
-    blob: &Blob,
-    types: &[serde_idl::types::IDLType],
-) -> Result<(), serde_idl::Error> {
-    let result = serde_idl::IDLArgs::from_bytes_with_type(&(*blob.0), types);
-    if result.is_err() {
-        let hex_string = hex::encode(&(*blob.0));
-        eprintln!("Error deserializing blob 0x{}", hex_string);
-    }
-    println!("{}", result?);
-    Ok(())
-}
-
 /// Parse IDL file into AST. This is a best effort function: it will succeed if
 /// the IDL file can be type checked by didc, parsed in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.
