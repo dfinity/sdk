@@ -30,6 +30,12 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(false),
         )
         .arg(
+            Arg::with_name("query")
+                .help(UserMessage::QueryCanister.to_str())
+                .long("query")
+                .takes_value(false),
+        )
+        .arg(
             Arg::with_name("type")
                 .help(UserMessage::ArgumentType.to_str())
                 .long("type")
@@ -63,8 +69,26 @@ where
     let arg_type: Option<&str> = args.value_of("type");
 
     let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
-    let is_query_method =
-        idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
+    let is_query = if args.is_present("async") {
+        false
+    } else {
+        let is_query_method =
+            idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
+        match is_query_method {
+            Some(true) => true,
+            Some(false) => {
+                if args.is_present("query") {
+                    return Err(DfxError::InvalidArgument(format!(
+                        "{} is not a query method",
+                        method_name
+                    )));
+                } else {
+                    false
+                }
+            }
+            None => args.is_present("query"),
+        }
+    };
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
@@ -93,7 +117,7 @@ where
 
     let client = env.get_client();
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    let (response, request_id) = if is_query_method == Some(true) {
+    let (response, request_id) = if is_query {
         let future = query(
             client,
             canister_id,
@@ -116,7 +140,7 @@ where
     };
     match response {
         Ok(ReadResponse::Pending) => {
-            if is_query_method == Some(true) {
+            if is_query {
                 eprintln!("Pending");
             } else {
                 eprint!("Request ID: ");
