@@ -7,6 +7,7 @@ mod util;
 
 use crate::commands::CliCommand;
 use crate::config::dfinity::Config;
+use crate::config::dfx_version;
 use crate::lib::env::{
     BinaryCacheEnv, BinaryResolverEnv, ClientEnv, GlobalEnvironment, InProjectEnvironment,
     PlatformEnv, ProjectConfigEnv, VersionEnv,
@@ -62,6 +63,15 @@ fn main() {
             // Build the environment.
             let env = InProjectEnvironment::from_current_dir()
                 .expect("Could not create an project environment object.");
+
+            // If we're not using the right version, forward the call to the cache dfx.
+            if dfx_version() != env.get_version() {
+                match crate::config::cache::call_cached_dfx(env.get_version()) {
+                    Ok(status) => std::process::exit(status.code().unwrap_or(0)),
+                    Err(_) => std::process::exit(1),
+                };
+            }
+
             let matches = cli(&env).get_matches();
 
             exec(&env, &matches, &(cli(&env)))
