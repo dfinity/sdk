@@ -132,28 +132,25 @@ impl IDLProg {
             _ => Err(Error::msg("as_meths failed")),
         }
     }
-    fn as_func(&self, t: &IDLType) -> Result<IDLType> {
+    fn as_func(&self, t: &IDLType) -> Result<FuncType> {
         match t {
-            IDLType::FuncT(_) => Ok(t.clone()),
+            IDLType::FuncT(func) => Ok(func.clone()),
             IDLType::VarT(id) => self.as_func(&self.find_type(id)?),
             _ => Err(Error::msg("as_func failed")),
         }
     }
 
-    pub fn get_method_type(&self, method_name: &str) -> Option<IDLType> {
+    pub fn get_method_type(&self, method_name: &str) -> Option<FuncType> {
         let actor = self.actor.as_ref()?;
-        let meths = self.as_meths(&actor.typ);
-        match meths {
-            Ok(IDLType::ServT(meths)) => {
-                for meth in meths {
-                    if meth.id == *method_name {
-                        return self.as_func(&meth.typ).ok();
-                    }
+        let t = self.as_meths(&actor.typ).ok()?;
+        if let IDLType::ServT(meths) = t {
+            for meth in meths {
+                if meth.id == *method_name {
+                    return self.as_func(&meth.typ).ok();
                 }
-                None
             }
-            _ => None,
         }
+        None
     }
 }
 

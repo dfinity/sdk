@@ -3,7 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::env::{BinaryResolverEnv, ClientEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::util::{load_idl_file, print_idl_blob};
+use crate::util::{load_idl_file, print_idl_blob_with_type};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::Blob;
 use serde_idl::{Encode, IDLArgs};
@@ -63,10 +63,10 @@ where
     let arg_type: Option<&str> = args.value_of("type");
 
     let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
-    if let Some(ast) = idl_ast {
-        let func = ast.get_method_type(&method_name);
+    /*if let Some(ast) = idl_ast {
+        let ret_types = ast.get_method_type(&method_name);
         println!("{}", serde_idl::types::to_pretty(&func.unwrap(), 80));
-    }
+    }*/
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
@@ -114,7 +114,9 @@ where
             }
             Ok(ReadResponse::Replied { reply }) => {
                 if let Some(QueryResponseReply { arg: blob }) = reply {
-                    print_idl_blob(&blob)
+                    let ret_typs =
+                        idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.rets));
+                    print_idl_blob_with_type(&blob, &ret_typs.unwrap())
                         .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
                 }
                 Ok(())
