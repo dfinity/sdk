@@ -80,7 +80,7 @@ impl FuncType {
                 return true;
             }
         }
-        return false;
+        false
     }
 }
 

@@ -63,7 +63,8 @@ where
     let arg_type: Option<&str> = args.value_of("type");
 
     let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
-    let is_query_method = idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
+    let is_query_method =
+        idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
@@ -91,24 +92,28 @@ where
     };
 
     let client = env.get_client();
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");    
-    let (response, request_id) =
-        if is_query_method == Some(true) {
-            let future = query(client, canister_id, method_name.to_owned(), arg_value.map(Blob::from));
-            (runtime.block_on(future), None)
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let (response, request_id) = if is_query_method == Some(true) {
+        let future = query(
+            client,
+            canister_id,
+            method_name.to_owned(),
+            arg_value.map(Blob::from),
+        );
+        (runtime.block_on(future), None)
+    } else {
+        let future = call(client, canister_id, method_name.to_owned(), arg_value);
+        let request_id = runtime.block_on(future)?;
+        if args.is_present("async") {
+            eprint!("Request ID: ");
+            println!("0x{}", String::from(request_id));
+            return Ok(());
         } else {
-            let future = call(client, canister_id, method_name.to_owned(), arg_value);
-            let request_id = runtime.block_on(future)?;
-            if args.is_present("async") {
-                eprint!("Request ID: ");
-                println!("0x{}", String::from(request_id));
-                return Ok(());
-            } else {
-                let request_status = request_status(env.get_client(), request_id);
-                let mut runtime = Runtime::new().expect("Unable to create a runtime");
-                (runtime.block_on(request_status), Some(request_id))
-            }
-        };
+            let request_status = request_status(env.get_client(), request_id);
+            let mut runtime = Runtime::new().expect("Unable to create a runtime");
+            (runtime.block_on(request_status), Some(request_id))
+        }
+    };
     match response {
         Ok(ReadResponse::Pending) => {
             if is_query_method == Some(true) {
