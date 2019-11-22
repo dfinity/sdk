@@ -8,10 +8,7 @@ export interface Func {
 interface JsArray extends Array<JsValue> {}
 type JsValue = boolean | string | number | JsArray | object
 
-export interface Type {
-  encode(x: JsValue): Buffer
-  decode(x: Buffer): JsValue
-}
+export interface Type {}
 
 export interface Text extends Type {}
 
@@ -24,3 +21,6 @@ export function idlHash(s: string): number
 
 export function Func(argTypes?: Array<Type>, retTypes?: Array<Type>): Func
 export const Text: Text
+
+export function encode(argTypes: Array<Type>, args: Array<JsValue>): Buffer
+export function decode(retTypes: Array<Type>, bytes: Buffer): Array<JsValue>
