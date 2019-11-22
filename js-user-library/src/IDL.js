@@ -83,26 +83,6 @@ class TypeTable {
  * Represents an IDL type
  */
 class Type {
-  /**
-   * Encode a value
-   * @returns {Buffer} serialised value
-   */
-  encode (x) {
-    const ty_buf = this.encodeType()
-    const val_buf = this.encodeGo(x)
-    return Buffer.concat([ty_buf, val_buf])
-  }
-
-  encodeType () {
-    const T = new TypeTable()
-    this.buildType(T)
-    const magic = Buffer.from(magicNumber, 'utf8')
-    const table = T.encodeTable()
-    const len = leb.encode(1)
-    const ty = this.encodeTypeGo(T)
-    return Buffer.concat([magic, table, len, ty])
-  }
-
   /* Memoized DFS for storing type description into TypeTable  */
   buildType (T) {
     if (!T.hasType(this.toString())) return this.buildTypeGo(T)
@@ -119,66 +99,6 @@ class Type {
   /* Implement I in the IDL spec */
   encodeTypeGo (T) {
     throw new Error('You have to implement the method encodeTypeGo!')
-  }
-
-  /**
-   * Decode a binary value
-   * @param {string|Buffer} x - hex-encoded string, or buffer
-   * @returns {bool|string|number|Array|Object} value deserialised to JS type
-   */
-  decode (x) {
-    if (type(x) === 'Error') {
-      throw x
-    }
-    const b = new Pipe(x) // TODO: determine if we really need to depend on `buffer-pipe`
-    const _ = this.decodeType(b)
-    const r = this.decodeGo(b)
-    if (b.buffer.length > 0) {
-      throw new Error('decode: Left-over bytes')
-    }
-    return r
-  }
-
-  decodeType (b) {
-    if (b.buffer.length < magicNumber.length) {
-      throw new Error('Message length smaller than magic number')
-    }
-    const magic = b.read(magicNumber.length).toString()
-    if (magic !== magicNumber) {
-      throw new Error('Wrong magic number: ' + magic)
-    }
-    const len = leb.readBn(b).toNumber()
-    for (var i = 0; i < len; i++) {
-      const ty = sleb.readBn(b).toNumber()
-      switch (ty) {
-      case -18:   // opt
-        sleb.readBn(b).toNumber()
-        break
-      case -19:   // vec
-        sleb.readBn(b).toNumber()
-        break
-      case -20:   // record/tuple
-        var obj_len = leb.readBn(b).toNumber()
-        while (obj_len--) {
-          leb.readBn(b).toNumber()
-          sleb.readBn(b).toNumber()
-        }
-        break
-      case -21:   // variant
-        var var_len = leb.readBn(b).toNumber()
-        while (var_len--) {
-          leb.readBn(b).toNumber()
-          sleb.readBn(b).toNumber()
-        }
-        break
-      default:
-        throw new Error('Illegal op_code: ' + ty)
-      }
-    }
-    const ty_len = leb.readBn(b)
-    for (var i = 0; i < ty_len; i++) {
-      sleb.readBn(b).toNumber()
-    }
   }
 
   decodeGo (x) {
@@ -636,6 +556,84 @@ class Func {
 }
 
 /**
+ * Encode a array of values
+ * @returns {Buffer} serialised value
+*/
+function encode(argTypes, args) {
+  if (args.length !== argTypes.length) {
+    throw Error('Wrong number of message arguments')
+  }
+  const T = new TypeTable()
+  argTypes.map(t => t.buildType(T))
+  
+  const magic = Buffer.from(magicNumber, 'utf8')
+  const table = T.encodeTable()
+  const len = leb.encode(args.length)
+  const typs = Buffer.concat(argTypes.map(t => t.encodeTypeGo(T)))
+  const vals = Buffer.concat(zipWith(argTypes, args, (t, x) => t.encodeGo(x)))
+  return Buffer.concat([magic,table,len,typs,vals])
+}
+
+/**
+ * Decode a binary value
+ * @param {string|Buffer} x - hex-encoded string, or buffer
+ * @returns {bool|string|number|Array|Object} value deserialised to JS type
+*/
+function decode(retTypes, bytes) {
+  if (type(bytes) === 'Error') {
+    throw bytes
+  }
+  const decodeType = b => {
+    if (b.buffer.length < magicNumber.length) {
+      throw new Error('Message length smaller than magic number')
+    }
+    const magic = b.read(magicNumber.length).toString()
+    if (magic !== magicNumber) {
+      throw new Error('Wrong magic number: ' + magic)
+    }
+    const len = leb.readBn(b).toNumber()
+    for (var i = 0; i < len; i++) {
+      const ty = sleb.readBn(b).toNumber()
+      switch (ty) {
+      case -18:   // opt
+        sleb.readBn(b).toNumber()
+        break
+      case -19:   // vec
+        sleb.readBn(b).toNumber()
+        break
+      case -20:   // record/tuple
+        var obj_len = leb.readBn(b).toNumber()
+        while (obj_len--) {
+          leb.readBn(b).toNumber()
+          sleb.readBn(b).toNumber()
+        }
+        break
+      case -21:   // variant
+        var var_len = leb.readBn(b).toNumber()
+        while (var_len--) {
+          leb.readBn(b).toNumber()
+          sleb.readBn(b).toNumber()
+        }
+        break
+      default:
+        throw new Error('Illegal op_code: ' + ty)
+      }
+    }
+    const ty_len = leb.readBn(b)
+    for (var i = 0; i < ty_len; i++) {
+      sleb.readBn(b).toNumber()
+    }
+  }
+  const b = new Pipe(bytes)
+  const _ = decodeType(b)
+  const output = retTypes.map(t => t.decodeGo(b))
+  if (b.buffer.length > 0) {
+    throw new Error('decode: Left-over bytes')
+  }
+  return output
+}
+
+/**
  * A wrapper over a client and an IDL
  * @param {Object} [fields] - a map of function names to IDL function signatures
  */
@@ -685,40 +683,8 @@ class ActorInterface {
       if (this.__fields.hasOwnProperty(key)) {
         const msg = this.__fields[key]
 
-        const encodeArgs = args => {
-          if (args.length !== msg.argTypes.length) {
-            throw Error('Wrong number of message arguments')
-          }
-          /*
-          const T = new TypeTable()
-          const argTypes = msg.argTypes
-          argTypes.map(t => t.buildType(T))
-
-          const magic = Buffer.from(magicNumber, 'utf8')
-          const table = T.encodeTable()
-          const len = leb.encode(args.length)
-          const typs = Buffer.concat(argTypes.map(t => t.encodeTypeGo(T)))
-          const vals = Buffer.concat(zipWith(argTypes, args, (t, x) => t.encodeGo(x)))
-          return Buffer.concat([magic,table,len,typs,vals])
-          */
-          return zipWith(argTypes, args, (a, b) => a.encode(b))
-        }
-
-        const decodeResults = res_ => {
-          const res = !Array.isArray(res_) ? [res_] : res_
-          if (res.length !== msg.retTypes.length) {
-            throw Error(`Wrong number of outputs received, want: ${msg.retTypes}, got: ${res}`)
-          }
-          const outputs = zipWith(msg.retTypes, res, (a, b) => a.decode(b))
-          if (msg.retTypes.length === 1) {
-            return outputs[0]
-          } else {
-            return outputs
-          }
-        }
-
         actor[key] = async (...args) => {
-          const rawArgs = encodeArgs(args)
+          const rawArgs = encode(msg.argTypes, args)
           if (this.__batch) {
             if (msg.retTypes) {
               return {
@@ -734,7 +700,7 @@ class ActorInterface {
           } else {
             if (msg.retTypes) {
               const rawOutputs = await client.callResult(actorId, key, rawArgs, secretKey, {}, proxy)
-              return decodeResults(rawOutputs)
+              return decode(msg.retTypes, rawOutputs)
             } else {
               return client.call(actorId, key, rawArgs, secretKey, {}, proxy)
             }
@@ -785,5 +751,7 @@ module.exports = {
 
   Func: (...args) => new Func(...args),
   ActorInterface,
-  idlHash
+  idlHash,
+  encode,
+  decode,
 }

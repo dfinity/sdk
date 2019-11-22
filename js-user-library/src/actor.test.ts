@@ -24,9 +24,9 @@ test("makeActor", async () => {
     });
   };
 
-  const expectedReplyArg = new Buffer(
-    _IDL.Text.encode("Hello, World!").buffer,
-  ) as BinaryBlob;
+  const expectedReplyArg = blob.fromHex(
+    _IDL.encode([_IDL.Text], ["Hello, World!"]).toString("hex") as Hex,
+  );
 
   const mockFetch: jest.Mock = jest.fn()
     .mockImplementationOnce((/*resource, init*/) => {
@@ -59,14 +59,11 @@ test("makeActor", async () => {
     });
 
   const methodName = "greet";
+  const argValue = "Name";
 
-  // Manually send the magic bytes until we address argument ancoding and
-  // decoding.
-  //
-  // DIDL\x00\x00
-  // D   I   D   L   \x00  \x00
-  // 68  73  68  76  0     0
-  const arg = Buffer.from([68, 73, 68, 76, 0, 0]) as BinaryBlob;
+  const arg = blob.fromHex(
+    _IDL.encode([_IDL.Text], [argValue]).toString("hex") as Hex,
+  );
 
   const canisterIdent = "0000000000000001" as Hex;
   const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
@@ -109,13 +106,12 @@ test("makeActor", async () => {
   });
 
   const actor = makeActor(actorInterface)(httpAgent);
-  // FIXME: the argument isn't actually used yet
-  const reply = await actor.greet("Name");
+  const reply = await actor.greet(argValue);
 
   expect(
-    blob.toHex(reply),
+    reply,
   ).toEqual(
-    blob.toHex(expectedReplyArg),
+    _IDL.decode([_IDL.Text], expectedReplyArg)[0],
   );
 
   const { calls, results } = mockFetch.mock;
