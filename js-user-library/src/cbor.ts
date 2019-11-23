@@ -1,10 +1,64 @@
+// tslint:disable:max-classes-per-file
+
+// This file is based on:
 // tslint:disable-next-line: max-line-length
 // https://github.com/dfinity-lab/dfinity/blob/9bca65f8edd65701ea6bdb00e0752f9186bbc893/docs/spec/public/index.adoc#cbor-encoding-of-requests-and-responses
+
+import BigNumber from "bignumber.js";
 import borc from "borc";
+import { Buffer } from "buffer/";
+import * as cbor from "simple-cbor";
+import { CborEncoder, SelfDescribeCborSerializer } from "simple-cbor";
 import { BinaryBlob } from "./blob";
+import { CanisterId } from "./canisterId";
 import { Int } from "./int";
 
-const SEMANTIC_TAG = 55799;
+// We are using hansl/simple-cbor for CBOR serialization, to avoid issues with
+// encoding the uint64 values that the HTTP handler of the client expects for
+// canister IDs. However, simple-cbor does not yet provide deserialization so
+// we are using `BigNumber` and `Buffer` types instead of `BigInt` and
+// `Uint8Array` (respectively) so that we can use the dignifiedquire/borc CBOR
+// decoder.
+
+class BigNumberEncoder implements CborEncoder<BigNumber> {
+  public get name() {
+    return "BigNumber";
+  }
+
+  public get priority() {
+    return 0;
+  }
+
+  public match(value: any): boolean {
+    return value instanceof BigNumber;
+  }
+
+  public encode(v: BigNumber): cbor.CborValue {
+    return cbor.value.u64(v.toString(16), 16);
+  }
+}
+
+class BufferEncoder implements CborEncoder<Buffer> {
+  public get name() {
+    return "Buffer";
+  }
+
+  public get priority() {
+    return 1;
+  }
+
+  public match(value: any): boolean {
+    return value instanceof Buffer;
+  }
+
+  public encode(v: Buffer): cbor.CborValue {
+    return cbor.value.bytes(new Uint8Array(v.buffer));
+  }
+}
+
+const serializer = SelfDescribeCborSerializer.withDefaultEncoders();
+serializer.addEncoder(new BigNumberEncoder());
+serializer.addEncoder(new BufferEncoder());
 
 interface CborRecord extends Record<string, CborValue> {}
 
@@ -17,23 +71,31 @@ export type CborValue
 
   // Integer numbers: Major type 0 or 1 (“Unsigned/signed integer”) if small
   // enough to fit that type, else the Bignum format is used.
-  | Int // TODO: clarify expectations for Bignum
+  | Int
+  // TODO: switch back to BigInt once hansl/simple-cbor provides deserialization
+  | BigNumber
 
   // Nested records: Major type 5 followed by string keys.
-  | CborRecord;
+  | CborRecord
+
+  // Canister IDs are currently represented as u64 in the HTTP handler of the
+  // client.
+  | CanisterId;
+
+export enum CborTag {
+  Uint64LittleEndian = 71,
+  Semantic = 55799,
+}
 
 export const encode = (value: CborValue): BinaryBlob => {
-  const buffer = borc.encode(
-    new borc.Tagged(SEMANTIC_TAG, value),
-  );
-  return new Uint8Array(buffer) as BinaryBlob;
+  return Buffer.from(serializer.serialize(value)) as BinaryBlob;
 };
 
 export const decode = (input: Uint8Array): CborValue => {
   const decoder = new borc.Decoder({
     size: input.byteLength,
     tags: {
-      [SEMANTIC_TAG]: (value: CborValue): CborValue => value,
+      [CborTag.Semantic]: (value: CborValue): CborValue => value,
     },
   });
   return decoder.decodeFirst(input);

@@ -1,6 +1,6 @@
 /// TODO(SDK-446): Move everything Public Spec related from this file to the ic_http_agent library.
 use crate::lib::error::*;
-use futures::future::{err, ok, result, Future};
+use futures::future::{result, Future};
 use futures::stream::Stream;
 use ic_http_agent::{to_request_id, Blob, CanisterId, RequestId};
 use rand::Rng;
@@ -26,11 +26,12 @@ impl Client {
         }
     }
 
-    pub fn execute(
+    pub fn request<U: reqwest::IntoUrl>(
         &self,
-        request: reqwest::r#async::Request,
-    ) -> impl Future<Item = reqwest::r#async::Response, Error = reqwest::Error> {
-        self.client.execute(request)
+        method: reqwest::Method,
+        url: U,
+    ) -> reqwest::r#async::RequestBuilder {
+        self.client.request(method, url)
     }
 }
 
@@ -119,44 +120,39 @@ fn read<A>(
 where
     A: serde::de::DeserializeOwned,
 {
-    result(client.url.join("read").map_err(DfxError::Url))
-        .and_then(move |url| {
-            let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
-            let headers = http_request.headers_mut();
-            headers.insert(
-                reqwest::header::CONTENT_TYPE,
-                "application/cbor".parse().unwrap(),
-            );
+    let url = client.url.join("read").map_err(DfxError::Url);
+    let cbor = serde_cbor::to_vec(&request)
+        .map_err(|e| DfxError::InvalidData(format!("Unable to serialize read request: {}", e)));
 
-            result(serde_cbor::to_vec(&request).map_err(|e| {
-                DfxError::InvalidData(format!("Unable to serialize read request: {}", e))
-            }))
-            .and_then(move |cbor| {
-                let body = http_request.body_mut();
-                body.get_or_insert(reqwest::r#async::Body::from(cbor));
-                client.execute(http_request).map_err(DfxError::Reqwest)
-            })
+    // Sadly, ? cannot be used to mix Result and Futures-returning-errors. But
+    // all of this becomes simpler once we have async/await anyway.
+
+    result(url).and_then(move |url| {
+        result(cbor).and_then(move |cbor| {
+            client
+                .client
+                .request(reqwest::Method::POST, url)
+                .header(reqwest::header::CONTENT_TYPE, "application/cbor")
+                .body(reqwest::r#async::Body::from(cbor))
+                .send()
+                .map_err(DfxError::Reqwest)
+                .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
+                .and_then(|buf| {
+                    serde_cbor::from_slice(&buf).map_err(|e| {
+                        DfxError::InvalidData(format!("Unable to deserialize read response: {}", e))
+                    })
+                })
         })
-        .and_then(|res| res.into_body().concat2().map_err(DfxError::Reqwest))
-        .and_then(|buf| match serde_cbor::from_slice(&buf) {
-            Ok(r) => ok(r),
-            Err(e) => err(DfxError::InvalidData(format!(
-                "Unable to deserialize read response: {}",
-                e
-            ))),
-        })
+    })
 }
 
 /// Ping a client and return ok if the client is started.
 pub fn ping(client: Client) -> impl Future<Item = (), Error = DfxError> {
-    ok(client.url.clone()).and_then(move |url| {
-        let http_request = reqwest::r#async::Request::new(reqwest::Method::GET, url);
-
-        client
-            .execute(http_request)
-            .map(|_| ())
-            .map_err(DfxError::Reqwest)
-    })
+    client
+        .request(reqwest::Method::GET, client.url.clone())
+        .send()
+        .map(|_| ())
+        .map_err(DfxError::Reqwest)
 }
 
 /// A submit request. Intended to remain private in favor of exposing specialized
@@ -166,20 +162,16 @@ fn submit(
     request: SubmitRequest,
 ) -> impl Future<Item = reqwest::r#async::Response, Error = DfxError> {
     result(client.url.join("submit").map_err(DfxError::Url)).and_then(move |url| {
-        let mut http_request = reqwest::r#async::Request::new(reqwest::Method::POST, url);
-        let headers = http_request.headers_mut();
-        headers.insert(
-            reqwest::header::CONTENT_TYPE,
-            "application/cbor".parse().unwrap(),
-        );
-
         result(serde_cbor::to_vec(&request).map_err(|e| {
             DfxError::InvalidData(format!("Unable to serialize submit request: {}", e))
         }))
         .and_then(move |cbor| {
-            let body = http_request.body_mut();
-            body.get_or_insert(reqwest::r#async::Body::from(cbor));
-            client.execute(http_request).map_err(DfxError::Reqwest)
+            client
+                .request(reqwest::Method::POST, url)
+                .header(reqwest::header::CONTENT_TYPE, "application/cbor")
+                .body(reqwest::r#async::Body::from(cbor))
+                .send()
+                .map_err(DfxError::Reqwest)
         })
     })
 }

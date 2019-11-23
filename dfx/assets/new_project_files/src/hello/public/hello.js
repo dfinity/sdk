@@ -1,6 +1,6 @@
-import { hello } from '../src/hello/main';
+import hello from '../../../canisters/hello/main.js';
 
 window.hello = async function(name) {
-  const response = await hello.main(name);
-  console.log(response);
+  const reply = await hello.main(name);
+  document.getElementById('output').innerText = reply;
 };
