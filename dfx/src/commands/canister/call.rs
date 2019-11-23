@@ -5,7 +5,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::{load_idl_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::Blob;
+use ic_http_agent::{Blob, RequestId};
 use serde_idl::{Encode, IDLArgs};
 use tokio::runtime::Runtime;
 
@@ -50,6 +50,38 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
+pub fn read_response(
+    response: Result<ReadResponse<QueryResponseReply>, DfxError>,
+    request_id: Option<RequestId>,
+) -> DfxResult {
+    match response {
+        Ok(ReadResponse::Pending) => {
+            match request_id {
+                None => eprintln!("Pending"),
+                Some(request_id) => {
+                    eprint!("Request ID: ");
+                    println!("0x{}", String::from(request_id));
+                }
+            }
+            Ok(())
+        }
+        Ok(ReadResponse::Replied { reply }) => {
+            if let Some(QueryResponseReply { arg: blob }) = reply {
+                print_idl_blob(&blob)
+                    .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+            }
+            Ok(())
+        }
+        Ok(ReadResponse::Rejected {
+            reject_code,
+            reject_message,
+        }) => Err(DfxError::ClientError(reject_code, reject_message)),
+        // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
+        Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
+        Err(x) => Err(x),
+    }
+}
+
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: ClientEnv + ProjectConfigEnv + BinaryResolverEnv,
@@ -70,6 +102,11 @@ where
 
     let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
     let is_query = if args.is_present("async") {
+        if args.is_present("query") {
+            return Err(DfxError::InvalidArgument(
+                "async and query cannot be used together".to_owned(),
+            ));
+        }
         false
     } else {
         let is_query_method =
@@ -127,7 +164,7 @@ where
         (runtime.block_on(future), None)
     } else {
         let future = call(client, canister_id, method_name.to_owned(), arg_value);
-        let request_id = runtime.block_on(future)?;
+        let request_id: RequestId = runtime.block_on(future)?;
         if args.is_present("async") {
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
@@ -138,29 +175,5 @@ where
             (runtime.block_on(request_status), Some(request_id))
         }
     };
-    match response {
-        Ok(ReadResponse::Pending) => {
-            if is_query {
-                eprintln!("Pending");
-            } else {
-                eprint!("Request ID: ");
-                println!("0x{}", String::from(request_id.unwrap()));
-            }
-            Ok(())
-        }
-        Ok(ReadResponse::Replied { reply }) => {
-            if let Some(QueryResponseReply { arg: blob }) = reply {
-                print_idl_blob(&blob)
-                    .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
-            }
-            Ok(())
-        }
-        Ok(ReadResponse::Rejected {
-            reject_code,
-            reject_message,
-        }) => Err(DfxError::ClientError(reject_code, reject_message)),
-        // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
-        Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
-        Err(x) => Err(x),
-    }
+    read_response(response, request_id)
 }
