@@ -1,5 +1,7 @@
+import { Buffer } from "buffer/";
 import { sign } from "./auth";
 import { BinaryBlob } from "./blob";
+import * as blob from "./blob";
 import { CallRequest } from "./callRequest";
 import { CanisterId } from "./canisterId";
 import * as canisterId from "./canisterId";
@@ -237,7 +239,7 @@ const query = (
     arg,
   });
   const response = await read(config)(request);
-  const body = new Uint8Array(await response.arrayBuffer());
+  const body = Buffer.from(await response.arrayBuffer());
   return cbor.decode(body) as QueryResponse;
 };
 
@@ -252,7 +254,7 @@ const requestStatus = (
 }): Promise<RequestStatusResponse> => {
   const request = await makeRequestStatusRequest(config, { requestId });
   const response = await read(config)(request);
-  const body = new Uint8Array(await response.arrayBuffer());
+  const body = Buffer.from(await response.arrayBuffer());
   return cbor.decode(body) as RequestStatusResponse;
 };
 

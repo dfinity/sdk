@@ -9,6 +9,7 @@ module.exports = {
         corejs: { version: 3, proposals: true },
         targets: {
           browsers: "defaults",
+          node: "current",
         },
         "useBuiltIns": "usage",
       },

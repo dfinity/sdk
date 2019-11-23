@@ -14,6 +14,7 @@ set -u
 SDK_WEBSITE="https://sdk.dfinity.org"
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
+DFX_VERSION="${DFX_VERSION:-}"
 
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
@@ -32,6 +33,13 @@ get_tag_from_manifest_json() {
         | tr -d '\n' \
         | grep -o "\"$1\":[[:space:]]*\"[a-zA-Z0-9.]*" \
         | grep -o "[0-9.]*$"
+}
+
+get_manifest_version() {
+    local _version
+    _version="$(downloader ${DFX_MANIFEST_JSON_URL} - | get_tag_from_manifest_json latest)" || return 2
+
+    printf %s "${_version}"
 }
 
 validate_install_dir() {
@@ -105,12 +113,15 @@ main() {
     local _arch="$RETVAL"
     assert_nz "$_arch" "arch"
 
+    # Download the manifest if we need to.
+    if [ -z "${DFX_VERSION}" ]; then
+        DFX_VERSION=$(get_manifest_version)
+    fi
+
     # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
     # thus, make sure this handles archives
-    local _version
-    _version="$(downloader ${DFX_MANIFEST_JSON_URL} - | get_tag_from_manifest_json latest)" || return 2
-    log "Version found: $_version"
-    local _dfx_url="${DFX_RELEASE_ROOT}/${_version}/${_arch}/dfx-${_version}.tar.gz"
+    log "Version found: $DFX_VERSION"
+    local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/dfx-${DFX_VERSION}.tar.gz"
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
