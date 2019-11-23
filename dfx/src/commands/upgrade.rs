@@ -3,9 +3,11 @@ use crate::lib::{
     error::{DfxError, DfxResult},
 };
 use clap::{App, Arg, ArgMatches, SubCommand};
+use libflate::gzip::Decoder;
 use semver::Version;
 use serde::{Deserialize, Deserializer};
-use std::collections::HashMap;
+use std::{collections::HashMap, env, fs, os::unix::fs::PermissionsExt};
+use tar::Archive;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("upgrade")
@@ -101,6 +103,29 @@ fn get_latest_version(release_root: &str) -> DfxResult<Version> {
         .map(|v| v.clone())
 }
 
+fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxResult<()> {
+    let url = reqwest::Url::parse(&format!(
+        "{0}/downloads/dfx/{1}/{2}/dfx-{1}.tar.gz",
+        release_root, version, arch
+    ))
+    .map_err(|e| DfxError::InvalidArgument(format!("invalid release root: {}", e)))?;
+    println!("Downloading {}", url);
+    let mut response = reqwest::get(url).map_err(DfxError::Reqwest)?;
+    let mut decoder = Decoder::new(&mut response)
+        .map_err(|e| DfxError::InvalidData(format!("unable to gunzip file: {}", e)))?;
+    let mut archive = Archive::new(&mut decoder);
+    let current_exe_path = env::current_exe().map_err(DfxError::Io)?;
+    let current_exe_dir = current_exe_path.parent().unwrap(); // This should not fail
+    println!("Unpacking");
+    archive.unpack(&current_exe_dir)?;
+    println!("Setting permissions");
+    let mut permissions = fs::metadata(&current_exe_path)?.permissions();
+    permissions.set_mode(0o775); // FIXME Preserve existing permissions
+    fs::set_permissions(&current_exe_path, permissions)?;
+    println!("Done");
+    Ok(())
+}
+
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: VersionEnv,
@@ -118,7 +143,7 @@ where
 
     if latest_version > current_version {
         println!("New version available: {}", latest_version);
-        println!(r#"Run 'sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"' to install"#);
+        get_latest_release(release_root, &latest_version, "x86_64-linux")?;
     } else {
         println!("Already up to date");
     }
