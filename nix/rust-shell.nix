@@ -1,9 +1,9 @@
-{ pkgs ? (import ./. {}).pkgs }:
+{ pkgs ? (import ./. {}).pkgs, shell }:
 pkgs.mkCompositeShell {
   name = "dfinity-sdk-rust-env";
   buildInputs = [pkgs.rls];
   nativeBuildInputs = [ pkgs.stdenv.cc ];
-  inputsFrom = [ pkgs.dfinity-sdk.packages.shell ];
+  inputsFrom = [ shell ];
   shellHook = ''
     # Set CARGO_HOME to minimize interaction with any environment outside nix
     export CARGO_HOME=${pkgs.lib.dfinityRoot}/.cargo-home
