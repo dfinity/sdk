@@ -1,6 +1,6 @@
-const IDL = require('./IDL')
+import * as IDL from './IDL';
 
-const testEncode = (typ, val, hex, str) => {
+const testEncode = (typ: IDL.Type[], val: any[], hex, str) => {
   expect(IDL.encode([typ], [val]), `Encode ${str}`).toEqual(Buffer.from(hex, 'hex'))
 }
 
@@ -19,6 +19,10 @@ const test_args = (typs, vals, hex, str) => {
 }
 
 test('IDL hash', () => {
+  const values = [
+    ["", 0],
+  ]
+
   const testHash = (string, hash) => {
     expect(IDL.idlHash(string), `IDL Hash of ${string}`).toBe(hash)
   }

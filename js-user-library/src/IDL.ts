@@ -1,10 +1,36 @@
-const { TextEncoder } = require('text-encoding')
+// import { TextEncoder } from 'text-encoding';
+import { signed as sleb, unsigned as leb } from 'leb128';
+import * as Pipe from 'buffer-pipe';
+import { Buffer } from "buffer";
 
-const sleb = require('leb128/signed')
-const leb = require('leb128/unsigned')
-const Pipe = require('buffer-pipe')
+/**
+import { Buffer } from "buffer/";
 
-const type = o => Object.prototype.toString.call(o).slice(8, -1)
+export interface Func {
+  argTypes: Array<Type>;
+  retTypes: Array<Type>;
+}
+
+interface JsArray extends Array<JsValue> {}
+type JsValue = boolean | string | number | JsArray | object
+
+export interface Type {}
+
+export interface Text extends Type {}
+
+export class ActorInterface {
+  __fields: object
+  constructor(fields: object)
+}
+
+export function idlHash(s: string): number
+
+export function Func(argTypes?: Array<Type>, retTypes?: Array<Type>): Func
+export const Text: Text
+
+export function encode(argTypes: Array<Type>, args: Array<JsValue>): Buffer
+export function decode(retTypes: Array<Type>, bytes: Buffer): Array<JsValue>
+ */
 
 /*
   This module provides a combinator library to create serializers/deserializers
@@ -17,96 +43,86 @@ const type = o => Object.prototype.toString.call(o).slice(8, -1)
   such, and turns it into a Buffer.
 */
 
-const zipWith = (xs, ys, f) => xs.map((x, i) => f(x, ys[i]))
-
-const idlHash = s => {
-  if (!(typeof s === 'string')) {
-    throw Error('idlHash: Argument not a string: ' + s)
-  }
-  const utf8encoder = new TextEncoder();
-  const array = utf8encoder.encode(s);
-  var h = 0;
-  array.forEach((c, i, array) => { h *= 223; h += c; h %= 2**32; })
-  return h
+function zipWith<TX, TY, TR>(xs: TX[], ys: TY[], f: (a: TX, b: TY) => TR): TR[] {
+  return xs.map((x, i) => f(x, ys[i]));
 }
 
-const magicNumber = 'DIDL'
+/** @internal */
+export function hash(s: string) {
+  const utf8encoder = new TextEncoder();
+  const array = utf8encoder.encode(s);
+
+  let h = 0;
+  for (let c of array) {
+    h = ((h * 223) + c) % (2 ** 32);
+  }
+  return h;
+}
+
+const magicNumber = 'DIDL';
 
 class TypeTable {
-  constructor () {
-    this.__typs = []  // array(buffer)
-    this.__idx = {}   // map(type_string, index)
+  // List of types. Needs to be an array as the index needs to be stable.
+  private _typs: Buffer[] = [];
+  private _idx = new Map<string, number>();
+
+  has(obj: string) {
+    return this._idx.has(obj);
   }
 
-  hasType (obj) {
-    return this.__idx.hasOwnProperty(obj)
-  }
-
-  addType (obj, buf) {
-    if (this.__idx.hasOwnProperty(obj)) {
-      throw new Error('duplicate type name: ' + obj)
+  add(obj: string, buf: Buffer) {
+    if (this._idx.has(obj)) {
+      throw new Error('Duplicate type name: ' + obj)
     }
-    const idx = this.__typs.length
-    this.__idx[obj] = idx
-    this.__typs.push(buf)
+    const idx = this._typs.length;
+    this._idx.set(obj, idx);
+    this._typs.push(buf);
   }
 
-  mergeType (obj, knot) {
-    if (!this.__idx.hasOwnProperty(obj)) {
-      throw new Error('Missing type index for ' + obj)
+  merge(obj: string, knot: string) {
+    const idx = this._idx.get(obj);
+    const knot_idx = this._idx.get(knot);
+    if (idx === undefined) {
+      throw new Error('Missing type index for ' + obj);
     }
-    if (!this.__idx.hasOwnProperty(knot)) {
-      throw new Error('Missing type index for ' + knot)
+    if (knot_idx === undefined) {
+      throw new Error('Missing type index for ' + knot);
     }
-    const idx = this.__idx[obj]
-    const knot_idx = this.__idx[knot]
-    this.__typs[idx] = this.__typs[knot_idx]
-    this.__typs.splice(knot_idx, 1)
-    delete this.__idx[knot]
+    this._typs[idx] = this._typs[knot_idx];
+
+    // Delete the type.
+    this._typs.splice(knot_idx, 1);
+    this._idx.delete(knot);
   }
 
-  getTypeIdx (obj) {
-    if (!this.__idx.hasOwnProperty(obj)) {
-      throw new Error('Missing type index for ' + obj)
-    }
-    return sleb.encode(this.__idx[obj])
-  }
-
-  encodeTable () {
-    const len = leb.encode(this.__typs.length)
-    const buf = Buffer.concat(this.__typs)
-    return Buffer.concat([len, buf])
+  encode() {
+    const len = leb.encode(this._typs.length);
+    const buf = Buffer.concat(this._typs);
+    return Buffer.concat([len, buf]);
   }
 }
 
 /**
- * Represents an IDL type
+ * Represents an IDL type.
  */
-class Type {
+abstract class Type<T = any> {
   /* Memoized DFS for storing type description into TypeTable  */
-  buildType (T) {
-    if (!T.hasType(this.toString())) return this.buildTypeGo(T)
+  buildType(t: TypeTable) {
+    if (!t.has(this.name)) {
+      return this.buildTypeGo(t);
+    }
   }
 
-  /* Implement T in the IDL spec,
-   * only needed for non-primitive types */
-  buildTypeGo (T) { }
-
-  encodeGo (x) {
-    throw new Error('You have to implement the method encodeGo!')
-  }
+  /* Implement T in the IDL spec, only needed for non-primitive types */
+  abstract buildTypeGo(t: TypeTable): Buffer;
+  abstract encodeGo(x: T): Buffer;
 
   /* Implement I in the IDL spec */
-  encodeTypeGo (T) {
-    throw new Error('You have to implement the method encodeTypeGo!')
-  }
+  abstract encodeTypeGo(t: T): Buffer;
+  abstract decodeGo(x: Buffer): T;
 
-  decodeGo (x) {
-    throw new Error('You have to implement the method decodeGo!')
-  }
-
-  toString () {
-    return this.constructor.name
+  get name() {
+    return this.constructor.name;
   }
 }
 
@@ -115,24 +131,24 @@ class Type {
  * Since no values exist for this type, it cannot be serialised or deserialised.
  * Result types like `Result<Text, None>` should always succeed.
  */
-class None extends Type {
-  encodeGo (x) {
-    throw new Error('None cannot appear as a function argument')
+export class None extends Type<never> {
+  encodeGo(): never {
+    throw new Error('None cannot appear as a function argument');
   }
 
-  encodeTypeGo (T) {
-    return sleb.encode(-17)
+  encodeTypeGo() {
+    return sleb.encode(-17);
   }
 
-  decodeGo (b) {
-    throw new Error('None cannot appear as an output')
+  decodeGo(): never {
+    throw new Error('None cannot appear as an output');
   }
 }
 
 /**
  * Represents an IDL Bool
  */
-class Bool extends Type {
+export class Bool extends Type<boolean> {
   encodeGo (x) {
     if (typeof x !== 'boolean') {
       throw Error('Invalid Bool argument: ' + x)
@@ -155,7 +171,7 @@ class Bool extends Type {
 /**
  * Represents an IDL Unit
  */
-class Unit extends Type {
+export class Unit extends Type {
   encodeGo (x) {
     return Buffer.alloc(0)
   }
@@ -172,7 +188,7 @@ class Unit extends Type {
 /**
  * Represents an IDL Text
  */
-class Text extends Type {
+export class Text extends Type {
   encodeGo (x) {
     if (typeof x !== 'string') {
       throw Error('Invalid Text argument: ' + x)
@@ -197,7 +213,7 @@ class Text extends Type {
 /**
  * Represents an IDL Int
  */
-class Int extends Type {
+export class Int extends Type {
   encodeGo (x) {
     if (!Number.isInteger(x)) {
       throw Error('Invalid Int argument: ' + x)
@@ -217,7 +233,7 @@ class Int extends Type {
 /**
  * Represents an IDL Nat
  */
-class Nat extends Type {
+export class Nat extends Type {
   encodeGo (x) {
     if (!Number.isInteger(x) || x < 0) {
       throw Error('Invalid Nat argument: ' + x)
@@ -238,7 +254,7 @@ class Nat extends Type {
  * Represents an IDL Tuple
  * @param {Type} components
 */
-class Tuple extends Type {
+export export class Tuple extends Type {
   constructor (...components) {
     super()
     this.__components = components
@@ -256,20 +272,19 @@ class Tuple extends Type {
     const len = leb.encode(this.__components.length)
     const buf = Buffer.concat(this.__components.map (
       (x, i) => Buffer.concat([leb.encode(i) , x.encodeTypeGo(T)])))
-    T.addType(this, Buffer.concat([op_code, len, buf]))
+    T.add(this, Buffer.concat([op_code, len, buf]))
   }
 
   encodeTypeGo (T) {
-    return T.getTypeIdx(this)
+    return T.indexOf(this)
   }
 
   decodeGo (b) {
     return this.__components.map(c => c.decodeGo(b))
   }
 
-  toString () {
-    const name = super.toString()
-    return `${name}(${this.__components})`
+  get name() {
+    return `${super.name}(${this.__components})`;
   }
 }
 
@@ -277,7 +292,7 @@ class Tuple extends Type {
  * Represents an IDL Array
  * @param {Type} t
  */
-class Arr extends Type {
+export class Arr extends Type {
   constructor (t) {
     super()
     this.__typ = t
@@ -298,11 +313,11 @@ class Arr extends Type {
     this.__typ.buildType(T)
     const op_code = sleb.encode(-19)
     const t_buf = this.__typ.encodeTypeGo(T)
-    T.addType(this, Buffer.concat([op_code, t_buf]))
+    T.add(this, Buffer.concat([op_code, t_buf]))
   }
 
   encodeTypeGo (T) {
-    return T.getTypeIdx(this)
+    return T.indexOf(this)
   }
 
   decodeGo (b) {
@@ -343,11 +358,11 @@ class Opt extends Type {
     const op_code = sleb.encode(-18)
     const t_buf = this.__typ.encodeTypeGo(T)
     const buf = Buffer.concat([op_code, t_buf])
-    T.addType(this, buf)
+    T.add(this, buf)
   }
 
   encodeTypeGo (T) {
-    return T.getTypeIdx(this)
+    return T.indexOf(this)
   }
 
   decodeGo (b) {
@@ -373,7 +388,7 @@ class Obj extends Type {
   constructor (fields = {}) {
     super()
     const sortedFields = Object.entries(fields)
-      .sort((a, b) => idlHash(a[0]) - idlHash(b[0]))
+      .sort((a, b) => hash(a[0]) - hash(b[0]))
     this.__fields = sortedFields
   }
 
@@ -395,12 +410,12 @@ class Obj extends Type {
     const len = leb.encode(this.__fields.length)
     const fields = this.__fields.map (
       ([key, value]) => Buffer.concat(
-        [leb.encode(idlHash(key)), value.encodeTypeGo(T)]))
-    T.addType(this, Buffer.concat([op_code, len, Buffer.concat(fields)]))
+        [leb.encode(hash(key)), value.encodeTypeGo(T)]))
+    T.add(this, Buffer.concat([op_code, len, Buffer.concat(fields)]))
   }
 
   encodeTypeGo (T) {
-    return T.getTypeIdx(this)
+    return T.indexOf(this)
   }
 
   decodeGo (b) {
@@ -423,15 +438,17 @@ class Obj extends Type {
  * @param {Object} [fields] - mapping of function name to Type
  */
 class Variant extends Type {
+  private _fields: []
+
   constructor (fields = {}) {
     super()
     this.__fields = Object.entries(fields)
-      .sort((a, b) => idlHash(a[0]) - idlHash(b[0]))
+      .sort((a, b) => hash(a[0]) - hash(b[0]))
   }
 
   encodeGo (x) {
     let out
-    for (var i = 0; i < this.__fields.length; i++) {
+    for (let i = 0; i < this.__fields.length; i++) {
       const [k, v] = this.__fields[i]
       if (x.hasOwnProperty(k)) {
         if (out) {
@@ -454,12 +471,12 @@ class Variant extends Type {
     const len = leb.encode(this.__fields.length)
     const fields = this.__fields.map (
       ([key, value]) => Buffer.concat(
-        [leb.encode(idlHash(key)), value.encodeTypeGo(T)]))
-    T.addType(this, Buffer.concat([op_code, len, Buffer.concat(fields)]))
+        [leb.encode(hash(key)), value.encodeTypeGo(T)]))
+    T.add(this, Buffer.concat([op_code, len, Buffer.concat(fields)]))
   }
 
   encodeTypeGo (T) {
-    return T.getTypeIdx(this)
+    return T.indexOf(this)
   }
 
   decodeGo (b) {
@@ -485,7 +502,7 @@ class Variant extends Type {
  * Represents a reference to an IDL type,
  * used for defining recursive data types.
  */
-class Rec extends Type {
+export class Rec extends Type {
   constructor () {
     super()
     if (typeof Rec.counter === 'undefined') {
@@ -509,13 +526,13 @@ class Rec extends Type {
     if (!this.hasOwnProperty('__typ')) {
       throw Error('Recursive type uninitialized.')
     }
-    T.addType(this, Buffer.alloc(0))
+    T.add(this, Buffer.alloc(0))
     this.__typ.buildType(T)
-    T.mergeType(this, this.__typ)
+    T.merge(this, this.__typ)
   }
 
   encodeTypeGo(T) {
-    return T.getTypeIdx(this)
+    return T.indexOf(this)
   }
 
   decodeGo (b) {
@@ -536,7 +553,7 @@ class Rec extends Type {
  * @param {Array<Type>} [argTypes] - argument types
  * @param {Array<Type>} [retTypes] - return types
  */
-class Func {
+export class Func {
   constructor (argTypes = [], retTypes = null) {
     if (argTypes instanceof Type) {
       argTypes = [ argTypes ]
@@ -559,15 +576,15 @@ class Func {
  * Encode a array of values
  * @returns {Buffer} serialised value
 */
-function encode(argTypes, args) {
+export function encode(argTypes: Type<any>[], args: any[]) {
   if (args.length !== argTypes.length) {
     throw Error('Wrong number of message arguments')
   }
-  const T = new TypeTable()
-  argTypes.map(t => t.buildType(T))
-  
+  const T = new TypeTable();
+  argTypes.forEach(t => t.buildType(T));
+
   const magic = Buffer.from(magicNumber, 'utf8')
-  const table = T.encodeTable()
+  const table = T.encode()
   const len = leb.encode(args.length)
   const typs = Buffer.concat(argTypes.map(t => t.encodeTypeGo(T)))
   const vals = Buffer.concat(zipWith(argTypes, args, (t, x) => t.encodeGo(x)))
@@ -576,61 +593,65 @@ function encode(argTypes, args) {
 
 /**
  * Decode a binary value
- * @param {string|Buffer} x - hex-encoded string, or buffer
- * @returns {bool|string|number|Array|Object} value deserialised to JS type
+ * @param retTypes - Types expected in the buffer.
+ * @param bytes - hex-encoded string, or buffer.
+ * @returns Value deserialised to JS type
 */
-function decode(retTypes, bytes) {
-  if (type(bytes) === 'Error') {
-    throw bytes
+export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
+  const b = new Pipe(bytes);
+
+  if (bytes.byteLength < magicNumber.length) {
+    throw new Error('Message length smaller than magic number')
   }
-  const decodeType = b => {
-    if (b.buffer.length < magicNumber.length) {
-      throw new Error('Message length smaller than magic number')
-    }
-    const magic = b.read(magicNumber.length).toString()
-    if (magic !== magicNumber) {
-      throw new Error('Wrong magic number: ' + magic)
-    }
-    const len = leb.readBn(b).toNumber()
+  const magic = b.read(magicNumber.length).toString();
+  if (magic !== magicNumber) {
+    throw new Error('Wrong magic number: ' + magic);
+  }
+
+  function decodeType(b: Buffer) {
+    const len = leb.readBn(b).toNumber();
+
     for (var i = 0; i < len; i++) {
-      const ty = sleb.readBn(b).toNumber()
+      const ty = sleb.readBn(b).toNumber();
       switch (ty) {
       case -18:   // opt
-        sleb.readBn(b).toNumber()
-        break
+        sleb.readBn(b).toNumber();
+        break;
       case -19:   // vec
-        sleb.readBn(b).toNumber()
-        break
+        sleb.readBn(b).toNumber();
+        break;
       case -20:   // record/tuple
-        var obj_len = leb.readBn(b).toNumber()
+        var obj_len = leb.readBn(b).toNumber();
         while (obj_len--) {
-          leb.readBn(b).toNumber()
-          sleb.readBn(b).toNumber()
+          leb.readBn(b).toNumber();
+          sleb.readBn(b).toNumber();
         }
-        break
+        break;
       case -21:   // variant
-        var var_len = leb.readBn(b).toNumber()
+        var var_len = leb.readBn(b).toNumber();
         while (var_len--) {
-          leb.readBn(b).toNumber()
-          sleb.readBn(b).toNumber()
+          leb.readBn(b).toNumber();
+          sleb.readBn(b).toNumber();
         }
-        break
+        break;
       default:
-        throw new Error('Illegal op_code: ' + ty)
+        throw new Error('Illegal op_code: ' + ty);
       }
     }
-    const ty_len = leb.readBn(b)
+
+    const ty_len = leb.readBn(b);
     for (var i = 0; i < ty_len; i++) {
-      sleb.readBn(b).toNumber()
+      sleb.readBn(b).toNumber();
     }
   }
-  const b = new Pipe(bytes)
-  const _ = decodeType(b)
-  const output = retTypes.map(t => t.decodeGo(b))
+
+  decodeType(b);
+  const output = retTypes.map(t => t.decodeGo(b));
   if (b.buffer.length > 0) {
-    throw new Error('decode: Left-over bytes')
+    throw new Error('decode: Left-over bytes');
   }
-  return output
+
+  return output;
 }
 
 /**
@@ -735,23 +756,23 @@ class ActorInterface {
 
 // Exports
 
-module.exports = {
-  None: new None(),
-  Bool: new Bool(),
-  Unit: new Unit(),
-  Text: new Text(),
-  Int: new Int(),
-  Nat: new Nat(),
-  Tuple: (...tys) => new Tuple(...tys),
-  Arr: t => new Arr(t),
-  Opt: t => new Opt(t),
-  Obj: fs => new Obj(fs),
-  Variant: fs => new Variant(fs),
-  Rec : () => new Rec(),
-
-  Func: (...args) => new Func(...args),
-  ActorInterface,
-  idlHash,
-  encode,
-  decode,
-}
+// module.exports = {
+//   None: new None(),
+//   Bool: new Bool(),
+//   Unit: new Unit(),
+//   Text: new Text(),
+//   Int: new Int(),
+//   Nat: new Nat(),
+//   Tuple: (...tys) => new Tuple(...tys),
+//   Arr: t => new Arr(t),
+//   Opt: t => new Opt(t),
+//   Obj: fs => new Obj(fs),
+//   Variant: fs => new Variant(fs),
+//   Rec : () => new Rec(),
+//
+//   Func: (...args) => new Func(...args),
+//   ActorInterface,
+//   idlHash: hash,
+//   encode,
+//   decode,
+// }
