@@ -5,4 +5,3 @@
 . install/110_assert.sh
 . install/300_license.sh
 . install/999_footer.sh
-
