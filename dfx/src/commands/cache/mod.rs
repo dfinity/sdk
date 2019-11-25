@@ -7,6 +7,7 @@ use clap::{App, ArgMatches, SubCommand};
 mod delete;
 mod install;
 mod list;
+mod show;
 
 fn builtins<T>() -> Vec<CliCommand<T>>
 where
@@ -16,6 +17,7 @@ where
         CliCommand::new(delete::construct(), delete::exec),
         CliCommand::new(list::construct(), list::exec),
         CliCommand::new(install::construct(), install::exec),
+        CliCommand::new(show::construct(), show::exec),
     ]
 }
 

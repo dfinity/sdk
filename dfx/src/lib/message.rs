@@ -15,6 +15,7 @@ pub enum UserMessage {
     CacheDelete,
     CacheUnpack,
     CacheList,
+    CacheShow,
 
     ManageCanister,
     QueryCanister,
@@ -43,6 +44,7 @@ impl UserMessage {
             UserMessage::CacheDelete => "Delete a specific versioned cache of dfx.",
             UserMessage::CacheUnpack => "Force unpacking the cache from this dfx version.",
             UserMessage::CacheList => "List installed and used version.",
+            UserMessage::CacheShow => "Show the path of the cache used by this version.",
 
             // dfx canister call
             UserMessage::CallCanister => "Calls a method on a deployed canister.",
