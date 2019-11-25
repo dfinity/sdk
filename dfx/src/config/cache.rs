@@ -54,7 +54,8 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
     }
 
     if v == dfx_version() {
-        // Dismiss as fast as possible.
+        // Dismiss as fast as possible. We use the current_exe variable after an expensive
+        // step, and if this fails we can't continue anyway.
         let current_exe = std::env::current_exe()?;
 
         let b: Option<ProgressBar> = if atty::is(atty::Stream::Stderr) {
