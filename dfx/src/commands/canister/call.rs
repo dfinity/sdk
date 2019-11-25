@@ -33,6 +33,7 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("query")
                 .help(UserMessage::QueryCanister.to_str())
                 .long("query")
+                .conflicts_with("async")
                 .takes_value(false),
         )
         .arg(
@@ -102,11 +103,6 @@ where
 
     let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
     let is_query = if args.is_present("async") {
-        if args.is_present("query") {
-            return Err(DfxError::InvalidArgument(
-                "async and query cannot be used together".to_owned(),
-            ));
-        }
         false
     } else {
         let is_query_method =
