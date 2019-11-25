@@ -105,6 +105,7 @@ impl RawValue {
 enum FieldLabel {
     Named(&'static str),
     Id(u32),
+    Variant(String),
     Skip,
 }
 
@@ -491,6 +492,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let v = match label {
             FieldLabel::Named(name) => visitor.visit_str(name),
             FieldLabel::Id(hash) => visitor.visit_u32(*hash),
+            FieldLabel::Variant(variant) => visitor.visit_str(variant),
             FieldLabel::Skip => visitor.visit_str("_"),
         };
         self.field_name = None;
@@ -633,8 +635,12 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     if i == index {
                         match fs.get(&hash) {
                             Some(None) => {
-                                // TODO: We also need to transmit back which VariantAccess function to call
-                                self.de.set_field_name(FieldLabel::Id(hash));
+                                let accessor = match self.de.peek_type()? {
+                                    Opcode::Null => "unit",
+                                    Opcode::Record => "struct",
+                                    _ => unreachable!(),
+                                };
+                                self.de.set_field_name(FieldLabel::Variant(format!("{},{}", hash, accessor)));
                             }
                             Some(Some(field)) => {
                                 self.de.set_field_name(FieldLabel::Named(field));
