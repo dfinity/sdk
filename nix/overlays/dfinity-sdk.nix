@@ -1,23 +1,21 @@
 self: super:
 let
   mkRelease = super.callPackage ./mk-release.nix {};
-
+  rust-package' = super.callPackage ../rust-workspace.nix {};
+  # remove some stuff leftover by callPackage
+  rust-package = removeAttrs rust-package'
+    [ "override" "overrideDerivation" ];
+  rust-workspace = rust-package.build;
 in {
   dfinity-sdk = rec {
-    packages = rec {
+    packages =
+      # remove the shell since it's being built below in "shells"
+      removeAttrs rust-package [ "shell" ] // rec {
+        inherit rust-workspace;
+        rust-workspace-debug = rust-package.debug;
         js-user-library = super.callPackage ../../js-user-library/package.nix {
           inherit (self) napalm;
         };
-        rust-workspace = super.callPackage ../rust-workspace.nix {};
-        rust-workspace-debug = (rust-workspace.override (_: {
-          release = false;
-          doClippy = true;
-          doFmt = true;
-          doDoc = true;
-        })).overrideAttrs (oldAttrs: {
-          name = "${oldAttrs.name}-debug";
-        });
-        rust-workspace-doc = rust-workspace-debug.doc;
 
         rust-workspace-standalone = super.lib.standaloneRust
           { drv = rust-workspace;
@@ -136,7 +134,7 @@ in {
     # of all the shells here.
     shells = {
       js-user-library = import ../../js-user-library/shell.nix { pkgs = self; };
-      rust-workspace = import ../rust-shell.nix { pkgs = self; };
+      rust-workspace = import ../rust-shell.nix { pkgs = self; shell = rust-package.shell; };
     };
 
     licenses = {
