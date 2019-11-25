@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@trust/webcrypto": "^0.9.2",
-    "@types/text-encoding": "0.0.35",
     "async-retry": "^1.2.3",
     "bignumber.js": "^9.0.0",
     "borc": "^2.1.1",
