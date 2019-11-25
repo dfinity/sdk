@@ -2,14 +2,8 @@
 pkgs.mkCompositeShell {
   name = "dfinity-sdk-rust-env";
   buildInputs = [pkgs.rls];
-  inputsFrom = [
-
-    (pkgs.dfinity-sdk.packages.shell.overrideAttrs (oldAttrs: {
-      # for some odd reason this is needed in the shell:
-      # https://dfinity.atlassian.net/browse/INF-542
-      nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ pkgs.stdenv.cc ];
-    })) ];
-
+  nativeBuildInputs = [ pkgs.stdenv.cc ];
+  inputsFrom = [ pkgs.dfinity-sdk.packages.shell ];
   shellHook = ''
     # Set CARGO_HOME to minimize interaction with any environment outside nix
     export CARGO_HOME=${pkgs.lib.dfinityRoot}/.cargo-home
