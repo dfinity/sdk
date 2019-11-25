@@ -40,34 +40,16 @@ in {
         # git describe --abbrev=7 --tags
         mkdir -p $out
 
-        cp $public/install.sh $out/install.sh
-
-        # For all files in install/*.sh, replace lines `source XXX` with the content of XXX.
-        for x in $public/install/*.sh; do
-          # Need to escape slashes.
-          eval _src_file=$\{x/$(echo $public/ | sed 's:/:\\/:g')/}
-          # The file name with slashes escaped (to be part of a sed pattern).
-          _pattern_file="$(echo $_src_file | sed 's:/:\\/:g')"
-
-          # Replace all instances of "source PATH/TO/FILE.sh # @@inline" with the content of the
-          # file itself.
-          # Unfortunately there's no way to get the pattern found in the lookup, so we have to
-          # do all files.
-          sed -ie "/^source $_pattern_file/{
-            r $x
-            d
-          }" $out/install.sh
-        done
+        cat $public/install/*.sh > $out/install.sh
 
         # Get rid of comments that don't start with '##' or '#!'.
-        sed -ie "
+        sed -i "
           /#!.*/p
           /##.*/p
+          /^ *$/d
           /^ *#/d
           s/ *#.*//
         " $out/install.sh
-
-        # Grepping for any `source` at this point
       '';
 
     install-sh-lint =
@@ -79,11 +61,12 @@ in {
         super.runCommandNoCC "install-sh-lint" {
           inherit version;
           inherit (self) isMaster;
+          public = ../../public;
           buildInputs = [ install-sh self.shfmt self.shellcheck ];
         } ''
           set -Eeuo pipefail
           # Check if we have an sh compatible script
-          shckResult="$(shellcheck -Cnever -f gcc ${shellcheckOpts} "${install-sh}/install.sh" | \
+          shckResult="$(shellcheck -Cnever -f gcc ${shellcheckOpts} "$public/install.sh" | \
               grep -v "warning: In POSIX sh, 'local' is undefined. \[SC2039\]" | \
               sed -e "s%^${install-sh}/?%%g" || true)"
 
@@ -92,14 +75,12 @@ in {
             echo
             echo "$shckResult"
             echo
-            echo "Please run:"
-            echo "shellcheck ${shellcheckOpts} public/install.sh"
             exit 1
           fi
 
           # Check if the file is properly formatted
           if ! shfmt ${shfmtOpts} -d "${install-sh}/install.sh"; then
-            echo "Please run:"
+            echo "Formatting error. Please run:"
             echo
             echo "shfmt ${shfmtOpts} -w public/install.sh"
             exit 1

@@ -1,4 +1,4 @@
-## install/manifest.sh
+## install/010_manifest.sh
 #   Functions useful for dealing with the manifest (which is JSON).
 
 # Get the version of a tag from the manifest JSON file.
