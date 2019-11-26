@@ -1,5 +1,4 @@
 import { Buffer } from "buffer/";
-import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
 import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";

@@ -74,7 +74,7 @@ const isTagged = (value: HashableValue): value is borc.Tagged => {
   return value instanceof borc.Tagged;
 };
 
-const concat = (bs: Array<BinaryBlob>): BinaryBlob => {
+const concat = (bs: BinaryBlob[]): BinaryBlob => {
   return bs.reduce((state: Uint8Array, b: BinaryBlob): Uint8Array => {
     return new Uint8Array([ ...state, ...b ]);
   }, new Uint8Array()) as BinaryBlob;

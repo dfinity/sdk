@@ -1,9 +1,8 @@
 import { Buffer } from "buffer/";
-import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
 import { Hex } from "./hex";
 import { HttpAgent } from "./httpAgent";
-import _IDL from "./IDL";
+import * as _IDL from "./IDL";
 import * as requestId from "./requestId";
 
 import {
@@ -12,6 +11,7 @@ import {
 } from "./requestStatusResponse";
 
 import retry from "async-retry";
+import { FuncClass } from "./IDL";
 
 // Make an actor from an actor interface.
 //
@@ -36,12 +36,15 @@ export const makeActor = (
 // The return type here represents a record whose values may be any function.
 // By using "rest parameter syntax" we can type variadic functions in a
 // homogenous record, as well as process the arguments as an Array.
-): Record<string, (...args: Array<any>) => any> => {
+): Record<string, (...args: any[]) => any> => {
   const actorInterface = makeActorInterface({ IDL: _IDL });
-  const entries = Object.entries(actorInterface.__fields);
-  return Object.fromEntries(entries.map((entry) => {
-    const [methodName, func] = entry as [string, _IDL.Func];
-    return [methodName, async (...args: Array<any>) => {
+  const entries: Array<[string, _IDL.FuncClass]> = (
+    Object.entries(actorInterface._fields)
+      .filter(([_, x]) => x instanceof _IDL.FuncClass)) as any;
+
+  const result: Record<string, (...args: any[]) => any> = {};
+  for (const [methodName, func] of entries) {
+    result[methodName] = async (...args: any[]) => {
       // IDL.js encoding produces a feross/safe-buffer `Buffer`. We need to
       // convert to a ferross/buffer `Buffer` so that our `instanceof` checks
       // succeed. TODO: reconcile these `Buffer` types.
@@ -102,6 +105,7 @@ export const makeActor = (
       });
 
       return reply;
-    }];
-  }));
+    };
+  }
+  return result;
 };
