@@ -1,15 +1,20 @@
 type List<T> = ?{head : T; tail : List<T>};
+type List2<T> = { #nil; #cons: (T, List2<T>) };
 
 actor {
-    //TODO Bug fix for inline polymorphic type
-    //public type List<T> = ?{head : T; tail : List<T>};
     func map(l: List<Int>) : List<Int> = {
         switch l {
           case null { null };
           case (?v) { ?{head=v.head+1; tail=map(v.tail)} };
         }
     };
-    public func inc(i: Int, b: Bool, str: Text, vec: [Nat], l: List<Int>) : async (Int, Bool, Text, [Nat], List<Int>) {
+    func map2(l: List2<Int>) : List2<Int> = {
+         switch l {
+           case (#nil) { #nil };
+           case (#cons(h, tl)) { #cons(h+1, map2 tl) };
+         }
+    };
+    public func inc(i: Int, b: Bool, str: Text, vec: [Nat], l: List<Int>, l2: List2<Int>) : async (Int, Bool, Text, [Nat], List<Int>, List2<Int>) {
         let arr = Array_tabulate<Nat>(
           vec.len(),
           func (i : Nat) : Nat {
@@ -21,7 +26,7 @@ actor {
             let c2 = word32ToChar(charToWord32(c)+1);
             text := text # charToText(c2);
         };
-        return (i+1, not b, text, arr, map(l));
+        return (i+1, not b, text, arr, map(l), map2(l2));
     };
 };
 
