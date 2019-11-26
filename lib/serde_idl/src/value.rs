@@ -273,7 +273,8 @@ impl<'de> Deserialize<'de> for IDLValue {
                         };
                         vec.push(f);
                     } else {
-                        unreachable!()
+                        panic!(format!("{:?}:{:?}", key, value))
+                        //unreachable!()
                     }
                 }
                 Ok(IDLValue::Record(vec))
@@ -294,10 +295,9 @@ impl<'de> Deserialize<'de> for IDLValue {
                         "unit" => {
                             visitor.unit_variant()?;
                             IDLValue::Null
-                        },
-                        "struct" => {
-                            visitor.struct_variant(&[], self)?
-                        },
+                        }
+                        "struct" => visitor.struct_variant(&[], self)?,
+                        "newtype" => visitor.newtype_variant()?,
                         _ => unreachable!(),
                     };
                     //visitor.unit_variant()?;

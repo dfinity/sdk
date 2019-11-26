@@ -35,6 +35,7 @@ pub struct IDLDeserialize<'de> {
 impl<'de> IDLDeserialize<'de> {
     /// Create a new deserializer with IDL binary message.
     pub fn new(bytes: &'de [u8]) -> Self {
+        eprintln!("{:02x?}", bytes);
         let mut de = Deserializer::from_bytes(bytes);
         de.parse_table()
             .map_err(|e| de.dump_error_state(e))
@@ -216,6 +217,13 @@ impl<'de> Deserializer<'de> {
             .front()
             .ok_or_else(|| Error::msg("empty current_type"))
     }
+    fn rawvalue_to_opcode(&self, v: &RawValue) -> Result<Opcode> {
+        let mut op = v.get_i64()?;
+        if op >= 0 && op < self.table.len() as i64 {
+            op = self.table[op as usize][0].get_i64()?;
+        }
+        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))
+    }
     // Pop type opcode from the front of current_type.
     // If the opcode is an index (>= 0), we push the corresponding entry from table,
     // to current_type queue, and pop the opcode from the front.
@@ -233,11 +241,13 @@ impl<'de> Deserializer<'de> {
     }
     // Same logic as parse_type, but not poping the current_type queue.
     fn peek_type(&self) -> Result<Opcode> {
-        let mut op = self.peek_current_type()?.get_i64()?;
+        let op = self.peek_current_type()?;
+        self.rawvalue_to_opcode(op)
+        /*.get_i64()?;
         if op >= 0 && op < self.table.len() as i64 {
             op = self.table[op as usize][0].get_i64()?;
         }
-        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))
+        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))*/
     }
     // Check if current_type matches the provided type
     fn check_type(&mut self, expected: Opcode) -> Result<()> {
@@ -635,12 +645,16 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     if i == index {
                         match fs.get(&hash) {
                             Some(None) => {
-                                let accessor = match self.de.peek_type()? {
+                                let opcode = self.de.rawvalue_to_opcode(&ty)?;
+                                let accessor = match opcode {
                                     Opcode::Null => "unit",
                                     Opcode::Record => "struct",
-                                    _ => unreachable!(),
+                                    _ => "newtype",
                                 };
-                                self.de.set_field_name(FieldLabel::Variant(format!("{},{}", hash, accessor)));
+                                self.de.set_field_name(FieldLabel::Variant(format!(
+                                    "{},{}",
+                                    hash, accessor
+                                )));
                             }
                             Some(Some(field)) => {
                                 self.de.set_field_name(FieldLabel::Named(field));
