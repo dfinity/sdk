@@ -29,4 +29,3 @@ actor {
         return (i+1, not b, text, arr, map(l), map2(l2));
     };
 };
-
