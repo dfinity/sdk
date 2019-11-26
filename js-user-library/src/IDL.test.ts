@@ -38,7 +38,7 @@ test('IDL encoding', () => {
   expect(() => IDL.decode([IDL.Nat], Buffer.from('4449444d2a'))).toThrow(/Wrong magic number:/);
 
   // None
-  expect(() => IDL.encode([IDL.None], [null])).toThrow(/None cannot appear as a function argument/);
+  expect(() => IDL.encode([IDL.None], [undefined])).toThrow(/None cannot appear as a function argument/);
   expect(() => IDL.decode([IDL.None], Buffer.from('DIDL'))).toThrow(/None cannot appear as an output/);
 
   // Unit
@@ -62,12 +62,12 @@ test('IDL encoding', () => {
 
   // Tuple
   test_(IDL.Tuple(IDL.Int, IDL.Text), [42, '💩'], '4449444c016c02007c017101002a04f09f92a9', 'Pairs');
-  expect(() => IDL.encode([IDL.Tuple(IDL.Int, IDL.Text)], [[0]])).toThrow(/Tuple argument has wrong length/);
+  expect(() => IDL.encode([IDL.Tuple(IDL.Int, IDL.Text)], [[0]])).toThrow(/Invalid Tuple\(Int,Text\) argument/);
 
   // Array
   test_(IDL.Arr(IDL.Int), [0, 1, 2, 3], '4449444c016d7c01000400010203', 'Array of Ints');
-  expect(() => IDL.encode([IDL.Arr(IDL.Int)], [0])).toThrow(/Invalid Arr argument/);
-  expect(() => IDL.encode([IDL.Arr(IDL.Int)], [['fail']])).toThrow(/Invalid Int argument/);
+  expect(() => IDL.encode([IDL.Arr(IDL.Int)], [0])).toThrow(/Invalid Arr\(Int\) argument/);
+  expect(() => IDL.encode([IDL.Arr(IDL.Int)], [['fail']])).toThrow(/Invalid Arr\(Int\) argument/);
 
   // Array of Tuple
   test_(IDL.Arr(IDL.Tuple(IDL.Int, IDL.Text)), [[42, 'text']], '4449444c026c02007c01716d000101012a0474657874', 'Arr of Tuple');
@@ -93,8 +93,8 @@ test('IDL encoding', () => {
   const Result = IDL.Variant({ ok: IDL.Text, err: IDL.Text });
   test_(Result, { ok: 'good' }, '4449444c016b029cc20171e58eb4027101000004676f6f64', 'Result ok');
   test_(Result, { err: 'uhoh' }, '4449444c016b029cc20171e58eb402710100010475686f68', 'Result err');
-  expect(() => IDL.encode([Result], [{}])).toThrow(/Variant has no data/);
-  expect(() => IDL.encode([Result], [{ ok: 'ok', err: 'err' }])).toThrow(/Variant has extra key/);
+  expect(() => IDL.encode([Result], [{}])).toThrow(/Invalid Variant\(ok:Text,err:Text\) argument/);
+  expect(() => IDL.encode([Result], [{ ok: 'ok', err: 'err' }])).toThrow(/Invalid Variant\(ok:Text,err:Text\) argument/);
   // expect(() => IDL.decode([Result], Error('Call retailerQueryAll exception: Uncaught RuntimeError: memory access out of bounds')), 'Decode error').toThrow(/Uncaught RuntimeError/)
 
   // Test that nullary constructors work as expected

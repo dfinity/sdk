@@ -6,7 +6,7 @@ import { signed as sleb, unsigned as leb } from "leb128";
 /**
  * This module provides a combinator library to create serializers/deserializers
  * between JavaScript values and IDL used by canisters on the Internet Computer,
- * as documented at https://github.com/dfinity-lab/actorscript/blob/128e37bf6800125056269454a21acd8f2c70b226/design/IDL.md
+ * as documented at https://github.com/dfinity-lab/motoko/blob/2f71cfc9590741425db752a029e0758f94284e79/design/IDL.md
  */
 // tslint:enable:max-line-length
 
@@ -37,8 +37,8 @@ export class TypeTable {
   private _typs: Buffer[] = [];
   private _idx = new Map<string, number>();
 
-  public has(obj: string) {
-    return this._idx.has(obj);
+  public has(obj: Type) {
+    return this._idx.has(obj.name);
   }
 
   public add(obj: string, buf: Buffer) {
@@ -84,30 +84,27 @@ export class TypeTable {
  * Represents an IDL type.
  */
 export abstract class Type<T = any> {
-
   public abstract readonly name: string;
-  /* Memoized DFS for storing type description into TypeTable  */
-  public buildType(t: TypeTable): void {
-    if (!t.has(this.name)) {
-      this.buildTypeGo(t);
-    }
-  }
 
-  /* Implement T in the IDL spec, only needed for non-primitive types */
-  public buildTypeGo(typeTable: TypeTable): void {}
+  /* Implement `T` in the IDL spec, only needed for non-primitive types */
+  public abstract buildTypeTable(typeTable: TypeTable): void;
 
-  public validate(x: any): x is T {
-    throw new Error("You have the implement the method validate.");
-  }
+  /**
+   * Assert that JavaScript's `x` is the proper type represented by this
+   * Type.
+   */
+  public abstract covariant(x: any): x is T;
 
-  public encode(x: any): Buffer {
-    if (this.validate(x)) {
+  /** @internal */
+  public encode(x: T): Buffer {
+    if (this.covariant(x)) {
       return this.encodeGo(x);
     }
 
-    throw new Error(`Invalid ${this.name} argument: "${x}"`);
+    throw new Error(`Invalid ${this.name} argument: "${JSON.stringify(x)}"`);
   }
 
+  /** @internal */
   public encodeGo(x: T): Buffer {
     throw new Error("You have to implement the method encodeGo!");
   }
@@ -122,12 +119,24 @@ export abstract class Type<T = any> {
   }
 }
 
+export abstract class PrimitiveType<T = any> extends Type<T> {
+  public buildTypeTable(typeTable: TypeTable): void {}
+}
+
 /**
  * Represents an IDL None, a type which has no inhabitants.
  * Since no values exist for this type, it cannot be serialised or deserialised.
  * Result types like `Result<Text, None>` should always succeed.
  */
-export class NoneClass extends Type<never> {
+export class NoneClass extends PrimitiveType<never> {
+  public encode(x: any): Buffer {
+    throw new Error("None cannot appear as a function argument");
+  }
+
+  public covariant(x: any): x is never {
+    return false;
+  }
+
   public encodeGo(): never {
     throw new Error("None cannot appear as a function argument");
   }
@@ -148,8 +157,8 @@ export class NoneClass extends Type<never> {
 /**
  * Represents an IDL Bool
  */
-export class BoolClass extends Type<boolean> {
-  public validate(x: any): x is boolean {
+export class BoolClass extends PrimitiveType<boolean> {
+  public covariant(x: any): x is boolean {
     return typeof x === "boolean";
   }
 
@@ -176,7 +185,11 @@ export class BoolClass extends Type<boolean> {
 /**
  * Represents an IDL Unit
  */
-export class UnitClass extends Type<null> {
+export class UnitClass extends PrimitiveType<null> {
+  public covariant(x: any): x is null {
+    return x === null;
+  }
+
   public encodeGo() {
     return Buffer.alloc(0);
   }
@@ -197,8 +210,8 @@ export class UnitClass extends Type<null> {
 /**
  * Represents an IDL Text
  */
-export class TextClass extends Type<string> {
-  public validate(x: any): x is string {
+export class TextClass extends PrimitiveType<string> {
+  public covariant(x: any): x is string {
     return typeof x === "string";
   }
 
@@ -214,8 +227,7 @@ export class TextClass extends Type<string> {
 
   public decodeGo(b: Pipe) {
     const len = leb.readBn(b).toNumber();
-    const x = b.read(len).toString("utf8");
-    return x;
+    return b.read(len).toString("utf8");
   }
 
   get name() {
@@ -226,8 +238,8 @@ export class TextClass extends Type<string> {
 /**
  * Represents an IDL Int
  */
-export class IntClass extends Type<number> {
-  public validate(x: any): x is number {
+export class IntClass extends PrimitiveType<number> {
+  public covariant(x: any): x is number {
     return Number.isInteger(x);
   }
 
@@ -251,8 +263,8 @@ export class IntClass extends Type<number> {
 /**
  * Represents an IDL Nat
  */
-export class NatClass extends Type {
-  public validate(x: any): x is number {
+export class NatClass extends PrimitiveType<number> {
+  public covariant(x: any): x is number {
     return Number.isInteger(x) && x >= 0;
   }
 
@@ -282,8 +294,9 @@ export class TupleClass<T extends any[]> extends Type<T> {
     super();
   }
 
-  public validate(x: any): x is T {
-    return Array.isArray(x) && x.length === this._components.length;
+  public covariant(x: any): x is T {
+    // `>=` because tuples can be covariant when encoded.
+    return Array.isArray(x) && x.length >= this._components.length;
   }
 
   public encodeGo(x: any[]) {
@@ -291,9 +304,9 @@ export class TupleClass<T extends any[]> extends Type<T> {
     return Buffer.concat(bufs);
   }
 
-  public buildTypeGo(typeTable: TypeTable) {
+  public buildTypeTable(typeTable: TypeTable) {
     const components = this._components;
-    components.forEach((x) => x.buildType(typeTable));
+    components.forEach((x) => x.buildTypeTable(typeTable));
 
     const opCode = sleb.encode(-20);
     const len = leb.encode(components.length);
@@ -319,28 +332,46 @@ export class TupleClass<T extends any[]> extends Type<T> {
 }
 
 /**
- * Represents an IDL Array
- * @param {Type} t
+ * A base class for types that contain an inner value of a type.
  */
-export class ArrClass extends Type<any[]> {
-  constructor(private _type: Type) {
+export abstract class ContainerClass<InnerT, T = InnerT> extends Type<T> {
+  constructor(protected _type: Type<InnerT>) {
     super();
   }
 
-  public encodeGo(x: any[]) {
-    if (!Array.isArray(x)) {
-      throw Error("Invalid Arr argument: " + x);
-    }
-    const len = leb.encode(x.length);
-    const xs = x.map((d) => this._type.encode(d));
-    return Buffer.concat([len, ...xs]);
+  public covariant(x: any): x is T {
+    return this._type.covariant(x);
   }
 
-  public buildTypeGo(T: TypeTable) {
-    this._type.buildType(T);
-    const opCode = sleb.encode(-19);
-    const buffer = this._type.encodeTypeGo(T);
-    T.add(this.name, Buffer.concat([opCode, buffer]));
+  public buildTypeTable(typeTable: TypeTable): void {
+    if (!typeTable.has(this._type)) {
+      this._type.buildTypeTable(typeTable);
+    }
+  }
+}
+
+/**
+ * Represents an IDL Array
+ * @param {Type} t
+ */
+export class ArrClass<T> extends ContainerClass<T, T[]> {
+  public covariant(x: any): x is T[] {
+    return Array.isArray(x) && x.every((v) => super.covariant(v));
+  }
+
+  public encodeGo(x: T[]) {
+    const len = leb.encode(x.length);
+    return Buffer.concat([len, ...x.map((d) => this._type.encodeGo(d))]);
+  }
+
+  public buildTypeTable(typeTable: TypeTable) {
+    super.buildTypeTable(typeTable);
+
+    if (!typeTable.has(this)) {
+      const opCode = sleb.encode(-19);
+      const buffer = this._type.encodeTypeGo(typeTable);
+      typeTable.add(this.name, Buffer.concat([opCode, buffer]));
+    }
   }
 
   public encodeTypeGo(typeTable: TypeTable) {
@@ -365,31 +396,34 @@ export class ArrClass extends Type<any[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-export class OptClass extends Type {
-  constructor(private _type: Type) {
-    super();
+export class OptClass<T> extends ContainerClass<T | null> {
+  public covariant(x: any): x is (T | null) {
+    return x == null || super.covariant(x);
   }
 
-  public encodeGo(x: any) {
-    if (x == null) {
+  public encodeGo(x: T | null) {
+    if (x === null) {
       return Buffer.from([0]);
     } else {
       return Buffer.concat([Buffer.from([1]), this._type.encode(x)]);
     }
   }
 
-  public buildTypeGo(T: TypeTable) {
-    this._type.buildType(T);
-    const opCode = sleb.encode(-18);
-    const buffer = this._type.encodeTypeGo(T);
-    T.add(this.name, Buffer.concat([opCode, buffer]));
+  public buildTypeTable(typeTable: TypeTable) {
+    super.buildTypeTable(typeTable);
+
+    if (!typeTable.has(this)) {
+      const opCode = sleb.encode(-18);
+      const buffer = this._type.encodeTypeGo(typeTable);
+      typeTable.add(this.name, Buffer.concat([opCode, buffer]));
+    }
   }
 
-  public encodeTypeGo(T: TypeTable) {
-    return T.indexOf(this.name);
+  public encodeTypeGo(typeTable: TypeTable) {
+    return typeTable.indexOf(this.name);
   }
 
-  public decodeGo(b: Pipe) {
+  public decodeGo(b: Pipe): T | null {
     const len = b.read(1).toString("hex");
     if (len === "00") {
       return null;
@@ -407,31 +441,33 @@ export class OptClass extends Type {
  * Represents an IDL Object
  * @param {Object} [fields] - mapping of function name to Type
  */
-export class ObjClass extends Type<Record<string, Type>> {
-  protected _fields: Array<[string, Type]>;
+export class ObjClass extends Type<Record<string, any>> {
+  protected readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
     super();
-    const sortedFields = Object.entries(fields).sort(
+    this._fields = Object.entries(fields).sort(
       (a, b) => hash(a[0]) - hash(b[0]),
     );
+  }
 
-    this._fields = sortedFields;
+  public covariant(x: any): x is Record<string, any> {
+    return typeof x === "object" && this._fields.every(([k, t]) => {
+      if (!x.hasOwnProperty(k)) {
+        throw new Error(`Obj is missing key "${k}".`);
+      }
+      return t.covariant(x[k]);
+    });
   }
 
   public encodeGo(x: Record<string, any>) {
-    const values = this._fields.map(([key, _]) => {
-      if (!x.hasOwnProperty(key)) {
-        throw Error("Obj is missing key: " + key);
-      }
-      return x[key];
-    });
+    const values = this._fields.map(([key, _]) => x[key]);
     const bufs = zipWith(this._fields, values, ([_, c], d) => c.encode(d));
     return Buffer.concat(bufs);
   }
 
-  public buildTypeGo(T: TypeTable) {
-    this._fields.forEach(([_, value]) => value.buildType(T));
+  public buildTypeTable(T: TypeTable) {
+    this._fields.forEach(([_, value]) => value.buildTypeTable(T));
     const opCode = sleb.encode(-20);
     const len = leb.encode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
@@ -454,7 +490,7 @@ export class ObjClass extends Type<Record<string, Type>> {
   }
 
   get name() {
-    const fields = this._fields.map(([key, value]) => key + ":" + value);
+    const fields = this._fields.map(([key, value]) => key + ":" + value.name);
     return `Obj(${fields.join(",")})`;
   }
 }
@@ -463,14 +499,9 @@ export class ObjClass extends Type<Record<string, Type>> {
  * Represents an IDL Variant
  * @param {Object} [fields] - mapping of function name to Type
  */
-export class VariantClass extends Type {
-  private readonly _fields: Array<[string, Type]>;
-
-  constructor(fields: Record<string, Type> = {}) {
-    super();
-    this._fields = Object.entries(fields).sort(
-      (a, b) => hash(a[0]) - hash(b[0]),
-    );
+export class VariantClass extends ObjClass {
+  public covariant(x: any): x is Record<string, any> {
+    return typeof x === "object" && Object.entries(x).length === 1;
   }
 
   public encodeGo(x: any) {
@@ -492,14 +523,18 @@ export class VariantClass extends Type {
     return out;
   }
 
-  public buildTypeGo(T: TypeTable) {
-    this._fields.forEach(([key, value]) => value.buildType(T));
+  public buildTypeTable(typeTable: TypeTable) {
+    this._fields.forEach(([, type]) => {
+      if (!typeTable.has(type)) {
+        type.buildTypeTable(typeTable);
+      }
+    });
     const opCode = sleb.encode(-21);
     const len = leb.encode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
-      Buffer.concat([leb.encode(hash(key)), value.encodeTypeGo(T)]),
+      Buffer.concat([leb.encode(hash(key)), value.encodeTypeGo(typeTable)]),
     );
-    T.add(this.name, Buffer.concat([opCode, len, Buffer.concat(fields)]));
+    typeTable.add(this.name, Buffer.concat([opCode, len, ...fields]));
   }
 
   public encodeTypeGo(T: TypeTable) {
@@ -519,8 +554,8 @@ export class VariantClass extends Type {
   }
 
   get name() {
-    const fields = this._fields.map(([key, value]) => key + ":" + value);
-    return `Variant(${fields})`;
+    const fields = this._fields.map(([key, type]) => key + ":" + type.name);
+    return `Variant(${fields.join(",")})`;
   }
 }
 
@@ -528,37 +563,39 @@ export class VariantClass extends Type {
  * Represents a reference to an IDL type, used for defining recursive data
  * types.
  */
-export class RecClass extends Type {
+export class RecClass<T = any> extends Type<T> {
   private static _counter = 0;
   private _id = RecClass._counter++;
-  private _type: Type | undefined = undefined;
+  private _type: Type<T> | undefined = undefined;
 
-  public fill(t: Type) {
+  public fill(t: Type<T>) {
     this._type = t;
   }
 
-  public validate(x: any): x is any {
-    return this._type ? this._type.validate(x) : false;
+  public covariant(x: any): x is T {
+    return this._type ? this._type.covariant(x) : false;
   }
 
-  public encodeGo(x: any) {
+  public encodeGo(x: T) {
     if (!this._type) {
       throw Error("Recursive type uninitialized.");
     }
     return this._type.encode(x);
   }
 
-  public buildTypeGo(T: TypeTable) {
+  public buildTypeTable(typeTable: TypeTable) {
     if (!this._type) {
       throw Error("Recursive type uninitialized.");
     }
-    T.add(this.name, Buffer.alloc(0));
-    this._type.buildType(T);
-    T.merge(this.name, this._type.name);
+    if (!typeTable.has(this)) {
+      typeTable.add(this.name, Buffer.alloc(0));
+      this._type.buildTypeTable(typeTable);
+      typeTable.merge(this.name, this._type.name);
+    }
   }
 
-  public encodeTypeGo(T: TypeTable) {
-    return T.indexOf(this.name);
+  public encodeTypeGo(typeTable: TypeTable) {
+    return typeTable.indexOf(this.name);
   }
 
   public decodeGo(b: Pipe) {
@@ -582,7 +619,7 @@ export class FuncClass extends Type<any> {
   public argTypes: Type[];
   public retTypes: Type[];
 
-  constructor(argTypes: Type[] = [], retTypes: Type[]) {
+  constructor(argTypes: Type[] = [], retTypes: Type[] = []) {
     super();
 
     if (!Array.isArray(argTypes)) {
@@ -599,6 +636,12 @@ export class FuncClass extends Type<any> {
     this.retTypes = retTypes;
   }
 
+  public covariant(x: any): x is any {
+    return false;
+  }
+
+  public buildTypeTable(typeTable: TypeTable): void {}
+
   get name() {
     const ret = this.retTypes.map((x) => x.name);
     return `Func(${this.argTypes.map((x) => x.name).join(",")}):${ret.join(",")}`;
@@ -614,7 +657,11 @@ export function encode(argTypes: Array<Type<any>>, args: any[]) {
     throw Error("Wrong number of message arguments");
   }
   const T = new TypeTable();
-  argTypes.forEach((t) => t.buildType(T));
+  argTypes.forEach((t) => {
+    if (!T.has(t)) {
+      t.buildTypeTable(T);
+    }
+  });
 
   const magic = Buffer.from(magicNumber, "utf8");
   const table = T.encode();
@@ -712,16 +759,16 @@ export const Nat = new NatClass();
 export function Tuple<T extends any[]>(...types: T): TupleClass<T> {
   return new TupleClass(types);
 }
-export function Arr(t: Type): ArrClass {
+export function Arr<T>(t: Type<T>): ArrClass<T> {
   return new ArrClass(t);
 }
-export function Opt(t: Type): OptClass {
+export function Opt<T>(t: Type<T>): OptClass<T> {
   return new OptClass(t);
 }
 export function Obj(t: Record<string, Type>): ObjClass {
   return new ObjClass(t);
 }
-export function Variant(fields: Record<string, Type> = {}) {
+export function Variant(fields: Record<string, Type>) {
   return new VariantClass(fields);
 }
 export function Rec() {

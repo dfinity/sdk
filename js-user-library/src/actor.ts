@@ -11,7 +11,6 @@ import {
 } from "./requestStatusResponse";
 
 import retry from "async-retry";
-import { FuncClass } from "./IDL";
 
 // Make an actor from an actor interface.
 //
