@@ -104,19 +104,17 @@ export abstract class Type<T = any> {
     throw new Error(`Invalid ${this.name} argument: "${JSON.stringify(x)}"`);
   }
 
-  /** @internal */
-  public encodeGo(x: T): Buffer {
-    throw new Error("You have to implement the method encodeGo!");
-  }
+  /**
+   * Encode the value. This needs to be public because it is used by
+   * encodeGo() from different types.
+   * @internal
+   */
+  public abstract encodeGo(x: T): Buffer;
 
-  /* Implement I in the IDL spec */
-  public encodeTypeGo(typeTable: TypeTable): Buffer {
-    throw new Error("You have to implement the method encodeTypeGo!");
-  }
+  /* Implement `I` in the IDL spec */
+  public abstract encodeType(typeTable: TypeTable): Buffer;
 
-  public decodeGo(x: Pipe): T {
-    throw new Error("You have to implement the method decodeGo!");
-  }
+  public abstract decodeGo(x: Pipe): T;
 }
 
 export abstract class PrimitiveType<T = any> extends Type<T> {
@@ -141,7 +139,7 @@ export class NoneClass extends PrimitiveType<never> {
     throw new Error("None cannot appear as a function argument");
   }
 
-  public encodeTypeGo() {
+  public encodeType() {
     return sleb.encode(-17);
   }
 
@@ -168,7 +166,7 @@ export class BoolClass extends PrimitiveType<boolean> {
     return buf;
   }
 
-  public encodeTypeGo() {
+  public encodeType() {
     return sleb.encode(-2);
   }
 
@@ -194,7 +192,7 @@ export class UnitClass extends PrimitiveType<null> {
     return Buffer.alloc(0);
   }
 
-  public encodeTypeGo() {
+  public encodeType() {
     return sleb.encode(-1);
   }
 
@@ -221,7 +219,7 @@ export class TextClass extends PrimitiveType<string> {
     return Buffer.concat([len, buf]);
   }
 
-  public encodeTypeGo() {
+  public encodeType() {
     return sleb.encode(-15);
   }
 
@@ -247,7 +245,7 @@ export class IntClass extends PrimitiveType<number> {
     return sleb.encode(x);
   }
 
-  public encodeTypeGo() {
+  public encodeType() {
     return sleb.encode(-4);
   }
 
@@ -272,7 +270,7 @@ export class NatClass extends PrimitiveType<number> {
     return leb.encode(x);
   }
 
-  public encodeTypeGo() {
+  public encodeType() {
     return sleb.encode(-3);
   }
 
@@ -286,7 +284,7 @@ export class NatClass extends PrimitiveType<number> {
 }
 
 /**
- * Represents an IDL Tuple
+ * Represents an IDL Tuple, a Record that has the index as the key.
  * @param {Type} components
  */
 export class TupleClass<T extends any[]> extends Type<T> {
@@ -312,13 +310,13 @@ export class TupleClass<T extends any[]> extends Type<T> {
     const len = leb.encode(components.length);
     const buf = Buffer.concat(
       components.map((x, i) =>
-        Buffer.concat([leb.encode(i), x.encodeTypeGo(typeTable)]),
+        Buffer.concat([leb.encode(i), x.encodeType(typeTable)]),
       ),
     );
     typeTable.add(this.name, Buffer.concat([opCode, len, buf]));
   }
 
-  public encodeTypeGo(typeTable: TypeTable) {
+  public encodeType(typeTable: TypeTable) {
     return typeTable.indexOf(this.name);
   }
 
@@ -369,12 +367,12 @@ export class ArrClass<T> extends ContainerClass<T, T[]> {
 
     if (!typeTable.has(this)) {
       const opCode = sleb.encode(-19);
-      const buffer = this._type.encodeTypeGo(typeTable);
+      const buffer = this._type.encodeType(typeTable);
       typeTable.add(this.name, Buffer.concat([opCode, buffer]));
     }
   }
 
-  public encodeTypeGo(typeTable: TypeTable) {
+  public encodeType(typeTable: TypeTable) {
     return typeTable.indexOf(this.name);
   }
 
@@ -414,12 +412,12 @@ export class OptClass<T> extends ContainerClass<T | null> {
 
     if (!typeTable.has(this)) {
       const opCode = sleb.encode(-18);
-      const buffer = this._type.encodeTypeGo(typeTable);
+      const buffer = this._type.encodeType(typeTable);
       typeTable.add(this.name, Buffer.concat([opCode, buffer]));
     }
   }
 
-  public encodeTypeGo(typeTable: TypeTable) {
+  public encodeType(typeTable: TypeTable) {
     return typeTable.indexOf(this.name);
   }
 
@@ -471,13 +469,13 @@ export class ObjClass extends Type<Record<string, any>> {
     const opCode = sleb.encode(-20);
     const len = leb.encode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
-      Buffer.concat([leb.encode(hash(key)), value.encodeTypeGo(T)]),
+      Buffer.concat([leb.encode(hash(key)), value.encodeType(T)]),
     );
 
     T.add(this.name, Buffer.concat([opCode, len, Buffer.concat(fields)]));
   }
 
-  public encodeTypeGo(T: TypeTable) {
+  public encodeType(T: TypeTable) {
     return T.indexOf(this.name);
   }
 
@@ -532,12 +530,12 @@ export class VariantClass extends ObjClass {
     const opCode = sleb.encode(-21);
     const len = leb.encode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
-      Buffer.concat([leb.encode(hash(key)), value.encodeTypeGo(typeTable)]),
+      Buffer.concat([leb.encode(hash(key)), value.encodeType(typeTable)]),
     );
     typeTable.add(this.name, Buffer.concat([opCode, len, ...fields]));
   }
 
-  public encodeTypeGo(T: TypeTable) {
+  public encodeType(T: TypeTable) {
     return T.indexOf(this.name);
   }
 
@@ -594,7 +592,7 @@ export class RecClass<T = any> extends Type<T> {
     }
   }
 
-  public encodeTypeGo(typeTable: TypeTable) {
+  public encodeType(typeTable: TypeTable) {
     return typeTable.indexOf(this.name);
   }
 
@@ -637,7 +635,16 @@ export class FuncClass extends Type<any> {
   }
 
   public covariant(x: any): x is any {
-    return false;
+    throw new Error("Cannot encode Func.");
+  }
+  public encodeGo(x: any): never {
+    throw new Error("Cannot encode Func.");
+  }
+  public encodeType(x: any): never {
+    throw new Error("Cannot encode Func.");
+  }
+  public decodeGo(x: any): never {
+    throw new Error("Cannot decode Func.");
   }
 
   public buildTypeTable(typeTable: TypeTable): void {}
@@ -666,7 +673,7 @@ export function encode(argTypes: Array<Type<any>>, args: any[]) {
   const magic = Buffer.from(magicNumber, "utf8");
   const table = T.encode();
   const len = leb.encode(args.length);
-  const typs = Buffer.concat(argTypes.map((t) => t.encodeTypeGo(T)));
+  const typs = Buffer.concat(argTypes.map((t) => t.encodeType(T)));
   const vals = Buffer.concat(zipWith(argTypes, args, (t, x) => t.encode(x)));
 
   return Buffer.concat([magic, table, len, typs, vals]);

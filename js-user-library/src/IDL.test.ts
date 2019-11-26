@@ -95,7 +95,7 @@ test('IDL encoding', () => {
   test_(Result, { err: 'uhoh' }, '4449444c016b029cc20171e58eb402710100010475686f68', 'Result err');
   expect(() => IDL.encode([Result], [{}])).toThrow(/Invalid Variant\(ok:Text,err:Text\) argument/);
   expect(() => IDL.encode([Result], [{ ok: 'ok', err: 'err' }])).toThrow(/Invalid Variant\(ok:Text,err:Text\) argument/);
-  // expect(() => IDL.decode([Result], Error('Call retailerQueryAll exception: Uncaught RuntimeError: memory access out of bounds')), 'Decode error').toThrow(/Uncaught RuntimeError/)
+  expect(() => IDL.decode([Result], Error('Call retailerQueryAll exception: Uncaught RuntimeError: memory access out of bounds') as any)).toThrow();
 
   // Test that nullary constructors work as expected
   test_(IDL.Variant({ foo: IDL.Unit }), { foo: null }, '4449444c016b01868eb7027f010000', 'Nullary constructor in variant');
