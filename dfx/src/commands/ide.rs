@@ -30,8 +30,7 @@ where
     let force_tty = args.is_present(FORCE_TTY);
     // Are we being run from a terminal? That's most likely not what we want
     if atty::is(atty::Stream::Stdout) && !force_tty {
-        eprintln!("The `ide` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.");
-        std::process::exit(1)
+        Err(DfxError::IdeServerFromATerminal)
     } else {
         let config = &env
             .get_config()

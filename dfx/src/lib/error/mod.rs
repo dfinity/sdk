@@ -49,6 +49,9 @@ pub enum DfxError {
     ConfigPathDoesNotExist(String),
     InvalidArgument(String),
     InvalidData(String),
+
+    // The ide server shouldn't be started from a terminal
+    IdeServerFromATerminal,
 }
 
 /// The result of running a DFX command.
