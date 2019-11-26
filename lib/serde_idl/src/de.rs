@@ -704,6 +704,10 @@ impl<'de, 'a> de::VariantAccess<'de> for Compound<'a, 'de> {
     where
         V: Visitor<'de>,
     {
-        de::Deserializer::deserialize_struct(self.de, "_", fields, visitor)
+        if fields.is_empty() {
+            de::Deserializer::deserialize_any(self.de, visitor)
+        } else {
+            de::Deserializer::deserialize_struct(self.de, "_", fields, visitor)
+        }
     }
 }
