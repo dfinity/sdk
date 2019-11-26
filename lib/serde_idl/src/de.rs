@@ -35,7 +35,6 @@ pub struct IDLDeserialize<'de> {
 impl<'de> IDLDeserialize<'de> {
     /// Create a new deserializer with IDL binary message.
     pub fn new(bytes: &'de [u8]) -> Self {
-        eprintln!("{:02x?}", bytes);
         let mut de = Deserializer::from_bytes(bytes);
         de.parse_table()
             .map_err(|e| de.dump_error_state(e))
@@ -243,11 +242,6 @@ impl<'de> Deserializer<'de> {
     fn peek_type(&self) -> Result<Opcode> {
         let op = self.peek_current_type()?;
         self.rawvalue_to_opcode(op)
-        /*.get_i64()?;
-        if op >= 0 && op < self.table.len() as i64 {
-            op = self.table[op as usize][0].get_i64()?;
-        }
-        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))*/
     }
     // Check if current_type matches the provided type
     fn check_type(&mut self, expected: Opcode) -> Result<()> {

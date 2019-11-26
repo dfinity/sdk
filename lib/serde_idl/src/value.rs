@@ -273,8 +273,7 @@ impl<'de> Deserialize<'de> for IDLValue {
                         };
                         vec.push(f);
                     } else {
-                        panic!(format!("{:?}:{:?}", key, value))
-                        //unreachable!()
+                        unreachable!()
                     }
                 }
                 Ok(IDLValue::Record(vec))
@@ -286,8 +285,6 @@ impl<'de> Deserialize<'de> for IDLValue {
                 use serde::de::VariantAccess;
                 let (variant, visitor) = data.variant::<IDLValue>()?;
                 if let IDLValue::Text(v) = variant {
-                    //TODO assume enums are unit type for now.
-                    //let val = visitor.struct_variant(&[], self)?;
                     let v: Vec<_> = v.split(',').collect();
                     assert_eq!(v.len(), 2);
                     let id = v[0].parse::<u32>().unwrap();
@@ -300,7 +297,6 @@ impl<'de> Deserialize<'de> for IDLValue {
                         "newtype" => visitor.newtype_variant()?,
                         _ => unreachable!(),
                     };
-                    //visitor.unit_variant()?;
                     let f = IDLField { id, val };
                     Ok(IDLValue::Variant(Box::new(f)))
                 } else {
