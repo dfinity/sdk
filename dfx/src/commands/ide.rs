@@ -2,15 +2,23 @@ use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FI
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use atty;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
+const FORCE_TTY: &str = "force-tty";
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("ide")
         .about(UserMessage::StartIDE.to_str())
         .arg(Arg::with_name(CANISTER_ARG).help(UserMessage::CanisterName.to_str()))
+        .arg(
+            Arg::with_name(FORCE_TTY)
+                .help(UserMessage::ForceTTY.to_str())
+                .long(FORCE_TTY)
+                .takes_value(false),
+        )
 }
 
 // Don't read anything from stdin or output anything to stdout while this function is being
@@ -19,14 +27,20 @@ pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: BinaryResolverEnv + ProjectConfigEnv,
 {
-    let config = &env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?
-        .config;
+    let force_tty = args.is_present(FORCE_TTY);
+    // Are we being run from a terminal? That's most likely not what we want
+    if atty::is(atty::Stream::Stdout) && !force_tty {
+        Err(DfxError::IdeServerFromATerminal)
+    } else {
+        let config = &env
+            .get_config()
+            .ok_or(DfxError::CommandMustBeRunInAProject)?
+            .config;
 
-    let main_path = get_main_path(config, args)?;
+        let main_path = get_main_path(config, args)?;
 
-    run_ide(env, main_path)
+        run_ide(env, main_path)
+    }
 }
 
 fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<String, DfxError> {
