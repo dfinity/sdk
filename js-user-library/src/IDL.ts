@@ -42,9 +42,6 @@ export class TypeTable {
   }
 
   public add<T>(type: Type<T>, buf: Buffer) {
-    if (this.has(type)) {
-      return;
-    }
     if (type instanceof PrimitiveType) {
       throw new Error("TypeTable cannot contain primitive types.");
     }
@@ -334,29 +331,16 @@ export class TupleClass<T extends any[]> extends Type<T> {
 }
 
 /**
- * A base class for types that contain an inner value of a type.
- */
-export abstract class ContainerClass<InnerT, T = InnerT> extends Type<T> {
-  constructor(protected _type: Type<InnerT>) {
-    super();
-  }
-
-  public covariant(x: any): x is T {
-    return this._type.covariant(x);
-  }
-
-  public _buildTypeTableImpl(typeTable: TypeTable): void {
-    this._type.buildTypeTable(typeTable);
-  }
-}
-
-/**
  * Represents an IDL Array
  * @param {Type} t
  */
-export class ArrClass<T> extends ContainerClass<T, T[]> {
+export class ArrClass<T> extends Type<T[]> {
+  constructor(protected _type: Type<T>) {
+    super();
+  }
+
   public covariant(x: any): x is T[] {
-    return Array.isArray(x) && x.every((v) => super.covariant(v));
+    return Array.isArray(x) && x.every((v) => this._type.covariant(v));
   }
 
   public encodeValue(x: T[]) {
@@ -365,7 +349,7 @@ export class ArrClass<T> extends ContainerClass<T, T[]> {
   }
 
   public _buildTypeTableImpl(typeTable: TypeTable) {
-    super._buildTypeTableImpl(typeTable);
+    this._type.buildTypeTable(typeTable);
 
     const opCode = sleb.encode(-19);
     const buffer = this._type.encodeType(typeTable);
@@ -394,9 +378,13 @@ export class ArrClass<T> extends ContainerClass<T, T[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-export class OptClass<T> extends ContainerClass<T | null> {
+export class OptClass<T> extends Type<T | null> {
+  constructor(protected _type: Type<T>) {
+    super();
+  }
+
   public covariant(x: any): x is (T | null) {
-    return x == null || super.covariant(x);
+    return x == null || this._type.covariant(x);
   }
 
   public encodeValue(x: T | null) {
@@ -408,7 +396,7 @@ export class OptClass<T> extends ContainerClass<T | null> {
   }
 
   public _buildTypeTableImpl(typeTable: TypeTable) {
-    super._buildTypeTableImpl(typeTable);
+    this._type.buildTypeTable(typeTable);
 
     const opCode = sleb.encode(-18);
     const buffer = this._type.encodeType(typeTable);
@@ -514,10 +502,10 @@ export class VariantClass extends Type<Record<string, any>> {
 
   public encodeValue(x: Record<string, any>) {
     for (let i = 0; i < this._fields.length; i++) {
-      const [k, v] = this._fields[i];
-      if (x.hasOwnProperty(k)) {
+      const [name, type] = this._fields[i];
+      if (x.hasOwnProperty(name)) {
         const idx = leb.encode(i);
-        const buf = v.encodeValue(x[k]);
+        const buf = type.encodeValue(x[name]);
 
         return Buffer.concat([idx, buf]);
       }
@@ -613,41 +601,8 @@ export class RecClass<T = any> extends Type<T> {
  * @param {Array<Type>} [argTypes] - argument types
  * @param {Array<Type>} [retTypes] - return types
  */
-export class FuncClass extends Type<any> {
-  public argTypes: Type[];
-  public retTypes: Type[];
-
-  constructor(argTypes: Type[] = [], retTypes: Type[] = []) {
-    super();
-
-    if (!Array.isArray(argTypes)) {
-      throw Error(
-        "First argument to Func must be an array of IDL argument types.",
-      );
-    }
-    if (retTypes && !Array.isArray(retTypes)) {
-      throw Error(
-        "Second argument to Func must be an array of IDL argument types.",
-      );
-    }
-    this.argTypes = argTypes;
-    this.retTypes = retTypes;
-  }
-
-  public covariant(x: any): x is any {
-    throw new Error("Cannot encode Func.");
-  }
-  public encodeValue(x: any): never {
-    throw new Error("Cannot encode Func.");
-  }
-  public encodeType(x: any): never {
-    throw new Error("Cannot encode Func.");
-  }
-  public decodeValue(x: any): never {
-    throw new Error("Cannot decode Func.");
-  }
-
-  public _buildTypeTableImpl(typeTable: TypeTable): void {}
+export class FuncClass {
+  constructor(public argTypes: Type[] = [], public retTypes: Type[] = []) {}
 
   get name() {
     const ret = this.retTypes.map((x) => x.name);
@@ -660,7 +615,7 @@ export class FuncClass extends Type<any> {
  * @returns {Buffer} serialised value
  */
 export function encode(argTypes: Array<Type<any>>, args: any[]) {
-  if (args.length !== argTypes.length) {
+  if (args.length < argTypes.length) {
     throw Error("Wrong number of message arguments");
   }
 
@@ -755,7 +710,7 @@ export class ActorInterface {
   protected _id: Blob | null = null;
   protected _batch: boolean = false;
 
-  constructor(public _fields: Record<string, Type>) {}
+  constructor(public _fields: Record<string, FuncClass>) {}
 }
 
 // Export Types instances.
