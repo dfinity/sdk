@@ -14,9 +14,19 @@ setup() {
     latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr A-Z a-z)/"
     dfx_archive_file_name="dfx-$latest_version.tar.gz"
     mkdir -p "$latest_version_dir"
-    assets_root="$BATS_TEST_DIRNAME/assets/dfx_upgrade"
-    cp "$assets_root/$dfx_archive_file_name" "$latest_version_dir/"
-    cp "$assets_root/manifest.json" .
+    cp $(which dfx) .
+    version=$(./dfx --version)
+    tar -czf "$latest_version_dir/$dfx_archive_file_name" dfx
+    echo '{
+      "tags": {
+        "latest": "0.4.7"
+      },
+      "versions": [
+        "0.4.3",
+        "0.4.4",
+        "0.4.7"
+      ]
+    }' > manifest.json
     python -m http.server "$RANDOM_EMPHEMERAL_PORT" &
     WEB_SERVER_PID=$!
 
@@ -24,7 +34,6 @@ setup() {
         sleep 1
     done
 
-    cp $(which dfx) .
     # Override current version to force upgrade
     assert_command ./dfx upgrade \
         --current-version 0.4.6 \
@@ -37,4 +46,6 @@ setup() {
     assert_match "Setting permissions"
     assert_match "Done"
     kill "$WEB_SERVER_PID"
+    assert_command ./dfx --version
+    assert_match "$version"
 }
