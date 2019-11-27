@@ -97,8 +97,6 @@ export abstract class Type<T = any> {
     }
   }
 
-  protected abstract _buildTypeTableImpl(typeTable: TypeTable): void;
-
   /**
    * Assert that JavaScript's `x` is the proper type represented by this
    * Type.
@@ -119,10 +117,12 @@ export abstract class Type<T = any> {
   public abstract encodeType(typeTable: TypeTable): Buffer;
 
   public abstract decodeValue(x: Pipe): T;
+
+  protected abstract _buildTypeTableImpl(typeTable: TypeTable): void;
 }
 
 export abstract class PrimitiveType<T = any> extends Type<T> {
-  _buildTypeTableImpl(typeTable: TypeTable): void {
+  public _buildTypeTableImpl(typeTable: TypeTable): void {
     // No type table encoding for Primitive types.
     return;
   }
@@ -306,14 +306,16 @@ export class TupleClass<T extends any[]> extends Type<T> {
     return Buffer.concat(bufs);
   }
 
-  _buildTypeTableImpl(typeTable: TypeTable) {
+  public _buildTypeTableImpl(typeTable: TypeTable) {
     const components = this._components;
     components.forEach((x) => x.buildTypeTable(typeTable));
 
     const opCode = sleb.encode(-20);
     const len = leb.encode(components.length);
     const buf = Buffer.concat(
-      components.map((x, i) => Buffer.concat([leb.encode(i), x.encodeType(typeTable)])),
+      components.map((x, i) => {
+        return Buffer.concat([leb.encode(i), x.encodeType(typeTable)]);
+      }),
     );
     typeTable.add(this, Buffer.concat([opCode, len, buf]));
   }
@@ -343,7 +345,7 @@ export abstract class ContainerClass<InnerT, T = InnerT> extends Type<T> {
     return this._type.covariant(x);
   }
 
-  _buildTypeTableImpl(typeTable: TypeTable): void {
+  public _buildTypeTableImpl(typeTable: TypeTable): void {
     this._type.buildTypeTable(typeTable);
   }
 }
@@ -362,7 +364,7 @@ export class ArrClass<T> extends ContainerClass<T, T[]> {
     return Buffer.concat([len, ...x.map((d) => this._type.encodeValue(d))]);
   }
 
-  _buildTypeTableImpl(typeTable: TypeTable) {
+  public _buildTypeTableImpl(typeTable: TypeTable) {
     super._buildTypeTableImpl(typeTable);
 
     const opCode = sleb.encode(-19);
@@ -405,7 +407,7 @@ export class OptClass<T> extends ContainerClass<T | null> {
     }
   }
 
-  _buildTypeTableImpl(typeTable: TypeTable) {
+  public _buildTypeTableImpl(typeTable: TypeTable) {
     super._buildTypeTableImpl(typeTable);
 
     const opCode = sleb.encode(-18);
@@ -460,7 +462,7 @@ export class ObjClass extends Type<Record<string, any>> {
     return Buffer.concat(bufs);
   }
 
-  _buildTypeTableImpl(T: TypeTable) {
+  public _buildTypeTableImpl(T: TypeTable) {
     this._fields.forEach(([, value]) => value.buildTypeTable(T));
     const opCode = sleb.encode(-20);
     const len = leb.encode(this._fields.length);
@@ -505,7 +507,9 @@ export class VariantClass extends Type<Record<string, any>> {
 
   public covariant(x: any): x is Record<string, any> {
     return typeof x === "object" && Object.entries(x).length === 1
-        && this._fields.every(([k, v]) => !x.hasOwnProperty(k) || v.covariant(x[k]));
+        && this._fields.every(([k, v]) => {
+          return !x.hasOwnProperty(k) || v.covariant(x[k]);
+      });
   }
 
   public encodeValue(x: Record<string, any>) {
@@ -521,7 +525,7 @@ export class VariantClass extends Type<Record<string, any>> {
     throw Error("Variant has no data: " + x);
   }
 
-  _buildTypeTableImpl(typeTable: TypeTable) {
+  public _buildTypeTableImpl(typeTable: TypeTable) {
     this._fields.forEach(([, type]) => {
       type.buildTypeTable(typeTable);
     });
@@ -579,7 +583,7 @@ export class RecClass<T = any> extends Type<T> {
     return this._type.encodeValue(x);
   }
 
-  _buildTypeTableImpl(typeTable: TypeTable) {
+  public _buildTypeTableImpl(typeTable: TypeTable) {
     if (!this._type) {
       throw Error("Recursive type uninitialized.");
     }
@@ -643,7 +647,7 @@ export class FuncClass extends Type<any> {
     throw new Error("Cannot decode Func.");
   }
 
-  _buildTypeTableImpl(typeTable: TypeTable): void {}
+  public _buildTypeTableImpl(typeTable: TypeTable): void {}
 
   get name() {
     const ret = this.retTypes.map((x) => x.name);

@@ -12,12 +12,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "bundle": "npm run build && webpack",
-    "ci": "npm run lint && npm run type-check && npm run build",
+    "ci": "npm run prettier && npm run lint && npm run build",
     "lint": "tslint --project tsconfig.json --config tslint.json",
     "lint:fix": "npm run lint -- --fix",
-    "test": "jest --verbose",
-    "type-check": "tsc --noEmit",
-    "type-check:watch": "npm run type-check -- --watch"
+    "prettier": "# prettier --check src/** # For now, ignore as we didnt run prettier",
+    "test": "jest --verbose"
   },
   "dependencies": {
     "@trust/webcrypto": "^0.9.2",
