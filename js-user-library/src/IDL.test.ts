@@ -38,7 +38,7 @@ test('IDL encoding', () => {
   expect(() => IDL.decode([IDL.Nat], Buffer.from('4449444d2a'))).toThrow(/Wrong magic number:/);
 
   // None
-  expect(() => IDL.encode([IDL.None], [undefined])).toThrow(/None cannot appear as a function argument/);
+  expect(() => IDL.encode([IDL.None], [undefined])).toThrow(/Invalid None argument:/);
   expect(() => IDL.decode([IDL.None], Buffer.from('DIDL'))).toThrow(/None cannot appear as an output/);
 
   // Unit
@@ -95,14 +95,13 @@ test('IDL encoding', () => {
   test_(Result, { err: 'uhoh' }, '4449444c016b029cc20171e58eb402710100010475686f68', 'Result err');
   expect(() => IDL.encode([Result], [{}])).toThrow(/Invalid Variant\(ok:Text,err:Text\) argument/);
   expect(() => IDL.encode([Result], [{ ok: 'ok', err: 'err' }])).toThrow(/Invalid Variant\(ok:Text,err:Text\) argument/);
-  expect(() => IDL.decode([Result], Error('Call retailerQueryAll exception: Uncaught RuntimeError: memory access out of bounds') as any)).toThrow();
 
   // Test that nullary constructors work as expected
   test_(IDL.Variant({ foo: IDL.Unit }), { foo: null }, '4449444c016b01868eb7027f010000', 'Nullary constructor in variant');
 
   // Test that None within variants works as expected
   test_(IDL.Variant({ ok: IDL.Text, err: IDL.None }), { ok: 'good' }, '4449444c016b029cc20171e58eb4026f01000004676f6f64', 'None within variants');
-  expect(() => IDL.encode([IDL.Variant({ ok: IDL.Text, err: IDL.None })], [{ err: 'uhoh' }])).toThrow(/None cannot appear as a function argument/);
+  expect(() => IDL.encode([IDL.Variant({ ok: IDL.Text, err: IDL.None })], [{ err: 'uhoh' }])).toThrow(/Invalid Variant\(ok:Text,err:None\) argument:/);
 
   // Test for option
   test_(IDL.Opt(IDL.Nat), null, '4449444c016e7d010000', 'Null option');
