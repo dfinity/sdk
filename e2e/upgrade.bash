@@ -19,9 +19,11 @@ setup() {
     cp "$assets_root/manifest.json" .
     python -m http.server "$RANDOM_EMPHEMERAL_PORT" &
     WEB_SERVER_PID=$!
+
     while ! nc -z localhost "$RANDOM_EMPHEMERAL_PORT"; do
         sleep 1
     done
+
     # Override current version to force upgrade
     assert_command dfx upgrade \
         --current-version 0.4.6 \
