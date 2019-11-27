@@ -11,7 +11,7 @@ setup() {
 
 @test "upgrade succeeds" {
     latest_version="0.4.7"
-    latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s)/"
+    latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr A-Z a-z)/"
     dfx_archive_file_name="dfx-$latest_version.tar.gz"
     mkdir -p "$latest_version_dir"
     assets_root="$BATS_TEST_DIRNAME/assets/dfx_upgrade"
