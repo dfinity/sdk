@@ -118,7 +118,9 @@ export abstract class Type<T = any> {
 }
 
 export abstract class PrimitiveType<T = any> extends Type<T> {
-  public buildTypeTable(typeTable: TypeTable): void {}
+  public buildTypeTable(typeTable: TypeTable): void {
+    throw new Error("Cannot build type table from a primitive type.");
+  }
 }
 
 /**
