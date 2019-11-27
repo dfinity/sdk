@@ -22,7 +22,10 @@ setup() {
     while ! nc -z localhost $RANDOM_EMPHEMERAL_PORT; do
         sleep 1
     done
-    assert_command dfx upgrade --release-root "http://localhost:$RANDOM_EMPHEMERAL_PORT"
+    # Override current version to force upgrade
+    assert_command dfx upgrade \
+        --current-version 0.4.6 \
+        --release-root "http://localhost:$RANDOM_EMPHEMERAL_PORT"
     assert_match "Current version: .*"
     assert_match "Fetching manifest .*"
     assert_match "New version available: .*"
