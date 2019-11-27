@@ -9,6 +9,14 @@ pub enum UserMessage {
     InstallCanister,
     InstallAll,
     InstallCanisterName,
+
+    // cache
+    ManageCache,
+    CacheDelete,
+    CacheUnpack,
+    CacheList,
+    CacheShow,
+
     ManageCanister,
     QueryCanister,
     RequestCallStatus,
@@ -31,6 +39,12 @@ pub enum UserMessage {
 impl UserMessage {
     pub fn to_str(&self) -> &str {
         match &self {
+            // dfx cache
+            UserMessage::ManageCache => "Manages the dfx version cache.",
+            UserMessage::CacheDelete => "Delete a specific versioned cache of dfx.",
+            UserMessage::CacheUnpack => "Force unpacking the cache from this dfx version.",
+            UserMessage::CacheList => "List installed and used version.",
+            UserMessage::CacheShow => "Show the path of the cache used by this version.",
 
             // dfx canister call
             UserMessage::CallCanister => "Calls a method on a deployed canister.",
