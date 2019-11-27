@@ -19,7 +19,7 @@ setup() {
     cp "$assets_root/manifest.json" .
     python -m http.server "$RANDOM_EMPHEMERAL_PORT" &
     WEB_SERVER_PID=$!
-    while ! nc -z localhost $RANDOM_EMPHEMERAL_PORT; do
+    while ! nc -z localhost "$RANDOM_EMPHEMERAL_PORT"; do
         sleep 1
     done
     # Override current version to force upgrade
