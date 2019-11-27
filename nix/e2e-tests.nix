@@ -8,9 +8,10 @@
 ,   ps
 ,   python3
 ,   sources
+,   which
 }:
 runCommandNoCC "e2e-tests" {
-    buildInputs = [ bats coreutils curl dfinity-sdk.packages.rust-workspace-debug stdenv.cc ps python3 netcat ];
+    buildInputs = [ bats coreutils curl dfinity-sdk.packages.rust-workspace-debug stdenv.cc ps python3 netcat which ];
 } ''
     # We want $HOME/.cache to be in a new temporary directory.
     export HOME=$(mktemp -d -t dfx-e2e-home-XXXX)

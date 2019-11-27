@@ -24,8 +24,9 @@ setup() {
         sleep 1
     done
 
+    cp $(which dfx) .
     # Override current version to force upgrade
-    assert_command dfx upgrade \
+    assert_command ./dfx upgrade \
         --current-version 0.4.6 \
         --release-root "http://localhost:$RANDOM_EMPHEMERAL_PORT"
     assert_match "Current version: .*"
