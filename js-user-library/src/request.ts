@@ -1,7 +1,7 @@
-import { Nonce } from "./nonce";
-import { RequestType } from "./requestType";
-import { SenderPubKey } from "./senderPubKey";
-import { SenderSig } from "./senderSig";
+import { Nonce } from './nonce';
+import { RequestType } from './requestType';
+import { SenderPubKey } from './senderPubKey';
+import { SenderSig } from './senderSig';
 
 export interface AuthFields extends Record<string, any> {
   sender_pubkey: SenderPubKey;
@@ -21,10 +21,6 @@ export interface CommonFields extends Record<string, any> {
   request_type: RequestType;
 }
 
-export type Request
-  = AuthFields
-  & CommonFields;
+export type Request = AuthFields & CommonFields;
 
-export type AsyncRequest
-  = Request
-  & AsyncFields;
+export type AsyncRequest = Request & AsyncFields;

@@ -1,6 +1,4 @@
-import { QueryRequest } from "./queryRequest";
-import { RequestStatusRequest } from "./requestStatusRequest";
+import { QueryRequest } from './queryRequest';
+import { RequestStatusRequest } from './requestStatusRequest';
 
-export type ReadRequest
-  = QueryRequest
-  | RequestStatusRequest;
+export type ReadRequest = QueryRequest | RequestStatusRequest;
