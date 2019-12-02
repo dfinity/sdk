@@ -60,7 +60,7 @@ pub enum DfxError {
     InvalidData(String),
 
     // The ide server shouldn't be started from a terminal
-    IdeServerFromATerminal,
+    LanguageServerFromATerminal,
 }
 
 /// The result of running a DFX command.
