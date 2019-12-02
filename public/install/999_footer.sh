@@ -80,6 +80,10 @@ main() {
             esac
         fi
     fi
+
+    # Read flags.
+    read_flags "$@"
+
     log "Executing DFINITY SDK install script, commit: $SCRIPT_COMMIT_DESC"
 
     downloader --check

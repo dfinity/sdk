@@ -1,3 +1,7 @@
+## 200_downloader.sh
+
+define_flag_BOOL "insecure" "Allows downloading from insecure URLs, either using HTTP or TLS 1.2 or less."
+
 check_help_for() {
     local _cmd
     local _arg
@@ -25,8 +29,7 @@ check_help_for() {
     test "$_ok" = "y"
 }
 
-# This wraps curl or wget. Try curl first, if not installed,
-# use wget instead.
+# This wraps curl or wget. Try curl first, if not installed, use wget instead.
 # Arguments:
 #   $1 - URL to download.
 #   $2 - Path to output the download. Use - to output to stdout.
@@ -45,19 +48,20 @@ downloader() {
     elif [ "$_dld" = curl ]; then
         if check_help_for curl --proto --tlsv1.3; then
             curl --proto '=https' --tls-max=1.3 --silent --show-error --fail --location "$1" --output "$2"
-        elif check_help_for curl --proto --tlsv1.2; then
-            warn "Not forcing TLS v1.3, using TLS v1.2, this is potentially less secure"
-            curl --proto '=https' --tls-max=1.3 --silent --show-error --fail --location "$1" --output "$2"
-        else
-            warn "Not forcing TLS v1.3 or v1.2, this is potentially less secure"
+        elif ! [ "$_flag_INSECURE" ]; then
+            warn "Not forcing TLS v1.3, this is potentially less secure"
             curl --silent --show-error --fail --location "$1" --output "$2"
+        else
+            err "TLS 1.3 is not supported on this platform. To force using it, use the --insecure flag."
         fi
     elif [ "$_dld" = wget ]; then
         if check_help_for wget --https-only --secure-protocol; then
             wget --https-only --secure-protocol=TLSv1_3 "$1" -O "$2"
-        else
+        elif ! [ "$_flag_INSECURE" ]; then
             warn "Not forcing TLS v1.3, this is potentially less secure"
             wget "$1" -O "$2"
+        else
+            err "TLS 1.3 is not supported on this platform. To force using it, use the --insecure flag."
         fi
     else
         err "Unknown downloader" # should not reach here
