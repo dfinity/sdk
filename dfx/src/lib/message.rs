@@ -9,6 +9,14 @@ pub enum UserMessage {
     InstallCanister,
     InstallAll,
     InstallCanisterName,
+
+    // cache
+    ManageCache,
+    CacheDelete,
+    CacheUnpack,
+    CacheList,
+    CacheShow,
+
     ManageCanister,
     QueryCanister,
     RequestCallStatus,
@@ -26,11 +34,18 @@ pub enum UserMessage {
     NodeAddress,
     StartBackground,
     StartIDE,
+    ForceTTY,
 }
 
 impl UserMessage {
     pub fn to_str(&self) -> &str {
         match &self {
+            // dfx cache
+            UserMessage::ManageCache => "Manages the dfx version cache.",
+            UserMessage::CacheDelete => "Delete a specific versioned cache of dfx.",
+            UserMessage::CacheUnpack => "Force unpacking the cache from this dfx version.",
+            UserMessage::CacheList => "List installed and used version.",
+            UserMessage::CacheShow => "Show the path of the cache used by this version.",
 
             // dfx canister call
             UserMessage::CallCanister => "Calls a method on a deployed canister.",
@@ -78,7 +93,8 @@ impl UserMessage {
             // dfx stop
             UserMessage::StopNode => "Stops the local network client.",
             // dfx ide
-            UserMessage::StartIDE => "Starts Motoko IDE Language Server"
+            UserMessage::StartIDE => "Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the end-user.",
+            UserMessage::ForceTTY => "Forces the language server to start even when run from a terminal"
         }
     }
 }

@@ -1,6 +1,8 @@
-import { BinaryBlob } from "./blob";
+import { Buffer } from "buffer/";
+import * as blob from "./blob";
+import { Hex } from "./hex";
 import { HttpAgent } from "./httpAgent";
-import _IDL from "./IDL";
+import * as _IDL from "./IDL";
 import * as requestId from "./requestId";
 
 import {
@@ -33,26 +35,33 @@ export const makeActor = (
 // The return type here represents a record whose values may be any function.
 // By using "rest parameter syntax" we can type variadic functions in a
 // homogenous record, as well as process the arguments as an Array.
-): Record<string, (...args: Array<any>) => any> => {
+): Record<string, (...args: any[]) => any> => {
   const actorInterface = makeActorInterface({ IDL: _IDL });
-  const entries = Object.entries(actorInterface.__fields);
-  return Object.fromEntries(entries.map((entry) => {
-    const [methodName, func] = entry as [string, _IDL.Func];
-    return [methodName, async (...args: Array<any>) => {
-      // TODO
-      // * Throw if func.argTypes.length !== args.length
-      // * Encode request arguments with the corresponding type
+  const entries: Array<[string, _IDL.FuncClass]> = (
+    Object.entries(actorInterface._fields)
+      .filter(([_, x]) => x instanceof _IDL.FuncClass)) as any;
+
+  const result: Record<string, (...args: any[]) => any> = {};
+  for (const [methodName, func] of entries) {
+    result[methodName] = async (...args: any[]) => {
+      // IDL.js encoding produces a feross/safe-buffer `Buffer`. We need to
+      // convert to a ferross/buffer `Buffer` so that our `instanceof` checks
+      // succeed. TODO: reconcile these `Buffer` types.
+      const safeBuffer = _IDL.encode(func.argTypes, args);
+      const hex = safeBuffer.toString("hex") as Hex;
+      const arg = blob.fromHex(hex);
+
       const {
         requestId: requestIdent,
         response: callResponse,
       } = await httpAgent.call({
         methodName,
-        arg: Uint8Array.from([]) as BinaryBlob,
+        arg,
       });
 
       if (!callResponse.ok) {
         throw new Error([
-          `Request failed:`,
+          "Request failed:",
           `  Request ID: ${requestId.toHex(requestIdent)}`,
           `  HTTP status code: ${callResponse.status}`,
           `  HTTP status text: ${callResponse.statusText}`,
@@ -68,10 +77,19 @@ export const makeActor = (
 
         switch (response.status) {
           case RequestStatusResponseStatus.Replied: {
-            // TODO
-            // * Throw if func.retTypes.length !== response.reply.arg.length
-            // * Decode response arguments with the corresponding type
-            return response.reply.arg;
+            const returnValue = _IDL.decode(
+              func.retTypes,
+              Buffer.from(response.reply.arg),
+            );
+
+            // IDL functions can have multiple return values, so decoding always
+            // produces an array. Ensure that functions with single return
+            // values behave as expected.
+            if (returnValue instanceof Array && returnValue.length === 1) {
+              return returnValue[0];
+            } else {
+              return returnValue;
+            }
           }
           default: {
             throw new Error([
@@ -86,6 +104,7 @@ export const makeActor = (
       });
 
       return reply;
-    }];
-  }));
+    };
+  }
+  return result;
 };

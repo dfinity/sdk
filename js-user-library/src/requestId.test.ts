@@ -1,6 +1,7 @@
 // tslint:disable-next-line: max-line-length
 // https://github.com/dfinity-lab/dfinity/blob/5fef1450c9ab16ccf18381379149e504b11c8218/docs/spec/public/index.adoc#request-ids
 
+import { Buffer } from "buffer/";
 import { BinaryBlob } from "./blob";
 import * as blob from "./blob";
 import { Request } from "./request";
@@ -16,7 +17,7 @@ const testHashOfBlob = async (input: BinaryBlob, expected: string) => {
 };
 
 const testHashOfString = async (input: string, expected: string) => {
-  const encoded = (new TextEncoder()).encode(input);
+  const encoded: Uint8Array = (new TextEncoder()).encode(input);
   return testHashOfBlob(encoded as BinaryBlob, expected);
 };
 
@@ -40,7 +41,7 @@ test("hash", async () => {
     "0a3eb2ba16702a387e6321066dd952db7a31f9b5cc92981e0a92dd56802d3df9",
   );
   await testHashOfBlob(
-    Uint8Array.from([0, 0, 0, 0, 0, 0, 4, 210]) as BinaryBlob,
+    Buffer.from([0, 0, 0, 0, 0, 0, 4, 210]) as BinaryBlob,
     "4d8c47c3c1c837964011441882d745f7e92d10a40cef0520447c63029eafe396",
   );
   await testHashOfString(
@@ -56,7 +57,7 @@ test("hash", async () => {
     "b25f03dedd69be07f356a06fe35c1b0ddc0de77dcd9066c4be0c6bbde14b23ff",
   );
   await testHashOfBlob(
-    Uint8Array.from([68, 73, 68, 76, 0, 253, 42]) as BinaryBlob,
+    Buffer.from([68, 73, 68, 76, 0, 253, 42]) as BinaryBlob,
     "6c0b2ae49718f6995c02ac5700c9c789d7b7862a0d53e6d40a73f1fcd2f70189",
   );
 });
@@ -70,18 +71,18 @@ test("requestIdOf", async () => {
     // 0x00000000000004D2
     // \x00\x00\x00\x00\x00\x00\x04\xD2
     // 0   0   0   0   0   0   4   210
-    canister_id: Uint8Array.from([0, 0, 0, 0, 0, 0, 4, 210]) as BinaryBlob,
+    canister_id: Buffer.from([0, 0, 0, 0, 0, 0, 4, 210]) as BinaryBlob,
 
     // DIDL\x00\xFD*
     // D   I   D   L   \x00  \253  *
     // 68  73  68  76  0     253   42
-    arg: Uint8Array.from([68, 73, 68, 76, 0, 253, 42]) as BinaryBlob,
+    arg: Buffer.from([68, 73, 68, 76, 0, 253, 42]) as BinaryBlob,
 
     // These fields are not included in the example provided in the spec but we
     // provide them here to verify that they do not affect the request ID:
     // "Remove the fields that are only used for authentication"
-    sender_pubkey: new Uint8Array(32) as SenderPubKey,
-    sender_sig: new Uint8Array(64) as SenderSig,
+    sender_pubkey: Buffer.alloc(32, 0) as SenderPubKey,
+    sender_sig: Buffer.alloc(64, 0) as SenderSig,
   };
 
   const requestId = await requestIdOf(request);

@@ -58,6 +58,9 @@ pub enum DfxError {
     InvalidConfiguration(String),
     /// Data provided is invalid.
     InvalidData(String),
+
+    // The ide server shouldn't be started from a terminal
+    IdeServerFromATerminal,
 }
 
 /// The result of running a DFX command.

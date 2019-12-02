@@ -4,19 +4,9 @@ let src = builtins.fetchGit {
   name = "motoko-sources";
   url = "ssh://git@github.com/dfinity-lab/motoko";
   ref = "master";
-  rev = "8676951c41fbf9b9c87c1c4de606d4dfd321a829";
+  rev = "2f71cfc9590741425db752a029e0758f94284e79";
 }; in
 
-let motoko = import src { nixpkgs = self; }; in
-
 {
-  motoko = motoko // {
-    stdlib = motoko.stdlib.overrideAttrs (oldAttrs: {
-      installPhase = ''
-        mkdir -p $out
-        cp ${src}/stdlib/*.mo $out
-        rm $out/*Test.mo
-      '';
-    });
-  };
+  motoko = import src { system = self.system; };
 }

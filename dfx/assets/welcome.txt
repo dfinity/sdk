@@ -1,3 +1,4 @@
+
 ===============================================================================
         Welcome to the internet computer developer community!
                         You're using dfx {0}

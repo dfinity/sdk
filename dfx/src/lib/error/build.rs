@@ -12,8 +12,11 @@ pub enum BuildErrorKind {
     /// An error happened during the generation of the Idl.
     IdlGenerationError(String),
 
-    /// An error happened while generating the user library.
-    UserLibGenerationError(String),
+    /// An error happened while generating the JS representation of the interface description.
+    DidJsGenerationError(String),
+
+    /// An error happened while creating the JS canister bindings.
+    CanisterJsGenerationError(String),
 
     /// An error happened while compiling WAT to WASM.
     WatCompileError(wabt::Error),
@@ -35,8 +38,12 @@ impl fmt::Display for BuildErrorKind {
                 "IDL generation returned an error:\n{}",
                 stdout
             )),
-            UserLibGenerationError(stdout) => f.write_fmt(format_args!(
-                "UserLib generation returned an error:\n{}",
+            DidJsGenerationError(stdout) => f.write_fmt(format_args!(
+                "IDL to JS generation returned an error:\n{}",
+                stdout
+            )),
+            CanisterJsGenerationError(stdout) => f.write_fmt(format_args!(
+                "Creating canister JS bindings returned an error:\n{}",
                 stdout
             )),
             WatCompileError(e) => {

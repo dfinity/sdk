@@ -1,11 +1,11 @@
-import { BinaryBlob } from "./blob";
+import { Buffer } from "buffer/";
 import * as blob from "./blob";
 import * as canisterId from "./canisterId";
 import * as cbor from "./cbor";
 import { Hex } from "./hex";
 import { Nonce } from "./nonce";
-import { Request } from "./request";
 import { requestIdOf } from "./requestId";
+import { RequestType } from "./requestType";
 import { SenderPubKey } from "./senderPubKey";
 import { SenderSecretKey } from "./senderSecretKey";
 import { SenderSig } from "./senderSig";
@@ -23,9 +23,9 @@ test("makeActor", async () => {
     });
   };
 
-  const expectedReplyArg = new Uint8Array(
-    _IDL.Text.encode("Hello, World!").buffer,
-  ) as BinaryBlob;
+  const expectedReplyArg = blob.fromHex(
+    _IDL.encode([_IDL.Text], ["Hello, World!"]).toString("hex") as Hex,
+  );
 
   const mockFetch: jest.Mock = jest.fn()
     .mockImplementationOnce((/*resource, init*/) => {
@@ -58,29 +58,33 @@ test("makeActor", async () => {
     });
 
   const methodName = "greet";
-  const arg = Uint8Array.from([]);
+  const argValue = "Name";
+
+  const arg = blob.fromHex(
+    _IDL.encode([_IDL.Text], [argValue]).toString("hex") as Hex,
+  );
 
   const canisterIdent = "0000000000000001" as Hex;
-  const senderPubKey = new Uint8Array(32) as SenderPubKey;
-  const senderSecretKey = new Uint8Array(32) as SenderSecretKey;
-  const senderSig = Uint8Array.from([0]) as SenderSig;
+  const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
+  const senderSecretKey = Buffer.alloc(32, 0) as SenderSecretKey;
+  const senderSig = Buffer.from([0]) as SenderSig;
 
   const nonces = [
-    Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce,
-    Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8]) as Nonce,
-    Uint8Array.from([2, 3, 4, 5, 6, 7, 8, 9]) as Nonce,
-    Uint8Array.from([3, 4, 5, 6, 7, 8, 9, 0]) as Nonce,
+    Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce,
+    Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]) as Nonce,
+    Buffer.from([2, 3, 4, 5, 6, 7, 8, 9]) as Nonce,
+    Buffer.from([3, 4, 5, 6, 7, 8, 9, 0]) as Nonce,
   ];
 
   const expectedCallRequest = {
-    request_type: "call",
+    request_type: "call" as RequestType,
     nonce: nonces[0],
     canister_id: canisterId.fromHex(canisterIdent),
     method_name: methodName,
     arg,
     sender_pubkey: senderPubKey,
     sender_sig: senderSig,
-  } as Request;
+  };
 
   const expectedCallRequestId = await requestIdOf(expectedCallRequest);
 
@@ -97,17 +101,16 @@ test("makeActor", async () => {
     senderSecretKey,
     senderPubKey,
     senderSigFn: (x) => (req) =>
-      Uint8Array.from([0])  as SenderSig,
+      Buffer.from([0]) as SenderSig,
   });
 
   const actor = makeActor(actorInterface)(httpAgent);
-  // FIXME: the argument isn't actually used yet
-  const reply = await actor.greet("Name");
+  const reply = await actor.greet(argValue);
 
   expect(
-    blob.toHex(reply),
+    reply,
   ).toEqual(
-    blob.toHex(expectedReplyArg),
+    _IDL.decode([_IDL.Text], expectedReplyArg)[0],
   );
 
   const { calls, results } = mockFetch.mock;
