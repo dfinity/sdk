@@ -34,21 +34,17 @@ export class TypeTable {
   private _typs: Buffer[] = [];
   private _idx = new Map<string, number>();
 
-  public has(obj: Type) {
+  public has(obj: ConstructType) {
     return this._idx.has(obj.name);
   }
 
-  public add<T>(type: Type<T>, buf: Buffer) {
-    if (type instanceof PrimitiveType) {
-      throw new Error('TypeTable cannot contain primitive types.');
-    }
-
+  public add<T>(type: ConstructType<T>, buf: Buffer) {
     const idx = this._typs.length;
     this._idx.set(type.name, idx);
     this._typs.push(buf);
   }
 
-  public merge<T>(obj: Type<T>, knot: string) {
+  public merge<T>(obj: ConstructType<T>, knot: string) {
     const idx = this._idx.get(obj.name);
     const knotIdx = this._idx.get(knot);
     if (idx === undefined) {
@@ -119,6 +115,12 @@ export abstract class PrimitiveType<T = any> extends Type<T> {
   public _buildTypeTableImpl(typeTable: TypeTable): void {
     // No type table encoding for Primitive types.
     return;
+  }
+}
+
+export abstract class ConstructType<T = any> extends Type<T> {
+  public encodeType(typeTable: TypeTable) {
+    return typeTable.indexOf(this.name);
   }
 }
 
@@ -284,7 +286,7 @@ export class NatClass extends PrimitiveType<number> {
  * Represents an IDL Tuple, a Record that has the index as the key.
  * @param {Type} components
  */
-export class TupleClass<T extends any[]> extends Type<T> {
+export class TupleClass<T extends any[]> extends ConstructType<T> {
   constructor(private _components: Type[]) {
     super();
   }
@@ -317,10 +319,6 @@ export class TupleClass<T extends any[]> extends Type<T> {
     typeTable.add(this, Buffer.concat([opCode, len, buf]));
   }
 
-  public encodeType(typeTable: TypeTable) {
-    return typeTable.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe): T {
     return this._components.map(c => c.decodeValue(b)) as T;
   }
@@ -334,7 +332,7 @@ export class TupleClass<T extends any[]> extends Type<T> {
  * Represents an IDL Array
  * @param {Type} t
  */
-export class ArrClass<T> extends Type<T[]> {
+export class ArrClass<T> extends ConstructType<T[]> {
   constructor(protected _type: Type<T>) {
     super();
   }
@@ -356,10 +354,6 @@ export class ArrClass<T> extends Type<T[]> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public encodeType(typeTable: TypeTable) {
-    return typeTable.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe): any[] {
     const len = leb.readBn(b).toNumber();
     const rets: any[] = [];
@@ -378,7 +372,7 @@ export class ArrClass<T> extends Type<T[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-export class OptClass<T> extends Type<T | null> {
+export class OptClass<T> extends ConstructType<T | null> {
   constructor(protected _type: Type<T>) {
     super();
   }
@@ -403,10 +397,6 @@ export class OptClass<T> extends Type<T | null> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public encodeType(typeTable: TypeTable) {
-    return typeTable.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe): T | null {
     const len = b.read(1).toString('hex');
     if (len === '00') {
@@ -425,7 +415,7 @@ export class OptClass<T> extends Type<T | null> {
  * Represents an IDL Object
  * @param {Object} [fields] - mapping of function name to Type
  */
-export class ObjClass extends Type<Record<string, any>> {
+export class ObjClass extends ConstructType<Record<string, any>> {
   protected readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
@@ -462,10 +452,6 @@ export class ObjClass extends Type<Record<string, any>> {
     T.add(this, Buffer.concat([opCode, len, Buffer.concat(fields)]));
   }
 
-  public encodeType(T: TypeTable) {
-    return T.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe) {
     const x: Record<string, any> = {};
     for (const [key, value] of this._fields) {
@@ -484,7 +470,7 @@ export class ObjClass extends Type<Record<string, any>> {
  * Represents an IDL Variant
  * @param {Object} [fields] - mapping of function name to Type
  */
-export class VariantClass extends Type<Record<string, any>> {
+export class VariantClass extends ConstructType<Record<string, any>> {
   private readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
@@ -527,10 +513,6 @@ export class VariantClass extends Type<Record<string, any>> {
     typeTable.add(this, Buffer.concat([opCode, len, ...fields]));
   }
 
-  public encodeType(T: TypeTable) {
-    return T.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe) {
     const idx = leb.readBn(b).toNumber();
     if (idx >= this._fields.length) {
@@ -553,13 +535,17 @@ export class VariantClass extends Type<Record<string, any>> {
  * Represents a reference to an IDL type, used for defining recursive data
  * types.
  */
-export class RecClass<T = any> extends Type<T> {
+export class RecClass<T = any> extends ConstructType<T> {
   private static _counter = 0;
   private _id = RecClass._counter++;
-  private _type: Type<T> | undefined = undefined;
+  private _type: ConstructType<T> | undefined = undefined;
 
-  public fill(t: Type<T>) {
+  public fill(t: ConstructType<T>) {
     this._type = t;
+  }
+
+  public getType() {
+    return this._type;
   }
 
   public covariant(x: any): x is T {
@@ -582,10 +568,6 @@ export class RecClass<T = any> extends Type<T> {
     typeTable.merge(this, this._type.name);
   }
 
-  public encodeType(typeTable: TypeTable) {
-    return typeTable.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe) {
     if (!this._type) {
       throw Error('Recursive type uninitialized.');
@@ -602,14 +584,14 @@ export class RecClass<T = any> extends Type<T> {
  * Represents an async function which can return data
  * @param {Array<Type>} [argTypes] - argument types
  * @param {Array<Type>} [retTypes] - return types
+ * @param {Array<string>} [annotations] - function annotations
  */
 export class FuncClass {
-  constructor(public argTypes: Type[] = [], public retTypes: Type[] = []) {}
-
-  get name() {
-    const ret = this.retTypes.map(x => x.name);
-    return `Func(${this.argTypes.map(x => x.name).join(',')}):${ret.join(',')}`;
-  }
+  constructor(
+    public argTypes: Type[] = [],
+    public retTypes: Type[] = [],
+    public annotations: string[] = [],
+  ) {}
 }
 
 /**
