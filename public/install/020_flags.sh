@@ -13,7 +13,7 @@ DFX_BOOL_FLAGS=""
 #        flags to implement help.
 define_flag_BOOL() {
     local VARNAME="flag_$(echo $1 | tr /a-z/ /A-Z)"
-    eval $VARNAME=""
+    eval $VARNAME="\${$VARNAME:-}"
     DFX_BOOL_FLAGS="${DFX_BOOL_FLAGS}--${1} $VARNAME $2"
 }
 
