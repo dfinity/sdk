@@ -3,15 +3,16 @@ use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use atty;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
 const FORCE_TTY: &str = "force-tty";
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("ide")
-        .about(UserMessage::StartIDE.to_str())
+    SubCommand::with_name("_language-service")
+        .setting(AppSettings::Hidden) // Hide it from help menus as it shouldn't be used by users.
+        .about(UserMessage::StartLanguageService.to_str())
         .arg(Arg::with_name(CANISTER_ARG).help(UserMessage::CanisterName.to_str()))
         .arg(
             Arg::with_name(FORCE_TTY)
@@ -30,7 +31,7 @@ where
     let force_tty = args.is_present(FORCE_TTY);
     // Are we being run from a terminal? That's most likely not what we want
     if atty::is(atty::Stream::Stdout) && !force_tty {
-        Err(DfxError::IdeServerFromATerminal)
+        Err(DfxError::LanguageServerFromATerminal)
     } else {
         let config = &env
             .get_config()
