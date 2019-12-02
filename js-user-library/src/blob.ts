@@ -1,5 +1,5 @@
-import { Buffer } from "buffer/";
-import { Hex } from "./hex";
+import { Buffer } from 'buffer/';
+import { Hex } from './hex';
 
 // TODO
 // Switch back to Uint8Array once hansl/simple-cbor provides deserialization
@@ -9,9 +9,9 @@ import { Hex } from "./hex";
 export type BinaryBlob = Buffer & { __blob__: void };
 
 export const fromHex = (hex: Hex): BinaryBlob => {
-  return Buffer.from(hex, "hex") as BinaryBlob;
+  return Buffer.from(hex, 'hex') as BinaryBlob;
 };
 
 export const toHex = (blob: BinaryBlob): Hex => {
-  return blob.toString("hex") as Hex;
+  return blob.toString('hex') as Hex;
 };
