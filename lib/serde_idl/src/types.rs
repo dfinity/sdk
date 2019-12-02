@@ -136,11 +136,11 @@ impl IDLProg {
         }
         Err(Error::msg(format!("cannot find variable {}", id)))
     }
-    fn as_meths(&self, t: &IDLType) -> Result<IDLType> {
+    fn as_serv(&self, t: &IDLType) -> Result<IDLType> {
         match t {
             IDLType::ServT(_) => Ok(t.clone()),
-            IDLType::VarT(id) => self.as_meths(&self.find_type(id)?),
-            _ => Err(Error::msg("as_meths failed")),
+            IDLType::VarT(id) => self.as_serv(&self.find_type(id)?),
+            _ => Err(Error::msg("as_serv failed")),
         }
     }
     fn as_func(&self, t: &IDLType) -> Result<FuncType> {
@@ -153,7 +153,7 @@ impl IDLProg {
 
     pub fn get_method_type(&self, method_name: &str) -> Option<FuncType> {
         let actor = self.actor.as_ref()?;
-        let t = self.as_meths(&actor.typ).ok()?;
+        let t = self.as_serv(&actor.typ).ok()?;
         if let IDLType::ServT(meths) = t {
             for meth in meths {
                 if meth.id == *method_name {
