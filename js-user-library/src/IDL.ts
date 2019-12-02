@@ -544,6 +544,10 @@ export class RecClass<T = any> extends ConstructType<T> {
     this._type = t;
   }
 
+  public getType() {
+    return this._type;
+  }
+
   public covariant(x: any): x is T {
     return this._type ? this._type.covariant(x) : false;
   }
