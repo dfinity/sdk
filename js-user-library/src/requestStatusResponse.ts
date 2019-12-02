@@ -1,10 +1,10 @@
-import { BinaryBlob } from "./blob";
-import { RejectCode } from "./rejectCode";
-import { Response } from "./response";
+import { BinaryBlob } from './blob';
+import { RejectCode } from './rejectCode';
+import { Response } from './response';
 
 // An ADT that represents responses to a "request-status" read request.
-export type RequestStatusResponse
-  = RequestStatusResponsePending
+export type RequestStatusResponse =
+  | RequestStatusResponsePending
   | RequestStatusResponseReplied
   | RequestStatusResponseRejected
   | RequestStatusResponseUnknown;
@@ -29,8 +29,8 @@ interface RequestStatusResponseUnknown extends Response {
 }
 
 export enum RequestStatusResponseStatus {
-  Pending = "pending",
-  Replied = "replied",
-  Rejected = "rejected",
-  Unknown = "unknown",
+  Pending = 'pending',
+  Replied = 'replied',
+  Rejected = 'rejected',
+  Unknown = 'unknown',
 }

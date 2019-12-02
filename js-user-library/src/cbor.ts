@@ -4,14 +4,14 @@
 // tslint:disable-next-line: max-line-length
 // https://github.com/dfinity-lab/dfinity/blob/9bca65f8edd65701ea6bdb00e0752f9186bbc893/docs/spec/public/index.adoc#cbor-encoding-of-requests-and-responses
 
-import BigNumber from "bignumber.js";
-import borc from "borc";
-import { Buffer } from "buffer/";
-import * as cbor from "simple-cbor";
-import { CborEncoder, SelfDescribeCborSerializer } from "simple-cbor";
-import { BinaryBlob } from "./blob";
-import { CanisterId } from "./canisterId";
-import { Int } from "./int";
+import BigNumber from 'bignumber.js';
+import borc from 'borc';
+import { Buffer } from 'buffer/';
+import * as cbor from 'simple-cbor';
+import { CborEncoder, SelfDescribeCborSerializer } from 'simple-cbor';
+import { BinaryBlob } from './blob';
+import { CanisterId } from './canisterId';
+import { Int } from './int';
 
 // We are using hansl/simple-cbor for CBOR serialization, to avoid issues with
 // encoding the uint64 values that the HTTP handler of the client expects for
@@ -22,7 +22,7 @@ import { Int } from "./int";
 
 class BigNumberEncoder implements CborEncoder<BigNumber> {
   public get name() {
-    return "BigNumber";
+    return 'BigNumber';
   }
 
   public get priority() {
@@ -40,7 +40,7 @@ class BigNumberEncoder implements CborEncoder<BigNumber> {
 
 class BufferEncoder implements CborEncoder<Buffer> {
   public get name() {
-    return "Buffer";
+    return 'Buffer';
   }
 
   public get priority() {
@@ -62,9 +62,9 @@ serializer.addEncoder(new BufferEncoder());
 
 interface CborRecord extends Record<string, CborValue> {}
 
-export type CborValue
+export type CborValue =
   // Strings: Major type 3 (“Text string”).
-  = string
+  | string
 
   // Blobs: Major type 2 (“Byte string”)
   | BinaryBlob
