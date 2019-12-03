@@ -103,8 +103,8 @@ where
             Ok(())
         }
         Ok(ReadResponse::Rejected {
-           reject_code,
-           reject_message,
+            reject_code,
+            reject_message,
         }) => Err(DfxError::ClientError(reject_code, reject_message)),
         // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
         Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
