@@ -284,14 +284,20 @@ impl<'de> Deserialize<'de> for IDLValue {
             {
                 use serde::de::VariantAccess;
                 let (variant, visitor) = data.variant::<IDLValue>()?;
-                if let IDLValue::Nat(hash) = variant {
-                    //TODO assume enums are unit type for now.
-                    //let val = visitor.struct_variant(&[], self)?;
-                    visitor.unit_variant()?;
-                    let f = IDLField {
-                        id: hash as u32,
-                        val: IDLValue::Null,
+                if let IDLValue::Text(v) = variant {
+                    let v: Vec<_> = v.split(',').collect();
+                    assert_eq!(v.len(), 2);
+                    let id = v[0].parse::<u32>().unwrap();
+                    let val = match v[1] {
+                        "unit" => {
+                            visitor.unit_variant()?;
+                            IDLValue::Null
+                        }
+                        "struct" => visitor.struct_variant(&[], self)?,
+                        "newtype" => visitor.newtype_variant()?,
+                        _ => unreachable!(),
                     };
+                    let f = IDLField { id, val };
                     Ok(IDLValue::Variant(Box::new(f)))
                 } else {
                     unreachable!()

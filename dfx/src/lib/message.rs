@@ -33,7 +33,7 @@ pub enum UserMessage {
     StopNode,
     NodeAddress,
     StartBackground,
-    StartIDE,
+    StartLanguageService,
     ForceTTY,
 }
 
@@ -93,7 +93,7 @@ impl UserMessage {
             // dfx stop
             UserMessage::StopNode => "Stops the local network client.",
             // dfx ide
-            UserMessage::StartIDE => "Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the end-user.",
+            UserMessage::StartLanguageService => "Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the end-user.",
             UserMessage::ForceTTY => "Forces the language server to start even when run from a terminal"
         }
     }

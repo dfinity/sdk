@@ -1,6 +1,7 @@
-import { Buffer } from "buffer";
-import Pipe = require("buffer-pipe");
-import { signed as sleb, unsigned as leb } from "leb128";
+// tslint:disable:max-classes-per-file
+import { Buffer } from 'buffer';
+import Pipe = require('buffer-pipe');
+import { signed as sleb, unsigned as leb } from 'leb128';
 
 // tslint:disable:max-line-length
 /**
@@ -10,11 +11,7 @@ import { signed as sleb, unsigned as leb } from "leb128";
  */
 // tslint:enable:max-line-length
 
-function zipWith<TX, TY, TR>(
-  xs: TX[],
-  ys: TY[],
-  f: (a: TX, b: TY) => TR,
-): TR[] {
+function zipWith<TX, TY, TR>(xs: TX[], ys: TY[], f: (a: TX, b: TY) => TR): TR[] {
   return xs.map((x, i) => f(x, ys[i]));
 }
 
@@ -30,35 +27,31 @@ export function hash(s: string): number {
   return h;
 }
 
-const magicNumber = "DIDL";
+const magicNumber = 'DIDL';
 
 export class TypeTable {
   // List of types. Needs to be an array as the index needs to be stable.
   private _typs: Buffer[] = [];
   private _idx = new Map<string, number>();
 
-  public has(obj: Type) {
+  public has(obj: ConstructType) {
     return this._idx.has(obj.name);
   }
 
-  public add<T>(type: Type<T>, buf: Buffer) {
-    if (type instanceof PrimitiveType) {
-      throw new Error("TypeTable cannot contain primitive types.");
-    }
-
+  public add<T>(type: ConstructType<T>, buf: Buffer) {
     const idx = this._typs.length;
     this._idx.set(type.name, idx);
     this._typs.push(buf);
   }
 
-  public merge<T>(obj: Type<T>, knot: string) {
+  public merge<T>(obj: ConstructType<T>, knot: string) {
     const idx = this._idx.get(obj.name);
     const knotIdx = this._idx.get(knot);
     if (idx === undefined) {
-      throw new Error("Missing type index for " + obj);
+      throw new Error('Missing type index for ' + obj);
     }
     if (knotIdx === undefined) {
-      throw new Error("Missing type index for " + knot);
+      throw new Error('Missing type index for ' + knot);
     }
     this._typs[idx] = this._typs[knotIdx];
 
@@ -75,7 +68,7 @@ export class TypeTable {
 
   public indexOf(typeName: string) {
     if (!this._idx.has(typeName)) {
-      throw new Error("Missing type index for " + typeName);
+      throw new Error('Missing type index for ' + typeName);
     }
     return sleb.encode(this._idx.get(typeName));
   }
@@ -125,6 +118,12 @@ export abstract class PrimitiveType<T = any> extends Type<T> {
   }
 }
 
+export abstract class ConstructType<T = any> extends Type<T> {
+  public encodeType(typeTable: TypeTable) {
+    return typeTable.indexOf(this.name);
+  }
+}
+
 /**
  * Represents an IDL None, a type which has no inhabitants.
  * Since no values exist for this type, it cannot be serialised or deserialised.
@@ -136,7 +135,7 @@ export class NoneClass extends PrimitiveType<never> {
   }
 
   public encodeValue(): never {
-    throw new Error("None cannot appear as a function argument");
+    throw new Error('None cannot appear as a function argument');
   }
 
   public encodeType() {
@@ -144,11 +143,11 @@ export class NoneClass extends PrimitiveType<never> {
   }
 
   public decodeValue(): never {
-    throw new Error("None cannot appear as an output");
+    throw new Error('None cannot appear as an output');
   }
 
   get name() {
-    return "None";
+    return 'None';
   }
 }
 
@@ -157,7 +156,7 @@ export class NoneClass extends PrimitiveType<never> {
  */
 export class BoolClass extends PrimitiveType<boolean> {
   public covariant(x: any): x is boolean {
-    return typeof x === "boolean";
+    return typeof x === 'boolean';
   }
 
   public encodeValue(x: boolean): Buffer {
@@ -171,12 +170,12 @@ export class BoolClass extends PrimitiveType<boolean> {
   }
 
   public decodeValue(b: Pipe) {
-    const x = b.read(1).toString("hex");
-    return x === "01";
+    const x = b.read(1).toString('hex');
+    return x === '01';
   }
 
   get name() {
-    return "Bool";
+    return 'Bool';
   }
 }
 
@@ -201,7 +200,7 @@ export class UnitClass extends PrimitiveType<null> {
   }
 
   get name() {
-    return "Unit";
+    return 'Unit';
   }
 }
 
@@ -210,11 +209,11 @@ export class UnitClass extends PrimitiveType<null> {
  */
 export class TextClass extends PrimitiveType<string> {
   public covariant(x: any): x is string {
-    return typeof x === "string";
+    return typeof x === 'string';
   }
 
   public encodeValue(x: string) {
-    const buf = Buffer.from(x, "utf8");
+    const buf = Buffer.from(x, 'utf8');
     const len = leb.encode(buf.length);
     return Buffer.concat([len, buf]);
   }
@@ -225,11 +224,11 @@ export class TextClass extends PrimitiveType<string> {
 
   public decodeValue(b: Pipe) {
     const len = leb.readBn(b).toNumber();
-    return b.read(len).toString("utf8");
+    return b.read(len).toString('utf8');
   }
 
   get name() {
-    return "Text";
+    return 'Text';
   }
 }
 
@@ -254,7 +253,7 @@ export class IntClass extends PrimitiveType<number> {
   }
 
   get name() {
-    return "Int";
+    return 'Int';
   }
 }
 
@@ -279,7 +278,7 @@ export class NatClass extends PrimitiveType<number> {
   }
 
   get name() {
-    return "Nat";
+    return 'Nat';
   }
 }
 
@@ -287,15 +286,18 @@ export class NatClass extends PrimitiveType<number> {
  * Represents an IDL Tuple, a Record that has the index as the key.
  * @param {Type} components
  */
-export class TupleClass<T extends any[]> extends Type<T> {
+export class TupleClass<T extends any[]> extends ConstructType<T> {
   constructor(private _components: Type[]) {
     super();
   }
 
   public covariant(x: any): x is T {
     // `>=` because tuples can be covariant when encoded.
-    return Array.isArray(x) && x.length >= this._components.length
-        && this._components.every((t, i) => t.covariant(x[i]));
+    return (
+      Array.isArray(x) &&
+      x.length >= this._components.length &&
+      this._components.every((t, i) => t.covariant(x[i]))
+    );
   }
 
   public encodeValue(x: any[]) {
@@ -305,7 +307,7 @@ export class TupleClass<T extends any[]> extends Type<T> {
 
   public _buildTypeTableImpl(typeTable: TypeTable) {
     const components = this._components;
-    components.forEach((x) => x.buildTypeTable(typeTable));
+    components.forEach(x => x.buildTypeTable(typeTable));
 
     const opCode = sleb.encode(-20);
     const len = leb.encode(components.length);
@@ -317,16 +319,12 @@ export class TupleClass<T extends any[]> extends Type<T> {
     typeTable.add(this, Buffer.concat([opCode, len, buf]));
   }
 
-  public encodeType(typeTable: TypeTable) {
-    return typeTable.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe): T {
-    return this._components.map((c) => c.decodeValue(b)) as T;
+    return this._components.map(c => c.decodeValue(b)) as T;
   }
 
   get name() {
-    return `Tuple(${this._components.map((x) => x.name).join(",")})`;
+    return `Tuple(${this._components.map(x => x.name).join(',')})`;
   }
 }
 
@@ -334,18 +332,18 @@ export class TupleClass<T extends any[]> extends Type<T> {
  * Represents an IDL Array
  * @param {Type} t
  */
-export class ArrClass<T> extends Type<T[]> {
+export class ArrClass<T> extends ConstructType<T[]> {
   constructor(protected _type: Type<T>) {
     super();
   }
 
   public covariant(x: any): x is T[] {
-    return Array.isArray(x) && x.every((v) => this._type.covariant(v));
+    return Array.isArray(x) && x.every(v => this._type.covariant(v));
   }
 
   public encodeValue(x: T[]) {
     const len = leb.encode(x.length);
-    return Buffer.concat([len, ...x.map((d) => this._type.encodeValue(d))]);
+    return Buffer.concat([len, ...x.map(d => this._type.encodeValue(d))]);
   }
 
   public _buildTypeTableImpl(typeTable: TypeTable) {
@@ -354,10 +352,6 @@ export class ArrClass<T> extends Type<T[]> {
     const opCode = sleb.encode(-19);
     const buffer = this._type.encodeType(typeTable);
     typeTable.add(this, Buffer.concat([opCode, buffer]));
-  }
-
-  public encodeType(typeTable: TypeTable) {
-    return typeTable.indexOf(this.name);
   }
 
   public decodeValue(b: Pipe): any[] {
@@ -378,12 +372,12 @@ export class ArrClass<T> extends Type<T[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-export class OptClass<T> extends Type<T | null> {
+export class OptClass<T> extends ConstructType<T | null> {
   constructor(protected _type: Type<T>) {
     super();
   }
 
-  public covariant(x: any): x is (T | null) {
+  public covariant(x: any): x is T | null {
     return x == null || this._type.covariant(x);
   }
 
@@ -403,13 +397,9 @@ export class OptClass<T> extends Type<T | null> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public encodeType(typeTable: TypeTable) {
-    return typeTable.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe): T | null {
-    const len = b.read(1).toString("hex");
-    if (len === "00") {
+    const len = b.read(1).toString('hex');
+    if (len === '00') {
       return null;
     } else {
       return this._type.decodeValue(b);
@@ -425,23 +415,24 @@ export class OptClass<T> extends Type<T | null> {
  * Represents an IDL Object
  * @param {Object} [fields] - mapping of function name to Type
  */
-export class ObjClass extends Type<Record<string, any>> {
+export class ObjClass extends ConstructType<Record<string, any>> {
   protected readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
     super();
-    this._fields = Object.entries(fields).sort(
-      (a, b) => hash(a[0]) - hash(b[0]),
-    );
+    this._fields = Object.entries(fields).sort((a, b) => hash(a[0]) - hash(b[0]));
   }
 
   public covariant(x: any): x is Record<string, any> {
-    return typeof x === "object" && this._fields.every(([k, t]) => {
-      if (!x.hasOwnProperty(k)) {
-        throw new Error(`Obj is missing key "${k}".`);
-      }
-      return t.covariant(x[k]);
-    });
+    return (
+      typeof x === 'object' &&
+      this._fields.every(([k, t]) => {
+        if (!x.hasOwnProperty(k)) {
+          throw new Error(`Obj is missing key "${k}".`);
+        }
+        return t.covariant(x[k]);
+      })
+    );
   }
 
   public encodeValue(x: Record<string, any>) {
@@ -461,10 +452,6 @@ export class ObjClass extends Type<Record<string, any>> {
     T.add(this, Buffer.concat([opCode, len, Buffer.concat(fields)]));
   }
 
-  public encodeType(T: TypeTable) {
-    return T.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe) {
     const x: Record<string, any> = {};
     for (const [key, value] of this._fields) {
@@ -474,8 +461,8 @@ export class ObjClass extends Type<Record<string, any>> {
   }
 
   get name() {
-    const fields = this._fields.map(([key, value]) => key + ":" + value.name);
-    return `Obj(${fields.join(",")})`;
+    const fields = this._fields.map(([key, value]) => key + ':' + value.name);
+    return `Obj(${fields.join(',')})`;
   }
 }
 
@@ -483,21 +470,22 @@ export class ObjClass extends Type<Record<string, any>> {
  * Represents an IDL Variant
  * @param {Object} [fields] - mapping of function name to Type
  */
-export class VariantClass extends Type<Record<string, any>> {
+export class VariantClass extends ConstructType<Record<string, any>> {
   private readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
     super();
-    this._fields = Object.entries(fields).sort(
-      (a, b) => hash(a[0]) - hash(b[0]),
-    );
+    this._fields = Object.entries(fields).sort((a, b) => hash(a[0]) - hash(b[0]));
   }
 
   public covariant(x: any): x is Record<string, any> {
-    return typeof x === "object" && Object.entries(x).length === 1
-        && this._fields.every(([k, v]) => {
-          return !x.hasOwnProperty(k) || v.covariant(x[k]);
-      });
+    return (
+      typeof x === 'object' &&
+      Object.entries(x).length === 1 &&
+      this._fields.every(([k, v]) => {
+        return !x.hasOwnProperty(k) || v.covariant(x[k]);
+      })
+    );
   }
 
   public encodeValue(x: Record<string, any>) {
@@ -510,7 +498,7 @@ export class VariantClass extends Type<Record<string, any>> {
         return Buffer.concat([idx, buf]);
       }
     }
-    throw Error("Variant has no data: " + x);
+    throw Error('Variant has no data: ' + x);
   }
 
   public _buildTypeTableImpl(typeTable: TypeTable) {
@@ -525,14 +513,10 @@ export class VariantClass extends Type<Record<string, any>> {
     typeTable.add(this, Buffer.concat([opCode, len, ...fields]));
   }
 
-  public encodeType(T: TypeTable) {
-    return T.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe) {
     const idx = leb.readBn(b).toNumber();
     if (idx >= this._fields.length) {
-      throw Error("Invalid variant: " + idx);
+      throw Error('Invalid variant: ' + idx);
     }
 
     const value = this._fields[idx][1].decodeValue(b);
@@ -542,8 +526,8 @@ export class VariantClass extends Type<Record<string, any>> {
   }
 
   get name() {
-    const fields = this._fields.map(([key, type]) => key + ":" + type.name);
-    return `Variant(${fields.join(",")})`;
+    const fields = this._fields.map(([key, type]) => key + ':' + type.name);
+    return `Variant(${fields.join(',')})`;
   }
 }
 
@@ -551,13 +535,17 @@ export class VariantClass extends Type<Record<string, any>> {
  * Represents a reference to an IDL type, used for defining recursive data
  * types.
  */
-export class RecClass<T = any> extends Type<T> {
+export class RecClass<T = any> extends ConstructType<T> {
   private static _counter = 0;
   private _id = RecClass._counter++;
-  private _type: Type<T> | undefined = undefined;
+  private _type: ConstructType<T> | undefined = undefined;
 
-  public fill(t: Type<T>) {
+  public fill(t: ConstructType<T>) {
     this._type = t;
+  }
+
+  public getType() {
+    return this._type;
   }
 
   public covariant(x: any): x is T {
@@ -566,27 +554,23 @@ export class RecClass<T = any> extends Type<T> {
 
   public encodeValue(x: T) {
     if (!this._type) {
-      throw Error("Recursive type uninitialized.");
+      throw Error('Recursive type uninitialized.');
     }
     return this._type.encodeValue(x);
   }
 
   public _buildTypeTableImpl(typeTable: TypeTable) {
     if (!this._type) {
-      throw Error("Recursive type uninitialized.");
+      throw Error('Recursive type uninitialized.');
     }
     typeTable.add(this, Buffer.alloc(0));
     this._type.buildTypeTable(typeTable);
     typeTable.merge(this, this._type.name);
   }
 
-  public encodeType(typeTable: TypeTable) {
-    return typeTable.indexOf(this.name);
-  }
-
   public decodeValue(b: Pipe) {
     if (!this._type) {
-      throw Error("Recursive type uninitialized.");
+      throw Error('Recursive type uninitialized.');
     }
     return this._type.decodeValue(b);
   }
@@ -600,14 +584,14 @@ export class RecClass<T = any> extends Type<T> {
  * Represents an async function which can return data
  * @param {Array<Type>} [argTypes] - argument types
  * @param {Array<Type>} [retTypes] - return types
+ * @param {Array<string>} [annotations] - function annotations
  */
 export class FuncClass {
-  constructor(public argTypes: Type[] = [], public retTypes: Type[] = []) {}
-
-  get name() {
-    const ret = this.retTypes.map((x) => x.name);
-    return `Func(${this.argTypes.map((x) => x.name).join(",")}):${ret.join(",")}`;
-  }
+  constructor(
+    public argTypes: Type[] = [],
+    public retTypes: Type[] = [],
+    public annotations: string[] = [],
+  ) {}
 }
 
 /**
@@ -616,23 +600,25 @@ export class FuncClass {
  */
 export function encode(argTypes: Array<Type<any>>, args: any[]) {
   if (args.length < argTypes.length) {
-    throw Error("Wrong number of message arguments");
+    throw Error('Wrong number of message arguments');
   }
 
   const typeTable = new TypeTable();
-  argTypes.forEach((t) => t.buildTypeTable(typeTable));
+  argTypes.forEach(t => t.buildTypeTable(typeTable));
 
-  const magic = Buffer.from(magicNumber, "utf8");
+  const magic = Buffer.from(magicNumber, 'utf8');
   const table = typeTable.encode();
   const len = leb.encode(args.length);
-  const typs = Buffer.concat(argTypes.map((t) => t.encodeType(typeTable)));
-  const vals = Buffer.concat(zipWith(argTypes, args, (t, x) => {
-    if (!t.covariant(x)) {
-      throw new Error(`Invalid ${t.name} argument: "${JSON.stringify(x)}"`);
-    }
+  const typs = Buffer.concat(argTypes.map(t => t.encodeType(typeTable)));
+  const vals = Buffer.concat(
+    zipWith(argTypes, args, (t, x) => {
+      if (!t.covariant(x)) {
+        throw new Error(`Invalid ${t.name} argument: "${JSON.stringify(x)}"`);
+      }
 
-    return t.encodeValue(x);
-  }));
+      return t.encodeValue(x);
+    }),
+  );
 
   return Buffer.concat([magic, table, len, typs, vals]);
 }
@@ -647,11 +633,11 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   const b = new Pipe(bytes);
 
   if (bytes.byteLength < magicNumber.length) {
-    throw new Error("Message length smaller than magic number");
+    throw new Error('Message length smaller than magic number');
   }
   const magic = b.read(magicNumber.length).toString();
   if (magic !== magicNumber) {
-    throw new Error("Wrong magic number: " + magic);
+    throw new Error('Wrong magic number: ' + magic);
   }
 
   function decodeType(pipe: Pipe) {
@@ -666,7 +652,8 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
         case -19: // vec
           sleb.readBn(pipe).toNumber();
           break;
-        case -20: { // record/tuple
+        case -20: {
+          // record/tuple
           let objectLength = leb.readBn(pipe).toNumber();
           while (objectLength--) {
             leb.readBn(pipe).toNumber();
@@ -674,7 +661,8 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           }
           break;
         }
-        case -21: { // variant
+        case -21: {
+          // variant
           let variantLength = leb.readBn(pipe).toNumber();
           while (variantLength--) {
             leb.readBn(pipe).toNumber();
@@ -683,7 +671,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           break;
         }
         default:
-          throw new Error("Illegal op_code: " + ty);
+          throw new Error('Illegal op_code: ' + ty);
       }
     }
 
@@ -694,9 +682,9 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   }
 
   decodeType(b);
-  const output = retTypes.map((t) => t.decodeValue(b));
+  const output = retTypes.map(t => t.decodeValue(b));
   if (b.buffer.length > 0) {
-    throw new Error("decode: Left-over bytes");
+    throw new Error('decode: Left-over bytes');
   }
 
   return output;

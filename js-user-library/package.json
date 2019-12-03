@@ -15,7 +15,8 @@
     "ci": "npm run prettier && npm run lint && npm run build",
     "lint": "tslint --project tsconfig.json --config tslint.json",
     "lint:fix": "npm run lint -- --fix",
-    "prettier": "# prettier --check src/** # For now, ignore as we didnt run prettier",
+    "prettier": "npx prettier --check src/**",
+    "prettier:write": "prettier --check src/** --write",
     "test": "jest --verbose"
   },
   "dependencies": {
