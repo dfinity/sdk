@@ -4,7 +4,7 @@ let src = builtins.fetchGit {
   name = "motoko-sources";
   url = "ssh://git@github.com/dfinity-lab/motoko";
   ref = "master";
-  rev = "24b459bb7497fdff42e836e6a06e3d28f0425f55";
+  rev = "62f6e414583d0c7efa1bce04690f4bbc4d789fba";
 }; in
 
 {
