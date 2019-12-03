@@ -6,6 +6,8 @@ let
   rust-package = removeAttrs rust-package'
     [ "override" "overrideDerivation" ];
   rust-workspace = rust-package.build;
+  repoRoot = ../../.;
+  gitDir = super.lib.gitDir repoRoot;
 in {
   dfinity-sdk = rec {
     packages =
@@ -108,18 +110,18 @@ in {
         # the released version of the script
         revision = super.lib.fileContents (
           let
-            commondir = super.lib.gitDir + "/commondir";
+            commondir = gitDir + "/commondir";
             isWorktree = builtins.pathExists commondir;
-            mainGitDir = super.lib.gitDir + "/${super.lib.fileContents commondir}";
+            mainGitDir = gitDir + "/${super.lib.fileContents commondir}";
             worktree = super.lib.optionalString isWorktree (
               super.lib.dropString (builtins.stringLength (toString mainGitDir))
-                (toString super.lib.gitDir));
+                (toString gitDir));
           in super.runCommandNoCC "install_sh_timestamp" {
             git_dir = builtins.path {
               name = "sdk-git-dir";
               path = if isWorktree
                      then mainGitDir
-                     else super.lib.gitDir;
+                     else gitDir;
             };
             nativeBuildInputs = [ self.git ];
             preferLocalBuild = true;
