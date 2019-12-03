@@ -1,16 +1,17 @@
-# Release Process
+= Release Process
 
 This document describes the release process for DFINITY SDK.
 We review the mechanism, the automation provided and the checklist process.
 
-# Overview
+== Overview
 
 Releases are done following the checklist rule: preferrably by two people familiar with the process, i.e. 1 driver 1 validator.
 A successful release is the result of coordination between automation, manual labor and validation.
 We should improve the release process continuously.
 In the following mechanism section we describe the operation of how to get a new release out.
 
-# Checklist
+== Checklist
+
 - [ ] Participants
    - [ ] Driver
    - [ ] Validator
@@ -35,7 +36,7 @@ In the following mechanism section we describe the operation of how to get a new
 
 
 
-## Requirements & Properties
+== Requirements & Properties
 
  - Semi-automation
  - Consistent delivery
@@ -44,23 +45,28 @@ In the following mechanism section we describe the operation of how to get a new
  - Railguards
  - Flexibity
 
-## Mechanism
+== Mechanism
+
 TODO
 
 
-### Build
-### CI
-### Manifest
-### Changelog
+===  Build
+
+===  CI
+
+===  Manifest
+
+===  Changelog
 
 
-### Process
+
+=== Process
 
 We now summarize the release process.
 
 
 
-# TODOs and Improvements
-*** Cargo version from the tag
-*** Add release stress tests
-*** Add valid json test for the manifest
+== TODOs and Improvements
+. version from the tag
+. release stress tests
+. valid json test for the manifest
