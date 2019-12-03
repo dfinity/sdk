@@ -34,6 +34,11 @@ pub enum DfxError {
     /// Cannot create a new project because the directory already exists.
     ProjectExists,
 
+    /// An error originating from the IC. The enclosed type should be
+    /// a descriptive error.
+    // TODO(eftychis): Consider to how to better represent this without a massive change.
+    ICContainerError(String),
+
     /// Not in a project.
     CommandMustBeRunInAProject,
 
@@ -59,7 +64,10 @@ pub enum DfxError {
     /// Data provided is invalid.
     InvalidData(String),
 
-    // The ide server shouldn't be started from a terminal
+    /// Impossible error has occurred.
+    Impossible(String),
+
+    /// The ide server shouldn't be started from a terminal.
     LanguageServerFromATerminal,
 }
 

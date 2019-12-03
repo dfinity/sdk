@@ -115,7 +115,7 @@ where
     let dry_run = args.is_present(DRY_RUN);
     let project_name_path = args
         .value_of(PROJECT_NAME)
-        .ok_or_else(|| DfxError::InvalidArgument("project path".to_string()))?;
+        .ok_or_else(|| DfxError::InvalidArgument("project_path".to_string()))?;
     let project_name = Path::new(project_name_path);
 
     if project_name.exists() {
@@ -132,7 +132,7 @@ where
     let mut new_project_files = assets::new_project_files()?;
     let project_name_str = project_name
         .to_str()
-        .ok_or_else(|| DfxError::InvalidArgument("project name".to_string()))?;
+        .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
 
     for file in new_project_files.entries()? {
         let mut file = file?;
@@ -155,7 +155,7 @@ where
                 .join(file.header().path()?)
                 .to_str()
                 .ok_or_else(|| {
-                    DfxError::InvalidArgument("project name path or file header".to_string())
+                    DfxError::Impossible("non unicode project name path or file header".to_string())
                 })?
                 .replace("__dot__", ".")
                 .as_str(),

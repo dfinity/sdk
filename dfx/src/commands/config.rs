@@ -24,7 +24,7 @@ pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
 
     let config_path = args
         .value_of("config_path")
-        .ok_or_else(|| DfxError::InvalidArgument("config path".to_string()))?;
+        .ok_or_else(|| DfxError::InvalidArgument("config_path".to_string()))?;
 
     // We replace `.` with `/` so the user can use `path.value.field` instead of forcing him
     // to use `path/value/field`. Since none of our keys have slashes or tildes in them it

@@ -26,13 +26,11 @@ where
     T: ClientEnv,
 {
     let request_id = RequestId::from_str(
-        &args.value_of("request_id").ok_or_else(|| {
-            DfxError::InvalidArgument(
-                "failed to retrieve request_id -- required argument".to_string(),
-            )
-        })?[2..],
+        &args
+            .value_of("request_id")
+            .ok_or_else(|| DfxError::InvalidArgument("request_id".to_string()))?[2..],
     )
-    .map_err(|e| DfxError::InvalidArgument(format!("invalid request ID: {:?}", e)))?; // FIXME Default formatter for RequestIdFromStringError
+    .map_err(|e| DfxError::ICContainerError(format!("invalid request ID: {:?}", e)))?; // FIXME Default formatter for RequestIdFromStringError
     let request_status = request_status(env.get_client(), request_id);
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     match runtime.block_on(request_status) {
