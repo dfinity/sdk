@@ -111,7 +111,7 @@ where
             Some(true) => true,
             Some(false) => {
                 if args.is_present("query") {
-                    return Err(DfxError::InvalidArgument(format!(
+                    return Err(DfxError::InvalidMethodCall(format!(
                         "{} is not a query method",
                         method_name
                     )));
