@@ -47,11 +47,11 @@ export const makeActor = (
       const safeBuffer = _IDL.encode(func.argTypes, args);
       const hex = safeBuffer.toString('hex') as Hex;
       const arg = blob.fromHex(hex);
+      const isQuery = func.annotations.includes('query');
 
-      const { requestId: requestIdent, response: callResponse } = await httpAgent.call({
-        methodName,
-        arg,
-      });
+      const { requestId: requestIdent, response: callResponse } = isQuery
+        ? await httpAgent.query({ methodName, arg })
+        : await httpAgent.call({ methodName, arg });
 
       if (!callResponse.ok) {
         throw new Error(

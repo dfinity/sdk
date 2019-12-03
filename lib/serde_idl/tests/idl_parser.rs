@@ -2,7 +2,7 @@ extern crate serde_idl;
 
 use serde_idl::grammar::IDLProgParser;
 use serde_idl::lexer::Lexer;
-use serde_idl::types::IDLProg;
+use serde_idl::types::{to_pretty, IDLProg};
 
 fn parse_idl(input: &str) -> IDLProg {
     let lexer = Lexer::new(input);
@@ -30,7 +30,7 @@ service server {
 }
     "#;
     let ast = parse_idl(&prog);
-    let pretty = ast.to_pretty(80);
+    let pretty = to_pretty(&ast, 80);
     println!("{}", pretty);
     let ast2 = parse_idl(&pretty);
     assert_eq!(format!("{:?}", ast2), format!("{:?}", ast));

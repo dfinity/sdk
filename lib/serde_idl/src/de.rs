@@ -105,6 +105,7 @@ impl RawValue {
 enum FieldLabel {
     Named(&'static str),
     Id(u32),
+    Variant(String),
     Skip,
 }
 
@@ -215,6 +216,13 @@ impl<'de> Deserializer<'de> {
             .front()
             .ok_or_else(|| Error::msg("empty current_type"))
     }
+    fn rawvalue_to_opcode(&self, v: &RawValue) -> Result<Opcode> {
+        let mut op = v.get_i64()?;
+        if op >= 0 && op < self.table.len() as i64 {
+            op = self.table[op as usize][0].get_i64()?;
+        }
+        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))
+    }
     // Pop type opcode from the front of current_type.
     // If the opcode is an index (>= 0), we push the corresponding entry from table,
     // to current_type queue, and pop the opcode from the front.
@@ -232,11 +240,8 @@ impl<'de> Deserializer<'de> {
     }
     // Same logic as parse_type, but not poping the current_type queue.
     fn peek_type(&self) -> Result<Opcode> {
-        let mut op = self.peek_current_type()?.get_i64()?;
-        if op >= 0 && op < self.table.len() as i64 {
-            op = self.table[op as usize][0].get_i64()?;
-        }
-        Opcode::try_from(op).map_err(|_| Error::msg(format!("Unknown opcode {}", op)))
+        let op = self.peek_current_type()?;
+        self.rawvalue_to_opcode(op)
     }
     // Check if current_type matches the provided type
     fn check_type(&mut self, expected: Opcode) -> Result<()> {
@@ -494,6 +499,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let v = match label {
             FieldLabel::Named(name) => visitor.visit_str(name),
             FieldLabel::Id(hash) => visitor.visit_u32(*hash),
+            FieldLabel::Variant(variant) => visitor.visit_str(variant),
             FieldLabel::Skip => visitor.visit_str("_"),
         };
         self.field_name = None;
@@ -636,8 +642,16 @@ impl<'de, 'a> de::EnumAccess<'de> for Compound<'a, 'de> {
                     if i == index {
                         match fs.get(&hash) {
                             Some(None) => {
-                                // TODO: We also need to transmit back which VariantAccess function to call
-                                self.de.set_field_name(FieldLabel::Id(hash));
+                                let opcode = self.de.rawvalue_to_opcode(&ty)?;
+                                let accessor = match opcode {
+                                    Opcode::Null => "unit",
+                                    Opcode::Record => "struct",
+                                    _ => "newtype",
+                                };
+                                self.de.set_field_name(FieldLabel::Variant(format!(
+                                    "{},{}",
+                                    hash, accessor
+                                )));
                             }
                             Some(Some(field)) => {
                                 self.de.set_field_name(FieldLabel::Named(field));
@@ -693,6 +707,10 @@ impl<'de, 'a> de::VariantAccess<'de> for Compound<'a, 'de> {
     where
         V: Visitor<'de>,
     {
-        de::Deserializer::deserialize_struct(self.de, "_", fields, visitor)
+        if fields.is_empty() {
+            de::Deserializer::deserialize_any(self.de, visitor)
+        } else {
+            de::Deserializer::deserialize_struct(self.de, "_", fields, visitor)
+        }
     }
 }

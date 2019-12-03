@@ -58,9 +58,13 @@ pub enum DfxError {
     ConfigPathDoesNotExist(String),
     /// Argument provided is invalid.
     InvalidArgument(String),
+
     #[allow(dead_code)]
     /// Configuration provided is invalid.
     InvalidConfiguration(String),
+    /// Method called invalid.
+    InvalidMethodCall(String),
+
     /// Data provided is invalid.
     InvalidData(String),
 
