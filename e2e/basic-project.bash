@@ -28,7 +28,7 @@ teardown() {
     assert_eq '("Hello, Banzai!")'
 
     assert_command dfx canister query hello greet '("Banzai")'
-    assert_eq '("Hello, Banzai!")'
+    assert_match '\("Hello, Banzai!"\)'
 
     assert_command dfx canister call --query hello greet '("Bongalo")'
     assert_eq '("Hello, Bongalo!")'
