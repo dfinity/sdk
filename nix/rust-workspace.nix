@@ -12,6 +12,7 @@
 }:
 let
   workspace = buildDfinityRustPackage {
+    repoRoot = ../.;
     name = "dfinity-sdk-rust";
     srcDir = ../.;
     regexes = [

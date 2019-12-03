@@ -1,7 +1,7 @@
-import { BinaryBlob } from "./blob";
-import { CanisterId } from "./canisterId";
-import { AsyncRequest } from "./request";
-import { SubmitRequestType } from "./submitRequestType";
+import { BinaryBlob } from './blob';
+import { CanisterId } from './canisterId';
+import { AsyncRequest } from './request';
+import { SubmitRequestType } from './submitRequestType';
 
 // The fields in a "call" submit request.
 export interface CallRequest extends AsyncRequest {

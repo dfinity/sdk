@@ -1,27 +1,27 @@
-import { Buffer } from "buffer/";
-import { sign } from "./auth";
-import { BinaryBlob } from "./blob";
-import * as blob from "./blob";
-import { CallRequest } from "./callRequest";
-import { CanisterId } from "./canisterId";
-import * as canisterId from "./canisterId";
-import * as cbor from "./cbor";
-import { Hex } from "./hex";
-import { makeNonce, Nonce } from "./nonce";
-import { QueryRequest } from "./queryRequest";
-import { QueryResponse } from "./queryResponse";
-import { ReadRequest } from "./readRequest";
-import { ReadRequestType } from "./readRequestType";
-import { RequestId, requestIdOf } from "./requestId";
-import { RequestStatusRequest } from "./requestStatusRequest";
-import { RequestStatusResponse } from "./requestStatusResponse";
-import { Response } from "./response";
-import { SenderPubKey } from "./senderPubKey";
-import { SenderSecretKey } from "./senderSecretKey";
-import { SenderSig } from "./senderSig";
-import { SubmitRequest } from "./submitRequest";
-import { SubmitRequestType } from "./submitRequestType";
-import { SubmitResponse } from "./submitResponse";
+import { Buffer } from 'buffer/';
+import { sign } from './auth';
+import { BinaryBlob } from './blob';
+import * as blob from './blob';
+import { CallRequest } from './callRequest';
+import { CanisterId } from './canisterId';
+import * as canisterId from './canisterId';
+import * as cbor from './cbor';
+import { Hex } from './hex';
+import { makeNonce, Nonce } from './nonce';
+import { QueryRequest } from './queryRequest';
+import { QueryResponse } from './queryResponse';
+import { ReadRequest } from './readRequest';
+import { ReadRequestType } from './readRequestType';
+import { RequestId, requestIdOf } from './requestId';
+import { RequestStatusRequest } from './requestStatusRequest';
+import { RequestStatusResponse } from './requestStatusResponse';
+import { Response } from './response';
+import { SenderPubKey } from './senderPubKey';
+import { SenderSecretKey } from './senderSecretKey';
+import { SenderSig } from './senderSig';
+import { SubmitRequest } from './submitRequest';
+import { SubmitRequestType } from './submitRequestType';
+import { SubmitResponse } from './submitResponse';
 
 // A HTTP agent allows users to interact with a client of the internet computer
 // using the available methods. It exposes an API that closely follows the
@@ -37,26 +37,18 @@ export const makeHttpAgent = (options: Options): HttpAgent => {
 };
 
 export interface HttpAgent {
-  call(fields: {
-    methodName: string,
-    arg: BinaryBlob,
-  }): Promise<SubmitResponse>;
+  call(fields: { methodName: string; arg: BinaryBlob }): Promise<SubmitResponse>;
 
-  query(fields: {
-    methodName: string,
-    arg: BinaryBlob,
-  }): Promise<QueryResponse>;
+  query(fields: { methodName: string; arg: BinaryBlob }): Promise<QueryResponse>;
 
-  requestStatus(fields: {
-    requestId: RequestId,
-  }): Promise<RequestStatusResponse>;
+  requestStatus(fields: { requestId: RequestId }): Promise<RequestStatusResponse>;
 }
 
 // `Options` is the external representation of `Config` that allows us to
 // provide optional fields with default values.
 interface Options {
   canisterId: Hex;
-  fetchFn?: WindowOrWorkerGlobalScope["fetch"];
+  fetchFn?: WindowOrWorkerGlobalScope['fetch'];
   host?: string;
   nonceFn?: () => Nonce;
   senderPubKey: SenderPubKey;
@@ -64,20 +56,18 @@ interface Options {
   senderSigFn?: SigningConstructedFn;
 }
 
-type SigningConstructedFn = (
-    secretKey: SenderSecretKey,
-  ) => (requestId: RequestId) => SenderSig;
+type SigningConstructedFn = (secretKey: SenderSecretKey) => (requestId: RequestId) => SenderSig;
 
 interface DefaultOptions {
-  fetchFn: WindowOrWorkerGlobalScope["fetch"];
+  fetchFn: WindowOrWorkerGlobalScope['fetch'];
   host: string;
   nonceFn: () => Nonce;
   senderSigFn: SigningConstructedFn;
 }
 
 const defaultOptions: DefaultOptions = {
-  fetchFn: typeof window === "undefined" ? fetch : window.fetch.bind(window),
-  host: "http://localhost:8000",
+  fetchFn: typeof window === 'undefined' ? fetch : window.fetch.bind(window),
+  host: 'http://localhost:8000',
   nonceFn: makeNonce,
   senderSigFn: sign,
 };
@@ -92,7 +82,7 @@ interface Config {
   senderSigFn(requestId: RequestId): SenderSig;
 }
 
-const API_VERSION = "v1";
+const API_VERSION = 'v1';
 
 const makeConfig = (options: Options): Config => {
   const withDefaults = { ...defaultOptions, ...options };
@@ -106,9 +96,9 @@ const makeConfig = (options: Options): Config => {
     senderSigFn: withDefaults.senderSigFn(options.senderSecretKey),
     runFetch: (endpoint, body) => {
       return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/cbor",
+          'Content-Type': 'application/cbor',
         },
         body,
       });
@@ -116,45 +106,32 @@ const makeConfig = (options: Options): Config => {
   };
 };
 
-
 enum Endpoint {
-  Read = "read",
-  Submit = "submit",
+  Read = 'read',
+  Submit = 'submit',
 }
 
-
 // Execute a read request
-const read = (
-  config: Config,
-) => async (
-  request: ReadRequest,
-): Promise<Response> => {
+const read = (config: Config) => async (request: ReadRequest): Promise<Response> => {
   const body = cbor.encode(request);
   return config.runFetch(Endpoint.Read, body);
 };
 
 // Execute a submit request
-const submit = (
-  config: Config,
-) => async (
-  request: SubmitRequest,
-): Promise<SubmitResponse> => {
+const submit = (config: Config) => async (request: SubmitRequest): Promise<SubmitResponse> => {
   const body = cbor.encode(request);
   const response = await config.runFetch(Endpoint.Submit, body);
   const requestId = await requestIdOf(request);
   return { requestId, response };
 };
 
-
 // Execute a "call" request
-const call = (
-  config: Config,
-) => async ({
+const call = (config: Config) => async ({
   methodName,
   arg,
 }: {
-  methodName: string,
-  arg: BinaryBlob,
+  methodName: string;
+  arg: BinaryBlob;
 }): Promise<SubmitResponse> => {
   const request = await makeCallRequest(config, {
     methodName,
@@ -170,8 +147,8 @@ const makeCallRequest = async (
     methodName,
     arg,
   }: {
-    methodName: string,
-    arg: BinaryBlob,
+    methodName: string;
+    arg: BinaryBlob;
   },
 ): Promise<CallRequest> => {
   // TypeScript complains about `request_type` unless we manually add it to the
@@ -193,7 +170,6 @@ const makeCallRequest = async (
   };
 };
 
-
 // Construct a query request
 const makeQueryRequest = async (
   config: Config,
@@ -201,8 +177,8 @@ const makeQueryRequest = async (
     methodName,
     arg,
   }: {
-    methodName: string,
-    arg: BinaryBlob,
+    methodName: string;
+    arg: BinaryBlob;
   },
 ): Promise<QueryRequest> => {
   // TypeScript complains about `request_type` unless we manually add it to the
@@ -225,14 +201,12 @@ const makeQueryRequest = async (
 };
 
 // Execute a query request
-const query = (
-  config: Config,
-) => async ({
+const query = (config: Config) => async ({
   methodName,
   arg,
 }: {
-  methodName: string,
-  arg: BinaryBlob,
+  methodName: string;
+  arg: BinaryBlob;
 }): Promise<QueryResponse> => {
   const request = await makeQueryRequest(config, {
     methodName,
@@ -243,14 +217,11 @@ const query = (
   return cbor.decode(body) as QueryResponse;
 };
 
-
 // Execute a request status request
-const requestStatus = (
-  config: Config,
-) => async ({
+const requestStatus = (config: Config) => async ({
   requestId,
 }: {
-  requestId: RequestId,
+  requestId: RequestId;
 }): Promise<RequestStatusResponse> => {
   const request = await makeRequestStatusRequest(config, { requestId });
   const response = await read(config)(request);
@@ -264,7 +235,7 @@ const makeRequestStatusRequest = async (
   {
     requestId,
   }: {
-    requestId: RequestId,
+    requestId: RequestId;
   },
 ): Promise<RequestStatusRequest> => {
   // TypeScript complains about `request_type` unless we manually add it to the

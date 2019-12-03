@@ -1,4 +1,4 @@
-import { Hex } from "./hex";
+import { Hex } from './hex';
 
 export type Int = number & { __int__: void };
 

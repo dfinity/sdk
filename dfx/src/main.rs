@@ -117,6 +117,9 @@ fn main() {
             DfxError::InvalidData(e) => {
                 eprintln!("Invalid data: {}", e);
             }
+            DfxError::LanguageServerFromATerminal => {
+                eprintln!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.");
+            }
             err => {
                 eprintln!("An error occured:\n{:#?}", err);
             }
