@@ -91,7 +91,7 @@ impl fmt::Display for IDLValue {
             }
             IDLValue::Nat(n) => write!(f, "{}", n),
             IDLValue::Text(ref s) => write!(f, "\"{}\"", s),
-            IDLValue::Null => write!(f, "null"),            
+            IDLValue::Null => write!(f, "null"),
             IDLValue::Opt(ref v) => write!(f, "opt {}", v),
             IDLValue::Vec(ref vec) => {
                 write!(f, "vec {{ ")?;
@@ -134,7 +134,7 @@ impl dfx_info::IDLType for IDLValue {
             IDLValue::Int(_) => Type::Int,
             IDLValue::Nat(_) => Type::Nat,
             IDLValue::Text(_) => Type::Text,
-            IDLValue::Null => Type::Opt(Box::new(Type::Null)),            
+            IDLValue::Null => Type::Opt(Box::new(Type::Null)),
             IDLValue::Opt(ref v) => {
                 let t = v.deref().value_ty();
                 Type::Opt(Box::new(t))

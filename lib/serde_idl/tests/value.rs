@@ -12,9 +12,7 @@ fn test_parser() {
     parse_check("(record {label=42; 43=record {test100=\"test\"; \"标签\"=\"hello\"}; long_label=opt null}, variant {C})");
     parse_check("(record { record{ 42; opt 42 }; vec{4;5;6} })");
     parse_check("(variant { A=opt 42 }, variant {A=vec{1;2;3}})");
-    parse_check(
-        "(variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })",
-    );
+    parse_check("(variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })");
 }
 
 #[test]
