@@ -27,6 +27,9 @@ teardown() {
     assert_command dfx canister call hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
 
+    assert_command dfx canister query hello greet '("Banzai")'
+    assert_eq '("Hello, Banzai!")'
+
     assert_command dfx canister call --query hello greet '("Bongalo")'
     assert_eq '("Hello, Bongalo!")'
 
@@ -99,7 +102,7 @@ teardown() {
 
     assert_command_fail dfx canister call --query hello inc
     assert_match "inc is not a query method"
-    
+
 
     dfx canister call hello inc
     assert_command dfx canister call --query hello read
