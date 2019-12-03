@@ -47,7 +47,7 @@ downloader() {
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
         if check_help_for curl --proto --tlsv1.3; then
-            curl --proto '=https' --tls-max=1.3 --silent --show-error --fail --location "$1" --output "$2"
+            curl --proto '=https' --tlsv1.3 --silent --show-error --fail --location "$1" --output "$2"
         elif ! [ "$_flag_INSECURE" ]; then
             warn "Not forcing TLS v1.3, this is potentially less secure"
             curl --silent --show-error --fail --location "$1" --output "$2"
