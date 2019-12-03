@@ -2,7 +2,7 @@
   "version": 1,
   "dfx": "{dfx_version}",
   "canisters": {
-    "hello": {
+    "{project_name}": {
       "main": "src/hello/main.mo"
     }
   },

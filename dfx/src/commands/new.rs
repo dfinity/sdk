@@ -12,12 +12,40 @@ use std::process::Stdio;
 const DRY_RUN: &str = "dry_run";
 const PROJECT_NAME: &str = "project_name";
 
+/// Validate a String can be a valid project name.
+/// A project name is valid if it starts with a letter, and is alphanumeric (with hyphens).
+/// It cannot end with a dash.
+pub fn project_name_validator(name: String) -> Result<(), String> {
+    let mut chars = name.chars();
+    // Check first character first. If there's no first character it's empty.
+    if let Some(first) = chars.next() {
+        if first == '_' || (first.is_ascii_alphabetic()) {
+            // Then check all other characters.
+            // Reverses the search here; if there is a character that is not compatible
+            // it is found and an error is returned.
+            if let Some(err) = chars.find(|x| match x {
+                'A'..='Z' | 'a'..='z' | '0'..='9' | '_' => false,
+                _ => true,
+            }) {
+                Err(format!(r#"Invalid character: "{}""#, err))
+            } else {
+                Ok(())
+            }
+        } else {
+            Err("Must start with a letter.".to_owned())
+        }
+    } else {
+        Err("Cannot be empty.".to_owned())
+    }
+}
+
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("new")
         .about(UserMessage::CreateProject.to_str())
         .arg(
             Arg::with_name(PROJECT_NAME)
                 .help(UserMessage::ProjectName.to_str())
+                .validator(project_name_validator)
                 .required(true),
         )
         .arg(

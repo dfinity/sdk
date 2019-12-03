@@ -10,10 +10,11 @@ install_asset() {
 }
 
 dfx_new() {
-    dfx new e2e-project
-    test -d e2e-project
-    test -f e2e-project/dfx.json
-    cd e2e-project
+    local project_name=${1:-e2e_project}
+    dfx new ${project_name}
+    test -d ${project_name}
+    test -f ${project_name}/dfx.json
+    cd ${project_name}
 
     echo PWD: $(pwd) >&2
 }
