@@ -29,6 +29,24 @@ check_help_for() {
     test "$_ok" = "y"
 }
 
+# Check for an error message in the output of a command.
+# Arguments:
+#   $1 - The error message to look for.
+#   $2... - The command and arguments to run.
+# Returns:
+#   Whether false if the error message was not found, or true if it wasn't (so the feature is
+#   supported.
+# TODO: move this logic to execute once during install.sh run.
+check_support_for() {
+    local err="$1"
+    shift
+    local cmd="$*"
+
+    # Run the command, grep for the error message, if it is found returns false, if it
+    # is not found, returns true.
+    ! ($cmd 2>&1 | grep "$err" >/dev/null)
+}
+
 # This wraps curl or wget. Try curl first, if not installed, use wget instead.
 # Arguments:
 #   $1 - URL to download.
@@ -47,8 +65,16 @@ downloader() {
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
         if check_help_for curl --proto --tlsv1.3; then
-            curl --proto '=https' --tlsv1.3 --silent --show-error --fail --location "$1" --output "$2"
-        elif ! [ "$_flag_INSECURE" ]; then
+            # Some curl support the tls 1.3 flag but does not actually support it because
+            # libreSSL wasn't compiled with it.
+            if check_support_for "LibreSSL was built without TLS 1.3 support" curl --proto '=https' --tlsv1.3 https://sdk.dfinity.org/; then
+                curl --proto '=https' --tlsv1.3 --silent --show-error --fail --location "$1" --output "$2"
+            else
+                # We don't want to force the user to rerun here.
+                warn "TLS 1.3 not supported. Not forcing TLS v1.3, this is potentially less secure."
+                curl --proto '=https' --silent --show-error --fail --location "$1" --output "$2"
+            fi
+        elif ! [ "$flag_INSECURE" ]; then
             warn "Not forcing TLS v1.3, this is potentially less secure"
             curl --silent --show-error --fail --location "$1" --output "$2"
         else
@@ -57,7 +83,7 @@ downloader() {
     elif [ "$_dld" = wget ]; then
         if check_help_for wget --https-only --secure-protocol; then
             wget --https-only --secure-protocol=TLSv1_3 "$1" -O "$2"
-        elif ! [ "$_flag_INSECURE" ]; then
+        elif ! [ "$flag_INSECURE" ]; then
             warn "Not forcing TLS v1.3, this is potentially less secure"
             wget "$1" -O "$2"
         else
