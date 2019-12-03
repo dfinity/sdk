@@ -11,7 +11,6 @@ pub enum IDLValue {
     Text(String),
     Int(i64),
     Nat(u64),
-    None,
     Opt(Box<IDLValue>),
     Vec(Vec<IDLValue>),
     Record(Vec<IDLField>),
@@ -82,7 +81,6 @@ impl fmt::Display for IDLArgs {
 impl fmt::Display for IDLValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            IDLValue::Null => write!(f, "null"),
             IDLValue::Bool(b) => write!(f, "{}", b),
             IDLValue::Int(i) => {
                 if i >= 0 {
@@ -93,7 +91,7 @@ impl fmt::Display for IDLValue {
             }
             IDLValue::Nat(n) => write!(f, "{}", n),
             IDLValue::Text(ref s) => write!(f, "\"{}\"", s),
-            IDLValue::None => write!(f, "none"),
+            IDLValue::Null => write!(f, "null"),            
             IDLValue::Opt(ref v) => write!(f, "opt {}", v),
             IDLValue::Vec(ref vec) => {
                 write!(f, "vec {{ ")?;
@@ -132,12 +130,11 @@ impl dfx_info::IDLType for IDLValue {
     }
     fn value_ty(&self) -> Type {
         match *self {
-            IDLValue::Null => Type::Null,
             IDLValue::Bool(_) => Type::Bool,
             IDLValue::Int(_) => Type::Int,
             IDLValue::Nat(_) => Type::Nat,
             IDLValue::Text(_) => Type::Text,
-            IDLValue::None => Type::Opt(Box::new(Type::Null)),
+            IDLValue::Null => Type::Opt(Box::new(Type::Null)),            
             IDLValue::Opt(ref v) => {
                 let t = v.deref().value_ty();
                 Type::Opt(Box::new(t))
@@ -177,12 +174,11 @@ impl dfx_info::IDLType for IDLValue {
     {
         use dfx_info::Compound;
         match *self {
-            IDLValue::Null => serializer.serialize_null(()),
             IDLValue::Bool(b) => serializer.serialize_bool(b),
             IDLValue::Int(i) => serializer.serialize_int(i),
             IDLValue::Nat(n) => serializer.serialize_nat(n),
             IDLValue::Text(ref s) => serializer.serialize_text(s),
-            IDLValue::None => serializer.serialize_option::<Option<String>>(None),
+            IDLValue::Null => serializer.serialize_option::<Option<String>>(None),
             IDLValue::Opt(ref v) => serializer.serialize_option(Some(v.deref())),
             IDLValue::Vec(ref vec) => {
                 let mut ser = serializer.serialize_vec(vec.len())?;
@@ -238,7 +234,7 @@ impl<'de> Deserialize<'de> for IDLValue {
                 self.visit_string(String::from(value))
             }
             fn visit_none<E>(self) -> Result<IDLValue, E> {
-                Ok(IDLValue::None)
+                Ok(IDLValue::Null)
             }
             fn visit_some<D>(self, deserializer: D) -> Result<IDLValue, D::Error>
             where

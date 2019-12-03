@@ -13,7 +13,7 @@ fn test_parser() {
     parse_check("(record { record{ 42; opt 42 }; vec{4;5;6} })");
     parse_check("(variant { A=opt 42 }, variant {A=vec{1;2;3}})");
     parse_check(
-        "(variant { cons=record{ 42; variant { cons=record{43; variant { nil=record{} }} } } })",
+        "(variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })",
     );
 }
 
@@ -23,7 +23,7 @@ fn test_value() {
     check(Bool(true), "4449444c00017e01");
     check(Int(1_234_567_890), "4449444c00017cd285d8cc04");
     check(Opt(Box::new(Int(42))), "4449444c016e7c0100012a");
-    //check(Null, "4449444c016e7c010000");
+    check(Null, "4449444c016e7f010000");
     check(Text("Hi ☃\n".to_string()), "4449444c00017107486920e298830a");
     check(int_vec(&[0, 1, 2, 3]), "4449444c016d7c01000400010203");
     check(
