@@ -76,8 +76,8 @@ Field: IDLField = {
 
 VariantField: IDLField = {
     Field => <>,
-    Name => IDLField { id: idl_hash(&<>), val: IDLValue::Null },
-    "number" => IDLField { id: <>.parse::<u32>().unwrap(), val: IDLValue::Null },
+    Name => IDLField { id: idl_hash(&<>), val: IDLValue::Empty },
+    "number" => IDLField { id: <>.parse::<u32>().unwrap(), val: IDLValue::Empty },
 }
 
 RecordField: TmpIDLField = {

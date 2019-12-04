@@ -7,10 +7,11 @@ use std::ops::Deref;
 #[derive(Debug, PartialEq, Clone)]
 pub enum IDLValue {
     Bool(bool),
-    Null,
+    Empty,
     Text(String),
     Int(i64),
     Nat(u64),
+    Null,
     Opt(Box<IDLValue>),
     Vec(Vec<IDLValue>),
     Record(Vec<IDLField>),
@@ -82,6 +83,7 @@ impl fmt::Display for IDLValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             IDLValue::Bool(b) => write!(f, "{}", b),
+            IDLValue::Empty => write!(f, "null"),
             IDLValue::Int(i) => {
                 if i >= 0 {
                     write!(f, "+{}", i)
@@ -131,6 +133,7 @@ impl dfx_info::IDLType for IDLValue {
     fn value_ty(&self) -> Type {
         match *self {
             IDLValue::Bool(_) => Type::Bool,
+            IDLValue::Empty => Type::Null,
             IDLValue::Int(_) => Type::Int,
             IDLValue::Nat(_) => Type::Nat,
             IDLValue::Text(_) => Type::Text,
@@ -175,6 +178,7 @@ impl dfx_info::IDLType for IDLValue {
         use dfx_info::Compound;
         match *self {
             IDLValue::Bool(b) => serializer.serialize_bool(b),
+            IDLValue::Empty => serializer.serialize_null(()),
             IDLValue::Int(i) => serializer.serialize_int(i),
             IDLValue::Nat(n) => serializer.serialize_nat(n),
             IDLValue::Text(ref s) => serializer.serialize_text(s),
@@ -244,7 +248,7 @@ impl<'de> Deserialize<'de> for IDLValue {
                 Ok(IDLValue::Opt(Box::new(v)))
             }
             fn visit_unit<E>(self) -> Result<IDLValue, E> {
-                Ok(IDLValue::Null)
+                Ok(IDLValue::Empty)
             }
             fn visit_seq<V>(self, mut visitor: V) -> Result<IDLValue, V::Error>
             where
