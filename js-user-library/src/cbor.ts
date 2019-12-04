@@ -11,7 +11,6 @@ import * as cbor from 'simple-cbor';
 import { CborEncoder, SelfDescribeCborSerializer } from 'simple-cbor';
 import { BinaryBlob } from './blob';
 import { CanisterId } from './canisterId';
-import { Int } from './int';
 
 // We are using hansl/simple-cbor for CBOR serialization, to avoid issues with
 // encoding the uint64 values that the HTTP handler of the client expects for
@@ -20,9 +19,9 @@ import { Int } from './int';
 // `Uint8Array` (respectively) so that we can use the dignifiedquire/borc CBOR
 // decoder.
 
-class BigNumberEncoder implements CborEncoder<BigNumber> {
+class CanisterIdEncoder implements CborEncoder<CanisterId> {
   public get name() {
-    return 'BigNumber';
+    return 'CanisterId';
   }
 
   public get priority() {
@@ -30,11 +29,11 @@ class BigNumberEncoder implements CborEncoder<BigNumber> {
   }
 
   public match(value: any): boolean {
-    return value instanceof BigNumber;
+    return value instanceof CanisterId;
   }
 
-  public encode(v: BigNumber): cbor.CborValue {
-    return cbor.value.u64(v.toString(16), 16);
+  public encode(v: CanisterId): cbor.CborValue {
+    return cbor.value.u64(v.toHex(), 16);
   }
 }
 
@@ -57,7 +56,7 @@ class BufferEncoder implements CborEncoder<Buffer> {
 }
 
 const serializer = SelfDescribeCborSerializer.withDefaultEncoders();
-serializer.addEncoder(new BigNumberEncoder());
+serializer.addEncoder(new CanisterIdEncoder());
 serializer.addEncoder(new BufferEncoder());
 
 interface CborRecord extends Record<string, CborValue> {}
@@ -71,7 +70,8 @@ export type CborValue =
 
   // Integer numbers: Major type 0 or 1 (“Unsigned/signed integer”) if small
   // enough to fit that type, else the Bignum format is used.
-  | Int
+  | number
+
   // TODO: switch back to BigInt once hansl/simple-cbor provides deserialization
   | BigNumber
 

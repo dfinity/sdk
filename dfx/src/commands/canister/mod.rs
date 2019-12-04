@@ -6,6 +6,7 @@ use clap::{App, ArgMatches, SubCommand};
 
 mod call;
 mod install;
+mod query;
 mod request_status;
 
 fn builtins<T>() -> Vec<CliCommand<T>>
@@ -15,6 +16,7 @@ where
     vec![
         CliCommand::new(call::construct(), call::exec),
         CliCommand::new(install::construct(), install::exec),
+        CliCommand::new(query::construct(), query::exec),
         CliCommand::new(request_status::construct(), request_status::exec),
     ]
 }

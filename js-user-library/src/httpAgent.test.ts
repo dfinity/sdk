@@ -1,9 +1,8 @@
 import { Buffer } from 'buffer/';
 import { createKeyPairFromSeed, sign, verify } from './auth';
 import { BinaryBlob } from './blob';
-import * as canisterId from './canisterId';
+import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
-import { Hex } from './hex';
 import { makeHttpAgent } from './index';
 import { Nonce } from './nonce';
 import { CommonFields, Request } from './request';
@@ -20,7 +19,7 @@ test('call', async () => {
     );
   });
 
-  const canisterIdent = '0000000000000001' as Hex;
+  const canisterIdent = '0000000000000001';
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
   // prettier-ignore
   const seed = Buffer.from([
@@ -50,7 +49,7 @@ test('call', async () => {
   const mockPartialRequest: CommonFields = {
     request_type: 'call' as RequestType,
     nonce,
-    canister_id: canisterId.fromHex(canisterIdent),
+    canister_id: CanisterId.fromHex(canisterIdent),
     method_name: methodName,
     // We need a request id for the signature and at the same time we
     // are checking that signature does not impact the request id.
@@ -102,7 +101,7 @@ test('requestStatus', async () => {
     );
   });
 
-  const canisterIdent = '0000000000000001' as Hex;
+  const canisterIdent = '0000000000000001';
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
 
   // prettier-ignore
@@ -126,7 +125,7 @@ test('requestStatus', async () => {
   const requestId = await requestIdOf({
     request_type: 'call' as RequestType,
     nonce,
-    canister_id: canisterId.fromHex(canisterIdent),
+    canister_id: CanisterId.fromHex(canisterIdent),
     method_name: 'greet',
     arg: Buffer.from([]),
   });

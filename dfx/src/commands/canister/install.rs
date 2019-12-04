@@ -8,6 +8,7 @@ use crate::lib::message::UserMessage;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, RequestId};
+use std::io::Write;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -61,27 +62,31 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
     let request_status = request_status(client.clone(), request_id);
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    match runtime.block_on(request_status) {
-        Ok(ReadResponse::Pending) => {
+    match runtime.block_on(request_status)? {
+        ReadResponse::Pending => {
             eprint!("Request ID: ");
+            std::io::stderr().flush()?;
             println!("0x{}", String::from(request_id));
             Ok(())
         }
-        Ok(ReadResponse::Replied { reply }) => {
+        ReadResponse::Replied { reply } => {
             if let Some(QueryResponseReply { arg: blob }) = reply {
                 print_idl_blob(&blob)
                     .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
             }
             Ok(())
         }
-        Ok(ReadResponse::Rejected {
+        ReadResponse::Rejected {
             reject_code,
             reject_message,
-        }) => Err(DfxError::ClientError(reject_code, reject_message)),
-        // TODO(SDK-446): remove this matcher when moving api_client to ic_http_agent.
-        // `install` cannot return Unknown.
-        Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
-        Err(x) => Err(x),
+        } => Err(DfxError::ClientError(reject_code, reject_message)),
+        ReadResponse::Unknown => {
+            // If the answer is unknown, this means the client is still managing the message
+            // (could be consensus, p2p or something else). We just wait a small time to let
+            // the client work, and call again.
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            wait_on_request_status(client, request_id)
+        }
     }
 }
 

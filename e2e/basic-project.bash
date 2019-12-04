@@ -27,6 +27,9 @@ teardown() {
     assert_command dfx canister call hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
 
+    assert_command dfx canister query hello greet '("Banzai")'
+    assert_match '\("Hello, Banzai!"\)'
+
     assert_command dfx canister call --query hello greet '("Bongalo")'
     assert_eq '("Hello, Bongalo!")'
 
@@ -99,7 +102,7 @@ teardown() {
 
     assert_command_fail dfx canister call --query hello inc
     assert_match "inc is not a query method"
-    
+
 
     dfx canister call hello inc
     assert_command dfx canister call --query hello read
@@ -124,7 +127,6 @@ teardown() {
     dfx build
     dfx canister install --all
 
-    # TODO: fix the record{} in variant once Motoko fixes the bug.
-    assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=null}}, variant { cons=record{ 42; variant { cons=record{43; variant { nil=record{} }} } } })'
-    assert_eq "(+43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = +43; 1291237008 = opt record { 1158359328 = +44; 1291237008 = null; }; }, variant { 1103411697 = record { 0 = +43; 1 = variant { 1103411697 = record { 0 = +44; 1 = variant { 5493713 = record { } }; } }; } })"
+    assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=none}}, variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })'
+    assert_eq "(+43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = +43; 1291237008 = opt record { 1158359328 = +44; 1291237008 = none; }; }, variant { 1103411697 = record { 0 = +43; 1 = variant { 1103411697 = record { 0 = +44; 1 = variant { 5493713 = null }; } }; } })"
 }
