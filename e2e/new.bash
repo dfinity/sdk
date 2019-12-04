@@ -11,7 +11,6 @@ setup() {
 @test "dfx new - good names" {
     dfx new _a_good_name_
     dfx new __also_good
-    dfx new _
     dfx new _1
     dfx new _a
     dfx new A
@@ -25,6 +24,7 @@ setup() {
     assert_command_fail dfx new 1
     assert_command_fail dfx new 1_
     assert_command_fail dfx new -
+    assert_command_fail dfx new _
     assert_command_fail dfx new a-b-c
     assert_command_fail dfx new '🕹'
     assert_command_fail dfx new '不好'

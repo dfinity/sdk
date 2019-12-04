@@ -19,7 +19,7 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
     let mut chars = name.chars();
     // Check first character first. If there's no first character it's empty.
     if let Some(first) = chars.next() {
-        if first == '_' || (first.is_ascii_alphabetic()) {
+        if first.is_ascii_alphabetic() {
             // Then check all other characters.
             // Reverses the search here; if there is a character that is not compatible
             // it is found and an error is returned.
