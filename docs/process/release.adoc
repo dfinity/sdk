@@ -33,7 +33,7 @@ In the following mechanism section we describe the operation of how to get a new
    . [ ] Check hydra
    . [ ] Prepare PR for manifest
    . [ ] Update release notes
-   . [ ] Update manifest once all builds are done
+   . [ ] Update manifest once all builds are done (see https://blobules.dfinity.systems/sdk-release/ and https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release)
      *  [ ] Linux
      *  [ ] Darwin
 
