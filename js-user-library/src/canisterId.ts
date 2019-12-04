@@ -1,5 +1,5 @@
-import BigNumber from "bignumber.js";
-import { Hex } from "./hex";
+import BigNumber from 'bignumber.js';
+import { Hex } from './hex';
 
 // Canister IDs are represented as u64 in the HTTP handler of the client.
 export type CanisterId = BigNumber & { __canisterID__: void };

@@ -192,7 +192,7 @@ impl TypeSerialize {
                 }
                 Type::Record(fs) => {
                     for Field { ty, .. } in fs.iter() {
-                        self.build_type(ty).unwrap();
+                        self.build_type(ty)?;
                     }
 
                     sleb128_encode(&mut buf, -20)?;
@@ -204,7 +204,7 @@ impl TypeSerialize {
                 }
                 Type::Variant(fs) => {
                     for Field { ty, .. } in fs.iter() {
-                        self.build_type(ty).unwrap();
+                        self.build_type(ty)?;
                     }
 
                     sleb128_encode(&mut buf, -21)?;
@@ -234,7 +234,7 @@ impl TypeSerialize {
             Type::Int => sleb128_encode(buf, -4),
             Type::Text => sleb128_encode(buf, -15),
             Type::Knot(id) => {
-                let ty = dfx_info::types::find_type(id).expect("knot TypeId not found");
+                let ty = dfx_info::types::find_type(*id).expect("knot TypeId not found");
                 let idx = self
                     .type_map
                     .get(&ty)
