@@ -24,8 +24,8 @@ In the following mechanism section we describe the operation of how to get a new
    . [ ] Update cargo version (Use `./scripts/update-cargo-version.sh version`)
    . [ ] Update manifest to include new version; *Ensure* latest remains the same
    . [ ] Create a pull request with the above 2 changes and get the validator to approve it
-   . [ ] Switch to stable branch and `git pull stable`
-   . [ ] Run `git pull master --ff`
+   . [ ] Switch to stable branch and `git pull origin stable`
+   . [ ] Run `git pull origin master --ff-only`
    . [ ] Create tags with `git tag -a version -m " Release: version"`
    . [ ] Double check the tag points correctly and is an annotated one: `git log` and  `git describe --always`
    . [ ] Push tag first to avoid triggering hydra incorrectly `git push origin version`
@@ -37,6 +37,7 @@ In the following mechanism section we describe the operation of how to get a new
      *  [ ] Linux
      *  [ ] Darwin
 
+Notes: We assume *upstream* is `origin`.
 
 
 == Requirements & Properties
