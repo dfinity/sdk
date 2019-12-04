@@ -9,18 +9,20 @@ setup() {
 }
 
 @test "dfx new - good names" {
-    dfx new _a_good_name_
-    dfx new __also_good
-    dfx new _1
-    dfx new _a
+    dfx new a_good_name_
     dfx new A
     dfx new b
     dfx new a_
     dfx new a_1
     dfx new a1
+    dfx new a1a
 }
 
 @test "dfx new - bad names" {
+    assert_command_fail dfx new _a_good_name_
+    assert_command_fail dfx new __also_good
+    assert_command_fail dfx new _1
+    assert_command_fail dfx new _a
     assert_command_fail dfx new 1
     assert_command_fail dfx new 1_
     assert_command_fail dfx new -
