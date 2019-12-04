@@ -3,14 +3,11 @@ import { Buffer } from 'buffer/';
 import { BinaryBlob } from './blob';
 import * as blob from './blob';
 import { CanisterId } from './canisterId';
-import * as canisterId from './canisterId';
 import { CborValue, decode, encode } from './cbor';
-import { Hex } from './hex';
-import { Int } from './int';
 
 test('round trip', () => {
   interface Data extends Record<string, CborValue> {
-    a: Int;
+    a: number;
     b: string;
     c: BinaryBlob;
     d: { four: string };
@@ -23,11 +20,11 @@ test('round trip', () => {
   // BigNumber types actually containing big numbers, since small numbers are
   // represented as numbers and big numbers are represented as strings.
   const input: Data = {
-    a: 1 as Int,
+    a: 1,
     b: 'two',
     c: Buffer.from([3]) as BinaryBlob,
     d: { four: 'four' },
-    e: canisterId.fromHex('ffffffffffffffff' as Hex),
+    e: CanisterId.fromHex('ffffffffffffffff'),
     f: Buffer.from([]) as BinaryBlob,
     g: new BigNumber('0xffffffffffffffff'),
   };
