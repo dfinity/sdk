@@ -28,6 +28,6 @@ where
         .map_err(|e| DfxError::InvalidArgument(format!("Invalid request ID: {:?}", e)))?; // FIXME Default formatter for RequestIdFromStringError
     let request_status = request_status(env.get_client(), request_id);
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    let response = runtime.block_on(request_status);
+    let response = runtime.block_on(request_status)?;
     crate::commands::canister::call::read_response(response, Some(request_id))
 }
