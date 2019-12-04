@@ -136,10 +136,7 @@ where
                 ))
             })?)),
             Some("raw") => Ok(hex::decode(&a).map_err(|e| {
-                DfxError::InvalidArgument(format!(
-                    "Argument is not a valid hex string: {}",
-                    e
-                ))
+                DfxError::InvalidArgument(format!("Argument is not a valid hex string: {}", e))
             })?),
             Some("idl") | None => {
                 let args: IDLArgs = a
