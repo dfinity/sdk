@@ -24,10 +24,13 @@ teardown() {
     INSTALL_REQUEST_ID=$(dfx canister install hello --async)
     dfx canister request-status $INSTALL_REQUEST_ID
 
-    assert_command dfx canister query hello greet '("Banzai")'
+    assert_command dfx canister call hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
 
-    assert_command dfx canister call hello greet '("Bongalo")'
+    assert_command dfx canister query hello greet '("Banzai")'
+    assert_match '\("Hello, Banzai!"\)'
+
+    assert_command dfx canister call --query hello greet '("Bongalo")'
     assert_eq '("Hello, Bongalo!")'
 
     # Using call --async and request-status.
@@ -52,17 +55,17 @@ teardown() {
         dfx canister call 42 write
     done
 
-    run dfx canister query 42 read
+    run dfx canister call 42 read
     [[ "$stdout" == "A" ]]
-    run dfx canister query 42 read
+    run dfx canister call 42 read
     [[ "$stdout" == "A" ]]
 
     dfx canister call 42 write
-    run dfx canister query 42 read
+    run dfx canister call 42 read
     [[ "$stdout" == "B" ]]
 
     dfx canister call 42 write
-    run dfx canister query 42 read
+    run dfx canister call 42 read
     [[ "$stdout" == "C" ]]
 
     run dfx canister call 42 write --async
@@ -90,15 +93,19 @@ teardown() {
     assert_command dfx canister call hello inc
     assert_eq "()"
 
-    assert_command dfx canister query hello read
+    assert_command dfx canister call hello read
     assert_eq "(1)"
 
     dfx canister call hello inc
-    assert_command dfx canister query hello read
+    assert_command dfx canister call hello read
     assert_eq "(2)"
 
+    assert_command_fail dfx canister call --query hello inc
+    assert_match "inc is not a query method"
+
+
     dfx canister call hello inc
-    assert_command dfx canister query hello read
+    assert_command dfx canister call --query hello read
     assert_eq "(3)"
 
     assert_command dfx canister call hello inc --async
