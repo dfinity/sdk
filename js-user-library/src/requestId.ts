@@ -4,17 +4,14 @@ import { Buffer } from 'buffer/';
 import { BinaryBlob } from './blob';
 import * as blob from './blob';
 import { CborValue } from './cbor';
-import { Hex } from './hex';
-import { Int } from './int';
-import * as int from './int';
 import * as Request from './request';
 
 export type RequestId = BinaryBlob & { __requestId__: void };
 
-export const toHex = (requestId: RequestId): Hex => blob.toHex(requestId);
+export const toHex = (requestId: RequestId): string => blob.toHex(requestId);
 
 // The spec describes encoding for these types.
-type HashableValue = string | Buffer | Int | BigNumber | borc.Tagged;
+type HashableValue = number | string | Buffer | BigNumber | borc.Tagged;
 
 export const hash = async (data: BinaryBlob): Promise<BinaryBlob> => {
   const hashed: ArrayBuffer = await crypto.subtle.digest(
@@ -26,8 +23,8 @@ export const hash = async (data: BinaryBlob): Promise<BinaryBlob> => {
   return Buffer.from(hashed) as BinaryBlob;
 };
 
-const padHex = (hex: Hex): Hex => {
-  return `${'0000000000000000'.slice(hex.length)}${hex}` as Hex;
+const padHex = (hex: string): string => {
+  return `${'0000000000000000'.slice(hex.length)}${hex}`;
 };
 
 const hashValue = (value: HashableValue): Promise<Buffer> => {
@@ -37,11 +34,11 @@ const hashValue = (value: HashableValue): Promise<Buffer> => {
     return hashString(value as string);
   } else if (isBigNumber(value)) {
     // HTTP handler expects canister_id to be an u64 & hashed in this way.
-    const hex = value.toString(16) as Hex;
+    const hex = value.toString(16);
     const padded = padHex(hex);
     return hash(blob.fromHex(padded));
   } else if (isInt(value)) {
-    const hex = int.toHex(value);
+    const hex = value.toString(16);
     const padded = padHex(hex);
     return hash(blob.fromHex(padded));
   } else if (isBlob(value)) {
@@ -65,7 +62,7 @@ const isBlob = (value: HashableValue): value is BinaryBlob => {
   return value instanceof Buffer;
 };
 
-const isInt = (value: HashableValue): value is Int => {
+const isInt = (value: HashableValue): value is number => {
   return typeof value === 'number';
 };
 
