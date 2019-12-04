@@ -3,8 +3,8 @@ self: super:
 let src = builtins.fetchGit {
   name = "motoko-sources";
   url = "ssh://git@github.com/dfinity-lab/motoko";
-  ref = "master";
-  rev = "fe634f3d48b72e24cd9f46ae2e316dfbc99d9bdc";
+  ref = "joachim/ic-calls-on-drun";
+  rev = "881ec6855c3859eb45ed97625ac2062fdc9cafd5";
 }; in
 
 {

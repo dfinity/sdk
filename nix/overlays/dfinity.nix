@@ -3,8 +3,8 @@ self: super:
 let src = builtins.fetchGit {
   name = "dfinity-sources";
   url = "ssh://git@github.com/dfinity-lab/dfinity";
-  ref = "master";
-  rev = "5c7efff0524adbf97d85b27adb180e6137a3428f";
+  ref = "roman/DFN-1191-call-context";
+  rev = "7c632a52054eaa9a8dd2f98aed43d3c4c6fdbac9";
 }; in
 
 {
