@@ -80,12 +80,17 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
             let full_path = p.join(file.path()?);
             let mut perms = std::fs::metadata(full_path.as_path())?.permissions();
-            perms.set_mode(0o554);
+            perms.set_mode(0o500);
             std::fs::set_permissions(full_path.as_path(), perms)?;
         }
 
         // Copy our own binary in the cache.
-        std::fs::write(p.join("dfx"), std::fs::read(current_exe)?)?;
+        let dfx = p.join("dfx");
+        std::fs::write(dfx, std::fs::read(current_exe)?)?;
+        // And make it executable.
+        let perms = std::fs::metadata(dfx)?.permissions();
+        perms.set_mode(0o500);
+        std::fs::set_permissions(dfx, perms)?;
 
         if let Some(b) = b {
             b.finish_with_message(&format!("Version v{} installed successfully.", v));
@@ -131,7 +136,7 @@ pub fn call_cached_dfx(v: &str) -> DfxResult<ExitStatus> {
             format_args!("Invalid cache for version {}.", v).to_string(),
         ));
     }
-    println!("v: {} p: {:?}", v, &command_path);
+
     std::process::Command::new(command_path)
         .args(std::env::args())
         .status()
