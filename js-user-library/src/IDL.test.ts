@@ -69,6 +69,11 @@ test('IDL encoding', () => {
   test_(IDL.Nat, 1234567890, '4449444c00017dd285d8cc04', 'Positive Nat');
   expect(() => IDL.encode([IDL.Nat], [-1])).toThrow(/Invalid Nat argument/);
 
+  // Fixed-width number
+  test_(IDL.Int8, 42, '4449444c0001772a', 'Int8');
+  test_(IDL.Int32, 42, '4449444c0001750000002a', 'Int32');
+  expect(() => IDL.encode([IDL.Int8], [256])).toThrow(/Invalid Int8 argument/);
+
   // Tuple
   test_(
     IDL.Tuple(IDL.Int, IDL.Text),
