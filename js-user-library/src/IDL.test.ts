@@ -71,7 +71,8 @@ test('IDL encoding', () => {
 
   // Fixed-width number
   test_(IDL.Int8, 42, '4449444c0001772a', 'Int8');
-  test_(IDL.Int32, 42, '4449444c0001750000002a', 'Int32');
+  test_(IDL.Int32, 42, '4449444c0001752a000000', 'Int32');
+  test_(IDL.Int32, -42, '4449444c000175d6ffffff', 'Negative Int32');    
   expect(() => IDL.encode([IDL.Int8], [256])).toThrow(/Invalid Int8 argument/);
 
   // Tuple
