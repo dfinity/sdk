@@ -272,7 +272,7 @@ export class FixedIntClass extends PrimitiveType<number> {
   }
 
   public encodeValue(x: number) {
-    let buf = Buffer.alloc(this._bits / 8);
+    const buf = Buffer.alloc(this._bits / 8);
     buf.writeIntBE(x, 0, this._bits / 8);
     return buf;
   }
