@@ -5,6 +5,7 @@ use crate::lib::message::UserMessage;
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::unbounded;
+use futures::future::Future;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::io::{Error, ErrorKind};
 use std::process::Command;
@@ -60,6 +61,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     Ok(())
 }
 
+// TODO: Refactor exec into more manageable pieces.
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: ProjectConfigEnv + BinaryResolverEnv,
@@ -129,7 +131,8 @@ where
 
     // Must be unbounded, as a killed child should not deadlock.
     let (request_stop, rcv_wait) = unbounded();
-    let (broadcast_stop, is_killed) = unbounded();
+    let (broadcast_stop, is_killed_client) = unbounded();
+    let (give_actix, actix_handler) = unbounded();
 
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
@@ -140,7 +143,7 @@ where
             let nodemanager = nodemanager_pathbuf.as_path();
             // We use unwrap() here to transmit an error to the parent
             // thread.
-            while is_killed.is_empty() {
+            while is_killed_client.is_empty() {
                 let mut cmd = std::process::Command::new(nodemanager);
                 cmd.args(&[client]);
                 cmd.stdout(std::process::Stdio::inherit());
@@ -152,7 +155,7 @@ where
                     request_stop
                         .try_send(true)
                         .expect("Client thread couldn't signal parent to stop");
-                    // we still want to send a message
+                    // We still want to send an error message.
                     panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
                 });
 
@@ -173,7 +176,6 @@ where
                 .expect("Could not signal parent thread from client runner")
         })?;
 
-    // TODOXXX: Figure out webserver.
     let frontend_watchdog = webserver(
         address_and_port,
         url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),
@@ -187,6 +189,7 @@ where
                     .as_path(),
             )
             .as_path(),
+        give_actix,
     );
 
     b.set_message("Pinging the Internet Computer client...");
@@ -199,15 +202,32 @@ where
             format!("Failed while waiting for the manager -- {:?}", e),
         )))
     })?;
+    // Signal the client to stop.
     broadcast_stop
         .send(true)
         .expect("Failed to signal children");
+    // Signal the actix server to stop. This will block.
+    actix_handler
+        .recv()
+        .expect("Failed to receive server")
+        .stop(true)
+        // We do not use await here on purpose. We should probably follow up
+        // and have this function be async, internal of exec.
+        .wait()
+        .map_err(|e| {
+            DfxError::RuntimeError(Error::new(
+                ErrorKind::Other,
+                format!("Failed to stop server: {:?}", e),
+            ))
+        })?;
+    // Join and handle errors for the frontend.
     frontend_watchdog.join().or_else(|e| {
         Err(DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
             format!("Failed while running frontend proxy thead -- {:?}", e),
         )))
     })?;
+    // Join and handle errors for the client.
     client_watchdog.join().or_else(|e| {
         Err(DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
