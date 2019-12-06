@@ -1,5 +1,5 @@
 use crate::commands::CliCommand;
-use crate::lib::env::{ClientEnv, ProjectConfigEnv};
+use crate::lib::env::{BinaryResolverEnv, ClientEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
@@ -11,7 +11,7 @@ mod request_status;
 
 fn builtins<T>() -> Vec<CliCommand<T>>
 where
-    T: ClientEnv + ProjectConfigEnv,
+    T: ClientEnv + ProjectConfigEnv + BinaryResolverEnv,
 {
     vec![
         CliCommand::new(call::construct(), call::exec),
@@ -23,7 +23,7 @@ where
 
 pub fn construct<T>() -> App<'static, 'static>
 where
-    T: ClientEnv + ProjectConfigEnv,
+    T: ClientEnv + ProjectConfigEnv + BinaryResolverEnv,
 {
     SubCommand::with_name("canister")
         .about(UserMessage::ManageCanister.to_str())
@@ -36,7 +36,7 @@ where
 
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
-    T: ClientEnv + ProjectConfigEnv,
+    T: ClientEnv + ProjectConfigEnv + BinaryResolverEnv,
 {
     let subcommand = args.subcommand();
 

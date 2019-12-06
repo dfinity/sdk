@@ -79,6 +79,8 @@ where
         None
     };
 
+    eprintln!(r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#);
+
     let client = env.get_client();
     let query = query(
         client,
