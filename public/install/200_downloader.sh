@@ -64,30 +64,22 @@ downloader() {
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
-        if check_help_for curl --proto --tlsv1.3; then
-            # Some curl support the tls 1.3 flag but does not actually support it because
-            # libreSSL wasn't compiled with it.
-            if check_support_for "LibreSSL was built without TLS 1.3 support" curl --proto '=https' --tlsv1.3 https://sdk.dfinity.org/; then
-                curl --proto '=https' --tlsv1.3 --silent --show-error --fail --location "$1" --output "$2"
-            else
-                # We don't want to force the user to rerun here.
-                warn "TLS 1.3 not supported. Not forcing TLS v1.3, this is potentially less secure."
-                curl --proto '=https' --silent --show-error --fail --location "$1" --output "$2"
-            fi
+        if check_help_for curl --proto --tlsv1.2; then
+            curl --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2"
         elif ! [ "$flag_INSECURE" ]; then
-            warn "Not forcing TLS v1.3, this is potentially less secure"
+            warn "Not forcing TLS v1.2, this is potentially less secure"
             curl --silent --show-error --fail --location "$1" --output "$2"
         else
-            err "TLS 1.3 is not supported on this platform. To force using it, use the --insecure flag."
+            err "TLS 1.2 is not supported on this platform. To force using it, use the --insecure flag."
         fi
     elif [ "$_dld" = wget ]; then
         if check_help_for wget --https-only --secure-protocol; then
-            wget --https-only --secure-protocol=TLSv1_3 "$1" -O "$2"
+            wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2"
         elif ! [ "$flag_INSECURE" ]; then
-            warn "Not forcing TLS v1.3, this is potentially less secure"
+            warn "Not forcing TLS v1.2, this is potentially less secure"
             wget "$1" -O "$2"
         else
-            err "TLS 1.3 is not supported on this platform. To force using it, use the --insecure flag."
+            err "TLS 1.2 is not supported on this platform. To force using it, use the --insecure flag."
         fi
     else
         err "Unknown downloader" # should not reach here
