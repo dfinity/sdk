@@ -94,11 +94,13 @@ where
 
     let canister_name = args.value_of("canister_name").unwrap();
     let canister_info = CanisterInfo::load(config, canister_name)?;
+    // Read the config.
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
-
-    let method_name = args.value_of("method_name").unwrap();
+    let method_name = args
+        .value_of("method_name")
+        .ok_or_else(|| DfxError::InvalidArgument("method_name".to_string()))?;
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
 
