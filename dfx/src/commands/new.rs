@@ -27,14 +27,14 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
                 .matches(|x: char| !x.is_ascii_alphanumeric() && x != '_')
                 .collect();
 
-            if m.len() > 0 {
+            if m.is_empty() {
+                Ok(())
+            } else {
                 Err(format!(
                     r#"Invalid character(s): "{}""#,
                     m.iter()
                         .fold(String::new(), |acc, &num| acc + &num.to_string())
                 ))
-            } else {
-                Ok(())
             }
         } else {
             Err("Must start with a letter.".to_owned())
