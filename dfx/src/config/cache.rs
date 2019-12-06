@@ -86,11 +86,11 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
         // Copy our own binary in the cache.
         let dfx = p.join("dfx");
-        std::fs::write(dfx, std::fs::read(current_exe)?)?;
+        std::fs::write(&dfx, std::fs::read(current_exe)?)?;
         // And make it executable.
-        let perms = std::fs::metadata(dfx)?.permissions();
+        let mut perms = std::fs::metadata(&dfx)?.permissions();
         perms.set_mode(0o500);
-        std::fs::set_permissions(dfx, perms)?;
+        std::fs::set_permissions(&dfx, perms)?;
 
         if let Some(b) = b {
             b.finish_with_message(&format!("Version v{} installed successfully.", v));
