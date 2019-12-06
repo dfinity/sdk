@@ -154,9 +154,7 @@ where
             project_name
                 .join(file.header().path()?)
                 .to_str()
-                .ok_or_else(|| {
-                    DfxError::Impossible("non unicode project name path or file header".to_string())
-                })?
+                .expect("Non unicode project name path.");
                 .replace("__dot__", ".")
                 .as_str(),
         );

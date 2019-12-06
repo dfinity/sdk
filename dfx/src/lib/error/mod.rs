@@ -68,9 +68,6 @@ pub enum DfxError {
     /// Data provided is invalid.
     InvalidData(String),
 
-    /// Impossible error has occurred.
-    Impossible(String),
-
     /// The ide server shouldn't be started from a terminal.
     LanguageServerFromATerminal,
 }

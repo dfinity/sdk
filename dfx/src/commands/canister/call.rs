@@ -98,7 +98,7 @@ where
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
     let method_name = args.value_of("method_name").ok_or_else(|| {
-        DfxError::InvalidArgument("method name argument provided invalid".to_string())
+        DfxError::InvalidArgument("method_name".to_string())
     })?;
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");

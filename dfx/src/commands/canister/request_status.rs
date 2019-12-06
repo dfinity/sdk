@@ -29,7 +29,7 @@ where
             .value_of("request_id")
             .ok_or_else(|| DfxError::InvalidArgument("request_id".to_string()))?[2..],
     )
-    .map_err(|e| DfxError::ICContainerError(format!("invalid request ID: {:?}", e)))?; // FIXME Default formatter for RequestIdFromStringError
+    .map_err(|e| DfxError::InvalidArgument("request_id".to_owned()))?;
     let request_status = request_status(env.get_client(), request_id);
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let response = runtime.block_on(request_status);
