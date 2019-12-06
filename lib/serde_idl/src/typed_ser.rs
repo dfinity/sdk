@@ -3,42 +3,34 @@
 use super::error::{Error, Result};
 
 use super::value::IDLValue;
-use dfx_info::types::{Field, Type};
+use super::types::IDLType;
+
 use std::collections::HashMap;
 use std::io;
 use std::vec::Vec;
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Default)]
 pub struct IDLBuilder {
-    type_ser: TypeSerialize,
-    value_ser: ValueSerializer,
+    ser: Serialize,
 }
 
 impl IDLBuilder {
     pub fn new() -> Self {
         IDLBuilder {
-            type_ser: TypeSerialize::new(),
-            value_ser: ValueSerializer::new(),
+            ser: Serialize::new(),
         }
     }
-    pub fn arg<'a, T: dfx_info::IDLType>(&'a mut self, value: &T) -> Result<&'a mut Self> {
-        self.type_ser.push_type(&T::ty())?;
-        value.idl_serialize(&mut self.value_ser)?;
-        Ok(self)
-    }
-    pub fn value_arg<'a>(&'a mut self, value: &IDLValue) -> Result<&'a mut Self> {
-        use dfx_info::IDLType;
-        self.type_ser.push_type(&value.value_ty())?;
-        value.idl_serialize(&mut self.value_ser)?;
-        Ok(self)
+    pub fn arg<'a>(&'a mut self, ty: &IDLType, value: &IDLValue) -> &'a mut Self {
+        self.ser.push_type(ty);
+        ty.typed_serialize(&mut self.ser, value).unwrap();
+        self
     }
     pub fn serialize<W: io::Write>(&mut self, mut writer: W) -> Result<()> {
         writer.write_all(b"DIDL")?;
-        self.type_ser.serialize()?;
-        writer.write_all(&self.type_ser.result)?;
-        writer.write_all(&self.value_ser.value)?;
+        self.ser.serialize()?;
+        writer.write_all(&self.ser.result)?;
         Ok(())
     }
     pub fn serialize_to_vec(&mut self) -> Result<Vec<u8>> {
@@ -46,10 +38,14 @@ impl IDLBuilder {
         self.serialize(&mut vec)?;
         Ok(vec)
     }
+    pub fn to_vec(&self) -> Result<Vec<u8>> {
+        let mut s2 = self.clone();
+        s2.serialize_to_vec()
+    }
 }
 
 /// A structure for serializing Rust values to IDL.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ValueSerializer {
     value: Vec<u8>,
 }
@@ -137,21 +133,23 @@ impl<'a> dfx_info::Compound for Compound<'a> {
 }
 
 /// A structure for serializing Rust values to IDL types.
-#[derive(Debug, Default)]
-pub struct TypeSerialize {
+#[derive(Clone, Debug, Default)]
+pub struct Serialize {
     type_table: Vec<Vec<u8>>,
     type_map: HashMap<Type, i32>,
-    args: Vec<Type>,
+    type_args: Vec<Type>,
+    values: Vec<u8>,
     result: Vec<u8>,
 }
 
-impl TypeSerialize {
+impl Serialize {
     #[inline]
     pub fn new() -> Self {
-        TypeSerialize {
+        Serialize {
             type_table: Vec::new(),
             type_map: HashMap::new(),
-            args: Vec::new(),
+            type_args: Vec::new(),
+            values: Vec::new(),
             result: Vec::new(),
         }
     }

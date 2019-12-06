@@ -74,8 +74,8 @@ pub const EMPTY_DIDL: &[u8] = b"DIDL\0\0";
 macro_rules! Encode {
     ( $($x:expr),* ) => {{
         let mut idl = serde_idl::ser::IDLBuilder::new();
-        $(idl.arg($x);)*
-        idl.to_vec().unwrap()
+        $(idl.arg($x).unwrap();)*
+        idl.serialize_to_vec().unwrap()
     }}
 }
 
