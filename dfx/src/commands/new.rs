@@ -113,7 +113,10 @@ where
     T: BinaryCacheEnv + PlatformEnv + VersionEnv,
 {
     let dry_run = args.is_present(DRY_RUN);
-    let project_name = Path::new(args.value_of(PROJECT_NAME).unwrap());
+    let project_name_path = args
+        .value_of(PROJECT_NAME)
+        .ok_or_else(|| DfxError::InvalidArgument("project_path".to_string()))?;
+    let project_name = Path::new(project_name_path);
 
     if project_name.exists() {
         return Err(DfxError::ProjectExists);
@@ -127,6 +130,10 @@ where
     }
 
     let mut new_project_files = assets::new_project_files()?;
+    let project_name_str = project_name
+        .to_str()
+        .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
+
     for file in new_project_files.entries()? {
         let mut file = file?;
 
@@ -135,10 +142,11 @@ where
         }
 
         let mut s = String::new();
-        file.read_to_string(&mut s).unwrap();
+        file.read_to_string(&mut s)
+            .or_else(|e| Err(DfxError::Io(e)))?;
 
         // Perform replacements.
-        let s = s.replace("{project_name}", project_name.to_str().unwrap());
+        let s = s.replace("{project_name}", project_name_str);
         let s = s.replace("{dfx_version}", dfx_version);
 
         // Perform path replacements.
@@ -146,7 +154,7 @@ where
             project_name
                 .join(file.header().path()?)
                 .to_str()
-                .unwrap()
+                .expect("Non unicode project name path.")
                 .replace("__dot__", ".")
                 .as_str(),
         );
@@ -192,7 +200,7 @@ where
         include_str!("../../assets/welcome.txt"),
         dfx_version,
         assets::dfinity_logo(),
-        project_name.to_str().unwrap()
+        project_name_str
     );
 
     Ok(())
