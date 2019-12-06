@@ -28,7 +28,6 @@ where
             .value_of("request_id")
             .ok_or_else(|| DfxError::InvalidArgument("request_id".to_string()))?[2..],
     )
-    .map_err(|e| DfxError::InvalidArgument("request_id".to_owned()))?;
+    .map_err(|_| DfxError::InvalidArgument("request_id".to_owned()))?;
     wait_on_request_status(&env.get_client(), request_id)
-
 }

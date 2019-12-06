@@ -34,10 +34,11 @@ pub enum DfxError {
     /// Cannot create a new project because the directory already exists.
     ProjectExists,
 
-    /// An error originating from the IC. The enclosed type should be
+    #[allow(dead_code)]
+    /// An error originating from the Client. The enclosed type should be
     /// a descriptive error.
     // TODO(eftychis): Consider to how to better represent this without a massive change.
-    ICContainerError(String),
+    ClientContainerError(String),
 
     /// Not in a project.
     CommandMustBeRunInAProject,

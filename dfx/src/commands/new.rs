@@ -154,7 +154,7 @@ where
             project_name
                 .join(file.header().path()?)
                 .to_str()
-                .expect("Non unicode project name path.");
+                .expect("Non unicode project name path.")
                 .replace("__dot__", ".")
                 .as_str(),
         );
