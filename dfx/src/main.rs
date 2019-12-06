@@ -69,7 +69,7 @@ fn main() {
                 match crate::config::cache::call_cached_dfx(env.get_version()) {
                     Ok(status) => std::process::exit(status.code().unwrap_or(0)),
                     Err(e) => {
-                        eprintln!("Error when trying to forward to project dfx:\n{}", e);
+                        eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
                         std::process::exit(1)
                     }
                 };
