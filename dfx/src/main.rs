@@ -71,7 +71,7 @@ fn main() {
                     Err(e) => {
                         eprintln!("Error when trying to forward to project dfx:\n{}", e);
                         std::process::exit(1)
-                    },
+                    }
                 };
             }
 
