@@ -23,11 +23,16 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
             // Then check all other characters.
             // Reverses the search here; if there is a character that is not compatible
             // it is found and an error is returned.
-            if let Some(err) = chars.find(|x| match x {
-                'A'..='Z' | 'a'..='z' | '0'..='9' | '_' => false,
-                _ => true,
-            }) {
-                Err(format!(r#"Invalid character: "{}""#, err))
+            let m: Vec<&str> = name.matches(|x: char| {
+                !x.is_ascii_alphanumeric() && x != '_'
+            }).collect();
+
+            if m.len() > 0 {
+                Err(format!(
+                    r#"Invalid character(s): "{}""#,
+                    m.iter()
+                        .fold(String::new(), |acc, &num| acc + &num.to_string())
+                ))
             } else {
                 Ok(())
             }
@@ -224,4 +229,36 @@ where
     );
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_name_is_valid() {
+        assert!(project_name_validator("a".to_owned()).is_ok());
+        assert!(project_name_validator("a_".to_owned()).is_ok());
+        assert!(project_name_validator("a_1".to_owned()).is_ok());
+        assert!(project_name_validator("A".to_owned()).is_ok());
+        assert!(project_name_validator("A1".to_owned()).is_ok());
+        assert!(project_name_validator("a_good_name_".to_owned()).is_ok());
+        assert!(project_name_validator("a_good_name".to_owned()).is_ok());
+    }
+
+    #[test]
+    fn project_name_is_invalid() {
+        assert!(project_name_validator("_a_good_name_".to_owned()).is_err());
+        assert!(project_name_validator("__also_good".to_owned()).is_err());
+        assert!(project_name_validator("_1".to_owned()).is_err());
+        assert!(project_name_validator("_a".to_owned()).is_err());
+        assert!(project_name_validator("1".to_owned()).is_err());
+        assert!(project_name_validator("1_".to_owned()).is_err());
+        assert!(project_name_validator("-".to_owned()).is_err());
+        assert!(project_name_validator("_".to_owned()).is_err());
+        assert!(project_name_validator("a-b-c".to_owned()).is_err());
+        assert!(project_name_validator("🕹".to_owned()).is_err());
+        assert!(project_name_validator("不好".to_owned()).is_err());
+        assert!(project_name_validator("a:b".to_owned()).is_err());
+    }
 }
