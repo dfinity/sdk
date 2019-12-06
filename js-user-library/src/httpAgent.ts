@@ -1,12 +1,9 @@
 import { Buffer } from 'buffer/';
 import { sign } from './auth';
 import { BinaryBlob } from './blob';
-import * as blob from './blob';
 import { CallRequest } from './callRequest';
 import { CanisterId } from './canisterId';
-import * as canisterId from './canisterId';
 import * as cbor from './cbor';
-import { Hex } from './hex';
 import { makeNonce, Nonce } from './nonce';
 import { QueryRequest } from './queryRequest';
 import { QueryResponse } from './queryResponse';
@@ -27,14 +24,14 @@ import { SubmitResponse } from './submitResponse';
 // using the available methods. It exposes an API that closely follows the
 // public view of the internet computer, and is not intended to be exposed
 // directly to the majority of users due to its low-level interface.
-export const makeHttpAgent = (options: Options): HttpAgent => {
+export function makeHttpAgent(options: Options): HttpAgent {
   const config = makeConfig(options);
   return {
     call: call(config),
     requestStatus: requestStatus(config),
     query: query(config),
   };
-};
+}
 
 export interface HttpAgent {
   call(fields: { methodName: string; arg: BinaryBlob }): Promise<SubmitResponse>;
@@ -47,7 +44,7 @@ export interface HttpAgent {
 // `Options` is the external representation of `Config` that allows us to
 // provide optional fields with default values.
 interface Options {
-  canisterId: Hex;
+  canisterId: string;
   fetchFn?: WindowOrWorkerGlobalScope['fetch'];
   host?: string;
   nonceFn?: () => Nonce;
@@ -58,14 +55,7 @@ interface Options {
 
 type SigningConstructedFn = (secretKey: SenderSecretKey) => (requestId: RequestId) => SenderSig;
 
-interface DefaultOptions {
-  fetchFn: WindowOrWorkerGlobalScope['fetch'];
-  host: string;
-  nonceFn: () => Nonce;
-  senderSigFn: SigningConstructedFn;
-}
-
-const defaultOptions: DefaultOptions = {
+const defaultOptions: Partial<Options> = {
   fetchFn: typeof window === 'undefined' ? fetch : window.fetch.bind(window),
   host: 'http://localhost:8000',
   nonceFn: makeNonce,
@@ -85,10 +75,10 @@ interface Config {
 const API_VERSION = 'v1';
 
 const makeConfig = (options: Options): Config => {
-  const withDefaults = { ...defaultOptions, ...options };
+  const withDefaults = { ...defaultOptions, ...options } as Required<Options>;
   return {
     ...withDefaults,
-    canisterId: canisterId.fromHex(options.canisterId),
+    canisterId: CanisterId.fromHex(options.canisterId),
     // TODO We should be validating that this is the right public key.
     senderPubKey: options.senderPubKey,
     // If we set an override test function use that. Otherwise produce

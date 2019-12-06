@@ -1,8 +1,7 @@
 import { Buffer } from 'buffer/';
 import * as blob from './blob';
-import * as canisterId from './canisterId';
+import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
-import { Hex } from './hex';
 import { Nonce } from './nonce';
 import { requestIdOf } from './requestId';
 import { RequestType } from './requestType';
@@ -20,7 +19,7 @@ test('makeActor', async () => {
   };
 
   const expectedReplyArg = blob.fromHex(
-    _IDL.encode([_IDL.Text], ['Hello, World!']).toString('hex') as Hex,
+    _IDL.encode([_IDL.Text], ['Hello, World!']).toString('hex'),
   );
 
   const mockFetch: jest.Mock = jest
@@ -65,9 +64,9 @@ test('makeActor', async () => {
   const methodName = 'greet';
   const argValue = 'Name';
 
-  const arg = blob.fromHex(_IDL.encode([_IDL.Text], [argValue]).toString('hex') as Hex);
+  const arg = blob.fromHex(_IDL.encode([_IDL.Text], [argValue]).toString('hex'));
 
-  const canisterIdent = '0000000000000001' as Hex;
+  const canisterIdent = '0000000000000001';
   const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
   const senderSecretKey = Buffer.alloc(32, 0) as SenderSecretKey;
   const senderSig = Buffer.from([0]) as SenderSig;
@@ -82,7 +81,7 @@ test('makeActor', async () => {
   const expectedCallRequest = {
     request_type: 'call' as RequestType,
     nonce: nonces[0],
-    canister_id: canisterId.fromHex(canisterIdent),
+    canister_id: CanisterId.fromHex(canisterIdent),
     method_name: methodName,
     arg,
     sender_pubkey: senderPubKey,

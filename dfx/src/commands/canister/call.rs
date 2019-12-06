@@ -1,4 +1,5 @@
-use crate::lib::api_client::{call, query, request_status, QueryResponseReply, ReadResponse};
+use crate::commands::canister::install::wait_on_request_status;
+use crate::lib::api_client::{call, query, QueryResponseReply, ReadResponse};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::env::{BinaryResolverEnv, ClientEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
@@ -7,6 +8,7 @@ use crate::util::{load_idl_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, RequestId};
 use serde_idl::{Encode, IDLArgs};
+use std::io::Write;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -52,34 +54,33 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 pub fn read_response(
-    response: Result<ReadResponse<QueryResponseReply>, DfxError>,
+    response: ReadResponse<QueryResponseReply>,
     request_id: Option<RequestId>,
 ) -> DfxResult {
     match response {
-        Ok(ReadResponse::Pending) => {
+        ReadResponse::Pending => {
             match request_id {
                 None => eprintln!("Pending"),
                 Some(request_id) => {
                     eprint!("Request ID: ");
+                    std::io::stderr().flush()?;
                     println!("0x{}", String::from(request_id));
                 }
             }
             Ok(())
         }
-        Ok(ReadResponse::Replied { reply }) => {
+        ReadResponse::Replied { reply } => {
             if let Some(QueryResponseReply { arg: blob }) = reply {
                 print_idl_blob(&blob)
                     .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
             }
             Ok(())
         }
-        Ok(ReadResponse::Rejected {
+        ReadResponse::Rejected {
             reject_code,
             reject_message,
-        }) => Err(DfxError::ClientError(reject_code, reject_message)),
-        // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
-        Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
-        Err(x) => Err(x),
+        } => Err(DfxError::ClientError(reject_code, reject_message)),
+        ReadResponse::Unknown => Err(DfxError::Unknown("Unknown response".to_owned())),
     }
 }
 
@@ -152,26 +153,23 @@ where
 
     let client = env.get_client();
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    let (response, request_id) = if is_query {
+    if is_query {
         let future = query(
             client,
             canister_id,
             method_name.to_owned(),
             arg_value.map(Blob::from),
         );
-        (runtime.block_on(future), None)
+        read_response(runtime.block_on(future)?, None)
     } else {
         let future = call(client, canister_id, method_name.to_owned(), arg_value);
         let request_id: RequestId = runtime.block_on(future)?;
         if args.is_present("async") {
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
-            return Ok(());
+            Ok(())
         } else {
-            let request_status = request_status(env.get_client(), request_id);
-            let mut runtime = Runtime::new().expect("Unable to create a runtime");
-            (runtime.block_on(request_status), Some(request_id))
+            wait_on_request_status(&env.get_client(), request_id)
         }
-    };
-    read_response(response, request_id)
+    }
 }
