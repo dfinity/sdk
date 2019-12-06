@@ -1,6 +1,5 @@
 import { Buffer } from 'buffer/';
 import * as blob from './blob';
-import { Hex } from './hex';
 import { HttpAgent } from './httpAgent';
 import * as _IDL from './IDL';
 import * as requestId from './requestId';
@@ -45,7 +44,7 @@ export const makeActor = (
       // convert to a ferross/buffer `Buffer` so that our `instanceof` checks
       // succeed. TODO: reconcile these `Buffer` types.
       const safeBuffer = _IDL.encode(func.argTypes, args);
-      const hex = safeBuffer.toString('hex') as Hex;
+      const hex = safeBuffer.toString('hex');
       const arg = blob.fromHex(hex);
       const isQuery = func.annotations.includes('query');
 
