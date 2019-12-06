@@ -23,9 +23,9 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
             // Then check all other characters.
             // Reverses the search here; if there is a character that is not compatible
             // it is found and an error is returned.
-            let m: Vec<&str> = name.matches(|x: char| {
-                !x.is_ascii_alphanumeric() && x != '_'
-            }).collect();
+            let m: Vec<&str> = name
+                .matches(|x: char| !x.is_ascii_alphanumeric() && x != '_')
+                .collect();
 
             if m.len() > 0 {
                 Err(format!(
