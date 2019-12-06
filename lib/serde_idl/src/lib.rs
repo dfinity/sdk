@@ -54,6 +54,7 @@ extern crate serde;
 
 pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
+pub use crate::types::IDLProg;
 pub use crate::value::IDLArgs;
 pub use dfx_info::IDLType;
 pub use serde::Deserialize;

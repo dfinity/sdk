@@ -1,0 +1,106 @@
+= Release Process
+
+This document describes the release process for DFINITY SDK. We review the
+mechanism, the automation provided and the checklist process.
+
+== Overview
+
+Releases are done following the checklist rule: preferrably by two people
+familiar with the process, i.e. 1 driver 1 validator. The validator should be
+the person most familiar with the process. A successful release is the result of
+coordination between automation, manual labor and validation. We should improve
+the release process continuously. In the following mechanism section we describe
+the operation of how to get a new release out.
+
+== Checklist
+
+[%interactive]
+* [ ] Participants
+** [ ] Driver
+** [ ] Validator
+** [ ] CI (system up)
+* [ ] Is master green?
+* [ ] Was master red recently or flaky?
+* [ ] Follow process:
+   . [ ] Update cargo version (Use `./scripts/update-cargo-version.sh version`)
+   . [ ] Update manifest to include new version; *Ensure* latest remains the same
+   . [ ] Create a pull request with the above 2 changes and get the validator to approve it
+   . [ ] Switch to stable branch and `git pull origin stable`
+   . [ ] Run `git pull origin master --ff-only`
+   . [ ] Create tags with `git tag -a version -m " Release: version"`
+   . [ ] Double check the tag points correctly and is an annotated one: `git log` and  `git describe --always`
+   . [ ] Push tag first to avoid triggering hydra incorrectly `git push origin version`
+   . [ ] Push the stable branch now `git push origin stable`
+   . [ ] Check hydra
+   . [ ] Prepare PR for manifest
+   . [ ] Update release notes
+   . [ ] Update manifest once all builds are done (see https://blobules.dfinity.systems/sdk-release/ and https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release)
+     *  [ ] Linux
+     *  [ ] Darwin
+
+Notes: We assume *upstream* is `origin`.
+
+
+== Requirements & Properties
+
+ - Semi-automation
+ - Consistent delivery
+ - Validation
+ - Rollback
+ - Railguards
+ - Flexibity
+
+== Mechanism
+
+===  Build
+
+Our build process is described in the nix derivation release-jobset.nix. This
+mainly invokes the dfx-release derivation passing the annotated tag on HEAD
+(which happens right now to be the stable branch). Along with building release
+binaries and files for each platform, it generates a manifest for S3 providing
+it with the tag name. This allows us to keep a directory structure with all past
+and upcoming releases in S3.
+
+===  CI
+
+CI release-related operation is split into two jobsets:
+
+ - Generation and publishing of 'install.sh' and 'manifest.json'
+ - Tagging of a commit to release, building publishing necessary executables and files for supported platforms
+
+
+===  Manifest
+
+We utilize a manifest to indicate to users (and in particular to our installer
+and dfx) available and supported versions for download. This allows us to
+rollback a release or remove a release from the list of supported releases. See
+link:../specification/version_management{outfilesuffix}[Version Management] for
+details on the format of the manifest.
+
+The manifest is generated when a patch is applied on master by the CI.
+
+=== Installer
+
+The installer is generated when a patch is applied on master by the CI.
+
+===  Changelog
+
+A candidate changelog is generated automatically using the respective tool
+(under scripts directory). Right now the release notes need to be updated
+manually in github.
+
+=== Publishing of Artifacts
+
+=== Process
+
+We now summarize the release process. Our first step is to ensure the proper and
+valid state of master branch. Then we update cargo and the manifest
+accordingly. We create and push an annotated tag on stable. Meanwhile, we
+generate the changelog, inspect, clarify and develop it appropriately for public
+purview. Ensuring the proper artifacts are available in S3, we can now publish
+them, by updating the manifest.
+
+== TODOs and Improvements
+. version from the tag
+. release stress tests
+. valid json test for the manifest

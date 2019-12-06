@@ -10,7 +10,7 @@ pub trait IDLType {
     // memoized type derivation
     fn ty() -> Type {
         let id = Self::id();
-        if let Some(t) = types::find_type(&id) {
+        if let Some(t) = types::find_type(id) {
             match t {
                 Type::Unknown => Type::Knot(id),
                 _ => t,

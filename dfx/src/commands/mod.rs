@@ -5,9 +5,10 @@ use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
 mod build;
+mod cache;
 mod canister;
 mod config;
-mod ide;
+mod language_service;
 mod new;
 mod start;
 mod stop;
@@ -43,11 +44,12 @@ where
 {
     vec![
         CliCommand::new(build::construct(), build::exec),
+        CliCommand::new(cache::construct::<T>(), cache::exec),
         CliCommand::new(canister::construct::<T>(), canister::exec),
         CliCommand::new(config::construct(), config::exec),
+        CliCommand::new(language_service::construct(), language_service::exec),
         CliCommand::new(new::construct(), new::exec),
         CliCommand::new(start::construct(), start::exec),
         CliCommand::new(stop::construct(), stop::exec),
-        CliCommand::new(ide::construct(), ide::exec),
     ]
 }

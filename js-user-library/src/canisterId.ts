@@ -1,13 +1,14 @@
-import BigNumber from "bignumber.js";
-import { Hex } from "./hex";
+import BigNumber from 'bignumber.js';
 
 // Canister IDs are represented as u64 in the HTTP handler of the client.
-export type CanisterId = BigNumber & { __canisterID__: void };
+export class CanisterId {
+  public static fromHex(hex: string) {
+    return new this(new BigNumber(hex, 16));
+  }
 
-export const fromHex = (hex: Hex): CanisterId => {
-  return new BigNumber(`0x${hex}`) as CanisterId;
-};
+  constructor(private _id: BigNumber) {}
 
-export const toHex = (id: CanisterId): Hex => {
-  return id.toString(16) as Hex;
-};
+  public toHex(): string {
+    return this._id.toString(16);
+  }
+}

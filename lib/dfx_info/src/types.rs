@@ -51,9 +51,9 @@ pub fn is_primitive(t: &Type) -> bool {
 pub fn unroll(t: &Type) -> Type {
     use Type::*;
     match t {
-        Knot(id) => find_type(id).unwrap(),
+        Knot(id) => find_type(*id).unwrap(),
         Opt(ref t) => Opt(Box::new(unroll(t))),
-        Vec(ref t) => Opt(Box::new(unroll(t))),
+        Vec(ref t) => Vec(Box::new(unroll(t))),
         Record(fs) => Record(
             fs.iter()
                 .map(|Field { id, hash, ty }| Field {
@@ -80,9 +80,8 @@ thread_local! {
     static ENV: RefCell<HashMap<TypeId, Type>> = RefCell::new(HashMap::new());
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::trivially_copy_pass_by_ref))]
-pub fn find_type(id: &TypeId) -> Option<Type> {
-    ENV.with(|e| match e.borrow().get(id) {
+pub fn find_type(id: TypeId) -> Option<Type> {
+    ENV.with(|e| match e.borrow().get(&id) {
         None => None,
         Some(t) => Some((*t).clone()),
     })

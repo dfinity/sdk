@@ -48,7 +48,11 @@ pub enum DfxError {
     // Configuration path does not exist in the config file.
     ConfigPathDoesNotExist(String),
     InvalidArgument(String),
+    InvalidMethodCall(String),
     InvalidData(String),
+
+    // The ide server shouldn't be started from a terminal
+    LanguageServerFromATerminal,
 }
 
 /// The result of running a DFX command.

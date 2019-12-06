@@ -6,9 +6,11 @@ module.exports = {
   setupFilesAfterEnv: [
     "jest-expect-message",
   ],
-  testEnvironment: "jsdom",
   testPathIgnorePatterns: [
     "/node_modules/",
     "/out/",
-  ]
+  ],
+  transform: {
+    "^.+\\.ts$": "ts-jest"
+  }
 };
