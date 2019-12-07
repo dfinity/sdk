@@ -44,7 +44,7 @@ pub fn construct() -> App<'static, 'static> {
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
-                .possible_values(&["string", "number", "idl"]),
+                .possible_values(&["string", "number", "idl", "raw"]),
         )
         .arg(
             Arg::with_name("argument")
@@ -137,6 +137,9 @@ where
                     e
                 ))
             })?)),
+            Some("raw") => Ok(hex::decode(&a).map_err(|e| {
+                DfxError::InvalidArgument(format!("Argument is not a valid hex string: {}", e))
+            })?),
             Some("idl") | None => {
                 let args: IDLArgs = a
                     .parse()

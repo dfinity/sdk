@@ -27,6 +27,9 @@ teardown() {
     assert_command dfx canister call hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
 
+    assert_command dfx canister call hello greet --type raw '4449444c00017103e29883'
+    assert_eq '("Hello, ☃!")'
+
     assert_command dfx canister query hello greet '("Banzai")'
     assert_match '\("Hello, Banzai!"\)'
 
