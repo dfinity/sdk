@@ -3,10 +3,10 @@ import { Buffer } from 'buffer/';
 import { BinaryBlob } from './blob';
 import * as blob from './blob';
 import { CanisterId } from './canisterId';
-import { CborValue, decode, encode } from './cbor';
+import { decode, encode } from './cbor';
 
 test('round trip', () => {
-  interface Data extends Record<string, CborValue> {
+  interface Data {
     a: number;
     b: string;
     c: BinaryBlob;
@@ -29,14 +29,15 @@ test('round trip', () => {
     g: new BigNumber('0xffffffffffffffff'),
   };
 
-  const output = decode(encode(input)) as Data;
+  const output = decode<Data>(encode(input)) as Data;
 
   // Some values don't decode exactly to the value that was encoded,
   // but their hexadecimal representions are the same.
-  const { c: inputC, f: inputF, ...inputRest } = input;
+  const { c: inputC, e: inputE, f: inputF, ...inputRest } = input;
 
-  const { c: outputC, f: outputF, ...outputRest } = output;
+  const { c: outputC, e: outputE, f: outputF, ...outputRest } = output;
 
   expect(blob.toHex(outputC)).toBe(blob.toHex(inputC));
+  expect(((outputE as any) as BigNumber).toString(16)).toBe(inputE.toHex());
   expect(outputRest).toEqual(inputRest);
 });

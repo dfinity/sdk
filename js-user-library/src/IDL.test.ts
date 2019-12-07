@@ -1,6 +1,7 @@
 // tslint:disable
 import * as IDL from './IDL';
 import { Buffer } from 'buffer';
+import Pipe = require('buffer-pipe');
 
 function testEncode(typ: IDL.Type, val: any, hex: string, _str: string) {
   expect(IDL.encode([typ], [val])).toEqual(Buffer.from(hex, 'hex'));
@@ -19,6 +20,26 @@ function test_args(typs: IDL.Type[], vals: any[], hex: string, _str: string) {
   expect(IDL.encode(typs, vals)).toEqual(Buffer.from(hex, 'hex'));
   expect(IDL.decode(typs, Buffer.from(hex, 'hex'))).toEqual(vals);
 }
+
+test('leb', () => {
+  expect(IDL.lebEncode(0).toString('hex')).toBe('00');
+  expect(IDL.lebEncode(1).toString('hex')).toBe('01');
+  expect(IDL.lebEncode(624485).toString('hex')).toBe('e58e26');
+
+  expect(IDL.lebDecode(new Pipe(Buffer.from([0])))).toBe(0);
+  expect(IDL.lebDecode(new Pipe(Buffer.from([1])))).toBe(1);
+  expect(IDL.lebDecode(new Pipe(Buffer.from([0xe5, 0x8e, 0x26])))).toBe(624485);
+});
+
+test('sleb', () => {
+  expect(IDL.slebEncode(-1).toString('hex')).toBe('7f');
+  expect(IDL.slebEncode(-123456).toString('hex')).toBe('c0bb78');
+  expect(IDL.slebEncode(42).toString('hex')).toBe('2a');
+
+  expect(IDL.slebDecode(new Pipe(Buffer.from([0x7f])))).toBe(-1);
+  expect(IDL.slebDecode(new Pipe(Buffer.from([0xc0, 0xbb, 0x78])))).toBe(-123456);
+  expect(IDL.slebDecode(new Pipe(Buffer.from([0x2a])))).toBe(42);
+});
 
 test('IDL hash', () => {
   function testHash(str: string, hash: number) {
