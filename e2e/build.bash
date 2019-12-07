@@ -25,17 +25,17 @@ teardown() {
 
 @test "build succeeds on default project" {
     assert_command dfx build
-    assert_match "Building hello..."
+    assert_match "Building e2e_project..."
 }
 
 @test "build outputs the canister ID" {
     assert_command dfx build
-    [[ -f canisters/hello/_canister.id ]]
+    [[ -f canisters/e2e_project/_canister.id ]]
 }
 
 @test "build can take a single argument" {
-    assert_command dfx build hello
-    assert_match "Building hello..."
+    assert_command dfx build e2e_project
+    assert_match "Building e2e_project..."
 
     assert_command_fail dfx build unknown_canister
     assert_match "Could not find.*unknown_canister.*"

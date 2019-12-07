@@ -12,12 +12,45 @@ use std::process::Stdio;
 const DRY_RUN: &str = "dry_run";
 const PROJECT_NAME: &str = "project_name";
 
+/// Validate a String can be a valid project name.
+/// A project name is valid if it starts with a letter, and is alphanumeric (with hyphens).
+/// It cannot end with a dash.
+pub fn project_name_validator(name: String) -> Result<(), String> {
+    let mut chars = name.chars();
+    // Check first character first. If there's no first character it's empty.
+    if let Some(first) = chars.next() {
+        if first.is_ascii_alphabetic() {
+            // Then check all other characters.
+            // Reverses the search here; if there is a character that is not compatible
+            // it is found and an error is returned.
+            let m: Vec<&str> = name
+                .matches(|x: char| !x.is_ascii_alphanumeric() && x != '_')
+                .collect();
+
+            if m.is_empty() {
+                Ok(())
+            } else {
+                Err(format!(
+                    r#"Invalid character(s): "{}""#,
+                    m.iter()
+                        .fold(String::new(), |acc, &num| acc + &num.to_string())
+                ))
+            }
+        } else {
+            Err("Must start with a letter.".to_owned())
+        }
+    } else {
+        Err("Cannot be empty.".to_owned())
+    }
+}
+
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("new")
         .about(UserMessage::CreateProject.to_str())
         .arg(
             Arg::with_name(PROJECT_NAME)
                 .help(UserMessage::ProjectName.to_str())
+                .validator(project_name_validator)
                 .required(true),
         )
         .arg(
@@ -204,4 +237,36 @@ where
     );
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_name_is_valid() {
+        assert!(project_name_validator("a".to_owned()).is_ok());
+        assert!(project_name_validator("a_".to_owned()).is_ok());
+        assert!(project_name_validator("a_1".to_owned()).is_ok());
+        assert!(project_name_validator("A".to_owned()).is_ok());
+        assert!(project_name_validator("A1".to_owned()).is_ok());
+        assert!(project_name_validator("a_good_name_".to_owned()).is_ok());
+        assert!(project_name_validator("a_good_name".to_owned()).is_ok());
+    }
+
+    #[test]
+    fn project_name_is_invalid() {
+        assert!(project_name_validator("_a_good_name_".to_owned()).is_err());
+        assert!(project_name_validator("__also_good".to_owned()).is_err());
+        assert!(project_name_validator("_1".to_owned()).is_err());
+        assert!(project_name_validator("_a".to_owned()).is_err());
+        assert!(project_name_validator("1".to_owned()).is_err());
+        assert!(project_name_validator("1_".to_owned()).is_err());
+        assert!(project_name_validator("-".to_owned()).is_err());
+        assert!(project_name_validator("_".to_owned()).is_err());
+        assert!(project_name_validator("a-b-c".to_owned()).is_err());
+        assert!(project_name_validator("🕹".to_owned()).is_err());
+        assert!(project_name_validator("不好".to_owned()).is_err());
+        assert!(project_name_validator("a:b".to_owned()).is_err());
+    }
 }
