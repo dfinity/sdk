@@ -10,7 +10,7 @@ use std::vec::Vec;
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
 
-#[derive(Clone, Default)]
+#[derive(Debug, Default)]
 pub struct IDLBuilder {
     type_ser: TypeSerialize,
     value_ser: ValueSerializer,
@@ -23,17 +23,16 @@ impl IDLBuilder {
             value_ser: ValueSerializer::new(),
         }
     }
-    pub fn arg<'a, T: dfx_info::IDLType>(&'a mut self, value: &T) -> &'a mut Self {
-        self.type_ser.push_type(&T::ty()).unwrap();
-        value.idl_serialize(&mut self.value_ser).unwrap();
-        self
+    pub fn arg<'a, T: dfx_info::IDLType>(&'a mut self, value: &T) -> Result<&'a mut Self> {
+        self.type_ser.push_type(&T::ty())?;
+        value.idl_serialize(&mut self.value_ser)?;
+        Ok(self)
     }
-    // Only works for IDLValue
-    pub fn value_arg<'a>(&'a mut self, value: &IDLValue) -> &'a mut Self {
+    pub fn value_arg<'a>(&'a mut self, value: &IDLValue) -> Result<&'a mut Self> {
         use dfx_info::IDLType;
-        self.type_ser.push_type(&value.value_ty()).unwrap();
-        value.idl_serialize(&mut self.value_ser).unwrap();
-        self
+        self.type_ser.push_type(&value.value_ty())?;
+        value.idl_serialize(&mut self.value_ser)?;
+        Ok(self)
     }
     pub fn serialize<W: io::Write>(&mut self, mut writer: W) -> Result<()> {
         writer.write_all(b"DIDL")?;
@@ -47,14 +46,10 @@ impl IDLBuilder {
         self.serialize(&mut vec)?;
         Ok(vec)
     }
-    pub fn to_vec(&self) -> Result<Vec<u8>> {
-        let mut s2 = self.clone();
-        s2.serialize_to_vec()
-    }
 }
 
 /// A structure for serializing Rust values to IDL.
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ValueSerializer {
     value: Vec<u8>,
 }
@@ -142,7 +137,7 @@ impl<'a> dfx_info::Compound for Compound<'a> {
 }
 
 /// A structure for serializing Rust values to IDL types.
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct TypeSerialize {
     type_table: Vec<Vec<u8>>,
     type_map: HashMap<Type, i32>,
