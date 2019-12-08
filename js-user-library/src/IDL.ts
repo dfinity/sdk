@@ -85,7 +85,6 @@ export function slebDecode(pipe: Pipe): number {
   return -value - 1;
 }
 
-
 // tslint:disable:max-line-length
 /**
  * This module provides a combinator library to create serializers/deserializers
