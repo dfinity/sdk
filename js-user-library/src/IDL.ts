@@ -239,7 +239,7 @@ type IDLNumber = string | number;
  */
 export class IntClass extends PrimitiveType<IDLNumber> {
   public covariant(x: any): x is IDLNumber {
-    return Number.isInteger(x) || /^\d+$/.test(x);
+    return Number.isInteger(x) || /^[+-]?\d+$/.test(x);
   }
 
   public encodeValue(x: IDLNumber) {
@@ -303,12 +303,12 @@ export class FixedIntClass extends PrimitiveType<number> {
 /**
  * Represents an IDL Nat
  */
-export class NatClass extends PrimitiveType<number> {
-  public covariant(x: any): x is number {
-    return Number.isInteger(x) && x >= 0;
+export class NatClass extends PrimitiveType<IDLNumber> {
+  public covariant(x: any): x is IDLNumber {
+    return (Number.isInteger(x) && x >= 0) || /^\d+$/.test(x);
   }
 
-  public encodeValue(x: number) {
+  public encodeValue(x: IDLNumber) {
     return leb.encode(x);
   }
 
@@ -317,7 +317,12 @@ export class NatClass extends PrimitiveType<number> {
   }
 
   public decodeValue(b: Pipe) {
-    return leb.readBn(b).toNumber();
+    const res = sleb.readBn(b);
+    if (res.bitLength() <= 53) {
+      return res.toNumber();
+    } else {
+      return res.toString();
+    }      
   }
 
   get name() {
