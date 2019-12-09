@@ -76,14 +76,31 @@ struct Manifest {
     versions: Vec<Version>,
 }
 
-fn get_latest_version(release_root: &str) -> DfxResult<Version> {
+pub fn is_upgrade_necessary(latest_version: Option<Version>, current: Version) -> bool {
+    match latest_version {
+        Some(latest) => latest > current,
+        None => true,
+    }
+}
+
+pub fn get_latest_version(
+    release_root: &str,
+    timeout: Option<std::time::Duration>,
+) -> DfxResult<Version> {
     let url = reqwest::Url::parse(release_root)
         .map_err(|e| DfxError::InvalidArgument(format!("invalid release root: {}", e)))?;
     let manifest_url = url
         .join("manifest.json")
         .map_err(|e| DfxError::InvalidArgument(format!("invalid manifest URL: {}", e)))?;
     println!("Fetching manifest {}", manifest_url);
-    let mut response = reqwest::get(manifest_url).map_err(DfxError::Reqwest)?;
+    // TODO Use a client to deal with any futures redirects
+    let client = match timeout {
+        Some(timeout) => reqwest::Client::builder().timeout(timeout),
+        None => reqwest::Client::builder(),
+    };
+
+    let client = client.build()?;
+    let mut response = client.get(manifest_url).send().map_err(DfxError::Reqwest)?;
     let status_code = response.status();
 
     if !status_code.is_success() {
@@ -139,7 +156,7 @@ where
         .map_err(|e| DfxError::InvalidData(format!("invalid version: {}", e)))?;
     println!("Current version: {}", current_version);
     let release_root = args.value_of("release-root").unwrap();
-    let latest_version = get_latest_version(release_root)?;
+    let latest_version = get_latest_version(release_root, None)?;
 
     if latest_version > current_version {
         println!("New version available: {}", latest_version);
@@ -189,14 +206,14 @@ mod tests {
             .with_header("content-type", "application/json")
             .with_body(MANIFEST)
             .create();
-        let latest_version = get_latest_version(&mockito::server_url());
+        let latest_version = get_latest_version(&mockito::server_url(), None);
         assert_eq!(latest_version.unwrap(), Version::parse("0.4.1").unwrap());
         let _m = mockito::mock("GET", "/manifest.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body("Not a valid JSON object")
             .create();
-        let latest_version = get_latest_version(&mockito::server_url());
+        let latest_version = get_latest_version(&mockito::server_url(), None);
         assert!(latest_version.is_err());
     }
 }

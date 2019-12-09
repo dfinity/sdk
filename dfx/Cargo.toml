@@ -25,6 +25,7 @@ futures = "0.1.28"
 hex = "0.3.2"
 ic-http-agent = { "path" = "../lib/ic_http_agent" }
 indicatif = "0.12.0"
+lazy_static = "1.4.0"
 libflate = "0.1.27"
 rand = "0.7.2"
 reqwest = "0.9.20"
