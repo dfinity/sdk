@@ -5,6 +5,7 @@ let package = napalm.buildPackage ./. {
     "npm install"
     "npm run ci"
     "npm run bundle"
+    "npm run test"
   ];
 }; in
 
