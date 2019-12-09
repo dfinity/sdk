@@ -2,6 +2,9 @@ extern crate pretty;
 use self::pretty::{BoxDoc, Doc};
 use crate::{Error, Result};
 use dfx_info::idl_hash;
+use std::collections::HashMap;
+
+type Env = HashMap<String, IDLType>;
 
 #[derive(Debug, Clone)]
 pub enum IDLType {
@@ -126,6 +129,16 @@ pub struct IDLProg {
 }
 
 impl IDLProg {
+    pub fn to_env(&self) -> Env {
+        let mut env = HashMap::new();
+        for dec in self.decs.iter() {
+            if let Dec::TypD(bind) = dec {
+                env.insert(bind.id.clone(), bind.typ.clone());
+            }
+        }
+        env
+    }
+
     fn find_type(&self, id: &str) -> Result<IDLType> {
         for dec in self.decs.iter() {
             if let Dec::TypD(bind) = dec {
