@@ -98,8 +98,15 @@ test('IDL encoding (tuple)', () => {
 
 test('IDL encoding (array)', () => {
   // Array
-  test_(IDL.Arr(IDL.Int), [0, 1, 2, 3].map(x => new BigNumber(x)), '4449444c016d7c01000400010203', 'Array of Ints');
-  expect(() => IDL.encode([IDL.Arr(IDL.Int)], [new BigNumber(0)])).toThrow(/Invalid Arr\(Int\) argument/);
+  test_(
+    IDL.Arr(IDL.Int),
+    [0, 1, 2, 3].map(x => new BigNumber(x)),
+    '4449444c016d7c01000400010203',
+    'Array of Ints',
+  );
+  expect(() => IDL.encode([IDL.Arr(IDL.Int)], [new BigNumber(0)])).toThrow(
+    /Invalid Arr\(Int\) argument/,
+  );
   expect(() => IDL.encode([IDL.Arr(IDL.Int)], [['fail']])).toThrow(/Invalid Arr\(Int\) argument/);
 });
 
