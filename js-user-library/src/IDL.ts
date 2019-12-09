@@ -270,7 +270,7 @@ export class NatClass extends PrimitiveType<BigNumber> {
     return (x instanceof BigNumber && !x.isNegative()) || (Number.isInteger(x) && x >= 0);
   }
 
-  public encodeValue(x: BigNumber) {
+  public encodeValue(x: BigNumber | number) {
     return lebEncode(x);
   }
 

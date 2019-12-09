@@ -7,7 +7,7 @@ test('leb', () => {
   expect(lebEncode(0).toString('hex')).toBe('00');
   expect(lebEncode(7).toString('hex')).toBe('07');
   expect(lebEncode(127).toString('hex')).toBe('7f');
-  expect(lebEncode(-1).toString('hex')).toBe('00');
+  expect(() => lebEncode(-1).toString('hex')).toThrow();
   expect(lebEncode(1).toString('hex')).toBe('01');
   expect(lebEncode(624485).toString('hex')).toBe('e58e26');
   expect(lebEncode(new BigNumber('1234567890abcdef1234567890abcdef', 16)).toString('hex'))

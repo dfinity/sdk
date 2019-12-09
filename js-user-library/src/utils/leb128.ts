@@ -8,7 +8,10 @@ export function lebEncode(value: number | BigNumber): Buffer {
     value = new BigNumber(value);
   }
   value = value.integerValue();
-  if (value.lte(0)) {
+  if (value.lt(0)) {
+    throw new Error("Cannot leb encode negative values.");
+  }
+  if (value.eq(0)) {
     // Clamp to 0.
     return Buffer.from([0]);
   }
