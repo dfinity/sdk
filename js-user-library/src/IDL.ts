@@ -1,89 +1,8 @@
 // tslint:disable:max-classes-per-file
+import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer';
 import Pipe = require('buffer-pipe');
-
-export function lebEncode(value: number): Buffer {
-  if (value <= 0) {
-    // Clamp to 0.
-    return Buffer.from([0]);
-  }
-
-  const pipe = new Pipe();
-  while (value) {
-    const i = value & 0x7f;
-    value >>= 7;
-    if (value) {
-      pipe.write([i | 0x80]);
-    } else {
-      pipe.write([i]);
-    }
-  }
-
-  return pipe.buffer;
-}
-
-export function lebDecode(pipe: Pipe): number {
-  let shift = 0;
-  let value = 0;
-  let byte;
-  do {
-    byte = pipe.read(1)[0];
-    value += (byte & 0x7f) << shift;
-    shift += 7;
-  } while (byte >= 0x80);
-  return value;
-}
-
-export function slebEncode(value: number): Buffer {
-  if (value >= 0) {
-    return lebEncode(value);
-  }
-
-  value = ~(value | 0); // one's complement. We add 1 to the bytes later.
-  if (value == 0) {
-    // We need to special case 0, as it would return an empty buffer.
-    return Buffer.from([0x7f]);
-  }
-
-  const pipe = new Pipe();
-  while (value) {
-    // We swap the bits here again, and remove 1 to do two's complement.
-    const i = 0x80 - (value & 0x7f) - 1;
-    value >>= 7;
-
-    if (value) {
-      pipe.write([i | 0x80]);
-    } else {
-      pipe.write([i]);
-    }
-  }
-
-  return pipe.buffer;
-}
-
-export function slebDecode(pipe: Pipe): number {
-  // Get the size of the buffer, then cut a buffer of that size.
-  const pipeView = new Uint8Array(pipe.buffer);
-  let len = 0;
-  for (; len < pipeView.byteLength; len++) {
-    if (pipeView[len] < 0x80) {
-      // If it's a positive number, we reuse lebDecode.
-      if ((pipeView[len] & 0x40) == 0) {
-        return lebDecode(pipe);
-      }
-      break;
-    }
-  }
-
-  const view = new Uint8Array(pipe.read(len + 1));
-
-  let value = 0;
-  for (let i = view.byteLength - 1; i >= 0; i--) {
-    value <<= 7;
-    value += 0x80 - (view[i] & 0x7f) - 1;
-  }
-  return -value - 1;
-}
+import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 
 // tslint:disable:max-line-length
 /**
@@ -305,7 +224,7 @@ export class TextClass extends PrimitiveType<string> {
   }
 
   public decodeValue(b: Pipe) {
-    const len = lebDecode(b);
+    const len = lebDecode(b).toNumber();
     return b.read(len).toString('utf8');
   }
 
@@ -317,12 +236,14 @@ export class TextClass extends PrimitiveType<string> {
 /**
  * Represents an IDL Int
  */
-export class IntClass extends PrimitiveType<number> {
-  public covariant(x: any): x is number {
-    return Number.isInteger(x);
+export class IntClass extends PrimitiveType<BigNumber> {
+  public covariant(x: any): x is BigNumber {
+    // We allow encoding of JavaScript plain numbers.
+    // But we will always decode to BigNumber.
+    return x instanceof BigNumber || Number.isInteger(x);
   }
 
-  public encodeValue(x: number) {
+  public encodeValue(x: BigNumber | number) {
     return slebEncode(x);
   }
 
@@ -342,12 +263,14 @@ export class IntClass extends PrimitiveType<number> {
 /**
  * Represents an IDL Nat
  */
-export class NatClass extends PrimitiveType<number> {
-  public covariant(x: any): x is number {
-    return Number.isInteger(x) && x >= 0;
+export class NatClass extends PrimitiveType<BigNumber> {
+  public covariant(x: any): x is BigNumber {
+    // We allow encoding of JavaScript plain numbers.
+    // But we will always decode to BigNumber.
+    return (x instanceof BigNumber && !x.isNegative()) || (Number.isInteger(x) && x >= 0);
   }
 
-  public encodeValue(x: number) {
+  public encodeValue(x: BigNumber) {
     return lebEncode(x);
   }
 
@@ -437,7 +360,7 @@ export class ArrClass<T> extends ConstructType<T[]> {
   }
 
   public decodeValue(b: Pipe): any[] {
-    const len = lebDecode(b);
+    const len = lebDecode(b).toNumber();
     const rets: any[] = [];
     for (let i = 0; i < len; i++) {
       rets.push(this._type.decodeValue(b));
@@ -596,7 +519,7 @@ export class VariantClass extends ConstructType<Record<string, any>> {
   }
 
   public decodeValue(b: Pipe) {
-    const idx = lebDecode(b);
+    const idx = lebDecode(b).toNumber();
     if (idx >= this._fields.length) {
       throw Error('Invalid variant: ' + idx);
     }
@@ -723,10 +646,10 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   }
 
   function decodeType(pipe: Pipe) {
-    const len = lebDecode(pipe);
+    const len = lebDecode(pipe).toNumber();
 
     for (let i = 0; i < len; i++) {
-      const ty = slebDecode(pipe);
+      const ty = slebDecode(pipe).toNumber();
       switch (ty) {
         case -18: // opt
           slebDecode(pipe);
@@ -736,7 +659,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           break;
         case -20: {
           // record/tuple
-          let objectLength = lebDecode(pipe);
+          let objectLength = lebDecode(pipe).toNumber();
           while (objectLength--) {
             lebDecode(pipe);
             slebDecode(pipe);
@@ -745,7 +668,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
         }
         case -21: {
           // variant
-          let variantLength = lebDecode(pipe);
+          let variantLength = lebDecode(pipe).toNumber();
           while (variantLength--) {
             lebDecode(pipe);
             slebDecode(pipe);
@@ -757,7 +680,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
       }
     }
 
-    const length = lebDecode(pipe);
+    const length = lebDecode(pipe).toNumber();
     for (let i = 0; i < length; i++) {
       slebDecode(pipe);
     }

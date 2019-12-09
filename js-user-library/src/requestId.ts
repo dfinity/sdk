@@ -26,14 +26,14 @@ const padHex = (hex: string): string => {
 async function hashValue(value: unknown): Promise<Buffer> {
   if (value instanceof borc.Tagged) {
     return hashValue(value.value);
-  } else if (typeof value == 'string') {
+  } else if (typeof value === 'string') {
     return hashString(value);
   } else if (value instanceof CanisterId) {
     // HTTP handler expects canister_id to be an u64 & hashed in this way.
     const hex = value.toHex();
     const padded = padHex(hex);
     return hash(blob.fromHex(padded));
-  } else if (typeof value == 'number') {
+  } else if (typeof value === 'number') {
     const hex = value.toString(16);
     const padded = padHex(hex);
     return hash(blob.fromHex(padded));
