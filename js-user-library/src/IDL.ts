@@ -232,15 +232,17 @@ export class TextClass extends PrimitiveType<string> {
   }
 }
 
+type IDLNumber = string | number;
+
 /**
  * Represents an IDL Int
  */
-export class IntClass extends PrimitiveType<number> {
-  public covariant(x: any): x is number {
-    return Number.isInteger(x);
+export class IntClass extends PrimitiveType<IDLNumber> {
+  public covariant(x: any): x is IDLNumber {
+    return Number.isInteger(x) || /^\d+$/.test(x);
   }
 
-  public encodeValue(x: number) {
+  public encodeValue(x: IDLNumber) {
     return sleb.encode(x);
   }
 
@@ -249,7 +251,12 @@ export class IntClass extends PrimitiveType<number> {
   }
 
   public decodeValue(b: Pipe) {
-    return sleb.readBn(b).toNumber();
+    const res = sleb.readBn(b);
+    if (res.bitLength() <= 53) {
+      return res.toNumber();
+    } else {
+      return res.toString();
+    }
   }
 
   get name() {
