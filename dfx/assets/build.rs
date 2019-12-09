@@ -32,6 +32,18 @@ fn add_assets(fn_name: &str, f: &mut File, path: &str) -> () {
     .unwrap();
 }
 
+fn get_git_hash() -> Option<String> {
+    use std::process::Command;
+
+    let describe = Command::new("git").arg("describe").arg("--dirty").output();
+
+    if let Ok(output) = describe {
+        Some(String::from_utf8_lossy(&output.stdout).to_string())
+    } else {
+        None
+    }
+}
+
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let loader_path = Path::new(&out_dir).join("load_assets.rs");
@@ -48,8 +60,15 @@ fn main() {
     )
     .unwrap();
 
-    let path = env::var("DFX_ASSETS").unwrap();
+    let path = env::var("DFX_ASSETS").expect("Cannot find DFX_ASSETS");
     add_assets("binary_cache", &mut f, &path);
     add_assets("language_bindings", &mut f, "assets/language_bindings");
     add_assets("new_project_files", &mut f, "assets/new_project_files");
+
+    // Pass the git describe version at time of build.
+    if let Some(git) = get_git_hash() {
+        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
+    } else {
+        // Nothing to do here, as there is no GIT. We keep the CARGO_PKG_VERSION.
+    }
 }

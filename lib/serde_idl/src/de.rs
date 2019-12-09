@@ -487,11 +487,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         let value = visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))?;
         Ok(value)
     }
-
+    /// Deserialize identifier.
+    /// # Panics
+    /// *Will Panic* when identifier name is None.
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
+        // N.B. Here we want to panic as it indicates a logical error.
         let label = self.field_name.as_ref().unwrap();
         let v = match label {
             FieldLabel::Named(name) => visitor.visit_str(name),
