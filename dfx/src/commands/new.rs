@@ -12,6 +12,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
+use term::stderr;
 
 const DRY_RUN: &str = "dry_run";
 const PROJECT_NAME: &str = "project_name";
@@ -177,8 +178,27 @@ where
     // drop the error.
     let latest_version = get_latest_version(RELEASE_ROOT, Some(*CHECK_VERSION_TIMEOUT)).ok();
 
-    if is_upgrade_necessary(latest_version, current_version) {
-        eprintln!("You seem to be running an outdated version of dfx. Please run 'dfx upgrade' at your earliest convenience.");
+    if is_upgrade_necessary(latest_version.clone(), current_version.clone()) {
+        eprintln!("You seem to be running an outdated version of dfx. ");
+        if let Some(mut t) = stderr() {
+            if t.supports_color() && latest_version.is_some() {
+                // fg() should not fail as the terminal supports
+                // color. See term crate documentation.
+                t.fg(term::color::RED).unwrap();
+                write!(t, "\n current version: {}", current_version.clone())?;
+                t.fg(term::color::YELLOW).unwrap();
+                write!(t, "→")?;
+                t.fg(term::color::GREEN).unwrap();
+                write!(
+                    t,
+                    " latest version: {}",
+                    latest_version
+                        .clone()
+                        .expect("Expected a parsed version number")
+                )?;
+            }
+        }
+        eprintln!("\n You are strongly encouraged to upgrade by running 'dfx upgrade'!");
     }
 
     eprintln!(r#"Creating new project "{}"..."#, project_name.display());
