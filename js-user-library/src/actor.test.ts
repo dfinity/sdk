@@ -3,11 +3,11 @@ import * as blob from './blob';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
 import { Nonce } from './nonce';
-import { requestIdOf } from './requestId';
-import { RequestType } from './requestType';
-import { SenderPubKey } from './senderPubKey';
-import { SenderSecretKey } from './senderSecretKey';
-import { SenderSig } from './senderSig';
+import { requestIdOf } from './request_id';
+import { RequestType } from './request_type';
+import { SenderPubKey } from './sender_pub_key';
+import { SenderSecretKey } from './sender_secret_key';
+import { SenderSig } from './sender_sig';
 
 import { IDL as _IDL, makeActor, makeHttpAgent } from './index';
 

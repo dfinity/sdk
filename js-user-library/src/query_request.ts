@@ -1,6 +1,6 @@
 import { BinaryBlob } from './blob';
 import { CanisterId } from './canisterId';
-import { ReadRequestType } from './readRequestType';
+import { ReadRequestType } from './read_request_type';
 import { Request } from './request';
 
 // The fields in a "query" read request.

@@ -1,5 +1,5 @@
 import { BinaryBlob } from './blob';
-import { RejectCode } from './rejectCode';
+import { RejectCode } from './reject_code';
 import { Response } from './response';
 
 // An ADT that represents responses to a "query" read request.

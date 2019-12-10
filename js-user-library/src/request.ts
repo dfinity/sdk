@@ -1,7 +1,7 @@
 import { Nonce } from './nonce';
-import { RequestType } from './requestType';
-import { SenderPubKey } from './senderPubKey';
-import { SenderSig } from './senderSig';
+import { RequestType } from './request_type';
+import { SenderPubKey } from './sender_pub_key';
+import { SenderSig } from './sender_sig';
 
 export interface AuthFields extends Record<string, any> {
   sender_pubkey: SenderPubKey;

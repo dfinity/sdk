@@ -1,6 +1,6 @@
 // tslint:disable
 import BigNumber from 'bignumber.js';
-import * as IDL from './IDL';
+import * as IDL from './idl';
 import { Buffer } from 'buffer';
 
 function testEncode(typ: IDL.Type, val: any, hex: string, _str: string) {
@@ -21,18 +21,6 @@ function test_args(typs: IDL.Type[], vals: any[], hex: string, _str: string) {
   expect(IDL.decode(typs, Buffer.from(hex, 'hex'))).toEqual(vals);
 }
 
-test('IDL hash', () => {
-  function testHash(str: string, hash: number) {
-    expect(IDL.hash(str)).toBe(hash);
-  }
-
-  testHash('', 0);
-  testHash('id', 23515);
-  testHash('description', 1595738364);
-  testHash('short_name', 3261810734);
-  testHash('Hi ☃', 1419229646);
-});
-
 test('IDL encoding (magic number)', () => {
   // Wrong magic number
   expect(() => IDL.decode([IDL.Nat], Buffer.from('2a'))).toThrow(
@@ -50,8 +38,8 @@ test('IDL encoding (none)', () => {
 });
 
 test('IDL encoding (unit)', () => {
-  // Unit
-  test_(IDL.Unit, null, '4449444c00017f', 'Unit value');
+  // Null
+  test_(IDL.Unit, null, '4449444c00017f', 'Null value');
 });
 
 test('IDL encoding (text)', () => {
