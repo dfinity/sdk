@@ -1,6 +1,6 @@
 // tslint:disable
 import BigNumber from 'bignumber.js';
-import * as IDL from './IDL';
+import * as IDL from './idl';
 import { Buffer } from 'buffer';
 
 function testEncode(typ: IDL.Type, val: any, hex: string, _str: string) {
@@ -50,8 +50,8 @@ test('IDL encoding (none)', () => {
 });
 
 test('IDL encoding (unit)', () => {
-  // Unit
-  test_(IDL.Unit, null, '4449444c00017f', 'Unit value');
+  // Null
+  test_(IDL.Unit, null, '4449444c00017f', 'Null value');
 });
 
 test('IDL encoding (text)', () => {

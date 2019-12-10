@@ -5,10 +5,10 @@ import { Buffer } from 'buffer/';
 import { BinaryBlob } from './blob';
 import * as blob from './blob';
 import { Request } from './request';
-import { hash, requestIdOf } from './requestId';
-import { RequestType } from './requestType';
-import { SenderPubKey } from './senderPubKey';
-import { SenderSig } from './senderSig';
+import { hash, requestIdOf } from './request_id';
+import { RequestType } from './request_type';
+import { SenderPubKey } from './sender_pub_key';
+import { SenderSig } from './sender_sig';
 
 const testHashOfBlob = async (input: BinaryBlob, expected: string) => {
   const hashed = await hash(input);

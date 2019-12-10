@@ -1,9 +1,9 @@
 import { Buffer } from 'buffer/';
 import tweetnacl from 'tweetnacl';
-import { RequestId } from './requestId';
-import { SenderPubKey } from './senderPubKey';
-import { SenderSecretKey } from './senderSecretKey';
-import { SenderSig } from './senderSig';
+import { RequestId } from './request_id';
+import { SenderPubKey } from './sender_pub_key';
+import { SenderSecretKey } from './sender_secret_key';
+import { SenderSig } from './sender_sig';
 
 export interface KeyPair {
   publicKey: SenderPubKey;

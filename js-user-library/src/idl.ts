@@ -12,6 +12,19 @@ import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
  */
 // tslint:enable:max-line-length
 
+const enum IDLTypeIds {
+  Null = -1,
+  Bool = -2,
+  Nat = -3,
+  Int = -4,
+  Text = -15,
+  Empty = -17,
+  Opt = -18,
+  Sequence = -19,
+  Record = -20,
+  Variant = -21,
+}
+
 function zipWith<TX, TY, TR>(xs: TX[], ys: TY[], f: (a: TX, b: TY) => TR): TR[] {
   return xs.map((x, i) => f(x, ys[i]));
 }
@@ -30,7 +43,10 @@ export function hash(s: string): number {
 
 const magicNumber = 'DIDL';
 
-export class TypeTable {
+/**
+ * An IDL Type Table, which precedes the data in the stream.
+ */
+class TypeTable {
   // List of types. Needs to be an array as the index needs to be stable.
   private _typs: Buffer[] = [];
   private _idx = new Map<string, number>();
@@ -112,14 +128,14 @@ export abstract class Type<T = any> {
   protected abstract _buildTypeTableImpl(typeTable: TypeTable): void;
 }
 
-export abstract class PrimitiveType<T = any> extends Type<T> {
+abstract class PrimitiveType<T = any> extends Type<T> {
   public _buildTypeTableImpl(typeTable: TypeTable): void {
     // No type table encoding for Primitive types.
     return;
   }
 }
 
-export abstract class ConstructType<T = any> extends Type<T> {
+abstract class ConstructType<T = any> extends Type<T> {
   public encodeType(typeTable: TypeTable) {
     return typeTable.indexOf(this.name);
   }
@@ -130,7 +146,7 @@ export abstract class ConstructType<T = any> extends Type<T> {
  * Since no values exist for this type, it cannot be serialised or deserialised.
  * Result types like `Result<Text, None>` should always succeed.
  */
-export class NoneClass extends PrimitiveType<never> {
+class NoneClass extends PrimitiveType<never> {
   public covariant(x: any): x is never {
     return false;
   }
@@ -140,7 +156,7 @@ export class NoneClass extends PrimitiveType<never> {
   }
 
   public encodeType() {
-    return slebEncode(-17);
+    return slebEncode(IDLTypeIds.Empty);
   }
 
   public decodeValue(): never {
@@ -155,7 +171,7 @@ export class NoneClass extends PrimitiveType<never> {
 /**
  * Represents an IDL Bool
  */
-export class BoolClass extends PrimitiveType<boolean> {
+class BoolClass extends PrimitiveType<boolean> {
   public covariant(x: any): x is boolean {
     return typeof x === 'boolean';
   }
@@ -167,7 +183,7 @@ export class BoolClass extends PrimitiveType<boolean> {
   }
 
   public encodeType() {
-    return slebEncode(-2);
+    return slebEncode(IDLTypeIds.Bool);
   }
 
   public decodeValue(b: Pipe) {
@@ -181,9 +197,9 @@ export class BoolClass extends PrimitiveType<boolean> {
 }
 
 /**
- * Represents an IDL Unit
+ * Represents an IDL Null
  */
-export class UnitClass extends PrimitiveType<null> {
+class UnitClass extends PrimitiveType<null> {
   public covariant(x: any): x is null {
     return x === null;
   }
@@ -193,7 +209,7 @@ export class UnitClass extends PrimitiveType<null> {
   }
 
   public encodeType() {
-    return slebEncode(-1);
+    return slebEncode(IDLTypeIds.Null);
   }
 
   public decodeValue() {
@@ -208,7 +224,7 @@ export class UnitClass extends PrimitiveType<null> {
 /**
  * Represents an IDL Text
  */
-export class TextClass extends PrimitiveType<string> {
+class TextClass extends PrimitiveType<string> {
   public covariant(x: any): x is string {
     return typeof x === 'string';
   }
@@ -220,7 +236,7 @@ export class TextClass extends PrimitiveType<string> {
   }
 
   public encodeType() {
-    return slebEncode(-15);
+    return slebEncode(IDLTypeIds.Text);
   }
 
   public decodeValue(b: Pipe) {
@@ -236,7 +252,7 @@ export class TextClass extends PrimitiveType<string> {
 /**
  * Represents an IDL Int
  */
-export class IntClass extends PrimitiveType<BigNumber> {
+class IntClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
@@ -248,7 +264,7 @@ export class IntClass extends PrimitiveType<BigNumber> {
   }
 
   public encodeType() {
-    return slebEncode(-4);
+    return slebEncode(IDLTypeIds.Int);
   }
 
   public decodeValue(b: Pipe) {
@@ -263,7 +279,7 @@ export class IntClass extends PrimitiveType<BigNumber> {
 /**
  * Represents an IDL Nat
  */
-export class NatClass extends PrimitiveType<BigNumber> {
+class NatClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
@@ -275,7 +291,7 @@ export class NatClass extends PrimitiveType<BigNumber> {
   }
 
   public encodeType() {
-    return slebEncode(-3);
+    return slebEncode(IDLTypeIds.Nat);
   }
 
   public decodeValue(b: Pipe) {
@@ -291,7 +307,7 @@ export class NatClass extends PrimitiveType<BigNumber> {
  * Represents an IDL Tuple, a Record that has the index as the key.
  * @param {Type} components
  */
-export class TupleClass<T extends any[]> extends ConstructType<T> {
+class TupleClass<T extends any[]> extends ConstructType<T> {
   constructor(private _components: Type[]) {
     super();
   }
@@ -314,7 +330,7 @@ export class TupleClass<T extends any[]> extends ConstructType<T> {
     const components = this._components;
     components.forEach(x => x.buildTypeTable(typeTable));
 
-    const opCode = slebEncode(-20);
+    const opCode = slebEncode(IDLTypeIds.Record);
     const len = lebEncode(components.length);
     const buf = Buffer.concat(
       components.map((x, i) => {
@@ -337,7 +353,7 @@ export class TupleClass<T extends any[]> extends ConstructType<T> {
  * Represents an IDL Array
  * @param {Type} t
  */
-export class ArrClass<T> extends ConstructType<T[]> {
+class ArrClass<T> extends ConstructType<T[]> {
   constructor(protected _type: Type<T>) {
     super();
   }
@@ -354,7 +370,7 @@ export class ArrClass<T> extends ConstructType<T[]> {
   public _buildTypeTableImpl(typeTable: TypeTable) {
     this._type.buildTypeTable(typeTable);
 
-    const opCode = slebEncode(-19);
+    const opCode = slebEncode(IDLTypeIds.Sequence);
     const buffer = this._type.encodeType(typeTable);
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
@@ -377,7 +393,7 @@ export class ArrClass<T> extends ConstructType<T[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-export class OptClass<T> extends ConstructType<T | null> {
+class OptClass<T> extends ConstructType<T | null> {
   constructor(protected _type: Type<T>) {
     super();
   }
@@ -397,7 +413,7 @@ export class OptClass<T> extends ConstructType<T | null> {
   public _buildTypeTableImpl(typeTable: TypeTable) {
     this._type.buildTypeTable(typeTable);
 
-    const opCode = slebEncode(-18);
+    const opCode = slebEncode(IDLTypeIds.Opt);
     const buffer = this._type.encodeType(typeTable);
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
@@ -420,7 +436,7 @@ export class OptClass<T> extends ConstructType<T | null> {
  * Represents an IDL Object
  * @param {Object} [fields] - mapping of function name to Type
  */
-export class ObjClass extends ConstructType<Record<string, any>> {
+class ObjClass extends ConstructType<Record<string, any>> {
   protected readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
@@ -448,7 +464,7 @@ export class ObjClass extends ConstructType<Record<string, any>> {
 
   public _buildTypeTableImpl(T: TypeTable) {
     this._fields.forEach(([, value]) => value.buildTypeTable(T));
-    const opCode = slebEncode(-20);
+    const opCode = slebEncode(IDLTypeIds.Record);
     const len = lebEncode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
       Buffer.concat([lebEncode(hash(key)), value.encodeType(T)]),
@@ -475,7 +491,7 @@ export class ObjClass extends ConstructType<Record<string, any>> {
  * Represents an IDL Variant
  * @param {Object} [fields] - mapping of function name to Type
  */
-export class VariantClass extends ConstructType<Record<string, any>> {
+class VariantClass extends ConstructType<Record<string, any>> {
   private readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
@@ -510,7 +526,7 @@ export class VariantClass extends ConstructType<Record<string, any>> {
     this._fields.forEach(([, type]) => {
       type.buildTypeTable(typeTable);
     });
-    const opCode = slebEncode(-21);
+    const opCode = slebEncode(IDLTypeIds.Variant);
     const len = lebEncode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
       Buffer.concat([lebEncode(hash(key)), value.encodeType(typeTable)]),
@@ -540,7 +556,7 @@ export class VariantClass extends ConstructType<Record<string, any>> {
  * Represents a reference to an IDL type, used for defining recursive data
  * types.
  */
-export class RecClass<T = any> extends ConstructType<T> {
+class RecClass<T = any> extends ConstructType<T> {
   private static _counter = 0;
   private _id = RecClass._counter++;
   private _type: ConstructType<T> | undefined = undefined;
@@ -586,10 +602,10 @@ export class RecClass<T = any> extends ConstructType<T> {
 }
 
 /**
- * Represents an async function which can return data
- * @param {Array<Type>} [argTypes] - argument types
- * @param {Array<Type>} [retTypes] - return types
- * @param {Array<string>} [annotations] - function annotations
+ * Represents an async function which can return data.
+ * @param argTypes Argument types.
+ * @param retTypes Return types.
+ * @param annotations Function annotations.
  */
 export class FuncClass {
   constructor(
@@ -651,13 +667,13 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     for (let i = 0; i < len; i++) {
       const ty = slebDecode(pipe).toNumber();
       switch (ty) {
-        case -18: // opt
+        case IDLTypeIds.Opt:
           slebDecode(pipe);
           break;
-        case -19: // vec
+        case IDLTypeIds.Sequence:
           slebDecode(pipe);
           break;
-        case -20: {
+        case IDLTypeIds.Record: {
           // record/tuple
           let objectLength = lebDecode(pipe).toNumber();
           while (objectLength--) {
@@ -666,7 +682,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           }
           break;
         }
-        case -21: {
+        case IDLTypeIds.Variant: {
           // variant
           let variantLength = lebDecode(pipe).toNumber();
           while (variantLength--) {
