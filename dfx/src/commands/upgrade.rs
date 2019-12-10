@@ -165,7 +165,6 @@ where
 
     if latest_version > current_version {
         println!("New version available: {}", latest_version);
-        // TODO(eftychis): Find architecture
         get_latest_release(release_root, &latest_version, os_arch)?;
     } else {
         println!("Already up to date");
