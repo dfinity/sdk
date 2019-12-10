@@ -3,9 +3,7 @@
 use super::error::{Error, Result};
 
 use super::value::IDLValue;
-use super::types::IDLType;
-
-use serde::ser;
+use dfx_info::types::{Field, Type};
 use std::collections::HashMap;
 use std::io;
 use std::vec::Vec;
@@ -53,15 +51,14 @@ impl IDLBuilder {
 /// A structure for serializing Rust values to IDL.
 #[derive(Debug, Default)]
 pub struct ValueSerializer {
-    ty: IDLType,
     value: Vec<u8>,
 }
 
 impl ValueSerializer {
     /// Creates a new IDL serializer.
     #[inline]
-    pub fn new(ty: &IDLType) -> Self {
-        ValueSerializer { value: Vec::new(), ty: ty.clone() }
+    pub fn new() -> Self {
+        ValueSerializer { value: Vec::new() }
     }
 
     fn write_sleb128(&mut self, value: i64) {
@@ -72,11 +69,9 @@ impl ValueSerializer {
     }
 }
 
-impl<'a> ser::Serializer for &'a mut ValueSerializer {
-    type Ok = ();
+impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
     type Error = Error;
     type Compound = Compound<'a>;
-    
     fn serialize_bool(self, v: bool) -> Result<()> {
         let v = if v { 1 } else { 0 };
         self.write_leb128(v);
