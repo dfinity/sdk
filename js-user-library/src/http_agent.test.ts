@@ -6,9 +6,9 @@ import * as cbor from './cbor';
 import { makeHttpAgent } from './index';
 import { Nonce } from './nonce';
 import { CommonFields, Request } from './request';
-import { requestIdOf } from './requestId';
-import { RequestType } from './requestType';
-import { SenderSig } from './senderSig';
+import { requestIdOf } from './request_id';
+import { RequestType } from './request_type';
+import { SenderSig } from './sender_sig';
 
 test('call', async () => {
   const mockFetch: jest.Mock = jest.fn((resource, init) => {

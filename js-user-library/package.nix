@@ -1,11 +1,12 @@
 { napalm }:
 
 let package = napalm.buildPackage ./. {
+  # ci script now does everything CI should do. Bundle is needed because it's the output
+  # of the nix derivation.
   npmCommands = [
     "npm install"
     "npm run ci"
     "npm run bundle"
-    "npm run test"
   ];
 }; in
 

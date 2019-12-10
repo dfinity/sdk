@@ -1,24 +1,24 @@
 import { Buffer } from 'buffer/';
 import { sign } from './auth';
 import { BinaryBlob } from './blob';
-import { CallRequest } from './callRequest';
+import { CallRequest } from './call_request';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
 import { makeNonce, Nonce } from './nonce';
-import { QueryRequest } from './queryRequest';
-import { QueryResponse } from './queryResponse';
-import { ReadRequest } from './readRequest';
-import { ReadRequestType } from './readRequestType';
-import { RequestId, requestIdOf } from './requestId';
-import { RequestStatusRequest } from './requestStatusRequest';
-import { RequestStatusResponse } from './requestStatusResponse';
+import { QueryRequest } from './query_request';
+import { QueryResponse } from './query_response';
+import { ReadRequest } from './read_request';
+import { ReadRequestType } from './read_request_type';
+import { RequestId, requestIdOf } from './request_id';
+import { RequestStatusRequest } from './request_status_request';
+import { RequestStatusResponse } from './request_status_response';
 import { Response } from './response';
-import { SenderPubKey } from './senderPubKey';
-import { SenderSecretKey } from './senderSecretKey';
-import { SenderSig } from './senderSig';
-import { SubmitRequest } from './submitRequest';
-import { SubmitRequestType } from './submitRequestType';
-import { SubmitResponse } from './submitResponse';
+import { SenderPubKey } from './sender_pub_key';
+import { SenderSecretKey } from './sender_secret_key';
+import { SenderSig } from './sender_sig';
+import { SubmitRequest } from './submit_request';
+import { SubmitRequestType } from './submit_request_type';
+import { SubmitResponse } from './submit_response';
 
 // A HTTP agent allows users to interact with a client of the internet computer
 // using the available methods. It exposes an API that closely follows the

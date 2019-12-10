@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "bundle": "npm run build && webpack",
-    "ci": "npm run prettier && npm run lint && npm run build",
+    "ci": "npm run prettier && npm run lint && npm run build && npm run test",
     "lint": "tslint --project tsconfig.json --config tslint.json",
     "lint:fix": "npm run lint -- --fix",
     "prettier": "npx prettier --check src/**",

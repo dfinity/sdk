@@ -1,10 +1,10 @@
 import { Buffer } from 'buffer/';
 import * as blob from './blob';
-import { HttpAgent } from './httpAgent';
-import * as _IDL from './IDL';
-import * as requestId from './requestId';
+import { HttpAgent } from './http_agent';
+import * as _IDL from './idl';
+import * as requestId from './request_id';
 
-import { RequestStatusResponse, RequestStatusResponseStatus } from './requestStatusResponse';
+import { RequestStatusResponse, RequestStatusResponseStatus } from './request_status_response';
 
 import retry from 'async-retry';
 
