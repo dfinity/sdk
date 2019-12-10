@@ -2,6 +2,7 @@
 import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer';
 import Pipe = require('buffer-pipe');
+import { hash } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 
 // tslint:disable:max-line-length
@@ -25,23 +26,11 @@ const enum IDLTypeIds {
   Variant = -21,
 }
 
+const magicNumber = 'DIDL';
+
 function zipWith<TX, TY, TR>(xs: TX[], ys: TY[], f: (a: TX, b: TY) => TR): TR[] {
   return xs.map((x, i) => f(x, ys[i]));
 }
-
-/** @internal */
-export function hash(s: string): number {
-  const utf8encoder = new TextEncoder();
-  const array = utf8encoder.encode(s);
-
-  let h = 0;
-  for (const c of array) {
-    h = (h * 223 + c) % 2 ** 32;
-  }
-  return h;
-}
-
-const magicNumber = 'DIDL';
 
 /**
  * An IDL Type Table, which precedes the data in the stream.
@@ -353,7 +342,7 @@ class TupleClass<T extends any[]> extends ConstructType<T> {
  * Represents an IDL Array
  * @param {Type} t
  */
-class ArrClass<T> extends ConstructType<T[]> {
+class VecClass<T> extends ConstructType<T[]> {
   constructor(protected _type: Type<T>) {
     super();
   }
@@ -436,7 +425,7 @@ class OptClass<T> extends ConstructType<T | null> {
  * Represents an IDL Object
  * @param {Object} [fields] - mapping of function name to Type
  */
-class ObjClass extends ConstructType<Record<string, any>> {
+class RecordClass extends ConstructType<Record<string, any>> {
   protected readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
@@ -733,14 +722,15 @@ export const Nat = new NatClass();
 export function Tuple<T extends any[]>(...types: T): TupleClass<T> {
   return new TupleClass(types);
 }
-export function Arr<T>(t: Type<T>): ArrClass<T> {
-  return new ArrClass(t);
+export function Arr<T>(t: Type<T>): VecClass<T> {
+  return new VecClass(t);
 }
 export function Opt<T>(t: Type<T>): OptClass<T> {
   return new OptClass(t);
 }
-export function Obj(t: Record<string, Type>): ObjClass {
-  return new ObjClass(t);
+
+export function Obj(t: Record<string, Type>): RecordClass {
+  return new RecordClass(t);
 }
 export function Variant(fields: Record<string, Type>) {
   return new VariantClass(fields);
