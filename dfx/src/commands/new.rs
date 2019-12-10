@@ -23,7 +23,7 @@ lazy_static! {
 // heavy-weight operation. Thus, worst case we are utilizing the user
 // expectation for the duration to have a more expensive version
 // check.
-    static ref CHECK_VERSION_TIMEOUT: Duration = Duration::from_millis(500);
+    static ref CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
 }
 
 /// Validate a String can be a valid project name.
@@ -184,11 +184,14 @@ where
             if t.supports_color() && latest_version.is_some() {
                 // fg() should not fail as the terminal supports
                 // color. See term crate documentation.
-                t.fg(term::color::RED).unwrap();
+                t.fg(term::color::RED)
+                    .expect("The impossible just happened: handling terminal failed");
                 write!(t, "\n current version: {}", current_version.clone())?;
-                t.fg(term::color::YELLOW).unwrap();
+                t.fg(term::color::YELLOW)
+                    .expect("The impossible just happened: handling terminal failed");
                 write!(t, "→")?;
-                t.fg(term::color::GREEN).unwrap();
+                t.fg(term::color::GREEN)
+                    .expect("The impossible just happened: handling terminal failed");
                 write!(
                     t,
                     " latest version: {}",
