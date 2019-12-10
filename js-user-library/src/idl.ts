@@ -20,7 +20,7 @@ const enum IDLTypeIds {
   Text = -15,
   Empty = -17,
   Opt = -18,
-  Sequence = -19,
+  Vector = -19,
   Record = -20,
   Variant = -21,
 }
@@ -370,7 +370,7 @@ class ArrClass<T> extends ConstructType<T[]> {
   public _buildTypeTableImpl(typeTable: TypeTable) {
     this._type.buildTypeTable(typeTable);
 
-    const opCode = slebEncode(IDLTypeIds.Sequence);
+    const opCode = slebEncode(IDLTypeIds.Vector);
     const buffer = this._type.encodeType(typeTable);
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
@@ -670,7 +670,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
         case IDLTypeIds.Opt:
           slebDecode(pipe);
           break;
-        case IDLTypeIds.Sequence:
+        case IDLTypeIds.Vector:
           slebDecode(pipe);
           break;
         case IDLTypeIds.Record: {
