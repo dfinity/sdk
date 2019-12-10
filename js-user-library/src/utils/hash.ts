@@ -3,7 +3,7 @@
  * https://caml.inria.fr/pub/papers/garrigue-polymorphic_variants-ml98.pdf
  * @param s
  */
-export function hash(s: string): number {
+export function idlHash(s: string): number {
   const utf8encoder = new TextEncoder();
   const array = utf8encoder.encode(s);
 

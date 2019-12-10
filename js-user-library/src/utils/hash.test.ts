@@ -1,8 +1,8 @@
-import { hash } from './hash';
+import { idlHash } from './hash';
 
 test('IDL hash', () => {
   function testHash(str: string, expected: number) {
-    expect(hash(str)).toBe(expected);
+    expect(idlHash(str)).toBe(expected);
   }
 
   testHash('', 0);

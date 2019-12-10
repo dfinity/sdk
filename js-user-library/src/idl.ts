@@ -2,7 +2,7 @@
 import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer';
 import Pipe = require('buffer-pipe');
-import { hash } from './utils/hash';
+import { idlHash } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 
 // tslint:disable:max-line-length
@@ -430,7 +430,7 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   constructor(fields: Record<string, Type> = {}) {
     super();
-    this._fields = Object.entries(fields).sort((a, b) => hash(a[0]) - hash(b[0]));
+    this._fields = Object.entries(fields).sort((a, b) => idlHash(a[0]) - idlHash(b[0]));
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -456,7 +456,7 @@ class RecordClass extends ConstructType<Record<string, any>> {
     const opCode = slebEncode(IDLTypeIds.Record);
     const len = lebEncode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
-      Buffer.concat([lebEncode(hash(key)), value.encodeType(T)]),
+      Buffer.concat([lebEncode(idlHash(key)), value.encodeType(T)]),
     );
 
     T.add(this, Buffer.concat([opCode, len, Buffer.concat(fields)]));
@@ -485,7 +485,7 @@ class VariantClass extends ConstructType<Record<string, any>> {
 
   constructor(fields: Record<string, Type> = {}) {
     super();
-    this._fields = Object.entries(fields).sort((a, b) => hash(a[0]) - hash(b[0]));
+    this._fields = Object.entries(fields).sort((a, b) => idlHash(a[0]) - idlHash(b[0]));
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -518,7 +518,7 @@ class VariantClass extends ConstructType<Record<string, any>> {
     const opCode = slebEncode(IDLTypeIds.Variant);
     const len = lebEncode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
-      Buffer.concat([lebEncode(hash(key)), value.encodeType(typeTable)]),
+      Buffer.concat([lebEncode(idlHash(key)), value.encodeType(typeTable)]),
     );
     typeTable.add(this, Buffer.concat([opCode, len, ...fields]));
   }
