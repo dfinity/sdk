@@ -3,6 +3,7 @@ use crate::lib::{
     error::{DfxError, DfxResult},
 };
 use clap::{App, Arg, ArgMatches, SubCommand};
+use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
 use serde::{Deserialize, Deserializer};
@@ -93,6 +94,13 @@ pub fn get_latest_version(
         .join("manifest.json")
         .map_err(|e| DfxError::InvalidArgument(format!("invalid manifest URL: {}", e)))?;
     println!("Fetching manifest {}", manifest_url);
+
+    let b = ProgressBar::new_spinner();
+    b.set_draw_target(ProgressDrawTarget::stderr());
+
+    b.set_message("Checking for latest dfx version...");
+    b.enable_steady_tick(80);
+
     let client = match timeout {
         Some(timeout) => reqwest::Client::builder().timeout(timeout),
         None => reqwest::Client::builder(),
@@ -101,6 +109,7 @@ pub fn get_latest_version(
     let client = client.build()?;
     let mut response = client.get(manifest_url).send().map_err(DfxError::Reqwest)?;
     let status_code = response.status();
+    b.finish_and_clear();
 
     if !status_code.is_success() {
         return Err(DfxError::InvalidData(format!(
@@ -125,20 +134,25 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
         release_root, version, arch
     ))
     .map_err(|e| DfxError::InvalidArgument(format!("invalid release root: {}", e)))?;
-    println!("Downloading {}", url);
+
+    let b = ProgressBar::new_spinner();
+    b.set_draw_target(ProgressDrawTarget::stderr());
+
+    b.set_message(format!("Downloading {}", url).as_str());
+    b.enable_steady_tick(80);
     let mut response = reqwest::get(url).map_err(DfxError::Reqwest)?;
     let mut decoder = Decoder::new(&mut response)
         .map_err(|e| DfxError::InvalidData(format!("unable to gunzip file: {}", e)))?;
     let mut archive = Archive::new(&mut decoder);
     let current_exe_path = env::current_exe().map_err(DfxError::Io)?;
     let current_exe_dir = current_exe_path.parent().unwrap(); // This should not fail
-    println!("Unpacking");
+    b.set_message("Unpacking");
     archive.unpack(&current_exe_dir)?;
-    println!("Setting permissions");
+    b.set_message("Setting permissions");
     let mut permissions = fs::metadata(&current_exe_path)?.permissions();
     permissions.set_mode(0o775); // FIXME Preserve existing permissions
     fs::set_permissions(&current_exe_path, permissions)?;
-    println!("Done");
+    b.finish_with_message("Done");
     Ok(())
 }
 
