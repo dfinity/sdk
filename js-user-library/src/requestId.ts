@@ -1,19 +1,15 @@
-import BigNumber from 'bignumber.js';
 import borc from 'borc';
 import { Buffer } from 'buffer/';
 import { BinaryBlob } from './blob';
 import * as blob from './blob';
-import { CborValue } from './cbor';
+import { CanisterId } from './canisterId';
 import * as Request from './request';
 
 export type RequestId = BinaryBlob & { __requestId__: void };
 
 export const toHex = (requestId: RequestId): string => blob.toHex(requestId);
 
-// The spec describes encoding for these types.
-type HashableValue = number | string | Buffer | BigNumber | borc.Tagged;
-
-export const hash = async (data: BinaryBlob): Promise<BinaryBlob> => {
+export async function hash(data: BinaryBlob): Promise<BinaryBlob> {
   const hashed: ArrayBuffer = await crypto.subtle.digest(
     {
       name: 'SHA-256',
@@ -21,57 +17,37 @@ export const hash = async (data: BinaryBlob): Promise<BinaryBlob> => {
     data.buffer,
   );
   return Buffer.from(hashed) as BinaryBlob;
-};
+}
 
 const padHex = (hex: string): string => {
   return `${'0000000000000000'.slice(hex.length)}${hex}`;
 };
 
-const hashValue = (value: HashableValue): Promise<Buffer> => {
-  if (isTagged(value)) {
+async function hashValue(value: unknown): Promise<Buffer> {
+  if (value instanceof borc.Tagged) {
     return hashValue(value.value);
-  } else if (isString(value)) {
-    return hashString(value as string);
-  } else if (isBigNumber(value)) {
+  } else if (typeof value === 'string') {
+    return hashString(value);
+  } else if (value instanceof CanisterId) {
     // HTTP handler expects canister_id to be an u64 & hashed in this way.
+    const hex = value.toHex();
+    const padded = padHex(hex);
+    return hash(blob.fromHex(padded));
+  } else if (typeof value === 'number') {
     const hex = value.toString(16);
     const padded = padHex(hex);
     return hash(blob.fromHex(padded));
-  } else if (isInt(value)) {
-    const hex = value.toString(16);
-    const padded = padHex(hex);
-    return hash(blob.fromHex(padded));
-  } else if (isBlob(value)) {
+  } else if (value instanceof Buffer) {
     return hash(value as BinaryBlob);
   } else {
     throw new Error(`Attempt to hash a value of unsupported type: ${value}`);
   }
-};
+}
 
 const hashString = (value: string): Promise<BinaryBlob> => {
   const encoder = new TextEncoder();
-  const encoded: Uint8Array = encoder.encode(value);
+  const encoded = encoder.encode(value);
   return hash(Buffer.from(encoded) as BinaryBlob);
-};
-
-const isBigNumber = (value: HashableValue): value is BigNumber => {
-  return value instanceof BigNumber;
-};
-
-const isBlob = (value: HashableValue): value is BinaryBlob => {
-  return value instanceof Buffer;
-};
-
-const isInt = (value: HashableValue): value is number => {
-  return typeof value === 'number';
-};
-
-const isString = (value: HashableValue): value is string => {
-  return typeof value === 'string';
-};
-
-const isTagged = (value: HashableValue): value is borc.Tagged => {
-  return value instanceof borc.Tagged;
 };
 
 const concat = (bs: BinaryBlob[]): BinaryBlob => {
@@ -90,9 +66,9 @@ export const requestIdOf = async (request: Request.CommonFields): Promise<Reques
   const { sender_pubkey, sender_sig, ...fields } = request;
 
   const hashed: Array<Promise<[BinaryBlob, BinaryBlob]>> = Object.entries(fields).map(
-    async ([key, value]: [string, CborValue]) => {
+    async ([key, value]: [string, unknown]) => {
       const hashedKey = await hashString(key);
-      const hashedValue = await hashValue(value as HashableValue);
+      const hashedValue = await hashValue(value);
 
       return [hashedKey, hashedValue] as [BinaryBlob, BinaryBlob];
     },
