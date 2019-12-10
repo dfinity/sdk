@@ -1,7 +1,8 @@
 // tslint:disable:max-classes-per-file
+import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer';
 import Pipe = require('buffer-pipe');
-import { signed as sleb, unsigned as leb } from 'leb128';
+import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 
 // tslint:disable:max-line-length
 /**
@@ -61,7 +62,7 @@ export class TypeTable {
   }
 
   public encode() {
-    const len = leb.encode(this._typs.length);
+    const len = lebEncode(this._typs.length);
     const buf = Buffer.concat(this._typs);
     return Buffer.concat([len, buf]);
   }
@@ -70,7 +71,7 @@ export class TypeTable {
     if (!this._idx.has(typeName)) {
       throw new Error('Missing type index for ' + typeName);
     }
-    return sleb.encode(this._idx.get(typeName));
+    return slebEncode(this._idx.get(typeName) || 0);
   }
 }
 
@@ -139,7 +140,7 @@ export class NoneClass extends PrimitiveType<never> {
   }
 
   public encodeType() {
-    return sleb.encode(-17);
+    return slebEncode(-17);
   }
 
   public decodeValue(): never {
@@ -166,7 +167,7 @@ export class BoolClass extends PrimitiveType<boolean> {
   }
 
   public encodeType() {
-    return sleb.encode(-2);
+    return slebEncode(-2);
   }
 
   public decodeValue(b: Pipe) {
@@ -192,7 +193,7 @@ export class UnitClass extends PrimitiveType<null> {
   }
 
   public encodeType() {
-    return sleb.encode(-1);
+    return slebEncode(-1);
   }
 
   public decodeValue() {
@@ -214,16 +215,16 @@ export class TextClass extends PrimitiveType<string> {
 
   public encodeValue(x: string) {
     const buf = Buffer.from(x, 'utf8');
-    const len = leb.encode(buf.length);
+    const len = lebEncode(buf.length);
     return Buffer.concat([len, buf]);
   }
 
   public encodeType() {
-    return sleb.encode(-15);
+    return slebEncode(-15);
   }
 
   public decodeValue(b: Pipe) {
-    const len = leb.readBn(b).toNumber();
+    const len = lebDecode(b).toNumber();
     return b.read(len).toString('utf8');
   }
 
@@ -235,21 +236,23 @@ export class TextClass extends PrimitiveType<string> {
 /**
  * Represents an IDL Int
  */
-export class IntClass extends PrimitiveType<number> {
-  public covariant(x: any): x is number {
-    return Number.isInteger(x);
+export class IntClass extends PrimitiveType<BigNumber> {
+  public covariant(x: any): x is BigNumber {
+    // We allow encoding of JavaScript plain numbers.
+    // But we will always decode to BigNumber.
+    return x instanceof BigNumber || Number.isInteger(x);
   }
 
-  public encodeValue(x: number) {
-    return sleb.encode(x);
+  public encodeValue(x: BigNumber | number) {
+    return slebEncode(x);
   }
 
   public encodeType() {
-    return sleb.encode(-4);
+    return slebEncode(-4);
   }
 
   public decodeValue(b: Pipe) {
-    return sleb.readBn(b).toNumber();
+    return slebDecode(b);
   }
 
   get name() {
@@ -260,21 +263,23 @@ export class IntClass extends PrimitiveType<number> {
 /**
  * Represents an IDL Nat
  */
-export class NatClass extends PrimitiveType<number> {
-  public covariant(x: any): x is number {
-    return Number.isInteger(x) && x >= 0;
+export class NatClass extends PrimitiveType<BigNumber> {
+  public covariant(x: any): x is BigNumber {
+    // We allow encoding of JavaScript plain numbers.
+    // But we will always decode to BigNumber.
+    return (x instanceof BigNumber && !x.isNegative()) || (Number.isInteger(x) && x >= 0);
   }
 
-  public encodeValue(x: number) {
-    return leb.encode(x);
+  public encodeValue(x: BigNumber | number) {
+    return lebEncode(x);
   }
 
   public encodeType() {
-    return sleb.encode(-3);
+    return slebEncode(-3);
   }
 
   public decodeValue(b: Pipe) {
-    return leb.readBn(b).toNumber();
+    return lebDecode(b);
   }
 
   get name() {
@@ -309,11 +314,11 @@ export class TupleClass<T extends any[]> extends ConstructType<T> {
     const components = this._components;
     components.forEach(x => x.buildTypeTable(typeTable));
 
-    const opCode = sleb.encode(-20);
-    const len = leb.encode(components.length);
+    const opCode = slebEncode(-20);
+    const len = lebEncode(components.length);
     const buf = Buffer.concat(
       components.map((x, i) => {
-        return Buffer.concat([leb.encode(i), x.encodeType(typeTable)]);
+        return Buffer.concat([lebEncode(i), x.encodeType(typeTable)]);
       }),
     );
     typeTable.add(this, Buffer.concat([opCode, len, buf]));
@@ -342,20 +347,20 @@ export class ArrClass<T> extends ConstructType<T[]> {
   }
 
   public encodeValue(x: T[]) {
-    const len = leb.encode(x.length);
+    const len = lebEncode(x.length);
     return Buffer.concat([len, ...x.map(d => this._type.encodeValue(d))]);
   }
 
   public _buildTypeTableImpl(typeTable: TypeTable) {
     this._type.buildTypeTable(typeTable);
 
-    const opCode = sleb.encode(-19);
+    const opCode = slebEncode(-19);
     const buffer = this._type.encodeType(typeTable);
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
   public decodeValue(b: Pipe): any[] {
-    const len = leb.readBn(b).toNumber();
+    const len = lebDecode(b).toNumber();
     const rets: any[] = [];
     for (let i = 0; i < len; i++) {
       rets.push(this._type.decodeValue(b));
@@ -392,7 +397,7 @@ export class OptClass<T> extends ConstructType<T | null> {
   public _buildTypeTableImpl(typeTable: TypeTable) {
     this._type.buildTypeTable(typeTable);
 
-    const opCode = sleb.encode(-18);
+    const opCode = slebEncode(-18);
     const buffer = this._type.encodeType(typeTable);
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
@@ -443,10 +448,10 @@ export class ObjClass extends ConstructType<Record<string, any>> {
 
   public _buildTypeTableImpl(T: TypeTable) {
     this._fields.forEach(([, value]) => value.buildTypeTable(T));
-    const opCode = sleb.encode(-20);
-    const len = leb.encode(this._fields.length);
+    const opCode = slebEncode(-20);
+    const len = lebEncode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
-      Buffer.concat([leb.encode(hash(key)), value.encodeType(T)]),
+      Buffer.concat([lebEncode(hash(key)), value.encodeType(T)]),
     );
 
     T.add(this, Buffer.concat([opCode, len, Buffer.concat(fields)]));
@@ -492,7 +497,7 @@ export class VariantClass extends ConstructType<Record<string, any>> {
     for (let i = 0; i < this._fields.length; i++) {
       const [name, type] = this._fields[i];
       if (x.hasOwnProperty(name)) {
-        const idx = leb.encode(i);
+        const idx = lebEncode(i);
         const buf = type.encodeValue(x[name]);
 
         return Buffer.concat([idx, buf]);
@@ -505,16 +510,16 @@ export class VariantClass extends ConstructType<Record<string, any>> {
     this._fields.forEach(([, type]) => {
       type.buildTypeTable(typeTable);
     });
-    const opCode = sleb.encode(-21);
-    const len = leb.encode(this._fields.length);
+    const opCode = slebEncode(-21);
+    const len = lebEncode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
-      Buffer.concat([leb.encode(hash(key)), value.encodeType(typeTable)]),
+      Buffer.concat([lebEncode(hash(key)), value.encodeType(typeTable)]),
     );
     typeTable.add(this, Buffer.concat([opCode, len, ...fields]));
   }
 
   public decodeValue(b: Pipe) {
-    const idx = leb.readBn(b).toNumber();
+    const idx = lebDecode(b).toNumber();
     if (idx >= this._fields.length) {
       throw Error('Invalid variant: ' + idx);
     }
@@ -608,7 +613,7 @@ export function encode(argTypes: Array<Type<any>>, args: any[]) {
 
   const magic = Buffer.from(magicNumber, 'utf8');
   const table = typeTable.encode();
-  const len = leb.encode(args.length);
+  const len = lebEncode(args.length);
   const typs = Buffer.concat(argTypes.map(t => t.encodeType(typeTable)));
   const vals = Buffer.concat(
     zipWith(argTypes, args, (t, x) => {
@@ -641,32 +646,32 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   }
 
   function decodeType(pipe: Pipe) {
-    const len = leb.readBn(pipe).toNumber();
+    const len = lebDecode(pipe).toNumber();
 
     for (let i = 0; i < len; i++) {
-      const ty = sleb.readBn(pipe).toNumber();
+      const ty = slebDecode(pipe).toNumber();
       switch (ty) {
         case -18: // opt
-          sleb.readBn(pipe).toNumber();
+          slebDecode(pipe);
           break;
         case -19: // vec
-          sleb.readBn(pipe).toNumber();
+          slebDecode(pipe);
           break;
         case -20: {
           // record/tuple
-          let objectLength = leb.readBn(pipe).toNumber();
+          let objectLength = lebDecode(pipe).toNumber();
           while (objectLength--) {
-            leb.readBn(pipe).toNumber();
-            sleb.readBn(pipe).toNumber();
+            lebDecode(pipe);
+            slebDecode(pipe);
           }
           break;
         }
         case -21: {
           // variant
-          let variantLength = leb.readBn(pipe).toNumber();
+          let variantLength = lebDecode(pipe).toNumber();
           while (variantLength--) {
-            leb.readBn(pipe).toNumber();
-            sleb.readBn(pipe).toNumber();
+            lebDecode(pipe);
+            slebDecode(pipe);
           }
           break;
         }
@@ -675,9 +680,9 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
       }
     }
 
-    const length = leb.readBn(pipe);
+    const length = lebDecode(pipe).toNumber();
     for (let i = 0; i < length; i++) {
-      sleb.readBn(pipe).toNumber();
+      slebDecode(pipe);
     }
   }
 
