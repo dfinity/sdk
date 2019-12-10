@@ -147,6 +147,12 @@ pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: VersionEnv,
 {
+    // Find OS architecture.
+    let os_arch = match std::env::consts::OS {
+        "linux" => "x86_64-linux",
+        "macos" => "x86_64-darwin",
+        _ => panic!("Not supported architecture"),
+    };
     let current_version = if let Some(version) = args.value_of("current-version") {
         version
     } else {
@@ -160,7 +166,8 @@ where
 
     if latest_version > current_version {
         println!("New version available: {}", latest_version);
-        get_latest_release(release_root, &latest_version, "x86_64-linux")?;
+        // TODO(eftychis): Find architecture
+        get_latest_release(release_root, &latest_version, os_arch)?;
     } else {
         println!("Already up to date");
     }
