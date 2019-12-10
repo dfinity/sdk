@@ -93,7 +93,6 @@ pub fn get_latest_version(
         .join("manifest.json")
         .map_err(|e| DfxError::InvalidArgument(format!("invalid manifest URL: {}", e)))?;
     println!("Fetching manifest {}", manifest_url);
-    // TODO Use a client to deal with any futures redirects
     let client = match timeout {
         Some(timeout) => reqwest::Client::builder().timeout(timeout),
         None => reqwest::Client::builder(),
