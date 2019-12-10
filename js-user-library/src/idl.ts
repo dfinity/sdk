@@ -293,6 +293,77 @@ class NatClass extends PrimitiveType<BigNumber> {
 }
 
 /**
+ * Represents an IDL fixed-width Int(n)
+ */
+export class FixedIntClass extends PrimitiveType<number> {
+  constructor(private _bits: number) {
+    super();
+  }
+
+  public covariant(x: any): x is number {
+    const min = -(2 ** (this._bits - 1));
+    const max = 2 ** (this._bits - 1) - 1;
+    return Number.isInteger(x) && x >= min && x <= max;
+  }
+
+  public encodeValue(x: number) {
+    const buf = Buffer.alloc(this._bits / 8);
+    buf.writeIntLE(x, 0, this._bits / 8);
+    return buf;
+  }
+
+  public encodeType() {
+    const offset = Math.log2(this._bits) - 3;
+    return slebEncode(-9 - offset);
+  }
+
+  public decodeValue(b: Pipe) {
+    const buf = b.read(this._bits / 8);
+    const num = buf.readIntLE(0, this._bits / 8);
+    return num;
+  }
+
+  get name() {
+    return `Int${this._bits}`;
+  }
+}
+
+/**
+ * Represents an IDL fixed-width Nat(n)
+ */
+export class FixedNatClass extends PrimitiveType<number> {
+  constructor(private _bits: number) {
+    super();
+  }
+
+  public covariant(x: any): x is number {
+    const max = 2 ** this._bits - 1;
+    return Number.isInteger(x) && x >= 0 && x <= max;
+  }
+
+  public encodeValue(x: number) {
+    const buf = Buffer.alloc(this._bits / 8);
+    buf.writeUIntLE(x, 0, this._bits / 8);
+    return buf;
+  }
+
+  public encodeType() {
+    const offset = Math.log2(this._bits) - 3;
+    return slebEncode(-5 - offset);
+  }
+
+  public decodeValue(b: Pipe) {
+    const buf = b.read(this._bits / 8);
+    const num = buf.readUIntLE(0, this._bits / 8);
+    return num;
+  }
+
+  get name() {
+    return `Nat${this._bits}`;
+  }
+}
+
+/**
  * Represents an IDL Tuple, a Record that has the index as the key.
  * @param {Type} components
  */
@@ -718,6 +789,16 @@ export const Unit = new UnitClass();
 export const Text = new TextClass();
 export const Int = new IntClass();
 export const Nat = new NatClass();
+
+export const Int8 = new FixedIntClass(8);
+export const Int16 = new FixedIntClass(16);
+export const Int32 = new FixedIntClass(32);
+export const Int64 = new FixedIntClass(64);
+
+export const Nat8 = new FixedNatClass(8);
+export const Nat16 = new FixedNatClass(16);
+export const Nat32 = new FixedNatClass(32);
+export const Nat64 = new FixedNatClass(64);
 
 export function Tuple<T extends any[]>(...types: T): TupleClass<T> {
   return new TupleClass(types);
