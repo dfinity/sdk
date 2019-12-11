@@ -78,8 +78,14 @@ test('IDL encoding (fixed-width number)', () => {
   test_(IDL.Int8, 42, '4449444c0001772a', 'Int8');
   test_(IDL.Int32, 42, '4449444c0001752a000000', 'Int32');
   test_(IDL.Int32, -42, '4449444c000175d6ffffff', 'Negative Int32');
+  test_(IDL.Int32, 1234567890, '4449444c000175d2029649', 'Positive Int32');
+  test_(IDL.Int32, -1234567890, '4449444c0001752efd69b6', 'Negative Int32');
+  test_(IDL.Int64, new BigNumber(42), '4449444c0001742a00000000000000', 'Int64');
+  test_(IDL.Int64, new BigNumber(-42), '4449444c000174d6ffffffffffffff', 'Int64');
+  test_(IDL.Int64, new BigNumber(1234567890), '4449444c000174d202964900000000', 'Positive Int64');
   test_(IDL.Nat8, 42, '4449444c00017b2a', 'Nat8');
   test_(IDL.Nat32, 42, '4449444c0001792a000000', 'Nat32');
+  test_(IDL.Nat64, new BigNumber(1234567890), '4449444c000178d202964900000000', 'Positive Nat64');
   expect(() => IDL.encode([IDL.Nat32], [-42])).toThrow(/Invalid Nat32 argument/);
   expect(() => IDL.encode([IDL.Int8], [256])).toThrow(/Invalid Int8 argument/);
 });

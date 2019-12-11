@@ -11,4 +11,3 @@ test('IDL hash', () => {
   testHash('short_name', 3261810734);
   testHash('Hi ☃', 1419229646);
 });
-

@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import Pipe = require('buffer-pipe');
 import { idlHash } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
+import { readIntLE, readUIntLE, writeIntLE, writeUIntLE } from './utils/leb128';
 
 // tslint:disable:max-line-length
 /**
@@ -245,7 +246,7 @@ class IntClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
-    return x instanceof BigNumber || Number.isInteger(x);
+    return (x instanceof BigNumber && x.isInteger()) || Number.isInteger(x);
   }
 
   public encodeValue(x: BigNumber | number) {
@@ -272,7 +273,10 @@ class NatClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
-    return (x instanceof BigNumber && !x.isNegative()) || (Number.isInteger(x) && x >= 0);
+    return (
+      (x instanceof BigNumber && x.isInteger() && !x.isNegative()) ||
+      (Number.isInteger(x) && x >= 0)
+    );
   }
 
   public encodeValue(x: BigNumber | number) {
@@ -295,21 +299,26 @@ class NatClass extends PrimitiveType<BigNumber> {
 /**
  * Represents an IDL fixed-width Int(n)
  */
-export class FixedIntClass extends PrimitiveType<number> {
+export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   constructor(private _bits: number) {
     super();
   }
 
-  public covariant(x: any): x is number {
-    const min = -(2 ** (this._bits - 1));
-    const max = 2 ** (this._bits - 1) - 1;
-    return Number.isInteger(x) && x >= min && x <= max;
+  public covariant(x: any): x is BigNumber {
+    const min = new BigNumber(2).pow(this._bits - 1).negated();
+    const max = new BigNumber(2).pow(this._bits - 1).minus(1);
+    if (x instanceof BigNumber && x.isInteger()) {
+      return x.gte(min) && x.lte(max);
+    } else if (Number.isInteger(x)) {
+      const v = new BigNumber(x);
+      return v.gte(min) && v.lte(max);
+    } else {
+      return false;
+    }
   }
 
-  public encodeValue(x: number) {
-    const buf = Buffer.alloc(this._bits / 8);
-    buf.writeIntLE(x, 0, this._bits / 8);
-    return buf;
+  public encodeValue(x: BigNumber | number) {
+    return writeIntLE(x, this._bits / 8);
   }
 
   public encodeType() {
@@ -318,9 +327,12 @@ export class FixedIntClass extends PrimitiveType<number> {
   }
 
   public decodeValue(b: Pipe) {
-    const buf = b.read(this._bits / 8);
-    const num = buf.readIntLE(0, this._bits / 8);
-    return num;
+    const num = readIntLE(b, this._bits / 8);
+    if (this._bits <= 32) {
+      return num.toNumber();
+    } else {
+      return num;
+    }
   }
 
   get name() {
@@ -331,20 +343,25 @@ export class FixedIntClass extends PrimitiveType<number> {
 /**
  * Represents an IDL fixed-width Nat(n)
  */
-export class FixedNatClass extends PrimitiveType<number> {
+export class FixedNatClass extends PrimitiveType<BigNumber | number> {
   constructor(private _bits: number) {
     super();
   }
 
-  public covariant(x: any): x is number {
-    const max = 2 ** this._bits - 1;
-    return Number.isInteger(x) && x >= 0 && x <= max;
+  public covariant(x: any): x is BigNumber {
+    const max = new BigNumber(2).pow(this._bits - 1);
+    if (x instanceof BigNumber && x.isInteger() && !x.isNegative()) {
+      return x.lte(max);
+    } else if (Number.isInteger(x) && x >= 0) {
+      const v = new BigNumber(x);
+      return v.lte(max);
+    } else {
+      return false;
+    }
   }
 
-  public encodeValue(x: number) {
-    const buf = Buffer.alloc(this._bits / 8);
-    buf.writeUIntLE(x, 0, this._bits / 8);
-    return buf;
+  public encodeValue(x: BigNumber | number) {
+    return writeUIntLE(x, this._bits / 8);
   }
 
   public encodeType() {
@@ -353,9 +370,12 @@ export class FixedNatClass extends PrimitiveType<number> {
   }
 
   public decodeValue(b: Pipe) {
-    const buf = b.read(this._bits / 8);
-    const num = buf.readUIntLE(0, this._bits / 8);
-    return num;
+    const num = readUIntLE(b, this._bits / 8);
+    if (this._bits <= 32) {
+      return num.toNumber();
+    } else {
+      return num;
+    }
   }
 
   get name() {
