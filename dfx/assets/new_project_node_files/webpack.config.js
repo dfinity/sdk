@@ -1,4 +1,3 @@
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 const path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
 const dfxJson = require("./dfx.json");
@@ -42,10 +41,6 @@ function generateWebpackConfigForCanister(name, info) {
       path: path.join(outputRoot, "assets"),
     },
     plugins: [
-      new HtmlWebpackPlugin({
-        template: path.join(path.dirname(entry), "index.html"),
-        filename: path.join(outputRoot, "assets/index.html"),
-      }),
     ],
   };
 }

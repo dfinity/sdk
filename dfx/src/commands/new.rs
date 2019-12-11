@@ -279,7 +279,7 @@ where
             let frontend_value: serde_json::Map<String, Value> = [
                 (
                     "entrypoint".to_string(),
-                    ("src/".to_owned() + project_name_str + "/public/hello.js").into(),
+                    ("src/".to_owned() + project_name_str + "/public/index.js").into(),
                 ),
                 ("build".to_string(), "npm run build".to_string().into()),
             ]

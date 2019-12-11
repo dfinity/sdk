@@ -105,10 +105,46 @@ fn build_canister_js(
     did_js_path: &Path,
     js_user_lib_path: &Path,
     output_canister_js_path: &Path,
+    output_root: &Path,
 ) -> DfxResult {
     let mut language_bindings = assets::language_bindings()?;
+    let mut build_assets = assets::build_assets()?;
 
-    for entry in language_bindings.entries()? {
+    let entry = language_bindings.entries()?.next().unwrap()?;
+    let mut file = entry;
+
+    let mut file_contents = String::new();
+    file.read_to_string(&mut file_contents)?;
+
+    let did_js_path_str = did_js_path.to_str().ok_or_else(|| {
+        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+            "Unable to convert .did.js path to a string: {:#?}",
+            did_js_path
+        )))
+    })?;
+
+    let js_user_lib_path_str = js_user_lib_path.to_str().ok_or_else(|| {
+        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+            "Unable to convert JS user lib path to a string: {:#?}",
+            js_user_lib_path
+        )))
+    })?;
+
+    let with_canister_id =
+        file_contents.replace("{canister_id}", &format!("\"{}\"", &canister_id.to_hex()));
+    let with_did_js = with_canister_id.replace("{did_js}", did_js_path_str);
+    let with_js_user_lib = with_did_js.replace("{js_user_lib}", js_user_lib_path_str);
+    let new_file_contents = with_js_user_lib;
+
+    let output_canister_js_path_str = output_canister_js_path.to_str().ok_or_else(|| {
+        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+            "Unable to convert output canister js path to a string: {:#?}",
+            output_canister_js_path
+        )))
+    })?;
+    std::fs::write(output_canister_js_path_str, new_file_contents)?;
+
+    for entry in build_assets.entries()? {
         let mut file = entry?;
 
         if file.header().entry_type().is_dir() {
@@ -117,35 +153,7 @@ fn build_canister_js(
 
         let mut file_contents = String::new();
         file.read_to_string(&mut file_contents)?;
-
-        let did_js_path_str = did_js_path.to_str().ok_or_else(|| {
-            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
-                "Unable to convert .did.js path to a string: {:#?}",
-                did_js_path
-            )))
-        })?;
-
-        let js_user_lib_path_str = js_user_lib_path.to_str().ok_or_else(|| {
-            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
-                "Unable to convert JS user lib path to a string: {:#?}",
-                js_user_lib_path
-            )))
-        })?;
-
-        let with_canister_id =
-            file_contents.replace("{canister_id}", &format!("\"{}\"", &canister_id.to_hex()));
-        let with_did_js = with_canister_id.replace("{did_js}", did_js_path_str);
-        let with_js_user_lib = with_did_js.replace("{js_user_lib}", js_user_lib_path_str);
-        let new_file_contents = with_js_user_lib;
-
-        let output_canister_js_path_str = output_canister_js_path.to_str().ok_or_else(|| {
-            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
-                "Unable to convert output canister js path to a string: {:#?}",
-                output_canister_js_path
-            )))
-        })?;
-
-        std::fs::write(output_canister_js_path_str, new_file_contents)?;
+        std::fs::write(&output_root.join(file.header().path()?), file_contents)?;
     }
 
     Ok(())
@@ -196,6 +204,7 @@ where
             build_did_js(env, &output_idl_path, &output_did_js_path)?;
 
             let canister_id = canister_info.generate_canister_id()?;
+            let output_root = canister_info.get_output_root();
             let js_user_lib_path = env.get_binary_command_path("js-user-library")?;
             let output_canister_js_path = canister_info.get_output_canister_js_path();
 
@@ -204,6 +213,7 @@ where
                 &output_did_js_path,
                 &js_user_lib_path,
                 &output_canister_js_path,
+                &output_root,
             )?;
 
             // Write the CID.
