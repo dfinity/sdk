@@ -41,10 +41,6 @@ setup() {
     assert_match "Current version: .*"
     assert_match "Fetching manifest .*"
     assert_match "New version available: .*"
-    assert_match "Downloading .*"
-    assert_match "Unpacking"
-    assert_match "Setting permissions"
-    assert_match "Done"
     kill "$WEB_SERVER_PID"
     assert_command ./dfx --version
     assert_match "$version"
