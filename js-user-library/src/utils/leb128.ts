@@ -104,27 +104,10 @@ export function slebDecode(pipe: Pipe): BigNumber {
 }
 
 export function writeUIntLE(value: BigNumber | number, byteLength: number): Buffer {
-  if (typeof value === 'number') {
-    value = new BigNumber(value);
-  }
-  value = value.integerValue();
-  if (value.lt(0)) {
+  if ((value instanceof BigNumber && value.isNegative()) || value < 0) {
     throw new Error('Cannot write negative values.');
   }
-  const pipe = new Pipe();
-  let i = 0;
-  let mul = new BigNumber(256);
-  let byte = value.mod(mul).toNumber();
-  pipe.write([byte]);
-  while (++i < byteLength) {
-    byte = value
-      .idiv(mul)
-      .mod(256)
-      .toNumber();
-    pipe.write([byte]);
-    mul = mul.times(256);
-  }
-  return pipe.buffer;
+  return writeIntLE(value, byteLength);
 }
 
 export function writeIntLE(value: BigNumber | number, byteLength: number): Buffer {
@@ -166,15 +149,10 @@ export function readUIntLE(pipe: Pipe, byteLength: number): BigNumber {
 }
 
 export function readIntLE(pipe: Pipe, byteLength: number): BigNumber {
-  let val = new BigNumber(pipe.read(1)[0]);
-  let mul = new BigNumber(1);
-  let i = 0;
-  while (++i < byteLength) {
-    mul = mul.times(256);
-    const byte = pipe.read(1)[0];
-    val = val.plus(mul.times(byte));
+  let val = readUIntLE(pipe, byteLength);
+  const mul = new BigNumber(2).pow(8 * (byteLength - 1) + 7);
+  if (val.gte(mul)) {
+    val = val.minus(mul.times(2));
   }
-  mul = mul.times(0x80);
-  if (val.gte(mul)) { val = val.minus(new BigNumber(2).pow(8 * byteLength)); }
   return val;
 }
