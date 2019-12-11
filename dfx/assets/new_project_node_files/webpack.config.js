@@ -15,13 +15,22 @@ const aliases = Object.entries(dfxJson.canisters).reduce((acc, [name,]) => {
   };
 }, {
   // This will later point to the userlib from npm, when we publish the userlib.
-  "ic:userlib": path.join(process.env["HOME"], ".cache/dfinity/versions", dfxJson.dfx, "js-user-library"),
+  "ic:userlib": path.join(
+    process.env["HOME"],
+    ".cache/dfinity/versions",
+    dfxJson.dfx || process.env["DFX_VERSION"],
+    "js-user-library/dist/lib.prod.js",
+  ),
 });
 
 /**
  * Generate a webpack configuration for a canister.
  */
 function generateWebpackConfigForCanister(name, info) {
+  if (typeof info.frontend !== 'object') {
+    return;
+  }
+
   const outputRoot = path.join(__dirname, dfxJson.defaults.build.output, name);
   const inputRoot = __dirname;
   const entry = path.join(inputRoot, info.frontend.entrypoint);
@@ -29,6 +38,7 @@ function generateWebpackConfigForCanister(name, info) {
   return {
     mode: "production",
     entry,
+    devtool: "source-map",
     optimization: {
       minimize: true,
       minimizer: [new TerserPlugin()],
@@ -50,5 +60,5 @@ function generateWebpackConfigForCanister(name, info) {
 module.exports = [
   ...Object.entries(dfxJson.canisters).map(([name, info]) => {
     return generateWebpackConfigForCanister(name, info);
-  }),
+  }).filter(x => !!x),
 ];

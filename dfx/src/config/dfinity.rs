@@ -24,6 +24,7 @@ const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { o
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
     pub main: Option<String>,
+    pub frontend: Option<Value>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

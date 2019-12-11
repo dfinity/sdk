@@ -24,6 +24,8 @@ pub struct CanisterInfo {
 
     canister_id: RefCell<Option<CanisterId>>,
     canister_id_path: PathBuf,
+
+    has_frontend: bool,
 }
 
 impl CanisterInfo {
@@ -48,6 +50,8 @@ impl CanisterInfo {
             DfxError::Unknown("Main field mandatory for canister config.".to_string())
         })?)
         .expect("Could not convert Main field to a path.");
+
+        let has_frontend = canister_config.frontend.is_some();
 
         let input_path = workspace_root.join(&main_path);
         let output_root = build_root.join(name);
@@ -76,6 +80,8 @@ impl CanisterInfo {
 
             canister_id: RefCell::new(None),
             canister_id_path,
+
+            has_frontend,
         })
     }
 
@@ -114,6 +120,10 @@ impl CanisterInfo {
         self.canister_id.replace(canister_id.clone());
 
         canister_id
+    }
+
+    pub fn has_frontend(&self) -> bool {
+        self.has_frontend
     }
 
     pub fn generate_canister_id(&self) -> DfxResult<CanisterId> {
