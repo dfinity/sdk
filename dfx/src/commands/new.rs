@@ -5,6 +5,7 @@ use crate::lib::message::UserMessage;
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
+use console::Style;
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
 use semver::Version;
@@ -12,7 +13,6 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
-use term::stderr;
 
 const DRY_RUN: &str = "dry_run";
 const PROJECT_NAME: &str = "project_name";
@@ -179,29 +179,7 @@ where
     let latest_version = get_latest_version(RELEASE_ROOT, Some(*CHECK_VERSION_TIMEOUT)).ok();
 
     if is_upgrade_necessary(latest_version.clone(), current_version.clone()) {
-        eprintln!("You seem to be running an outdated version of dfx. ");
-        if let Some(mut t) = stderr() {
-            if t.supports_color() && latest_version.is_some() {
-                // fg() should not fail as the terminal supports
-                // color. See term crate documentation.
-                t.fg(term::color::RED)
-                    .expect("The impossible just happened: handling terminal failed");
-                write!(t, "\n current version: {}", current_version.clone())?;
-                t.fg(term::color::YELLOW)
-                    .expect("The impossible just happened: handling terminal failed");
-                write!(t, "→")?;
-                t.fg(term::color::GREEN)
-                    .expect("The impossible just happened: handling terminal failed");
-                write!(
-                    t,
-                    " latest version: {}",
-                    latest_version
-                        .clone()
-                        .expect("Expected a parsed version number")
-                )?;
-            }
-        }
-        eprintln!("\n You are strongly encouraged to upgrade by running 'dfx upgrade'!");
+        warn_upgrade(latest_version, current_version);
     }
 
     eprintln!(r#"Creating new project "{}"..."#, project_name.display());
@@ -284,6 +262,24 @@ where
     );
 
     Ok(())
+}
+
+fn warn_upgrade(latest_version: Option<Version>, current_version: Version) {
+    eprintln!("You seem to be running an outdated version of dfx.");
+
+    let red = Style::new().red();
+    let green = Style::new().green();
+    let yellow = Style::new().yellow();
+
+    eprint!(
+        "\nCurrent version: {}",
+        red.apply_to(current_version.clone())
+    );
+    if let Some(v) = latest_version {
+        eprint!("{}", yellow.apply_to("→"));
+        eprintln!(" latest version: {}", green.apply_to(v));
+    }
+    eprintln!("\nYou are strongly encouraged to upgrade by running 'dfx upgrade'!");
 }
 
 #[cfg(test)]
