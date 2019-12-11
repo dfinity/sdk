@@ -254,15 +254,6 @@ where
     let mut new_project_files = assets::new_project_files()?;
     write_files_from_entries(&mut new_project_files, project_name, dry_run, &variables)?;
 
-    // Check if node is available, and if it is create the files for the frontend build.
-    let mut new_project_node_files = assets::new_project_node_files()?;
-    write_files_from_entries(
-        &mut new_project_node_files,
-        project_name,
-        dry_run,
-        &variables,
-    )?;
-
     let node_installed = std::process::Command::new("node")
         .arg("--version")
         .output()
@@ -271,6 +262,15 @@ where
     // Only update the dfx.json if we're not running in dry run.
     if !dry_run {
         if node_installed || args.is_present("frontend") {
+            // Check if node is available, and if it is create the files for the frontend build.
+            let mut new_project_node_files = assets::new_project_node_files()?;
+            write_files_from_entries(
+                &mut new_project_node_files,
+                project_name,
+                dry_run,
+                &variables,
+            )?;
+
             let dfx_path = project_name.join(CONFIG_FILE_NAME);
             let content = std::fs::read(&dfx_path)?;
             let mut config_json: Value =
