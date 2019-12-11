@@ -1,16 +1,30 @@
+use super::upgrade::{get_latest_version, is_upgrade_necessary};
 use crate::lib::env::{BinaryCacheEnv, PlatformEnv, VersionEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
+use console::Style;
 use indicatif::HumanBytes;
+use lazy_static::lazy_static;
+use semver::Version;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::time::Duration;
 
 const DRY_RUN: &str = "dry_run";
 const PROJECT_NAME: &str = "project_name";
+const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
+lazy_static! {
+// Tested on a phone tethering connection. This should be fine with
+// little impact to the user, given that "new" is supposedly a
+// heavy-weight operation. Thus, worst case we are utilizing the user
+// expectation for the duration to have a more expensive version
+// check.
+    static ref CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
+}
 
 /// Validate a String can be a valid project name.
 /// A project name is valid if it starts with a letter, and is alphanumeric (with hyphens).
@@ -157,6 +171,17 @@ where
 
     let dfx_version = env.get_version();
 
+    let current_version = Version::parse(dfx_version)
+        .map_err(|e| DfxError::InvalidData(format!("invalid version: {}", e)))?;
+
+    // It is fine for the following command to timeout or fail. We
+    // drop the error.
+    let latest_version = get_latest_version(RELEASE_ROOT, Some(*CHECK_VERSION_TIMEOUT)).ok();
+
+    if is_upgrade_necessary(latest_version.clone(), current_version.clone()) {
+        warn_upgrade(latest_version, current_version);
+    }
+
     eprintln!(r#"Creating new project "{}"..."#, project_name.display());
     if dry_run {
         eprintln!(r#"Running in dry mode. Nothing will be committed to disk."#);
@@ -237,6 +262,24 @@ where
     );
 
     Ok(())
+}
+
+fn warn_upgrade(latest_version: Option<Version>, current_version: Version) {
+    eprintln!("You seem to be running an outdated version of dfx.");
+
+    let red = Style::new().red();
+    let green = Style::new().green();
+    let yellow = Style::new().yellow();
+
+    eprint!(
+        "\nCurrent version: {}",
+        red.apply_to(current_version.clone())
+    );
+    if let Some(v) = latest_version {
+        eprint!("{}", yellow.apply_to("→"));
+        eprintln!(" latest version: {}", green.apply_to(v));
+    }
+    eprintln!("\nYou are strongly encouraged to upgrade by running 'dfx upgrade'!");
 }
 
 #[cfg(test)]
