@@ -35,6 +35,8 @@ pub enum UserMessage {
     StartBackground,
     StartLanguageService,
     ForceTTY,
+
+    NewFrontend,
 }
 
 impl UserMessage {
@@ -81,6 +83,7 @@ impl UserMessage {
             UserMessage::CreateProject => "Creates a new project.",
             UserMessage::ProjectName => "Specifies the name of the project to create.",
             UserMessage::DryRun => "Provides a preview the directories and files to be created without adding them to the file system.",
+            UserMessage::NewFrontend => "Install the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.",
 
             // dfx start
             UserMessage::StartNode => "Starts the local network client.",

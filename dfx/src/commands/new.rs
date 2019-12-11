@@ -1,3 +1,4 @@
+use crate::config::dfinity::CONFIG_FILE_NAME;
 use crate::lib::env::{BinaryCacheEnv, PlatformEnv, VersionEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -5,9 +6,13 @@ use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::style;
 use indicatif::HumanBytes;
+use indicatif::{ProgressBar, ProgressDrawTarget};
+use serde_json::Value;
+use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use tar::Archive;
 
 const DRY_RUN: &str = "dry_run";
 const PROJECT_NAME: &str = "project_name";
@@ -57,6 +62,11 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name(DRY_RUN)
                 .help(UserMessage::DryRun.to_str())
                 .long("dry-run")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("frontend")
+                .help(UserMessage::NewFrontend.to_str())
                 .takes_value(false),
         )
 }
@@ -141,6 +151,48 @@ pub fn init_git(project_name: &Path) -> DfxResult {
     Ok(())
 }
 
+fn write_files_from_entries<R: Sized + Read>(
+    archive: &mut Archive<R>,
+    root: &Path,
+    dry_run: bool,
+    variables: &HashMap<String, String>,
+) -> DfxResult {
+    for entry in archive.entries()? {
+        let mut file = entry?;
+
+        if file.header().entry_type().is_dir() {
+            continue;
+        }
+
+        let mut s = String::new();
+        file.read_to_string(&mut s)
+            .or_else(|e| Err(DfxError::Io(e)))?;
+
+        // Perform replacements.
+        variables.iter().for_each(|(name, value)| {
+            let pattern = "{".to_owned() + name + "}";
+            s = s.replace(pattern.as_str(), value);
+        });
+
+        // Perform path replacements.
+        let mut p = root
+            .join(file.header().path()?)
+            .to_str()
+            .expect("Non unicode project name path.")
+            .to_string();
+
+        variables.iter().for_each(|(name, value)| {
+            let pattern = "__".to_owned() + name + "__";
+            p = p.replace(pattern.as_str(), value);
+        });
+
+        let p = PathBuf::from(p);
+        create_file(p.as_path(), s.as_str(), dry_run)?;
+    }
+
+    Ok(())
+}
+
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: BinaryCacheEnv + PlatformEnv + VersionEnv,
@@ -162,37 +214,94 @@ where
         eprintln!(r#"Running in dry mode. Nothing will be committed to disk."#);
     }
 
-    let mut new_project_files = assets::new_project_files()?;
     let project_name_str = project_name
         .to_str()
         .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
 
-    for file in new_project_files.entries()? {
-        let mut file = file?;
+    let variables: HashMap<String, String> = [
+        ("project_name".to_string(), project_name_str.to_string()),
+        ("dfx_version".to_string(), dfx_version.to_string()),
+        ("dot".to_string(), ".".to_string()),
+    ]
+    .iter()
+    .cloned()
+    .collect();
 
-        if file.header().entry_type().is_dir() {
-            continue;
+    let mut new_project_files = assets::new_project_files()?;
+    write_files_from_entries(&mut new_project_files, project_name, dry_run, &variables)?;
+
+    // Check if node is available, and if it is create the files for the frontend build.
+    let mut new_project_node_files = assets::new_project_node_files()?;
+    write_files_from_entries(
+        &mut new_project_node_files,
+        project_name,
+        dry_run,
+        &variables,
+    )?;
+
+    let node_installed = std::process::Command::new("node")
+        .arg("--version")
+        .output()
+        .is_ok();
+
+    // Only update the dfx.json if we're not running in dry run.
+    if !dry_run {
+        if node_installed || args.is_present("frontend") {
+            let dfx_path = project_name.join(CONFIG_FILE_NAME);
+            let content = std::fs::read(&dfx_path)?;
+            let mut config_json: Value =
+                serde_json::from_slice(&content).map_err(std::io::Error::from)?;
+
+            let frontend_value: serde_json::Map<String, Value> = [
+                (
+                    "entrypoint".to_string(),
+                    ("src/".to_owned() + project_name_str + "/public/hello.js").into(),
+                ),
+                ("build".to_string(), "npm run build".to_string().into()),
+            ]
+            .iter()
+            .cloned()
+            .collect();
+
+            let p = config_json
+                .pointer_mut(("/canisters/".to_owned() + project_name_str).as_str())
+                .unwrap();
+            p.as_object_mut()
+                .unwrap()
+                .insert("frontend".to_string(), Value::from(frontend_value));
+            let pretty = serde_json::to_string_pretty(&config_json).or_else(|e| {
+                Err(DfxError::InvalidData(format!(
+                    "Failed to serialize dfx.json: {}",
+                    e
+                )))
+            })?;
+            std::fs::write(&dfx_path, pretty)?;
+
+            let b = ProgressBar::new_spinner();
+            b.set_draw_target(ProgressDrawTarget::stderr());
+
+            b.set_message("Installing node dependencies...");
+            b.enable_steady_tick(80);
+
+            // Install node modules. Error is not blocking, we just show a message instead.
+            if std::process::Command::new("npm")
+                .arg("install")
+                .arg("--quiet")
+                .arg("--no-progress")
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .current_dir(project_name)
+                .status()
+                .is_ok()
+            {
+                b.finish_with_message("Done.");
+            } else {
+                b.finish_with_message("An error occured. See the messages above for more details.");
+            }
+        } else if !args.is_present("frontend") && !node_installed {
+            eprintln!("Node could not be found. Skipping installing the frontend example code.");
+            eprintln!("\nYou can bypass this check by using the --frontend flag.")
         }
-
-        let mut s = String::new();
-        file.read_to_string(&mut s)
-            .or_else(|e| Err(DfxError::Io(e)))?;
-
-        // Perform replacements.
-        let s = s.replace("{project_name}", project_name_str);
-        let s = s.replace("{dfx_version}", dfx_version);
-
-        // Perform path replacements.
-        let p = PathBuf::from(
-            project_name
-                .join(file.header().path()?)
-                .to_str()
-                .expect("Non unicode project name path.")
-                .replace("__dot__", ".")
-                .as_str(),
-        );
-
-        create_file(p.as_path(), s.as_str(), dry_run)?;
     }
 
     if !dry_run {

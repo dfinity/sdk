@@ -246,6 +246,16 @@ where
         }
     }
 
+    // Run `npm run build` if there is a package.json. Ignore errors.
+    if config.get_project_root().join("package.json").exists() {
+        // Install node modules
+        std::process::Command::new("npm")
+            .arg("run")
+            .arg("build")
+            .current_dir(config.get_project_root())
+            .output()?;
+    }
+
     Ok(())
 }
 

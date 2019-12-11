@@ -1,0 +1,15 @@
+{
+  "name": "{project_name}",
+  "version": "0.1.0",
+  "description": "",
+  "keywords": [],
+  "scripts": {
+    "build": "webpack"
+  },
+  "devDependencies": {
+    "webpack": "5.0.0-beta.9",
+    "webpack-cli": "4.0.0-beta.1",
+    "html-webpack-plugin": "4.0.0-beta.11",
+    "terser-webpack-plugin": "2.2.2"
+  }
+}
