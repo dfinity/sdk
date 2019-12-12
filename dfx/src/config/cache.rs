@@ -7,6 +7,9 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::ExitStatus;
 
+// POSIX permissions for files in the cache.
+const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
+
 pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
         .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
@@ -80,7 +83,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
             let full_path = p.join(file.path()?);
             let mut perms = std::fs::metadata(full_path.as_path())?.permissions();
-            perms.set_mode(0o500);
+            perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
             std::fs::set_permissions(full_path.as_path(), perms)?;
         }
 
@@ -89,7 +92,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
         std::fs::write(&dfx, std::fs::read(current_exe)?)?;
         // And make it executable.
         let mut perms = std::fs::metadata(&dfx)?.permissions();
-        perms.set_mode(0o500);
+        perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
         std::fs::set_permissions(&dfx, perms)?;
 
         if let Some(b) = b {
