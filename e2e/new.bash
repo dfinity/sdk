@@ -9,13 +9,13 @@ setup() {
 }
 
 @test "dfx new - good names" {
-    dfx new --skip-frontend a_good_name_
-    dfx new --skip-frontend A
-    dfx new --skip-frontend b
-    dfx new --skip-frontend a_
-    dfx new --skip-frontend a_1
-    dfx new --skip-frontend a1
-    dfx new --skip-frontend a1a
+    dfx new --no-frontend a_good_name_
+    dfx new --no-frontend A
+    dfx new --no-frontend b
+    dfx new --no-frontend a_
+    dfx new --no-frontend a_1
+    dfx new --no-frontend a1
+    dfx new --no-frontend a1a
 }
 
 @test "dfx new - bad names" {
