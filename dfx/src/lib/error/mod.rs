@@ -71,6 +71,9 @@ pub enum DfxError {
 
     /// The ide server shouldn't be started from a terminal.
     LanguageServerFromATerminal,
+
+    /// Timeout while waiting for a request to the IC client.
+    TimeoutWaitingForResponse(String),
 }
 
 /// The result of running a DFX command.
