@@ -215,6 +215,95 @@ fn write_files_from_entries<R: Sized + Read>(
     Ok(())
 }
 
+fn scaffold_frontend_code(
+    dry_run: bool,
+    project_name: &Path,
+    arg_no_frontend: bool,
+    arg_frontend: bool,
+    variables: &HashMap<String, String>,
+) -> DfxResult {
+    let node_installed = std::process::Command::new("node")
+        .arg("--version")
+        .output()
+        .is_ok();
+
+    let project_name_str = project_name
+        .to_str()
+        .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
+
+    if (node_installed && !arg_no_frontend) || arg_frontend {
+        // Check if node is available, and if it is create the files for the frontend build.
+        let mut new_project_node_files = assets::new_project_node_files()?;
+        write_files_from_entries(
+            &mut new_project_node_files,
+            project_name,
+            dry_run,
+            &variables,
+        )?;
+
+        let dfx_path = project_name.join(CONFIG_FILE_NAME);
+        let content = std::fs::read(&dfx_path)?;
+        let mut config_json: Value =
+            serde_json::from_slice(&content).map_err(std::io::Error::from)?;
+
+        let frontend_value: serde_json::Map<String, Value> = [(
+            "entrypoint".to_string(),
+            ("src/".to_owned() + project_name_str + "/public/index.js").into(),
+        )]
+        .iter()
+        .cloned()
+        .collect();
+
+        // Only update the dfx.json and install node dependencies if we're not running in dry run.
+        if !dry_run {
+            let p = config_json
+                .pointer_mut(("/canisters/".to_owned() + project_name_str).as_str())
+                .unwrap();
+            p.as_object_mut()
+                .unwrap()
+                .insert("frontend".to_string(), Value::from(frontend_value));
+            let pretty = serde_json::to_string_pretty(&config_json).or_else(|e| {
+                Err(DfxError::InvalidData(format!(
+                    "Failed to serialize dfx.json: {}",
+                    e
+                )))
+            })?;
+            std::fs::write(&dfx_path, pretty)?;
+
+            let b = ProgressBar::new_spinner();
+            b.set_draw_target(ProgressDrawTarget::stderr());
+
+            b.set_message("Installing node dependencies...");
+            b.enable_steady_tick(80);
+
+            // Install node modules. Error is not blocking, we just show a message instead.
+            if node_installed {
+                if std::process::Command::new("npm")
+                    .arg("install")
+                    .arg("--quiet")
+                    .arg("--no-progress")
+                    .stdout(std::process::Stdio::inherit())
+                    .stderr(std::process::Stdio::inherit())
+                    .current_dir(project_name)
+                    .status()
+                    .is_ok()
+                {
+                    b.finish_with_message("Done.");
+                } else {
+                    b.finish_with_message(
+                        "An error occured. See the messages above for more details.",
+                    );
+                }
+            }
+        }
+    } else if !arg_frontend && !node_installed {
+        eprintln!("Node could not be found. Skipping installing the frontend example code.");
+        eprintln!("\nYou can bypass this check by using the --frontend flag.")
+    }
+
+    Ok(())
+}
+
 pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: BinaryCacheEnv + PlatformEnv + VersionEnv,
@@ -263,78 +352,13 @@ where
     let mut new_project_files = assets::new_project_files()?;
     write_files_from_entries(&mut new_project_files, project_name, dry_run, &variables)?;
 
-    let node_installed = std::process::Command::new("node")
-        .arg("--version")
-        .output()
-        .is_ok();
-
-    // Only update the dfx.json if we're not running in dry run.
-    if !dry_run {
-        let should_frontend =
-            (node_installed && !args.is_present("no-frontend")) || args.is_present("frontend");
-        if should_frontend {
-            // Check if node is available, and if it is create the files for the frontend build.
-            let mut new_project_node_files = assets::new_project_node_files()?;
-            write_files_from_entries(
-                &mut new_project_node_files,
-                project_name,
-                dry_run,
-                &variables,
-            )?;
-
-            let dfx_path = project_name.join(CONFIG_FILE_NAME);
-            let content = std::fs::read(&dfx_path)?;
-            let mut config_json: Value =
-                serde_json::from_slice(&content).map_err(std::io::Error::from)?;
-
-            let frontend_value: serde_json::Map<String, Value> = [(
-                "entrypoint".to_string(),
-                ("src/".to_owned() + project_name_str + "/public/index.js").into(),
-            )]
-            .iter()
-            .cloned()
-            .collect();
-
-            let p = config_json
-                .pointer_mut(("/canisters/".to_owned() + project_name_str).as_str())
-                .unwrap();
-            p.as_object_mut()
-                .unwrap()
-                .insert("frontend".to_string(), Value::from(frontend_value));
-            let pretty = serde_json::to_string_pretty(&config_json).or_else(|e| {
-                Err(DfxError::InvalidData(format!(
-                    "Failed to serialize dfx.json: {}",
-                    e
-                )))
-            })?;
-            std::fs::write(&dfx_path, pretty)?;
-
-            let b = ProgressBar::new_spinner();
-            b.set_draw_target(ProgressDrawTarget::stderr());
-
-            b.set_message("Installing node dependencies...");
-            b.enable_steady_tick(80);
-
-            // Install node modules. Error is not blocking, we just show a message instead.
-            if std::process::Command::new("npm")
-                .arg("install")
-                .arg("--quiet")
-                .arg("--no-progress")
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit())
-                .current_dir(project_name)
-                .status()
-                .is_ok()
-            {
-                b.finish_with_message("Done.");
-            } else {
-                b.finish_with_message("An error occured. See the messages above for more details.");
-            }
-        } else if !args.is_present("frontend") && !node_installed {
-            eprintln!("Node could not be found. Skipping installing the frontend example code.");
-            eprintln!("\nYou can bypass this check by using the --frontend flag.")
-        }
-    }
+    scaffold_frontend_code(
+        dry_run,
+        project_name,
+        args.is_present("no-frontend"),
+        args.is_present("frontend"),
+        &variables,
+    )?;
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.
