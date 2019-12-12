@@ -34,9 +34,22 @@ pub fn construct() -> App<'static, 'static> {
                 .long("async")
                 .takes_value(false),
         )
+        .arg(
+            Arg::with_name("compute-allocation")
+                .help(UserMessage::InstallComputeAllocation.to_str())
+                .long("compute-allocation")
+                .short("c")
+                .takes_value(true)
+                .default_value("0")
+                .validator(compute_allocation_validator),
+        )
 }
 
-pub fn install_canister(client: &Client, canister_info: &CanisterInfo) -> DfxResult<RequestId> {
+pub fn install_canister(
+    client: &Client,
+    canister_info: &CanisterInfo,
+    compute_allocation: u64,
+) -> DfxResult<RequestId> {
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
@@ -50,7 +63,13 @@ pub fn install_canister(client: &Client, canister_info: &CanisterInfo) -> DfxRes
     let wasm_path = canister_info.get_output_wasm_path();
     let wasm = std::fs::read(wasm_path)?;
 
-    let install = install_code(client.clone(), canister_id, Blob::from(wasm), None);
+    let install = install_code(
+        client.clone(),
+        canister_id,
+        Blob::from(wasm),
+        None,
+        compute_allocation,
+    );
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let request_id = runtime.block_on(install)?;
@@ -96,6 +115,21 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
     }
 }
 
+const COMPUTE_ALLOCATION_ERROR_MSG: &str = "Must be a percent between 0 and 100";
+
+fn compute_allocation_validator(compute_allocation: String) -> Result<(), String> {
+    match compute_allocation.parse::<u64>() {
+        Ok(num) => {
+            if num > 100 {
+                Err(COMPUTE_ALLOCATION_ERROR_MSG.to_string())
+            } else {
+                Ok(())
+            }
+        }
+        Err(_) => Err(COMPUTE_ALLOCATION_ERROR_MSG.to_string()),
+    }
+}
+
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
@@ -103,9 +137,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let client = env
         .get_client()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let compute_allocation = args
+        .value_of("compute-allocation")
+        .unwrap_or("0")
+        .parse::<u64>()
+        .unwrap();
     if let Some(canister_name) = args.value_of("canister_name") {
         let canister_info = CanisterInfo::load(&config, canister_name)?;
-        let request_id = install_canister(&client, &canister_info)?;
+        let request_id = install_canister(&client, &canister_info, compute_allocation)?;
 
         if args.is_present("async") {
             eprint!("Request ID: ");
@@ -119,7 +158,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
                 let canister_info = CanisterInfo::load(&config, canister_name)?;
-                let request_id = install_canister(&client, &canister_info)?;
+                let request_id = install_canister(&client, &canister_info, compute_allocation)?;
 
                 if args.is_present("async") {
                     eprint!("Request ID: ");

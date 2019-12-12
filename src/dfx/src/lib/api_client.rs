@@ -93,6 +93,7 @@ enum SubmitRequest {
         module: Blob,
         arg: Blob,
         nonce: Option<Blob>,
+        compute_allocation: u64,
     },
     Call {
         canister_id: CanisterId,
@@ -218,12 +219,14 @@ pub fn install_code(
     canister_id: CanisterId,
     module: Blob,
     arg: Option<Blob>,
+    compute_allocation: u64,
 ) -> impl Future<Item = RequestId, Error = DfxError> {
     let request = SubmitRequest::InstallCode {
         canister_id,
         module,
         arg: arg.unwrap_or_else(|| Blob::from(EMPTY_DIDL)),
         nonce: Some(random_blob()),
+        compute_allocation,
     };
     let request_id = to_request_id(&request).map_err(|e| {
         DfxError::InvalidData(format!("Unable to derive request ID from request: {}", e))
@@ -482,12 +485,14 @@ mod tests {
         let canister_id = CanisterId::from_bytes(&[1]);
         let module = Blob(vec![1]);
         let arg = Blob(vec![2]);
+        let compute_allocation = 50;
 
         let request = SubmitRequest::InstallCode {
             canister_id,
             module,
             arg,
             nonce: None,
+            compute_allocation,
         };
 
         let actual: Value = serde_cbor::from_slice(&serde_cbor::to_vec(&request).unwrap()).unwrap();
@@ -506,6 +511,10 @@ mod tests {
                 (Value::Text("module".to_string()), Value::Bytes(vec![1])),
                 (Value::Text("arg".to_string()), Value::Bytes(vec![2])),
                 (Value::Text("nonce".to_string()), Value::Null),
+                (
+                    Value::Text("compute_allocation".to_string()),
+                    Value::Integer(50),
+                ),
             ]
             .into_iter()
             .collect(),
@@ -527,7 +536,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let future = install_code(client, CanisterId::from_bytes(&[1]), Blob(vec![1]), None);
+        let future = install_code(client, CanisterId::from_bytes(&[1]), Blob(vec![1]), None, 0);
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(future);
@@ -553,7 +562,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let future = install_code(client, CanisterId::from_bytes(&[1]), Blob(vec![1]), None);
+        let future = install_code(client, CanisterId::from_bytes(&[1]), Blob(vec![1]), None, 0);
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(future);
