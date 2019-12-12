@@ -215,6 +215,18 @@ fn write_files_from_entries<R: Sized + Read>(
     Ok(())
 }
 
+fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
+    std::process::Command::new("npm")
+        .arg("install")
+        .arg("--quiet")
+        .arg("--no-progress")
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .current_dir(location)
+        .spawn()
+        .map_err(DfxError::from)
+}
+
 fn scaffold_frontend_code(
     dry_run: bool,
     project_name: &Path,
@@ -278,16 +290,7 @@ fn scaffold_frontend_code(
 
             // Install node modules. Error is not blocking, we just show a message instead.
             if node_installed {
-                if std::process::Command::new("npm")
-                    .arg("install")
-                    .arg("--quiet")
-                    .arg("--no-progress")
-                    .stdout(std::process::Stdio::inherit())
-                    .stderr(std::process::Stdio::inherit())
-                    .current_dir(project_name)
-                    .status()
-                    .is_ok()
-                {
+                if npm_install(project_name)?.wait().is_ok() {
                     b.finish_with_message("Done.");
                 } else {
                     b.finish_with_message(
