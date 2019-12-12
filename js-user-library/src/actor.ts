@@ -6,7 +6,15 @@ import * as requestId from './request_id';
 
 import { RequestStatusResponse, RequestStatusResponseStatus } from './request_status_response';
 
-import retry from 'async-retry';
+function retry<T>(fn: () => Promise<T>, maxAttempts: number): Promise<T> {
+  return fn().catch(err => {
+    if (maxAttempts > 0) {
+      return retry(fn, maxAttempts - 1);
+    } else {
+      throw err;
+    }
+  });
+}
 
 // Make an actor from an actor interface.
 //
@@ -66,7 +74,7 @@ export const makeActor = (
       const maxAttempts = 3;
 
       const reply = await retry(
-        async (bail, attempts) => {
+        async () => {
           const response: RequestStatusResponse = await httpAgent.requestStatus({
             requestId: requestIdent,
           });
@@ -87,7 +95,7 @@ export const makeActor = (
             default: {
               throw new Error(
                 [
-                  `Failed to retrieve a reply for request after ${attempts} attempts:`,
+                  `Failed to retrieve a reply for request after ${maxAttempts} attempts:`,
                   `  Request ID: ${requestId.toHex(requestIdent)}`,
                   `  Request status: ${response.status}`,
                 ].join('\n'),
@@ -95,9 +103,7 @@ export const makeActor = (
             }
           }
         },
-        {
-          retries: maxAttempts - 1,
-        },
+        maxAttempts - 1,
       );
 
       return reply;
