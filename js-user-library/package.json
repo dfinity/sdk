@@ -28,10 +28,9 @@
     "tweetnacl": "^1.0.1"
   },
   "devDependencies": {
-    "@types/text-encoding": "0.0.35",
     "@trust/webcrypto": "^0.9.2",
-    "@types/async-retry": "^1.4.1",
     "@types/jest": "^24.0.18",
+    "@types/text-encoding": "0.0.35",
     "jest": "^24.9.0",
     "jest-expect-message": "^1.0.2",
     "node-fetch": "2.6.0",
