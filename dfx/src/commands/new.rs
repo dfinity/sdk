@@ -79,8 +79,17 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("frontend")
+                .long("--frontend")
                 .help(UserMessage::NewFrontend.to_str())
-                .takes_value(false),
+                .takes_value(false)
+                .conflicts_with("no-frontend"),
+        )
+        .arg(
+            Arg::with_name("no-frontend")
+                .long("--no-frontend")
+                .hidden(true)
+                .takes_value(false)
+                .conflicts_with("frontend"),
         )
 }
 
@@ -261,7 +270,9 @@ where
 
     // Only update the dfx.json if we're not running in dry run.
     if !dry_run {
-        if node_installed || args.is_present("frontend") {
+        let should_frontend =
+            (node_installed && !args.is_present("no-frontend")) || args.is_present("frontend");
+        if should_frontend {
             // Check if node is available, and if it is create the files for the frontend build.
             let mut new_project_node_files = assets::new_project_node_files()?;
             write_files_from_entries(
