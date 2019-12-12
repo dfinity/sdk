@@ -17,7 +17,7 @@ export const sign = (secretKey: SenderSecretKey) => (requestId: RequestId): Send
 
 export function verify(requestId: RequestId, senderSig: SenderSig, senderPubKey: SenderPubKey) {
   return naclSign.detached.verify(requestId, senderSig, senderPubKey);
-};
+}
 
 export const createKeyPairFromSeed = (seed: Uint8Array): KeyPair => {
   const { publicKey, secretKey } = naclSign.keyPair.fromSeed(seed);

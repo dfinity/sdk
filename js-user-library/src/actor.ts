@@ -73,38 +73,35 @@ export const makeActor = (
 
       const maxAttempts = 3;
 
-      const reply = await retry(
-        async () => {
-          const response: RequestStatusResponse = await httpAgent.requestStatus({
-            requestId: requestIdent,
-          });
+      const reply = await retry(async () => {
+        const response: RequestStatusResponse = await httpAgent.requestStatus({
+          requestId: requestIdent,
+        });
 
-          switch (response.status) {
-            case RequestStatusResponseStatus.Replied: {
-              const returnValue = _IDL.decode(func.retTypes, Buffer.from(response.reply.arg));
+        switch (response.status) {
+          case RequestStatusResponseStatus.Replied: {
+            const returnValue = _IDL.decode(func.retTypes, Buffer.from(response.reply.arg));
 
-              // IDL functions can have multiple return values, so decoding always
-              // produces an array. Ensure that functions with single return
-              // values behave as expected.
-              if (returnValue instanceof Array && returnValue.length === 1) {
-                return returnValue[0];
-              } else {
-                return returnValue;
-              }
-            }
-            default: {
-              throw new Error(
-                [
-                  `Failed to retrieve a reply for request after ${maxAttempts} attempts:`,
-                  `  Request ID: ${requestId.toHex(requestIdent)}`,
-                  `  Request status: ${response.status}`,
-                ].join('\n'),
-              );
+            // IDL functions can have multiple return values, so decoding always
+            // produces an array. Ensure that functions with single return
+            // values behave as expected.
+            if (returnValue instanceof Array && returnValue.length === 1) {
+              return returnValue[0];
+            } else {
+              return returnValue;
             }
           }
-        },
-        maxAttempts - 1,
-      );
+          default: {
+            throw new Error(
+              [
+                `Failed to retrieve a reply for request after ${maxAttempts} attempts:`,
+                `  Request ID: ${requestId.toHex(requestIdent)}`,
+                `  Request status: ${response.status}`,
+              ].join('\n'),
+            );
+          }
+        }
+      }, maxAttempts - 1);
 
       return reply;
     };
