@@ -136,7 +136,7 @@ where
 
     b.set_message("Pinging the Internet Computer client...");
     ping_and_wait(&frontend_url)?;
-    b.finish_with_message("Internet Computer client started...");
+    b.set_message("Internet Computer client started...");
 
     // We have two side processes involving multiple threads running at
     // this point. We first wait for a signal that one of the processes
@@ -157,6 +157,7 @@ where
     // over the client and nodemanager as it provides little
     // handling. This is mostly done for completeness. In the future
     // we should also force kill, if it ends up being necessary.
+    b.set_message("Terminating...");
     broadcast_stop.send(()).expect("Failed to signal children");
     // We can now start terminating our proxy server, we block to
     // ensure termination is done properly. At this point the client
@@ -164,6 +165,8 @@ where
 
     // Signal the actix server to stop. This will
     // block.
+
+    b.set_message("Terminating proxy...");
     actix_handler
         .recv()
         .expect("Failed to receive server")
@@ -177,20 +180,26 @@ where
                 format!("Failed to stop server: {:?}", e),
             ))
         })?;
+    b.set_message("Gathering proxy thread...");
     // Join and handle errors for the frontend watchdog thread.
-    frontend_watchdog.join().or_else(|e| {
-        Err(DfxError::RuntimeError(Error::new(
+    frontend_watchdog.join().map_err(|e| {
+        DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
             format!("Failed while running frontend proxy thead -- {:?}", e),
-        )))
+        ))
     })?;
-    // Join and handle errors for the client watchdog thread.
-    client_watchdog.join().or_else(|e| {
-        Err(DfxError::RuntimeError(Error::new(
+
+    b.set_message("Gathering client thread...");
+    // Join and handle errors for the client watchdog thread. Here we
+    // check the result of client_watchdog and start_client.
+    client_watchdog.join().map_err(|e| {
+        DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
             format!("Failed while running client thread -- {:?}", e),
-        )))
-    })?
+        ))
+    })??;
+    b.finish_with_message("Terminated successfully... Have a great day!!!");
+    Ok(())
 }
 
 fn send_background() -> DfxResult<()> {
