@@ -23,7 +23,7 @@ load utils/_
     assert_command_fail dfx build
     assert_match "must be run in a project"
 
-    dfx new t
+    dfx new t --no-frontend
     cd t
     assert_command dfx build
 }
