@@ -97,10 +97,10 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
             reject_code,
             reject_message,
         } => Err(DfxError::ClientError(reject_code, reject_message)),
-        ReadResponse::Unknown => Err(DfxError::TimeoutWaitingForResponse(format!(
-            "Timed out waiting for {:?} for more than {:?}",
-            request_id, REQUEST_TIMEOUT
-        ))),
+        ReadResponse::Unknown => Err(DfxError::TimeoutWaitingForResponse(
+            request_id,
+            REQUEST_TIMEOUT,
+        )),
     }
 }
 
