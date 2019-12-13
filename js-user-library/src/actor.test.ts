@@ -1,23 +1,17 @@
-import { Buffer } from "buffer/";
-import { BinaryBlob } from "./blob";
-import * as blob from "./blob";
-import * as canisterId from "./canisterId";
-import * as cbor from "./cbor";
-import { Hex } from "./hex";
-import { Nonce } from "./nonce";
-import { requestIdOf } from "./requestId";
-import { RequestType } from "./requestType";
-import { SenderPubKey } from "./senderPubKey";
-import { SenderSecretKey } from "./senderSecretKey";
-import { SenderSig } from "./senderSig";
+import { Buffer } from 'buffer/';
+import * as blob from './blob';
+import { CanisterId } from './canisterId';
+import * as cbor from './cbor';
+import { Nonce } from './nonce';
+import { requestIdOf } from './request_id';
+import { RequestType } from './request_type';
+import { SenderPubKey } from './sender_pub_key';
+import { SenderSecretKey } from './sender_secret_key';
+import { SenderSig } from './sender_sig';
 
-import {
-  IDL as _IDL,
-  makeActor,
-  makeHttpAgent,
-} from "./index";
+import { IDL as _IDL, makeActor, makeHttpAgent } from './index';
 
-test("makeActor", async () => {
+test('makeActor', async () => {
   const actorInterface = ({ IDL }: { IDL: typeof _IDL }) => {
     return new IDL.ActorInterface({
       greet: IDL.Func([IDL.Text], [IDL.Text]),
@@ -25,47 +19,54 @@ test("makeActor", async () => {
   };
 
   const expectedReplyArg = blob.fromHex(
-    _IDL.encode([_IDL.Text], ["Hello, World!"]).toString("hex") as Hex,
+    _IDL.encode([_IDL.Text], ['Hello, World!']).toString('hex'),
   );
 
-  const mockFetch: jest.Mock = jest.fn()
+  const mockFetch: jest.Mock = jest
+    .fn()
     .mockImplementationOnce((/*resource, init*/) => {
-      return Promise.resolve(new Response(null, {
-        status: 202,
-      }));
+      return Promise.resolve(
+        new Response(null, {
+          status: 202,
+        }),
+      );
     })
     .mockImplementationOnce((resource, init) => {
-      const body = cbor.encode({ status: "unknown" });
-      return Promise.resolve(new Response(body, {
-        status: 200,
-      }));
+      const body = cbor.encode({ status: 'unknown' });
+      return Promise.resolve(
+        new Response(body, {
+          status: 200,
+        }),
+      );
     })
     .mockImplementationOnce((resource, init) => {
-      const body = cbor.encode({ status: "pending" });
-      return Promise.resolve(new Response(body, {
-        status: 200,
-      }));
+      const body = cbor.encode({ status: 'pending' });
+      return Promise.resolve(
+        new Response(body, {
+          status: 200,
+        }),
+      );
     })
     .mockImplementationOnce((resource, init) => {
       const body = cbor.encode({
-        status: "replied",
+        status: 'replied',
         reply: {
           arg: expectedReplyArg,
         },
       });
-      return Promise.resolve(new Response(body, {
-        status: 200,
-      }));
+      return Promise.resolve(
+        new Response(body, {
+          status: 200,
+        }),
+      );
     });
 
-  const methodName = "greet";
-  const argValue = "Name";
+  const methodName = 'greet';
+  const argValue = 'Name';
 
-  const arg = blob.fromHex(
-    _IDL.encode([_IDL.Text], [argValue]).toString("hex") as Hex,
-  );
+  const arg = blob.fromHex(_IDL.encode([_IDL.Text], [argValue]).toString('hex'));
 
-  const canisterIdent = "0000000000000001" as Hex;
+  const canisterIdent = '0000000000000001';
   const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
   const senderSecretKey = Buffer.alloc(32, 0) as SenderSecretKey;
   const senderSig = Buffer.from([0]) as SenderSig;
@@ -78,9 +79,9 @@ test("makeActor", async () => {
   ];
 
   const expectedCallRequest = {
-    request_type: "call" as RequestType,
+    request_type: 'call' as RequestType,
     nonce: nonces[0],
-    canister_id: canisterId.fromHex(canisterIdent),
+    canister_id: CanisterId.fromHex(canisterIdent),
     method_name: methodName,
     arg,
     sender_pubkey: senderPubKey,
@@ -101,39 +102,34 @@ test("makeActor", async () => {
     },
     senderSecretKey,
     senderPubKey,
-    senderSigFn: (x) => (req) =>
-      Buffer.from([0]) as SenderSig,
+    senderSigFn: x => req => Buffer.from([0]) as SenderSig,
   });
 
   const actor = makeActor(actorInterface)(httpAgent);
   const reply = await actor.greet(argValue);
 
-  expect(
-    reply,
-  ).toEqual(
-    _IDL.decode([_IDL.Text], expectedReplyArg)[0],
-  );
+  expect(reply).toEqual(_IDL.decode([_IDL.Text], expectedReplyArg)[0]);
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(4);
 
-  expect(calls[0][0]).toBe("http://localhost:8000/api/v1/submit");
+  expect(calls[0][0]).toBe('http://localhost:8000/api/v1/submit');
   expect(calls[0][1]).toEqual({
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/cbor",
+      'Content-Type': 'application/cbor',
     },
     body: cbor.encode(expectedCallRequest),
   });
 
-  expect(calls[1][0]).toBe("http://localhost:8000/api/v1/read");
+  expect(calls[1][0]).toBe('http://localhost:8000/api/v1/read');
   expect(calls[1][1]).toEqual({
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/cbor",
+      'Content-Type': 'application/cbor',
     },
     body: cbor.encode({
-      request_type: "request-status",
+      request_type: 'request-status',
       nonce: nonces[1],
       request_id: expectedCallRequestId,
       sender_pubkey: senderPubKey,
@@ -141,14 +137,14 @@ test("makeActor", async () => {
     }),
   });
 
-  expect(calls[2][0]).toBe("http://localhost:8000/api/v1/read");
+  expect(calls[2][0]).toBe('http://localhost:8000/api/v1/read');
   expect(calls[2][1]).toEqual({
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/cbor",
+      'Content-Type': 'application/cbor',
     },
     body: cbor.encode({
-      request_type: "request-status",
+      request_type: 'request-status',
       nonce: nonces[2],
       request_id: expectedCallRequestId,
       sender_pubkey: senderPubKey,
@@ -156,14 +152,14 @@ test("makeActor", async () => {
     }),
   });
 
-  expect(calls[3][0]).toBe("http://localhost:8000/api/v1/read");
+  expect(calls[3][0]).toBe('http://localhost:8000/api/v1/read');
   expect(calls[3][1]).toEqual({
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/cbor",
+      'Content-Type': 'application/cbor',
     },
     body: cbor.encode({
-      request_type: "request-status",
+      request_type: 'request-status',
       nonce: nonces[3],
       request_id: expectedCallRequestId,
       sender_pubkey: senderPubKey,

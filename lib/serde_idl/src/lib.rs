@@ -54,6 +54,7 @@ extern crate serde;
 
 pub use crate::de::IDLDeserialize;
 pub use crate::error::{Error, Result};
+pub use crate::types::IDLProg;
 pub use crate::value::IDLArgs;
 pub use dfx_info::IDLType;
 pub use serde::Deserialize;
@@ -73,8 +74,8 @@ pub const EMPTY_DIDL: &[u8] = b"DIDL\0\0";
 macro_rules! Encode {
     ( $($x:expr),* ) => {{
         let mut idl = serde_idl::ser::IDLBuilder::new();
-        $(idl.arg($x);)*
-        idl.to_vec().unwrap()
+        $(idl.arg($x).unwrap();)*
+        idl.serialize_to_vec().unwrap()
     }}
 }
 

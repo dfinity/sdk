@@ -14,6 +14,8 @@ pub trait PlatformEnv {
 pub trait BinaryCacheEnv {
     fn is_installed(&self) -> DfxResult<bool>;
     fn install(&self) -> DfxResult<()>;
+    fn force_install(&self) -> DfxResult<()>;
+    fn delete(&self, version: &str) -> DfxResult<()>;
 }
 
 /// An environment that can resolve binaries from the user-level cache.
@@ -59,7 +61,13 @@ impl BinaryCacheEnv for InProjectEnvironment {
         cache::is_version_installed(self.version.as_str())
     }
     fn install(&self) -> DfxResult<()> {
-        cache::install_version(self.version.as_str()).map(|_| ())
+        cache::install_version(self.version.as_str(), false).map(|_| ())
+    }
+    fn force_install(&self) -> DfxResult<()> {
+        cache::install_version(self.version.as_str(), true).map(|_| ())
+    }
+    fn delete(&self, version: &str) -> DfxResult<()> {
+        cache::delete_version(version).map(|_| ())
     }
 }
 
@@ -145,7 +153,13 @@ impl BinaryCacheEnv for GlobalEnvironment {
         cache::is_version_installed(self.version.as_str())
     }
     fn install(&self) -> DfxResult<()> {
-        cache::install_version(self.version.as_str()).map(|_| ())
+        cache::install_version(self.version.as_str(), false).map(|_| ())
+    }
+    fn force_install(&self) -> DfxResult<()> {
+        cache::install_version(self.version.as_str(), true).map(|_| ())
+    }
+    fn delete(&self, version: &str) -> DfxResult<()> {
+        cache::delete_version(version).map(|_| ())
     }
 }
 

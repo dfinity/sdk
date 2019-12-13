@@ -8,7 +8,10 @@
 **/.DS_Store
 
 # Build artifacts
-build/
+canisters/
 
 # dfx temporary files
 .dfx/
+
+# frontend code
+node_modules/

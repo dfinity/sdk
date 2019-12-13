@@ -21,7 +21,7 @@ assert_command() {
     )"
 
     [[ $status == 0 ]] || \
-        (  (echo "$*"; echo "$output" | batslib_decorate "Output") \
+        (  (echo "$*"; echo "status: $status"; echo "$output" | batslib_decorate "Output") \
          | batslib_decorate "Command failed" \
          | fail)
 }

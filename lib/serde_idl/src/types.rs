@@ -1,5 +1,6 @@
 extern crate pretty;
 use self::pretty::{BoxDoc, Doc};
+use crate::{Error, Result};
 use dfx_info::idl_hash;
 
 #[derive(Debug, Clone)]
@@ -72,6 +73,17 @@ pub struct FuncType {
     pub rets: Vec<IDLType>,
 }
 
+impl FuncType {
+    pub fn is_query(&self) -> bool {
+        for m in self.modes.iter() {
+            if let FuncMode::Query = m {
+                return true;
+            }
+        }
+        false
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Label {
     Id(u32),
@@ -114,7 +126,70 @@ pub struct IDLProg {
 }
 
 impl IDLProg {
-    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
+    fn find_type(&self, id: &str) -> Result<IDLType> {
+        for dec in self.decs.iter() {
+            if let Dec::TypD(bind) = dec {
+                if bind.id == *id {
+                    return Ok(bind.typ.clone());
+                }
+            }
+        }
+        Err(Error::msg(format!("cannot find variable {}", id)))
+    }
+    fn as_service(&self, t: &IDLType) -> Result<IDLType> {
+        match t {
+            IDLType::ServT(_) => Ok(t.clone()),
+            IDLType::VarT(id) => self.as_service(&self.find_type(id)?),
+            _ => Err(Error::msg("as_serv failed")),
+        }
+    }
+    fn as_func(&self, t: &IDLType) -> Result<FuncType> {
+        match t {
+            IDLType::FuncT(func) => Ok(func.clone()),
+            IDLType::VarT(id) => self.as_func(&self.find_type(id)?),
+            _ => Err(Error::msg("as_func failed")),
+        }
+    }
+
+    pub fn get_method_type(&self, method_name: &str) -> Option<FuncType> {
+        let actor = self.actor.as_ref()?;
+        let t = self.as_service(&actor.typ).ok()?;
+        if let IDLType::ServT(meths) = t {
+            for meth in meths {
+                if meth.id == *method_name {
+                    return self.as_func(&meth.typ).ok();
+                }
+            }
+        }
+        None
+    }
+}
+
+impl std::str::FromStr for IDLProg {
+    type Err = crate::Error;
+    fn from_str(str: &str) -> Result<Self> {
+        let lexer = crate::lexer::Lexer::new(str);
+        Ok(crate::grammar::IDLProgParser::new().parse(lexer)?)
+    }
+}
+
+// Pretty printing
+
+pub trait ToDoc {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>>;
+}
+
+pub fn to_pretty<T>(doc: &T, width: usize) -> String
+where
+    T: ToDoc,
+{
+    let mut w = Vec::new();
+    doc.to_doc().render(width, &mut w).unwrap();
+    String::from_utf8(w).unwrap()
+}
+
+impl ToDoc for IDLProg {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         let doc = Doc::concat(
             self.decs
                 .iter()
@@ -132,15 +207,10 @@ impl IDLProg {
             doc
         }
     }
-    pub fn to_pretty(&self, width: usize) -> String {
-        let mut w = Vec::new();
-        self.to_doc().render(width, &mut w).unwrap();
-        String::from_utf8(w).unwrap()
-    }
 }
 
-impl Dec {
-    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
+impl ToDoc for Dec {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         match *self {
             Dec::TypD(ref b) => Doc::text("type ").append(b.to_doc()),
             Dec::ImportD(ref file) => Doc::text(format!("import \"{}\"", file)),
@@ -148,7 +218,7 @@ impl Dec {
     }
 }
 
-impl Binding {
+impl ToDoc for Binding {
     fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         Doc::text(format!("{} =", self.id))
             .append(Doc::space())
@@ -158,8 +228,8 @@ impl Binding {
     }
 }
 
-impl IDLType {
-    pub fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
+impl ToDoc for IDLType {
+    fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         match self {
             IDLType::PrimT(p) => p.to_doc(),
             IDLType::VarT(var) => Doc::text(var),
@@ -175,7 +245,7 @@ impl IDLType {
     }
 }
 
-impl FuncType {
+impl ToDoc for FuncType {
     fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         args_to_doc(&self.args)
             .append(Doc::space())
@@ -187,7 +257,7 @@ impl FuncType {
     }
 }
 
-impl TypeField {
+impl ToDoc for TypeField {
     fn to_doc(&self) -> Doc<'_, BoxDoc<'_, ()>> {
         let colon = Doc::text(":").append(Doc::space());
         let doc = match &self.label {

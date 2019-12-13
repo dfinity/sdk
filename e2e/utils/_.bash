@@ -9,11 +9,22 @@ install_asset() {
     [ -f ./patch.bash ] && source ./patch.bash
 }
 
+dfx_new_frontend() {
+    local project_name=${1:-e2e_project}
+    dfx new ${project_name} --frontend
+    test -d ${project_name}
+    test -f ${project_name}/dfx.json
+    cd ${project_name}
+
+    echo PWD: $(pwd) >&2
+}
+
 dfx_new() {
-    dfx new e2e-project
-    test -d e2e-project
-    test -f e2e-project/dfx.json
-    cd e2e-project
+    local project_name=${1:-e2e_project}
+    dfx new ${project_name} --no-frontend
+    test -d ${project_name}
+    test -f ${project_name}/dfx.json
+    cd ${project_name}
 
     echo PWD: $(pwd) >&2
 }

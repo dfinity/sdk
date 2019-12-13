@@ -17,8 +17,8 @@ teardown() {
     install_asset print_mo
     dfx_start 2>stderr.txt
     dfx build
-    dfx canister install hello
-    dfx canister call hello hello
+    dfx canister install e2e_project
+    dfx canister call e2e_project hello
     run cat stderr.txt
     assert_match "debug.print: Hello, World! from DFINITY"
 }

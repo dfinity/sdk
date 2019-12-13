@@ -8,6 +8,8 @@ use crate::lib::message::UserMessage;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, RequestId};
+use std::io::Write;
+use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -57,31 +59,48 @@ pub fn install_canister(client: &Client, canister_info: &CanisterInfo) -> DfxRes
     Ok(request_id)
 }
 
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
+const RETRY_PAUSE: Duration = Duration::from_millis(100);
+
 pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResult {
-    let request_status = request_status(client.clone(), request_id);
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    match runtime.block_on(request_status) {
-        Ok(ReadResponse::Pending) => {
+    let mut response;
+    let start = Instant::now();
+    // While the answer is `Unknown`, this means the client is still managing the message
+    // (could be consensus, p2p or something else). We just wait a small time to let
+    // the client work, and call again. We stop waiting after `REQUEST_TIMEOUT`.
+    loop {
+        response = runtime.block_on(request_status(client.clone(), request_id))?;
+        if response != ReadResponse::Unknown || start.elapsed() > REQUEST_TIMEOUT {
+            break;
+        } else {
+            std::thread::sleep(RETRY_PAUSE);
+        }
+    }
+
+    match response {
+        ReadResponse::Pending => {
             eprint!("Request ID: ");
+            std::io::stderr().flush()?;
             println!("0x{}", String::from(request_id));
             Ok(())
         }
-        Ok(ReadResponse::Replied { reply }) => {
+        ReadResponse::Replied { reply } => {
             if let Some(QueryResponseReply { arg: blob }) = reply {
                 print_idl_blob(&blob)
                     .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
             }
             Ok(())
         }
-        Ok(ReadResponse::Rejected {
+        ReadResponse::Rejected {
             reject_code,
             reject_message,
-        }) => Err(DfxError::ClientError(reject_code, reject_message)),
-        // TODO(SDK-446): remove this matcher when moving api_client to ic_http_agent.
-        // `install` cannot return Unknown.
-        Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
-        Err(x) => Err(x),
+        } => Err(DfxError::ClientError(reject_code, reject_message)),
+        ReadResponse::Unknown => Err(DfxError::TimeoutWaitingForResponse(
+            request_id,
+            REQUEST_TIMEOUT,
+        )),
     }
 }
 

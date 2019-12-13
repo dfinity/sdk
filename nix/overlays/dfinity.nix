@@ -4,7 +4,7 @@ let src = builtins.fetchGit {
   name = "dfinity-sources";
   url = "ssh://git@github.com/dfinity-lab/dfinity";
   ref = "master";
-  rev = "5c7efff0524adbf97d85b27adb180e6137a3428f";
+  rev = "21f7cb12a737218b952a82f03066308d833e51d9";
 }; in
 
 {

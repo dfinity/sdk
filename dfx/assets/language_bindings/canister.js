@@ -1,15 +1,10 @@
-import actorInterface from "{did_js}";
-
-import {
-  generateKeyPair,
-  makeActor,
-  makeHttpAgent,
-} from "{js_user_lib}";
+import actorInterface from "ic:idl/{project_name}";
+import { generateKeyPair, makeActor, makeHttpAgent } from "ic:userlib";
 
 const { publicKey, secretKey } = generateKeyPair();
 
 const httpAgent = makeHttpAgent({
-  canisterId: {canister_id},
+  canisterId: "{canister_id}",
   senderSecretKey: secretKey,
   senderPubKey: publicKey,
 });
