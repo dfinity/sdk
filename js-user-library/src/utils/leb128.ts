@@ -54,7 +54,10 @@ export function slebEncode(value: BigNumber | number): Buffer {
     return lebEncode(value);
   }
 
-  value = value.abs().integerValue().minus(1);
+  value = value
+    .abs()
+    .integerValue()
+    .minus(1);
 
   // We need to special case 0, as it would return an empty buffer. Since
   // we removed 1 above, this is really -1.
@@ -100,3 +103,56 @@ export function slebDecode(pipe: Pipe): BigNumber {
   return value.negated().minus(1);
 }
 
+export function writeUIntLE(value: BigNumber | number, byteLength: number): Buffer {
+  if ((value instanceof BigNumber && value.isNegative()) || value < 0) {
+    throw new Error('Cannot write negative values.');
+  }
+  return writeIntLE(value, byteLength);
+}
+
+export function writeIntLE(value: BigNumber | number, byteLength: number): Buffer {
+  if (typeof value === 'number') {
+    value = new BigNumber(value);
+  }
+  value = value.integerValue();
+  const pipe = new Pipe();
+  let i = 0;
+  let mul = new BigNumber(256);
+  let sub = 0;
+  let byte = value.mod(mul).toNumber();
+  pipe.write([byte]);
+  while (++i < byteLength) {
+    if (value.lt(0) && sub === 0 && byte !== 0) {
+      sub = 1;
+    }
+    byte = value
+      .idiv(mul)
+      .minus(sub)
+      .mod(256)
+      .toNumber();
+    pipe.write([byte]);
+    mul = mul.times(256);
+  }
+  return pipe.buffer;
+}
+
+export function readUIntLE(pipe: Pipe, byteLength: number): BigNumber {
+  let val = new BigNumber(pipe.read(1)[0]);
+  let mul = new BigNumber(1);
+  let i = 0;
+  while (++i < byteLength) {
+    mul = mul.times(256);
+    const byte = pipe.read(1)[0];
+    val = val.plus(mul.times(byte));
+  }
+  return val;
+}
+
+export function readIntLE(pipe: Pipe, byteLength: number): BigNumber {
+  let val = readUIntLE(pipe, byteLength);
+  const mul = new BigNumber(2).pow(8 * (byteLength - 1) + 7);
+  if (val.gte(mul)) {
+    val = val.minus(mul.times(2));
+  }
+  return val;
+}

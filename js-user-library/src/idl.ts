@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import Pipe = require('buffer-pipe');
 import { idlHash } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
+import { readIntLE, readUIntLE, writeIntLE, writeUIntLE } from './utils/leb128';
 
 // tslint:disable:max-line-length
 /**
@@ -245,7 +246,7 @@ class IntClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
-    return x instanceof BigNumber || Number.isInteger(x);
+    return (x instanceof BigNumber && x.isInteger()) || Number.isInteger(x);
   }
 
   public encodeValue(x: BigNumber | number) {
@@ -272,7 +273,10 @@ class NatClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
-    return (x instanceof BigNumber && !x.isNegative()) || (Number.isInteger(x) && x >= 0);
+    return (
+      (x instanceof BigNumber && x.isInteger() && !x.isNegative()) ||
+      (Number.isInteger(x) && x >= 0)
+    );
   }
 
   public encodeValue(x: BigNumber | number) {
@@ -289,6 +293,93 @@ class NatClass extends PrimitiveType<BigNumber> {
 
   get name() {
     return 'Nat';
+  }
+}
+
+/**
+ * Represents an IDL fixed-width Int(n)
+ */
+export class FixedIntClass extends PrimitiveType<BigNumber | number> {
+  constructor(private _bits: number) {
+    super();
+  }
+
+  public covariant(x: any): x is BigNumber {
+    const min = new BigNumber(2).pow(this._bits - 1).negated();
+    const max = new BigNumber(2).pow(this._bits - 1).minus(1);
+    if (x instanceof BigNumber && x.isInteger()) {
+      return x.gte(min) && x.lte(max);
+    } else if (Number.isInteger(x)) {
+      const v = new BigNumber(x);
+      return v.gte(min) && v.lte(max);
+    } else {
+      return false;
+    }
+  }
+
+  public encodeValue(x: BigNumber | number) {
+    return writeIntLE(x, this._bits / 8);
+  }
+
+  public encodeType() {
+    const offset = Math.log2(this._bits) - 3;
+    return slebEncode(-9 - offset);
+  }
+
+  public decodeValue(b: Pipe) {
+    const num = readIntLE(b, this._bits / 8);
+    if (this._bits <= 32) {
+      return num.toNumber();
+    } else {
+      return num;
+    }
+  }
+
+  get name() {
+    return `Int${this._bits}`;
+  }
+}
+
+/**
+ * Represents an IDL fixed-width Nat(n)
+ */
+export class FixedNatClass extends PrimitiveType<BigNumber | number> {
+  constructor(private _bits: number) {
+    super();
+  }
+
+  public covariant(x: any): x is BigNumber {
+    const max = new BigNumber(2).pow(this._bits - 1);
+    if (x instanceof BigNumber && x.isInteger() && !x.isNegative()) {
+      return x.lte(max);
+    } else if (Number.isInteger(x) && x >= 0) {
+      const v = new BigNumber(x);
+      return v.lte(max);
+    } else {
+      return false;
+    }
+  }
+
+  public encodeValue(x: BigNumber | number) {
+    return writeUIntLE(x, this._bits / 8);
+  }
+
+  public encodeType() {
+    const offset = Math.log2(this._bits) - 3;
+    return slebEncode(-5 - offset);
+  }
+
+  public decodeValue(b: Pipe) {
+    const num = readUIntLE(b, this._bits / 8);
+    if (this._bits <= 32) {
+      return num.toNumber();
+    } else {
+      return num;
+    }
+  }
+
+  get name() {
+    return `Nat${this._bits}`;
   }
 }
 
@@ -718,6 +809,16 @@ export const Unit = new UnitClass();
 export const Text = new TextClass();
 export const Int = new IntClass();
 export const Nat = new NatClass();
+
+export const Int8 = new FixedIntClass(8);
+export const Int16 = new FixedIntClass(16);
+export const Int32 = new FixedIntClass(32);
+export const Int64 = new FixedIntClass(64);
+
+export const Nat8 = new FixedNatClass(8);
+export const Nat16 = new FixedNatClass(16);
+export const Nat32 = new FixedNatClass(32);
+export const Nat64 = new FixedNatClass(64);
 
 export function Tuple<T extends any[]>(...types: T): TupleClass<T> {
   return new TupleClass(types);
