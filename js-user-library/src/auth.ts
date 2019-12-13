@@ -15,7 +15,11 @@ export const sign = (secretKey: SenderSecretKey) => (requestId: RequestId): Send
   return Buffer.from(signature) as SenderSig;
 };
 
-export function verify(requestId: RequestId, senderSig: SenderSig, senderPubKey: SenderPubKey) {
+export function verify(
+  requestId: RequestId,
+  senderSig: SenderSig,
+  senderPubKey: SenderPubKey,
+): boolean {
   return naclSign.detached.verify(requestId, senderSig, senderPubKey);
 }
 
