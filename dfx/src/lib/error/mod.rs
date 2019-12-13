@@ -1,3 +1,6 @@
+use ic_http_agent::RequestId;
+use std::time::Duration;
+
 mod build;
 mod cache;
 
@@ -71,6 +74,9 @@ pub enum DfxError {
 
     /// The ide server shouldn't be started from a terminal.
     LanguageServerFromATerminal,
+
+    /// Timeout while waiting for a request to the IC client.
+    TimeoutWaitingForResponse(RequestId, Duration),
 }
 
 /// The result of running a DFX command.
