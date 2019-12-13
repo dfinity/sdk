@@ -60,7 +60,7 @@ fn run_webserver(
 ) -> Result<(), std::io::Error> {
     eprintln!("binding to: {:?}", bind);
     eprintln!("client: {:?}", client_api_uri);
-
+    const SHUTDOWN_WAIT_TIME: u64 = 60;
     let _sys = System::new("dfx-frontend-http-server");
 
     let handler = HttpServer::new(move || {
@@ -73,7 +73,7 @@ fn run_webserver(
     })
     .bind(bind)?
     // N.B. This is an arbitrary timeout for now.
-    .shutdown_timeout(60)
+    .shutdown_timeout(SHUTDOWN_WAIT_TIME)
     .system_exit()
     .start();
 
