@@ -3,7 +3,7 @@
   "dfx": "{dfx_version}",
   "canisters": {
     "{project_name}": {
-      "main": "src/hello/main.mo"
+      "main": "src/{project_name}/main.mo"
     }
   },
   "defaults": {
@@ -13,7 +13,7 @@
     "start": {
       "port": 8000,
       "address": "127.0.0.1",
-      "serve_root": "src/hello/public/"
+      "serve_root": "canisters/{project_name}/assets"
     }
   }
 }

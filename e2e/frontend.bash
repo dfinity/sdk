@@ -6,7 +6,7 @@ setup() {
     # We want to work from a temporary directory, different for every test.
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
 
-    dfx_new
+    dfx_new_frontend
 }
 
 teardown() {
@@ -17,6 +17,7 @@ teardown() {
 }
 
 @test "dfx start serves a frontend" {
+    dfx build
     dfx_start
 
     assert_command curl http://localhost:8000 # 8000 = default port.
@@ -24,6 +25,7 @@ teardown() {
 }
 
 @test "dfx start serves a frontend on a port" {
+    dfx build
     dfx_start --host 127.0.0.1:12345
 
     assert_command curl http://localhost:12345 # 8000 = default port.
