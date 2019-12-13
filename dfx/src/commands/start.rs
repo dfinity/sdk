@@ -81,9 +81,7 @@ where
     let nodemanager_pathbuf = env.get_binary_command_path("nodemanager")?;
 
     let project_root = config.get_path().parent().unwrap();
-
     let pid_file_path = env.get_dfx_root().unwrap().join("pid");
-
     check_previous_process_running(&pid_file_path)?;
 
     // We are doing this here to make sure we can write to the temp pid file.
@@ -95,7 +93,6 @@ where
     }
 
     // Start the client.
-
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
 
@@ -177,8 +174,7 @@ where
             ErrorKind::Other,
             format!("Failed while running client thread -- {:?}", e),
         )))
-    })?;
-    Ok(())
+    })?
 }
 
 fn send_background() -> DfxResult<()> {
