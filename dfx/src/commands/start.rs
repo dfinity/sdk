@@ -138,16 +138,32 @@ where
     ping_and_wait(&frontend_url)?;
     b.finish_with_message("Internet Computer client started...");
 
+    // We have two side processes involving multiple threads running at
+    // this point. We first wait for a signal that one of the processes
+    // terminated. N.B. We do not handle the case where the proxy
+    // terminates abruptly and we have to terminate the client as that
+    // complicates the situation right now, and we need a watcher that
+    // terminates all sibling processes if a process returns an error,
+    // which we lack. We consider this a fine trade-off for now.
+
     rcv_wait.recv().or_else(|e| {
         Err(DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
             format!("Failed while waiting for the manager -- {:?}", e),
         )))
     })?;
-    // Signal the client to stop.
 
+    // Signal the client to stop. Right now we have little control
+    // over the client and nodemanager as it provides little
+    // handling. This is mostly done for completeness. In the future
+    // we should also force kill, if it ends up being necessary.
     broadcast_stop.send(()).expect("Failed to signal children");
-    // Signal the actix server to stop. This will block.
+    // We can now start terminating our proxy server, we block to
+    // ensure termination is done properly. At this point the client
+    // is down though.
+
+    // Signal the actix server to stop. This will
+    // block.
     actix_handler
         .recv()
         .expect("Failed to receive server")
@@ -161,14 +177,14 @@ where
                 format!("Failed to stop server: {:?}", e),
             ))
         })?;
-    // Join and handle errors for the frontend.
+    // Join and handle errors for the frontend watchdog thread.
     frontend_watchdog.join().or_else(|e| {
         Err(DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
             format!("Failed while running frontend proxy thead -- {:?}", e),
         )))
     })?;
-    // Join and handle errors for the client.
+    // Join and handle errors for the client watchdog thread.
     client_watchdog.join().or_else(|e| {
         Err(DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
@@ -259,6 +275,8 @@ fn start_client(
             let _ = std::fs::write(&pid_file_path, pid.to_string());
         }
 
+        // We have to wait for the child to exit here. We *should*
+        // always wait(). Read related documentation.
         if child.wait().is_err() {
             break;
         }
