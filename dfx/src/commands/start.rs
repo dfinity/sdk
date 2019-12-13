@@ -1,13 +1,17 @@
+use crate::config::dfinity::Config;
 use crate::lib::api_client::{ping, Client, ClientConfig};
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use futures::future::Future;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::io::{Error, ErrorKind};
+use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt};
@@ -66,62 +70,31 @@ pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: ProjectConfigEnv + BinaryResolverEnv,
 {
-    let client_pathbuf = env.get_binary_command_path("client")?;
-    let nodemanager_pathbuf = env.get_binary_command_path("nodemanager")?;
-
     // Read the config.
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let address_and_port = args
-        .value_of("host")
-        .and_then(|host| Option::from(host.parse()))
-        .unwrap_or_else(|| {
-            Ok(config
-                .get_config()
-                .get_defaults()
-                .get_start()
-                .get_binding_socket_addr("localhost:8000")
-                .expect("could not get socket_addr"))
-        })
-        .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;
-    let frontend_url = format!(
-        "http://{}:{}",
-        address_and_port.ip(),
-        address_and_port.port()
-    );
+    let (frontend_url, address_and_port) = frontend_address(args, config)?;
+
+    let client_pathbuf = env.get_binary_command_path("client")?;
+    let nodemanager_pathbuf = env.get_binary_command_path("nodemanager")?;
+
     let project_root = config.get_path().parent().unwrap();
 
     let pid_file_path = env.get_dfx_root().unwrap().join("pid");
-    if pid_file_path.exists() {
-        // Read and verify it's not running. If it is just return.
-        if let Ok(s) = std::fs::read_to_string(&pid_file_path) {
-            if let Ok(pid) = s.parse::<i32>() {
-                // If we find the pid in the file, we tell the user and don't start!
-                let system = System::new();
-                if let Some(_process) = system.get_process(pid) {
-                    return Err(DfxError::DfxAlreadyRunningInBackground());
-                }
-            }
-        }
-    }
+
+    check_previous_process_running(&pid_file_path)?;
 
     // We are doing this here to make sure we can write to the temp pid file.
     std::fs::write(&pid_file_path, "")?;
 
     if args.is_present("background") {
-        // Background strategy is different; we spawn `dfx` with the same arguments
-        // (minus --background), ping and exit.
-        let exe = std::env::current_exe()?;
-        let mut cmd = Command::new(exe);
-        // Skip 1 because arg0 is this executable's path.
-        cmd.args(std::env::args().skip(1).filter(|a| !a.eq("--background")));
-
-        cmd.spawn()?;
-
+        send_background()?;
         return ping_and_wait(&frontend_url);
     }
+
+    // Start the client.
 
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
@@ -139,41 +112,13 @@ where
     let client_watchdog = std::thread::Builder::new()
         .name("NodeManager".into())
         .spawn(move || {
-            let client = client_pathbuf.as_path();
-            let nodemanager = nodemanager_pathbuf.as_path();
-            // We use unwrap() here to transmit an error to the parent
-            // thread.
-            while is_killed_client.is_empty() {
-                let mut cmd = std::process::Command::new(nodemanager);
-                cmd.args(&[client]);
-                cmd.stdout(std::process::Stdio::inherit());
-                cmd.stderr(std::process::Stdio::inherit());
-
-                // If the nodemanager itself fails, we are probably deeper into troubles than
-                // we can solve at this point and the user is better rerunning the server.
-                let mut child = cmd.spawn().unwrap_or_else(|e| {
-                    request_stop
-                        .try_send(true)
-                        .expect("Client thread couldn't signal parent to stop");
-                    // We still want to send an error message.
-                    panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
-                });
-
-                // Update the pid file.
-                if let Ok(pid) = sysinfo::get_current_pid() {
-                    let _ = std::fs::write(&pid_file_path, pid.to_string());
-                }
-
-                if child.wait().is_err() {
-                    break;
-                }
-            }
-            // We DO want to panic here, if we can not signal our
-            // parent. This is interpreted as an error via join by the
-            // parent thread.
-            request_stop
-                .send(true)
-                .expect("Could not signal parent thread from client runner")
+            start_client(
+                &client_pathbuf.clone(),
+                &nodemanager_pathbuf,
+                &pid_file_path,
+                is_killed_client,
+                request_stop,
+            )
         })?;
 
     let frontend_watchdog = webserver(
@@ -203,9 +148,8 @@ where
         )))
     })?;
     // Signal the client to stop.
-    broadcast_stop
-        .send(true)
-        .expect("Failed to signal children");
+
+    broadcast_stop.send(()).expect("Failed to signal children");
     // Signal the actix server to stop. This will block.
     actix_handler
         .recv()
@@ -234,5 +178,100 @@ where
             format!("Failed while running client thread -- {:?}", e),
         )))
     })?;
+    Ok(())
+}
+
+fn send_background() -> DfxResult<()> {
+    // Background strategy is different; we spawn `dfx` with the same arguments
+    // (minus --background), ping and exit.
+    let exe = std::env::current_exe()?;
+    let mut cmd = Command::new(exe);
+    // Skip 1 because arg0 is this executable's path.
+    cmd.args(std::env::args().skip(1).filter(|a| !a.eq("--background")));
+
+    cmd.spawn()?;
+    Ok(())
+}
+
+fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String, SocketAddr)> {
+    let address_and_port = args
+        .value_of("host")
+        .and_then(|host| Option::from(host.parse()))
+        .unwrap_or_else(|| {
+            Ok(config
+                .get_config()
+                .get_defaults()
+                .get_start()
+                .get_binding_socket_addr("localhost:8000")
+                .expect("could not get socket_addr"))
+        })
+        .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;
+    let frontend_url = format!(
+        "http://{}:{}",
+        address_and_port.ip(),
+        address_and_port.port()
+    );
+
+    Ok((frontend_url, address_and_port))
+}
+
+fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
+    if dfx_pid_path.exists() {
+        // Read and verify it's not running. If it is just return.
+        if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
+            if let Ok(pid) = s.parse::<i32>() {
+                // If we find the pid in the file, we tell the user and don't start!
+                let system = System::new();
+                if let Some(_process) = system.get_process(pid) {
+                    return Err(DfxError::DfxAlreadyRunningInBackground());
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn start_client(
+    client_pathbuf: &PathBuf,
+    nodemanager_pathbuf: &PathBuf,
+    pid_file_path: &PathBuf,
+    is_killed_client: Receiver<()>,
+    request_stop: Sender<()>,
+) -> DfxResult<()> {
+    let client = client_pathbuf.as_path();
+    let nodemanager = nodemanager_pathbuf.as_path();
+    // We use unwrap() here to transmit an error to the parent
+    // thread.
+    while is_killed_client.is_empty() {
+        let mut cmd = std::process::Command::new(nodemanager);
+        cmd.args(&[client]);
+        cmd.stdout(std::process::Stdio::inherit());
+        cmd.stderr(std::process::Stdio::inherit());
+
+        // If the nodemanager itself fails, we are probably deeper into troubles than
+        // we can solve at this point and the user is better rerunning the server.
+        let mut child = cmd.spawn().unwrap_or_else(|e| {
+            request_stop
+                .try_send(())
+                .expect("Client thread couldn't signal parent to stop");
+            // We still want to send an error message.
+            panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
+        });
+
+        // Update the pid file.
+        if let Ok(pid) = sysinfo::get_current_pid() {
+            let _ = std::fs::write(&pid_file_path, pid.to_string());
+        }
+
+        if child.wait().is_err() {
+            break;
+        }
+    }
+    // We DO want to panic here, if we can not signal our
+    // parent. This is interpreted as an error via join by the
+    // parent thread.
+    request_stop
+        .send(())
+        .expect("Could not signal parent thread from client runner");
     Ok(())
 }
