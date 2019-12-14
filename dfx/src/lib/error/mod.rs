@@ -71,6 +71,7 @@ pub enum DfxError {
 
     /// Data provided is invalid.
     InvalidData(String),
+    RuntimeError(std::io::Error),
 
     /// The ide server shouldn't be started from a terminal.
     LanguageServerFromATerminal,
