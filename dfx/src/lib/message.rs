@@ -26,6 +26,7 @@ pub enum UserMessage {
     ConfigureOptions,
     OptionName,
     OptionValue,
+    OptionFormat,
     CreateProject,
     ProjectName,
     DryRun,
@@ -76,8 +77,9 @@ impl UserMessage {
 
             // dfx config
             UserMessage::ConfigureOptions => "Configures project options for your currently-selected project.",
-            UserMessage::OptionName => "Specifies the name of the configuration option to set or read. Use the period delineated path to specify the option to set or read.",
+            UserMessage::OptionName => "Specifies the name of the configuration option to set or read. Use the period delineated path to specify the option to set or read. If this is not mentioned, outputs the whole configuration.",
             UserMessage::OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
+            UserMessage::OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
 
             // dfx new
             UserMessage::CreateProject => "Creates a new project.",

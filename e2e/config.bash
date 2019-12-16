@@ -22,6 +22,9 @@ setup() {
     assert_command dfx config defaults/build/output
     assert_eq '"other/"'
 
+    assert_command dfx config --format json
+    assert_match '"output": "other/"'
+
     assert_command_fail dfx config non_existent
 
     # We don't allow to change values that are non existent.
