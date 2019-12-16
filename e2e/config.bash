@@ -23,8 +23,7 @@ setup() {
     assert_eq '"other/"'
 
     assert_command dfx config --format json
-    assert_match '^{ '
-    assert_match ': "other/"'
+    assert_match '"output": "other/"'
 
     assert_command_fail dfx config non_existent
 
