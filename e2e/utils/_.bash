@@ -31,13 +31,19 @@ dfx_new() {
 
 # Start the client in the background.
 dfx_start() {
-    # Bats create a FD 3 for test output, but child processes inherit it and Bats will
-    # wait for it to close. Because `dfx start` leave a child process running, we need
+    # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
+    # wait for it to close. Because `dfx start` leaves child processes running, we need
     # to close this pipe, otherwise Bats will wait indefinitely.
     dfx start --background "$@" 3>&-
+    local project_dir=${pwd}
+    local dfx_config_root=.dfx/client-configuration
+    sleep 5
+    printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+    test -f ${dfx_config_root}/client-1.port
+    local port=$(cat ${dfx_config_root}/client-1.port)
+    printf "Client Configured Port: %s\n" "${port}"
 
     timeout 5 sh -c \
-        'until nc -z localhost 8080; do echo waiting for client; sleep 1; done' \
-        || (echo "could not connect to client on port 8080" && exit 1)
+        "until nc -z localhost \"${port}\"; do echo waiting for client; sleep 1; done" \
+        || (echo "could not connect to client on port ${port}" && exit 1)
 }
-

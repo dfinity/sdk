@@ -3,6 +3,7 @@ use crate::config::{cache, dfx_version};
 use crate::lib::api_client::{Client, ClientConfig};
 use crate::lib::error::DfxResult;
 use std::cell::RefCell;
+use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 
 /// An environment that contains the platform and general environment.
@@ -102,7 +103,11 @@ impl ClientEnv for InProjectEnvironment {
 
             let start = self.config.get_config().get_defaults().get_start();
             let address = start.get_address("localhost");
-            let port = start.get_port(8080);
+            let dfx_root = self.get_dfx_root().expect("Could not retrieve dfx root");
+            let client_configuration_dir = dfx_root.join("client-configuration");
+            let client_port_path = client_configuration_dir.join("client-1.port");
+            let port =
+                read_to_string(&client_port_path).expect("Could not read configuration file");
 
             *cache = Some(Client::new(ClientConfig {
                 url: format!("http://{}:{}", address, port),

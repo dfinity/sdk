@@ -8,7 +8,13 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use futures::future::Future;
+use hotwatch::{
+    blocking::{Flow, Hotwatch},
+    Event,
+};
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use serde::Serialize;
+use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -19,8 +25,6 @@ use tokio::prelude::FutureExt;
 use tokio::runtime::Runtime;
 
 const TIMEOUT_IN_SECS: u64 = 10;
-const IC_CLIENT_BIND_ADDR: &str = "http://localhost:8080/api";
-
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("start")
         .about(UserMessage::StartNode.to_str())
@@ -82,7 +86,20 @@ where
 
     let project_root = config.get_path().parent().unwrap();
     let pid_file_path = env.get_dfx_root().unwrap().join("pid");
+
     check_previous_process_running(&pid_file_path)?;
+
+    let client_configuration_dir = env.get_dfx_root().unwrap().join("client-configuration");
+    fs::create_dir_all(&client_configuration_dir)?;
+    let client_configuration_path = client_configuration_dir.join("client-1.toml");
+    fs::File::create(&client_configuration_path)?;
+    let client_port_path = client_configuration_dir.join("client-1.port");
+
+    place_client_configuration(&client_configuration_path, &client_port_path)?;
+    // Touch the client port file. But ensure it is empty prior to
+    // that. This ensures if we read the file and it has contents we
+    // can assume it is due to our spawned client process.
+    std::fs::write(&client_port_path, "")?;
 
     // We are doing this here to make sure we can write to the temp pid file.
     std::fs::write(&pid_file_path, "")?;
@@ -103,6 +120,29 @@ where
     let (request_stop, rcv_wait) = unbounded();
     let (broadcast_stop, is_killed_client) = unbounded();
     let (give_actix, actix_handler) = unbounded();
+    let request_stop_echo = request_stop.clone();
+    let rcv_wait_fwatcher = rcv_wait.clone();
+
+    // We wait for the port to be determined here. Note this sets the
+    // stage for a few of issues:
+    // i) What happens if the port file is moved? (Undefined behaviour)
+    // ii) How do we deal with client failures, as we now block
+    // iii) What if another process modifies the file? (ignore)
+    // iv) order of execution between watcher and client
+
+    let c = b.clone();
+
+    let watcher = std::thread::Builder::new()
+        .name("File Watcher".into())
+        .spawn(move || {
+            retrieve_client_port(&client_port_path, rcv_wait_fwatcher, request_stop_echo, &c)
+        })?;
+
+    // Ensure watcher is ready. Poor man's solution to keep things
+    // sane.
+    // TODO(eftychis): Restructure this with the client
+    // refactoring, which should make this not necessary.
+    std::thread::sleep(Duration::from_millis(20));
 
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
@@ -115,12 +155,25 @@ where
                 &pid_file_path,
                 is_killed_client,
                 request_stop,
+                &client_configuration_path,
             )
         })?;
 
+    // Now we can read the file. If there are no contents we need to
+    // fail. We check if the watcher thinks the file has been written.
+    let client_port: String = watcher.join().map_err(|e| {
+        DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed while running frontend proxy thead -- {:?}", e),
+        ))
+    })??;
+    eprintln!("Client bound at {}", client_port);
+    let ic_client_bind_addr = "http://localhost:".to_owned() + client_port.as_str() + "/api";
+    let ic_client_bind_addr = ic_client_bind_addr.as_str();
+
     let frontend_watchdog = webserver(
         address_and_port,
-        url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),
+        url::Url::parse(ic_client_bind_addr).unwrap(),
         project_root
             .join(
                 config
@@ -258,6 +311,7 @@ fn start_client(
     pid_file_path: &PathBuf,
     is_killed_client: Receiver<()>,
     request_stop: Sender<()>,
+    config_path: &PathBuf,
 ) -> DfxResult<()> {
     let client = client_pathbuf.as_path();
     let nodemanager = nodemanager_pathbuf.as_path();
@@ -265,7 +319,7 @@ fn start_client(
     // thread.
     while is_killed_client.is_empty() {
         let mut cmd = std::process::Command::new(nodemanager);
-        cmd.args(&[client]);
+        cmd.args(&[client, config_path]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
@@ -297,4 +351,90 @@ fn start_client(
         .send(())
         .expect("Could not signal parent thread from client runner");
     Ok(())
+}
+
+fn place_client_configuration(configuration_path: &PathBuf, port_file_path: &PathBuf) -> DfxResult {
+    let config = generate_client_configuration(port_file_path)?;
+    eprintln!(
+        "Writing client configuration file to: {:?}",
+        configuration_path
+    );
+    fs::write(configuration_path, config).map_err(|e| {
+        DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed to write file: {:?}", e),
+        ))
+    })
+}
+
+#[derive(Debug, Serialize)]
+struct HttpHandlerConfig<'a> {
+    write_port_to: &'a PathBuf,
+}
+#[derive(Debug, Serialize)]
+struct ClientTomlConfig<'a> {
+    http_handler: HttpHandlerConfig<'a>,
+}
+
+fn generate_client_configuration(port_file_path: &PathBuf) -> DfxResult<String> {
+    let http_values = ClientTomlConfig {
+        http_handler: HttpHandlerConfig {
+            write_port_to: port_file_path,
+        },
+    };
+    toml::to_string(&http_values).map_err(|e| {
+        DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed to generate configuration file: {:?}", e),
+        ))
+    })
+}
+
+fn retrieve_client_port(
+    client_port_path: &PathBuf,
+    rcv_wait_fwatcher: Receiver<()>,
+    request_stop_echo: Sender<()>,
+    b: &ProgressBar,
+) -> DfxResult<String> {
+    let mut watcher = Hotwatch::new_with_custom_delay(Duration::from_millis(1)).map_err(|e| {
+        DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed to create watcher for port pid file: {}", e),
+        ))
+    })?;
+
+    watcher
+        .watch(&client_port_path, move |event| {
+            if let Ok(e) = rcv_wait_fwatcher.try_recv() {
+                // We are in a weird state where the nodemanager exited with an error,
+                // but we are still waiting for the pid file to change. As this change
+                // is never going to occur we need to exit our wait and stop tracking
+                // the file. We need to re-send the error to properly handle it later
+                // on. Worst case we will panic at this point.
+                #[allow(clippy::unit_arg)]
+                request_stop_echo
+                    // We are re-sending the signal here. It is a unit
+                    // right now but that can easily change.
+                    .send(e)
+                    .expect("Watcher could not re-signal request to stop.");
+                return Flow::Exit;
+            }
+            match event {
+                // We pretty much want to unblock for any events
+                // except a rescan. A move, create etc event should
+                // lead to a failure.
+                Event::Rescan => Flow::Continue,
+                _ => Flow::Exit,
+            }
+        })
+        .map_err(|e| {
+            DfxError::RuntimeError(Error::new(
+                ErrorKind::Other,
+                format!("Failed to watch port pid file: {}", e),
+            ))
+        })?;
+    b.set_message("Waiting for client to bind their http server port...");
+    // We are blocking here and actually processing write events.
+    watcher.run();
+    fs::read_to_string(&client_port_path).map_err(DfxError::RuntimeError)
 }
