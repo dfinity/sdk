@@ -823,14 +823,14 @@ export const Nat64 = new FixedNatClass(64);
 export function Tuple<T extends any[]>(...types: T): TupleClass<T> {
   return new TupleClass(types);
 }
-export function Arr<T>(t: Type<T>): VecClass<T> {
+export function Vec<T>(t: Type<T>): VecClass<T> {
   return new VecClass(t);
 }
 export function Opt<T>(t: Type<T>): OptClass<T> {
   return new OptClass(t);
 }
 
-export function Obj(t: Record<string, Type>): RecordClass {
+export function Record(t: Record<string, Type>): RecordClass {
   return new RecordClass(t);
 }
 export function Variant(fields: Record<string, Type>) {
