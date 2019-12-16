@@ -22,7 +22,7 @@ type broker = service {
 };
 type nested = record { nat; nat; record { nat; 0x2a:nat; nat8; }; 42:nat; 40:nat; variant{ A; 0x2a; B; C }; };
 
-service server {
+service server : {
   f : (test: blob, opt bool) -> () oneway;
   g : (my_type, List, opt List) -> (int) query;
   h : (vec opt text, variant { A: nat; B: opt text }, opt List) -> (record { id: nat; 0x2a: record {} });

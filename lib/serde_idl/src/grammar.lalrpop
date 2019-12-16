@@ -170,9 +170,9 @@ Def: Dec = {
     "import" <"text"> => Dec::ImportD(<>),
 }
 
-Actor: Binding = {
-    "service" <id:"id"> <t:ActorTyp> => Binding { id: id, typ: IDLType::ServT(t) },
-    "service" <id:"id"> ":" <t:"id"> => Binding { id: id, typ: IDLType::VarT(t) },
+Actor: IDLType = {
+    "service" "id"? ":" <t:ActorTyp> => IDLType::ServT(t),
+    "service" "id"? ":" <t:"id"> => IDLType::VarT(t),
 }
 
 pub IDLProg: IDLProg = {

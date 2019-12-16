@@ -122,7 +122,7 @@ pub struct Binding {
 #[derive(Debug)]
 pub struct IDLProg {
     pub decs: Vec<Dec>,
-    pub actor: Option<Binding>,
+    pub actor: Option<IDLType>,
 }
 
 impl IDLProg {
@@ -140,7 +140,7 @@ impl IDLProg {
         match t {
             IDLType::ServT(_) => Ok(t.clone()),
             IDLType::VarT(id) => self.as_service(&self.find_type(id)?),
-            _ => Err(Error::msg("as_serv failed")),
+            _ => Err(Error::msg("as_service failed")),
         }
     }
     fn as_func(&self, t: &IDLType) -> Result<FuncType> {
@@ -153,7 +153,7 @@ impl IDLProg {
 
     pub fn get_method_type(&self, method_name: &str) -> Option<FuncType> {
         let actor = self.actor.as_ref()?;
-        let t = self.as_service(&actor.typ).ok()?;
+        let t = self.as_service(&actor).ok()?;
         if let IDLType::ServT(meths) = t {
             for meth in meths {
                 if meth.id == *method_name {
@@ -197,9 +197,9 @@ impl ToDoc for IDLProg {
         );
         if self.actor.is_some() {
             let actor = self.actor.as_ref().unwrap();
-            let doc = doc.append(Doc::text(format!("service {} ", actor.id)));
-            match actor.typ {
-                IDLType::VarT(ref var) => doc.append(Doc::text(format!(": {}", var))),
+            let doc = doc.append(Doc::text("service : "));
+            match actor {
+                IDLType::VarT(ref var) => doc.append(Doc::text(var.to_string())),
                 IDLType::ServT(ref meths) => doc.append(meths_to_doc(meths)),
                 _ => unreachable!(),
             }

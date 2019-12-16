@@ -106,21 +106,21 @@ test('IDL encoding (tuple)', () => {
 test('IDL encoding (array)', () => {
   // Array
   test_(
-    IDL.Arr(IDL.Int),
+    IDL.Vec(IDL.Int),
     [0, 1, 2, 3].map(x => new BigNumber(x)),
     '4449444c016d7c01000400010203',
     'Array of Ints',
   );
-  expect(() => IDL.encode([IDL.Arr(IDL.Int)], [new BigNumber(0)])).toThrow(
+  expect(() => IDL.encode([IDL.Vec(IDL.Int)], [new BigNumber(0)])).toThrow(
     /Invalid Arr\(Int\) argument/,
   );
-  expect(() => IDL.encode([IDL.Arr(IDL.Int)], [['fail']])).toThrow(/Invalid Arr\(Int\) argument/);
+  expect(() => IDL.encode([IDL.Vec(IDL.Int)], [['fail']])).toThrow(/Invalid Arr\(Int\) argument/);
 });
 
 test('IDL encoding (array + tuples)', () => {
   // Array of Tuple
   test_(
-    IDL.Arr(IDL.Tuple(IDL.Int, IDL.Text)),
+    IDL.Vec(IDL.Tuple(IDL.Int, IDL.Text)),
     [[new BigNumber(42), 'text']],
     '4449444c026c02007c01716d000101012a0474657874',
     'Arr of Tuple',
@@ -137,18 +137,20 @@ test('IDL encoding (array + tuples)', () => {
 
 test('IDL encoding (object)', () => {
   // Object
-  test_(IDL.Obj({}), {}, '4449444c016c000100', 'Empty object');
-  expect(() => IDL.encode([IDL.Obj({ a: IDL.Text })], [{ b: 'b' }])).toThrow(/Obj is missing key/);
+  test_(IDL.Record({}), {}, '4449444c016c000100', 'Empty object');
+  expect(() => IDL.encode([IDL.Record({ a: IDL.Text })], [{ b: 'b' }])).toThrow(
+    /Obj is missing key/,
+  );
 
   // Test that additional keys are ignored
   testEncode(
-    IDL.Obj({ foo: IDL.Text, bar: IDL.Int }),
+    IDL.Record({ foo: IDL.Text, bar: IDL.Int }),
     { foo: '💩', bar: new BigNumber(42), baz: new BigNumber(0) },
     '4449444c016c02d3e3aa027c868eb7027101002a04f09f92a9',
     'Object',
   );
   testEncode(
-    IDL.Obj({ foo: IDL.Text, bar: IDL.Int }),
+    IDL.Record({ foo: IDL.Text, bar: IDL.Int }),
     { foo: '💩', bar: 42 },
     '4449444c016c02d3e3aa027c868eb7027101002a04f09f92a9',
     'Object',
@@ -198,7 +200,7 @@ test('IDL encoding (variants)', () => {
 
   // Type description sharing
   test_(
-    IDL.Tuple(IDL.Arr(IDL.Int), IDL.Arr(IDL.Nat), IDL.Arr(IDL.Int), IDL.Arr(IDL.Nat)),
+    IDL.Tuple(IDL.Vec(IDL.Int), IDL.Vec(IDL.Nat), IDL.Vec(IDL.Int), IDL.Vec(IDL.Nat)),
     [[], [], [], []],
     '4449444c036d7c6d7d6c040000010102000301010200000000',
     'Type sharing',
@@ -209,7 +211,7 @@ test('IDL encoding (rec)', () => {
   // Test for recursive types
   const List = IDL.Rec();
   expect(() => IDL.encode([List], [null])).toThrow(/Recursive type uninitialized/);
-  List.fill(IDL.Opt(IDL.Obj({ head: IDL.Int, tail: List })));
+  List.fill(IDL.Opt(IDL.Record({ head: IDL.Int, tail: List })));
   test_(List, null, '4449444c026e016c02a0d2aca8047c90eddae70400010000', 'Empty list');
   test_(
     List,
@@ -222,7 +224,7 @@ test('IDL encoding (rec)', () => {
   const List1 = IDL.Rec();
   const List2 = IDL.Rec();
   List1.fill(IDL.Opt(List2));
-  List2.fill(IDL.Obj({ head: IDL.Int, tail: List1 }));
+  List2.fill(IDL.Record({ head: IDL.Int, tail: List1 }));
   test_(List1, null, '4449444c026e016c02a0d2aca8047c90eddae70400010000', 'Empty list');
   test_(
     List1,
