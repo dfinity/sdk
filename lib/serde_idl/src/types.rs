@@ -199,7 +199,7 @@ impl ToDoc for IDLProg {
             let actor = self.actor.as_ref().unwrap();
             let doc = doc.append(Doc::text("service : "));
             match actor {
-                IDLType::VarT(ref var) => doc.append(Doc::text(format!("{}", var))),
+                IDLType::VarT(ref var) => doc.append(Doc::text(var.to_string())),
                 IDLType::ServT(ref meths) => doc.append(meths_to_doc(meths)),
                 _ => unreachable!(),
             }
