@@ -78,6 +78,9 @@ pub enum DfxError {
 
     /// Timeout while waiting for a request to the IC client.
     TimeoutWaitingForResponse(RequestId, Duration),
+
+    /// Configuration is invalid.
+    CouldNotSerializeConfiguration(serde_json::error::Error),
 }
 
 /// The result of running a DFX command.
@@ -98,5 +101,11 @@ impl From<reqwest::Error> for DfxError {
 impl From<std::io::Error> for DfxError {
     fn from(err: std::io::Error) -> DfxError {
         DfxError::Io(err)
+    }
+}
+
+impl From<serde_json::error::Error> for DfxError {
+    fn from(err: serde_json::error::Error) -> DfxError {
+        DfxError::CouldNotSerializeConfiguration(err)
     }
 }
