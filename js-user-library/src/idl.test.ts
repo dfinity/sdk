@@ -138,7 +138,9 @@ test('IDL encoding (array + tuples)', () => {
 test('IDL encoding (object)', () => {
   // Object
   test_(IDL.Record({}), {}, '4449444c016c000100', 'Empty object');
-  expect(() => IDL.encode([IDL.Record({ a: IDL.Text })], [{ b: 'b' }])).toThrow(/Obj is missing key/);
+  expect(() => IDL.encode([IDL.Record({ a: IDL.Text })], [{ b: 'b' }])).toThrow(
+    /Obj is missing key/,
+  );
 
   // Test that additional keys are ignored
   testEncode(
