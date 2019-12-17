@@ -349,12 +349,12 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
   }
 
   public covariant(x: any): x is BigNumber {
-    const max = new BigNumber(2).pow(this._bits - 1);
+    const max = new BigNumber(2).pow(this._bits);
     if (x instanceof BigNumber && x.isInteger() && !x.isNegative()) {
-      return x.lte(max);
+      return x.lt(max);
     } else if (Number.isInteger(x) && x >= 0) {
       const v = new BigNumber(x);
-      return v.lte(max);
+      return v.lt(max);
     } else {
       return false;
     }
