@@ -29,6 +29,7 @@ ic-http-agent = { "path" = "../lib/ic_http_agent" }
 indicatif = "0.12.0"
 lazy_static = "1.4.0"
 libflate = "0.1.27"
+mockall = "0.6.0"
 rand = "0.7.2"
 reqwest = "0.9.20"
 semver = "0.9.0"

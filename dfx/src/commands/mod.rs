@@ -1,6 +1,4 @@
-use crate::lib::env::{
-    BinaryCacheEnv, BinaryResolverEnv, ClientEnv, PlatformEnv, ProjectConfigEnv, VersionEnv,
-};
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
@@ -14,14 +12,14 @@ mod start;
 mod stop;
 mod upgrade;
 
-pub type CliExecFn<T> = fn(&T, &ArgMatches<'_>) -> DfxResult;
-pub struct CliCommand<T> {
+pub type CliExecFn = fn(&dyn Environment, &ArgMatches<'_>) -> DfxResult;
+pub struct CliCommand {
     subcommand: clap::App<'static, 'static>,
-    executor: CliExecFn<T>,
+    executor: CliExecFn,
 }
 
-impl<T> CliCommand<T> {
-    pub fn new(subcommand: clap::App<'static, 'static>, executor: CliExecFn<T>) -> CliCommand<T> {
+impl CliCommand {
+    pub fn new(subcommand: clap::App<'static, 'static>, executor: CliExecFn) -> CliCommand {
         CliCommand {
             subcommand,
             executor,
@@ -33,20 +31,17 @@ impl<T> CliCommand<T> {
     pub fn get_name(&self) -> &str {
         self.subcommand.get_name()
     }
-    pub fn execute(self: &CliCommand<T>, env: &T, args: &ArgMatches<'_>) -> DfxResult {
+    pub fn execute(self: &CliCommand, env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         (self.executor)(env, args)
     }
 }
 
 /// Returns all builtin commands understood by DFx.
-pub fn builtin<T>() -> Vec<CliCommand<T>>
-where
-    T: BinaryCacheEnv + BinaryResolverEnv + ClientEnv + PlatformEnv + ProjectConfigEnv + VersionEnv,
-{
+pub fn builtin() -> Vec<CliCommand> {
     vec![
         CliCommand::new(build::construct(), build::exec),
-        CliCommand::new(cache::construct::<T>(), cache::exec),
-        CliCommand::new(canister::construct::<T>(), canister::exec),
+        CliCommand::new(cache::construct(), cache::exec),
+        CliCommand::new(canister::construct(), canister::exec),
         CliCommand::new(config::construct(), config::exec),
         CliCommand::new(language_service::construct(), language_service::exec),
         CliCommand::new(new::construct(), new::exec),

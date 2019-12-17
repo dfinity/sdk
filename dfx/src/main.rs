@@ -1,3 +1,7 @@
+use crate::commands::CliCommand;
+use crate::config::{dfx_version, dfx_version_str};
+use crate::lib::environment::{Environment, EnvironmentImpl};
+use crate::lib::error::*;
 use clap::{App, AppSettings};
 
 mod commands;
@@ -5,34 +9,19 @@ mod config;
 mod lib;
 mod util;
 
-use crate::commands::CliCommand;
-use crate::config::dfinity::Config;
-use crate::config::dfx_version;
-use crate::lib::env::{
-    BinaryCacheEnv, BinaryResolverEnv, ClientEnv, GlobalEnvironment, InProjectEnvironment,
-    PlatformEnv, ProjectConfigEnv, VersionEnv,
-};
-use crate::lib::error::*;
-
-fn cli<T>(env: &T) -> App<'_, '_>
-where
-    T: VersionEnv,
-{
+fn cli(_: &dyn Environment) -> App<'_, '_> {
     App::new("dfx")
         .about("The DFINITY Executor.")
-        .version(env.get_version().as_str())
+        .version(dfx_version_str())
         .global_setting(AppSettings::ColoredHelp)
         .subcommands(
             commands::builtin()
                 .into_iter()
-                .map(|x: CliCommand<InProjectEnvironment>| x.get_subcommand().clone()),
+                .map(|x: CliCommand| x.get_subcommand().clone()),
         )
 }
 
-fn exec<T>(env: &T, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) -> DfxResult
-where
-    T: BinaryCacheEnv + VersionEnv + BinaryResolverEnv + ClientEnv + PlatformEnv + ProjectConfigEnv,
-{
+fn exec(env: &dyn Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) -> DfxResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
@@ -58,12 +47,8 @@ where
 }
 
 fn main() {
-    let result = {
-        if Config::from_current_dir().is_ok() {
-            // Build the environment.
-            let env = InProjectEnvironment::from_current_dir()
-                .expect("Could not create an project environment object.");
-
+    let result = match EnvironmentImpl::new() {
+        Ok(env) => {
             // If we're not using the right version, forward the call to the cache dfx.
             if dfx_version() != env.get_version() {
                 match crate::config::cache::call_cached_dfx(env.get_version()) {
@@ -79,13 +64,8 @@ fn main() {
             let matches = cli(&env).get_matches();
 
             exec(&env, &matches, &(cli(&env)))
-        } else {
-            let env = GlobalEnvironment::from_current_dir()
-                .expect("Could not create an global environment object.");
-            let matches = cli(&env).get_matches();
-
-            exec(&env, &matches, &(cli(&env)))
         }
+        Err(e) => Err(e),
     };
 
     if let Err(err) = result {
