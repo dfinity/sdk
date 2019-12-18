@@ -79,7 +79,7 @@ struct Manifest {
 
 pub fn is_upgrade_necessary(latest_version: Option<Version>, current: Version) -> bool {
     match latest_version {
-        Some(latest) => latest > current,
+        Some(latest) => latest > current && current.pre.is_empty(),
         None => true,
     }
 }
