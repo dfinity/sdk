@@ -46,7 +46,6 @@ export interface HttpAgent {
 interface Options {
   canisterId: string;
   fetchFn?: WindowOrWorkerGlobalScope['fetch'];
-  host?: string;
   nonceFn?: () => Nonce;
   senderPubKey: SenderPubKey;
   senderSecretKey: SenderSecretKey;
@@ -57,7 +56,6 @@ type SigningConstructedFn = (secretKey: SenderSecretKey) => (requestId: RequestI
 
 const defaultOptions: Partial<Options> = {
   fetchFn: typeof window === 'undefined' ? fetch : window.fetch.bind(window),
-  host: 'http://localhost:8000',
   nonceFn: makeNonce,
   senderSigFn: sign,
 };
@@ -65,7 +63,6 @@ const defaultOptions: Partial<Options> = {
 // `Config` is the internal representation of `Options`.
 interface Config {
   canisterId: CanisterId;
-  host: string;
   nonceFn: () => Nonce;
   senderPubKey: SenderPubKey;
   runFetch(endpoint: Endpoint, body?: BodyInit | null): Promise<Response>;
@@ -85,7 +82,7 @@ const makeConfig = (options: Options): Config => {
     // a signing function.
     senderSigFn: withDefaults.senderSigFn(options.senderSecretKey),
     runFetch: (endpoint, body) => {
-      return withDefaults.fetchFn(`${withDefaults.host}/api/${API_VERSION}/${endpoint}`, {
+      return withDefaults.fetchFn(`/api/${API_VERSION}/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/cbor',

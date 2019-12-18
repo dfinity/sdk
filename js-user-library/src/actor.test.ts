@@ -113,7 +113,7 @@ test('makeActor', async () => {
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(4);
 
-  expect(calls[0][0]).toBe('http://localhost:8000/api/v1/submit');
+  expect(calls[0][0]).toBe('/api/v1/submit');
   expect(calls[0][1]).toEqual({
     method: 'POST',
     headers: {
@@ -122,7 +122,7 @@ test('makeActor', async () => {
     body: cbor.encode(expectedCallRequest),
   });
 
-  expect(calls[1][0]).toBe('http://localhost:8000/api/v1/read');
+  expect(calls[1][0]).toBe('/api/v1/read');
   expect(calls[1][1]).toEqual({
     method: 'POST',
     headers: {
@@ -137,7 +137,7 @@ test('makeActor', async () => {
     }),
   });
 
-  expect(calls[2][0]).toBe('http://localhost:8000/api/v1/read');
+  expect(calls[2][0]).toBe('/api/v1/read');
   expect(calls[2][1]).toEqual({
     method: 'POST',
     headers: {
@@ -152,7 +152,7 @@ test('makeActor', async () => {
     }),
   });
 
-  expect(calls[3][0]).toBe('http://localhost:8000/api/v1/read');
+  expect(calls[3][0]).toBe('/api/v1/read');
   expect(calls[3][1]).toEqual({
     method: 'POST',
     headers: {
