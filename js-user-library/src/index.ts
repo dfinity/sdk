@@ -1,6 +1,8 @@
-export { makeActor } from './actor';
-export { generateKeyPair } from './auth';
-export { makeHttpAgent } from './http_agent';
+export * from './actor';
+export { generateKeyPair, makeAuthTransform } from './auth';
+export * from './http_agent';
+export * from './http_agent_transforms';
+export * from './http_agent_types';
 
 import * as IDL from './idl';
 export { IDL };

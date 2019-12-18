@@ -1,26 +1,23 @@
 import { Buffer } from 'buffer/';
-import * as blob from './blob';
+import { makeActorFactory } from './actor';
+import { makeAuthTransform, SenderPubKey, SenderSecretKey, SenderSig } from './auth';
+import { HttpAgent } from './http_agent';
+import { makeNonceTransform } from './http_agent_transforms';
+import { SubmitRequestType } from './http_agent_types';
+import { Nonce, blobFromHex } from './types';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
-import { Nonce } from './nonce';
 import { requestIdOf } from './request_id';
-import { RequestType } from './request_type';
-import { SenderPubKey } from './sender_pub_key';
-import { SenderSecretKey } from './sender_secret_key';
-import { SenderSig } from './sender_sig';
-
-import { IDL as _IDL, makeActor, makeHttpAgent } from './index';
+import * as IDL from './idl';
 
 test('makeActor', async () => {
-  const actorInterface = ({ IDL }: { IDL: typeof _IDL }) => {
+  const actorInterface = () => {
     return new IDL.ActorInterface({
       greet: IDL.Func([IDL.Text], [IDL.Text]),
     });
   };
 
-  const expectedReplyArg = blob.fromHex(
-    _IDL.encode([_IDL.Text], ['Hello, World!']).toString('hex'),
-  );
+  const expectedReplyArg = blobFromHex(IDL.encode([IDL.Text], ['Hello, World!']).toString('hex'));
 
   const mockFetch: jest.Mock = jest
     .fn()
@@ -64,9 +61,9 @@ test('makeActor', async () => {
   const methodName = 'greet';
   const argValue = 'Name';
 
-  const arg = blob.fromHex(_IDL.encode([_IDL.Text], [argValue]).toString('hex'));
+  const arg = blobFromHex(IDL.encode([IDL.Text], [argValue]).toString('hex'));
 
-  const canisterIdent = '0000000000000001';
+  const canisterId: CanisterId = CanisterId.fromHex('0000000000000001');
   const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
   const senderSecretKey = Buffer.alloc(32, 0) as SenderSecretKey;
   const senderSig = Buffer.from([0]) as SenderSig;
@@ -79,11 +76,11 @@ test('makeActor', async () => {
   ];
 
   const expectedCallRequest = {
-    request_type: 'call' as RequestType,
-    nonce: nonces[0],
-    canister_id: CanisterId.fromHex(canisterIdent),
+    request_type: SubmitRequestType.Call,
+    canister_id: canisterId,
     method_name: methodName,
     arg,
+    nonce: nonces[0],
     sender_pubkey: senderPubKey,
     sender_sig: senderSig,
   };
@@ -92,50 +89,54 @@ test('makeActor', async () => {
 
   let nonceCount = 0;
 
-  const httpAgent = makeHttpAgent({
-    canisterId: canisterIdent,
-    fetchFn: mockFetch,
-    nonceFn: () => {
-      const nonce = nonces[nonceCount];
-      nonceCount = nonceCount + 1;
-      return nonce;
-    },
-    senderSecretKey,
-    senderPubKey,
-    senderSigFn: x => req => Buffer.from([0]) as SenderSig,
+  const httpAgent = new HttpAgent({
+    fetch: mockFetch,
   });
+  httpAgent.addTransform(makeNonceTransform(() => nonces[nonceCount++]));
+  httpAgent.addTransform(
+    makeAuthTransform(
+      {
+        publicKey: senderPubKey,
+        secretKey: senderSecretKey,
+      },
+      () => () => Buffer.from([0]) as SenderSig,
+    ),
+  );
 
-  const actor = makeActor(actorInterface)(httpAgent);
+  const actor = makeActorFactory(actorInterface)({ canisterId, httpAgent });
   const reply = await actor.greet(argValue);
 
-  expect(reply).toEqual(_IDL.decode([_IDL.Text], expectedReplyArg)[0]);
+  expect(reply).toEqual(IDL.decode([IDL.Text], expectedReplyArg)[0]);
 
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(4);
-
-  expect(calls[0][0]).toBe('/api/v1/submit');
-  expect(calls[0][1]).toEqual({
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/cbor',
+  expect(calls[0]).toEqual([
+    '/api/v1/submit',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/cbor',
+      },
+      body: cbor.encode(expectedCallRequest),
     },
-    body: cbor.encode(expectedCallRequest),
-  });
+  ]);
 
-  expect(calls[1][0]).toBe('/api/v1/read');
-  expect(calls[1][1]).toEqual({
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/cbor',
+  expect(calls[1]).toEqual([
+    '/api/v1/read',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/cbor',
+      },
+      body: cbor.encode({
+        request_type: 'request-status',
+        request_id: expectedCallRequestId,
+        nonce: nonces[1],
+        sender_pubkey: senderPubKey,
+        sender_sig: senderSig,
+      }),
     },
-    body: cbor.encode({
-      request_type: 'request-status',
-      nonce: nonces[1],
-      request_id: expectedCallRequestId,
-      sender_pubkey: senderPubKey,
-      sender_sig: senderSig,
-    }),
-  });
+  ]);
 
   expect(calls[2][0]).toBe('/api/v1/read');
   expect(calls[2][1]).toEqual({
@@ -145,8 +146,8 @@ test('makeActor', async () => {
     },
     body: cbor.encode({
       request_type: 'request-status',
-      nonce: nonces[2],
       request_id: expectedCallRequestId,
+      nonce: nonces[2],
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
     }),
@@ -160,8 +161,8 @@ test('makeActor', async () => {
     },
     body: cbor.encode({
       request_type: 'request-status',
-      nonce: nonces[3],
       request_id: expectedCallRequestId,
+      nonce: nonces[3],
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
     }),

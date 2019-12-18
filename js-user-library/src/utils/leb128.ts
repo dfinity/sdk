@@ -1,6 +1,6 @@
 // tslint:disable:no-bitwise
 import BigNumber from 'bignumber.js';
-import { Buffer } from 'buffer';
+import { Buffer } from 'buffer/';
 import Pipe = require('buffer-pipe');
 
 export function lebEncode(value: number | BigNumber): Buffer {

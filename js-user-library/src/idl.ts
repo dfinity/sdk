@@ -1,6 +1,7 @@
 // tslint:disable:max-classes-per-file
 import BigNumber from 'bignumber.js';
-import { Buffer } from 'buffer';
+import { Buffer } from 'buffer/';
+import { JsonValue } from './types';
 import Pipe = require('buffer-pipe');
 import { idlHash } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';

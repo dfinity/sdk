@@ -1,14 +1,19 @@
 import { Buffer } from 'buffer/';
-import { createKeyPairFromSeed, sign, verify } from './auth';
-import { BinaryBlob } from './blob';
+import { createKeyPairFromSeed, makeAuthTransform, SenderSig, sign, verify } from './auth';
+import { HttpAgent } from './http_agent';
+import { makeNonceTransform } from './http_agent_transforms';
+import {
+  CallRequest,
+  ReadRequestType,
+  RequestStatusResponseReplied,
+  RequestStatusResponseStatus,
+  SubmitRequestType,
+} from './http_agent_types';
+import { BinaryBlob } from './types';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
-import { makeHttpAgent } from './index';
-import { Nonce } from './nonce';
-import { CommonFields, Request } from './request';
+import { Nonce } from './types';
 import { requestIdOf } from './request_id';
-import { RequestType } from './request_type';
-import { SenderSig } from './sender_sig';
 
 test('call', async () => {
   const mockFetch: jest.Mock = jest.fn((resource, init) => {
@@ -19,7 +24,7 @@ test('call', async () => {
     );
   });
 
-  const canisterIdent = '0000000000000001';
+  const canisterId: CanisterId = CanisterId.fromHex('0000000000000001');
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
   // prettier-ignore
   const seed = Buffer.from([
@@ -27,41 +32,37 @@ test('call', async () => {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
   ]);
   const keyPair = createKeyPairFromSeed(seed);
-  const senderPubKey = keyPair.publicKey;
-  const senderSecretKey = keyPair.secretKey;
 
-  const httpAgent = makeHttpAgent({
-    canisterId: canisterIdent,
-    fetchFn: mockFetch,
-    nonceFn: () => nonce,
-    senderSecretKey,
-    senderPubKey,
+  const httpAgent = new HttpAgent({
+    fetch: mockFetch,
   });
+  httpAgent.addTransform(makeNonceTransform(() => nonce));
+  httpAgent.addTransform(makeAuthTransform(keyPair));
 
   const methodName = 'greet';
   const arg = Buffer.from([]) as BinaryBlob;
 
-  const { requestId, response } = await httpAgent.call({
+  const { requestId } = await httpAgent.call(canisterId, {
     methodName,
     arg,
   });
 
-  const mockPartialRequest: CommonFields = {
-    request_type: 'call' as RequestType,
-    nonce,
-    canister_id: CanisterId.fromHex(canisterIdent),
+  const mockPartialRequest = {
+    request_type: SubmitRequestType.Call,
+    canister_id: canisterId,
     method_name: methodName,
     // We need a request id for the signature and at the same time we
     // are checking that signature does not impact the request id.
     arg,
+    nonce,
   };
 
   const mockPartialsRequestId = await requestIdOf(mockPartialRequest);
-  const senderSig = sign(senderSecretKey)(mockPartialsRequestId);
+  const senderSig = sign(keyPair.secretKey)(mockPartialsRequestId);
   // Just sanity checking our life.
-  expect(verify(mockPartialsRequestId, senderSig, senderPubKey)).toBe(true);
+  expect(verify(mockPartialsRequestId, senderSig, keyPair.publicKey)).toBe(true);
 
-  const expectedRequest: Request = {
+  const expectedRequest: CallRequest = {
     ...mockPartialRequest,
     sender_pubkey: keyPair.publicKey,
     sender_sig: senderSig,
@@ -110,20 +111,16 @@ test('requestStatus', async () => {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
   ]);
   const keyPair = createKeyPairFromSeed(seed);
-  const senderSecretKey = keyPair.secretKey;
   const senderPubKey = keyPair.publicKey;
 
-  const httpAgent = makeHttpAgent({
-    canisterId: canisterIdent,
-    fetchFn: mockFetch,
-    nonceFn: () => nonce,
-    senderSecretKey,
-    senderPubKey,
-    senderSigFn: x => req => Buffer.from([0]) as SenderSig,
+  const httpAgent = new HttpAgent({
+    fetch: mockFetch,
   });
+  httpAgent.addTransform(makeNonceTransform(() => nonce));
+  httpAgent.addTransform(makeAuthTransform(keyPair, () => () => Buffer.from([0]) as SenderSig));
 
   const requestId = await requestIdOf({
-    request_type: 'call' as RequestType,
+    request_type: SubmitRequestType.Call,
     nonce,
     canister_id: CanisterId.fromHex(canisterIdent),
     method_name: 'greet',
@@ -134,10 +131,10 @@ test('requestStatus', async () => {
     requestId,
   });
 
-  const expectedRequest: Request = {
-    request_type: 'request-status' as RequestType,
-    nonce,
+  const expectedRequest = {
+    request_type: ReadRequestType.RequestStatus,
     request_id: requestId,
+    nonce,
     sender_pubkey: senderPubKey,
     sender_sig: Buffer.from([0]) as SenderSig,
   };
@@ -145,10 +142,11 @@ test('requestStatus', async () => {
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(1);
 
+  // Trick the type system.
   const {
     reply: { arg: responseArg },
     ...responseRest
-  } = response;
+  } = response as RequestStatusResponseReplied;
 
   const {
     reply: { arg: mockResponseArg },
@@ -158,12 +156,14 @@ test('requestStatus', async () => {
   expect(responseRest).toEqual(mockResponseRest);
   expect(responseArg.equals(mockResponseArg)).toBe(true);
 
-  expect(calls[0][0]).toBe('/api/v1/read');
-  expect(calls[0][1]).toEqual({
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/cbor',
+  expect(calls[0]).toEqual([
+    '/api/v1/read',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/cbor',
+      },
+      body: cbor.encode(expectedRequest),
     },
-    body: cbor.encode(expectedRequest),
-  });
+  ]);
 });
