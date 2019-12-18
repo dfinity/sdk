@@ -7,8 +7,8 @@
     "build": "webpack"
   },
   "devDependencies": {
-    "webpack": "5.0.0-beta.9",
-    "webpack-cli": "4.0.0-beta.1",
+    "webpack": "4.41.3",
+    "webpack-cli": "3.3.10",
     "terser-webpack-plugin": "2.2.2"
   }
 }

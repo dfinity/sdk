@@ -334,6 +334,10 @@ where
         warn_upgrade(latest_version, current_version);
     }
 
+    if !env.is_installed()? {
+        env.install()?;
+    }
+
     eprintln!(r#"Creating new project "{}"..."#, project_name.display());
     if dry_run {
         eprintln!(r#"Running in dry mode. Nothing will be committed to disk."#);
@@ -419,8 +423,8 @@ fn warn_upgrade(latest_version: Option<Version>, current_version: Version) {
         red.apply_to(current_version.clone())
     );
     if let Some(v) = latest_version {
-        eprint!("{}", yellow.apply_to("→"));
-        eprintln!(" latest version: {}", green.apply_to(v));
+        eprint!("{}", yellow.apply_to(" → "));
+        eprintln!("latest version: {}", green.apply_to(v));
     }
     eprintln!("\nYou are strongly encouraged to upgrade by running 'dfx upgrade'!");
 }

@@ -70,6 +70,7 @@ fn main() {
                     Ok(status) => std::process::exit(status.code().unwrap_or(0)),
                     Err(e) => {
                         eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
+                        eprintln!("Installed executable: {}", dfx_version());
                         std::process::exit(1)
                     }
                 };
