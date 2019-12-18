@@ -74,7 +74,7 @@ test('call', async () => {
   expect(calls.length).toBe(1);
   expect(requestId).toEqual(expectedRequestId);
 
-  expect(calls[0][0]).toBe('http://localhost:8000/api/v1/submit');
+  expect(calls[0][0]).toBe('/api/v1/submit');
   expect(calls[0][1]).toEqual({
     method: 'POST',
     headers: {
@@ -158,7 +158,7 @@ test('requestStatus', async () => {
   expect(responseRest).toEqual(mockResponseRest);
   expect(responseArg.equals(mockResponseArg)).toBe(true);
 
-  expect(calls[0][0]).toBe('http://localhost:8000/api/v1/read');
+  expect(calls[0][0]).toBe('/api/v1/read');
   expect(calls[0][1]).toEqual({
     method: 'POST',
     headers: {
