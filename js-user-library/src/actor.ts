@@ -9,7 +9,9 @@ import { RequestStatusResponse, RequestStatusResponseStatus } from './request_st
 function retry<T>(fn: () => Promise<T>, maxAttempts: number): Promise<T> {
   return fn().catch(err => {
     if (maxAttempts > 0) {
-      return retry(fn, maxAttempts - 1);
+      return new Promise(resolve => setTimeout(resolve, 100)).then(() =>
+        retry(fn, maxAttempts - 1),
+      );
     } else {
       throw err;
     }
@@ -71,7 +73,7 @@ export const makeActor = (
         );
       }
 
-      const maxAttempts = 3;
+      const maxAttempts = 10;
 
       const reply = await retry(async () => {
         const response: RequestStatusResponse = await httpAgent.requestStatus({
