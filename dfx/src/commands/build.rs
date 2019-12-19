@@ -228,21 +228,21 @@ where
             println!("Building {}...", k);
             build_file(env, &config, &k)?;
         }
-    }
 
-    // Run `npm run build` if there is a package.json. Ignore errors.
-    if config.get_project_root().join("package.json").exists() {
-        eprintln!("Building frontend code...");
+        // Run `npm run build` if there is a package.json. Ignore errors.
+        if config.get_project_root().join("package.json").exists() {
+            eprintln!("Building frontend code...");
 
-        // Install node modules
-        std::process::Command::new("npm")
-            .arg("run")
-            .arg("build")
-            .env("DFX_VERSION", &dfx_version())
-            .current_dir(config.get_project_root())
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit())
-            .output()?;
+            // Install node modules
+            std::process::Command::new("npm")
+                .arg("run")
+                .arg("build")
+                .env("DFX_VERSION", &dfx_version())
+                .current_dir(config.get_project_root())
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .output()?;
+        }
     }
 
     Ok(())

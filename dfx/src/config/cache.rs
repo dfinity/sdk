@@ -141,7 +141,7 @@ pub fn call_cached_dfx(v: &str) -> DfxResult<ExitStatus> {
     }
 
     std::process::Command::new(command_path)
-        .args(std::env::args())
+        .args(std::env::args().skip(1))
         .status()
         .map_err(DfxError::from)
 }

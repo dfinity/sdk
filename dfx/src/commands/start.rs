@@ -189,7 +189,7 @@ where
 
     b.set_message("Pinging the Internet Computer client...");
     ping_and_wait(&frontend_url)?;
-    b.set_message("Internet Computer client started...");
+    b.finish_with_message("Internet Computer client started...");
 
     // We have two side processes involving multiple threads running at
     // this point. We first wait for a signal that one of the processes
@@ -210,7 +210,10 @@ where
     // over the client and nodemanager as it provides little
     // handling. This is mostly done for completeness. In the future
     // we should also force kill, if it ends up being necessary.
+    let b = ProgressBar::new_spinner();
+    b.set_draw_target(ProgressDrawTarget::stderr());
     b.set_message("Terminating...");
+    b.enable_steady_tick(80);
     broadcast_stop.send(()).expect("Failed to signal children");
     // We can now start terminating our proxy server, we block to
     // ensure termination is done properly. At this point the client
