@@ -5,6 +5,7 @@
 , config ? {}
 , overlays ? []
 , releaseVersion ? "latest"
+, RustSec-advisory-db ? null
 }:
 let
   # The `common` repo provides code (mostly Nix) that is used in the
@@ -21,9 +22,18 @@ let
     else builtins.fetchGit {
       name = "common-sources";
       url = "ssh://git@github.com/dfinity-lab/common";
-      rev = "8872018a48260010599e945526fe0dcf28022444";
+      rev = "a066833f9ce8fac453f736639d46021a714682b2";
     };
 in import commonSrc {
   inherit system crossSystem config;
-  overlays = import ./overlays ++ [ (_self: _super: { inherit releaseVersion; }) ] ++ overlays;
+  overlays = import ./overlays ++ [
+    (_self: _super: {
+      inherit
+        releaseVersion
+        # The dfinity-sdk.packages.cargo-security-audit job has this RustSec
+        # advisory-db as a dependency so we add it here to the package set so
+        # that job has access to it.
+        RustSec-advisory-db;
+    })
+  ] ++ overlays;
  }
