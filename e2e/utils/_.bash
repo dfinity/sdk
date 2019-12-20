@@ -44,6 +44,6 @@ dfx_start() {
     printf "Client Configured Port: %s\n" "${port}"
 
     timeout 5 sh -c \
-        "until nc -z localhost \"${port}\"; do echo waiting for client; sleep 1; done" \
+        "until nc -z localhost ${port}; do echo waiting for client; sleep 1; done" \
         || (echo "could not connect to client on port ${port}" && exit 1)
 }
