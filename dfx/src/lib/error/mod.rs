@@ -81,6 +81,8 @@ pub enum DfxError {
 
     /// Configuration is invalid.
     CouldNotSerializeConfiguration(serde_json::error::Error),
+    /// Client TOML Serialization error.
+    CouldNotSerializeClientConfiguration(toml::ser::Error),
 }
 
 /// The result of running a DFX command.

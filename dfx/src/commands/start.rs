@@ -130,12 +130,13 @@ where
     // iii) What if another process modifies the file? (ignore)
     // iv) order of execution between watcher and client
 
-    let c = b.clone();
-
     let watcher = std::thread::Builder::new()
         .name("File Watcher".into())
-        .spawn(move || {
-            retrieve_client_port(&client_port_path, rcv_wait_fwatcher, request_stop_echo, &c)
+        .spawn({
+            let b = b.clone();
+            move || {
+                retrieve_client_port(&client_port_path, rcv_wait_fwatcher, request_stop_echo, &b)
+            }
         })?;
 
     // Ensure watcher is ready. Poor man's solution to keep things
@@ -385,12 +386,7 @@ fn generate_client_configuration(port_file_path: &PathBuf) -> DfxResult<String> 
             write_port_to: port_file_path,
         },
     };
-    toml::to_string(&http_values).map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed to generate configuration file: {:?}", e),
-        ))
-    })
+    toml::to_string(&http_values).map_err(DfxError::CouldNotSerializeClientConfiguration)
 }
 
 fn retrieve_client_port(
