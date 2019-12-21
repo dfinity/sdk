@@ -120,13 +120,7 @@ where
         let is_query_method =
             idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
         match is_query_method {
-            Some(true) => {
-                if args.is_present("call") {
-                    false
-                } else {
-                    true
-                }
-            }
+            Some(true) => !args.is_present("call"),
             Some(false) => {
                 if args.is_present("query") {
                     return Err(DfxError::InvalidMethodCall(format!(
