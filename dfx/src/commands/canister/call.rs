@@ -36,6 +36,15 @@ pub fn construct() -> App<'static, 'static> {
                 .help(UserMessage::QueryCanister.to_str())
                 .long("query")
                 .conflicts_with("async")
+                .conflicts_with("call")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("call")
+                .help(UserMessage::CallCanisterArg.to_str())
+                .long("call")
+                .conflicts_with("async")
+                .conflicts_with("query")
                 .takes_value(false),
         )
         .arg(
@@ -111,7 +120,13 @@ where
         let is_query_method =
             idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
         match is_query_method {
-            Some(true) => true,
+            Some(true) => {
+                if args.is_present("call") {
+                    false
+                } else {
+                    true
+                }
+            }
             Some(false) => {
                 if args.is_present("query") {
                     return Err(DfxError::InvalidMethodCall(format!(
