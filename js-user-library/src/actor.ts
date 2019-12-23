@@ -118,11 +118,11 @@ export function makeActorFactory(
       ...DEFAULT_ACTOR_CONFIG,
       ...config,
     } as Required<ActorConfig>;
-    const cid = typeof canisterId == 'string' ? CanisterId.fromHex(canisterId) : canisterId;
+    const cid = typeof canisterId === 'string' ? CanisterId.fromHex(canisterId) : canisterId;
 
     for (const [methodName, func] of Object.entries(actorInterface._fields)) {
       actor[methodName] = async (...args: any[]) => {
-        let agent = httpAgent || getDefaultHttpAgent();
+        const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
           throw new Error('Cannot make call. httpAgent is undefined.');
         }
