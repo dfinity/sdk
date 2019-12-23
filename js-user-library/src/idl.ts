@@ -841,6 +841,6 @@ export function Rec() {
   return new RecClass();
 }
 
-export function Func(args: Type[], ret: Type[]) {
-  return new FuncClass(args, ret);
+export function Func(args: Type[], ret: Type[], annotations: string[] = []) {
+  return new FuncClass(args, ret, annotations);
 }

@@ -3,13 +3,13 @@ import {
   generateKeyPair,
   makeActorFactory,
   makeAuthTransform,
-  makeHttpAgent,
+  HttpAgent,
   makeNonceTransform,
 } from "ic:userlib";
 
 if (!window.icHttpAgent) {
   const keyPair = generateKeyPair();
-  const agent = makeHttpAgent({});
+  const agent = new HttpAgent({});
   agent.addTransform(makeNonceTransform());
   agent.addTransform(makeAuthTransform(keyPair));
 

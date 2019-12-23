@@ -7,10 +7,6 @@ import { FuncClass } from './idl';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
 
-declare const window: { icHttpAgent?: HttpAgent };
-declare const global: { icHttpAgent?: HttpAgent };
-declare const self: { icHttpAgent?: HttpAgent };
-
 /**
  * An actor interface. An actor is an object containing only functions that will
  * return a promise. These functions are derived from the IDL definition.
@@ -18,24 +14,30 @@ declare const self: { icHttpAgent?: HttpAgent };
 export interface Actor extends Record<string, (...args: unknown[]) => Promise<unknown>> {}
 
 export interface ActorConfig {
-  canisterId: CanisterId;
+  canisterId: string | CanisterId;
   httpAgent?: HttpAgent;
   maxAttempts?: number;
   throttleDurationInMSecs?: number;
+}
+
+declare const window: { icHttpAgent?: HttpAgent };
+declare const global: { icHttpAgent?: HttpAgent };
+declare const self: { icHttpAgent?: HttpAgent };
+
+function getDefaultHttpAgent() {
+  return typeof window === 'undefined'
+    ? typeof global === 'undefined'
+    ? typeof self === 'undefined'
+      ? undefined
+      : self.icHttpAgent
+    : global.icHttpAgent
+    : window.icHttpAgent;
 }
 
 const REQUEST_STATUS_RETRY_WAIT_DURATION_IN_MSECS = 500;
 const DEFAULT_ACTOR_CONFIG: Partial<ActorConfig> = {
   maxAttempts: 10,
   throttleDurationInMSecs: REQUEST_STATUS_RETRY_WAIT_DURATION_IN_MSECS,
-  httpAgent:
-    typeof window === 'undefined'
-      ? typeof global === 'undefined'
-        ? typeof self === 'undefined'
-          ? undefined
-          : self.icHttpAgent
-        : global.icHttpAgent
-      : window.icHttpAgent,
 };
 
 export type ActorConstructor = (config: ActorConfig) => Actor;
@@ -61,7 +63,7 @@ export function makeActorFactory(
 ): ActorConstructor {
   const actorInterface = actorInterfaceFactory({ IDL });
 
-  async function callDebriefing(
+  async function requestStatusAndLoop(
     httpAgent: HttpAgent,
     requestId: RequestId,
     func: FuncClass,
@@ -97,7 +99,7 @@ export function makeActorFactory(
 
         // Wait a little, then retry.
         return new Promise(resolve => setTimeout(resolve, throttle)).then(() =>
-          callDebriefing(httpAgent, requestId, func, attempts, maxAttempts, throttle),
+          requestStatusAndLoop(httpAgent, requestId, func, attempts, maxAttempts, throttle),
         );
 
       case RequestStatusResponseStatus.Rejected:
@@ -116,17 +118,20 @@ export function makeActorFactory(
       ...DEFAULT_ACTOR_CONFIG,
       ...config,
     } as Required<ActorConfig>;
-
-    if (!httpAgent) {
-      throw new Error('Cannot make call. httpAgent is undefined.');
-    }
+    const cid = typeof canisterId == 'string' ? CanisterId.fromHex(canisterId) : canisterId;
 
     for (const [methodName, func] of Object.entries(actorInterface._fields)) {
       actor[methodName] = async (...args: any[]) => {
-        const arg = IDL.encode(func.argTypes, args) as BinaryBlob;
+        let agent = httpAgent || getDefaultHttpAgent();
+        if (!agent) {
+          throw new Error('Cannot make call. httpAgent is undefined.');
+        }
 
+        const arg = IDL.encode(func.argTypes, args) as BinaryBlob;
+console.log(func)
+        debugger;
         if (func.annotations.includes('query')) {
-          const result = await httpAgent.query(canisterId, { methodName, arg });
+          const result = await agent.query(cid, { methodName, arg });
 
           switch (result.status) {
             case QueryResponseStatus.Rejected:
@@ -140,12 +145,14 @@ export function makeActorFactory(
               return IDL.decode(func.retTypes, result.reply.arg);
           }
         } else {
-          const { requestId, response } = await httpAgent.call(canisterId, { methodName, arg });
+          const { requestId, response } = await agent.call(cid, { methodName, arg });
 
           if (!response.ok) {
             throw new Error(
               [
                 'Call failed:',
+                `  Method: ${methodName}(${args})`,
+                `  Canister ID: ${cid.toHex()}`,
                 `  Request ID: ${requestIdToHex(requestId)}`,
                 `  HTTP status code: ${response.status}`,
                 `  HTTP status text: ${response.statusText}`,
@@ -153,8 +160,8 @@ export function makeActorFactory(
             );
           }
 
-          return callDebriefing(
-            httpAgent,
+          return requestStatusAndLoop(
+            agent,
             requestId,
             func,
             maxAttempts,

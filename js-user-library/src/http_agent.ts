@@ -34,6 +34,20 @@ export interface HttpAgentOptions {
   fetch?: typeof fetch;
 }
 
+declare const window: { fetch: typeof fetch };
+declare const global: { fetch: typeof fetch };
+declare const self: { fetch: typeof fetch };
+
+function getDefaultFetch() {
+  return typeof window === 'undefined'
+    ? typeof global === 'undefined'
+      ? typeof self === 'undefined'
+        ? undefined
+        : self.fetch.bind(self)
+      : global.fetch.bind(global)
+    : window.fetch.bind(window);
+}
+
 // A HTTP agent allows users to interact with a client of the internet computer
 // using the available methods. It exposes an API that closely follows the
 // public view of the internet computer, and is not intended to be exposed
@@ -51,7 +65,7 @@ export class HttpAgent {
     if (options.parent) {
       this._pipeline = [...options.parent._pipeline];
     }
-    this._fetch = options.fetch || fetch;
+    this._fetch = options.fetch || getDefaultFetch() || fetch.bind(global);
   }
 
   public addTransform(fn: HttpAgentRequestTransformFn, priority = fn.priority || 0) {
