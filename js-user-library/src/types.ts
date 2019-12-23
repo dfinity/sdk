@@ -1,5 +1,5 @@
 import { Buffer } from 'buffer/';
-import { lebEncode } from './utils/leb128'
+import { lebEncode } from './utils/leb128';
 
 export interface JsonArray extends Array<JsonValue> {}
 export interface JsonObject extends Record<string, JsonValue> {}

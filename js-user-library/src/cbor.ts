@@ -6,8 +6,8 @@ import borc from 'borc';
 import { Buffer } from 'buffer/';
 import * as cbor from 'simple-cbor';
 import { CborEncoder, SelfDescribeCborSerializer } from 'simple-cbor';
-import { BinaryBlob } from './types';
 import { CanisterId } from './canisterId';
+import { BinaryBlob } from './types';
 
 // We are using hansl/simple-cbor for CBOR serialization, to avoid issues with
 // encoding the uint64 values that the HTTP handler of the client expects for

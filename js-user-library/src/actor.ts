@@ -1,11 +1,11 @@
-import { Buffer } from "buffer/";
-import { CanisterId } from "./canisterId";
-import { HttpAgent } from "./http_agent";
-import { QueryResponseStatus, RequestStatusResponseStatus } from "./http_agent_types";
-import * as IDL from "./idl";
-import { FuncClass } from "./idl";
-import { RequestId, toHex as requestIdToHex } from "./request_id";
-import { BinaryBlob } from "./types";
+import { Buffer } from 'buffer/';
+import { CanisterId } from './canisterId';
+import { HttpAgent } from './http_agent';
+import { QueryResponseStatus, RequestStatusResponseStatus } from './http_agent_types';
+import * as IDL from './idl';
+import { FuncClass } from './idl';
+import { RequestId, toHex as requestIdToHex } from './request_id';
+import { BinaryBlob } from './types';
 
 declare const window: { httpAgent?: HttpAgent };
 declare const global: { httpAgent?: HttpAgent };
@@ -29,16 +29,16 @@ const DEFAULT_ACTOR_CONFIG: Partial<ActorConfig> = {
   maxAttempts: 10,
   throttleDurationInMSecs: REQUEST_STATUS_RETRY_WAIT_DURATION_IN_MSECS,
   httpAgent:
-    typeof window == "undefined"
-      ? typeof global == "undefined"
-      ? typeof self == "undefined" ? undefined : self.httpAgent
-      : global.httpAgent
-      : window.httpAgent
+    typeof window === 'undefined'
+      ? typeof global === 'undefined'
+        ? typeof self === 'undefined'
+          ? undefined
+          : self.httpAgent
+        : global.httpAgent
+      : window.httpAgent,
 };
 
-export interface ActorConstructor {
-  (config: ActorConfig): Actor;
-}
+export type ActorConstructor = (config: ActorConfig) => Actor;
 
 // Make an actor from an actor interface.
 //
@@ -87,41 +87,42 @@ export function makeActorFactory(
 
       case RequestStatusResponseStatus.Unknown:
       case RequestStatusResponseStatus.Pending:
-        if (--attempts == 0) {
+        if (--attempts === 0) {
           throw new Error(
-            `Failed to retrieve a reply for request after ${maxAttempts} attempts:\n`
-            + `  Request ID: ${requestIdToHex(requestId)}\n`
-            + `  Request status: ${status.status}\n`
+            `Failed to retrieve a reply for request after ${maxAttempts} attempts:\n` +
+              `  Request ID: ${requestIdToHex(requestId)}\n` +
+              `  Request status: ${status.status}\n`,
           );
         }
 
         // Wait a little, then retry.
-        return new Promise(resolve => setTimeout(resolve, throttle))
-          .then(() => callDebriefing(httpAgent, requestId, func, attempts, maxAttempts, throttle));
+        return new Promise(resolve => setTimeout(resolve, throttle)).then(() =>
+          callDebriefing(httpAgent, requestId, func, attempts, maxAttempts, throttle),
+        );
 
       case RequestStatusResponseStatus.Rejected:
         throw new Error(
-              `Call was rejected:\n`
-            + `  Request ID: ${requestIdToHex(requestId)}\n`
-            + `  Reject code: ${status.reject_code}\n`
-            + `  Reject text: ${status.reject_message}\n`
+          `Call was rejected:\n` +
+            `  Request ID: ${requestIdToHex(requestId)}\n` +
+            `  Reject code: ${status.reject_code}\n` +
+            `  Reject text: ${status.reject_message}\n`,
         );
     }
   }
 
-  return function(config: ActorConfig) {
-    const result: Actor = {};
+  return (config: ActorConfig) => {
+    const actor: Actor = {};
     const { canisterId, maxAttempts, throttleDurationInMSecs, httpAgent } = {
       ...DEFAULT_ACTOR_CONFIG,
       ...config,
     } as Required<ActorConfig>;
 
     if (!httpAgent) {
-      throw new Error("Cannot make call. httpAgent is undefined.");
+      throw new Error('Cannot make call. httpAgent is undefined.');
     }
 
     for (const [methodName, func] of Object.entries(actorInterface._fields)) {
-      result[methodName] = async (...args: any[]) => {
+      actor[methodName] = async (...args: any[]) => {
         const arg = IDL.encode(func.argTypes, args) as BinaryBlob;
 
         if (func.annotations.includes('query')) {
@@ -130,9 +131,9 @@ export function makeActorFactory(
           switch (result.status) {
             case QueryResponseStatus.Rejected:
               throw new Error(
-                  `Query failed:\n`
-                + `  Status: ${result.status}\n`
-                + `  Message: ${result.reject_message}\n`,
+                `Query failed:\n` +
+                  `  Status: ${result.status}\n` +
+                  `  Message: ${result.reject_message}\n`,
               );
 
             case QueryResponseStatus.Replied:
@@ -152,11 +153,18 @@ export function makeActorFactory(
             );
           }
 
-          return callDebriefing(httpAgent, requestId, func, maxAttempts, maxAttempts, throttleDurationInMSecs);
+          return callDebriefing(
+            httpAgent,
+            requestId,
+            func,
+            maxAttempts,
+            maxAttempts,
+            throttleDurationInMSecs,
+          );
         }
-      }
+      };
     }
 
-    return result;
+    return actor;
   };
 }

@@ -1,8 +1,8 @@
 import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer/';
-import { BinaryBlob, blobToHex } from "./types";
 import { CanisterId } from './canisterId';
 import { decode, encode } from './cbor';
+import { BinaryBlob, blobToHex } from './types';
 
 test('round trip', () => {
   interface Data {

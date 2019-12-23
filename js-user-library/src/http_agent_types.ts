@@ -1,16 +1,12 @@
-import { CanisterId } from "./canisterId";
-import { RejectCode } from "./reject_code";
-import { RequestId } from "./request_id";
-import { BinaryBlob } from "./types";
+import { CanisterId } from './canisterId';
+import { RejectCode } from './reject_code';
+import { RequestId } from './request_id';
+import { BinaryBlob } from './types';
 
 export const enum Endpoint {
   Read = 'read',
   Submit = 'submit',
 }
-
-// `Options` is the external representation of `Config` that allows us to
-// provide optional fields with default values.
-export interface Options {}
 
 // An HttpAgent request, before it gets encoded and sent to the server.
 // We create an empty request that we will fill later.
@@ -143,4 +139,3 @@ export enum RequestStatusResponseStatus {
 
 export type ReadRequest = QueryRequest | RequestStatusRequest;
 export type ReadResponse = QueryResponse | RequestStatusResponse;
-

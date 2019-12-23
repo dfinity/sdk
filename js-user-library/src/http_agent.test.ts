@@ -1,5 +1,7 @@
 import { Buffer } from 'buffer/';
 import { createKeyPairFromSeed, makeAuthTransform, SenderSig, sign, verify } from './auth';
+import { CanisterId } from './canisterId';
+import * as cbor from './cbor';
 import { HttpAgent } from './http_agent';
 import { makeNonceTransform } from './http_agent_transforms';
 import {
@@ -9,11 +11,9 @@ import {
   RequestStatusResponseStatus,
   SubmitRequestType,
 } from './http_agent_types';
-import { BinaryBlob } from './types';
-import { CanisterId } from './canisterId';
-import * as cbor from './cbor';
-import { Nonce } from './types';
 import { requestIdOf } from './request_id';
+import { BinaryBlob } from './types';
+import { Nonce } from './types';
 
 test('call', async () => {
   const mockFetch: jest.Mock = jest.fn((resource, init) => {

@@ -53,12 +53,12 @@ export function makeAuthTransform(
   senderSigFn: SigningConstructedFn = sign,
 ): HttpAgentRequestTransformFn {
   const { publicKey, secretKey } = keyPair;
-  const sign = senderSigFn(secretKey);
+  const signFn = senderSigFn(secretKey);
 
   const fn = async (r: HttpAgentRequest) => {
     const requestId = await requestIdOf(r.body);
-    r.body['sender_pubkey'] = publicKey;
-    r.body['sender_sig'] = sign(requestId);
+    r.body.sender_pubkey = publicKey;
+    r.body.sender_sig = signFn(requestId);
   };
 
   // Set priority low so other transforms run first. Signing should be done on

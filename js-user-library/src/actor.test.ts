@@ -1,14 +1,14 @@
 import { Buffer } from 'buffer/';
 import { makeActorFactory } from './actor';
 import { makeAuthTransform, SenderPubKey, SenderSecretKey, SenderSig } from './auth';
+import { CanisterId } from './canisterId';
+import * as cbor from './cbor';
 import { HttpAgent } from './http_agent';
 import { makeNonceTransform } from './http_agent_transforms';
 import { SubmitRequestType } from './http_agent_types';
-import { Nonce, blobFromHex } from './types';
-import { CanisterId } from './canisterId';
-import * as cbor from './cbor';
-import { requestIdOf } from './request_id';
 import * as IDL from './idl';
+import { requestIdOf } from './request_id';
+import { blobFromHex, Nonce } from './types';
 
 test('makeActor', async () => {
   const actorInterface = () => {

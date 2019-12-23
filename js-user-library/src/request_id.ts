@@ -1,7 +1,7 @@
 import borc from 'borc';
 import { Buffer } from 'buffer/';
-import { BinaryBlob, blobFromHex, blobToHex } from './types';
 import { CanisterId } from './canisterId';
+import { BinaryBlob, blobFromHex, blobToHex } from './types';
 
 export type RequestId = BinaryBlob & { __requestId__: void };
 export function toHex(requestId: RequestId): string {
