@@ -7,9 +7,9 @@ import { FuncClass } from './idl';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
 
-declare const window: { httpAgent?: HttpAgent };
-declare const global: { httpAgent?: HttpAgent };
-declare const self: { httpAgent?: HttpAgent };
+declare const window: { icHttpAgent?: HttpAgent };
+declare const global: { icHttpAgent?: HttpAgent };
+declare const self: { icHttpAgent?: HttpAgent };
 
 /**
  * An actor interface. An actor is an object containing only functions that will
@@ -33,9 +33,9 @@ const DEFAULT_ACTOR_CONFIG: Partial<ActorConfig> = {
       ? typeof global === 'undefined'
         ? typeof self === 'undefined'
           ? undefined
-          : self.httpAgent
-        : global.httpAgent
-      : window.httpAgent,
+          : self.icHttpAgent
+        : global.icHttpAgent
+      : window.icHttpAgent,
 };
 
 export type ActorConstructor = (config: ActorConfig) => Actor;
