@@ -395,7 +395,7 @@ fn retrieve_client_port(
     request_stop_echo: Sender<()>,
     b: &ProgressBar,
 ) -> DfxResult<String> {
-    let mut watcher = Hotwatch::new_with_custom_delay(Duration::from_millis(1)).map_err(|e| {
+    let mut watcher = Hotwatch::new_with_custom_delay(Duration::from_millis(100)).map_err(|e| {
         DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
             format!("Failed to create watcher for port pid file: {}", e),
