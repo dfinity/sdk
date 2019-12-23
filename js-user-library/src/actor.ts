@@ -27,10 +27,10 @@ declare const self: { icHttpAgent?: HttpAgent };
 function getDefaultHttpAgent() {
   return typeof window === 'undefined'
     ? typeof global === 'undefined'
-    ? typeof self === 'undefined'
-      ? undefined
-      : self.icHttpAgent
-    : global.icHttpAgent
+      ? typeof self === 'undefined'
+        ? undefined
+        : self.icHttpAgent
+      : global.icHttpAgent
     : window.icHttpAgent;
 }
 
@@ -128,8 +128,6 @@ export function makeActorFactory(
         }
 
         const arg = IDL.encode(func.argTypes, args) as BinaryBlob;
-console.log(func)
-        debugger;
         if (func.annotations.includes('query')) {
           const result = await agent.query(cid, { methodName, arg });
 
