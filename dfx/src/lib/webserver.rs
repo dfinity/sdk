@@ -1,6 +1,8 @@
 use actix::System;
+use actix_server::Server;
 use actix_web::client::Client;
 use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use crossbeam::channel::Sender;
 use futures::Future;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -54,13 +56,14 @@ fn run_webserver(
     bind: SocketAddr,
     client_api_uri: url::Url,
     serve_dir: PathBuf,
+    inform_parent: Sender<Server>,
 ) -> Result<(), std::io::Error> {
     eprintln!("binding to: {:?}", bind);
     eprintln!("client: {:?}", client_api_uri);
-
+    const SHUTDOWN_WAIT_TIME: u64 = 60;
     let _sys = System::new("dfx-frontend-http-server");
 
-    HttpServer::new(move || {
+    let handler = HttpServer::new(move || {
         App::new()
             .data(Client::new())
             .data(client_api_uri.clone())
@@ -69,8 +72,15 @@ fn run_webserver(
             .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
     })
     .bind(bind)?
+    // N.B. This is an arbitrary timeout for now.
+    .shutdown_timeout(SHUTDOWN_WAIT_TIME)
     .system_exit()
     .start();
+
+    // Warning: Note that HttpServer provides its own signal
+    // handler. That means if we provide signal handling beyond basic
+    // we need to either as normal "re-signal" or disable_signals().
+    let _ = inform_parent.send(handler);
 
     Ok(())
 }
@@ -79,10 +89,11 @@ pub fn webserver(
     bind: SocketAddr,
     client_api_uri: url::Url,
     serve_dir: &Path,
+    inform_parent: Sender<Server>,
 ) -> std::thread::JoinHandle<()> {
     let serve_dir = PathBuf::from(serve_dir);
     std::thread::Builder::new()
         .name("Frontend".into())
-        .spawn(move || run_webserver(bind, client_api_uri, serve_dir).unwrap())
+        .spawn(move || run_webserver(bind, client_api_uri, serve_dir, inform_parent).unwrap())
         .unwrap()
 }

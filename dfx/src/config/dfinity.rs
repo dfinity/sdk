@@ -24,6 +24,7 @@ const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { o
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
     pub main: Option<String>,
+    pub frontend: Option<Value>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -218,11 +219,23 @@ impl Config {
         &self.config
     }
 
+    pub fn get_project_root(&self) -> &Path {
+        // a configuration path contains a file name specifically. As
+        // such we should be returning at least root as parent. If
+        // this is invariance is broken, we must fail.
+        self.path.parent().expect(
+            "An incorrect configuration path was set with no parent, i.e. did not include root",
+        )
+    }
+
     pub fn save(&self) -> DfxResult {
-        std::fs::write(
-            &self.path,
-            serde_json::to_string_pretty(&self.json).unwrap(),
-        )?;
+        let json_pretty = serde_json::to_string_pretty(&self.json).or_else(|e| {
+            Err(DfxError::InvalidData(format!(
+                "Failed to serialize dfx.json: {}",
+                e
+            )))
+        })?;
+        std::fs::write(&self.path, json_pretty)?;
         Ok(())
     }
 }

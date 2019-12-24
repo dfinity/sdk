@@ -21,7 +21,7 @@ declare module 'buffer-pipe' {
      * Wites a buffer to the pipe
      * @param {Buffer} buf
      */
-    write(buf: Buffer): void;
+    write(buf: Buffer | number[]): void;
 
     /**
      * Whether or not there is more data to read from the buffer

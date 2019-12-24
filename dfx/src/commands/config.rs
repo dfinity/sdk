@@ -7,12 +7,16 @@ use serde_json::value::Value;
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("config")
         .about(UserMessage::ConfigureOptions.to_str())
-        .arg(
-            Arg::with_name("config_path")
-                .help(UserMessage::OptionName.to_str())
-                .required(true),
-        )
+        .arg(Arg::with_name("config_path").help(UserMessage::OptionName.to_str()))
         .arg(Arg::with_name("value").help(UserMessage::OptionValue.to_str()))
+        .arg(
+            Arg::with_name("format")
+                .help(UserMessage::OptionFormat.to_str())
+                .long("format")
+                .takes_value(true)
+                .default_value("json")
+                .possible_values(&["json", "text"]),
+        )
 }
 
 pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
@@ -22,7 +26,8 @@ pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?
         .clone();
 
-    let config_path = args.value_of("config_path").unwrap();
+    let config_path = args.value_of("config_path").unwrap_or("");
+    let format = args.value_of("format").unwrap_or("json");
 
     // We replace `.` with `/` so the user can use `path.value.field` instead of forcing him
     // to use `path/value/field`. Since none of our keys have slashes or tildes in them it
@@ -32,6 +37,10 @@ pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
     // JSON pointers can be relative, but we don't have a place to start if is it.
     if !config_path.starts_with('/') {
         config_path.insert(0, '/');
+    }
+
+    if config_path == "/" {
+        config_path.clear()
     }
 
     if let Some(arg_value) = args.value_of("value") {
@@ -45,7 +54,11 @@ pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
             .ok_or(DfxError::ConfigPathDoesNotExist(config_path))? = value;
         config.save()
     } else if let Some(value) = config.get_json().pointer(config_path.as_str()) {
-        println!("{}", value);
+        match format {
+            "text" => println!("{}", value),
+            "json" => println!("{}", serde_json::to_string_pretty(value)?),
+            _ => {}
+        }
         Ok(())
     } else {
         Err(DfxError::ConfigPathDoesNotExist(config_path))

@@ -3,11 +3,11 @@ import * as blob from './blob';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
 import { Nonce } from './nonce';
-import { requestIdOf } from './requestId';
-import { RequestType } from './requestType';
-import { SenderPubKey } from './senderPubKey';
-import { SenderSecretKey } from './senderSecretKey';
-import { SenderSig } from './senderSig';
+import { requestIdOf } from './request_id';
+import { RequestType } from './request_type';
+import { SenderPubKey } from './sender_pub_key';
+import { SenderSecretKey } from './sender_secret_key';
+import { SenderSig } from './sender_sig';
 
 import { IDL as _IDL, makeActor, makeHttpAgent } from './index';
 
@@ -113,7 +113,7 @@ test('makeActor', async () => {
   const { calls, results } = mockFetch.mock;
   expect(calls.length).toBe(4);
 
-  expect(calls[0][0]).toBe('http://localhost:8000/api/v1/submit');
+  expect(calls[0][0]).toBe('/api/v1/submit');
   expect(calls[0][1]).toEqual({
     method: 'POST',
     headers: {
@@ -122,7 +122,7 @@ test('makeActor', async () => {
     body: cbor.encode(expectedCallRequest),
   });
 
-  expect(calls[1][0]).toBe('http://localhost:8000/api/v1/read');
+  expect(calls[1][0]).toBe('/api/v1/read');
   expect(calls[1][1]).toEqual({
     method: 'POST',
     headers: {
@@ -137,7 +137,7 @@ test('makeActor', async () => {
     }),
   });
 
-  expect(calls[2][0]).toBe('http://localhost:8000/api/v1/read');
+  expect(calls[2][0]).toBe('/api/v1/read');
   expect(calls[2][1]).toEqual({
     method: 'POST',
     headers: {
@@ -152,7 +152,7 @@ test('makeActor', async () => {
     }),
   });
 
-  expect(calls[3][0]).toBe('http://localhost:8000/api/v1/read');
+  expect(calls[3][0]).toBe('/api/v1/read');
   expect(calls[3][1]).toEqual({
     method: 'POST',
     headers: {

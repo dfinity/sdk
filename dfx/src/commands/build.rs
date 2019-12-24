@@ -1,4 +1,5 @@
 use crate::config::dfinity::{Config, Profile};
+use crate::config::dfx_version;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::DfxError::BuildError;
@@ -100,52 +101,44 @@ fn build_did_js<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &
     }
 }
 
-fn build_canister_js(
-    canister_id: CanisterId,
-    did_js_path: &Path,
-    js_user_lib_path: &Path,
-    output_canister_js_path: &Path,
-) -> DfxResult {
+fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
+    let output_root = canister_info.get_output_root();
+    let output_canister_js_path = canister_info.get_output_canister_js_path();
+
     let mut language_bindings = assets::language_bindings()?;
+    let mut build_assets = assets::build_assets()?;
 
-    for entry in language_bindings.entries()? {
-        let mut file = entry?;
+    let mut file = language_bindings.entries()?.next().unwrap()?;
+    let mut file_contents = String::new();
+    file.read_to_string(&mut file_contents)?;
 
-        if file.header().entry_type().is_dir() {
-            continue;
+    let new_file_contents = file_contents
+        .replace("{canister_id}", &canister_id.to_hex())
+        .replace("{project_name}", canister_info.get_name());
+
+    let output_canister_js_path_str = output_canister_js_path.to_str().ok_or_else(|| {
+        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+            "Unable to convert output canister js path to a string: {:#?}",
+            output_canister_js_path
+        )))
+    })?;
+    std::fs::write(output_canister_js_path_str, new_file_contents)?;
+
+    if canister_info.has_frontend() {
+        for entry in build_assets.entries()? {
+            let mut file = entry?;
+
+            if file.header().entry_type().is_dir() {
+                continue;
+            }
+
+            let mut file_contents = String::new();
+            file.read_to_string(&mut file_contents)?;
+            if let Some(p) = output_root.join(file.header().path()?).parent() {
+                std::fs::create_dir_all(&p)?;
+            }
+            std::fs::write(&output_root.join(file.header().path()?), file_contents)?;
         }
-
-        let mut file_contents = String::new();
-        file.read_to_string(&mut file_contents)?;
-
-        let did_js_path_str = did_js_path.to_str().ok_or_else(|| {
-            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
-                "Unable to convert .did.js path to a string: {:#?}",
-                did_js_path
-            )))
-        })?;
-
-        let js_user_lib_path_str = js_user_lib_path.to_str().ok_or_else(|| {
-            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
-                "Unable to convert JS user lib path to a string: {:#?}",
-                js_user_lib_path
-            )))
-        })?;
-
-        let with_canister_id =
-            file_contents.replace("{canister_id}", &format!("\"{}\"", &canister_id.to_hex()));
-        let with_did_js = with_canister_id.replace("{did_js}", did_js_path_str);
-        let with_js_user_lib = with_did_js.replace("{js_user_lib}", js_user_lib_path_str);
-        let new_file_contents = with_js_user_lib;
-
-        let output_canister_js_path_str = output_canister_js_path.to_str().ok_or_else(|| {
-            DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
-                "Unable to convert output canister js path to a string: {:#?}",
-                output_canister_js_path
-            )))
-        })?;
-
-        std::fs::write(output_canister_js_path_str, new_file_contents)?;
     }
 
     Ok(())
@@ -190,21 +183,12 @@ where
             let output_did_js_path = canister_info.get_output_did_js_path();
 
             std::fs::create_dir_all(canister_info.get_output_root())?;
+            let canister_id = canister_info.generate_canister_id()?;
 
             motoko_compile(env, profile, &input_path, &output_wasm_path)?;
             didl_compile(env, &input_path, &output_idl_path)?;
             build_did_js(env, &output_idl_path, &output_did_js_path)?;
-
-            let canister_id = canister_info.generate_canister_id()?;
-            let js_user_lib_path = env.get_binary_command_path("js-user-library")?;
-            let output_canister_js_path = canister_info.get_output_canister_js_path();
-
-            build_canister_js(
-                canister_id.to_owned(),
-                &output_did_js_path,
-                &js_user_lib_path,
-                &output_canister_js_path,
-            )?;
+            build_canister_js(&canister_id, &canister_info)?;
 
             // Write the CID.
             std::fs::write(
@@ -243,6 +227,21 @@ where
         for k in canisters.keys() {
             println!("Building {}...", k);
             build_file(env, &config, &k)?;
+        }
+
+        // Run `npm run build` if there is a package.json. Ignore errors.
+        if config.get_project_root().join("package.json").exists() {
+            eprintln!("Building frontend code...");
+
+            // Install node modules
+            std::process::Command::new("npm")
+                .arg("run")
+                .arg("build")
+                .env("DFX_VERSION", &dfx_version())
+                .current_dir(config.get_project_root())
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .output()?;
         }
     }
 
