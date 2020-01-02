@@ -42,7 +42,7 @@ user_message!(
 
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",
-    CallCanisterArg => "Sends a call request to a canister. This is the default if the method is not a query method.",
+    UpdateCanisterArg => "Sends an update request to a canister. This is the default if the method is not a query method.",
 
     // dfx canister request_status
     RequestCallStatus => "Requests the status of a specified call from a canister.",
