@@ -22,7 +22,10 @@ the operation of how to get a new release out.
 * [ ] Is master green?
 * [ ] Was master red recently or flaky?
 * [ ] Follow process:
-   . [ ] Update cargo version (Use `./scripts/update-cargo-version.sh version`)
+   . [ ] Update cargo version
+     * [ ] `dfx/Cargo.toml`
+     * [ ] `public/manifest.json` (only adding the version to the list)
+     * [ ] `Cargo.lock`
    . [ ] Update manifest to include new version; *Ensure* latest remains the same
    . [ ] Create a pull request with the above 2 changes and get the validator to approve it
    . [ ] Switch to stable branch and `git pull origin stable`
