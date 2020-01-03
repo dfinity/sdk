@@ -5,7 +5,7 @@ use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServ
 use crossbeam::channel::Sender;
 use futures::Future;
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use url::Url;
 
 /// The amount of time to wait for the client to answer, in seconds.
@@ -52,15 +52,22 @@ fn forward(
 }
 
 /// Run the webserver in the current thread.
-fn run_webserver(
+pub fn run_webserver(
     bind: SocketAddr,
-    client_api_uri: url::Url,
+    client_api_port: String,
     serve_dir: PathBuf,
     inform_parent: Sender<Server>,
 ) -> Result<(), std::io::Error> {
     eprintln!("binding to: {:?}", bind);
+
+    // We have to shutdown faster than the client restarts.
+    const SHUTDOWN_WAIT_TIME: u64 = 1;
+
+    let ic_client_bind_addr = "http://localhost:".to_owned() + client_api_port.as_str() + "/api";
+    let ic_client_bind_addr = ic_client_bind_addr.as_str();
+    let client_api_uri =
+        url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");
     eprintln!("client: {:?}", client_api_uri);
-    const SHUTDOWN_WAIT_TIME: u64 = 60;
     let _sys = System::new("dfx-frontend-http-server");
 
     let handler = HttpServer::new(move || {
@@ -83,17 +90,4 @@ fn run_webserver(
     let _ = inform_parent.send(handler);
 
     Ok(())
-}
-
-pub fn webserver(
-    bind: SocketAddr,
-    client_api_uri: url::Url,
-    serve_dir: &Path,
-    inform_parent: Sender<Server>,
-) -> std::thread::JoinHandle<()> {
-    let serve_dir = PathBuf::from(serve_dir);
-    std::thread::Builder::new()
-        .name("Frontend".into())
-        .spawn(move || run_webserver(bind, client_api_uri, serve_dir, inform_parent).unwrap())
-        .unwrap()
 }

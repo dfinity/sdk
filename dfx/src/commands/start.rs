@@ -3,7 +3,8 @@ use crate::lib::api_client::{ping, Client, ClientConfig};
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::webserver::webserver;
+use crate::lib::proxy::{Proxy, ProxyConfig};
+use actix_server::Server;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
@@ -17,7 +18,7 @@ use serde::Serialize;
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt};
@@ -124,7 +125,7 @@ where
     let rcv_wait_fwatcher = rcv_wait.clone();
 
     // We wait for the port to be determined here. Note this sets the
-    // stage for a few of issues:
+    // stage for a few issues:
     // i) What happens if the port file is moved? (Undefined behaviour)
     // ii) How do we deal with client failures, as we now block
     // iii) What if another process modifies the file? (ignore)
@@ -134,6 +135,10 @@ where
         .name("File Watcher".into())
         .spawn({
             let b = b.clone();
+            let client_port_path = client_port_path.clone();
+            let rcv_wait_fwatcher = rcv_wait_fwatcher.clone();
+            let request_stop_echo = request_stop_echo.clone();
+
             move || {
                 retrieve_client_port(&client_port_path, rcv_wait_fwatcher, request_stop_echo, &b)
             }
@@ -149,15 +154,19 @@ where
     // spawning multiple client processes and registry.
     let client_watchdog = std::thread::Builder::new()
         .name("NodeManager".into())
-        .spawn(move || {
-            start_client(
-                &client_pathbuf.clone(),
-                &nodemanager_pathbuf,
-                &pid_file_path,
-                is_killed_client,
-                request_stop,
-                &client_configuration_path,
-            )
+        .spawn({
+            let is_killed_client = is_killed_client.clone();
+            let request_stop = request_stop.clone();
+            move || {
+                start_client(
+                    &client_pathbuf,
+                    &nodemanager_pathbuf,
+                    &pid_file_path,
+                    is_killed_client,
+                    request_stop,
+                    &client_configuration_path,
+                )
+            }
         })?;
 
     // Now we can read the file. If there are no contents we need to
@@ -169,12 +178,17 @@ where
         ))
     })??;
     eprintln!("Client bound at {}", client_port);
-    let ic_client_bind_addr = "http://localhost:".to_owned() + client_port.as_str() + "/api";
-    let ic_client_bind_addr = ic_client_bind_addr.as_str();
 
-    let frontend_watchdog = webserver(
+    // We have a long-lived nodes actor and a proxy actor. The nodes
+    // actor could be constantly be modifying its ingress port. Thus,
+    // we need to spawn a proxy actor equipped with a watch for a port
+    // change, and thus restart the proxy process.
+    let is_killed = is_killed_client.clone();
+
+    let frontend_watchdog = spawn_and_update_proxy(
         address_and_port,
-        url::Url::parse(ic_client_bind_addr).unwrap(),
+        client_port,
+        client_port_path.clone(),
         project_root
             .join(
                 config
@@ -186,7 +200,12 @@ where
             )
             .as_path(),
         give_actix,
-    );
+        actix_handler.clone(),
+        rcv_wait_fwatcher,
+        request_stop_echo,
+        is_killed,
+        b.clone(),
+    )?;
 
     b.set_message("Pinging the Internet Computer client...");
     ping_and_wait(&frontend_url)?;
@@ -387,6 +406,57 @@ fn generate_client_configuration(port_file_path: &PathBuf) -> DfxResult<String> 
         },
     };
     toml::to_string(&http_values).map_err(DfxError::CouldNotSerializeClientConfiguration)
+}
+
+// Note: This is going to get refactored with the client. Furthermore,
+// removing one argument just makes things more complex.
+#[allow(clippy::too_many_arguments)]
+fn spawn_and_update_proxy(
+    bind: SocketAddr,
+    client_api_port: String,
+    client_port_path: PathBuf,
+    serve_dir: &Path,
+    inform_parent: Sender<Server>,
+    server_receiver: Receiver<Server>,
+    rcv_wait_fwatcher: Receiver<()>,
+    request_stop_echo: Sender<()>,
+    is_killed: Receiver<()>,
+    b: ProgressBar,
+) -> std::io::Result<std::thread::JoinHandle<()>> {
+    let serve_dir = PathBuf::from(serve_dir);
+    std::thread::Builder::new()
+        .name("Frontend".into())
+        .spawn(move || {
+            let proxy_config = ProxyConfig {
+                client_api_port: client_api_port.clone(),
+                bind,
+                serve_dir: serve_dir.clone(),
+            };
+            let proxy = Proxy::new(proxy_config);
+            // Start the proxy first. Below, we panic to propagate the error
+            // to the parent thread as an error via join().
+            let mut proxy = proxy
+                .start(inform_parent.clone(), server_receiver.clone())
+                .expect("Failed to start the proxy");
+
+            while is_killed.is_empty() {
+                let port = retrieve_client_port(
+                    &client_port_path,
+                    rcv_wait_fwatcher.clone(),
+                    request_stop_echo.clone(),
+                    &b,
+                )
+                .expect("Failed to watch port configuration file");
+                proxy = if is_killed.is_empty() && port != proxy.port() {
+                    let proxy = proxy.set_client_api_port(port).clone();
+                    proxy
+                        .restart(inform_parent.clone(), server_receiver.clone())
+                        .expect("Failed to restart the proxy")
+                } else {
+                    proxy
+                };
+            }
+        })
 }
 
 fn retrieve_client_port(
