@@ -15,8 +15,11 @@ in {
       removeAttrs rust-package [ "shell" ] // rec {
         inherit rust-workspace;
         rust-workspace-debug = rust-package.debug;
-        js-user-library = super.callPackage ../../js-user-library/package.nix {
-          inherit (self) napalm;
+
+        userlib = {
+          js = super.callPackage ../../src/userlib/js/package.nix {
+            inherit (self) napalm;
+          };
         };
 
         rust-workspace-standalone = super.lib.standaloneRust
@@ -201,7 +204,7 @@ in {
     # `shell.nix` in the root to provide an environment which is the composition
     # of all the shells here.
     shells = {
-      js-user-library = import ../../js-user-library/shell.nix { pkgs = self; };
+      js-user-library = import ../../src/userlib/js/shell.nix { pkgs = self; };
       rust-workspace = import ../rust-shell.nix { pkgs = self; shell = rust-package.shell; };
     };
 
