@@ -32,8 +32,8 @@ let
       ];
 
       postDoc = oldAttrs.postDoc + ''
-        pushd dfx
-        cargo graph | dot -Tsvg > ../target/doc/dfx/cargo-graph.svg
+        pushd src/dfx
+        cargo graph | dot -Tsvg > ../../target/doc/dfx/cargo-graph.svg
         popd
       '';
 
@@ -58,7 +58,7 @@ in
         cp ${motoko.didc}/bin/didc $out
         cp ${motoko.rts}/rts/mo-rts.wasm $out
         mkdir $out/stdlib && cp -R ${motoko.stdlib}/. $out/stdlib
-        mkdir $out/js-user-library && cp -R ${dfinity-sdk.packages.js-user-library}/. $out/js-user-library
+        mkdir $out/js-user-library && cp -R ${dfinity-sdk.packages.userlib.js}/. $out/js-user-library
       '';
     })
 ) workspace')
