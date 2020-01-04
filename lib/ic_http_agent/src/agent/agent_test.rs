@@ -1,5 +1,5 @@
 #![cfg(test)]
-use crate::agent::agent::ReadResponse;
+use crate::agent::agent_impl::ReadResponse;
 use crate::{Agent, AgentError, Blob, CanisterId};
 use mockito::mock;
 use serde_idl::Encode;
@@ -90,7 +90,7 @@ fn query_idl_rejected() -> Result<(), AgentError> {
             assert_eq!(code, 1234);
             assert_eq!(msg, "Rejected Message");
         }
-        _ => assert!(false),
+        _ => unreachable!(),
     }
 
     Ok(())

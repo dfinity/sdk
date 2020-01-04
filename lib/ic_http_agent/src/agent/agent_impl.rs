@@ -1,5 +1,5 @@
 use crate::agent::agent_error::AgentError;
-use crate::{Blob, CanisterId, RequestId};
+use crate::{Blob, CanisterId};
 use reqwest::header::HeaderMap;
 use reqwest::Client;
 use reqwest::Method;
@@ -21,9 +21,6 @@ pub(crate) enum ReadRequest<'a> {
         canister_id: &'a CanisterId,
         method_name: &'a str,
         arg: &'a Blob,
-    },
-    RequestStatus {
-        request_id: &'a RequestId,
     },
 }
 
@@ -68,7 +65,7 @@ impl Agent {
         let bytes = self.client.execute(http_request).await?.bytes().await?;
         println!("{}", hex::encode(&bytes));
         println!("{:?}", serde_cbor::from_slice::<ReadResponse<Blob>>(&bytes));
-        serde_cbor::from_slice::<ReadResponse<Blob>>(&bytes).map_err(|e| AgentError::InvalidData(e))
+        serde_cbor::from_slice::<ReadResponse<Blob>>(&bytes).map_err(AgentError::InvalidData)
     }
 
     /// The simplest for of query; sends a Blob and will return a Blob. The encoding is
@@ -81,12 +78,12 @@ impl Agent {
     ) -> Result<Blob, AgentError> {
         self._read(ReadRequest::Query {
             canister_id,
-            method_name: method_name.as_ref(),
+            method_name,
             arg,
         })
         .await
         .and_then(|response| match response {
-            ReadResponse::Replied { reply } => Ok(reply.unwrap_or_else(|| Blob::empty())),
+            ReadResponse::Replied { reply } => Ok(reply.unwrap_or_else(Blob::empty)),
             ReadResponse::Rejected {
                 reject_code,
                 reject_message,
