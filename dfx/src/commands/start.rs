@@ -131,24 +131,24 @@ where
     // iii) What if another process modifies the file? (ignore)
     // iv) order of execution between watcher and client
 
-    let watcher = std::thread::Builder::new()
-        .name("File Watcher".into())
-        .spawn({
-            let b = b.clone();
-            let client_port_path = client_port_path.clone();
-            let rcv_wait_fwatcher = rcv_wait_fwatcher.clone();
-            let request_stop_echo = request_stop_echo.clone();
+    // let watcher = std::thread::Builder::new()
+    //     .name("File Watcher".into())
+    //     .spawn({
+    //         let b = b.clone();
+    //         let client_port_path = client_port_path.clone();
+    //         let rcv_wait_fwatcher = rcv_wait_fwatcher.clone();
+    //         let request_stop_echo = request_stop_echo.clone();
 
-            move || {
-                retrieve_client_port(
-                    None,
-                    &client_port_path,
-                    rcv_wait_fwatcher,
-                    request_stop_echo,
-                    &b,
-                )
-            }
-        })?;
+    //         move || {
+    //             retrieve_client_port(
+    //                 None,
+    //                 &client_port_path,
+    //                 rcv_wait_fwatcher,
+    //                 request_stop_echo,
+    //                 &b,
+    //             )
+    //         }
+    //     })?;
 
     // Ensure watcher is ready. Poor man's solution to keep things
     // sane.
@@ -177,13 +177,13 @@ where
 
     // Now we can read the file. If there are no contents we need to
     // fail. We check if the watcher thinks the file has been written.
-    let client_port: String = watcher.join().map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed while running frontend proxy thead -- {:?}", e),
-        ))
-    })??;
-    eprintln!("Client bound at {}", client_port);
+    // let client_port: String = watcher.join().map_err(|e| {
+    //     DfxError::RuntimeError(Error::new(
+    //         ErrorKind::Other,
+    //         format!("Failed while running frontend proxy thead -- {:?}", e),
+    //     ))
+    // })??;
+    // eprintln!("Client bound at {}", client_port);
 
     // We have a long-lived nodes actor and a proxy actor. The nodes
     // actor could be constantly be modifying its ingress port. Thus,
@@ -193,7 +193,6 @@ where
 
     let frontend_watchdog = spawn_and_update_proxy(
         address_and_port,
-        client_port,
         client_port_path.clone(),
         project_root
             .join(
@@ -420,7 +419,6 @@ fn generate_client_configuration(port_file_path: &PathBuf) -> DfxResult<String> 
 #[allow(clippy::too_many_arguments)]
 fn spawn_and_update_proxy(
     bind: SocketAddr,
-    client_api_port: String,
     client_port_path: PathBuf,
     serve_dir: &Path,
     inform_parent: Sender<Server>,
@@ -435,7 +433,7 @@ fn spawn_and_update_proxy(
         .name("Frontend".into())
         .spawn(move || {
             let proxy_config = ProxyConfig {
-                client_api_port: client_api_port.clone(),
+                client_api_port: "-1".to_string(),
                 bind,
                 serve_dir: serve_dir.clone(),
             };
