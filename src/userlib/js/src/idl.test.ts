@@ -1,7 +1,7 @@
 // tslint:disable
 import BigNumber from 'bignumber.js';
 import * as IDL from './idl';
-import { Buffer } from 'buffer';
+import { Buffer } from 'buffer/';
 
 function testEncode(typ: IDL.Type, val: any, hex: string, _str: string) {
   expect(IDL.encode([typ], [val]).toString('hex')).toEqual(hex);

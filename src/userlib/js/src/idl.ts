@@ -1,7 +1,8 @@
 // tslint:disable:max-classes-per-file
 import BigNumber from 'bignumber.js';
-import { Buffer } from 'buffer';
 import Pipe = require('buffer-pipe');
+import { Buffer } from 'buffer/';
+import { JsonValue } from './types';
 import { idlHash } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 import { readIntLE, readUIntLE, writeIntLE, writeUIntLE } from './utils/leb128';
@@ -840,6 +841,6 @@ export function Rec() {
   return new RecClass();
 }
 
-export function Func(args: Type[], ret: Type[]) {
-  return new FuncClass(args, ret);
+export function Func(args: Type[], ret: Type[], annotations: string[] = []) {
+  return new FuncClass(args, ret, annotations);
 }

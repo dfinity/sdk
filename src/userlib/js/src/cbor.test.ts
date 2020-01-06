@@ -1,9 +1,8 @@
 import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer/';
-import { BinaryBlob } from './blob';
-import * as blob from './blob';
 import { CanisterId } from './canisterId';
 import { decode, encode } from './cbor';
+import { BinaryBlob, blobToHex } from './types';
 
 test('round trip', () => {
   interface Data {
@@ -37,7 +36,7 @@ test('round trip', () => {
 
   const { c: outputC, e: outputE, f: outputF, ...outputRest } = output;
 
-  expect(blob.toHex(outputC)).toBe(blob.toHex(inputC));
+  expect(blobToHex(outputC)).toBe(blobToHex(inputC));
   expect(((outputE as any) as BigNumber).toString(16)).toBe(inputE.toHex());
   expect(outputRest).toEqual(inputRest);
 });
