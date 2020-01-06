@@ -1,14 +1,24 @@
 import actorInterface from "ic:idl/{project_name}";
-import { generateKeyPair, makeActor, makeHttpAgent } from "ic:userlib";
+import {
+  generateKeyPair,
+  makeActorFactory,
+  makeAuthTransform,
+  HttpAgent,
+  makeNonceTransform,
+} from "ic:userlib";
 
-const { publicKey, secretKey } = generateKeyPair();
+if (!window.icHttpAgent) {
+  const keyPair = generateKeyPair();
+  const agent = new HttpAgent({});
+  agent.addTransform(makeNonceTransform());
+  agent.addTransform(makeAuthTransform(keyPair));
 
-const httpAgent = makeHttpAgent({
+  window.icHttpAgent = agent;
+}
+
+
+const actor = makeActorFactory(actorInterface)({
   canisterId: "{canister_id}",
-  senderSecretKey: secretKey,
-  senderPubKey: publicKey,
 });
-
-const actor = makeActor(actorInterface)(httpAgent);
 
 export default actor;
