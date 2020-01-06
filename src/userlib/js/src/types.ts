@@ -24,5 +24,5 @@ export function blobToHex(blob: BinaryBlob): string {
 export type Nonce = BinaryBlob & { __nonce__: void };
 
 export function makeNonce(): Nonce {
-  return lebEncode(Date.now()) as Nonce;
+  return lebEncode(+(+Date.now() + ('' + Math.random()).slice(2, 7))) as Nonce;
 }
