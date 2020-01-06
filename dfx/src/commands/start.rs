@@ -140,7 +140,13 @@ where
             let request_stop_echo = request_stop_echo.clone();
 
             move || {
-                retrieve_client_port(&client_port_path, rcv_wait_fwatcher, request_stop_echo, &b)
+                retrieve_client_port(
+                    None,
+                    &client_port_path,
+                    rcv_wait_fwatcher,
+                    request_stop_echo,
+                    &b,
+                )
             }
         })?;
 
@@ -410,6 +416,7 @@ fn generate_client_configuration(port_file_path: &PathBuf) -> DfxResult<String> 
 
 // Note: This is going to get refactored with the client. Furthermore,
 // removing one argument just makes things more complex.
+// TODO(eftychis): JIRA: SDK-695
 #[allow(clippy::too_many_arguments)]
 fn spawn_and_update_proxy(
     bind: SocketAddr,
@@ -432,15 +439,16 @@ fn spawn_and_update_proxy(
                 bind,
                 serve_dir: serve_dir.clone(),
             };
-            let proxy = Proxy::new(proxy_config);
+            let mut proxy = Proxy::new(proxy_config);
             // Start the proxy first. Below, we panic to propagate the error
             // to the parent thread as an error via join().
-            let mut proxy = proxy
-                .start(inform_parent.clone(), server_receiver.clone())
-                .expect("Failed to start the proxy");
 
             while is_killed.is_empty() {
+                // Check the port and then start the proxy. Below, we panic to propagate the error
+                // to the parent thread as an error via join().
+
                 let port = retrieve_client_port(
+                    Some(proxy.port()),
                     &client_port_path,
                     rcv_wait_fwatcher.clone(),
                     request_stop_echo.clone(),
@@ -460,6 +468,7 @@ fn spawn_and_update_proxy(
 }
 
 fn retrieve_client_port(
+    port_on_enter: Option<String>,
     client_port_path: &PathBuf,
     rcv_wait_fwatcher: Receiver<()>,
     request_stop_echo: Sender<()>,
@@ -471,7 +480,14 @@ fn retrieve_client_port(
             format!("Failed to create watcher for port pid file: {}", e),
         ))
     })?;
-
+    if let Some(port_on_enter_ok) = port_on_enter {
+        let port_after_enter =
+            fs::read_to_string(&client_port_path).map_err(DfxError::RuntimeError)?;
+        if port_on_enter_ok == port_after_enter {
+            // Do not block if the port is the one we expected.
+            return Ok(port_after_enter);
+        }
+    }
     watcher
         .watch(&client_port_path, move |event| {
             if let Ok(e) = rcv_wait_fwatcher.try_recv() {
