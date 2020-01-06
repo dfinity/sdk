@@ -11,7 +11,7 @@ let package = napalm.buildPackage ./. {
 }; in
 
 package.overrideAttrs (oldAttrs: {
-  name = "dfinity-sdk-js-user-library";
+  name = "dfinity-sdk-userlib-js";
   installPhase = ''
     mkdir -p $out
     cp -R dist $out

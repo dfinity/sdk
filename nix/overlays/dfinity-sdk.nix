@@ -1,7 +1,7 @@
 self: super:
 let
   mkRelease = super.callPackage ./mk-release.nix {};
-  rust-package' = super.callPackage ../rust-workspace.nix {};
+  rust-package' = import ../../dfx.nix { pkgs = self; };
   # remove some stuff leftover by callPackage
   rust-package = removeAttrs rust-package'
     [ "override" "overrideDerivation" ];
@@ -15,8 +15,11 @@ in {
       removeAttrs rust-package [ "shell" ] // rec {
         inherit rust-workspace;
         rust-workspace-debug = rust-package.debug;
-        js-user-library = super.callPackage ../../js-user-library/package.nix {
-          inherit (self) napalm;
+
+        userlib = {
+          js = super.callPackage ../../src/userlib/js/package.nix {
+            inherit (self) napalm;
+          };
         };
 
         rust-workspace-standalone = super.lib.standaloneRust
@@ -24,9 +27,9 @@ in {
             exename = "dfx";
           };
 
-        e2e-tests = super.callPackage ../e2e-tests.nix {};
+        e2e-tests = super.callPackage ../../e2e {};
 
-        public-folder = super.callPackage ../public.nix {};
+        public-folder = import ../../public { pkgs = self; };
     } //
     # We only run `cargo audit` on the `master` branch so to not let PRs
     # fail because of an updated RustSec advisory-db. Also we only add the
@@ -201,7 +204,7 @@ in {
     # `shell.nix` in the root to provide an environment which is the composition
     # of all the shells here.
     shells = {
-      js-user-library = import ../../js-user-library/shell.nix { pkgs = self; };
+      js-user-library = import ../../src/userlib/js/shell.nix { pkgs = self; };
       rust-workspace = import ../rust-shell.nix { pkgs = self; shell = rust-package.shell; };
     };
 
