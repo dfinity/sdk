@@ -9,7 +9,9 @@ import { RequestStatusResponse, RequestStatusResponseStatus } from './request_st
 function retry<T>(fn: () => Promise<T>, maxAttempts: number): Promise<T> {
   return fn().catch(err => {
     if (maxAttempts > 0) {
-      return retry(fn, maxAttempts - 1);
+      return new Promise(resolve => setTimeout(resolve, 500)).then(() =>
+        retry(fn, maxAttempts - 1),
+      );
     } else {
       throw err;
     }
@@ -54,11 +56,11 @@ export const makeActor = (
       const safeBuffer = _IDL.encode(func.argTypes, args);
       const hex = safeBuffer.toString('hex');
       const arg = blob.fromHex(hex);
-      const isQuery = func.annotations.includes('query');
 
-      const { requestId: requestIdent, response: callResponse } = isQuery
-        ? await httpAgent.query({ methodName, arg })
-        : await httpAgent.call({ methodName, arg });
+      const { requestId: requestIdent, response: callResponse } = await httpAgent.call({
+        methodName,
+        arg,
+      });
 
       if (!callResponse.ok) {
         throw new Error(
@@ -71,7 +73,7 @@ export const makeActor = (
         );
       }
 
-      const maxAttempts = 3;
+      const maxAttempts = 10;
 
       const reply = await retry(async () => {
         const response: RequestStatusResponse = await httpAgent.requestStatus({
@@ -97,11 +99,12 @@ export const makeActor = (
                 `Failed to retrieve a reply for request after ${maxAttempts} attempts:`,
                 `  Request ID: ${requestId.toHex(requestIdent)}`,
                 `  Request status: ${response.status}`,
+                `  Method: ${methodName}([${args.join(', ')}]`,
               ].join('\n'),
             );
           }
         }
-      }, maxAttempts - 1);
+      }, maxAttempts);
 
       return reply;
     };

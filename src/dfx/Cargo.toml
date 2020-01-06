@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.4.10"
+version = "0.4.11"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -25,7 +25,7 @@ crossbeam = "0.7.3"
 flate2 = "1.0.11"
 futures = "0.1.28"
 hex = "0.3.2"
-ic-http-agent = { "path" = "../lib/ic_http_agent" }
+ic-http-agent = { "path" = "../ic_http_agent" }
 indicatif = "0.12.0"
 lazy_static = "1.4.0"
 libflate = "0.1.27"
@@ -33,14 +33,13 @@ rand = "0.7.2"
 reqwest = "0.9.20"
 semver = "0.9.0"
 serde = "1.0"
-serde-idl = { "path" = "../lib/serde_idl" }
+serde-idl = { "path" = "../serde_idl" }
 serde_bytes = "0.11.2"
 serde_cbor = "0.10"
 serde_json = "1.0.40"
 serde_repr = "0.1.5"
 sysinfo = "0.9.6"
 tar = "0.4.26"
-term = "0.6.1"
 tempfile = "3.1.0"
 tokio = "0.1"
 url = "2.1.0"
