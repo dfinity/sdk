@@ -1,20 +1,20 @@
-{ motoko
-, buildDfinityRustPackage
-, cargo-graph
-, darwin
-, dfinity
-, graphviz
-, lib
-, libressl
-, runCommandNoCC
-, stdenv
-, dfinity-sdk
+# This file defines all flavors of the dfx build:
+#   * lint and documentation
+#   * debug build
+#   * release build
+#
+# If you only intend to perform a release build, run:
+#   nix-build ./dfx.nix -A build
+
+{ pkgs ? import ./nix { inherit system; }
+, system ? builtins.currentSystem
 }:
 let
-  workspace = buildDfinityRustPackage {
-    repoRoot = ../.;
+  lib = pkgs.lib;
+  workspace = pkgs.buildDfinityRustPackage {
+    repoRoot = ./.;
     name = "dfinity-sdk-rust";
-    srcDir = ../.;
+    srcDir = ./.;
     regexes = [
       ".*/assets/.*$"
       ".*\.rs$"
@@ -27,8 +27,8 @@ let
   workspace' = (workspace //
     { lint = workspace.lint.overrideAttrs (oldAttrs: {
       nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
-        cargo-graph
-        graphviz
+        pkgs.cargo-graph
+        pkgs.graphviz
       ];
 
       postDoc = oldAttrs.postDoc + ''
@@ -49,16 +49,16 @@ in
 (lib.mapAttrs (k: drv:
   if !lib.isDerivation drv then drv else
     drv.overrideAttrs (_: {
-      DFX_ASSETS = runCommandNoCC "dfx-assets" {} ''
+      DFX_ASSETS = pkgs.runCommandNoCC "dfx-assets" {} ''
         mkdir -p $out
-        cp ${dfinity.nodemanager}/bin/nodemanager $out
-        cp ${dfinity.ic-client}/bin/client $out
-        cp ${motoko.moc-bin}/bin/moc $out
-        cp ${motoko.mo-ide}/bin/mo-ide $out
-        cp ${motoko.didc}/bin/didc $out
-        cp ${motoko.rts}/rts/mo-rts.wasm $out
-        mkdir $out/stdlib && cp -R ${motoko.stdlib}/. $out/stdlib
-        mkdir $out/js-user-library && cp -R ${dfinity-sdk.packages.userlib.js}/. $out/js-user-library
+        cp ${pkgs.dfinity.nodemanager}/bin/nodemanager $out
+        cp ${pkgs.dfinity.ic-client}/bin/client $out
+        cp ${pkgs.motoko.moc-bin}/bin/moc $out
+        cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
+        cp ${pkgs.motoko.didc}/bin/didc $out
+        cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
+        mkdir $out/stdlib && cp -R ${pkgs.motoko.stdlib}/. $out/stdlib
+        mkdir $out/js-user-library && cp -R ${pkgs.dfinity-sdk.packages.userlib.js}/. $out/js-user-library
       '';
     })
 ) workspace')

@@ -1,7 +1,7 @@
 self: super:
 let
   mkRelease = super.callPackage ./mk-release.nix {};
-  rust-package' = super.callPackage ../rust-workspace.nix {};
+  rust-package' = import ../../dfx.nix { pkgs = self; };
   # remove some stuff leftover by callPackage
   rust-package = removeAttrs rust-package'
     [ "override" "overrideDerivation" ];
