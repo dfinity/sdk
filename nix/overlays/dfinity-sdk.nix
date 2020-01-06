@@ -27,7 +27,7 @@ in {
             exename = "dfx";
           };
 
-        e2e-tests = super.callPackage ../e2e-tests.nix {};
+        e2e-tests = super.callPackage ../../e2e {};
 
         public-folder = import ../../public { pkgs = self; };
     } //
