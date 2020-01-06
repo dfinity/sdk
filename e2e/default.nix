@@ -1,20 +1,13 @@
-{   bats
-,   coreutils
-,   curl
-,   dfinity-sdk
-,   lib
-,   netcat
-,   runCommandNoCC
-,   nodejs
-,   stdenv
-,   ps
-,   python3
-,   sources
-,   which
+{ pkgs ? import ../nix { inherit system; }
+, system ? builtins.currentSystem
 }:
-let e2e = lib.noNixFiles (lib.gitOnlySource ../. "e2e"); in
-runCommandNoCC "e2e-tests" {
-    buildInputs = [ bats coreutils curl dfinity-sdk.packages.rust-workspace-debug nodejs stdenv.cc ps python3 netcat which ];
+let
+  e2e = lib.noNixFiles (lib.gitOnlySource ../. "e2e");
+  lib = pkgs.lib;
+  sources = pkgs.sources;
+in
+pkgs.runCommandNoCC "e2e-tests" {
+    buildInputs = with pkgs; [ bats coreutils curl dfinity-sdk.packages.rust-workspace-debug nodejs stdenv.cc ps python3 netcat which ];
 } ''
     # We want $HOME/.cache to be in a new temporary directory.
     export HOME=$(mktemp -d -t dfx-e2e-home-XXXX)
