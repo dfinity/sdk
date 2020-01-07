@@ -29,8 +29,6 @@ in {
           };
 
         e2e-tests = super.callPackage ../../e2e {};
-
-        public-folder = public.public-folder;
     } //
     # We only run `cargo audit` on the `master` branch so to not let PRs
     # fail because of an updated RustSec advisory-db. Also we only add the

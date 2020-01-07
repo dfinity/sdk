@@ -10,13 +10,6 @@ let
 in
 
 rec {
-  # TODO: this is not actually used and should be removed
-  public-folder =
-    pkgs.runCommandNoCC "public-folder" {} ''
-        mkdir -p $out
-        cp -R ${src}/. $out
-    '';
-
   install-sh =
     pkgs.runCommandNoCC "install-sh" {
       public = src;
