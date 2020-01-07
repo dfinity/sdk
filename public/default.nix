@@ -112,7 +112,6 @@ rec {
     } ''
       set -Eeuo pipefail
 
-      # Building the artifacts
       mkdir -p $out
 
       version_manifest_file=$out/manifest.json
@@ -123,7 +122,7 @@ rec {
         --subst-var revision
 
       # Creating the manifest
-      # We name is "_manifest.json" as opposed to "manifest.json" because we
+      # We name it "_manifest.json" as opposed to "manifest.json" because we
       # also export a "manifest.json" (which has nothing to do with the
       # release)
       hydra_manifest_file=$out/_manifest.json
