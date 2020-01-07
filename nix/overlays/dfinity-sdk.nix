@@ -6,8 +6,6 @@ let
   rust-package = removeAttrs rust-package'
     [ "override" "overrideDerivation" ];
   rust-workspace = rust-package.build;
-  repoRoot = ../../.;
-  gitDir = super.lib.gitDir repoRoot;
   public = import ../../public { pkgs = self; };
 in {
   dfinity-sdk = rec {

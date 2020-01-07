@@ -5,8 +5,7 @@
 let
   src = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../. "public");
   version = pkgs.releaseVersion;
-  repoRoot = ../.;
-  gitDir = pkgs.lib.gitDir repoRoot;
+  gitDir = pkgs.lib.gitDir ../.;
 in
 
 rec {
