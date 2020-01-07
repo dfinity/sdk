@@ -1,6 +1,7 @@
 { napalm }:
 
-let package = napalm.buildPackage ./. {
+napalm.buildPackage ./. {
+  name = "dfinity-sdk-userlib-js";
   # ci script now does everything CI should do. Bundle is needed because it's the output
   # of the nix derivation.
   npmCommands = [
@@ -8,14 +9,11 @@ let package = napalm.buildPackage ./. {
     "npm run ci"
     "npm run bundle"
   ];
-}; in
 
-package.overrideAttrs (oldAttrs: {
-  name = "dfinity-sdk-userlib-js";
   installPhase = ''
     mkdir -p $out
     cp -R dist $out
     cp package.json $out
     cp README.adoc $out
   '';
-})
+}
