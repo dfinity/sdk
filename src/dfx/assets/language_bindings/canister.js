@@ -8,7 +8,16 @@ import {
 } from "ic:userlib";
 
 if (!window.icHttpAgent) {
-  const keyPair = generateKeyPair();
+  const identityIndex = "dfinity-ic-user-identity";
+  var k = window.localStorage.getItem(identityIndex);
+  var k = JSON.parse(k);
+  if (!k){
+    const keyPair= generateKeyPair();
+    var jsonValue = JSON.stringify(keyPair);
+    window.localStorage.setItem("dfinity-ic-user-identity", jsonValue);
+  } else {
+    const keyPair = k;
+  }
   const agent = new HttpAgent({});
   agent.addTransform(makeNonceTransform());
   agent.addTransform(makeAuthTransform(keyPair));
