@@ -31,12 +31,3 @@ teardown() {
     assert_command dfx build
     [[ -f canisters/e2e_project/_canister.id ]]
 }
-
-@test "build insert the assets in the cannister" {
-    dfx_new_frontend
-    assert_command dfx build
-    dfx_start
-    assert_command dfx canister install --all
-    assert_command dfx canister call --query e2e_project __dfx_asset_path --type=string index.js
-    assert_match "Attempt to hash a value of unsupported type"
-}
