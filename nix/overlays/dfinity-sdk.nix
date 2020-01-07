@@ -16,11 +16,7 @@ in {
         inherit rust-workspace;
         rust-workspace-debug = rust-package.debug;
 
-        userlib = {
-          js = super.callPackage ../../src/userlib/js/package.nix {
-            inherit (self) napalm;
-          };
-        };
+        userlib.js = import ../../src/userlib/js { pkgs = self; };
 
         rust-workspace-standalone = super.lib.standaloneRust
           { drv = rust-workspace;
