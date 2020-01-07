@@ -54,6 +54,7 @@ fn get_asset_fn(content: &HashMap<String, String>) -> String {
 fn motoko_compile<T: BinaryResolverEnv>(
     env: &T,
     profile: Option<Profile>,
+    content: &str,
     input_path: &Path,
     output_path: &Path,
     assets: &HashMap<String, String>,
@@ -67,7 +68,7 @@ fn motoko_compile<T: BinaryResolverEnv>(
     let mo_rts_path = env.get_binary_command_path("mo-rts.wasm")?;
     let stdlib_path = env.get_binary_command_path("stdlib")?;
 
-    let mut content = std::fs::read_to_string(input_path)?;
+    let mut content = content.to_string();
     // Because we don't have an AST (yet) we need to do some regex magic.
     // Find `actor {`
     let re = regex::Regex::new(r"\bactor\b.*?\{")
@@ -75,16 +76,22 @@ fn motoko_compile<T: BinaryResolverEnv>(
     if let Some(actor_idx) = re.find(&content) {
         let (before, after) = content.split_at(actor_idx.end());
         content = before.to_string() + get_asset_fn(assets).as_str() + after;
-
-        eprintln!("{}", &content);
     }
+
+    let working_dir = input_path
+        .parent()
+        .ok_or_else(|| DfxError::Unknown("Cannot compile root.".to_string()))?;
+    let working_dir = if working_dir.exists() {
+        working_dir.to_path_buf()
+    } else {
+        std::env::current_dir()?
+    };
 
     let mut process = env
         .get_binary_command("moc")?
         .env("MOC_RTS", mo_rts_path.as_path())
+        .current_dir(&working_dir)
         .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
         .arg("-c")
         .arg("/dev/stdin")
         .arg(arg_profile)
@@ -96,7 +103,7 @@ fn motoko_compile<T: BinaryResolverEnv>(
         .spawn()?;
 
     if let Some(ref mut stdin) = process.stdin {
-        stdin.write(content.as_bytes())?;
+        stdin.write_all(content.as_bytes())?;
     } else {
         return Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
             "No STDIN???!?".to_string(),
@@ -248,7 +255,15 @@ where
             std::fs::create_dir_all(canister_info.get_output_root())?;
             let canister_id = canister_info.generate_canister_id()?;
 
-            motoko_compile(env, profile, &input_path, &output_wasm_path, assets)?;
+            let content = std::fs::read_to_string(input_path)?;
+            motoko_compile(
+                env,
+                profile,
+                &content,
+                &input_path,
+                &output_wasm_path,
+                assets,
+            )?;
             didl_compile(env, &input_path, &output_idl_path)?;
             build_did_js(env, &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
@@ -299,6 +314,7 @@ where
     let canisters = maybe_canisters.as_ref().unwrap();
 
     for name in canisters.keys() {
+        build_stage_bar.set_message(&format!("Building canister {}...", name));
         match build_file(env, &config, name, &HashMap::new()) {
             Ok(_) => {}
             Err(e) => {
@@ -348,7 +364,6 @@ where
 
     let frontends: Vec<String> = canisters
         .iter()
-        .into_iter()
         .filter(|(_, v)| v.frontend.is_some())
         .map(|(k, _)| k)
         .cloned()
@@ -364,15 +379,23 @@ where
         for dir_entry in std::fs::read_dir(canister_info.get_output_assets_root())? {
             if let Ok(e) = dir_entry {
                 let p = e.path();
-                let ext = p.extension().unwrap_or(std::ffi::OsStr::new(""));
+                let ext = p.extension().unwrap_or_else(|| std::ffi::OsStr::new(""));
                 if p.is_file() && ext != "map" {
+                    let content = {
+                        if ext == "html" || ext == "js" || ext == "css" {
+                            std::fs::read_to_string(&p)?
+                        } else {
+                            base64::encode(&std::fs::read(&p)?)
+                        }
+                    };
+
                     assets.insert(
                         p.strip_prefix(canister_info.get_output_assets_root())
                             .expect("Cannot strip prefix.")
                             .to_str()
                             .expect("Could not get path.")
                             .to_string(),
-                        std::fs::read_to_string(p)?,
+                        content,
                     );
                 }
             }
@@ -441,19 +464,20 @@ mod tests {
         motoko_compile(
             &env,
             None,
+            "",
             Path::new("/in/file.mo"),
             Path::new("/out/file.wasm"),
             &HashMap::new(),
         )
-        .expect("Function failed.");
+        .expect("Function failed (motoko_compile)");
         didl_compile(&env, Path::new("/in/file.mo"), Path::new("/out/file.did"))
-            .expect("Function failed");
+            .expect("Function failed (didl_compile)");
         build_did_js(
             &env,
             Path::new("/out/file.did"),
             Path::new("/out/file.did.js"),
         )
-        .expect("Function failed");
+        .expect("Function failed (build_did_js)");
 
         out_file.flush().expect("Could not flush.");
 
@@ -464,7 +488,7 @@ mod tests {
 
         assert_eq!(
             s.trim(),
-            r#"moc /in/file.mo --debug -o /out/file.wasm --package stdlib stdlib
+            r#"moc -c /dev/stdin --debug -o /out/file.wasm --package stdlib stdlib
                 moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib
                 didc --js /out/file.did -o /out/file.did.js"#
                 .replace("                ", "")

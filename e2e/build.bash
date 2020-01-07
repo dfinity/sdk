@@ -25,7 +25,6 @@ teardown() {
 
 @test "build succeeds on default project" {
     assert_command dfx build
-    assert_match "Building e2e_project..."
 }
 
 @test "build outputs the canister ID" {
@@ -33,10 +32,11 @@ teardown() {
     [[ -f canisters/e2e_project/_canister.id ]]
 }
 
-@test "build can take a single argument" {
-    assert_command dfx build e2e_project
-    assert_match "Building e2e_project..."
-
-    assert_command_fail dfx build unknown_canister
-    assert_match "Could not find.*unknown_canister.*"
+@test "build insert the assets in the cannister" {
+    dfx_new_frontend
+    assert_command dfx build
+    dfx_start
+    assert_command dfx canister install --all
+    assert_command dfx canister call --query e2e_project __dfx_asset_path --type=string index.js
+    assert_match "Attempt to hash a value of unsupported type"
 }

@@ -20,6 +20,7 @@ teardown() {
     dfx build
     dfx_start
 
+    sleep 1
     assert_command curl http://localhost:8000 # 8000 = default port.
     assert_match "<html>"
 }
