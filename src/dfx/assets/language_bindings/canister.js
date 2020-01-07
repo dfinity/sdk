@@ -9,15 +9,18 @@ import {
 
 if (!window.icHttpAgent) {
   const identityIndex = "dfinity-ic-user-identity";
-  var k = window.localStorage.getItem(identityIndex);
-  var k = JSON.parse(k);
-  if (!k){
-    const keyPair= generateKeyPair();
-    var jsonValue = JSON.stringify(keyPair);
-    window.localStorage.setItem("dfinity-ic-user-identity", jsonValue);
+  let k = window.localStorage.getItem(identityIndex);
+  let keyPair;
+  if (k) {
+    keyPair = JSON.parse(k);
   } else {
-    const keyPair = k;
+    keyPair = generateKeyPair();
+    // TODO(eftycis): use a parser+an appropriate format to avoid
+    // leaking the key when constructing the string for
+    // localStorage.
+    window.localStorage.setItem(identityIndex, JSON.stringify(keyPair));
   }
+
   const agent = new HttpAgent({});
   agent.addTransform(makeNonceTransform());
   agent.addTransform(makeAuthTransform(keyPair));
