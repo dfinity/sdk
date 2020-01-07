@@ -6,7 +6,7 @@ use crate::lib::error::DfxError::BuildError;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::assets;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::CanisterId;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::collections::HashMap;
@@ -15,7 +15,14 @@ use std::io::{Read, Write};
 use std::path::Path;
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("build").about(UserMessage::BuildCanister.to_str())
+    SubCommand::with_name("build")
+        .about(UserMessage::BuildCanister.to_str())
+        .arg(
+            Arg::with_name("skip-frontend")
+                .long("skip-frontend")
+                .takes_value(false)
+                .help(UserMessage::SkipFrontend.to_str()),
+        )
 }
 
 fn get_asset_fn(content: &HashMap<String, String>) -> String {
@@ -288,7 +295,7 @@ where
     Ok(())
 }
 
-pub fn exec<T>(env: &T, _args: &ArgMatches<'_>) -> DfxResult
+pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
 where
     T: BinaryResolverEnv + ProjectConfigEnv,
 {
@@ -328,7 +335,8 @@ where
     build_stage_bar.finish_with_message("Done building canisters...");
 
     // If there is not a package.json, we don't have a frontend and can quit early.
-    if !config.get_project_root().join("package.json").exists() {
+    if !config.get_project_root().join("package.json").exists() || args.is_present("skip-frontend")
+    {
         return Ok(());
     }
 
