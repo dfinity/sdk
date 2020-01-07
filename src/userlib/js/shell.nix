@@ -1,4 +1,4 @@
-{ pkgs ? (import ../. {}).pkgs }:
+{ pkgs ? (import ../../../. {}).pkgs }:
 
 let js-user-library = pkgs.dfinity-sdk.packages.userlib.js; in
 
