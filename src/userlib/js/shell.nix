@@ -1,4 +1,6 @@
-{ pkgs ? (import ../. {}).pkgs }:
+{ pkgs ? import ../../../nix { inherit system; }
+, system ? builtins.currentSystem
+}:
 
 let js-user-library = pkgs.dfinity-sdk.packages.userlib.js; in
 
