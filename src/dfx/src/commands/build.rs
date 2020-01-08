@@ -117,7 +117,7 @@ fn motoko_compile<T: BinaryResolverEnv>(
         Some(ref mut stdin) => stdin.write_all(content.as_bytes())?,
         _ => {
             return Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
-                "No STDIN???!?".to_string(),
+                "No standard input was provided for the motoko compiler".to_string(),
             )));
         }
     }
