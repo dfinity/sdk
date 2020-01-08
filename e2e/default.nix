@@ -7,6 +7,7 @@ let
   sources = pkgs.sources;
 in
 pkgs.runCommandNoCC "e2e-tests" {
+    __darwinAllowLocalNetworking = true;
     buildInputs = with pkgs; [ bats coreutils curl dfinity-sdk.packages.rust-workspace-debug nodejs stdenv.cc ps python3 netcat which ];
 } ''
     # We want $HOME/.cache to be in a new temporary directory.
