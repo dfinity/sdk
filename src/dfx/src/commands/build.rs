@@ -310,7 +310,7 @@ where
     for name in canisters.keys() {
         build_stage_bar.set_message(&format!("Building canister {}...", name));
         match build_file(env, &config, name, &HashMap::new()) {
-            Ok(_) => {}
+            Ok(()) => {}
             Err(e) => {
                 build_stage_bar
                     .finish_with_message(&format!(r#"Failed to build canister "{}":"#, name));
@@ -397,7 +397,7 @@ where
         }
 
         match build_file(env, &config, &name, &assets) {
-            Ok(_) => {}
+            Ok(()) => {}
             Err(e) => {
                 build_stage_bar
                     .finish_with_message(&format!(r#"Failed to build canister "{}":"#, name));
