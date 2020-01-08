@@ -1,5 +1,5 @@
 use crate::config::dfinity::{Config, Profile};
-use crate::config::dfx_version;
+use crate::config::{cache, dfx_version};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
 use crate::lib::error::DfxError::BuildError;
@@ -8,22 +8,66 @@ use crate::lib::message::UserMessage;
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::CanisterId;
+use indicatif::{ProgressBar, ProgressDrawTarget};
+use rand::{thread_rng, Rng};
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::Read;
 use std::path::Path;
 
+type AssetMap = HashMap<String, String>;
+
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
         .about(UserMessage::BuildCanister.to_str())
-        .arg(Arg::with_name("canister").help(UserMessage::CanisterName.to_str()))
+        .arg(
+            Arg::with_name("skip-frontend")
+                .long("skip-frontend")
+                .takes_value(false)
+                .help(UserMessage::SkipFrontend.to_str()),
+        )
+}
+
+fn get_asset_fn(assets: &AssetMap) -> String {
+    // Create the if/else series.
+    let mut if_else = String::new();
+    assets.iter().for_each(|(filename, content)| {
+        if_else += format!(
+            r#"if (path == "{}") {par} return "{}"; {end};{endline}"#,
+            filename,
+            content
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", ""),
+            par = "{",
+            end = "}",
+            endline = "\n"
+        )
+        .as_str();
+    });
+
+    format!(
+        r#"
+            public query func __dfx_asset_path(path: Text): async Text {par}
+              {}
+              return "";
+            {end};
+        "#,
+        if_else,
+        par = "{",
+        end = "}"
+    )
 }
 
 /// Compile a motoko file.
 fn motoko_compile<T: BinaryResolverEnv>(
     env: &T,
     profile: Option<Profile>,
+    content: &str,
     input_path: &Path,
     output_path: &Path,
+    assets: &AssetMap,
 ) -> DfxResult {
     // Invoke the compiler in debug (development) or release mode, based on the current profile:
     let arg_profile = match profile {
@@ -34,9 +78,26 @@ fn motoko_compile<T: BinaryResolverEnv>(
     let mo_rts_path = env.get_binary_command_path("mo-rts.wasm")?;
     let stdlib_path = env.get_binary_command_path("stdlib")?;
 
-    let output = env
+    let mut content = content.to_string();
+    // Because we don't have an AST (yet) we need to do some regex magic.
+    // Find `actor {`
+    // TODO: remove this once entire process once store assets is supported by the client.
+    //       See https://github.com/dfinity-lab/dfinity/pull/2106 for reference.
+    let re = regex::Regex::new(r"\bactor\s.*?\{")
+        .map_err(|_| DfxError::Unknown("Could not create regex.".to_string()))?;
+    if let Some(actor_idx) = re.find(&content) {
+        let (before, after) = content.split_at(actor_idx.end());
+        content = before.to_string() + get_asset_fn(assets).as_str() + after;
+    }
+
+    let mut rng = thread_rng();
+    let input_path = input_path.with_extension(format!("mo-{}", rng.gen::<u64>()));
+    std::fs::write(&input_path, content.as_bytes())?;
+
+    let process = env
         .get_binary_command("moc")?
         .env("MOC_RTS", mo_rts_path.as_path())
+        .arg("-c")
         .arg(&input_path)
         .arg(arg_profile)
         .arg("-o")
@@ -44,7 +105,10 @@ fn motoko_compile<T: BinaryResolverEnv>(
         .arg("--package")
         .arg("stdlib")
         .arg(&stdlib_path.as_path())
-        .output()?;
+        .spawn()?;
+
+    let output = process.wait_with_output()?;
+    std::fs::remove_file(input_path)?;
 
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
@@ -144,7 +208,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     Ok(())
 }
 
-fn build_file<T>(env: &T, config: &Config, name: &str) -> DfxResult
+fn build_file<T>(env: &T, config: &Config, name: &str, assets: &AssetMap) -> DfxResult
 where
     T: BinaryResolverEnv,
 {
@@ -185,7 +249,15 @@ where
             std::fs::create_dir_all(canister_info.get_output_root())?;
             let canister_id = canister_info.generate_canister_id()?;
 
-            motoko_compile(env, profile, &input_path, &output_wasm_path)?;
+            let content = std::fs::read_to_string(input_path)?;
+            motoko_compile(
+                env,
+                profile,
+                &content,
+                &input_path,
+                &output_wasm_path,
+                assets,
+            )?;
             didl_compile(env, &input_path, &output_idl_path)?;
             build_did_js(env, &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
@@ -219,29 +291,118 @@ where
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    // Get the canister name (if any).
-    if let Some(canister_name) = args.value_of("canister") {
-        println!("Building {}...", canister_name);
-        build_file(env, &config, &canister_name)?;
-    } else if let Some(canisters) = &config.get_config().canisters {
-        for k in canisters.keys() {
-            println!("Building {}...", k);
-            build_file(env, &config, &k)?;
+    // Check the cache. This will only install the cache if there isn't one installed
+    // already.
+    cache::install_version(dfx_version(), false)?;
+
+    let build_stage_bar = ProgressBar::new_spinner();
+    build_stage_bar.set_draw_target(ProgressDrawTarget::stderr());
+    build_stage_bar.set_message("Building canisters...");
+    build_stage_bar.enable_steady_tick(80);
+
+    let maybe_canisters = &config.get_config().canisters;
+    if maybe_canisters.is_none() {
+        build_stage_bar.finish_with_message("No canisters, nothing to build.");
+        return Ok(());
+    }
+    let canisters = maybe_canisters.as_ref().unwrap();
+
+    for name in canisters.keys() {
+        build_stage_bar.set_message(&format!("Building canister {}...", name));
+        match build_file(env, &config, name, &HashMap::new()) {
+            Ok(()) => {}
+            Err(e) => {
+                build_stage_bar
+                    .finish_with_message(&format!(r#"Failed to build canister "{}":"#, name));
+                eprintln!("{:?}", e);
+                return Err(e);
+            }
+        }
+    }
+    build_stage_bar.finish_with_message("Done building canisters...");
+
+    // If there is not a package.json, we don't have a frontend and can quit early.
+    if !config.get_project_root().join("package.json").exists() || args.is_present("skip-frontend")
+    {
+        return Ok(());
+    }
+
+    let build_stage_bar = ProgressBar::new_spinner();
+    build_stage_bar.set_draw_target(ProgressDrawTarget::stderr());
+    build_stage_bar.set_message("Building frontend...");
+    build_stage_bar.enable_steady_tick(80);
+
+    let mut process = std::process::Command::new("npm")
+        .arg("run")
+        .arg("build")
+        .env("DFX_VERSION", &dfx_version())
+        .current_dir(config.get_project_root())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()?;
+
+    let status = process.wait()?;
+
+    if !status.success() {
+        let mut str = String::new();
+        process.stderr.unwrap().read_to_string(&mut str)?;
+        eprintln!("NPM failed to run:\n{}", str);
+        return Err(DfxError::BuildError(BuildErrorKind::FrontendBuildError()));
+    }
+
+    build_stage_bar.finish_with_message("Done building frontend...");
+
+    let build_stage_bar = ProgressBar::new_spinner();
+    build_stage_bar.set_draw_target(ProgressDrawTarget::stderr());
+    build_stage_bar.set_message("Bundling frontend assets in the canister...");
+    build_stage_bar.enable_steady_tick(80);
+
+    let frontends: Vec<String> = canisters
+        .iter()
+        .filter(|(_, v)| v.frontend.is_some())
+        .map(|(k, _)| k)
+        .cloned()
+        .collect();
+    for name in frontends {
+        let canister_info = CanisterInfo::load(config, name.as_str()).map_err(|_| {
+            BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
+                name.to_owned(),
+            ))
+        })?;
+
+        let mut assets: AssetMap = AssetMap::new();
+        for dir_entry in std::fs::read_dir(canister_info.get_output_assets_root())? {
+            if let Ok(e) = dir_entry {
+                let p = e.path();
+                let ext = p.extension().unwrap_or_else(|| std::ffi::OsStr::new(""));
+                if p.is_file() && ext != "map" {
+                    let content = {
+                        if ext == "html" || ext == "js" || ext == "css" {
+                            std::fs::read_to_string(&p)?
+                        } else {
+                            base64::encode(&std::fs::read(&p)?)
+                        }
+                    };
+
+                    assets.insert(
+                        p.strip_prefix(canister_info.get_output_assets_root())
+                            .expect("Cannot strip prefix.")
+                            .to_str()
+                            .expect("Could not get path.")
+                            .to_string(),
+                        content,
+                    );
+                }
+            }
         }
 
-        // Run `npm run build` if there is a package.json. Ignore errors.
-        if config.get_project_root().join("package.json").exists() {
-            eprintln!("Building frontend code...");
-
-            // Install node modules
-            std::process::Command::new("npm")
-                .arg("run")
-                .arg("build")
-                .env("DFX_VERSION", &dfx_version())
-                .current_dir(config.get_project_root())
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit())
-                .output()?;
+        match build_file(env, &config, &name, &assets) {
+            Ok(()) => {}
+            Err(e) => {
+                build_stage_bar
+                    .finish_with_message(&format!(r#"Failed to build canister "{}":"#, name));
+                return Err(e);
+            }
         }
     }
 
@@ -289,6 +450,7 @@ mod tests {
             }
         }
 
+        let input_path = temp_dir().join("file").with_extension("mo");
         let temp_path = temp_dir().join("stdout").with_extension("txt");
         let mut out_file = fs::File::create(temp_path.clone()).expect("Could not create file.");
         let env = TestEnv {
@@ -298,18 +460,20 @@ mod tests {
         motoko_compile(
             &env,
             None,
-            Path::new("/in/file.mo"),
+            "",
+            &input_path,
             Path::new("/out/file.wasm"),
+            &HashMap::new(),
         )
-        .expect("Function failed.");
+        .expect("Function failed (motoko_compile)");
         didl_compile(&env, Path::new("/in/file.mo"), Path::new("/out/file.did"))
-            .expect("Function failed");
+            .expect("Function failed (didl_compile)");
         build_did_js(
             &env,
             Path::new("/out/file.did"),
             Path::new("/out/file.did.js"),
         )
-        .expect("Function failed");
+        .expect("Function failed (build_did_js)");
 
         out_file.flush().expect("Could not flush.");
 
@@ -318,13 +482,14 @@ mod tests {
             .and_then(|mut f| f.read_to_string(&mut s))
             .expect("Could not read temp file.");
 
-        assert_eq!(
-            s.trim(),
-            r#"moc /in/file.mo --debug -o /out/file.wasm --package stdlib stdlib
+        let re = regex::Regex::new(
+            &r"moc -c .*?.mo-[0-9]+ --debug -o /out/file.wasm --package stdlib stdlib
                 moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib
-                didc --js /out/file.did -o /out/file.did.js"#
-                .replace("                ", "")
-        );
+                didc --js /out/file.did -o /out/file.did.js"
+                .replace("                ", ""),
+        )
+        .expect("Could not create regex.");
+        assert!(re.is_match(s.trim()));
     }
 
     #[test]
@@ -373,7 +538,7 @@ mod tests {
         )
         .unwrap();
 
-        build_file(&env, &config, "name").expect("Function failed - build_file");
+        build_file(&env, &config, "name", &HashMap::new()).expect("Function failed - build_file");
         assert!(output_path.exists());
     }
 }

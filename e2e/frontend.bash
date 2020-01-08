@@ -17,15 +17,16 @@ teardown() {
 }
 
 @test "dfx start serves a frontend" {
-    dfx build
+    dfx build --skip-frontend
     dfx_start
 
+    sleep 1
     assert_command curl http://localhost:8000 # 8000 = default port.
     assert_match "<html>"
 }
 
 @test "dfx start serves a frontend on a port" {
-    dfx build
+    dfx build --skip-frontend
     dfx_start --host 127.0.0.1:12345
 
     assert_command curl http://localhost:12345 # 8000 = default port.
