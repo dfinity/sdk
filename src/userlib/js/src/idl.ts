@@ -479,8 +479,8 @@ class LabelClass {
     if (key.startsWith('_') && key.endsWith('_')) {
       const slice = key.slice(1, -1);
       const num = Number(slice);
-      const int_prefix = parseInt(slice);
-      if (num === int_prefix && num >= 0 && num < 2 ** 32) {
+      const intPrefix = parseInt(slice, 10);
+      if (num === intPrefix && num >= 0 && num < 2 ** 32) {
         this._label = num;
         return;
       }
