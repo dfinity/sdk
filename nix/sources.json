@@ -11,6 +11,24 @@
         "url": "https://github.com/ztombol/bats-support/archive/24a72e14349690bcbf7c151b9d2d1cdd32d36eb1.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "common": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/common",
+        "rev": "7fc0d40dc6e52a221b370be5a04292e59b32f17d",
+        "type": "git"
+    },
+    "dfinity": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/dfinity",
+        "rev": "b3b4acfe101da67b6b6cbeed7d37895b446f3020",
+        "type": "git"
+    },
+    "motoko": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/motoko",
+        "rev": "75e091917063f6607600343c4eb79cacb38aa53e",
+        "type": "git"
+    },
     "napalm": {
         "branch": "master",
         "description": "Support for building npm packages in Nix and lightweight npm registry",
