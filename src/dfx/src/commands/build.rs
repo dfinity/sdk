@@ -14,6 +14,8 @@ use std::ffi::OsStr;
 use std::io::{Read, Write};
 use std::path::Path;
 
+type AssetMap = HashMap<String, String>;
+
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
         .about(UserMessage::BuildCanister.to_str())
@@ -25,10 +27,10 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-fn get_asset_fn(content: &HashMap<String, String>) -> String {
+fn get_asset_fn(assets: &AssetMap) -> String {
     // Create the if/else series.
     let mut if_else = String::new();
-    content.iter().for_each(|(filename, content)| {
+    assets.iter().for_each(|(filename, content)| {
         if_else += format!(
             r#"if (path == "{}") {par} return "{}"; {end};{endline}"#,
             filename,
@@ -64,7 +66,7 @@ fn motoko_compile<T: BinaryResolverEnv>(
     content: &str,
     input_path: &Path,
     output_path: &Path,
-    assets: &HashMap<String, String>,
+    assets: &AssetMap,
 ) -> DfxResult {
     // Invoke the compiler in debug (development) or release mode, based on the current profile:
     let arg_profile = match profile {
@@ -78,7 +80,9 @@ fn motoko_compile<T: BinaryResolverEnv>(
     let mut content = content.to_string();
     // Because we don't have an AST (yet) we need to do some regex magic.
     // Find `actor {`
-    let re = regex::Regex::new(r"\bactor\b.*?\{")
+    // TODO: remove this once entire process once store assets is supported by the client.
+    //       See https://github.com/dfinity-lab/dfinity/pull/2106 for reference.
+    let re = regex::Regex::new(r"\bactor\s.*?\{")
         .map_err(|_| DfxError::UnknownCommand("".to_string()))?;
     if let Some(actor_idx) = re.find(&content) {
         let (before, after) = content.split_at(actor_idx.end());
@@ -109,15 +113,16 @@ fn motoko_compile<T: BinaryResolverEnv>(
         .arg(&stdlib_path.as_path())
         .spawn()?;
 
-    if let Some(ref mut stdin) = process.stdin {
-        stdin.write_all(content.as_bytes())?;
-    } else {
-        return Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
-            "No STDIN???!?".to_string(),
-        )));
+    match process.stdin {
+        Some(ref mut stdin) => stdin.write_all(content.as_bytes())?,
+        _ => {
+            return Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
+                "No STDIN???!?".to_string(),
+            )));
+        }
     }
-    let output = process.wait_with_output()?;
 
+    let output = process.wait_with_output()?;
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
             // We choose to join the strings and not the vector in case there is a weird
@@ -216,12 +221,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     Ok(())
 }
 
-fn build_file<T>(
-    env: &T,
-    config: &Config,
-    name: &str,
-    assets: &HashMap<String, String>,
-) -> DfxResult
+fn build_file<T>(env: &T, config: &Config, name: &str, assets: &AssetMap) -> DfxResult
 where
     T: BinaryResolverEnv,
 {
@@ -383,7 +383,7 @@ where
             ))
         })?;
 
-        let mut assets: HashMap<String, String> = HashMap::new();
+        let mut assets: AssetMap = AssetMap::new();
         for dir_entry in std::fs::read_dir(canister_info.get_output_assets_root())? {
             if let Ok(e) = dir_entry {
                 let p = e.path();
