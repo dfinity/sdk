@@ -23,6 +23,15 @@ teardown() {
     assert_match "syntax error"
 }
 
+@test "build supports relative imports" {
+    install_asset import_mo
+    assert_command dfx build
+    dfx_start
+    dfx canister install --all
+    assert_command dfx canister call e2e_project greet --type=string World
+    assert_match "10World"
+}
+
 @test "build succeeds on default project" {
     assert_command dfx build
 }

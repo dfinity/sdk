@@ -9,9 +9,10 @@ use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::CanisterId;
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use rand::{thread_rng, Rng};
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 
 type AssetMap = HashMap<String, String>;
@@ -83,28 +84,21 @@ fn motoko_compile<T: BinaryResolverEnv>(
     // TODO: remove this once entire process once store assets is supported by the client.
     //       See https://github.com/dfinity-lab/dfinity/pull/2106 for reference.
     let re = regex::Regex::new(r"\bactor\s.*?\{")
-        .map_err(|_| DfxError::UnknownCommand("".to_string()))?;
+        .map_err(|_| DfxError::Unknown("Could not create regex.".to_string()))?;
     if let Some(actor_idx) = re.find(&content) {
         let (before, after) = content.split_at(actor_idx.end());
         content = before.to_string() + get_asset_fn(assets).as_str() + after;
     }
 
-    let working_dir = input_path
-        .parent()
-        .ok_or_else(|| DfxError::Unknown("Cannot compile root.".to_string()))?;
-    let working_dir = if working_dir.exists() {
-        working_dir.to_path_buf()
-    } else {
-        std::env::current_dir()?
-    };
+    let mut rng = thread_rng();
+    let input_path = input_path.with_extension(format!("mo-{}", rng.gen::<u64>()));
+    std::fs::write(&input_path, content.as_bytes())?;
 
-    let mut process = env
+    let process = env
         .get_binary_command("moc")?
         .env("MOC_RTS", mo_rts_path.as_path())
-        .current_dir(&working_dir)
-        .stdin(std::process::Stdio::piped())
         .arg("-c")
-        .arg("/dev/stdin")
+        .arg(&input_path)
         .arg(arg_profile)
         .arg("-o")
         .arg(&output_path)
@@ -113,16 +107,9 @@ fn motoko_compile<T: BinaryResolverEnv>(
         .arg(&stdlib_path.as_path())
         .spawn()?;
 
-    match process.stdin {
-        Some(ref mut stdin) => stdin.write_all(content.as_bytes())?,
-        _ => {
-            return Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
-                "No standard input was provided for the motoko compiler".to_string(),
-            )));
-        }
-    }
-
     let output = process.wait_with_output()?;
+    std::fs::remove_file(input_path)?;
+
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
             // We choose to join the strings and not the vector in case there is a weird
@@ -463,6 +450,7 @@ mod tests {
             }
         }
 
+        let input_path = temp_dir().join("file").with_extension("mo");
         let temp_path = temp_dir().join("stdout").with_extension("txt");
         let mut out_file = fs::File::create(temp_path.clone()).expect("Could not create file.");
         let env = TestEnv {
@@ -473,7 +461,7 @@ mod tests {
             &env,
             None,
             "",
-            Path::new("/in/file.mo"),
+            &input_path,
             Path::new("/out/file.wasm"),
             &HashMap::new(),
         )
@@ -494,13 +482,14 @@ mod tests {
             .and_then(|mut f| f.read_to_string(&mut s))
             .expect("Could not read temp file.");
 
-        assert_eq!(
-            s.trim(),
-            r#"moc -c /dev/stdin --debug -o /out/file.wasm --package stdlib stdlib
+        let re = regex::Regex::new(
+            &r"moc -c .*?.mo-[0-9]+ --debug -o /out/file.wasm --package stdlib stdlib
                 moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib
-                didc --js /out/file.did -o /out/file.did.js"#
-                .replace("                ", "")
-        );
+                didc --js /out/file.did -o /out/file.did.js"
+                .replace("                ", ""),
+        )
+        .expect("Could not create regex.");
+        assert!(re.is_match(s.trim()));
     }
 
     #[test]
