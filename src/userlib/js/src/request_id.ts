@@ -38,6 +38,8 @@ async function hashValue(value: unknown): Promise<Buffer> {
     return hash(blobFromHex(padded));
   } else if (value instanceof Buffer) {
     return hash(new Uint8Array(value) as BinaryBlob);
+  } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+    return hash(new Uint8Array(value) as BinaryBlob);
   } else {
     throw new Error(`Attempt to hash a value of unsupported type: ${value}`);
   }

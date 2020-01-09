@@ -166,11 +166,9 @@ fn build_did_js<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &
 }
 
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
-    let output_root = canister_info.get_output_root();
     let output_canister_js_path = canister_info.get_output_canister_js_path();
 
     let mut language_bindings = assets::language_bindings()?;
-    let mut build_assets = assets::build_assets()?;
 
     let mut file = language_bindings.entries()?.next().unwrap()?;
     let mut file_contents = String::new();
@@ -188,23 +186,6 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     })?;
     std::fs::write(output_canister_js_path_str, new_file_contents)?;
 
-    if canister_info.has_frontend() {
-        for entry in build_assets.entries()? {
-            let mut file = entry?;
-
-            if file.header().entry_type().is_dir() {
-                continue;
-            }
-
-            let mut file_contents = String::new();
-            file.read_to_string(&mut file_contents)?;
-            if let Some(p) = output_root.join(file.header().path()?).parent() {
-                std::fs::create_dir_all(&p)?;
-            }
-            std::fs::write(&output_root.join(file.header().path()?), file_contents)?;
-        }
-    }
-
     Ok(())
 }
 
@@ -217,6 +198,7 @@ where
             name.to_owned(),
         ))
     })?;
+
     let config = config.get_config();
     let profile = config.profile.clone();
     let input_path = canister_info.get_main_path();
@@ -232,22 +214,18 @@ where
             std::fs::create_dir_all(canister_info.get_output_root())?;
             std::fs::write(&output_wasm_path, wasm)?;
 
-            // Write the CID.
-            std::fs::write(
-                canister_info.get_canister_id_path(),
-                canister_info.generate_canister_id()?.into_blob().0,
-            )
-            .map_err(DfxError::from)?;
-
             Ok(())
         }
 
         Some("mo") => {
+            let canister_id = canister_info
+                .get_canister_id()
+                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+
             let output_idl_path = canister_info.get_output_idl_path();
             let output_did_js_path = canister_info.get_output_did_js_path();
 
             std::fs::create_dir_all(canister_info.get_output_root())?;
-            let canister_id = canister_info.generate_canister_id()?;
 
             let content = std::fs::read_to_string(input_path)?;
             motoko_compile(
@@ -261,13 +239,6 @@ where
             didl_compile(env, &input_path, &output_idl_path)?;
             build_did_js(env, &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
-
-            // Write the CID.
-            std::fs::write(
-                canister_info.get_canister_id_path(),
-                canister_id.into_blob().0,
-            )
-            .map_err(DfxError::from)?;
 
             Ok(())
         }
@@ -308,7 +279,21 @@ where
     let canisters = maybe_canisters.as_ref().unwrap();
 
     for name in canisters.keys() {
+        let canister_info = CanisterInfo::load(&config, name)?;
         build_stage_bar.set_message(&format!("Building canister {}...", name));
+        // Write the CID.
+        std::fs::create_dir_all(
+            canister_info
+                .get_canister_id_path()
+                .parent()
+                .expect("Cannot use root."),
+        )?;
+        std::fs::write(
+            canister_info.get_canister_id_path(),
+            canister_info.generate_canister_id()?.into_blob().0,
+        )
+        .map_err(DfxError::from)?;
+
         match build_file(env, &config, name, &HashMap::new()) {
             Ok(()) => {}
             Err(e) => {

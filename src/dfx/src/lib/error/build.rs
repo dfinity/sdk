@@ -26,6 +26,9 @@ pub enum BuildErrorKind {
 
     // The frontend failed.
     FrontendBuildError(),
+
+    // Cannot find or read the canister ID.
+    CouldNotReadCanisterId(),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -57,6 +60,7 @@ impl fmt::Display for BuildErrorKind {
                 name,
             )),
             FrontendBuildError() => f.write_str("Frontend build stage failed."),
+            CouldNotReadCanisterId() => f.write_str("The canister ID could not be found."),
         }
     }
 }
