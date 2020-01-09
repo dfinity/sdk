@@ -1,6 +1,6 @@
-use crc8::Crc8;
 use crate::types::blob::Blob;
 use byteorder::{BigEndian, ByteOrder};
+use crc8::Crc8;
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, num, str};
@@ -39,7 +39,7 @@ impl CanisterId {
             None => return Err(hex::FromHexError::InvalidStringLength),
             Some((last_byte, buf_head)) => {
                 let mut crc8 = Crc8::create_msb(17);
-                let checksum_byte : u8 = crc8.calc(buf_head, buf_head.len() as i32, 0);
+                let checksum_byte: u8 = crc8.calc(buf_head, buf_head.len() as i32, 0);
                 if *last_byte == checksum_byte {
                     Ok(CanisterId(Blob::from(buf_head)))
                 } else {
@@ -51,7 +51,7 @@ impl CanisterId {
 
     pub fn to_text(&self) -> String {
         let mut crc8 = Crc8::create_msb(17);
-        let checksum_byte : u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
+        let checksum_byte: u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
         let mut buf = (self.0).0.clone();
         buf.push(checksum_byte);
         format!("ic:{}", hex::encode_upper(buf))
