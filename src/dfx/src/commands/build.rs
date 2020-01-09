@@ -198,9 +198,7 @@ where
             name.to_owned(),
         ))
     })?;
-    let canister_id = canister_info
-        .get_canister_id()
-        .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+
     let config = config.get_config();
     let profile = config.profile.clone();
     let input_path = canister_info.get_main_path();
@@ -220,6 +218,10 @@ where
         }
 
         Some("mo") => {
+            let canister_id = canister_info
+                .get_canister_id()
+                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+
             let output_idl_path = canister_info.get_output_idl_path();
             let output_did_js_path = canister_info.get_output_did_js_path();
 
