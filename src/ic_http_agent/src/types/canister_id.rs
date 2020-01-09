@@ -45,7 +45,6 @@ impl CanisterId {
 
     /// Parse the text format for canister IDs (e.g., `ic:010840FFAD`).
     ///
-    ///
     /// The text format follows this
     /// [section of our public spec doc](https://docs.dfinity.systems/spec/public/#textual-ids).
     pub fn from_text<S: AsRef<[u8]>>(text: S) -> Result<CanisterId, TextualCanisterIdError> {
