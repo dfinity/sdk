@@ -166,11 +166,9 @@ fn build_did_js<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &
 }
 
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
-    let output_root = canister_info.get_output_root();
     let output_canister_js_path = canister_info.get_output_canister_js_path();
 
     let mut language_bindings = assets::language_bindings()?;
-    let mut build_assets = assets::build_assets()?;
 
     let mut file = language_bindings.entries()?.next().unwrap()?;
     let mut file_contents = String::new();
@@ -187,23 +185,6 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         )))
     })?;
     std::fs::write(output_canister_js_path_str, new_file_contents)?;
-
-    if canister_info.has_frontend() {
-        for entry in build_assets.entries()? {
-            let mut file = entry?;
-
-            if file.header().entry_type().is_dir() {
-                continue;
-            }
-
-            let mut file_contents = String::new();
-            file.read_to_string(&mut file_contents)?;
-            if let Some(p) = output_root.join(file.header().path()?).parent() {
-                std::fs::create_dir_all(&p)?;
-            }
-            std::fs::write(&output_root.join(file.header().path()?), file_contents)?;
-        }
-    }
 
     Ok(())
 }
