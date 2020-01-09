@@ -36,13 +36,17 @@ export const createKeyPairFromSeed = (seed: Uint8Array): KeyPair => {
 
 // TODO/Note/XXX(eftychis): Unused for the first pass. This provides
 // us with key generation for the client.
-export const generateKeyPair = (): KeyPair => {
+export function generateKeyPair(): KeyPair {
   const { publicKey, secretKey } = naclSign.keyPair();
+  return makeKeyPair(publicKey, secretKey);
+}
+
+export function makeKeyPair(publicKey: Uint8Array, secretKey: Uint8Array): KeyPair {
   return {
     publicKey: Buffer.from(publicKey),
     secretKey: Buffer.from(secretKey),
   } as KeyPair;
-};
+}
 
 export type SigningConstructedFn = (
   secretKey: SenderSecretKey,

@@ -80,7 +80,6 @@ where
     let client_pathbuf = env.get_binary_command_path("client")?;
     let nodemanager_pathbuf = env.get_binary_command_path("nodemanager")?;
 
-    let project_root = config.get_path().parent().unwrap();
     let pid_file_path = env.get_dfx_root().unwrap().join("pid");
     check_previous_process_running(&pid_file_path)?;
 
@@ -118,19 +117,11 @@ where
             )
         })?;
 
+    let p = env.get_binary_command_path("js-user-library/dist/bootstrap")?;
     let frontend_watchdog = webserver(
         address_and_port,
         url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),
-        project_root
-            .join(
-                config
-                    .get_config()
-                    .get_defaults()
-                    .get_start()
-                    .get_serve_root(".")
-                    .as_path(),
-            )
-            .as_path(),
+        &p,
         give_actix,
     );
 

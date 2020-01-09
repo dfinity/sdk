@@ -217,6 +217,9 @@ where
             name.to_owned(),
         ))
     })?;
+    let canister_id = canister_info
+        .get_canister_id()
+        .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
     let config = config.get_config();
     let profile = config.profile.clone();
     let input_path = canister_info.get_main_path();
@@ -232,13 +235,6 @@ where
             std::fs::create_dir_all(canister_info.get_output_root())?;
             std::fs::write(&output_wasm_path, wasm)?;
 
-            // Write the CID.
-            std::fs::write(
-                canister_info.get_canister_id_path(),
-                canister_info.generate_canister_id()?.into_blob().0,
-            )
-            .map_err(DfxError::from)?;
-
             Ok(())
         }
 
@@ -247,7 +243,6 @@ where
             let output_did_js_path = canister_info.get_output_did_js_path();
 
             std::fs::create_dir_all(canister_info.get_output_root())?;
-            let canister_id = canister_info.generate_canister_id()?;
 
             let content = std::fs::read_to_string(input_path)?;
             motoko_compile(
@@ -261,13 +256,6 @@ where
             didl_compile(env, &input_path, &output_idl_path)?;
             build_did_js(env, &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
-
-            // Write the CID.
-            std::fs::write(
-                canister_info.get_canister_id_path(),
-                canister_id.into_blob().0,
-            )
-            .map_err(DfxError::from)?;
 
             Ok(())
         }
@@ -308,7 +296,21 @@ where
     let canisters = maybe_canisters.as_ref().unwrap();
 
     for name in canisters.keys() {
+        let canister_info = CanisterInfo::load(&config, name)?;
         build_stage_bar.set_message(&format!("Building canister {}...", name));
+        // Write the CID.
+        std::fs::create_dir_all(
+            canister_info
+                .get_canister_id_path()
+                .parent()
+                .expect("Cannot use root."),
+        )?;
+        std::fs::write(
+            canister_info.get_canister_id_path(),
+            canister_info.generate_canister_id()?.into_blob().0,
+        )
+        .map_err(DfxError::from)?;
+
         match build_file(env, &config, name, &HashMap::new()) {
             Ok(()) => {}
             Err(e) => {

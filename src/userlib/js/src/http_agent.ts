@@ -1,4 +1,6 @@
+import { toByteArray } from 'base64-js';
 import { Buffer } from 'buffer/';
+import * as actor from './actor';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
 import {
@@ -9,6 +11,7 @@ import {
   HttpAgentSubmitRequest,
   QueryFields,
   QueryResponse,
+  QueryResponseStatus,
   ReadRequest,
   ReadRequestType,
   ReadResponse,
@@ -18,9 +21,9 @@ import {
   SubmitRequestType,
   SubmitResponse,
 } from './http_agent_types';
+import * as IDL from './idl';
 import { requestIdOf } from './request_id';
 import { BinaryBlob } from './types';
-
 const API_VERSION = 'v1';
 
 // HttpAgent options that can be used at construction.
@@ -124,7 +127,7 @@ export class HttpAgent {
   }
 
   public call(
-    canisterId: CanisterId,
+    canisterId: CanisterId | string,
     fields: {
       methodName: string;
       arg: BinaryBlob;
@@ -132,19 +135,36 @@ export class HttpAgent {
   ): Promise<SubmitResponse> {
     return this.submit({
       request_type: SubmitRequestType.Call,
-      canister_id: canisterId,
+      canister_id: typeof canisterId === 'string' ? new CanisterId(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
     });
   }
 
-  public query(canisterId: CanisterId, fields: QueryFields): Promise<QueryResponse> {
+  public query(canisterId: CanisterId | string, fields: QueryFields): Promise<QueryResponse> {
     return this.read({
       request_type: ReadRequestType.Query,
-      canister_id: canisterId,
+      canister_id: typeof canisterId === 'string' ? new CanisterId(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
     }) as Promise<QueryResponse>;
+  }
+
+  public retrieveAsset(canisterId: CanisterId | string, path: string): Promise<Uint8Array> {
+    const arg = IDL.encode([IDL.Text], [path]) as BinaryBlob;
+    return this.query(canisterId, { methodName: '__dfx_asset_path', arg }).then(response => {
+      switch (response.status) {
+        case QueryResponseStatus.Rejected:
+          throw new Error(`An error happened while retrieving asset "${path}".`);
+        case QueryResponseStatus.Replied:
+          const [content] = IDL.decode([IDL.Text], response.reply.arg);
+          if (path.endsWith('js') || path.endsWith('html') || path.endsWith('css')) {
+            return new TextEncoder().encode('' + content);
+          } else {
+            return toByteArray('' + content);
+          }
+      }
+    });
   }
 
   public requestStatus(fields: ResponseStatusFields): Promise<RequestStatusResponse> {
@@ -152,6 +172,10 @@ export class HttpAgent {
       request_type: ReadRequestType.RequestStatus,
       request_id: fields.requestId,
     }) as Promise<RequestStatusResponse>;
+  }
+
+  public get makeActorFactory() {
+    return actor.makeActorFactory;
   }
 
   protected _transform(request: HttpAgentRequest): Promise<HttpAgentRequest> {
