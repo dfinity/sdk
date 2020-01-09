@@ -38,7 +38,7 @@ impl CanisterId {
 
     pub fn from_hex<S: AsRef<[u8]>>(h: S) -> Result<CanisterId, hex::FromHexError> {
         match hex::decode(h)?.as_slice().split_last() {
-            None => return Err(hex::FromHexError::InvalidStringLength),
+            None => Err(hex::FromHexError::InvalidStringLength),
             Some((last_byte, buf_head)) => {
                 let mut crc8 = Crc8::create_msb(17);
                 let checksum_byte: u8 = crc8.calc(buf_head, buf_head.len() as i32, 0);
