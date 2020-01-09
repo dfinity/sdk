@@ -13,6 +13,20 @@ use std::{fmt, num, str};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CanisterId(Blob);
 
+#[derive(Clone, Debug)]
+pub enum TextualCanisterIdError {
+    TooShort,
+    BadPrefix,
+    BadChecksum,
+    FromHexError(hex::FromHexError),
+}
+
+impl std::convert::From<hex::FromHexError> for TextualCanisterIdError {
+    fn from(e: hex::FromHexError) -> Self {
+        TextualCanisterIdError::FromHexError(e)
+    }
+}
+
 impl CanisterId {
     pub(crate) fn from_u64(v: u64) -> CanisterId {
         let mut buf = [0 as u8; 8];
@@ -29,34 +43,44 @@ impl CanisterId {
         self.0
     }
 
-    // Text format for canister IDs follows this [section of our public spec doc](https://docs.dfinity.systems/spec/public/#textual-ids).
-
-    // todo: this error code and this error type are both wrong;
-    // IMO, we need our own, since we have our own spec (see url above).
-
-    // todo: to follow the real text format, we need to introduce and eliminate the "ic:" prefix.  Currently, we assume it is absent in from_hex, and do not add it in to_hex.
-
-    pub fn from_hex<S: AsRef<[u8]>>(h: S) -> Result<CanisterId, hex::FromHexError> {
-        match hex::decode(h)?.as_slice().split_last() {
-            None => Err(hex::FromHexError::InvalidStringLength),
-            Some((last_byte, buf_head)) => {
-                let mut crc8 = Crc8::create_msb(17);
-                let checksum_byte: u8 = crc8.calc(buf_head, buf_head.len() as i32, 0);
-                if *last_byte == checksum_byte {
-                    Ok(CanisterId(Blob::from(buf_head)))
-                } else {
-                    Err(hex::FromHexError::InvalidStringLength)
+    /// Parse the text format for canister IDs (e.g., `ic:010840FFAD`).
+    ///
+    /// The text format follows this
+    /// [section of our public spec doc](https://docs.dfinity.systems/spec/public/#textual-ids).
+    pub fn from_text<S: AsRef<[u8]>>(text: S) -> Result<CanisterId, TextualCanisterIdError> {
+        if text.as_ref().len() < 4 {
+            Err(TextualCanisterIdError::TooShort)
+        } else {
+            let (text_prefix, text_rest) = text.as_ref().split_at(3);
+            match std::str::from_utf8(text_prefix) {
+                Ok(ref s) => {
+                    if s != &"ic:" {
+                        return Err(TextualCanisterIdError::BadPrefix);
+                    }
+                }
+                Err(_) => return Err(TextualCanisterIdError::BadPrefix),
+            };
+            match hex::decode(text_rest)?.as_slice().split_last() {
+                None => Err(TextualCanisterIdError::TooShort),
+                Some((last_byte, buf_head)) => {
+                    let mut crc8 = Crc8::create_msb(17);
+                    let checksum_byte: u8 = crc8.calc(buf_head, buf_head.len() as i32, 0);
+                    if *last_byte == checksum_byte {
+                        Ok(CanisterId(Blob::from(buf_head)))
+                    } else {
+                        Err(TextualCanisterIdError::BadChecksum)
+                    }
                 }
             }
         }
     }
 
-    pub fn to_hex(&self) -> String {
+    pub fn to_text(&self) -> String {
         let mut crc8 = Crc8::create_msb(17);
         let checksum_byte: u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
         let mut buf = (self.0).0.clone();
         buf.push(checksum_byte);
-        hex::encode_upper(buf)
+        format!("ic:{}", hex::encode_upper(buf))
     }
 }
 
@@ -106,7 +130,7 @@ impl str::FromStr for CanisterId {
 
 impl fmt::Display for CanisterId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "CanisterId({})", self.to_hex())
+        write!(f, "{}", self.to_text())
     }
 }
 
@@ -132,11 +156,11 @@ mod tests {
     }
 
     #[test]
-    fn hex_form() {
+    fn text_form() {
         let cid: CanisterId = CanisterId::from(Blob::from(vec![1, 8, 64, 255].as_slice()));
-        let hex = cid.to_hex();
-        let cid2 = CanisterId::from_hex(&hex).unwrap();
+        let text = cid.to_text();
+        let cid2 = CanisterId::from_text(&text).unwrap();
         assert_eq!(cid, cid2);
-        assert_eq!(hex, "010840FFAD");
+        assert_eq!(text, "ic:010840FFAD");
     }
 }

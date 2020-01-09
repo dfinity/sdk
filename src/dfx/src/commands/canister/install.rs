@@ -45,7 +45,7 @@ pub fn install_canister(client: &Client, canister_info: &CanisterInfo) -> DfxRes
     eprintln!(
         "Installing code for canister {}, with canister_id {}",
         canister_info.get_name(),
-        canister_id.to_hex(),
+        canister_id.to_text(),
     );
 
     let wasm_path = canister_info.get_output_wasm_path();
