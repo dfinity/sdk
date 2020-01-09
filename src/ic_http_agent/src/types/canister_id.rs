@@ -1,3 +1,4 @@
+use crc8::Crc8;
 use crate::types::blob::Blob;
 use byteorder::{BigEndian, ByteOrder};
 use hex;
@@ -28,12 +29,32 @@ impl CanisterId {
         self.0
     }
 
-    pub fn from_hex<S: AsRef<[u8]>>(h: S) -> Result<CanisterId, hex::FromHexError> {
-        Ok(CanisterId(Blob::from(hex::decode(h)?.as_slice())))
+    // Text format for canister IDs follows this [section of our public spec doc](https://docs.dfinity.systems/spec/public/#textual-ids).
+
+    // todo: this error code and this error type are both wrong;
+    // IMO, we need our own, since we have our own spec (see url above).
+
+    pub fn from_text<S: AsRef<[u8]>>(h: S) -> Result<CanisterId, hex::FromHexError> {
+        match hex::decode(h)?.as_slice().split_last() {
+            None => return Err(hex::FromHexError::InvalidStringLength),
+            Some((last_byte, buf_head)) => {
+                let mut crc8 = Crc8::create_msb(17);
+                let checksum_byte : u8 = crc8.calc(buf_head, buf_head.len() as i32, 0);
+                if *last_byte == checksum_byte {
+                    Ok(CanisterId(Blob::from(buf_head)))
+                } else {
+                    Err(hex::FromHexError::InvalidStringLength)
+                }
+            }
+        }
     }
 
-    pub fn to_hex(&self) -> String {
-        hex::encode(&(self.0).0)
+    pub fn to_text(&self) -> String {
+        let mut crc8 = Crc8::create_msb(17);
+        let checksum_byte : u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
+        let mut buf = (self.0).0.clone();
+        buf.push(checksum_byte);
+        format!("ic:{}", hex::encode_upper(buf))
     }
 }
 
@@ -83,7 +104,8 @@ impl str::FromStr for CanisterId {
 
 impl fmt::Display for CanisterId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "canister({})", self.to_hex())
+        //write!(f, "CanisterId({})", self.to_text())
+        write!(f, "{}", self.to_text())
     }
 }
 
