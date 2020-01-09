@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import Pipe = require('buffer-pipe');
 import { Buffer } from 'buffer/';
 import { JsonValue } from './types';
-import { idlHash } from './utils/hash';
+import { idlLabelToId } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 import { readIntLE, readUIntLE, writeIntLE, writeUIntLE } from './utils/leb128';
 
@@ -468,57 +468,21 @@ class OptClass<T> extends ConstructType<T | null> {
 }
 
 /**
- * Internal label class used only by RecordClass
- * @param {string} label
- */
-class LabelClass {
-  protected readonly _label: string | number;
-
-  // Implements unescape function from
-  // https://github.com/dfinity-lab/motoko/blob/master/design/IDL-Motoko.md#type-export
-  constructor(key: string) {
-    if (key.startsWith('_') && key.endsWith('_')) {
-      const slice = key.slice(1, -1);
-      const num = Number(slice);
-      const intPrefix = parseInt(slice, 10);
-      if (num === intPrefix && num >= 0 && num < 2 ** 32) {
-        this._label = num;
-        return;
-      }
-    }
-    if (key.endsWith('_')) {
-      this._label = key.slice(0, -1);
-      return;
-    }
-    this._label = key;
-  }
-
-  public id(): number {
-    if (typeof this._label === 'number') {
-      return this._label;
-    } else {
-      return idlHash(this._label);
-    }
-  }
-}
-
-/**
  * Represents an IDL Record
  * @param {Object} [fields] - mapping of function name to Type
  */
 class RecordClass extends ConstructType<Record<string, any>> {
-  protected readonly _fields: Array<[string, LabelClass, Type]>;
+  protected readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
     super();
-    this._fields = Object.entries(fields).map(([k, v]) => [k, new LabelClass(k), v]);
-    this._fields.sort((a, b) => a[1].id() - b[1].id());
+    this._fields = Object.entries(fields).sort((a, b) => idlLabelToId(a[0]) - idlLabelToId(b[0]));
   }
 
   public covariant(x: any): x is Record<string, any> {
     return (
       typeof x === 'object' &&
-      this._fields.every(([k, _, t]) => {
+      this._fields.every(([k, t]) => {
         if (!x.hasOwnProperty(k)) {
           throw new Error(`Record is missing key "${k}".`);
         }
@@ -529,16 +493,16 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   public encodeValue(x: Record<string, any>) {
     const values = this._fields.map(([key]) => x[key]);
-    const bufs = zipWith(this._fields, values, ([_, __, c], d) => c.encodeValue(d));
+    const bufs = zipWith(this._fields, values, ([, c], d) => c.encodeValue(d));
     return Buffer.concat(bufs);
   }
 
   public _buildTypeTableImpl(T: TypeTable) {
-    this._fields.forEach(([_, __, value]) => value.buildTypeTable(T));
+    this._fields.forEach(([_, value]) => value.buildTypeTable(T));
     const opCode = slebEncode(IDLTypeIds.Record);
     const len = lebEncode(this._fields.length);
-    const fields = this._fields.map(([_, label, value]) =>
-      Buffer.concat([lebEncode(label.id()), value.encodeType(T)]),
+    const fields = this._fields.map(([key, value]) =>
+      Buffer.concat([lebEncode(idlLabelToId(key)), value.encodeType(T)]),
     );
 
     T.add(this, Buffer.concat([opCode, len, Buffer.concat(fields)]));
@@ -546,14 +510,14 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   public decodeValue(b: Pipe) {
     const x: Record<string, any> = {};
-    for (const [key, _, value] of this._fields) {
+    for (const [key, value] of this._fields) {
       x[key] = value.decodeValue(b);
     }
     return x;
   }
 
   get name() {
-    const fields = this._fields.map(([key, _, value]) => key + ':' + value.name);
+    const fields = this._fields.map(([key, value]) => key + ':' + value.name);
     return `Record(${fields.join(',')})`;
   }
 }
@@ -600,7 +564,7 @@ class VariantClass extends ConstructType<Record<string, any>> {
 
   constructor(fields: Record<string, Type> = {}) {
     super();
-    this._fields = Object.entries(fields).sort((a, b) => idlHash(a[0]) - idlHash(b[0]));
+    this._fields = Object.entries(fields).sort((a, b) => idlLabelToId(a[0]) - idlLabelToId(b[0]));
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -633,7 +597,7 @@ class VariantClass extends ConstructType<Record<string, any>> {
     const opCode = slebEncode(IDLTypeIds.Variant);
     const len = lebEncode(this._fields.length);
     const fields = this._fields.map(([key, value]) =>
-      Buffer.concat([lebEncode(idlHash(key)), value.encodeType(typeTable)]),
+      Buffer.concat([lebEncode(idlLabelToId(key)), value.encodeType(typeTable)]),
     );
     typeTable.add(this, Buffer.concat([opCode, len, ...fields]));
   }
