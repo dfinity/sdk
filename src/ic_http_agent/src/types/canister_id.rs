@@ -5,6 +5,9 @@ use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, num, str};
 
+/// Prefix for [textual form of ID](https://docs.dfinity.systems/spec/public/#textual-ids)
+const IC_COLON: &str = "ic:";
+
 /// A Canister ID.
 ///
 /// This type is described as a Blob in the public spec, but used as an integer in most
@@ -54,7 +57,7 @@ impl CanisterId {
             let (text_prefix, text_rest) = text.as_ref().split_at(3);
             match std::str::from_utf8(text_prefix) {
                 Ok(ref s) => {
-                    if s != &"ic:" {
+                    if s != &IC_COLON {
                         return Err(TextualCanisterIdError::BadPrefix);
                     }
                 }
@@ -80,7 +83,7 @@ impl CanisterId {
         let checksum_byte: u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
         let mut buf = (self.0).0.clone();
         buf.push(checksum_byte);
-        format!("ic:{}", hex::encode_upper(buf))
+        format!("{}{}", IC_COLON, hex::encode_upper(buf))
     }
 }
 
