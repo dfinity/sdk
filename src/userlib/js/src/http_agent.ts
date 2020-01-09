@@ -75,7 +75,7 @@ export class HttpAgent {
     }
     this._fetch = options.fetch || getDefaultFetch() || fetch.bind(global);
     if (options.host) {
-      if (!options.host.match(/^[a-z]+:/) && typeof window != 'undefined') {
+      if (!options.host.match(/^[a-z]+:/) && typeof window !== 'undefined') {
         this._host = window.location.protocol + '//' + options.host;
       } else {
         this._host = options.host;
