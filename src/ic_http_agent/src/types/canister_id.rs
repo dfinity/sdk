@@ -66,7 +66,7 @@ impl CanisterId {
             match hex::decode(text_rest)?.as_slice().split_last() {
                 None => Err(TextualCanisterIdError::TooShort),
                 Some((last_byte, buf_head)) => {
-                    let mut crc8 = Crc8::create_msb(17);
+                    let mut crc8 = Crc8::create_msb(0x07);
                     let checksum_byte: u8 = crc8.calc(buf_head, buf_head.len() as i32, 0);
                     if *last_byte == checksum_byte {
                         Ok(CanisterId(Blob::from(buf_head)))
@@ -79,7 +79,7 @@ impl CanisterId {
     }
 
     pub fn to_text(&self) -> String {
-        let mut crc8 = Crc8::create_msb(17);
+        let mut crc8 = Crc8::create_msb(0x07);
         let checksum_byte: u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
         let mut buf = (self.0).0.clone();
         buf.push(checksum_byte);
@@ -159,11 +159,21 @@ mod tests {
     }
 
     #[test]
+    fn text_form_matches_public_spec() {
+        // See example here: https://docs.dfinity.systems/spec/public/#textual-ids
+        let textid = "ic:ABCD01A7";
+        match CanisterId::from_text(textid) {
+            Ok(ref cid) => assert_eq!(CanisterId::to_text(cid), textid),
+            Err(_) => unreachable!(),
+        }
+    }
+
+    #[test]
     fn text_form() {
         let cid: CanisterId = CanisterId::from(Blob::from(vec![1, 8, 64, 255].as_slice()));
         let text = cid.to_text();
         let cid2 = CanisterId::from_text(&text).unwrap();
         assert_eq!(cid, cid2);
-        assert_eq!(text, "ic:010840FFAD");
+        assert_eq!(text, "ic:010840FFEF");
     }
 }
