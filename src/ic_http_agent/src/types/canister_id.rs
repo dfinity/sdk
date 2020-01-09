@@ -34,7 +34,9 @@ impl CanisterId {
     // todo: this error code and this error type are both wrong;
     // IMO, we need our own, since we have our own spec (see url above).
 
-    pub fn from_text<S: AsRef<[u8]>>(h: S) -> Result<CanisterId, hex::FromHexError> {
+    // todo: to follow the real text format, we need to introduce and eliminate the "ic:" prefix.  Currently, we assume it is absent in from_hex, and do not add it in to_hex.
+
+    pub fn from_hex<S: AsRef<[u8]>>(h: S) -> Result<CanisterId, hex::FromHexError> {
         match hex::decode(h)?.as_slice().split_last() {
             None => return Err(hex::FromHexError::InvalidStringLength),
             Some((last_byte, buf_head)) => {
@@ -49,12 +51,12 @@ impl CanisterId {
         }
     }
 
-    pub fn to_text(&self) -> String {
+    pub fn to_hex(&self) -> String {
         let mut crc8 = Crc8::create_msb(17);
         let checksum_byte: u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
         let mut buf = (self.0).0.clone();
         buf.push(checksum_byte);
-        format!("ic:{}", hex::encode_upper(buf))
+        hex::encode_upper(buf)
     }
 }
 
@@ -104,8 +106,7 @@ impl str::FromStr for CanisterId {
 
 impl fmt::Display for CanisterId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        //write!(f, "CanisterId({})", self.to_text())
-        write!(f, "{}", self.to_text())
+        write!(f, "CanisterId({})", self.to_hex())
     }
 }
 
@@ -131,13 +132,11 @@ mod tests {
     }
 
     #[test]
-    fn hex_encode() {
+    fn hex_form() {
         let cid: CanisterId = CanisterId::from(Blob::from(vec![1, 8, 64, 255].as_slice()));
-
         let hex = cid.to_hex();
         let cid2 = CanisterId::from_hex(&hex).unwrap();
-
         assert_eq!(cid, cid2);
-        assert_eq!(hex, "010840ff");
+        assert_eq!(hex, "010840FFAD");
     }
 }
