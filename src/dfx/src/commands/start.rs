@@ -117,11 +117,11 @@ where
             )
         })?;
 
-    let p = env.get_binary_command_path("js-user-library/dist/bootstrap")?;
+    let bootstrap_dir = env.get_binary_command_path("js-user-library/dist/bootstrap")?;
     let frontend_watchdog = webserver(
         address_and_port,
         url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),
-        &p,
+        &bootstrap_dir,
         give_actix,
     );
 
