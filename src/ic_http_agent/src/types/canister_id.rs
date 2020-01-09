@@ -160,6 +160,7 @@ mod tests {
 
     #[test]
     fn text_form_matches_public_spec() {
+        // See example here: https://docs.dfinity.systems/spec/public/#textual-ids
         let textid = "ic:ABCD01A7";
         match CanisterId::from_text(textid) {
             Ok(ref cid) => assert_eq!(CanisterId::to_text(cid), textid),
