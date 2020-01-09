@@ -69,7 +69,7 @@ fn run_webserver(
             .data(client_api_uri.clone())
             .wrap(middleware::Logger::default())
             .service(web::scope(client_api_uri.path()).default_service(web::to_async(forward)))
-            .default_service(actix_files::Files::new("/", &serve_dir).index_file("bootstrap.html"))
+            .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
     })
     .bind(bind)?
     // N.B. This is an arbitrary timeout for now.
