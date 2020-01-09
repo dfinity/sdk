@@ -23,6 +23,9 @@ pub enum BuildErrorKind {
 
     /// Could not find the canister to build in the config.
     CanisterNameIsNotInConfigError(String),
+
+    // The frontend failed.
+    FrontendBuildError(),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -53,6 +56,7 @@ impl fmt::Display for BuildErrorKind {
                 r#"Could not find the canister named "{}" in the dfx.json configuration."#,
                 name,
             )),
+            FrontendBuildError() => f.write_str("Frontend build stage failed."),
         }
     }
 }
