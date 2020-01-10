@@ -147,7 +147,7 @@ export class HttpAgent {
   ): Promise<SubmitResponse> {
     return this.submit({
       request_type: SubmitRequestType.Call,
-      canister_id: typeof canisterId === 'string' ? new CanisterId(canisterId) : canisterId,
+      canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
     });
@@ -156,7 +156,7 @@ export class HttpAgent {
   public query(canisterId: CanisterId | string, fields: QueryFields): Promise<QueryResponse> {
     return this.read({
       request_type: ReadRequestType.Query,
-      canister_id: typeof canisterId === 'string' ? new CanisterId(canisterId) : canisterId,
+      canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
     }) as Promise<QueryResponse>;
@@ -170,11 +170,7 @@ export class HttpAgent {
           throw new Error(`An error happened while retrieving asset "${path}".`);
         case QueryResponseStatus.Replied:
           const [content] = IDL.decode([IDL.Text], response.reply.arg);
-          if (path.match(/\.(js|html|css)$/)) {
-            return new TextEncoder().encode('' + content);
-          } else {
-            return toByteArray('' + content);
-          }
+          return toByteArray('' + content);
       }
     });
   }

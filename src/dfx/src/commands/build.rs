@@ -108,16 +108,16 @@ fn motoko_compile<T: BinaryResolverEnv>(
         .spawn()?;
 
     let output = process.wait_with_output()?;
-    std::fs::remove_file(input_path)?;
 
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
             // We choose to join the strings and not the vector in case there is a weird
             // incorrect character at the end of stdout.
-            String::from_utf8_lossy(&output.stdout).to_string()
-                + &String::from_utf8_lossy(&output.stderr),
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
         )))
     } else {
+        std::fs::remove_file(input_path)?;
         Ok(())
     }
 }
@@ -361,14 +361,7 @@ where
                 let p = e.path();
                 let ext = p.extension().unwrap_or_else(|| std::ffi::OsStr::new(""));
                 if p.is_file() && ext != "map" {
-                    let content = {
-                        if ext == "html" || ext == "js" || ext == "css" {
-                            std::fs::read_to_string(&p)?
-                        } else {
-                            base64::encode(&std::fs::read(&p)?)
-                        }
-                    };
-
+                    let content = base64::encode(&std::fs::read(&p)?);
                     assets.insert(
                         p.strip_prefix(canister_info.get_output_assets_root())
                             .expect("Cannot strip prefix.")

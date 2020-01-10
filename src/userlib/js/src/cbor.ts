@@ -74,7 +74,7 @@ export function decode<T>(input: Uint8Array): T {
   });
   const result = decoder.decodeFirst(input);
   if (result.hasOwnProperty('canister_id')) {
-    result.canister_id = CanisterId.fromHex(result.canister_id.toString(16));
+    result.canister_id = CanisterId.fromText(result.canister_id.toString(16));
   }
   return result;
 }

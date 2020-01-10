@@ -7,7 +7,7 @@ pub enum BuildErrorKind {
     InvalidExtension(String),
 
     /// A compiler error happened.
-    MotokoCompilerError(String),
+    MotokoCompilerError(String, String),
 
     /// An error happened during the generation of the Idl.
     IdlGenerationError(String),
@@ -37,9 +37,10 @@ impl fmt::Display for BuildErrorKind {
 
         match self {
             InvalidExtension(ext) => f.write_fmt(format_args!("Invalid extension: {}", ext)),
-            MotokoCompilerError(stdout) => {
-                f.write_fmt(format_args!("Motoko returned an error:\n{}", stdout))
-            }
+            MotokoCompilerError(stdout, stderr) => f.write_fmt(format_args!(
+                "Motoko returned an error:\n{}\n{}",
+                stdout, stderr
+            )),
             IdlGenerationError(stdout) => f.write_fmt(format_args!(
                 "IDL generation returned an error:\n{}",
                 stdout
