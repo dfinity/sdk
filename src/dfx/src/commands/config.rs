@@ -1,4 +1,5 @@
-use crate::lib::env::ProjectConfigEnv;
+use crate::config::dfinity::Config;
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -19,11 +20,12 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec<T: ProjectConfigEnv>(env: &T, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // Cannot use the `env` variable as we need a mutable copy.
-    let mut config = env
+    let mut config: Config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?
+        .as_ref()
         .clone();
 
     let config_path = args.value_of("config_path").unwrap_or("");

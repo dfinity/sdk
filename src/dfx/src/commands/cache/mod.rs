@@ -1,5 +1,5 @@
 use crate::commands::CliCommand;
-use crate::lib::env::{BinaryCacheEnv, VersionEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
@@ -9,10 +9,7 @@ mod install;
 mod list;
 mod show;
 
-fn builtins<T>() -> Vec<CliCommand<T>>
-where
-    T: BinaryCacheEnv + VersionEnv,
-{
+fn builtins() -> Vec<CliCommand> {
     vec![
         CliCommand::new(delete::construct(), delete::exec),
         CliCommand::new(list::construct(), list::exec),
@@ -21,23 +18,13 @@ where
     ]
 }
 
-pub fn construct<T>() -> App<'static, 'static>
-where
-    T: BinaryCacheEnv + VersionEnv,
-{
+pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("cache")
         .about(UserMessage::ManageCache.to_str())
-        .subcommands(
-            builtins::<T>()
-                .into_iter()
-                .map(|x| x.get_subcommand().clone()),
-        )
+        .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: BinaryCacheEnv + VersionEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let subcommand = args.subcommand();
 
     if let (name, Some(subcommand_args)) = subcommand {
@@ -49,7 +36,7 @@ where
             ))),
         }
     } else {
-        construct::<T>().write_help(&mut std::io::stderr())?;
+        construct().write_help(&mut std::io::stderr())?;
         eprintln!();
         eprintln!();
         Ok(())
