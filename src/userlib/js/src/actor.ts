@@ -11,7 +11,10 @@ import { BinaryBlob } from './types';
  * An actor interface. An actor is an object containing only functions that will
  * return a promise. These functions are derived from the IDL definition.
  */
-export interface Actor extends Record<string, (...args: unknown[]) => Promise<unknown>> {}
+export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
+  __canisterId(): string;
+  __getAsset(path: string): Promise<Uint8Array>;
+};
 
 export interface ActorConfig {
   canisterId: string | CanisterId;
@@ -113,12 +116,24 @@ export function makeActorFactory(
   }
 
   return (config: ActorConfig) => {
-    const actor: Actor = {};
     const { canisterId, maxAttempts, throttleDurationInMSecs, httpAgent } = {
       ...DEFAULT_ACTOR_CONFIG,
       ...config,
     } as Required<ActorConfig>;
     const cid = typeof canisterId === 'string' ? CanisterId.fromHex(canisterId) : canisterId;
+    const actor: Actor = {
+      __canisterId() {
+        return cid.toHex();
+      },
+      async __getAsset(path: string) {
+        const agent = httpAgent || getDefaultHttpAgent();
+        if (!agent) {
+          throw new Error('Cannot make call. httpAgent is undefined.');
+        }
+
+        return agent.retrieveAsset(canisterId, path);
+      },
+    } as Actor;
 
     for (const [methodName, func] of Object.entries(actorInterface._fields)) {
       actor[methodName] = async (...args: any[]) => {
