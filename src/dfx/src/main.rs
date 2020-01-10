@@ -9,7 +9,7 @@ mod config;
 mod lib;
 mod util;
 
-fn cli(_: &dyn Environment) -> App<'_, '_> {
+fn cli(_: &impl Environment) -> App<'_, '_> {
     App::new("dfx")
         .about("The DFINITY Executor.")
         .version(dfx_version_str())
@@ -21,7 +21,7 @@ fn cli(_: &dyn Environment) -> App<'_, '_> {
         )
 }
 
-fn exec(env: &dyn Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) -> DfxResult {
+fn exec(env: &impl Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) -> DfxResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
