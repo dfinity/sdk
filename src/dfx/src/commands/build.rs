@@ -9,22 +9,66 @@ use crate::lib::message::UserMessage;
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::CanisterId;
+use indicatif::{ProgressBar, ProgressDrawTarget};
+use rand::{thread_rng, Rng};
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::Read;
 use std::path::Path;
 
+type AssetMap = HashMap<String, String>;
+
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
         .about(UserMessage::BuildCanister.to_str())
-        .arg(Arg::with_name("canister").help(UserMessage::CanisterName.to_str()))
+        .arg(
+            Arg::with_name("skip-frontend")
+                .long("skip-frontend")
+                .takes_value(false)
+                .help(UserMessage::SkipFrontend.to_str()),
+        )
+}
+
+fn get_asset_fn(assets: &AssetMap) -> String {
+    // Create the if/else series.
+    let mut if_else = String::new();
+    assets.iter().for_each(|(filename, content)| {
+        if_else += format!(
+            r#"if (path == "{}") {par} return "{}"; {end};{endline}"#,
+            filename,
+            content
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", ""),
+            par = "{",
+            end = "}",
+            endline = "\n"
+        )
+        .as_str();
+    });
+
+    format!(
+        r#"
+            public query func __dfx_asset_path(path: Text): async Text {par}
+              {}
+              return "";
+            {end};
+        "#,
+        if_else,
+        par = "{",
+        end = "}"
+    )
 }
 
 /// Compile a motoko file.
 fn motoko_compile(
     cache: &dyn Cache,
     profile: Option<Profile>,
+    content: &str,
     input_path: &Path,
     output_path: &Path,
+    assets: &AssetMap,
 ) -> DfxResult {
     // Invoke the compiler in debug (development) or release mode, based on the current profile:
     let arg_profile = match profile {
@@ -35,9 +79,26 @@ fn motoko_compile(
     let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
     let stdlib_path = cache.get_binary_command_path("stdlib")?;
 
-    let output = cache
+    let mut content = content.to_string();
+    // Because we don't have an AST (yet) we need to do some regex magic.
+    // Find `actor {`
+    // TODO: remove this once entire process once store assets is supported by the client.
+    //       See https://github.com/dfinity-lab/dfinity/pull/2106 for reference.
+    let re = regex::Regex::new(r"\bactor\s.*?\{")
+        .map_err(|_| DfxError::Unknown("Could not create regex.".to_string()))?;
+    if let Some(actor_idx) = re.find(&content) {
+        let (before, after) = content.split_at(actor_idx.end());
+        content = before.to_string() + get_asset_fn(assets).as_str() + after;
+    }
+
+    let mut rng = thread_rng();
+    let input_path = input_path.with_extension(format!("mo-{}", rng.gen::<u64>()));
+    std::fs::write(&input_path, content.as_bytes())?;
+
+    let process = cache
         .get_binary_command("moc")?
         .env("MOC_RTS", mo_rts_path.as_path())
+        .arg("-c")
         .arg(&input_path)
         .arg(arg_profile)
         .arg("-o")
@@ -45,16 +106,19 @@ fn motoko_compile(
         .arg("--package")
         .arg("stdlib")
         .arg(&stdlib_path.as_path())
-        .output()?;
+        .spawn()?;
+
+    let output = process.wait_with_output()?;
 
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
             // We choose to join the strings and not the vector in case there is a weird
             // incorrect character at the end of stdout.
-            String::from_utf8_lossy(&output.stdout).to_string()
-                + &String::from_utf8_lossy(&output.stderr),
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
         )))
     } else {
+        std::fs::remove_file(input_path)?;
         Ok(())
     }
 }
@@ -103,18 +167,16 @@ fn build_did_js(cache: &dyn Cache, input_path: &Path, output_path: &Path) -> Dfx
 }
 
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
-    let output_root = canister_info.get_output_root();
     let output_canister_js_path = canister_info.get_output_canister_js_path();
 
     let mut language_bindings = assets::language_bindings()?;
-    let mut build_assets = assets::build_assets()?;
 
     let mut file = language_bindings.entries()?.next().unwrap()?;
     let mut file_contents = String::new();
     file.read_to_string(&mut file_contents)?;
 
     let new_file_contents = file_contents
-        .replace("{canister_id}", &canister_id.to_hex())
+        .replace("{canister_id}", &canister_id.to_text())
         .replace("{project_name}", canister_info.get_name());
 
     let output_canister_js_path_str = output_canister_js_path.to_str().ok_or_else(|| {
@@ -125,32 +187,16 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     })?;
     std::fs::write(output_canister_js_path_str, new_file_contents)?;
 
-    if canister_info.has_frontend() {
-        for entry in build_assets.entries()? {
-            let mut file = entry?;
-
-            if file.header().entry_type().is_dir() {
-                continue;
-            }
-
-            let mut file_contents = String::new();
-            file.read_to_string(&mut file_contents)?;
-            if let Some(p) = output_root.join(file.header().path()?).parent() {
-                std::fs::create_dir_all(&p)?;
-            }
-            std::fs::write(&output_root.join(file.header().path()?), file_contents)?;
-        }
-    }
-
     Ok(())
 }
 
-fn build_file(env: &dyn Environment, config: &Config, name: &str) -> DfxResult {
-    let canister_info = CanisterInfo::load(&config, name).map_err(|_| {
+fn build_file(env: &dyn Environment, config: &Config, name: &str, assets: &AssetMap) -> DfxResult {
+    let canister_info = CanisterInfo::load(config, name).map_err(|_| {
         BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
             name.to_owned(),
         ))
     })?;
+
     let config = config.get_config();
     let profile = config.profile.clone();
     let input_path = canister_info.get_main_path();
@@ -166,35 +212,32 @@ fn build_file(env: &dyn Environment, config: &Config, name: &str) -> DfxResult {
             std::fs::create_dir_all(canister_info.get_output_root())?;
             std::fs::write(&output_wasm_path, wasm)?;
 
-            // Write the CID.
-            std::fs::write(
-                canister_info.get_canister_id_path(),
-                canister_info.generate_canister_id()?.into_blob().0,
-            )
-            .map_err(DfxError::from)?;
-
             Ok(())
         }
 
         Some("mo") => {
+            let canister_id = canister_info
+                .get_canister_id()
+                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+
             let output_idl_path = canister_info.get_output_idl_path();
             let output_did_js_path = canister_info.get_output_did_js_path();
 
             std::fs::create_dir_all(canister_info.get_output_root())?;
-            let canister_id = canister_info.generate_canister_id()?;
 
+            let content = std::fs::read_to_string(input_path)?;
             let cache = env.get_cache();
-            motoko_compile(cache.as_ref(), profile, &input_path, &output_wasm_path)?;
+            motoko_compile(
+                cache.as_ref(),
+                profile,
+                &content,
+                &input_path,
+                &output_wasm_path,
+                assets,
+            )?;
             didl_compile(cache.as_ref(), &input_path, &output_idl_path)?;
             build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
-
-            // Write the CID.
-            std::fs::write(
-                canister_info.get_canister_id_path(),
-                canister_id.into_blob().0,
-            )
-            .map_err(DfxError::from)?;
 
             Ok(())
         }
@@ -215,29 +258,125 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    // Get the canister name (if any).
-    if let Some(canister_name) = args.value_of("canister") {
-        println!("Building {}...", canister_name);
-        build_file(env, &config, &canister_name)?;
-    } else if let Some(canisters) = &config.get_config().canisters {
-        for k in canisters.keys() {
-            println!("Building {}...", k);
-            build_file(env, &config, &k)?;
+    // Check the cache. This will only install the cache if there isn't one installed
+    // already.
+    env.get_cache().install()?;
+
+    let build_stage_bar = ProgressBar::new_spinner();
+    build_stage_bar.set_draw_target(ProgressDrawTarget::stderr());
+    build_stage_bar.set_message("Building canisters...");
+    build_stage_bar.enable_steady_tick(80);
+
+    let maybe_canisters = &config.get_config().canisters;
+    if maybe_canisters.is_none() {
+        build_stage_bar.finish_with_message("No canisters, nothing to build.");
+        return Ok(());
+    }
+    let canisters = maybe_canisters.as_ref().unwrap();
+
+    for name in canisters.keys() {
+        let canister_info = CanisterInfo::load(&config, name)?;
+        build_stage_bar.set_message(&format!("Building canister {}...", name));
+        // Write the CID.
+        std::fs::create_dir_all(
+            canister_info
+                .get_canister_id_path()
+                .parent()
+                .expect("Cannot use root."),
+        )?;
+        std::fs::write(
+            canister_info.get_canister_id_path(),
+            canister_info.generate_canister_id()?.into_blob().0,
+        )
+        .map_err(DfxError::from)?;
+
+        match build_file(env, &config, name, &HashMap::new()) {
+            Ok(()) => {}
+            Err(e) => {
+                build_stage_bar
+                    .finish_with_message(&format!(r#"Failed to build canister "{}":"#, name));
+                eprintln!("{:?}", e);
+                return Err(e);
+            }
+        }
+    }
+    build_stage_bar.finish_with_message("Done building canisters...");
+
+    // If there is not a package.json, we don't have a frontend and can quit early.
+    if !config.get_project_root().join("package.json").exists() || args.is_present("skip-frontend")
+    {
+        return Ok(());
+    }
+
+    let build_stage_bar = ProgressBar::new_spinner();
+    build_stage_bar.set_draw_target(ProgressDrawTarget::stderr());
+    build_stage_bar.set_message("Building frontend...");
+    build_stage_bar.enable_steady_tick(80);
+
+    let mut process = std::process::Command::new("npm")
+        .arg("run")
+        .arg("build")
+        .env("DFX_VERSION", &format!("{}", dfx_version()))
+        .current_dir(config.get_project_root())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()?;
+
+    let status = process.wait()?;
+
+    if !status.success() {
+        let mut str = String::new();
+        process.stderr.unwrap().read_to_string(&mut str)?;
+        eprintln!("NPM failed to run:\n{}", str);
+        return Err(DfxError::BuildError(BuildErrorKind::FrontendBuildError()));
+    }
+
+    build_stage_bar.finish_with_message("Done building frontend...");
+
+    let build_stage_bar = ProgressBar::new_spinner();
+    build_stage_bar.set_draw_target(ProgressDrawTarget::stderr());
+    build_stage_bar.set_message("Bundling frontend assets in the canister...");
+    build_stage_bar.enable_steady_tick(80);
+
+    let frontends: Vec<String> = canisters
+        .iter()
+        .filter(|(_, v)| v.frontend.is_some())
+        .map(|(k, _)| k)
+        .cloned()
+        .collect();
+    for name in frontends {
+        let canister_info = CanisterInfo::load(&config, name.as_str()).map_err(|_| {
+            BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
+                name.to_owned(),
+            ))
+        })?;
+
+        let mut assets: AssetMap = AssetMap::new();
+        for dir_entry in std::fs::read_dir(canister_info.get_output_assets_root())? {
+            if let Ok(e) = dir_entry {
+                let p = e.path();
+                let ext = p.extension().unwrap_or_else(|| std::ffi::OsStr::new(""));
+                if p.is_file() && ext != "map" {
+                    let content = base64::encode(&std::fs::read(&p)?);
+                    assets.insert(
+                        p.strip_prefix(canister_info.get_output_assets_root())
+                            .expect("Cannot strip prefix.")
+                            .to_str()
+                            .expect("Could not get path.")
+                            .to_string(),
+                        content,
+                    );
+                }
+            }
         }
 
-        // Run `npm run build` if there is a package.json. Ignore errors.
-        if config.get_project_root().join("package.json").exists() {
-            eprintln!("Building frontend code...");
-
-            // Install node modules
-            std::process::Command::new("npm")
-                .arg("run")
-                .arg("build")
-                .env("DFX_VERSION", &format!("{}", dfx_version()))
-                .current_dir(config.get_project_root())
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit())
-                .output()?;
+        match build_file(env, &config, &name, &assets) {
+            Ok(()) => {}
+            Err(e) => {
+                build_stage_bar
+                    .finish_with_message(&format!(r#"Failed to build canister "{}":"#, name));
+                return Err(e);
+            }
         }
     }
 
@@ -285,21 +424,25 @@ mod tests {
             }
         });
 
+        let input_path = temp_dir().join("file").with_extension("mo");
+
         motoko_compile(
             &cache,
             None,
-            Path::new("/in/file.mo"),
+            "",
+            &input_path,
             Path::new("/out/file.wasm"),
+            &HashMap::new(),
         )
         .expect("Function failed.");
         didl_compile(&cache, Path::new("/in/file.mo"), Path::new("/out/file.did"))
-            .expect("Function failed");
+            .expect("Function failed (didl_compile)");
         build_did_js(
             &cache,
             Path::new("/out/file.did"),
             Path::new("/out/file.did.js"),
         )
-        .expect("Function failed");
+        .expect("Function failed (build_did_js)");
 
         out_file.flush().expect("Could not flush.");
 
@@ -308,13 +451,14 @@ mod tests {
             .and_then(|mut f| f.read_to_string(&mut s))
             .expect("Could not read temp file.");
 
-        assert_eq!(
-            s.trim(),
-            r#"moc /in/file.mo --debug -o /out/file.wasm --package stdlib stdlib
+        let re = regex::Regex::new(
+            &r"moc -c .*?.mo-[0-9]+ --debug -o /out/file.wasm --package stdlib stdlib
                 moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib
-                didc --js /out/file.did -o /out/file.did.js"#
-                .replace("                ", "")
-        );
+                didc --js /out/file.did -o /out/file.did.js"
+                .replace("                ", ""),
+        )
+        .expect("Could not create regex.");
+        assert!(re.is_match(s.trim()));
     }
 
     #[test]
@@ -354,7 +498,7 @@ mod tests {
         )
         .unwrap();
 
-        build_file(&env, &config, "name").expect("Function failed - build_file");
+        build_file(&env, &config, "name", &HashMap::new()).expect("Function failed - build_file");
         assert!(output_path.exists());
     }
 }

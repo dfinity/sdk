@@ -2,17 +2,13 @@
 // https://github.com/dfinity-lab/dfinity/blob/5fef1450c9ab16ccf18381379149e504b11c8218/docs/spec/public/index.adoc#request-ids
 
 import { Buffer } from 'buffer/';
-import { BinaryBlob } from './blob';
-import * as blob from './blob';
-import { Request } from './request';
+import { SenderPubKey, SenderSig } from './auth';
 import { hash, requestIdOf } from './request_id';
-import { RequestType } from './request_type';
-import { SenderPubKey } from './sender_pub_key';
-import { SenderSig } from './sender_sig';
+import { BinaryBlob, blobToHex } from './types';
 
 const testHashOfBlob = async (input: BinaryBlob, expected: string) => {
   const hashed = await hash(input);
-  const hex = blob.toHex(hashed);
+  const hex = blobToHex(hashed);
   expect(hex).toBe(expected);
 };
 
@@ -61,8 +57,8 @@ test('hash', async () => {
 
 // This is based on the example in the spec.
 test('requestIdOf', async () => {
-  const request: Request = {
-    request_type: 'call' as RequestType,
+  const request = {
+    request_type: 'call',
     method_name: 'hello',
 
     // 0x00000000000004D2
@@ -84,7 +80,7 @@ test('requestIdOf', async () => {
 
   const requestId = await requestIdOf(request);
 
-  expect(blob.toHex(requestId)).toEqual(
+  expect(blobToHex(requestId)).toEqual(
     '8781291c347db32a9d8c10eb62b710fce5a93be676474c42babc74c51858f94b',
   );
 });

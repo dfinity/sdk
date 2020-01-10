@@ -1,7 +1,7 @@
 // tslint:disable
 import BigNumber from 'bignumber.js';
 import * as IDL from './idl';
-import { Buffer } from 'buffer';
+import { Buffer } from 'buffer/';
 
 function testEncode(typ: IDL.Type, val: any, hex: string, _str: string) {
   expect(IDL.encode([typ], [val]).toString('hex')).toEqual(hex);
@@ -110,7 +110,7 @@ test('IDL encoding (tuple)', () => {
     'Pairs',
   );
   expect(() => IDL.encode([IDL.Tuple(IDL.Int, IDL.Text)], [[0]])).toThrow(
-    /Invalid Tuple\(Int,Text\) argument/,
+    /Invalid Record\(_0_:Int,_1_:Text\) argument/,
   );
 });
 
@@ -123,9 +123,9 @@ test('IDL encoding (array)', () => {
     'Array of Ints',
   );
   expect(() => IDL.encode([IDL.Vec(IDL.Int)], [new BigNumber(0)])).toThrow(
-    /Invalid Arr\(Int\) argument/,
+    /Invalid Vec\(Int\) argument/,
   );
-  expect(() => IDL.encode([IDL.Vec(IDL.Int)], [['fail']])).toThrow(/Invalid Arr\(Int\) argument/);
+  expect(() => IDL.encode([IDL.Vec(IDL.Int)], [['fail']])).toThrow(/Invalid Vec\(Int\) argument/);
 });
 
 test('IDL encoding (array + tuples)', () => {
@@ -146,11 +146,11 @@ test('IDL encoding (array + tuples)', () => {
   );
 });
 
-test('IDL encoding (object)', () => {
-  // Object
-  test_(IDL.Record({}), {}, '4449444c016c000100', 'Empty object');
+test('IDL encoding (record)', () => {
+  // Record
+  test_(IDL.Record({}), {}, '4449444c016c000100', 'Empty record');
   expect(() => IDL.encode([IDL.Record({ a: IDL.Text })], [{ b: 'b' }])).toThrow(
-    /Obj is missing key/,
+    /Record is missing key/,
   );
 
   // Test that additional keys are ignored
@@ -158,13 +158,37 @@ test('IDL encoding (object)', () => {
     IDL.Record({ foo: IDL.Text, bar: IDL.Int }),
     { foo: '💩', bar: new BigNumber(42), baz: new BigNumber(0) },
     '4449444c016c02d3e3aa027c868eb7027101002a04f09f92a9',
-    'Object',
+    'Record',
   );
   testEncode(
     IDL.Record({ foo: IDL.Text, bar: IDL.Int }),
     { foo: '💩', bar: 42 },
     '4449444c016c02d3e3aa027c868eb7027101002a04f09f92a9',
-    'Object',
+    'Record',
+  );
+});
+
+test('IDL encoding (numbered record)', () => {
+  // Record
+  test_(
+    IDL.Record({ _0_: IDL.Int8, _1_: IDL.Bool }),
+    { _0_: 42, _1_: true },
+    '4449444c016c020077017e01002a01',
+    'Numbered record',
+  );
+  // Test Tuple and numbered record are exact the same
+  test_(IDL.Tuple(IDL.Int8, IDL.Bool), [42, true], '4449444c016c020077017e01002a01', 'Tuple');
+  test_(
+    IDL.Tuple(IDL.Tuple(IDL.Int8, IDL.Bool), IDL.Record({ _0_: IDL.Int8, _1_: IDL.Bool })),
+    [[42, true], { _0_: 42, _1_: true }],
+    '4449444c026c020077017e6c020000010001012a012a01',
+    'Tuple and Record',
+  );
+  test_(
+    IDL.Record({ _2_: IDL.Int8, 2: IDL.Bool }),
+    { _2_: 42, 2: true },
+    '4449444c016c020277327e01002a01',
+    'Mixed record',
   );
 });
 

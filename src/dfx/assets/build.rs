@@ -63,7 +63,6 @@ fn main() {
     let path = env::var("DFX_ASSETS").expect("Cannot find DFX_ASSETS");
     add_assets("binary_cache", &mut f, &path);
     add_assets("language_bindings", &mut f, "assets/language_bindings");
-    add_assets("build_assets", &mut f, "assets/build_assets");
     add_assets("new_project_files", &mut f, "assets/new_project_files");
     add_assets(
         "new_project_node_files",

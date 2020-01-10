@@ -6,8 +6,8 @@ import borc from 'borc';
 import { Buffer } from 'buffer/';
 import * as cbor from 'simple-cbor';
 import { CborEncoder, SelfDescribeCborSerializer } from 'simple-cbor';
-import { BinaryBlob } from './blob';
 import { CanisterId } from './canisterId';
+import { BinaryBlob } from './types';
 
 // We are using hansl/simple-cbor for CBOR serialization, to avoid issues with
 // encoding the uint64 values that the HTTP handler of the client expects for
@@ -72,5 +72,9 @@ export function decode<T>(input: Uint8Array): T {
       [CborTag.Semantic]: (value: T): T => value,
     },
   });
-  return decoder.decodeFirst(input);
+  const result = decoder.decodeFirst(input);
+  if (result.hasOwnProperty('canister_id')) {
+    result.canister_id = CanisterId.fromText(result.canister_id.toString(16));
+  }
+  return result;
 }

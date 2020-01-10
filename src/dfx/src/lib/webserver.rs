@@ -1,7 +1,8 @@
 use actix::System;
+use actix_cors::Cors;
 use actix_server::Server;
 use actix_web::client::Client;
-use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{http, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use crossbeam::channel::Sender;
 use futures::Future;
 use std::net::SocketAddr;
@@ -67,6 +68,14 @@ fn run_webserver(
         App::new()
             .data(Client::new())
             .data(client_api_uri.clone())
+            .wrap(
+                Cors::new()
+                    .allowed_methods(vec!["POST"])
+                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                    .allowed_header(http::header::CONTENT_TYPE)
+                    .send_wildcard()
+                    .max_age(3600),
+            )
             .wrap(middleware::Logger::default())
             .service(web::scope(client_api_uri.path()).default_service(web::to_async(forward)))
             .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))

@@ -8,7 +8,6 @@ use crate::lib::message::UserMessage;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Blob, RequestId};
-use std::io::Write;
 use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
 
@@ -43,9 +42,9 @@ pub fn install_canister(client: &Client, canister_info: &CanisterInfo) -> DfxRes
     })?;
 
     eprintln!(
-        "Installing {} with ID {}...",
+        "Installing code for canister {}, with canister_id {}",
         canister_info.get_name(),
-        canister_id.to_hex(),
+        canister_id.to_text(),
     );
 
     let wasm_path = canister_info.get_output_wasm_path();
@@ -72,35 +71,28 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
     // the client work, and call again. We stop waiting after `REQUEST_TIMEOUT`.
     loop {
         response = runtime.block_on(request_status(client.clone(), request_id))?;
-        if response != ReadResponse::Unknown || start.elapsed() > REQUEST_TIMEOUT {
-            break;
-        } else {
-            std::thread::sleep(RETRY_PAUSE);
-        }
-    }
-
-    match response {
-        ReadResponse::Pending => {
-            eprint!("Request ID: ");
-            std::io::stderr().flush()?;
-            println!("0x{}", String::from(request_id));
-            Ok(())
-        }
-        ReadResponse::Replied { reply } => {
-            if let Some(QueryResponseReply { arg: blob }) = reply {
-                print_idl_blob(&blob)
-                    .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+        match response {
+            ReadResponse::Replied { reply } => {
+                if let Some(QueryResponseReply { arg: blob }) = reply {
+                    print_idl_blob(&blob)
+                        .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+                }
+                return Ok(());
             }
-            Ok(())
-        }
-        ReadResponse::Rejected {
-            reject_code,
-            reject_message,
-        } => Err(DfxError::ClientError(reject_code, reject_message)),
-        ReadResponse::Unknown => Err(DfxError::TimeoutWaitingForResponse(
-            request_id,
-            REQUEST_TIMEOUT,
-        )),
+            ReadResponse::Rejected {
+                reject_code,
+                reject_message,
+            } => return Err(DfxError::ClientError(reject_code, reject_message)),
+            ReadResponse::Pending => (),
+            ReadResponse::Unknown => (),
+        };
+        if start.elapsed() > REQUEST_TIMEOUT {
+            return Err(DfxError::TimeoutWaitingForResponse(
+                request_id,
+                REQUEST_TIMEOUT,
+            ));
+        };
+        std::thread::sleep(RETRY_PAUSE);
     }
 }
 

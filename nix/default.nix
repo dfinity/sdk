@@ -19,11 +19,8 @@ let
     let localCommonSrc = builtins.getEnv "COMMON"; in
     if localCommonSrc != ""
     then localCommonSrc
-    else builtins.fetchGit {
-      name = "common-sources";
-      url = "ssh://git@github.com/dfinity-lab/common";
-      rev = "7fc0d40dc6e52a221b370be5a04292e59b32f17d";
-    };
+    else
+      let sources = import ./sources.nix; in sources.common;
 in import commonSrc {
   inherit system crossSystem config;
   overlays = import ./overlays ++ [

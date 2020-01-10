@@ -76,7 +76,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let client_pathbuf = env.get_cache().get_binary_command_path("client")?;
     let nodemanager_pathbuf = env.get_cache().get_binary_command_path("nodemanager")?;
 
+<<<<<<< HEAD
+    let project_root = config.get_path().parent().unwrap();
     let pid_file_path = env.get_temp_dir().join("pid");
+=======
+    let pid_file_path = env.get_dfx_root().unwrap().join("pid");
+>>>>>>> master
     check_previous_process_running(&pid_file_path)?;
 
     // We are doing this here to make sure we can write to the temp pid file.
@@ -113,9 +118,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             )
         })?;
 
-    let bootstrap_dir = env
-        .get_cache()
-        .get_binary_command_path("js-user-library/dist/bootstrap")?;
+    let bootstrap_dir = env.get_binary_command_path("js-user-library/dist/bootstrap")?;
     let frontend_watchdog = webserver(
         address_and_port,
         url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),

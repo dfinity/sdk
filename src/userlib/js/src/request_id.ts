@@ -1,13 +1,12 @@
 import borc from 'borc';
 import { Buffer } from 'buffer/';
-import { BinaryBlob } from './blob';
-import * as blob from './blob';
 import { CanisterId } from './canisterId';
-import * as Request from './request';
+import { BinaryBlob, blobFromHex, blobToHex } from './types';
 
 export type RequestId = BinaryBlob & { __requestId__: void };
-
-export const toHex = (requestId: RequestId): string => blob.toHex(requestId);
+export function toHex(requestId: RequestId): string {
+  return blobToHex(requestId);
+}
 
 export async function hash(data: BinaryBlob): Promise<BinaryBlob> {
   const hashed: ArrayBuffer = await crypto.subtle.digest(
@@ -32,13 +31,15 @@ async function hashValue(value: unknown): Promise<Buffer> {
     // HTTP handler expects canister_id to be an u64 & hashed in this way.
     const hex = value.toHex();
     const padded = padHex(hex);
-    return hash(blob.fromHex(padded));
+    return hash(blobFromHex(padded));
   } else if (typeof value === 'number') {
     const hex = value.toString(16);
     const padded = padHex(hex);
-    return hash(blob.fromHex(padded));
+    return hash(blobFromHex(padded));
   } else if (value instanceof Buffer) {
-    return hash(value as BinaryBlob);
+    return hash(new Uint8Array(value) as BinaryBlob);
+  } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+    return hash(new Uint8Array(value) as BinaryBlob);
   } else {
     throw new Error(`Attempt to hash a value of unsupported type: ${value}`);
   }
@@ -56,7 +57,7 @@ const concat = (bs: BinaryBlob[]): BinaryBlob => {
   }, new Uint8Array()) as BinaryBlob;
 };
 
-export const requestIdOf = async (request: Request.CommonFields): Promise<RequestId> => {
+export const requestIdOf = async (request: Record<string, any>): Promise<RequestId> => {
   // While the type signature of this function ensures the fields we care about
   // are present, it does not prevent additional fields from being provided,
   // including the fields used for authentication that we must omit when
