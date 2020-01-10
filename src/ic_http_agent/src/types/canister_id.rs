@@ -1,5 +1,5 @@
 use crate::types::blob::Blob;
-use byteorder::{LittleEndian, ByteOrder};
+use byteorder::{ByteOrder, LittleEndian};
 use crc8::Crc8;
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
