@@ -8,6 +8,7 @@
 
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
+, static
 }:
 let
   lib = pkgs.lib;
@@ -23,6 +24,7 @@ let
       ".*Cargo\.lock$"
       "^.cargo/config$"
     ];
+    inherit static;
   };
   workspace' = (workspace //
     { lint = workspace.lint.overrideAttrs (oldAttrs: {
