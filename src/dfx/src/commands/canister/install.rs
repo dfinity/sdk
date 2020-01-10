@@ -77,11 +77,12 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
                     print_idl_blob(&blob)
                         .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
                 }
-                return Ok(())
-            },
-            ReadResponse::Rejected { reject_code, reject_message, } => {
-                return Err(DfxError::ClientError(reject_code, reject_message))
-            },
+                return Ok(());
+            }
+            ReadResponse::Rejected {
+                reject_code,
+                reject_message,
+            } => return Err(DfxError::ClientError(reject_code, reject_message)),
             ReadResponse::Pending => (),
             ReadResponse::Unknown => (),
         };
@@ -89,7 +90,7 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
             return Err(DfxError::TimeoutWaitingForResponse(
                 request_id,
                 REQUEST_TIMEOUT,
-            ))
+            ));
         };
         std::thread::sleep(RETRY_PAUSE);
     }
