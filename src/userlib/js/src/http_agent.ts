@@ -147,7 +147,7 @@ export class HttpAgent {
   ): Promise<SubmitResponse> {
     return this.submit({
       request_type: SubmitRequestType.Call,
-      canister_id: typeof canisterId === 'string' ? CanisterId.fromHex(canisterId) : canisterId,
+      canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
     });
@@ -156,7 +156,7 @@ export class HttpAgent {
   public query(canisterId: CanisterId | string, fields: QueryFields): Promise<QueryResponse> {
     return this.read({
       request_type: ReadRequestType.Query,
-      canister_id: typeof canisterId === 'string' ? CanisterId.fromHex(canisterId) : canisterId,
+      canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
     }) as Promise<QueryResponse>;

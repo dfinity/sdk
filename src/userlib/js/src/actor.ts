@@ -120,7 +120,7 @@ export function makeActorFactory(
       ...DEFAULT_ACTOR_CONFIG,
       ...config,
     } as Required<ActorConfig>;
-    const cid = typeof canisterId === 'string' ? CanisterId.fromHex(canisterId) : canisterId;
+    const cid = typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId;
     const actor: Actor = {
       __canisterId() {
         return cid.toHex();

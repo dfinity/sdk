@@ -24,7 +24,7 @@ test('call', async () => {
     );
   });
 
-  const canisterId: CanisterId = CanisterId.fromHex('0000000000000001');
+  const canisterId: CanisterId = CanisterId.fromText('0000000000000001');
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
   // prettier-ignore
   const seed = Buffer.from([
@@ -122,7 +122,7 @@ test('requestStatus', async () => {
   const requestId = await requestIdOf({
     request_type: SubmitRequestType.Call,
     nonce,
-    canister_id: CanisterId.fromHex(canisterIdent),
+    canister_id: CanisterId.fromText(canisterIdent),
     method_name: 'greet',
     arg: Buffer.from([]),
   });

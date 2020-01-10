@@ -23,7 +23,7 @@ test('round trip', () => {
     b: 'two',
     c: Buffer.from([3]) as BinaryBlob,
     d: { four: 'four' },
-    e: CanisterId.fromHex('ffffffffffffffff'),
+    e: CanisterId.fromText('ffffffffffffffff'),
     f: Buffer.from([]) as BinaryBlob,
     g: new BigNumber('0xffffffffffffffff'),
   };
