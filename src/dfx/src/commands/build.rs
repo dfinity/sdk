@@ -17,6 +17,7 @@ use std::io::Read;
 use std::path::Path;
 
 type AssetMap = HashMap<String, String>;
+type CanisterIdMap = HashMap<String, String>;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
@@ -68,6 +69,8 @@ fn motoko_compile(
     content: &str,
     input_path: &Path,
     output_path: &Path,
+    idl_path: &Path,
+    id_map: &CanisterIdMap,
     assets: &AssetMap,
 ) -> DfxResult {
     // Invoke the compiler in debug (development) or release mode, based on the current profile:
@@ -95,6 +98,15 @@ fn motoko_compile(
     let input_path = input_path.with_extension(format!("mo-{}", rng.gen::<u64>()));
     std::fs::write(&input_path, content.as_bytes())?;
 
+    eprintln!("{}", idl_path.display());
+
+    let mut alias = Vec::new();
+    for (name, canister_id) in id_map.iter() {
+        alias.push("--actor-alias");
+        alias.push(name);
+        alias.push(canister_id);
+    }
+    
     let process = cache
         .get_binary_command("moc")?
         .env("MOC_RTS", mo_rts_path.as_path())
@@ -106,6 +118,9 @@ fn motoko_compile(
         .arg("--package")
         .arg("stdlib")
         .arg(&stdlib_path.as_path())
+        .arg("--actor-idl")
+        .arg(&idl_path)
+        .args(&alias)
         .spawn()?;
 
     let output = process.wait_with_output()?;
@@ -123,9 +138,18 @@ fn motoko_compile(
     }
 }
 
-fn didl_compile(cache: &dyn Cache, input_path: &Path, output_path: &Path) -> DfxResult {
+fn didl_compile(cache: &dyn Cache, input_path: &Path, output_path: &Path, idl_path: &Path, id_map: &CanisterIdMap) -> DfxResult {
     let stdlib_path = cache.get_binary_command_path("stdlib")?;
 
+    let mut alias = Vec::new();
+    for (name, canister_id) in id_map.iter() {
+        alias.push("--actor-alias");
+        alias.push(name);
+        alias.push(canister_id);
+    }
+
+    eprintln!("{}\n{}\n{:?}\n", input_path.display(), output_path.display(), alias);
+    
     let output = cache
         .get_binary_command("moc")?
         .arg("--idl")
@@ -135,6 +159,9 @@ fn didl_compile(cache: &dyn Cache, input_path: &Path, output_path: &Path) -> Dfx
         .arg("--package")
         .arg("stdlib")
         .arg(&stdlib_path.as_path())
+        .arg("--actor-idl")
+        .arg(&idl_path)
+        .args(&alias)
         .output()?;
 
     if !output.status.success() {
@@ -190,7 +217,43 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     Ok(())
 }
 
-fn build_file(env: &dyn Environment, config: &Config, name: &str, assets: &AssetMap) -> DfxResult {
+fn build_idl(env: &dyn Environment, config: &Config, name: &str, id_map: &CanisterIdMap) -> DfxResult {
+    let canister_info = CanisterInfo::load(config, name).map_err(|_| {
+        BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
+            name.to_owned(),
+        ))
+    })?;
+
+    let config = config.get_config();
+    let input_path = canister_info.get_main_path();
+
+    let idl_path = canister_info.get_output_root().parent().unwrap().join("idl");
+    match input_path.extension().and_then(OsStr::to_str) {
+        Some("mo") => {
+            let canister_id = canister_info.get_canister_id()
+                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+            let canister_id = canister_id.to_text().split_off(3);
+
+            let output_idl_path = idl_path.join(canister_id).with_extension("did");
+
+            std::fs::create_dir_all(&idl_path)?;
+
+            let cache = env.get_cache();
+            didl_compile(cache.as_ref(), &input_path, &output_idl_path, &idl_path, id_map)?;
+            Ok(())
+        }
+        Some(ext) => Err(DfxError::BuildError(BuildErrorKind::InvalidExtension(
+            ext.to_owned(),
+        ))),
+        None => Err(DfxError::BuildError(BuildErrorKind::InvalidExtension(
+            "".to_owned(),
+        ))),
+    }?;
+
+    Ok(())
+}
+
+fn build_file(env: &dyn Environment, config: &Config, name: &str, id_map: &CanisterIdMap, assets: &AssetMap) -> DfxResult {
     let canister_info = CanisterInfo::load(config, name).map_err(|_| {
         BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
             name.to_owned(),
@@ -202,6 +265,7 @@ fn build_file(env: &dyn Environment, config: &Config, name: &str, assets: &Asset
     let input_path = canister_info.get_main_path();
 
     let output_wasm_path = canister_info.get_output_wasm_path();
+    let idl_path = canister_info.get_output_root().parent().unwrap().join("idl");
     match input_path.extension().and_then(OsStr::to_str) {
         // TODO(SDK-441): Revisit supporting compilation from WAT files.
         Some("wat") => {
@@ -233,9 +297,11 @@ fn build_file(env: &dyn Environment, config: &Config, name: &str, assets: &Asset
                 &content,
                 &input_path,
                 &output_wasm_path,
+                &idl_path,
+                &id_map,
                 assets,
             )?;
-            didl_compile(cache.as_ref(), &input_path, &output_idl_path)?;
+            didl_compile(cache.as_ref(), &input_path, &output_idl_path, &idl_path, id_map)?;            
             build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
 
@@ -274,6 +340,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     }
     let canisters = maybe_canisters.as_ref().unwrap();
 
+    // Build canister id map
+    let mut id_map = HashMap::new();
     for name in canisters.keys() {
         let canister_info = CanisterInfo::load(&config, name)?;
         build_stage_bar.set_message(&format!("Building canister {}...", name));
@@ -290,7 +358,31 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         )
         .map_err(DfxError::from)?;
 
-        match build_file(env, &config, name, &HashMap::new()) {
+        let canister_id = canister_info.get_canister_id().unwrap().to_text();
+        id_map.insert(name.to_owned(), canister_id);
+    }
+
+    // Build canister IDL
+    for name in canisters.keys() {
+        let canister_info = CanisterInfo::load(&config, name)?;        
+        let idl_path = canister_info.get_output_root().parent().expect("Cannot use root.");
+        let idl_path = idl_path.join("idl");
+        std::fs::create_dir_all(&idl_path)?;
+
+        match build_idl(env, &config, name, &id_map) {
+            Ok(()) => {}
+            Err(e) => {
+                build_stage_bar
+                    .finish_with_message(&format!(r#"Failed to build IDL for canister "{}":"#, name));
+                eprintln!("{:?}", e);
+                return Err(e);                
+            }
+        }       
+    }
+
+    // Build canister
+    for name in canisters.keys() {
+        match build_file(env, &config, name, &id_map, &HashMap::new()) {
             Ok(()) => {}
             Err(e) => {
                 build_stage_bar
@@ -299,6 +391,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 return Err(e);
             }
         }
+
     }
     build_stage_bar.finish_with_message("Done building canisters...");
 
@@ -370,7 +463,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             }
         }
 
-        match build_file(env, &config, &name, &assets) {
+        match build_file(env, &config, &name, &id_map, &assets) {
             Ok(()) => {}
             Err(e) => {
                 build_stage_bar
