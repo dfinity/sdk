@@ -1,6 +1,6 @@
 use crate::lib::api_client::{query, QueryResponseReply, ReadResponse};
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::env::{ClientEnv, ProjectConfigEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::print_idl_blob;
@@ -38,16 +38,13 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: ClientEnv + ProjectConfigEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     let canister_name = args.value_of("canister_name").unwrap();
-    let canister_info = CanisterInfo::load(config, canister_name)?;
+    let canister_info = CanisterInfo::load(&config, canister_name)?;
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
@@ -81,7 +78,9 @@ where
 
     eprintln!(r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#);
 
-    let client = env.get_client();
+    let client = env
+        .get_client()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let query = query(
         client,
         canister_id,

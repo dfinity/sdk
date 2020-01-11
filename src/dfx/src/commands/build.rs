@@ -1,7 +1,8 @@
+use crate::config::cache::Cache;
 use crate::config::dfinity::{Config, Profile};
-use crate::config::{cache, dfx_version};
+use crate::config::dfx_version;
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxError::BuildError;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -61,8 +62,8 @@ fn get_asset_fn(assets: &AssetMap) -> String {
 }
 
 /// Compile a motoko file.
-fn motoko_compile<T: BinaryResolverEnv>(
-    env: &T,
+fn motoko_compile(
+    cache: &dyn Cache,
     profile: Option<Profile>,
     content: &str,
     input_path: &Path,
@@ -75,8 +76,8 @@ fn motoko_compile<T: BinaryResolverEnv>(
         _ => "--debug",
     };
 
-    let mo_rts_path = env.get_binary_command_path("mo-rts.wasm")?;
-    let stdlib_path = env.get_binary_command_path("stdlib")?;
+    let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
+    let stdlib_path = cache.get_binary_command_path("stdlib")?;
 
     let mut content = content.to_string();
     // Because we don't have an AST (yet) we need to do some regex magic.
@@ -94,7 +95,7 @@ fn motoko_compile<T: BinaryResolverEnv>(
     let input_path = input_path.with_extension(format!("mo-{}", rng.gen::<u64>()));
     std::fs::write(&input_path, content.as_bytes())?;
 
-    let process = env
+    let process = cache
         .get_binary_command("moc")?
         .env("MOC_RTS", mo_rts_path.as_path())
         .arg("-c")
@@ -122,10 +123,10 @@ fn motoko_compile<T: BinaryResolverEnv>(
     }
 }
 
-fn didl_compile<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult {
-    let stdlib_path = env.get_binary_command_path("stdlib")?;
+fn didl_compile(cache: &dyn Cache, input_path: &Path, output_path: &Path) -> DfxResult {
+    let stdlib_path = cache.get_binary_command_path("stdlib")?;
 
-    let output = env
+    let output = cache
         .get_binary_command("moc")?
         .arg("--idl")
         .arg(&input_path)
@@ -146,8 +147,8 @@ fn didl_compile<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &
     }
 }
 
-fn build_did_js<T: BinaryResolverEnv>(env: &T, input_path: &Path, output_path: &Path) -> DfxResult {
-    let output = env
+fn build_did_js(cache: &dyn Cache, input_path: &Path, output_path: &Path) -> DfxResult {
+    let output = cache
         .get_binary_command("didc")?
         .arg("--js")
         .arg(&input_path)
@@ -189,10 +190,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     Ok(())
 }
 
-fn build_file<T>(env: &T, config: &Config, name: &str, assets: &AssetMap) -> DfxResult
-where
-    T: BinaryResolverEnv,
-{
+fn build_file(env: &dyn Environment, config: &Config, name: &str, assets: &AssetMap) -> DfxResult {
     let canister_info = CanisterInfo::load(config, name).map_err(|_| {
         BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
             name.to_owned(),
@@ -228,16 +226,17 @@ where
             std::fs::create_dir_all(canister_info.get_output_root())?;
 
             let content = std::fs::read_to_string(input_path)?;
+            let cache = env.get_cache();
             motoko_compile(
-                env,
+                cache.as_ref(),
                 profile,
                 &content,
                 &input_path,
                 &output_wasm_path,
                 assets,
             )?;
-            didl_compile(env, &input_path, &output_idl_path)?;
-            build_did_js(env, &output_idl_path, &output_did_js_path)?;
+            didl_compile(cache.as_ref(), &input_path, &output_idl_path)?;
+            build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
 
             Ok(())
@@ -253,10 +252,7 @@ where
     Ok(())
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: BinaryResolverEnv + ProjectConfigEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // Read the config.
     let config = env
         .get_config()
@@ -264,7 +260,7 @@ where
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    cache::install_version(dfx_version(), false)?;
+    env.get_cache().install()?;
 
     let build_stage_bar = ProgressBar::new_spinner();
     build_stage_bar.set_draw_target(ProgressDrawTarget::stderr());
@@ -320,7 +316,7 @@ where
     let mut process = std::process::Command::new("npm")
         .arg("run")
         .arg("build")
-        .env("DFX_VERSION", &dfx_version())
+        .env("DFX_VERSION", &format!("{}", dfx_version()))
         .current_dir(config.get_project_root())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -349,7 +345,7 @@ where
         .cloned()
         .collect();
     for name in frontends {
-        let canister_info = CanisterInfo::load(config, name.as_str()).map_err(|_| {
+        let canister_info = CanisterInfo::load(&config, name.as_str()).map_err(|_| {
             BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
                 name.to_owned(),
             ))
@@ -391,63 +387,58 @@ where
 mod tests {
     use super::*;
 
+    use crate::config::cache::MockCache;
+    use crate::lib::environment::MockEnvironment;
     use std::env::temp_dir;
     use std::fs;
     use std::io::{Read, Write};
     use std::path::PathBuf;
     use std::process;
+    use std::rc::Rc;
 
     #[test]
     /// Runs "echo" instead of the compiler to make sure the binaries are called in order
     /// with the good arguments.
     fn build_file_wasm() {
-        // Create a binary cache environment that just returns "echo", so we can test the STDOUT.
-        struct TestEnv<'a> {
-            out_file: &'a fs::File,
-        }
+        let temp_path = temp_dir().join("stdout").with_extension("txt");
+        let mut out_file = fs::File::create(temp_path.clone()).expect("Could not create file.");
+        let mut cache = MockCache::default();
 
-        impl<'a> BinaryResolverEnv for TestEnv<'a> {
-            fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf> {
-                // We need to implement this function as it's used to set the "MOC_RTS"
-                // environment variable and pass the stdlib package. For the
-                // purposes of this test we just return the name of the binary
-                // that was requested.
-                Ok(PathBuf::from(binary_name))
-            }
-            fn get_binary_command(&self, binary_name: &str) -> DfxResult<process::Command> {
-                let stdout = self.out_file.try_clone()?;
-                let stderr = self.out_file.try_clone()?;
+        cache
+            .expect_get_binary_command_path()
+            .returning(|x| Ok(PathBuf::from(x)));
+
+        cache.expect_get_binary_command().returning({
+            let out_file = out_file.try_clone().unwrap();
+            move |binary_name| {
+                let stdout = out_file.try_clone()?;
+                let stderr = out_file.try_clone()?;
 
                 let mut cmd = process::Command::new("echo");
 
-                cmd.arg(binary_name)
+                cmd.arg(binary_name.to_owned())
                     .stdout(process::Stdio::from(stdout))
                     .stderr(process::Stdio::from(stderr));
 
                 Ok(cmd)
             }
-        }
+        });
 
         let input_path = temp_dir().join("file").with_extension("mo");
-        let temp_path = temp_dir().join("stdout").with_extension("txt");
-        let mut out_file = fs::File::create(temp_path.clone()).expect("Could not create file.");
-        let env = TestEnv {
-            out_file: &out_file,
-        };
 
         motoko_compile(
-            &env,
+            &cache,
             None,
             "",
             &input_path,
             Path::new("/out/file.wasm"),
             &HashMap::new(),
         )
-        .expect("Function failed (motoko_compile)");
-        didl_compile(&env, Path::new("/in/file.mo"), Path::new("/out/file.did"))
+        .expect("Function failed.");
+        didl_compile(&cache, Path::new("/in/file.mo"), Path::new("/out/file.did"))
             .expect("Function failed (didl_compile)");
         build_did_js(
-            &env,
+            &cache,
             Path::new("/out/file.did"),
             Path::new("/out/file.did.js"),
         )
@@ -474,19 +465,10 @@ mod tests {
     /// Runs "echo" instead of the compiler to make sure the binaries are called in order
     /// with the good arguments.
     fn build_file_wat() {
-        // Create a binary cache environment that just returns "echo", so we can test the STDOUT.
-        struct TestEnv {}
+        let mut env = MockEnvironment::default();
+        env.expect_get_cache()
+            .return_once_st(move || Rc::new(MockCache::default()));
 
-        impl BinaryResolverEnv for TestEnv {
-            fn get_binary_command_path(&self, _binary_name: &str) -> DfxResult<PathBuf> {
-                panic!("get_binary_command_path should not be called.")
-            }
-            fn get_binary_command(&self, _binary_name: &str) -> DfxResult<process::Command> {
-                panic!("get_binary_command should not be called.")
-            }
-        }
-
-        let env = TestEnv {};
         let wat = r#"(module )"#;
 
         let temp_dir = tempfile::tempdir().unwrap();

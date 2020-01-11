@@ -81,6 +81,9 @@ pub enum DfxError {
 
     /// Configuration is invalid.
     CouldNotSerializeConfiguration(serde_json::error::Error),
+
+    // An error during parsing of a version string.
+    VersionCouldNotBeParsed(semver::SemVerError),
 }
 
 /// The result of running a DFX command.
@@ -107,5 +110,11 @@ impl From<std::io::Error> for DfxError {
 impl From<serde_json::error::Error> for DfxError {
     fn from(err: serde_json::error::Error) -> DfxError {
         DfxError::CouldNotSerializeConfiguration(err)
+    }
+}
+
+impl From<semver::SemVerError> for DfxError {
+    fn from(err: semver::SemVerError) -> DfxError {
+        DfxError::VersionCouldNotBeParsed(err)
     }
 }
