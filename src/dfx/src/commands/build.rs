@@ -11,13 +11,14 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::CanisterId;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::{thread_rng, Rng};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::io::Read;
 use std::path::Path;
 
 type AssetMap = HashMap<String, String>;
 type CanisterIdMap = HashMap<String, String>;
+type CanisterDependencyMap = HashMap<String, Vec<String>>;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
@@ -63,6 +64,7 @@ fn get_asset_fn(assets: &AssetMap) -> String {
 }
 
 /// Compile a motoko file.
+#[allow(clippy::too_many_arguments)]
 fn motoko_compile(
     cache: &dyn Cache,
     profile: Option<Profile>,
@@ -98,15 +100,13 @@ fn motoko_compile(
     let input_path = input_path.with_extension(format!("mo-{}", rng.gen::<u64>()));
     std::fs::write(&input_path, content.as_bytes())?;
 
-    eprintln!("{}", idl_path.display());
-
     let mut alias = Vec::new();
     for (name, canister_id) in id_map.iter() {
         alias.push("--actor-alias");
         alias.push(name);
         alias.push(canister_id);
     }
-    
+
     let process = cache
         .get_binary_command("moc")?
         .env("MOC_RTS", mo_rts_path.as_path())
@@ -138,7 +138,42 @@ fn motoko_compile(
     }
 }
 
-fn didl_compile(cache: &dyn Cache, input_path: &Path, output_path: &Path, idl_path: &Path, id_map: &CanisterIdMap) -> DfxResult {
+fn find_deps(cache: &dyn Cache, input_path: &Path) -> DfxResult<Vec<String>> {
+    let output = cache
+        .get_binary_command("moc")?
+        .arg("--print-deps")
+        .arg(&input_path)
+        .output()?;
+
+    if !output.status.success() {
+        Err(DfxError::BuildError(BuildErrorKind::IdlGenerationError(
+            String::from_utf8_lossy(&output.stdout).to_string()
+                + &String::from_utf8_lossy(&output.stderr),
+        )))
+    } else {
+        let output = String::from_utf8_lossy(&output.stdout);
+        let mut deps = Vec::new();
+        for dep in output.lines() {
+            let prefix: Vec<_> = dep.split(':').collect();
+            match prefix[0] {
+                "canister" => deps.push(prefix[1].to_string()),
+                "ic" => (),
+                // TODO I should trace down local imports
+                "mo" => (),
+                _other => (),
+            }
+        }
+        Ok(deps)
+    }
+}
+
+fn didl_compile(
+    cache: &dyn Cache,
+    input_path: &Path,
+    output_path: &Path,
+    idl_path: &Path,
+    id_map: &CanisterIdMap,
+) -> DfxResult {
     let stdlib_path = cache.get_binary_command_path("stdlib")?;
 
     let mut alias = Vec::new();
@@ -148,8 +183,6 @@ fn didl_compile(cache: &dyn Cache, input_path: &Path, output_path: &Path, idl_pa
         alias.push(canister_id);
     }
 
-    eprintln!("{}\n{}\n{:?}\n", input_path.display(), output_path.display(), alias);
-    
     let output = cache
         .get_binary_command("moc")?
         .arg("--idl")
@@ -217,20 +250,29 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     Ok(())
 }
 
-fn build_idl(env: &dyn Environment, config: &Config, name: &str, id_map: &CanisterIdMap) -> DfxResult {
+fn build_idl(
+    env: &dyn Environment,
+    config: &Config,
+    name: &str,
+    id_map: &CanisterIdMap,
+) -> DfxResult {
     let canister_info = CanisterInfo::load(config, name).map_err(|_| {
         BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
             name.to_owned(),
         ))
     })?;
 
-    let config = config.get_config();
     let input_path = canister_info.get_main_path();
 
-    let idl_path = canister_info.get_output_root().parent().unwrap().join("idl");
+    let idl_path = canister_info
+        .get_output_root()
+        .parent()
+        .unwrap()
+        .join("idl");
     match input_path.extension().and_then(OsStr::to_str) {
         Some("mo") => {
-            let canister_id = canister_info.get_canister_id()
+            let canister_id = canister_info
+                .get_canister_id()
                 .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
             let canister_id = canister_id.to_text().split_off(3);
 
@@ -239,7 +281,13 @@ fn build_idl(env: &dyn Environment, config: &Config, name: &str, id_map: &Canist
             std::fs::create_dir_all(&idl_path)?;
 
             let cache = env.get_cache();
-            didl_compile(cache.as_ref(), &input_path, &output_idl_path, &idl_path, id_map)?;
+            didl_compile(
+                cache.as_ref(),
+                &input_path,
+                &output_idl_path,
+                &idl_path,
+                id_map,
+            )?;
             Ok(())
         }
         Some(ext) => Err(DfxError::BuildError(BuildErrorKind::InvalidExtension(
@@ -253,7 +301,13 @@ fn build_idl(env: &dyn Environment, config: &Config, name: &str, id_map: &Canist
     Ok(())
 }
 
-fn build_file(env: &dyn Environment, config: &Config, name: &str, id_map: &CanisterIdMap, assets: &AssetMap) -> DfxResult {
+fn build_file(
+    env: &dyn Environment,
+    config: &Config,
+    name: &str,
+    id_map: &CanisterIdMap,
+    assets: &AssetMap,
+) -> DfxResult {
     let canister_info = CanisterInfo::load(config, name).map_err(|_| {
         BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
             name.to_owned(),
@@ -265,7 +319,11 @@ fn build_file(env: &dyn Environment, config: &Config, name: &str, id_map: &Canis
     let input_path = canister_info.get_main_path();
 
     let output_wasm_path = canister_info.get_output_wasm_path();
-    let idl_path = canister_info.get_output_root().parent().unwrap().join("idl");
+    let idl_path = canister_info
+        .get_output_root()
+        .parent()
+        .unwrap()
+        .join("idl");
     match input_path.extension().and_then(OsStr::to_str) {
         // TODO(SDK-441): Revisit supporting compilation from WAT files.
         Some("wat") => {
@@ -301,7 +359,13 @@ fn build_file(env: &dyn Environment, config: &Config, name: &str, id_map: &Canis
                 &id_map,
                 assets,
             )?;
-            didl_compile(cache.as_ref(), &input_path, &output_idl_path, &idl_path, id_map)?;            
+            didl_compile(
+                cache.as_ref(),
+                &input_path,
+                &output_idl_path,
+                &idl_path,
+                id_map,
+            )?;
             build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
 
@@ -316,6 +380,39 @@ fn build_file(env: &dyn Environment, config: &Config, name: &str, id_map: &Canis
     }?;
 
     Ok(())
+}
+
+struct BuildSequence {
+    pub canisters: Vec<String>,
+    seen: HashSet<String>,
+    deps: CanisterDependencyMap,
+}
+
+impl BuildSequence {
+    pub fn from(deps: CanisterDependencyMap) -> Self {
+        BuildSequence {
+            canisters: Vec::new(),
+            seen: HashSet::new(),
+            deps,
+        }
+    }
+    pub fn build_dependency(&mut self) {
+        let names: Vec<_> = self.deps.keys().cloned().collect();
+        for name in names {
+            self.dfs(&name);
+        }
+    }
+    fn dfs(&mut self, canister: &str) {
+        if self.seen.contains(canister) {
+            return;
+        }
+        self.seen.insert(canister.to_string());
+        let deps = self.deps.get(canister).unwrap().clone();
+        for dep in deps {
+            self.dfs(&dep);
+        }
+        self.canisters.push(canister.to_string());
+    }
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -339,9 +436,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         return Ok(());
     }
     let canisters = maybe_canisters.as_ref().unwrap();
+    let frontends: Vec<String> = canisters
+        .iter()
+        .filter(|(_, v)| v.frontend.is_some())
+        .map(|(k, _)| k)
+        .cloned()
+        .collect();
 
-    // Build canister id map
+    // Build canister id map and dependency graph
     let mut id_map = HashMap::new();
+    let mut deps = HashMap::new();
     for name in canisters.keys() {
         let canister_info = CanisterInfo::load(&config, name)?;
         build_stage_bar.set_message(&format!("Building canister {}...", name));
@@ -360,28 +464,43 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
         let canister_id = canister_info.get_canister_id().unwrap().to_text();
         id_map.insert(name.to_owned(), canister_id);
+
+        let input_path = canister_info.get_main_path();
+        let canister_deps = find_deps(env.get_cache().as_ref(), &input_path)?;
+        deps.insert(name.to_owned(), canister_deps);
     }
 
+    // Sort dependency
+    let mut seq = BuildSequence::from(deps);
+    seq.build_dependency();
+    let canister_names = seq.canisters.clone();
+    //let mut canister_names = canisters.keys().collect();
+
     // Build canister IDL
-    for name in canisters.keys() {
-        let canister_info = CanisterInfo::load(&config, name)?;        
-        let idl_path = canister_info.get_output_root().parent().expect("Cannot use root.");
+    for name in &canister_names {
+        let canister_info = CanisterInfo::load(&config, name)?;
+        let idl_path = canister_info
+            .get_output_root()
+            .parent()
+            .expect("Cannot use root.");
         let idl_path = idl_path.join("idl");
         std::fs::create_dir_all(&idl_path)?;
 
         match build_idl(env, &config, name, &id_map) {
             Ok(()) => {}
             Err(e) => {
-                build_stage_bar
-                    .finish_with_message(&format!(r#"Failed to build IDL for canister "{}":"#, name));
+                build_stage_bar.finish_with_message(&format!(
+                    r#"Failed to build IDL for canister "{}":"#,
+                    name
+                ));
                 eprintln!("{:?}", e);
-                return Err(e);                
+                return Err(e);
             }
-        }       
+        }
     }
 
     // Build canister
-    for name in canisters.keys() {
+    for name in &canister_names {
         match build_file(env, &config, name, &id_map, &HashMap::new()) {
             Ok(()) => {}
             Err(e) => {
@@ -391,7 +510,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 return Err(e);
             }
         }
-
     }
     build_stage_bar.finish_with_message("Done building canisters...");
 
@@ -431,12 +549,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     build_stage_bar.set_message("Bundling frontend assets in the canister...");
     build_stage_bar.enable_steady_tick(80);
 
-    let frontends: Vec<String> = canisters
-        .iter()
-        .filter(|(_, v)| v.frontend.is_some())
-        .map(|(k, _)| k)
-        .cloned()
-        .collect();
     for name in frontends {
         let canister_info = CanisterInfo::load(&config, name.as_str()).map_err(|_| {
             BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
@@ -525,11 +637,19 @@ mod tests {
             "",
             &input_path,
             Path::new("/out/file.wasm"),
+            Path::new("."),
+            &HashMap::new(),
             &HashMap::new(),
         )
         .expect("Function failed.");
-        didl_compile(&cache, Path::new("/in/file.mo"), Path::new("/out/file.did"))
-            .expect("Function failed (didl_compile)");
+        didl_compile(
+            &cache,
+            Path::new("/in/file.mo"),
+            Path::new("/out/file.did"),
+            Path::new("."),
+            &HashMap::new(),
+        )
+        .expect("Function failed (didl_compile)");
         build_did_js(
             &cache,
             Path::new("/out/file.did"),
@@ -545,8 +665,8 @@ mod tests {
             .expect("Could not read temp file.");
 
         let re = regex::Regex::new(
-            &r"moc -c .*?.mo-[0-9]+ --debug -o /out/file.wasm --package stdlib stdlib
-                moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib
+            &r"moc -c .*?.mo-[0-9]+ --debug -o /out/file.wasm --package stdlib stdlib --actor-idl .
+                moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib --actor-idl .
                 didc --js /out/file.did -o /out/file.did.js"
                 .replace("                ", ""),
         )
@@ -591,7 +711,8 @@ mod tests {
         )
         .unwrap();
 
-        build_file(&env, &config, "name", &HashMap::new()).expect("Function failed - build_file");
+        build_file(&env, &config, "name", &HashMap::new(), &HashMap::new())
+            .expect("Function failed - build_file");
         assert!(output_path.exists());
     }
 }
