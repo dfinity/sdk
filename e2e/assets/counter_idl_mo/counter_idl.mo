@@ -26,7 +26,7 @@ actor {
 
         var text = "";
         for (c in str.chars()) {
-            let c2 = Prim.word32ToChar(charToWord32(c)+1);
+            let c2 = Prim.word32ToChar(Prim.charToWord32(c)+1);
             text := text # Prim.charToText(c2);
         };
         return (i+1, not b, text, arr, map(l), map2(l2));
