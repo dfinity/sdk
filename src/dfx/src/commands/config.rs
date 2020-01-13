@@ -20,7 +20,7 @@ pub fn construct() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("new_canister")
-                .help(UserMessage::OptionFormat.to_str())
+                .help(UserMessage::OptionCanister.to_str())
                 .long("new_canister")
                 .takes_value(true),
         )
