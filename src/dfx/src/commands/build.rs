@@ -156,7 +156,9 @@ fn find_deps(cache: &dyn Cache, input_path: &Path) -> DfxResult<HashSet<String>>
         for dep in output.lines() {
             let prefix: Vec<_> = dep.split(':').collect();
             match prefix[0] {
-                "canister" => drop(deps.insert(prefix[1].to_string())),
+                "canister" => {
+                    deps.insert(prefix[1].to_string());
+                }
                 "ic" => (),
                 // TODO I should trace down local imports
                 "mo" => (),
