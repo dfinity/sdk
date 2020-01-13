@@ -18,7 +18,7 @@ use std::path::Path;
 
 type AssetMap = HashMap<String, String>;
 type CanisterIdMap = HashMap<String, String>;
-type CanisterDependencyMap = HashMap<String, Vec<String>>;
+type CanisterDependencyMap = HashMap<String, HashSet<String>>;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
@@ -138,7 +138,7 @@ fn motoko_compile(
     }
 }
 
-fn find_deps(cache: &dyn Cache, input_path: &Path) -> DfxResult<Vec<String>> {
+fn find_deps(cache: &dyn Cache, input_path: &Path) -> DfxResult<HashSet<String>> {
     let output = cache
         .get_binary_command("moc")?
         .arg("--print-deps")
@@ -152,11 +152,11 @@ fn find_deps(cache: &dyn Cache, input_path: &Path) -> DfxResult<Vec<String>> {
         )))
     } else {
         let output = String::from_utf8_lossy(&output.stdout);
-        let mut deps = Vec::new();
+        let mut deps = HashSet::new();
         for dep in output.lines() {
             let prefix: Vec<_> = dep.split(':').collect();
             match prefix[0] {
-                "canister" => deps.push(prefix[1].to_string()),
+                "canister" => drop(deps.insert(prefix[1].to_string())),
                 "ic" => (),
                 // TODO I should trace down local imports
                 "mo" => (),
