@@ -146,9 +146,9 @@ fn find_deps(cache: &dyn Cache, input_path: &Path) -> DfxResult<Vec<String>> {
         .output()?;
 
     if !output.status.success() {
-        Err(DfxError::BuildError(BuildErrorKind::IdlGenerationError(
-            String::from_utf8_lossy(&output.stdout).to_string()
-                + &String::from_utf8_lossy(&output.stderr),
+        Err(DfxError::BuildError(BuildErrorKind::MotokoCompilerError(
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
         )))
     } else {
         let output = String::from_utf8_lossy(&output.stdout);
@@ -436,12 +436,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         return Ok(());
     }
     let canisters = maybe_canisters.as_ref().unwrap();
-    let frontends: Vec<String> = canisters
-        .iter()
-        .filter(|(_, v)| v.frontend.is_some())
-        .map(|(k, _)| k)
-        .cloned()
-        .collect();
 
     // Build canister id map and dependency graph
     let mut id_map = HashMap::new();
@@ -473,11 +467,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // Sort dependency
     let mut seq = BuildSequence::from(deps);
     seq.build_dependency();
-    let canister_names = seq.canisters.clone();
-    //let mut canister_names = canisters.keys().collect();
 
     // Build canister IDL
-    for name in &canister_names {
+    for name in &seq.canisters {
         let canister_info = CanisterInfo::load(&config, name)?;
         let idl_path = canister_info
             .get_output_root()
@@ -500,7 +492,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     }
 
     // Build canister
-    for name in &canister_names {
+    for name in &seq.canisters {
         match build_file(env, &config, name, &id_map, &HashMap::new()) {
             Ok(()) => {}
             Err(e) => {
@@ -549,6 +541,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     build_stage_bar.set_message("Bundling frontend assets in the canister...");
     build_stage_bar.enable_steady_tick(80);
 
+    let frontends: Vec<String> = canisters
+        .iter()
+        .filter(|(_, v)| v.frontend.is_some())
+        .map(|(k, _)| k)
+        .cloned()
+        .collect();
     for name in frontends {
         let canister_info = CanisterInfo::load(&config, name.as_str()).map_err(|_| {
             BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
