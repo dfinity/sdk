@@ -1,10 +1,9 @@
 self: super:
 let
   mkRelease = super.callPackage ./mk-release.nix {};
-  rust-package-fn = static: import ../../dfx.nix { pkgs = self; inherit static; };
+  rust-package' = import ../../dfx.nix { pkgs = self; };
   # remove some stuff leftover by callPackage
-  rust-package = removeAttrs (rust-package-fn false)
-    [ "override" "overrideDerivation" ];
+  rust-package = removeAttrs rust-package' [ "override" "overrideDerivation" ];
   rust-workspace = rust-package.build;
   public = import ../../public { pkgs = self; };
 in {
@@ -17,12 +16,11 @@ in {
 
         userlib.js = import ../../src/userlib/js { pkgs = self; };
 
-        rust-workspace-standalone = if self.stdenv.isLinux
-          then (rust-package-fn true).build
-          else super.lib.standaloneRust
-            { drv = rust-workspace;
-              exename = "dfx";
-            };
+        rust-workspace-standalone = super.lib.standaloneRust
+          { drv = rust-workspace;
+            exename = "dfx";
+            usePackager = false;
+          };
 
         e2e-tests = super.callPackage ../../e2e {};
     } //

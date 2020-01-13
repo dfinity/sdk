@@ -8,7 +8,6 @@
 
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
-, static
 }:
 let
   lib = pkgs.lib;
@@ -24,7 +23,7 @@ let
       ".*Cargo\.lock$"
       "^.cargo/config$"
     ];
-    inherit static;
+    static = pkgs.stdenv.isLinux;
   };
   workspace' = (workspace //
     { lint = workspace.lint.overrideAttrs (oldAttrs: {
@@ -35,7 +34,8 @@ let
 
       postDoc = oldAttrs.postDoc + ''
         pushd src/dfx
-        cargo graph | dot -Tsvg > ../../target/doc/dfx/cargo-graph.svg
+        cargo graph | dot -Tsvg > \
+          ../../target/$CARGO_BUILD_TARGET/doc/dfx/cargo-graph.svg
         popd
       '';
 
