@@ -134,8 +134,8 @@ teardown() {
     assert_eq "(+43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = +43; 1291237008 = opt record { 1158359328 = +44; 1291237008 = none; }; }, variant { 1103411697 = record { 0 = +43; 1 = variant { 1103411697 = record { 0 = +44; 1 = variant { 5493713 = null }; } }; } })"
 }
 
-@test "build + install + call -- matrix_mo" {
-    install_asset matrix_multiplication_mo
+@test "build + install + call -- matrix_multiply_mo" {
+    install_asset matrix_multiply_mo
     dfx_start
     dfx build
     dfx canister install --all
