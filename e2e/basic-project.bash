@@ -140,6 +140,6 @@ teardown() {
     dfx build
     dfx canister install --all
 
-    assert_command dfx canister call matrix multiply '(vec{vec{1;2};vec{3;4};vec{5;6}},vec{vec{1;2;3};vec{4;5;6}})'
+    assert_command dfx canister call hello multiply '(vec{vec{1;2};vec{3;4};vec{5;6}},vec{vec{1;2;3};vec{4;5;6}})'
     assert_eq "(vec { vec { +9; +12; +15; }; vec { +19; +26; +33; }; vec { +29; +40; +51; }; })"
 }

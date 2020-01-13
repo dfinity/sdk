@@ -22,7 +22,7 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("new_canister")
                 .help(UserMessage::OptionFormat.to_str())
                 .long("new_canister")
-                .takes_value(true)
+                .takes_value(true),
         )
 }
 
@@ -35,9 +35,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .clone();
 
     if let Some(name) = args.value_of("new_canister") {
-        let p = config.get_mut_json()
-            .pointer_mut("/canisters")
-            .unwrap();
+        let p = config.get_mut_json().pointer_mut("/canisters").unwrap();
         let value: serde_json::Map<String, Value> = [(
             "main".to_string(),
             ("src/".to_owned() + name + "/main.mo").into(),
@@ -45,7 +43,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .iter()
         .cloned()
         .collect();
-        
+
         p.as_object_mut()
             .unwrap()
             .insert(name.to_string(), Value::from(value));
