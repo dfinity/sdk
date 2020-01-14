@@ -57,7 +57,7 @@ user_message!(
     OptionName => "Specifies the name of the configuration option to set or read. Use the period delineated path to specify the option to set or read. If this is not mentioned, outputs the whole configuration.",
     OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
-    OptionCanister => "Specfies the name of canister to add to the current project.",
+    OptionCanister => "Specifies the name of the canister to add to the current project.",
 
     // dfx new
     CreateProject => "Creates a new project.",
