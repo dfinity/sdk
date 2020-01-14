@@ -5,6 +5,9 @@
     },
     "hello": {
       "main": "matrix.mo"
+    },
+    "transpose": {
+      "main": "transpose.mo"
     }
   },
   "defaults": {
