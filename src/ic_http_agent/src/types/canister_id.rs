@@ -1,8 +1,7 @@
 use crate::types::blob::Blob;
-use byteorder::{ByteOrder, LittleEndian};
 use crc8::Crc8;
 use hex;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::{fmt, num, str};
 
 /// Prefix for [textual form of ID](https://docs.dfinity.systems/spec/public/#textual-ids)
@@ -13,7 +12,7 @@ const IC_COLON: &str = "ic:";
 /// This type is described as a Blob in the public spec, but used as an integer in most
 /// code samples (including this library). For now, we newtype it to abstract its usage
 /// from a number, and will change its internal type when time comes.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanisterId(Blob);
 
 #[derive(Clone, Debug)]
@@ -31,16 +30,6 @@ impl std::convert::From<hex::FromHexError> for TextualCanisterIdError {
 }
 
 impl CanisterId {
-    pub(crate) fn from_u64(v: u64) -> CanisterId {
-        let mut buf = [0 as u8; 8];
-        LittleEndian::write_u64(&mut buf, v);
-        CanisterId(Blob(buf.to_vec()))
-    }
-
-    pub(crate) fn as_u64(&self) -> u64 {
-        LittleEndian::read_u64((self.0).0.as_slice())
-    }
-
     /// Allow to move canister Ids in blobs.
     pub fn into_blob(self) -> Blob {
         self.0
@@ -87,27 +76,6 @@ impl CanisterId {
     }
 }
 
-/// Serialize into a blob.
-impl Serialize for CanisterId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // TODO(DFN-862): move this to blobs
-        serializer.serialize_u64(self.as_u64())
-    }
-}
-
-impl<'de> Deserialize<'de> for CanisterId {
-    fn deserialize<S>(deserializer: S) -> Result<CanisterId, S::Error>
-    where
-        S: Deserializer<'de>,
-    {
-        // TODO(DFN-862): move this to blobs
-        Ok(CanisterId::from_u64(u64::deserialize(deserializer)?))
-    }
-}
-
 /// Conversion of different types that should be coerce-able to Canister Ids.
 impl From<Blob> for CanisterId {
     fn from(b: Blob) -> CanisterId {
@@ -116,18 +84,11 @@ impl From<Blob> for CanisterId {
     }
 }
 
-impl From<u64> for CanisterId {
-    fn from(n: u64) -> CanisterId {
-        // We don't need to make a copy as this assume ownership.
-        CanisterId::from_u64(n)
-    }
-}
-
 impl str::FromStr for CanisterId {
     type Err = num::ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(CanisterId::from_u64(u64::from_str(s)?))
+        Ok(CanisterId(Blob(s.to_string().into_bytes())))
     }
 }
 
