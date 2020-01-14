@@ -3,7 +3,7 @@
     "dot_product": {
       "main": "dot_product.mo"
     },
-    "matrix": {
+    "hello": {
       "main": "matrix.mo"
     }
   },
@@ -14,7 +14,7 @@
     "start": {
       "address": "127.0.0.1",
       "port": 8000,
-      "serve_root": "canisters/matrix/assets"
+      "serve_root": "canisters/hello/assets"
     }
   }
 }
