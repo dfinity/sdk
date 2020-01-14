@@ -7,7 +7,7 @@ export class CanisterId {
       return CanisterId.fromText(hex.slice(3, -2));
     }
 
-    return new this(hex.padStart(16, '0'));
+    return new this(hex.padEnd(16, '0'));
   }
 
   protected constructor(private _idHex: string) {}
