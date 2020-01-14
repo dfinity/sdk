@@ -88,7 +88,7 @@ impl str::FromStr for CanisterId {
     type Err = num::ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(CanisterId(Blob(s.to_string().into_bytes())))
+        Ok(CanisterId(Blob(s.as_bytes().to_vec())))
     }
 }
 
