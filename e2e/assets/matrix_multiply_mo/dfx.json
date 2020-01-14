@@ -1,0 +1,20 @@
+{
+  "canisters": {
+    "dot_product": {
+      "main": "dot_product.mo"
+    },
+    "matrix": {
+      "main": "matrix.mo"
+    }
+  },
+  "defaults": {
+    "build": {
+      "output": "canisters/"
+    },
+    "start": {
+      "address": "127.0.0.1",
+      "port": 8000,
+      "serve_root": "canisters/matrix/assets"
+    }
+  }
+}
