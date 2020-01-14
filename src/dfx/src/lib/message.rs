@@ -39,6 +39,7 @@ user_message!(
 
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network client.",
+    CanisterClient => "Override the client to connect to. By default uses the client set in dfx configuration.",
 
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",
@@ -57,7 +58,6 @@ user_message!(
     OptionName => "Specifies the name of the configuration option to set or read. Use the period delineated path to specify the option to set or read. If this is not mentioned, outputs the whole configuration.",
     OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
-    OptionCanister => "Specifies the name of the canister to add to the current project.",
 
     // dfx new
     CreateProject => "Creates a new project.",

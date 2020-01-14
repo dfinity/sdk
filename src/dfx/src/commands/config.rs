@@ -18,12 +18,6 @@ pub fn construct() -> App<'static, 'static> {
                 .default_value("json")
                 .possible_values(&["json", "text"]),
         )
-        .arg(
-            Arg::with_name("new_canister")
-                .help(UserMessage::OptionCanister.to_str())
-                .long("new_canister")
-                .takes_value(true),
-        )
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -33,23 +27,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?
         .as_ref()
         .clone();
-
-    if let Some(name) = args.value_of("new_canister") {
-        let p = config.get_mut_json().pointer_mut("/canisters").unwrap();
-        let value: serde_json::Map<String, Value> = [(
-            "main".to_string(),
-            ("src/".to_owned() + name + "/main.mo").into(),
-        )]
-        .iter()
-        .cloned()
-        .collect();
-
-        p.as_object_mut()
-            .unwrap()
-            .insert(name.to_string(), Value::from(value));
-        // TODO create the directory and file
-        return config.save();
-    }
 
     let config_path = args.value_of("config_path").unwrap_or("");
     let format = args.value_of("format").unwrap_or("json");
