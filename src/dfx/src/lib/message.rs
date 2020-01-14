@@ -39,6 +39,7 @@ user_message!(
 
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network client.",
+    CanisterClient => "Override the client to connect to. By default uses the client set in dfx configuration.",
 
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",
