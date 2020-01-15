@@ -18,10 +18,6 @@ export async function hash(data: BinaryBlob): Promise<BinaryBlob> {
   return Buffer.from(hashed) as BinaryBlob;
 }
 
-const padHex = (hex: string): string => {
-  return `${'0000000000000000'.slice(hex.length)}${hex}`;
-};
-
 const changeEndianness = (str: string): string => {
   const result = [];
   let len = str.length - 2;
@@ -41,10 +37,6 @@ async function hashValue(value: unknown): Promise<Buffer> {
     // HTTP handler expects canister_id to be an u64 & hashed in this way.
     // work-around for endianness problem until we switch to blobs
     return hash(blobFromHex(changeEndianness(value.toHex())));
-  } else if (typeof value === 'number') {
-    const hex = value.toString(16);
-    const padded = padHex(hex);
-    return hash(blobFromHex(padded));
   } else if (value instanceof Buffer) {
     return hash(new Uint8Array(value) as BinaryBlob);
   } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
