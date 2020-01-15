@@ -49,5 +49,7 @@ in {
     licenses = {
       rust-workspace = super.lib.runtime.runtimeLicensesReport packages.rust-workspace;
     };
+
+    inherit (self) nix-fmt-check;
   };
 }
