@@ -77,7 +77,11 @@ impl CanisterId {
             }
         }
     }
-
+    pub fn to_rev_text(&self) -> String {
+        let mut v = (self.0).0.clone();
+        v.reverse();
+        Self(Blob(v)).to_text()
+    }
     pub fn to_text(&self) -> String {
         let mut crc8 = Crc8::create_msb(0x07);
         let checksum_byte: u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
