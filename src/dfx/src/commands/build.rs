@@ -238,7 +238,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     file.read_to_string(&mut file_contents)?;
 
     let new_file_contents = file_contents
-        .replace("{canister_id}", &canister_id.to_text())
+        .replace("{canister_id}", &canister_id.to_rev_text())
         .replace("{project_name}", canister_info.get_name());
 
     let output_canister_js_path_str = output_canister_js_path.to_str().ok_or_else(|| {

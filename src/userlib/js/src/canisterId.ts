@@ -1,3 +1,13 @@
+const changeEndianness = (str: string): string => {
+  const result = [];
+  let len = str.length - 2;
+  while (len >= 0) {
+    result.push(str.substr(len, 2));
+    len -= 2;
+  }
+  return result.join('');
+};
+
 // Canister IDs are represented as u64 in the HTTP handler of the client.
 export class CanisterId {
   public static fromText(hex: string): CanisterId {

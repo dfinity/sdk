@@ -53,6 +53,16 @@ if (host) {
   }
 }
 
+const changeEndianness = (str) => {
+  const result = [];
+  let len = str.length - 2;
+  while (len >= 0) {
+    result.push(str.substr(len, 2));
+    len -= 2;
+  }
+  return result.join('');
+};
+
 const agent = new HttpAgent({ host });
 agent.addTransform(makeNonceTransform());
 agent.addTransform(makeAuthTransform(keyPair));
@@ -64,9 +74,11 @@ let canisterId = _getVariable('canisterId', localStorageCanisterIdKey, '');
 if (!canisterId) {
   // Show an error.
   const div = document.createElement('div');
-  div.innerText = 'Could not find the canister ID to use. Please provide one in the query parameters.';
+  div.innerText = '2nd djfgkdfjgkl<br> Could not find the canister ID to use. Please provide one in the query parameters.';
   document.body.replaceChild(div, document.body.getElementsByTagName('app').item(0));
 } else {
+  canisterId = "ic:" + changeEndianness(canisterId.slice(3,-2)) + "00";
+  console.log(canisterId);
   // Load index.js from the canister.
   icHttpAgent.retrieveAsset(canisterId, 'index.js')
     .then(content => {

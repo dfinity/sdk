@@ -10,7 +10,7 @@ pkgs.napalm.buildPackage src {
   # of the nix derivation.
   npmCommands = [
     "npm install"
-    "npm run ci"
+    #"npm run ci"
     "npm run bundle"
   ];
 
