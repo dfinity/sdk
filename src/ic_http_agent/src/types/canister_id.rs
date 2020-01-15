@@ -2,6 +2,7 @@ use crate::types::blob::Blob;
 use crc8::Crc8;
 use hex;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use std::{fmt, num, str};
 
 /// Prefix for [textual form of ID](https://docs.dfinity.systems/spec/public/#textual-ids)
@@ -110,7 +111,7 @@ mod tests {
 
     #[test]
     fn check_serialize_deserialize() {
-        let id = CanisterId::from_u64(88827);
+        let id = CanisterId::from_str("88827");
 
         // Use cbor serialization.
         let vec = serde_cbor::to_vec(&id).unwrap();
