@@ -54,7 +54,7 @@ fn get_asset_fn(assets: &AssetMap) -> String {
               switch path {par}
                 {}
                 case _ {par}assert false; ""{end}
-              {end};
+              {end}
             {end};
         "#,
         cases,
