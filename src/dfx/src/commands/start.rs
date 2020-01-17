@@ -19,6 +19,7 @@ use tokio::prelude::FutureExt;
 use tokio::runtime::Runtime;
 
 const TIMEOUT_IN_SECS: u64 = 10;
+const IC_CLIENT_BIND_ADDR: &str = "http://localhost:8080/api";
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("start")
@@ -120,7 +121,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .clone()
     {
         Some(provider) => provider,
-        None => "http://127.0.0.1:8080/api".to_string(),
+        None => IC_CLIENT_BIND_ADDR.to_owned(),
     };
     let bootstrap_dir = env
         .get_cache()
