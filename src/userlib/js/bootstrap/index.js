@@ -70,9 +70,10 @@ if (!canisterId) {
   // Load index.js from the canister.
   icHttpAgent.retrieveAsset(canisterId, 'index.js')
     .then(content => {
+      document.body.firstElementChild.hidden = true; // "Loading ..."
       const indexJs = new TextDecoder().decode(content);
       const script = document.createElement('script');
       script.innerText = indexJs;
-      document.head.appendChild(script);
+      setTimeout(() => { document.head.appendChild(script) }, 10);
     });
 }
