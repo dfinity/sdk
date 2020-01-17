@@ -116,3 +116,45 @@ impl Environment for EnvironmentImpl {
         self.get_client()
     }
 }
+
+pub struct ClientEnvironment<'a> {
+    backend: &'a dyn Environment,
+    client: Client,
+}
+
+impl<'a> ClientEnvironment<'a> {
+    pub fn new(backend: &'a dyn Environment, client_url: &str) -> Self {
+        ClientEnvironment {
+            backend,
+            client: Client::new(ClientConfig {
+                url: client_url.to_string(),
+            }),
+        }
+    }
+}
+
+impl<'a> Environment for ClientEnvironment<'a> {
+    fn get_cache(&self) -> Rc<dyn Cache> {
+        self.backend.get_cache()
+    }
+
+    fn get_config(&self) -> Option<Rc<Config>> {
+        self.backend.get_config()
+    }
+
+    fn is_in_project(&self) -> bool {
+        self.backend.is_in_project()
+    }
+
+    fn get_temp_dir(&self) -> &Path {
+        self.backend.get_temp_dir()
+    }
+
+    fn get_version(&self) -> &Version {
+        self.backend.get_version()
+    }
+
+    fn get_client(&self) -> Option<Client> {
+        Some(self.client.clone())
+    }
+}

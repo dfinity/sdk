@@ -30,7 +30,18 @@ class CanisterIdEncoder implements CborEncoder<CanisterId> {
   }
 
   public encode(v: CanisterId): cbor.CborValue {
-    return cbor.value.u64(v.toHex(), 16);
+    return cbor.value.u64(this.changeEndianness(v.toHex()), 16);
+  }
+
+  // Drop once we use https://github.com/dfinity-lab/dfinity/pull/2286
+  private changeEndianness(str: string): string {
+    const result = [];
+    let len = str.length - 2;
+    while (len >= 0) {
+      result.push(str.substr(len, 2));
+      len -= 2;
+    }
+    return result.join('');
   }
 }
 
