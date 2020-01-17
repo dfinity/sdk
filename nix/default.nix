@@ -16,12 +16,15 @@ let
   #
   #   COMMON="$(realpath ../common)" nix-build -A rust-workspace
   commonSrc =
-    let localCommonSrc = builtins.getEnv "COMMON"; in
-    if localCommonSrc != ""
-    then localCommonSrc
-    else
-      let sources = import ./sources.nix; in sources.common;
-in import commonSrc {
+    let
+      localCommonSrc = builtins.getEnv "COMMON";
+    in
+      if localCommonSrc != ""
+      then localCommonSrc
+      else
+        let sources = import ./sources.nix; in sources.common;
+in
+import commonSrc {
   inherit system crossSystem config;
   overlays = import ./overlays ++ [
     (
