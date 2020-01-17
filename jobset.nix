@@ -7,5 +7,6 @@
 }: {
   inherit (import ./nix {
     inherit system crossSystem config overlays RustSec-advisory-db;
-  }) dfinity-sdk;
+  }) dfinity-sdk
+    ;
 }

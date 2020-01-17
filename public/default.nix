@@ -12,7 +12,7 @@ rec {
   install-sh =
     pkgs.runCommandNoCC "install-sh" {
       public = src;
-      buildInputs = [ ];
+      buildInputs = [];
     } ''
       # git describe --abbrev=7 --tags
       mkdir -p $out
@@ -87,70 +87,75 @@ rec {
           mainGitDir = gitDir + "/${pkgs.lib.fileContents commondir}";
           worktree = pkgs.lib.optionalString isWorktree (
             pkgs.lib.dropString (builtins.stringLength (toString mainGitDir))
-              (toString gitDir));
-        in pkgs.runCommandNoCC "install_sh_timestamp" {
-          git_dir = builtins.path {
-            name = "sdk-git-dir";
-            path = if isWorktree
-                   then mainGitDir
-                   else gitDir;
-          };
-          nativeBuildInputs = [ pkgs.git ];
-          preferLocalBuild = true;
-          allowSubstitutes = false;
+              (toString gitDir)
+          );
+        in
+          pkgs.runCommandNoCC "install_sh_timestamp" {
+            git_dir = builtins.path {
+              name = "sdk-git-dir";
+              path = if isWorktree
+              then mainGitDir
+              else gitDir;
+            };
+            nativeBuildInputs = [ pkgs.git ];
+            preferLocalBuild = true;
+            allowSubstitutes = false;
+          } ''
+            cd $git_dir${worktree}
+            git log -n 1 --pretty=format:%h-%cI -- public/install.sh > $out
+          ''
+      );
+    in
+      pkgs.lib.linuxOnly (
+        pkgs.runCommandNoCC "install-sh-release" {
+          inherit version;
+          inherit (pkgs) isMaster;
+          inherit revision;
+          manifest = ./manifest.json;
+          buildInputs = [ pkgs.jo install-sh-lint install-sh ];
         } ''
-          cd $git_dir${worktree}
-          git log -n 1 --pretty=format:%h-%cI -- public/install.sh > $out
+          set -Eeuo pipefail
+
+          mkdir -p $out
+
+          version_manifest_file=$out/manifest.json
+
+          cp $manifest $version_manifest_file
+          # we stamp the file with the revision
+          substitute "${install-sh}/install.sh" $out/install.sh \
+            --subst-var revision
+
+          # Creating the manifest
+          # We name it "_manifest.json" as opposed to "manifest.json" because we
+          # also export a "manifest.json" (which has nothing to do with the
+          # release)
+          hydra_manifest_file=$out/_manifest.json
+
+          sha256hashinstall=($(sha256sum "$out/install.sh")) # using this to autosplit on space
+          sha1hashinstall=($(sha1sum "$out/install.sh")) # using this to autosplit on space
+
+
+          sha256manifest=($(sha256sum "$version_manifest_file")) # using this to autosplit on space
+          sha1manifest=($(sha1sum "$version_manifest_file")) # using this to autosplit on space
+
+          jo -pa \
+            $(jo package="public" \
+                version="$version" \
+                name="installer" \
+                file="$out/install.sh" \
+                sha256hash="$sha256hashinstall" \
+                sha1hash="$sha1hashinstall") \
+            $(jo package="public" \
+                version="$version" \
+                name="manifest.json" \
+                file="$version_manifest_file" \
+                sha256hash="$sha256manifest" \
+                sha1hash="$sha1manifest") >$hydra_manifest_file
+
+          # Marking the manifest for publishing
+          mkdir -p $out/nix-support
+          echo "upload manifest $hydra_manifest_file" >> \
+            $out/nix-support/hydra-build-products
         ''
       );
-    in pkgs.lib.linuxOnly (pkgs.runCommandNoCC "install-sh-release" {
-      inherit version;
-      inherit (pkgs) isMaster;
-      inherit revision;
-      manifest = ./manifest.json;
-      buildInputs = [ pkgs.jo install-sh-lint install-sh ];
-    } ''
-      set -Eeuo pipefail
-
-      mkdir -p $out
-
-      version_manifest_file=$out/manifest.json
-
-      cp $manifest $version_manifest_file
-      # we stamp the file with the revision
-      substitute "${install-sh}/install.sh" $out/install.sh \
-        --subst-var revision
-
-      # Creating the manifest
-      # We name it "_manifest.json" as opposed to "manifest.json" because we
-      # also export a "manifest.json" (which has nothing to do with the
-      # release)
-      hydra_manifest_file=$out/_manifest.json
-
-      sha256hashinstall=($(sha256sum "$out/install.sh")) # using this to autosplit on space
-      sha1hashinstall=($(sha1sum "$out/install.sh")) # using this to autosplit on space
-
-
-      sha256manifest=($(sha256sum "$version_manifest_file")) # using this to autosplit on space
-      sha1manifest=($(sha1sum "$version_manifest_file")) # using this to autosplit on space
-
-      jo -pa \
-        $(jo package="public" \
-            version="$version" \
-            name="installer" \
-            file="$out/install.sh" \
-            sha256hash="$sha256hashinstall" \
-            sha1hash="$sha1hashinstall") \
-        $(jo package="public" \
-            version="$version" \
-            name="manifest.json" \
-            file="$version_manifest_file" \
-            sha256hash="$sha256manifest" \
-            sha1hash="$sha1manifest") >$hydra_manifest_file
-
-      # Marking the manifest for publishing
-      mkdir -p $out/nix-support
-      echo "upload manifest $hydra_manifest_file" >> \
-        $out/nix-support/hydra-build-products
-    '');
 }
