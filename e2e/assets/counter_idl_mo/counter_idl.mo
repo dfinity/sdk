@@ -1,3 +1,6 @@
+import A "mo:stdlib/array.mo";
+import Prim "mo:prim";
+
 type List<T> = ?{head : T; tail : List<T>};
 type List2<T> = { #nil; #cons: (T, List2<T>) };
 
@@ -15,7 +18,7 @@ actor {
          }
     };
     public func inc(i: Int, b: Bool, str: Text, vec: [Nat], l: List<Int>, l2: List2<Int>) : async (Int, Bool, Text, [Nat], List<Int>, List2<Int>) {
-        let arr = Array_tabulate<Nat>(
+        let arr = A.tabulate<Nat>(
           vec.len(),
           func (i : Nat) : Nat {
               vec[i]+1;
@@ -23,8 +26,8 @@ actor {
 
         var text = "";
         for (c in str.chars()) {
-            let c2 = word32ToChar(charToWord32(c)+1);
-            text := text # charToText(c2);
+            let c2 = Prim.word32ToChar(Prim.charToWord32(c)+1);
+            text := text # Prim.charToText(c2);
         };
         return (i+1, not b, text, arr, map(l), map2(l2));
     };

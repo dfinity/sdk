@@ -1,5 +1,5 @@
 use crate::types::blob::Blob;
-use byteorder::{BigEndian, ByteOrder};
+use byteorder::{ByteOrder, LittleEndian};
 use crc8::Crc8;
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -33,12 +33,12 @@ impl std::convert::From<hex::FromHexError> for TextualCanisterIdError {
 impl CanisterId {
     pub(crate) fn from_u64(v: u64) -> CanisterId {
         let mut buf = [0 as u8; 8];
-        BigEndian::write_u64(&mut buf, v);
+        LittleEndian::write_u64(&mut buf, v);
         CanisterId(Blob(buf.to_vec()))
     }
 
     pub(crate) fn as_u64(&self) -> u64 {
-        BigEndian::read_u64((self.0).0.as_slice())
+        LittleEndian::read_u64((self.0).0.as_slice())
     }
 
     /// Allow to move canister Ids in blobs.

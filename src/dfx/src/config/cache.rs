@@ -3,12 +3,69 @@ use crate::lib::error::DfxError::CacheError;
 use crate::lib::error::{CacheErrorKind, DfxError, DfxResult};
 use crate::util;
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use semver::Version;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::ExitStatus;
 
 // POSIX permissions for files in the cache.
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
+
+#[cfg(test)]
+use mockall::automock;
+
+#[cfg_attr(test, automock)]
+pub trait Cache {
+    fn version_str(&self) -> String;
+    fn is_installed(&self) -> DfxResult<bool>;
+    fn install(&self) -> DfxResult;
+    fn force_install(&self) -> DfxResult;
+    fn delete(&self) -> DfxResult;
+    fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf>;
+    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command>;
+}
+
+pub struct DiskBasedCache {
+    version: Version,
+}
+
+impl DiskBasedCache {
+    pub fn with_version(version: &Version) -> DiskBasedCache {
+        DiskBasedCache {
+            version: version.clone(),
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl Cache for DiskBasedCache {
+    fn version_str(&self) -> String {
+        format!("{}", self.version)
+    }
+
+    fn is_installed(&self) -> DfxResult<bool> {
+        is_version_installed(&self.version_str())
+    }
+
+    fn install(&self) -> DfxResult {
+        install_version(&self.version_str(), false).map(|_| {})
+    }
+    fn force_install(&self) -> DfxResult {
+        install_version(&self.version_str(), true).map(|_| {})
+    }
+
+    fn delete(&self) -> DfxResult {
+        delete_version(&self.version_str()).map(|_| {})
+    }
+
+    fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf> {
+        get_binary_path_from_version(&self.version_str(), binary_name)
+    }
+
+    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command> {
+        binary_command_from_version(&self.version_str(), binary_name)
+    }
+}
 
 pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
@@ -56,7 +113,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
         return Ok(p);
     }
 
-    if v == dfx_version() {
+    if Version::parse(v)? == *dfx_version() {
         // Dismiss as fast as possible. We use the current_exe variable after an expensive
         // step, and if this fails we can't continue anyway.
         let current_exe = std::env::current_exe()?;
@@ -118,22 +175,23 @@ pub fn binary_command_from_version(version: &str, name: &str) -> DfxResult<std::
     Ok(cmd)
 }
 
-pub fn list_versions() -> DfxResult<Vec<String>> {
+pub fn list_versions() -> DfxResult<Vec<Version>> {
     let root = get_bin_cache_root()?;
-    let mut result: Vec<String> = Vec::new();
+    let mut result: Vec<Version> = Vec::new();
 
     for entry in std::fs::read_dir(root)? {
         let entry = entry?;
         if let Some(version) = entry.file_name().to_str() {
-            result.push(version.to_owned());
+            result.push(Version::parse(version)?);
         }
     }
 
     Ok(result)
 }
 
-pub fn call_cached_dfx(v: &str) -> DfxResult<ExitStatus> {
-    let command_path = get_binary_path_from_version(v, "dfx")?;
+pub fn call_cached_dfx(v: &Version) -> DfxResult<ExitStatus> {
+    let v = format!("{}", v);
+    let command_path = get_binary_path_from_version(&v, "dfx")?;
     if command_path == std::env::current_exe()? {
         return Err(DfxError::Unknown(
             format_args!("Invalid cache for version {}.", v).to_string(),
