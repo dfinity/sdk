@@ -4,10 +4,10 @@ export class CanisterId {
     if (hex.startsWith('ic:')) {
       // Remove the checksum from the hexadecimal.
       // TODO: validate the checksum.
-      return CanisterId.fromText(hex.slice(3, -2));
+      return new this(hex.slice(3, -2));
+    } else {
+      throw new Error('CanisterId not a ic: url: ' + hex);
     }
-
-    return new this(hex.padStart(16, '0'));
   }
 
   protected constructor(private _idHex: string) {}

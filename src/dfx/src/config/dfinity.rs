@@ -18,6 +18,7 @@ const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     port: None,
     nodes: None,
     serve_root: None,
+    provider: None,
 };
 const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
 
@@ -33,6 +34,7 @@ pub struct ConfigDefaultsStart {
     pub nodes: Option<u64>,
     pub port: Option<u16>,
     pub serve_root: Option<String>,
+    pub provider: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
