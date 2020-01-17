@@ -1,5 +1,5 @@
 use crate::commands::canister::install::wait_on_request_status;
-use crate::lib::env::ClientEnv;
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
@@ -19,15 +19,15 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: ClientEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let request_id = RequestId::from_str(
         &args
             .value_of("request_id")
             .ok_or_else(|| DfxError::InvalidArgument("request_id".to_string()))?[2..],
     )
     .map_err(|_| DfxError::InvalidArgument("request_id".to_owned()))?;
-    wait_on_request_status(&env.get_client(), request_id)
+    let client = env
+        .get_client()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    wait_on_request_status(&client, request_id)
 }

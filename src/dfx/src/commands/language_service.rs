@@ -1,5 +1,5 @@
 use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME};
-use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use atty;
@@ -24,23 +24,16 @@ pub fn construct() -> App<'static, 'static> {
 
 // Don't read anything from stdin or output anything to stdout while this function is being
 // executed or LSP will become very unhappy
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: BinaryResolverEnv + ProjectConfigEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let force_tty = args.is_present(FORCE_TTY);
     // Are we being run from a terminal? That's most likely not what we want
     if atty::is(atty::Stream::Stdout) && !force_tty {
         Err(DfxError::LanguageServerFromATerminal)
-    } else {
-        let config = &env
-            .get_config()
-            .ok_or(DfxError::CommandMustBeRunInAProject)?
-            .config;
-
-        let main_path = get_main_path(config, args)?;
-
+    } else if let Some(config) = env.get_config() {
+        let main_path = get_main_path(config.get_config(), args)?;
         run_ide(env, main_path)
+    } else {
+        Err(DfxError::CommandMustBeRunInAProject)
     }
 }
 
@@ -87,10 +80,11 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
     })
 }
 
-fn run_ide<T: BinaryResolverEnv>(env: &T, main_path: String) -> DfxResult {
-    let stdlib_path = env.get_binary_command_path("stdlib")?;
+fn run_ide(env: &dyn Environment, main_path: String) -> DfxResult {
+    let stdlib_path = env.get_cache().get_binary_command_path("stdlib")?;
 
     let output = env
+        .get_cache()
         .get_binary_command("mo-ide")?
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())

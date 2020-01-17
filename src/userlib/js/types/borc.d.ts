@@ -1,11 +1,8 @@
-declare module "borc" {
-  import { Buffer } from "buffer/";
+declare module 'borc' {
+  import { Buffer } from 'buffer/';
 
   class Decoder {
-    constructor(opts: {
-      size: Number,
-      tags: Record<number, (val: any) => any>,
-    });
+    constructor(opts: { size: Number; tags: Record<number, (val: any) => any> });
 
     decodeFirst(input: ArrayBuffer): any;
   }

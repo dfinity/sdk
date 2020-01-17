@@ -23,7 +23,7 @@ test('round trip', () => {
     b: 'two',
     c: Buffer.from([3]) as BinaryBlob,
     d: { four: 'four' },
-    e: CanisterId.fromText('ffffffffffffffff'),
+    e: CanisterId.fromText('ic:FFFFFFFFFFFFFFFFD7'),
     f: Buffer.from([]) as BinaryBlob,
     g: new BigNumber('0xffffffffffffffff'),
   };
@@ -37,6 +37,6 @@ test('round trip', () => {
   const { c: outputC, e: outputE, f: outputF, ...outputRest } = output;
 
   expect(blobToHex(outputC)).toBe(blobToHex(inputC));
-  expect(((outputE as any) as BigNumber).toString(16)).toBe(inputE.toHex());
+  expect(((outputE as any) as BigNumber).toString(16).toUpperCase()).toBe(inputE.toHex());
   expect(outputRest).toEqual(inputRest);
 });

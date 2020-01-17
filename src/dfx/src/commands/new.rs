@@ -1,6 +1,6 @@
 use super::upgrade::{get_latest_version, is_upgrade_necessary};
 use crate::config::dfinity::CONFIG_FILE_NAME;
-use crate::lib::env::{BinaryCacheEnv, PlatformEnv, VersionEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::assets;
@@ -307,10 +307,7 @@ fn scaffold_frontend_code(
     Ok(())
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: BinaryCacheEnv + PlatformEnv + VersionEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let dry_run = args.is_present(DRY_RUN);
     let project_name_path = args
         .value_of(PROJECT_NAME)
@@ -321,21 +318,19 @@ where
         return Err(DfxError::ProjectExists);
     }
 
-    let dfx_version = env.get_version();
-
-    let current_version = Version::parse(dfx_version)
-        .map_err(|e| DfxError::InvalidData(format!("invalid version: {}", e)))?;
+    let current_version = env.get_version();
+    let version_str = format!("{}", current_version);
 
     // It is fine for the following command to timeout or fail. We
     // drop the error.
     let latest_version = get_latest_version(RELEASE_ROOT, Some(*CHECK_VERSION_TIMEOUT)).ok();
 
-    if is_upgrade_necessary(latest_version.clone(), current_version.clone()) {
-        warn_upgrade(latest_version, current_version);
+    if is_upgrade_necessary(latest_version.as_ref(), current_version) {
+        warn_upgrade(latest_version.as_ref(), current_version);
     }
 
-    if !env.is_installed()? {
-        env.install()?;
+    if !env.get_cache().is_installed()? {
+        env.get_cache().install()?;
     }
 
     eprintln!(r#"Creating new project "{}"..."#, project_name.display());
@@ -349,7 +344,7 @@ where
 
     let variables: HashMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
-        ("dfx_version".to_string(), dfx_version.to_string()),
+        ("dfx_version".to_string(), version_str.clone()),
         ("dot".to_string(), ".".to_string()),
     ]
     .iter()
@@ -403,7 +398,7 @@ where
         // This needs to be included here because we cannot use the result of a function for
         // the format!() rule (and so it cannot be moved in the util::assets module).
         include_str!("../../assets/welcome.txt"),
-        dfx_version,
+        version_str,
         assets::dfinity_logo(),
         project_name_str
     );
@@ -411,7 +406,7 @@ where
     Ok(())
 }
 
-fn warn_upgrade(latest_version: Option<Version>, current_version: Version) {
+fn warn_upgrade(latest_version: Option<&Version>, current_version: &Version) {
     eprintln!("You seem to be running an outdated version of dfx.");
 
     let red = Style::new().red();

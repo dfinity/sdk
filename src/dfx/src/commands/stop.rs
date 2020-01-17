@@ -1,4 +1,4 @@
-use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
@@ -35,11 +35,8 @@ fn kill_all(pid: Pid) -> DfxResult {
     Ok(())
 }
 
-pub fn exec<T>(env: &T, _args: &ArgMatches<'_>) -> DfxResult
-where
-    T: ProjectConfigEnv + BinaryResolverEnv,
-{
-    let pid_file_path = env.get_dfx_root().unwrap().join("pid");
+pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
+    let pid_file_path = env.get_temp_dir().join("pid");
     if pid_file_path.exists() {
         // Read and verify it's not running. If it is just return.
         if let Ok(s) = std::fs::read_to_string(&pid_file_path) {

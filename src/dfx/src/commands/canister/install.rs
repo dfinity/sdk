@@ -2,7 +2,7 @@ use crate::lib::api_client::{
     install_code, request_status, Client, QueryResponseReply, ReadResponse,
 };
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::env::{ClientEnv, ProjectConfigEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::print_idl_blob;
@@ -96,18 +96,15 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
     }
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: ClientEnv + ProjectConfigEnv,
-{
-    // Read the config.
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
-    let client = env.get_client();
+    let client = env
+        .get_client()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
     if let Some(canister_name) = args.value_of("canister_name") {
-        let canister_info = CanisterInfo::load(config, canister_name)?;
+        let canister_info = CanisterInfo::load(&config, canister_name)?;
         let request_id = install_canister(&client, &canister_info)?;
 
         if args.is_present("async") {
@@ -121,7 +118,7 @@ where
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                let canister_info = CanisterInfo::load(config, canister_name)?;
+                let canister_info = CanisterInfo::load(&config, canister_name)?;
                 let request_id = install_canister(&client, &canister_info)?;
 
                 if args.is_present("async") {

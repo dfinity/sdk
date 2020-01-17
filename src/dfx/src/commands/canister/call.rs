@@ -1,7 +1,7 @@
 use crate::commands::canister::install::wait_on_request_status;
 use crate::lib::api_client::{call, query, QueryResponseReply, ReadResponse};
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::env::{BinaryResolverEnv, ClientEnv, ProjectConfigEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::{load_idl_file, print_idl_blob};
@@ -36,6 +36,15 @@ pub fn construct() -> App<'static, 'static> {
                 .help(UserMessage::QueryCanister.to_str())
                 .long("query")
                 .conflicts_with("async")
+                .conflicts_with("update")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("update")
+                .help(UserMessage::UpdateCanisterArg.to_str())
+                .long("update")
+                .conflicts_with("async")
+                .conflicts_with("query")
                 .takes_value(false),
         )
         .arg(
@@ -84,16 +93,13 @@ pub fn read_response(
     }
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: ClientEnv + ProjectConfigEnv + BinaryResolverEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     let canister_name = args.value_of("canister_name").unwrap();
-    let canister_info = CanisterInfo::load(config, canister_name)?;
+    let canister_info = CanisterInfo::load(&config, canister_name)?;
     // Read the config.
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
@@ -111,7 +117,7 @@ where
         let is_query_method =
             idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
         match is_query_method {
-            Some(true) => true,
+            Some(true) => !args.is_present("update"),
             Some(false) => {
                 if args.is_present("query") {
                     return Err(DfxError::InvalidMethodCall(format!(
@@ -154,25 +160,32 @@ where
         None
     };
 
-    let client = env.get_client();
+    let client = env
+        .get_client()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     if is_query {
         let future = query(
-            client,
+            client.clone(),
             canister_id,
             method_name.to_owned(),
             arg_value.map(Blob::from),
         );
         read_response(runtime.block_on(future)?, None)
     } else {
-        let future = call(client, canister_id, method_name.to_owned(), arg_value);
+        let future = call(
+            client.clone(),
+            canister_id,
+            method_name.to_owned(),
+            arg_value,
+        );
         let request_id: RequestId = runtime.block_on(future)?;
         if args.is_present("async") {
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
             Ok(())
         } else {
-            wait_on_request_status(&env.get_client(), request_id)
+            wait_on_request_status(&client.clone(), request_id)
         }
     }
 }

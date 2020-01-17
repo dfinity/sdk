@@ -24,7 +24,7 @@ test('call', async () => {
     );
   });
 
-  const canisterId: CanisterId = CanisterId.fromText('0000000000000001');
+  const canisterId: CanisterId = CanisterId.fromText('ic:000000000000000107');
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
   // prettier-ignore
   const seed = Buffer.from([
@@ -102,7 +102,7 @@ test('requestStatus', async () => {
     );
   });
 
-  const canisterIdent = '0000000000000001';
+  const canisterIdent = 'ic:000000000000000107';
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
 
   // prettier-ignore
