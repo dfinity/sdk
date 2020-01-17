@@ -1,4 +1,4 @@
-use crate::config::dfinity::{Config};
+use crate::config::dfinity::Config;
 use crate::lib::api_client::{ping, Client, ClientConfig};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -112,11 +112,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             )
         })?;
 
-    let provider: String =
-        match config.get_config().get_defaults().get_start().provider.clone() {
-            Some(provider) => provider,
-            None => "http://127.0.0.1:8080/api".to_string(),
-        };
+    let provider: String = match config
+        .get_config()
+        .get_defaults()
+        .get_start()
+        .provider
+        .clone()
+    {
+        Some(provider) => provider,
+        None => "http://127.0.0.1:8080/api".to_string(),
+    };
     let bootstrap_dir = env
         .get_cache()
         .get_binary_command_path("js-user-library/dist/bootstrap")?;
