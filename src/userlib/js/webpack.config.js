@@ -98,7 +98,7 @@ const bootstrapConfig = {
       filename: 'index.html'
     }),
     new CopyWebpackPlugin([{
-        from: 'bootstrap/favicon.ico',
+        from: 'bootstrap/dfinity.png',
         to: 'favicon.ico',
       }]),
   ]
