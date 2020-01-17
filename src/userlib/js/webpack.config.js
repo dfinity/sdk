@@ -2,6 +2,7 @@ const path = require("path");
 const webpack = require("webpack");
 const TerserPlugin = require('terser-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const config = {
   mode: "development",
@@ -96,6 +97,10 @@ const bootstrapConfig = {
       template: 'bootstrap/index.html',
       filename: 'index.html'
     }),
+    new CopyWebpackPlugin([{
+        from: 'bootstrap/favicon.ico',
+        to: 'favicon.ico',
+      }]),
   ]
 };
 
