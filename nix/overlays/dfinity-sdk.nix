@@ -7,7 +7,8 @@ let
     [ "override" "overrideDerivation" ];
   rust-workspace = rust-package.build;
   public = import ../../public { pkgs = self; };
-in {
+in
+{
   dfinity-sdk = rec {
     packages =
       # remove the shell since it's being built below in "shells"
@@ -18,7 +19,8 @@ in {
         userlib.js = import ../../src/userlib/js { pkgs = self; };
 
         rust-workspace-standalone = super.lib.standaloneRust
-          { drv = rust-workspace;
+          {
+            drv = rust-workspace;
             exename = "dfx";
           };
 
@@ -31,7 +33,7 @@ in {
         # vulnerability is published or when Cargo.lock has been changed `cargo
         # audit` will run.
         cargo-security-audit = import ../../cargo-audit.nix { pkgs = self; };
-    };
+      };
 
     dfx-release = mkRelease "dfx" self.releaseVersion packages.rust-workspace-standalone "dfx";
 

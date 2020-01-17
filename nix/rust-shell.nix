@@ -1,7 +1,7 @@
 { pkgs ? (import ./. {}).pkgs, shell }:
 pkgs.mkCompositeShell {
   name = "dfinity-sdk-rust-env";
-  buildInputs = [pkgs.rls];
+  buildInputs = [ pkgs.rls ];
   nativeBuildInputs = [ pkgs.stdenv.cc ];
   inputsFrom = [ shell ];
   shellHook = ''
