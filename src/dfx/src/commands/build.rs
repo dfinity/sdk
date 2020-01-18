@@ -14,7 +14,7 @@ use rand::{thread_rng, Rng};
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 type AssetMap = HashMap<String, String>;
 type CanisterIdMap = HashMap<String, String>;
@@ -138,7 +138,33 @@ fn motoko_compile(
     }
 }
 
-fn find_deps(cache: &dyn Cache, input_path: &Path) -> DfxResult<HashSet<String>> {
+#[derive(Debug, PartialEq, Hash, Eq)]
+enum MotokoImport {
+    Canister(String),
+    Local(PathBuf),
+}
+
+struct MotokoImports(HashSet<MotokoImport>);
+
+impl MotokoImports {
+    pub fn get_canisters(&self) -> HashSet<String> {
+        let mut res = HashSet::new();
+        for dep in self.0.iter() {
+            if let MotokoImport::Canister(ref name) = dep {
+                res.insert(name.to_owned());
+            }
+        }
+        res
+    }
+}
+
+fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> DfxResult {
+    let import = MotokoImport::Local(input_path.to_path_buf());
+    if deps.0.contains(&import) {
+        return Ok(());
+    }
+    deps.0.insert(import);
+
     let output = cache
         .get_binary_command("moc")?
         .arg("--print-deps")
@@ -152,20 +178,27 @@ fn find_deps(cache: &dyn Cache, input_path: &Path) -> DfxResult<HashSet<String>>
         )))
     } else {
         let output = String::from_utf8_lossy(&output.stdout);
-        let mut deps = HashSet::new();
         for dep in output.lines() {
             let prefix: Vec<_> = dep.split(':').collect();
             match prefix[0] {
                 "canister" => {
-                    deps.insert(prefix[1].to_string());
+                    deps.0.insert(MotokoImport::Canister(prefix[1].to_string()));
                 }
                 "ic" => (),
-                // TODO I should trace down local imports
+                // TODO resolve mo URL
                 "mo" => (),
-                _other => (),
+                file => {
+                    let path = input_path
+                        .parent()
+                        .unwrap()
+                        .join(file)
+                        .canonicalize()
+                        .unwrap();
+                    find_deps(cache, &path, deps)?;
+                }
             }
         }
-        Ok(deps)
+        Ok(())
     }
 }
 
@@ -391,14 +424,16 @@ struct BuildSequence {
 }
 
 impl BuildSequence {
-    pub fn from(deps: CanisterDependencyMap) -> Self {
-        BuildSequence {
+    pub fn new(deps: CanisterDependencyMap) -> Self {
+        let mut res = BuildSequence {
             canisters: Vec::new(),
             seen: HashSet::new(),
             deps,
-        }
+        };
+        res.build_dependency();
+        res
     }
-    pub fn build_dependency(&mut self) {
+    fn build_dependency(&mut self) {
         let names: Vec<_> = self.deps.keys().cloned().collect();
         for name in names {
             self.dfs(&name);
@@ -444,7 +479,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let mut deps = HashMap::new();
     for name in canisters.keys() {
         let canister_info = CanisterInfo::load(&config, name)?;
-        build_stage_bar.set_message(&format!("Building canister {}...", name));
+        build_stage_bar.set_message(&format!("Generating canister id for {}...", name));
         // Write the CID.
         std::fs::create_dir_all(
             canister_info
@@ -462,17 +497,19 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         id_map.insert(name.to_owned(), canister_id);
 
         let input_path = canister_info.get_main_path();
-        let canister_deps = find_deps(env.get_cache().as_ref(), &input_path)?;
-        deps.insert(name.to_owned(), canister_deps);
+        let mut canister_deps = MotokoImports(HashSet::new());
+        find_deps(env.get_cache().as_ref(), &input_path, &mut canister_deps)?;
+        deps.insert(name.to_owned(), canister_deps.get_canisters());
     }
 
     // Sort dependency
-    let mut seq = BuildSequence::from(deps);
-    seq.build_dependency();
+    build_stage_bar.set_message("Analyzing build dependency...");
+    let seq = BuildSequence::new(deps);
 
     // Build canister IDL
     for name in &seq.canisters {
         let canister_info = CanisterInfo::load(&config, name)?;
+        build_stage_bar.set_message(&format!("Building IDL for canister {}...", name));
         let idl_path = canister_info
             .get_output_root()
             .parent()
@@ -495,6 +532,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Build canister
     for name in &seq.canisters {
+        build_stage_bar.set_message(&format!("Building canister {}...", name));
         match build_file(env, &config, name, &id_map, &HashMap::new()) {
             Ok(()) => {}
             Err(e) => {
