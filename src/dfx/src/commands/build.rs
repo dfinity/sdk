@@ -33,18 +33,16 @@ pub fn construct() -> App<'static, 'static> {
 
 fn get_asset_fn(assets: &AssetMap) -> String {
     // Create the if/else series.
-    let mut if_else = String::new();
+    let mut cases = String::new();
     assets.iter().for_each(|(filename, content)| {
-        if_else += format!(
-            r#"if (path == "{}") {par} return "{}"; {end};{endline}"#,
+        cases += format!(
+            r#"case "{}" "{}";{endline}"#,
             filename,
             content
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n")
                 .replace("\r", ""),
-            par = "{",
-            end = "}",
             endline = "\n"
         )
         .as_str();
@@ -53,11 +51,13 @@ fn get_asset_fn(assets: &AssetMap) -> String {
     format!(
         r#"
             public query func __dfx_asset_path(path: Text): async Text {par}
-              {}
-              return "";
+              switch path {par}
+                {}
+                case _ {par}assert false; ""{end}
+              {end}
             {end};
         "#,
-        if_else,
+        cases,
         par = "{",
         end = "}"
     )

@@ -2,7 +2,9 @@
 , system ? builtins.currentSystem
 }:
 
-let js-user-library = pkgs.dfinity-sdk.packages.userlib.js; in
+let
+  js-user-library = pkgs.dfinity-sdk.packages.userlib.js;
+in
 
 pkgs.mkCiShell {
   name = "dfinity-js-user-library-env";

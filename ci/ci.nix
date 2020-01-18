@@ -3,10 +3,12 @@
 , RustSec-advisory-db ? null
 , isMaster ? true
 }:
-let pkgs = import ../nix {};
+let
+  pkgs = import ../nix {};
 in
 pkgs.ci ../jobset.nix
-  { inherit supportedSystems scrubJobs isMaster;
+  {
+    inherit supportedSystems scrubJobs isMaster;
     rev = pkgs.lib.commitIdFromGitRepo (pkgs.lib.gitDir ../.);
     packageSetArgs = {
       inherit RustSec-advisory-db;

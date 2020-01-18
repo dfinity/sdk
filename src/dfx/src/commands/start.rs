@@ -113,12 +113,22 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             )
         })?;
 
+    let provider: String = match config
+        .get_config()
+        .get_defaults()
+        .get_start()
+        .provider
+        .clone()
+    {
+        Some(provider) => provider,
+        None => IC_CLIENT_BIND_ADDR.to_owned(),
+    };
     let bootstrap_dir = env
         .get_cache()
         .get_binary_command_path("js-user-library/dist/bootstrap")?;
     let frontend_watchdog = webserver(
         address_and_port,
-        url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),
+        url::Url::parse(&provider).unwrap(),
         &bootstrap_dir,
         give_actix,
     );

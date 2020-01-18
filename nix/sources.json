@@ -1,4 +1,16 @@
 {
+    "advisory-db": {
+        "branch": "master",
+        "description": "Security advisory database for Rust crates published through crates.io",
+        "homepage": "https://rustsec.org",
+        "owner": "RustSec",
+        "repo": "advisory-db",
+        "rev": "891a872b7303281141cc554dc78279d91ce1efd7",
+        "sha256": "0r2figyrax8db3d5l50yxkybpgdlf0xm16l4ks5c1ymx8p3gjk0x",
+        "type": "tarball",
+        "url": "https://github.com/RustSec/advisory-db/archive/891a872b7303281141cc554dc78279d91ce1efd7.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "bats-support": {
         "branch": "v0.3.0",
         "description": "Supporting library for Bats test helpers",
@@ -14,7 +26,7 @@
     "common": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "7fc0d40dc6e52a221b370be5a04292e59b32f17d",
+        "rev": "8c07b4a592e7c54ff43adf0420575d4069bfe8a9",
         "type": "git"
     },
     "dfinity": {
