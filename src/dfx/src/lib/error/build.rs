@@ -7,7 +7,7 @@ pub enum BuildErrorKind {
     InvalidExtension(String),
 
     /// A compiler error happened.
-    CompilerError(String, String, String),
+    CompilerError(String, String),
 
     /// An error happened while creating the JS canister bindings.
     CanisterJsGenerationError(String),
@@ -31,9 +31,9 @@ impl fmt::Display for BuildErrorKind {
 
         match self {
             InvalidExtension(ext) => f.write_fmt(format_args!("Invalid extension: {}", ext)),
-            CompilerError(cmd, stdout, stderr) => f.write_fmt(format_args!(
-                "Command {}\n returned an error:\n{}\n{}",
-                cmd, stdout, stderr
+            CompilerError(cmd, stderr) => f.write_fmt(format_args!(
+                "Command {}\n returned an error:\n{}",
+                cmd, stderr
             )),
             CanisterJsGenerationError(stdout) => f.write_fmt(format_args!(
                 "Creating canister JS bindings returned an error:\n{}",
