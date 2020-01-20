@@ -7,13 +7,7 @@ pub enum BuildErrorKind {
     InvalidExtension(String),
 
     /// A compiler error happened.
-    MotokoCompilerError(String, String),
-
-    /// An error happened during the generation of the Idl.
-    IdlGenerationError(String),
-
-    /// An error happened while generating the JS representation of the interface description.
-    DidJsGenerationError(String),
+    CompilerError(String, String, String),
 
     /// An error happened while creating the JS canister bindings.
     CanisterJsGenerationError(String),
@@ -37,17 +31,9 @@ impl fmt::Display for BuildErrorKind {
 
         match self {
             InvalidExtension(ext) => f.write_fmt(format_args!("Invalid extension: {}", ext)),
-            MotokoCompilerError(stdout, stderr) => f.write_fmt(format_args!(
-                "Motoko returned an error:\n{}\n{}",
-                stdout, stderr
-            )),
-            IdlGenerationError(stdout) => f.write_fmt(format_args!(
-                "IDL generation returned an error:\n{}",
-                stdout
-            )),
-            DidJsGenerationError(stdout) => f.write_fmt(format_args!(
-                "IDL to JS generation returned an error:\n{}",
-                stdout
+            CompilerError(cmd, stdout, stderr) => f.write_fmt(format_args!(
+                "Command {}\n returned an error:\n{}\n{}",
+                cmd, stdout, stderr
             )),
             CanisterJsGenerationError(stdout) => f.write_fmt(format_args!(
                 "Creating canister JS bindings returned an error:\n{}",
