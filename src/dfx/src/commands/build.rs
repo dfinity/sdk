@@ -76,18 +76,18 @@ struct MotokoParams<'a> {
     // The following fields will not be used by self.to_args()
     input: &'a Path,
     output: &'a Path,
-    idl_path: &'a Path,    
+    idl_path: &'a Path,
     verbose: bool,
     surpress_warning: bool,
-    inject_code: bool,    
+    inject_code: bool,
 }
 
 impl MotokoParams<'_> {
     fn to_args(&self) -> Vec<&str> {
         let mut args = Vec::new();
         match self.build_target {
-            BuildTarget::Release => args.extend_from_slice(&["-c","--release"]),
-            BuildTarget::Debug => args.extend_from_slice(&["-c","--debug"]),
+            BuildTarget::Release => args.extend_from_slice(&["-c", "--release"]),
+            BuildTarget::Debug => args.extend_from_slice(&["-c", "--debug"]),
             BuildTarget::IDL => args.push("--idl"),
         }
         for (name, canister_id) in self.idl_map.iter() {
@@ -98,11 +98,7 @@ impl MotokoParams<'_> {
 }
 
 /// Compile a motoko file.
-fn motoko_compile(
-    cache: &dyn Cache,
-    params: &MotokoParams,
-    assets: &AssetMap,
-) -> DfxResult {
+fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMap) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
     cmd.args(&params.to_args());
 
@@ -140,7 +136,7 @@ fn motoko_compile(
         .arg(&stdlib_path.as_path())
         .arg("--actor-idl")
         .arg(&params.idl_path);
-    run_command(cmd, params.surpress_warning)?;
+    run_command(cmd, params.verbose, params.surpress_warning)?;
 
     if params.inject_code {
         std::fs::remove_file(input_path)?;
@@ -177,7 +173,7 @@ fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> 
 
     let mut cmd = cache.get_binary_command("moc")?;
     let cmd = cmd.arg("--print-deps").arg(&input_path);
-    let output = run_command(cmd, false)?;
+    let output = run_command(cmd, false, false)?;
 
     let output = String::from_utf8_lossy(&output.stdout);
     for dep in output.lines() {
@@ -206,11 +202,18 @@ fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> 
 fn build_did_js(cache: &dyn Cache, input_path: &Path, output_path: &Path) -> DfxResult {
     let mut cmd = cache.get_binary_command("didc")?;
     let cmd = cmd.arg("--js").arg(&input_path).arg("-o").arg(&output_path);
-    run_command(cmd, false)?;
+    run_command(cmd, false, false)?;
     Ok(())
 }
 
-fn run_command(cmd: &mut std::process::Command, surpress_warning: bool) -> DfxResult<Output> {
+fn run_command(
+    cmd: &mut std::process::Command,
+    verbose: bool,
+    surpress_warning: bool,
+) -> DfxResult<Output> {
+    if verbose {
+        println!("{:?}", cmd);
+    }
     let output = cmd.output()?;
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::CompilerError(
@@ -273,7 +276,7 @@ fn build_file(
         .unwrap()
         .join("idl");
     std::fs::create_dir_all(&idl_path)?;
-    
+
     match input_path.extension().and_then(OsStr::to_str) {
         // TODO(SDK-441): Revisit supporting compilation from WAT files.
         Some("wat") => {
@@ -315,13 +318,9 @@ fn build_file(
                 idl_path: &idl_path,
                 idl_map: &id_map,
             };
-            
+
             // We call moc multiple times, so we need to surpress the warning to show only once.
-            motoko_compile(
-                cache.as_ref(),
-                &params,
-                assets,
-            )?;
+            motoko_compile(cache.as_ref(), &params, assets)?;
             let params = MotokoParams {
                 build_target: BuildTarget::IDL,
                 surpress_warning: true,
@@ -331,12 +330,8 @@ fn build_file(
                 output: &canister_info.get_output_idl_path(),
                 idl_path: &idl_path,
                 idl_map: &id_map,
-            };            
-            motoko_compile(
-                cache.as_ref(),
-                &params,
-                &HashMap::new()
-            )?;
+            };
+            motoko_compile(cache.as_ref(), &params, &HashMap::new())?;
             std::fs::copy(&canister_info.get_output_idl_path(), &output_idl_path)?;
             build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
