@@ -1,4 +1,16 @@
 {
+    "advisory-db": {
+        "branch": "master",
+        "description": "Security advisory database for Rust crates published through crates.io",
+        "homepage": "https://rustsec.org",
+        "owner": "RustSec",
+        "repo": "advisory-db",
+        "rev": "891a872b7303281141cc554dc78279d91ce1efd7",
+        "sha256": "0r2figyrax8db3d5l50yxkybpgdlf0xm16l4ks5c1ymx8p3gjk0x",
+        "type": "tarball",
+        "url": "https://github.com/RustSec/advisory-db/archive/891a872b7303281141cc554dc78279d91ce1efd7.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "bats-support": {
         "branch": "v0.3.0",
         "description": "Supporting library for Bats test helpers",
@@ -11,16 +23,34 @@
         "url": "https://github.com/ztombol/bats-support/archive/24a72e14349690bcbf7c151b9d2d1cdd32d36eb1.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "common": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/common",
+        "rev": "8c07b4a592e7c54ff43adf0420575d4069bfe8a9",
+        "type": "git"
+    },
+    "dfinity": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/dfinity",
+        "rev": "fd64793ba310671093820f7437c5278cb21f8bb6",
+        "type": "git"
+    },
+    "motoko": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/motoko",
+        "rev": "4d6afaa511cd9ae62ad2bb6a3c9a0f79c818ab8d",
+        "type": "git"
+    },
     "napalm": {
         "branch": "master",
         "description": "Support for building npm packages in Nix and lightweight npm registry",
         "homepage": "",
         "owner": "nmattia",
         "repo": "napalm",
-        "rev": "efa23622d704082359439ad8add0a185b4ebb56c",
-        "sha256": "0cbxyv23kzqqa54z4w7z9cvk96z19d5ghsh9vzbwsp07baabsakm",
+        "rev": "8d2568d7848d82e46df55bda86203fdecb410279",
+        "sha256": "07mi0gkgr8aqvy2yyd5sh8rin0189iyg81124y3cvfsnr1mxx7z1",
         "type": "tarball",
-        "url": "https://github.com/nmattia/napalm/archive/efa23622d704082359439ad8add0a185b4ebb56c.tar.gz",
+        "url": "https://github.com/nmattia/napalm/archive/8d2568d7848d82e46df55bda86203fdecb410279.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

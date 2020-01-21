@@ -1,8 +1,12 @@
 use crate::types::blob::Blob;
-use byteorder::{BigEndian, ByteOrder};
+use byteorder::{ByteOrder, LittleEndian};
+use crc8::Crc8;
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, num, str};
+
+/// Prefix for [textual form of ID](https://docs.dfinity.systems/spec/public/#textual-ids)
+const IC_COLON: &str = "ic:";
 
 /// A Canister ID.
 ///
@@ -12,15 +16,29 @@ use std::{fmt, num, str};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CanisterId(Blob);
 
+#[derive(Clone, Debug)]
+pub enum TextualCanisterIdError {
+    TooShort,
+    BadPrefix,
+    BadChecksum,
+    FromHexError(hex::FromHexError),
+}
+
+impl std::convert::From<hex::FromHexError> for TextualCanisterIdError {
+    fn from(e: hex::FromHexError) -> Self {
+        TextualCanisterIdError::FromHexError(e)
+    }
+}
+
 impl CanisterId {
     pub(crate) fn from_u64(v: u64) -> CanisterId {
         let mut buf = [0 as u8; 8];
-        BigEndian::write_u64(&mut buf, v);
+        LittleEndian::write_u64(&mut buf, v);
         CanisterId(Blob(buf.to_vec()))
     }
 
     pub(crate) fn as_u64(&self) -> u64 {
-        BigEndian::read_u64((self.0).0.as_slice())
+        LittleEndian::read_u64((self.0).0.as_slice())
     }
 
     /// Allow to move canister Ids in blobs.
@@ -28,12 +46,44 @@ impl CanisterId {
         self.0
     }
 
-    pub fn from_hex<S: AsRef<[u8]>>(h: S) -> Result<CanisterId, hex::FromHexError> {
-        Ok(CanisterId(Blob::from(hex::decode(h)?.as_slice())))
+    /// Parse the text format for canister IDs (e.g., `ic:010840FFAD`).
+    ///
+    /// The text format follows this
+    /// [section of our public spec doc](https://docs.dfinity.systems/spec/public/#textual-ids).
+    pub fn from_text<S: AsRef<[u8]>>(text: S) -> Result<CanisterId, TextualCanisterIdError> {
+        if text.as_ref().len() < 4 {
+            Err(TextualCanisterIdError::TooShort)
+        } else {
+            let (text_prefix, text_rest) = text.as_ref().split_at(3);
+            match std::str::from_utf8(text_prefix) {
+                Ok(ref s) => {
+                    if s != &IC_COLON {
+                        return Err(TextualCanisterIdError::BadPrefix);
+                    }
+                }
+                Err(_) => return Err(TextualCanisterIdError::BadPrefix),
+            };
+            match hex::decode(text_rest)?.as_slice().split_last() {
+                None => Err(TextualCanisterIdError::TooShort),
+                Some((last_byte, buf_head)) => {
+                    let mut crc8 = Crc8::create_msb(0x07);
+                    let checksum_byte: u8 = crc8.calc(buf_head, buf_head.len() as i32, 0);
+                    if *last_byte == checksum_byte {
+                        Ok(CanisterId(Blob::from(buf_head)))
+                    } else {
+                        Err(TextualCanisterIdError::BadChecksum)
+                    }
+                }
+            }
+        }
     }
 
-    pub fn to_hex(&self) -> String {
-        hex::encode(&(self.0).0)
+    pub fn to_text(&self) -> String {
+        let mut crc8 = Crc8::create_msb(0x07);
+        let checksum_byte: u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
+        let mut buf = (self.0).0.clone();
+        buf.push(checksum_byte);
+        format!("{}{}", IC_COLON, hex::encode_upper(buf))
     }
 }
 
@@ -83,7 +133,7 @@ impl str::FromStr for CanisterId {
 
 impl fmt::Display for CanisterId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "canister({})", self.to_hex())
+        write!(f, "{}", self.to_text())
     }
 }
 
@@ -109,13 +159,21 @@ mod tests {
     }
 
     #[test]
-    fn hex_encode() {
+    fn text_form_matches_public_spec() {
+        // See example here: https://docs.dfinity.systems/spec/public/#textual-ids
+        let textid = "ic:ABCD01A7";
+        match CanisterId::from_text(textid) {
+            Ok(ref cid) => assert_eq!(CanisterId::to_text(cid), textid),
+            Err(_) => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn text_form() {
         let cid: CanisterId = CanisterId::from(Blob::from(vec![1, 8, 64, 255].as_slice()));
-
-        let hex = cid.to_hex();
-        let cid2 = CanisterId::from_hex(&hex).unwrap();
-
+        let text = cid.to_text();
+        let cid2 = CanisterId::from_text(&text).unwrap();
         assert_eq!(cid, cid2);
-        assert_eq!(hex, "010840ff");
+        assert_eq!(text, "ic:010840FFEF");
     }
 }

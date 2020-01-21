@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 byteorder = "1.3.2"
+crc8 = "0.1.1"
 dfx_derive = { path = "../dfx_derive" }
 dfx_info = { path = "../dfx_info" }
 serde-idl = { path = "../serde_idl" }

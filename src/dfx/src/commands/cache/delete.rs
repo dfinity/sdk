@@ -1,4 +1,5 @@
-use crate::lib::env::{BinaryCacheEnv, VersionEnv};
+use crate::config::cache::delete_version;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -9,12 +10,9 @@ pub fn construct() -> App<'static, 'static> {
         .arg(Arg::with_name("version").takes_value(true))
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: BinaryCacheEnv + VersionEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     match args.value_of("version") {
-        Some(v) => env.delete(v),
-        _ => env.delete(env.get_version()),
+        Some(v) => delete_version(v).map(|_| {}),
+        _ => env.get_cache().delete(),
     }
 }

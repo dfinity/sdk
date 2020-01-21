@@ -1,6 +1,6 @@
 use crate::config::dfinity::Config;
 use crate::lib::api_client::{ping, Client, ClientConfig};
-use crate::lib::env::{BinaryResolverEnv, ProjectConfigEnv};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::webserver::webserver;
@@ -66,22 +66,17 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 }
 
 // TODO: Refactor exec into more manageable pieces.
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: ProjectConfigEnv + BinaryResolverEnv,
-{
-    // Read the config.
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let (frontend_url, address_and_port) = frontend_address(args, config)?;
+    let (frontend_url, address_and_port) = frontend_address(args, &config)?;
 
-    let client_pathbuf = env.get_binary_command_path("client")?;
-    let nodemanager_pathbuf = env.get_binary_command_path("nodemanager")?;
+    let client_pathbuf = env.get_cache().get_binary_command_path("client")?;
+    let nodemanager_pathbuf = env.get_cache().get_binary_command_path("nodemanager")?;
 
-    let project_root = config.get_path().parent().unwrap();
-    let pid_file_path = env.get_dfx_root().unwrap().join("pid");
+    let pid_file_path = env.get_temp_dir().join("pid");
     check_previous_process_running(&pid_file_path)?;
 
     // We are doing this here to make sure we can write to the temp pid file.
@@ -118,19 +113,23 @@ where
             )
         })?;
 
+    let provider: String = match config
+        .get_config()
+        .get_defaults()
+        .get_start()
+        .provider
+        .clone()
+    {
+        Some(provider) => provider,
+        None => IC_CLIENT_BIND_ADDR.to_owned(),
+    };
+    let bootstrap_dir = env
+        .get_cache()
+        .get_binary_command_path("js-user-library/dist/bootstrap")?;
     let frontend_watchdog = webserver(
         address_and_port,
-        url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),
-        project_root
-            .join(
-                config
-                    .get_config()
-                    .get_defaults()
-                    .get_start()
-                    .get_serve_root(".")
-                    .as_path(),
-            )
-            .as_path(),
+        url::Url::parse(&provider).unwrap(),
+        &bootstrap_dir,
         give_actix,
     );
 

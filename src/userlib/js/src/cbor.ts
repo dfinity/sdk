@@ -6,8 +6,8 @@ import borc from 'borc';
 import { Buffer } from 'buffer/';
 import * as cbor from 'simple-cbor';
 import { CborEncoder, SelfDescribeCborSerializer } from 'simple-cbor';
-import { BinaryBlob } from './blob';
 import { CanisterId } from './canisterId';
+import { BinaryBlob } from './types';
 
 // We are using hansl/simple-cbor for CBOR serialization, to avoid issues with
 // encoding the uint64 values that the HTTP handler of the client expects for
@@ -30,7 +30,18 @@ class CanisterIdEncoder implements CborEncoder<CanisterId> {
   }
 
   public encode(v: CanisterId): cbor.CborValue {
-    return cbor.value.u64(v.toHex(), 16);
+    return cbor.value.u64(this.changeEndianness(v.toHex()), 16);
+  }
+
+  // Drop once we use https://github.com/dfinity-lab/dfinity/pull/2286
+  private changeEndianness(str: string): string {
+    const result = [];
+    let len = str.length - 2;
+    while (len >= 0) {
+      result.push(str.substr(len, 2));
+      len -= 2;
+    }
+    return result.join('');
   }
 }
 
@@ -72,5 +83,9 @@ export function decode<T>(input: Uint8Array): T {
       [CborTag.Semantic]: (value: T): T => value,
     },
   });
-  return decoder.decodeFirst(input);
+  const result = decoder.decodeFirst(input);
+  if (result.hasOwnProperty('canister_id')) {
+    result.canister_id = CanisterId.fromText(result.canister_id.toString(16));
+  }
+  return result;
 }

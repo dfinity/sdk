@@ -1,7 +1,5 @@
-use crate::lib::{
-    env::VersionEnv,
-    error::{DfxError, DfxResult},
-};
+use crate::lib::environment::Environment;
+use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
@@ -77,7 +75,7 @@ struct Manifest {
     versions: Vec<Version>,
 }
 
-pub fn is_upgrade_necessary(latest_version: Option<Version>, current: Version) -> bool {
+pub fn is_upgrade_necessary(latest_version: Option<&Version>, current: &Version) -> bool {
     match latest_version {
         Some(latest) => latest > current && current.pre.is_empty(),
         None => true,
@@ -156,10 +154,7 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
     Ok(())
 }
 
-pub fn exec<T>(env: &T, args: &ArgMatches<'_>) -> DfxResult
-where
-    T: VersionEnv,
-{
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // Find OS architecture.
     let os_arch = match std::env::consts::OS {
         "linux" => "x86_64-linux",
@@ -167,12 +162,11 @@ where
         _ => panic!("Not supported architecture"),
     };
     let current_version = if let Some(version) = args.value_of("current-version") {
-        version
+        Version::parse(version)?
     } else {
-        env.get_version()
+        env.get_version().clone()
     };
-    let current_version = Version::parse(current_version)
-        .map_err(|e| DfxError::InvalidData(format!("invalid version: {}", e)))?;
+
     println!("Current version: {}", current_version);
     let release_root = args.value_of("release-root").unwrap();
     let latest_version = get_latest_version(release_root, None)?;

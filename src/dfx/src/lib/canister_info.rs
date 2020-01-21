@@ -21,6 +21,7 @@ pub struct CanisterInfo {
     output_idl_path: PathBuf,
     output_did_js_path: PathBuf,
     output_canister_js_path: PathBuf,
+    output_assets_root: PathBuf,
 
     canister_id: RefCell<Option<CanisterId>>,
     canister_id_path: PathBuf,
@@ -65,6 +66,7 @@ impl CanisterInfo {
         let output_idl_path = output_wasm_path.with_extension("did");
         let output_did_js_path = output_wasm_path.with_extension("did.js");
         let output_canister_js_path = output_wasm_path.with_extension("js");
+        let output_assets_root = output_root.join("assets");
 
         let canister_id_path = output_root.join("_canister.id");
 
@@ -77,6 +79,7 @@ impl CanisterInfo {
             output_idl_path,
             output_did_js_path,
             output_canister_js_path,
+            output_assets_root,
 
             canister_id: RefCell::new(None),
             canister_id_path,
@@ -102,6 +105,9 @@ impl CanisterInfo {
     }
     pub fn get_output_canister_js_path(&self) -> &Path {
         self.output_canister_js_path.as_path()
+    }
+    pub fn get_output_assets_root(&self) -> &Path {
+        self.output_assets_root.as_path()
     }
     pub fn get_output_root(&self) -> &Path {
         self.output_root.as_path()

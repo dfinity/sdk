@@ -130,7 +130,16 @@ teardown() {
     dfx build
     dfx canister install --all
 
-    # TODO: fix the record{} in variant once Motoko fixes the bug.
     assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=none}}, variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })'
     assert_eq "(+43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = +43; 1291237008 = opt record { 1158359328 = +44; 1291237008 = none; }; }, variant { 1103411697 = record { 0 = +43; 1 = variant { 1103411697 = record { 0 = +44; 1 = variant { 5493713 = null }; } }; } })"
+}
+
+@test "build + install + call -- matrix_multiply_mo" {
+    install_asset matrix_multiply_mo
+    dfx_start
+    dfx build
+    dfx canister install --all
+
+    assert_command dfx canister call hello multiply '(vec{vec{1;2};vec{3;4};vec{5;6}},vec{vec{1;2;3};vec{4;5;6}})'
+    assert_eq "(vec { vec { +9; +12; +15; }; vec { +19; +26; +33; }; vec { +29; +40; +51; }; })"
 }
