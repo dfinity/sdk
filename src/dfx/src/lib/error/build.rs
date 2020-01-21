@@ -9,6 +9,9 @@ pub enum BuildErrorKind {
     /// A compiler error happened.
     CompilerError(String, String),
 
+    /// An error happened while dependency analysis.
+    DependencyError(String),
+
     /// An error happened while creating the JS canister bindings.
     CanisterJsGenerationError(String),
 
@@ -34,6 +37,10 @@ impl fmt::Display for BuildErrorKind {
             CompilerError(cmd, stderr) => f.write_fmt(format_args!(
                 "Command {}\n returned an error:\n{}",
                 cmd, stderr
+            )),
+            DependencyError(msg) => f.write_fmt(format_args!(
+                "Error while performing dependency analysis: {}",
+                msg
             )),
             CanisterJsGenerationError(stdout) => f.write_fmt(format_args!(
                 "Creating canister JS bindings returned an error:\n{}",

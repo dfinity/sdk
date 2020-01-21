@@ -187,11 +187,17 @@ fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> 
             file => {
                 let path = input_path
                     .parent()
-                    .unwrap()
+                    .expect("Cannot use root.")
                     .join(file)
                     .canonicalize()
-                    .unwrap();
-                find_deps(cache, &path, deps)?;
+                    .expect("Cannot canonicalize local import file");
+                if path.is_file() {
+                    find_deps(cache, &path, deps)?;
+                } else {
+                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                        format!("Cannot find import file {}", path.display()),
+                    )));
+                }
             }
         }
     }
@@ -369,7 +375,8 @@ impl BuildSequence {
     }
     pub fn get_ids(&self, name: &str) -> CanisterIdMap {
         let mut res = HashMap::new();
-        for canister in self.deps.get(name).unwrap().iter() {
+        let deps = self.deps.get(name).expect("Cannot find canister name");
+        for canister in deps.iter() {
             let id = self.id_map.get(canister).unwrap();
             res.insert(canister.to_owned(), id.to_owned());
         }
