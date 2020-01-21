@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use crate::config::dfinity::Config;
 use crate::lib::error::{DfxError, DfxResult};
-use ic_http_agent::{Blob, CanisterId};
+use ic_http_agent::CanisterId;
 use rand::{thread_rng, Rng};
 use std::cell::RefCell;
 use std::ops::Shl;
@@ -120,7 +120,7 @@ impl CanisterInfo {
         let canister_id = self.canister_id.replace(None).or_else(|| {
             std::fs::read(&self.canister_id_path)
                 .ok()
-                .map(|cid| CanisterId::from(Blob::from(cid)))
+                .map(|cid| CanisterId::from(cid))
         });
 
         self.canister_id.replace(canister_id.clone());
@@ -137,9 +137,11 @@ impl CanisterInfo {
         let time_since_the_epoch = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards.");
-        let cid = u64::from(time_since_the_epoch.as_millis() as u32).shl(32)
+        let cid: u64 = u64::from(time_since_the_epoch.as_millis() as u32).shl(32)
             + u64::from(thread_rng().gen::<u32>());
-
+        let cid = cid.to_le_bytes().to_vec();
+        // TODO(eftychis): Go over the spec and consider the
+        // requirements.
         Ok(CanisterId::from(cid))
     }
 }

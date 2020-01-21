@@ -1,7 +1,7 @@
 use crate::types::blob::Blob;
 use crc8::Crc8;
 use hex;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
 use std::{fmt, num, str};
 
@@ -13,7 +13,7 @@ const IC_COLON: &str = "ic:";
 /// This type is described as a Blob in the public spec, but used as an integer in most
 /// code samples (including this library). For now, we newtype it to abstract its usage
 /// from a number, and will change its internal type when time comes.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CanisterId(Blob);
 
 #[derive(Clone, Debug)]
@@ -75,6 +75,33 @@ impl CanisterId {
         buf.push(checksum_byte);
         format!("{}{}", IC_COLON, hex::encode_upper(buf))
     }
+
+    #[cfg(test)]
+    pub fn test_default_values() -> CanisterId {
+        CanisterId::from(vec![1, 2, 3, 4])
+    }
+}
+
+/// Serialize into a blob.
+impl Serialize for CanisterId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // TODO(DFN-862): move this to blobs
+        let v = self.clone();
+        v.into_blob().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for CanisterId {
+    fn deserialize<S>(deserializer: S) -> Result<CanisterId, S::Error>
+    where
+        S: Deserializer<'de>,
+    {
+        // TODO(DFN-862): move this to blobs
+        Ok(CanisterId::from(Blob::deserialize(deserializer)?))
+    }
 }
 
 /// Conversion of different types that should be coerce-able to Canister Ids.
@@ -82,6 +109,13 @@ impl From<Blob> for CanisterId {
     fn from(b: Blob) -> CanisterId {
         // We don't need to make a copy as this assume ownership.
         CanisterId(b)
+    }
+}
+
+impl From<Vec<u8>> for CanisterId {
+    fn from(b: Vec<u8>) -> CanisterId {
+        // We don't need to make a copy as this assume ownership.
+        CanisterId(Blob(b))
     }
 }
 
@@ -111,7 +145,7 @@ mod tests {
 
     #[test]
     fn check_serialize_deserialize() {
-        let id = CanisterId::from_str("88827");
+        let id = CanisterId::from_str("88827").unwrap();
 
         // Use cbor serialization.
         let vec = serde_cbor::to_vec(&id).unwrap();

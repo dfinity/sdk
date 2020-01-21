@@ -660,7 +660,7 @@ mod tests {
         };
         let data = PublicSpecExampleStruct {
             request_type: "call",
-            canister_id: CanisterId::from(1234),
+            canister_id: CanisterId::from(vec![1]),
             method_name: "hello",
             arg: Blob(b"DIDL\x00\xFD*".to_vec()),
         };
@@ -687,7 +687,7 @@ mod tests {
             },
         }
         let data = PublicSpec::Call {
-            canister_id: CanisterId::from(1234),
+            canister_id: CanisterId::test_default_values(),
             method_name: "hello".to_owned(),
             arg: Some(Blob(b"DIDL\x00\xFD*".to_vec())),
         };
