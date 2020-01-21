@@ -77,6 +77,7 @@ struct MotokoParams<'a> {
     idl_map: &'a CanisterIdMap,
     output: &'a Path,
     // The following fields will not be used by self.to_args()
+    // TODO move input into self.to_args once inject_code is deprecated.
     input: &'a Path,
     verbose: bool,
     surpress_warning: bool,
@@ -132,6 +133,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
     params.to_args(&mut cmd);
     let cmd = cmd
         .env("MOC_RTS", mo_rts_path.as_path())
+        // TODO Move packages flags into params.to_args once dfx supports custom packages
         .arg("--package")
         .arg("stdlib")
         .arg(&stdlib_path.as_path());
@@ -179,10 +181,16 @@ fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> 
         let prefix: Vec<_> = dep.split(':').collect();
         match prefix[0] {
             "canister" => {
+                if prefix.len() != 2 {
+                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                        format!("Illegal canister import {}", dep),
+                    )));
+                }
                 deps.0.insert(MotokoImport::Canister(prefix[1].to_string()));
             }
+            // TODO trace canister id once dfx supports downloading IDL from remote canisters
             "ic" => (),
-            // TODO resolve mo URL
+            // TODO trace mo package once dfx supports packages
             "mo" => (),
             file => {
                 let path = input_path
@@ -339,6 +347,7 @@ fn build_file(
             };
             motoko_compile(cache.as_ref(), &params, &HashMap::new())?;
             std::fs::copy(&canister_info.get_output_idl_path(), &output_idl_path)?;
+            // TODO Don't generate js file if we don't build frontend
             build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
 
@@ -363,41 +372,53 @@ struct BuildSequence {
 }
 
 impl BuildSequence {
-    pub fn new(deps: CanisterDependencyMap, id_map: CanisterIdMap) -> Self {
+    fn new(deps: CanisterDependencyMap, id_map: CanisterIdMap) -> DfxResult<Self> {
         let mut res = BuildSequence {
             canisters: Vec::new(),
             seen: HashSet::new(),
             deps,
             id_map,
         };
-        res.build_dependency();
-        res
+        res.build_dependency()?;
+        Ok(res)
     }
-    pub fn get_ids(&self, name: &str) -> CanisterIdMap {
+    fn get_ids(&self, name: &str) -> CanisterIdMap {
         let mut res = HashMap::new();
-        let deps = self.deps.get(name).expect("Cannot find canister name");
+        // It's okay to unwrap because we have already traversed the dependency graph without errors.
+        let deps = self.deps.get(name).unwrap();
         for canister in deps.iter() {
             let id = self.id_map.get(canister).unwrap();
             res.insert(canister.to_owned(), id.to_owned());
         }
         res
     }
-    fn build_dependency(&mut self) {
+    fn build_dependency(&mut self) -> DfxResult {
         let names: Vec<_> = self.deps.keys().cloned().collect();
         for name in names {
-            self.dfs(&name);
+            self.dfs(&name)?;
         }
+        Ok(())
     }
-    fn dfs(&mut self, canister: &str) {
+    fn dfs(&mut self, canister: &str) -> DfxResult {
         if self.seen.contains(canister) {
-            return;
+            return Ok(());
         }
         self.seen.insert(canister.to_string());
-        let deps = self.deps.get(canister).unwrap().clone();
+        let deps = self
+            .deps
+            .get(canister)
+            .ok_or_else(|| {
+                DfxError::BuildError(BuildErrorKind::DependencyError(format!(
+                    "Cannot find canister {}",
+                    canister
+                )))
+            })?
+            .clone();
         for dep in deps {
-            self.dfs(&dep);
+            self.dfs(&dep)?;
         }
         self.canisters.push(canister.to_string());
+        Ok(())
     }
 }
 
@@ -455,7 +476,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Sort dependency
     status_bar.set_message("Analyzing build dependency...");
-    let seq = BuildSequence::new(deps, id_map);
+    let seq = BuildSequence::new(deps, id_map)?;
     status_bar.finish_and_clear();
 
     let num_stages = seq.canisters.len() as u64 + 2;
