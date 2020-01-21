@@ -8,6 +8,7 @@ use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use console::Style;
 use ic_http_agent::CanisterId;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rand::{thread_rng, Rng};
@@ -72,35 +73,36 @@ enum BuildTarget {
 
 struct MotokoParams<'a> {
     build_target: BuildTarget,
+    idl_path: &'a Path,
     idl_map: &'a CanisterIdMap,
+    output: &'a Path,
     // The following fields will not be used by self.to_args()
     input: &'a Path,
-    output: &'a Path,
-    idl_path: &'a Path,
     verbose: bool,
     surpress_warning: bool,
     inject_code: bool,
 }
 
 impl MotokoParams<'_> {
-    fn to_args(&self) -> Vec<&str> {
-        let mut args = Vec::new();
+    fn to_args(&self, cmd: &mut std::process::Command) {
+        cmd.arg("-o").arg(self.output);
         match self.build_target {
-            BuildTarget::Release => args.extend_from_slice(&["-c", "--release"]),
-            BuildTarget::Debug => args.extend_from_slice(&["-c", "--debug"]),
-            BuildTarget::IDL => args.push("--idl"),
-        }
-        for (name, canister_id) in self.idl_map.iter() {
-            args.extend_from_slice(&["--actor-alias", name, canister_id]);
-        }
-        args
+            BuildTarget::Release => cmd.args(&["-c", "--release"]),
+            BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
+            BuildTarget::IDL => cmd.arg("--idl"),
+        };
+        if !self.idl_map.is_empty() {
+            cmd.arg("--actor-idl").arg(self.idl_path);
+            for (name, canister_id) in self.idl_map.iter() {
+                cmd.args(&["--actor-alias", name, canister_id]);
+            }
+        };
     }
 }
 
 /// Compile a motoko file.
 fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMap) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
-    cmd.args(&params.to_args());
 
     let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
     let stdlib_path = cache.get_binary_command_path("stdlib")?;
@@ -126,16 +128,13 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
         params.input.to_path_buf()
     };
 
+    cmd.arg(&input_path);
+    params.to_args(&mut cmd);
     let cmd = cmd
         .env("MOC_RTS", mo_rts_path.as_path())
-        .arg(&input_path)
-        .arg("-o")
-        .arg(&params.output)
         .arg("--package")
         .arg("stdlib")
-        .arg(&stdlib_path.as_path())
-        .arg("--actor-idl")
-        .arg(&params.idl_path);
+        .arg(&stdlib_path.as_path());
     run_command(cmd, params.verbose, params.surpress_warning)?;
 
     if params.inject_code {
@@ -222,6 +221,7 @@ fn run_command(
         )))
     } else {
         if !surpress_warning && !output.stderr.is_empty() {
+            // Cannot use eprintln, because it would interfere with the progress bar.
             println!("{}", String::from_utf8_lossy(&output.stderr));
         }
         Ok(output)
@@ -312,20 +312,20 @@ fn build_file(
                 },
                 surpress_warning: false,
                 inject_code: true,
-                verbose: true,
+                verbose: false,
                 input: &input_path,
                 output: &output_wasm_path,
                 idl_path: &idl_path,
                 idl_map: &id_map,
             };
-
-            // We call moc multiple times, so we need to surpress the warning to show only once.
             motoko_compile(cache.as_ref(), &params, assets)?;
+
             let params = MotokoParams {
                 build_target: BuildTarget::IDL,
+                // Surpress the warnings the second time we call moc
                 surpress_warning: true,
                 inject_code: false,
-                verbose: true,
+                verbose: false,
                 input: &input_path,
                 output: &canister_info.get_output_idl_path(),
                 idl_path: &idl_path,
@@ -404,6 +404,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // already.
     env.get_cache().install()?;
 
+    let green = Style::new().green().bold();
+
     let status_bar = ProgressBar::new_spinner();
     status_bar.set_draw_target(ProgressDrawTarget::stderr());
     status_bar.set_message("Building canisters...");
@@ -461,7 +463,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Build canister
     for name in &seq.canisters {
-        build_stage_bar.println(&format!("Building canister {}", name));
+        build_stage_bar.println(&format!("{} canister {}", green.apply_to("Building"), name));
         match build_file(env, &config, name, &seq.get_ids(name), &HashMap::new()) {
             Ok(()) => {}
             Err(e) => {
@@ -479,7 +481,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         return Ok(());
     }
 
-    build_stage_bar.println("Building frontend");
+    build_stage_bar.println(&format!("{} frontend", green.apply_to("Building")));
 
     let mut process = std::process::Command::new("npm")
         .arg("run")
@@ -495,13 +497,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     if !status.success() {
         let mut str = String::new();
         process.stderr.unwrap().read_to_string(&mut str)?;
-        eprintln!("NPM failed to run:\n{}", str);
+        println!("NPM failed to run:\n{}", str);
         return Err(DfxError::BuildError(BuildErrorKind::FrontendBuildError()));
     }
 
     build_stage_bar.inc(1);
 
-    build_stage_bar.println("Bundling frontend assets in the canister");
+    build_stage_bar.println(&format!(
+        "{} frontend assets in the canister",
+        green.apply_to("Bundling")
+    ));
 
     let frontends: Vec<String> = canisters
         .iter()
@@ -538,8 +543,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         match build_file(env, &config, &name, &seq.get_ids(&name), &assets) {
             Ok(()) => {}
             Err(e) => {
-                build_stage_bar
-                    .finish_with_message(&format!(r#"Failed to build canister "{}":"#, name));
+                build_stage_bar.abandon();
                 return Err(e);
             }
         }
@@ -590,26 +594,31 @@ mod tests {
         });
 
         let input_path = temp_dir().join("file").with_extension("mo");
+        fs::File::create(input_path.clone()).expect("Could not create file.");
 
-        motoko_compile(
-            &cache,
-            None,
-            "",
-            &input_path,
-            Path::new("/out/file.wasm"),
-            Path::new("."),
-            &HashMap::new(),
-            &HashMap::new(),
-        )
-        .expect("Function failed.");
-        didl_compile(
-            &cache,
-            Path::new("/in/file.mo"),
-            Path::new("/out/file.did"),
-            Path::new("."),
-            &HashMap::new(),
-        )
-        .expect("Function failed (didl_compile)");
+        let params = MotokoParams {
+            build_target: BuildTarget::Debug,
+            surpress_warning: false,
+            inject_code: true,
+            verbose: false,
+            input: &input_path,
+            output: Path::new("/out/file.wasm"),
+            idl_path: Path::new("."),
+            idl_map: &HashMap::new(),
+        };
+        motoko_compile(&cache, &params, &HashMap::new()).expect("Function failed.");
+
+        let params = MotokoParams {
+            build_target: BuildTarget::IDL,
+            surpress_warning: false,
+            inject_code: false,
+            verbose: false,
+            input: Path::new("/in/file.mo"),
+            output: Path::new("/out/file.did"),
+            idl_path: Path::new("."),
+            idl_map: &HashMap::new(),
+        };
+        motoko_compile(&cache, &params, &HashMap::new()).expect("Function failed (didl_compile)");
         build_did_js(
             &cache,
             Path::new("/out/file.did"),
@@ -625,8 +634,8 @@ mod tests {
             .expect("Could not read temp file.");
 
         let re = regex::Regex::new(
-            &r"moc -c .*?.mo-[0-9]+ --debug -o /out/file.wasm --package stdlib stdlib --actor-idl .
-                moc --idl /in/file.mo -o /out/file.did --package stdlib stdlib --actor-idl .
+            &r"moc .*?.mo-[0-9]+ -o /out/file.wasm -c --debug --package stdlib stdlib
+                moc /in/file.mo -o /out/file.did --idl --package stdlib stdlib
                 didc --js /out/file.did -o /out/file.did.js"
                 .replace("                ", ""),
         )
