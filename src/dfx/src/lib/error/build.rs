@@ -7,7 +7,7 @@ pub enum BuildErrorKind {
     InvalidExtension(String),
 
     /// A compiler error happened.
-    CompilerError(String, String),
+    CompilerError(String, String, String),
 
     /// An error happened while dependency analysis.
     DependencyError(String),
@@ -21,9 +21,6 @@ pub enum BuildErrorKind {
     /// Could not find the canister to build in the config.
     CanisterNameIsNotInConfigError(String),
 
-    // The frontend failed.
-    FrontendBuildError(),
-
     // Cannot find or read the canister ID.
     CouldNotReadCanisterId(),
 }
@@ -34,9 +31,9 @@ impl fmt::Display for BuildErrorKind {
 
         match self {
             InvalidExtension(ext) => f.write_fmt(format_args!("Invalid extension: {}", ext)),
-            CompilerError(cmd, stderr) => f.write_fmt(format_args!(
-                "Command {}\n returned an error:\n{}",
-                cmd, stderr
+            CompilerError(cmd, stdout, stderr) => f.write_fmt(format_args!(
+                "Command {}\n returned an error:\n{}{}",
+                cmd, stdout, stderr
             )),
             DependencyError(msg) => f.write_fmt(format_args!(
                 "Error while performing dependency analysis: {}",
@@ -53,7 +50,6 @@ impl fmt::Display for BuildErrorKind {
                 r#"Could not find the canister named "{}" in the dfx.json configuration."#,
                 name,
             )),
-            FrontendBuildError() => f.write_str("Frontend build stage failed."),
             CouldNotReadCanisterId() => f.write_str("The canister ID could not be found."),
         }
     }

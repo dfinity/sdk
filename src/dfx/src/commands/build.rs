@@ -231,6 +231,7 @@ fn run_command(
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::CompilerError(
             format!("{:?}", cmd),
+            String::from_utf8_lossy(&output.stdout).to_string(),
             String::from_utf8_lossy(&output.stderr).to_string(),
         )))
     } else {
@@ -506,26 +507,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     build_stage_bar.println(&format!("{} frontend", green.apply_to("Building")));
 
-    let mut process = std::process::Command::new("npm")
-        .arg("run")
+    let mut cmd = std::process::Command::new("npm");
+    cmd.arg("run")
         .arg("build")
         .env("DFX_VERSION", &format!("{}", dfx_version()))
         .current_dir(config.get_project_root())
         .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()?;
-
-    let status = process.wait()?;
-
-    if !status.success() {
-        let mut str = String::new();
-        process.stderr.unwrap().read_to_string(&mut str)?;
-        println!("NPM failed to run:\n{}", str);
-        return Err(DfxError::BuildError(BuildErrorKind::FrontendBuildError()));
-    }
+        .stderr(std::process::Stdio::piped());
+    run_command(&mut cmd, false, false)?;
 
     build_stage_bar.inc(1);
-
     build_stage_bar.println(&format!(
         "{} frontend assets in the canister",
         green.apply_to("Bundling")
