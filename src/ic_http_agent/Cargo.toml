@@ -15,6 +15,7 @@ serde-idl = { path = "../serde_idl" }
 error = "0.1.9"
 hex = "0.4.0"
 openssl = "0.10.24"
+rand = "0.7.2"
 reqwest = "0.10.0"
 serde = "1.0.101"
 serde_bytes = "0.11.2"
@@ -24,4 +25,3 @@ url = "2.1.0"
 [dev-dependencies]
 tokio = "0.2.6"
 mockito = "0.20.0"
-rand = "0.7.2"

@@ -1,13 +1,22 @@
 use crate::commands::CliCommand;
-use crate::lib::environment::{ClientEnvironment, Environment};
+use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, ArgSettings, SubCommand};
+use ic_http_agent::Waiter;
+use std::time::Duration;
 
 mod call;
 mod install;
 mod query;
 mod request_status;
+
+const RETRY_PAUSE: Duration = Duration::from_millis(100);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
+
+pub fn create_waiter() -> Waiter {
+    Waiter::throttle_and_timeout(RETRY_PAUSE, REQUEST_TIMEOUT)
+}
 
 fn builtins() -> Vec<CliCommand> {
     vec![
@@ -40,9 +49,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let subcommand = args.subcommand();
 
     // Need storage for ClientEnvironment ownership.
-    let mut _client_env: Option<ClientEnvironment<'_>> = None;
+    let mut _client_env: Option<AgentEnvironment<'_>> = None;
     let env = if args.is_present("client") {
-        _client_env = Some(ClientEnvironment::new(
+        _client_env = Some(AgentEnvironment::new(
             env,
             args.value_of("client").expect("Could not find client."),
         ));

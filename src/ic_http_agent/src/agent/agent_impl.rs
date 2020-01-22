@@ -1,19 +1,17 @@
 use crate::agent::agent_error::AgentError;
-use crate::{Blob, CanisterId};
+use crate::agent::nonce::NonceFactory;
+use crate::agent::response::RequestStatusResponse;
+use crate::agent::waiter::Waiter;
+use crate::{to_request_id, Blob, CanisterId, RequestId};
 use reqwest::header::HeaderMap;
 use reqwest::Client;
 use reqwest::Method;
 use serde::{de, Deserialize, Serialize};
 use serde_idl::{Encode, IDLType};
 
-pub struct Agent {
-    url: reqwest::Url,
-    client: reqwest::Client,
-}
-
 /// Request payloads for the /api/v1/read endpoint.
 /// This never needs to be deserialized.
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(tag = "request_type")]
 pub(crate) enum ReadRequest<'a> {
@@ -22,9 +20,18 @@ pub(crate) enum ReadRequest<'a> {
         method_name: &'a str,
         arg: &'a Blob,
     },
+    RequestStatus {
+        request_id: &'a RequestId,
+    },
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) struct QueryResponseReply {
+    pub arg: Blob,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "status")]
 pub(crate) enum ReadResponse<A> {
@@ -35,25 +42,73 @@ pub(crate) enum ReadResponse<A> {
         reject_code: u16,
         reject_message: String,
     },
+    Pending,
+    Unknown,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "request_type")]
+pub(crate) enum SubmitRequest<'a> {
+    InstallCode {
+        canister_id: &'a CanisterId,
+        module: &'a Blob,
+        arg: &'a Blob,
+        nonce: &'a Option<Blob>,
+    },
+    Call {
+        canister_id: &'a CanisterId,
+        method_name: &'a str,
+        arg: &'a Blob,
+        nonce: &'a Option<Blob>,
+    },
+}
+
+pub struct AgentConfig<'a> {
+    pub url: &'a str,
+    pub nonce_factory: NonceFactory,
+}
+
+impl Default for AgentConfig<'_> {
+    fn default() -> Self {
+        Self {
+            url: "-", // Making sure this is invalid so users have to overwrite it.
+            nonce_factory: NonceFactory::random(),
+        }
+    }
+}
+
+pub struct Agent {
+    url: reqwest::Url,
+    client: reqwest::Client,
+    nonce_factory: NonceFactory,
+}
+
+unsafe impl std::marker::Send for Agent {}
+
 impl Agent {
-    pub fn with_url<T: AsRef<str>>(url: T) -> Result<Agent, AgentError> {
+    pub fn new(config: AgentConfig<'_>) -> Result<Agent, AgentError> {
         let mut default_headers = HeaderMap::new();
         default_headers.insert(
             reqwest::header::CONTENT_TYPE,
             "application/cbor".parse().unwrap(),
         );
 
+        let url = config.url;
+
         Ok(Agent {
-            url: reqwest::Url::parse(url.as_ref())
+            url: reqwest::Url::parse(url)
                 .and_then(|url| url.join("api/v1/"))
-                .map_err(|_| AgentError::InvalidClientUrl(String::from(url.as_ref())))?,
+                .map_err(|_| AgentError::InvalidClientUrl(String::from(url)))?,
             client: Client::builder().default_headers(default_headers).build()?,
+            nonce_factory: config.nonce_factory,
         })
     }
 
-    async fn _read(&self, request: ReadRequest<'_>) -> Result<ReadResponse<Blob>, AgentError> {
+    async fn read<A>(&self, request: ReadRequest<'_>) -> Result<ReadResponse<A>, AgentError>
+    where
+        A: serde::de::DeserializeOwned,
+    {
         let record = serde_cbor::to_vec(&request)?;
         let url = self.url.join("read")?;
 
@@ -62,10 +117,37 @@ impl Agent {
             .body_mut()
             .get_or_insert(reqwest::Body::from(record));
 
-        let bytes = self.client.execute(http_request).await?.bytes().await?;
-        println!("{}", hex::encode(&bytes));
-        println!("{:?}", serde_cbor::from_slice::<ReadResponse<Blob>>(&bytes));
-        serde_cbor::from_slice::<ReadResponse<Blob>>(&bytes).map_err(AgentError::InvalidData)
+        let bytes = self
+            .client
+            .execute(http_request)
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?;
+
+        serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)
+    }
+
+    async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
+        // If there's an error calculating the Request Id, submit won't work anyway, so do this
+        // first.
+        let request_id = to_request_id(&request).map_err(AgentError::from)?;
+
+        let record = serde_cbor::to_vec(&request)?;
+        let url = self.url.join("submit")?;
+
+        let mut http_request = reqwest::Request::new(Method::POST, url);
+        http_request
+            .body_mut()
+            .get_or_insert(reqwest::Body::from(record));
+
+        let _ = self
+            .client
+            .execute(http_request)
+            .await?
+            .error_for_status()?;
+
+        Ok(request_id)
     }
 
     /// The simplest for of query; sends a Blob and will return a Blob. The encoding is
@@ -76,18 +158,20 @@ impl Agent {
         method_name: &'a str,
         arg: &'a Blob,
     ) -> Result<Blob, AgentError> {
-        self._read(ReadRequest::Query {
+        self.read::<QueryResponseReply>(ReadRequest::Query {
             canister_id,
             method_name,
             arg,
         })
         .await
         .and_then(|response| match response {
-            ReadResponse::Replied { reply } => Ok(reply.unwrap_or_else(Blob::empty)),
+            ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg).unwrap_or_else(Blob::empty)),
             ReadResponse::Rejected {
                 reject_code,
                 reject_message,
             } => Err(AgentError::ClientError(reject_code, reject_message)),
+            ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
+            ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
         })
     }
 
@@ -105,5 +189,176 @@ impl Agent {
                 de.done().map_err(AgentError::IDLDeserializationError)?;
                 Ok(decoded)
             })?
+    }
+
+    pub async fn request_status_blob(
+        &self,
+        request_id: &RequestId,
+    ) -> Result<RequestStatusResponse, AgentError> {
+        self.read(ReadRequest::RequestStatus { request_id })
+            .await
+            .and_then(|response| Ok(RequestStatusResponse::from(response)))
+    }
+
+    // TODO: implement a request_status() function that maps the Blob to a TResult. This is
+    //       hard because the return type shouldn't be RequestStatusResponse anymore (as it is
+    //       not a generic type).
+
+    pub async fn request_status_and_wait<TResult: de::DeserializeOwned>(
+        &self,
+        request_id: &RequestId,
+        waiter: Waiter,
+    ) -> Result<TResult, AgentError> {
+        let blob = self
+            .request_status_blob_and_wait(request_id, waiter)
+            .await?;
+
+        let mut de = serde_idl::de::IDLDeserialize::new(blob.as_slice());
+        let decoded: TResult = de.get_value().unwrap();
+        de.done().map_err(AgentError::IDLDeserializationError)?;
+
+        Ok(decoded)
+    }
+
+    pub async fn request_status_blob_and_wait(
+        &self,
+        request_id: &RequestId,
+        mut waiter: Waiter,
+    ) -> Result<Blob, AgentError> {
+        waiter.start();
+
+        loop {
+            match self.request_status_blob(request_id).await? {
+                RequestStatusResponse::Replied { reply } => return Ok(reply),
+                RequestStatusResponse::Rejected { code, message } => {
+                    return Err(AgentError::ClientError(code, message))
+                }
+                RequestStatusResponse::Unknown => (),
+                RequestStatusResponse::Pending => (),
+            };
+
+            waiter.wait()?;
+        }
+    }
+
+    pub async fn call<TArg: IDLType>(
+        &self,
+        canister_id: &CanisterId,
+        method_name: &str,
+        arg: &TArg,
+    ) -> Result<RequestId, AgentError> {
+        self.call_blob(canister_id, method_name, &Blob::from(Encode!(arg)))
+            .await
+    }
+
+    pub async fn call_and_wait<TArg: IDLType, TResult: de::DeserializeOwned>(
+        &self,
+        canister_id: &CanisterId,
+        method_name: &str,
+        arg: &TArg,
+        waiter: Waiter,
+    ) -> Result<TResult, AgentError> {
+        let request_id = self.call(canister_id, method_name, arg).await?;
+        self.request_status_and_wait(&request_id, waiter).await
+    }
+
+    pub async fn call_blob_and_wait(
+        &self,
+        canister_id: &CanisterId,
+        method_name: &str,
+        arg: &Blob,
+        waiter: Waiter,
+    ) -> Result<Blob, AgentError> {
+        let request_id = self.call_blob(canister_id, method_name, arg).await?;
+        self.request_status_blob_and_wait(&request_id, waiter).await
+    }
+
+    pub async fn call_blob(
+        &self,
+        canister_id: &CanisterId,
+        method_name: &str,
+        arg: &Blob,
+    ) -> Result<RequestId, AgentError> {
+        self.submit(SubmitRequest::Call {
+            canister_id,
+            method_name,
+            arg,
+            nonce: &self.nonce_factory.generate(),
+        })
+        .await
+    }
+
+    pub async fn install<TArg: IDLType>(
+        &self,
+        canister_id: &CanisterId,
+        module: &Blob,
+        arg: &TArg,
+    ) -> Result<RequestId, AgentError> {
+        self.install_blob(canister_id, module, &Blob::from(Encode!(arg)))
+            .await
+    }
+
+    pub async fn install_and_wait<TArg: IDLType, TResult: de::DeserializeOwned>(
+        &self,
+        canister_id: &CanisterId,
+        module: &Blob,
+        arg: &TArg,
+        waiter: Waiter,
+    ) -> Result<TResult, AgentError> {
+        let request_id = self.install(canister_id, module, arg).await?;
+        self.request_status_and_wait(&request_id, waiter).await
+    }
+
+    pub async fn install_blob(
+        &self,
+        canister_id: &CanisterId,
+        module: &Blob,
+        arg: &Blob,
+    ) -> Result<RequestId, AgentError> {
+        self.submit(SubmitRequest::InstallCode {
+            canister_id,
+            module,
+            arg,
+            nonce: &self.nonce_factory.generate(),
+        })
+        .await
+    }
+
+    pub async fn install_blob_and_wait(
+        &self,
+        canister_id: &CanisterId,
+        module: &Blob,
+        arg: &Blob,
+        waiter: Waiter,
+    ) -> Result<Blob, AgentError> {
+        let request_id = self.install_blob(canister_id, module, arg).await?;
+        self.request_status_blob_and_wait(&request_id, waiter).await
+    }
+
+    pub async fn ping_once(&self) -> Result<(), AgentError> {
+        let url = self.url.join("read")?;
+        let http_request = reqwest::Request::new(Method::GET, url);
+        let response = self.client.execute(http_request).await?;
+
+        if response.status().as_u16() == 405 {
+            Ok(())
+        } else {
+            response
+                .error_for_status()
+                .map(|_| ())
+                .map_err(AgentError::from)
+        }
+    }
+
+    pub async fn ping(&self, mut waiter: Waiter) -> Result<(), AgentError> {
+        waiter.start();
+        loop {
+            if self.ping_once().await.is_ok() {
+                break;
+            }
+
+            waiter.wait()?;
+        }
+        Ok(())
     }
 }

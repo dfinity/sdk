@@ -1,14 +1,12 @@
-use crate::commands::canister::install::wait_on_request_status;
-use crate::lib::api_client::{call, query, QueryResponseReply, ReadResponse};
+use crate::commands::canister::create_waiter;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::{load_idl_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::{Blob, RequestId};
+use ic_http_agent::Blob;
 use serde_idl::{Encode, IDLArgs};
-use std::io::Write;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -60,37 +58,6 @@ pub fn construct() -> App<'static, 'static> {
                 .help(UserMessage::ArgumentValue.to_str())
                 .takes_value(true),
         )
-}
-
-pub fn read_response(
-    response: ReadResponse<QueryResponseReply>,
-    request_id: Option<RequestId>,
-) -> DfxResult {
-    match response {
-        ReadResponse::Pending => {
-            match request_id {
-                None => eprintln!("Pending"),
-                Some(request_id) => {
-                    eprint!("Request ID: ");
-                    std::io::stderr().flush()?;
-                    println!("0x{}", String::from(request_id));
-                }
-            }
-            Ok(())
-        }
-        ReadResponse::Replied { reply } => {
-            if let Some(QueryResponseReply { arg: blob }) = reply {
-                print_idl_blob(&blob)
-                    .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
-            }
-            Ok(())
-        }
-        ReadResponse::Rejected {
-            reject_code,
-            reject_message,
-        } => Err(DfxError::ClientError(reject_code, reject_message)),
-        ReadResponse::Unknown => Err(DfxError::Unknown("Unknown response".to_owned())),
-    }
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -161,31 +128,37 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     };
 
     let client = env
-        .get_client()
+        .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     if is_query {
-        let future = query(
-            client.clone(),
-            canister_id,
-            method_name.to_owned(),
-            arg_value.map(Blob::from),
-        );
-        read_response(runtime.block_on(future)?, None)
+        let blob = runtime.block_on(client.query_blob(
+            &canister_id,
+            method_name,
+            &arg_value.map(Blob::from).unwrap_or_else(Blob::empty),
+        ))?;
+        print_idl_blob(&blob)
+            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+        Ok(())
+    } else if args.is_present("async") {
+        let request_id = runtime.block_on(client.call_blob(
+            &canister_id,
+            method_name,
+            &arg_value.unwrap_or_else(Blob::empty),
+        ))?;
+
+        eprint!("Request ID: ");
+        println!("0x{}", String::from(request_id));
+        Ok(())
     } else {
-        let future = call(
-            client.clone(),
-            canister_id,
-            method_name.to_owned(),
-            arg_value,
-        );
-        let request_id: RequestId = runtime.block_on(future)?;
-        if args.is_present("async") {
-            eprint!("Request ID: ");
-            println!("0x{}", String::from(request_id));
-            Ok(())
-        } else {
-            wait_on_request_status(&client.clone(), request_id)
-        }
+        let blob = runtime.block_on(client.call_blob_and_wait(
+            &canister_id,
+            method_name,
+            &arg_value.unwrap_or_else(Blob::empty),
+            create_waiter(),
+        ))?;
+        print_idl_blob(&blob)
+            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+        Ok(())
     }
 }

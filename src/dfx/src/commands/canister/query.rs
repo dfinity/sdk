@@ -1,4 +1,3 @@
-use crate::lib::api_client::{query, QueryResponseReply, ReadResponse};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -78,35 +77,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     eprintln!(r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#);
 
-    let client = env
-        .get_client()
+    let agent = env
+        .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
-    let query = query(
-        client,
-        canister_id,
-        method_name.to_owned(),
-        arg_value.map(Blob::from),
-    );
-
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    match runtime.block_on(query) {
-        Ok(ReadResponse::Pending) => {
-            eprintln!("Pending");
-            Ok(())
-        }
-        Ok(ReadResponse::Replied { reply }) => {
-            if let Some(QueryResponseReply { arg: blob }) = reply {
-                print_idl_blob(&blob)
-                    .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
-            }
-            Ok(())
-        }
-        Ok(ReadResponse::Rejected {
-            reject_code,
-            reject_message,
-        }) => Err(DfxError::ClientError(reject_code, reject_message)),
-        // TODO(SDK-446): remove this when moving api_client to ic_http_agent.
-        Ok(ReadResponse::Unknown) => Err(DfxError::Unknown("Unknown response".to_owned())),
-        Err(x) => Err(x),
-    }
+    let blob = runtime.block_on(agent.query_blob(
+        &canister_id,
+        method_name,
+        &arg_value.map(Blob::from).unwrap_or_else(Blob::empty),
+    ))?;
+
+    print_idl_blob(&blob).map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+    Ok(())
 }
