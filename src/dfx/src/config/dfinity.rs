@@ -4,22 +4,32 @@ use crate::lib::error::{DfxError, DfxResult};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::net::{SocketAddr, ToSocketAddrs};
+use std::default::Default;
+use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
+    bootstrap: None,
     build: None,
     start: None,
 };
+
+const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
+    ip: None,
+    port: None,
+    providers: None,
+    root: None,
+};
+
 const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     address: None,
     port: None,
     nodes: None,
     serve_root: None,
-    provider: None,
 };
+
 const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -28,13 +38,20 @@ pub struct ConfigCanistersCanister {
     pub frontend: Option<Value>,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsBootstrap {
+    pub ip: Option<IpAddr>,
+    pub port: Option<u16>,
+    pub providers: Option<Vec<String>>,
+    pub root: Option<PathBuf>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigDefaultsStart {
     pub address: Option<String>,
     pub nodes: Option<u64>,
     pub port: Option<u16>,
     pub serve_root: Option<String>,
-    pub provider: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -52,6 +69,7 @@ pub enum Profile {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigDefaults {
+    pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub start: Option<ConfigDefaultsStart>,
 }
@@ -122,6 +140,12 @@ impl ConfigDefaultsBuild {
 }
 
 impl ConfigDefaults {
+    pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
+        match &self.bootstrap {
+            Some(x) => &x,
+            None => &EMPTY_CONFIG_DEFAULTS_BOOTSTRAP,
+        }
+    }
     pub fn get_build(&self) -> &ConfigDefaultsBuild {
         match &self.build {
             Some(x) => &x,
