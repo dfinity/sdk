@@ -284,12 +284,6 @@ fn build_file(
     let input_path = canister_info.get_main_path();
 
     let output_wasm_path = canister_info.get_output_wasm_path();
-    let idl_path = canister_info
-        .get_output_root()
-        .parent()
-        .unwrap()
-        .join("idl");
-    std::fs::create_dir_all(&idl_path)?;
 
     match input_path.extension().and_then(OsStr::to_str) {
         // TODO(SDK-441): Revisit supporting compilation from WAT files.
@@ -305,20 +299,11 @@ fn build_file(
         }
 
         Some("mo") => {
-            let canister_id = canister_info
-                .get_canister_id()
-                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
-
-            let output_did_js_path = canister_info.get_output_did_js_path();
-
-            let output_idl_path = idl_path
-                .join(canister_id.to_text().split_off(3))
-                .with_extension("did");
-
             std::fs::create_dir_all(canister_info.get_output_root())?;
-
             let cache = env.get_cache();
-
+            let idl_dir_path = canister_info.get_idl_dir_path();
+            std::fs::create_dir_all(&idl_dir_path)?;
+            // Generate wasm
             let params = MotokoParams {
                 build_target: match profile {
                     Some(Profile::Release) => BuildTarget::Release,
@@ -329,11 +314,15 @@ fn build_file(
                 verbose: false,
                 input: &input_path,
                 output: &output_wasm_path,
-                idl_path: &idl_path,
+                idl_path: &idl_dir_path,
                 idl_map: &id_map,
             };
             motoko_compile(cache.as_ref(), &params, assets)?;
-
+            // Generate IDL
+            let output_idl_path = canister_info.get_output_idl_path();
+            let idl_file_path = canister_info
+                .get_idl_file_path()
+                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
             let params = MotokoParams {
                 build_target: BuildTarget::IDL,
                 // Surpress the warnings the second time we call moc
@@ -341,15 +330,21 @@ fn build_file(
                 inject_code: false,
                 verbose: false,
                 input: &input_path,
-                output: &canister_info.get_output_idl_path(),
-                idl_path: &idl_path,
+                output: &output_idl_path,
+                idl_path: &idl_dir_path,
                 idl_map: &id_map,
             };
             motoko_compile(cache.as_ref(), &params, &HashMap::new())?;
-            std::fs::copy(&canister_info.get_output_idl_path(), &output_idl_path)?;
-            // TODO Don't generate js file if we don't build frontend
-            build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
-            build_canister_js(&canister_id, &canister_info)?;
+            std::fs::copy(&output_idl_path, &idl_file_path)?;
+            // Generate JS code
+            if canister_info.has_frontend() {
+                let output_did_js_path = canister_info.get_output_did_js_path();
+                let canister_id = canister_info.get_canister_id().ok_or_else(|| {
+                    DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId())
+                })?;
+                build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
+                build_canister_js(&canister_id, &canister_info)?;
+            }
 
             Ok(())
         }
@@ -576,6 +571,17 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             }
         }
     }
+    // Remove generated IDL files
+    // We don't want to simply remove the whole directory, as in the future,
+    // we may want to keep the IDL files downloaded from network.
+    for name in &seq.canisters {
+        let canister_info = CanisterInfo::load(&config, name)?;
+        let idl_file_path = canister_info
+            .get_idl_file_path()
+            .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+        std::fs::remove_file(idl_file_path)?;
+    }
+
     build_stage_bar.finish_and_clear();
     Ok(())
 }

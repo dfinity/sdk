@@ -16,6 +16,7 @@ pub struct CanisterInfo {
     input_path: PathBuf,
 
     output_root: PathBuf,
+    idl_path: PathBuf,
 
     output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
@@ -39,6 +40,7 @@ impl CanisterInfo {
                 .get_build()
                 .get_output("build/"),
         );
+        let idl_path = build_root.join("idl/");
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
             DfxError::Unknown("No canisters in the configuration file.".to_string())
@@ -75,6 +77,7 @@ impl CanisterInfo {
             input_path,
 
             output_root,
+            idl_path,
             output_wasm_path,
             output_idl_path,
             output_did_js_path,
@@ -111,6 +114,18 @@ impl CanisterInfo {
     }
     pub fn get_output_root(&self) -> &Path {
         self.output_root.as_path()
+    }
+    pub fn get_idl_dir_path(&self) -> &Path {
+        self.idl_path.as_path()
+    }
+    pub fn get_idl_file_path(&self) -> Option<PathBuf> {
+        let idl_path = self.get_idl_dir_path();
+        let canister_id = self.get_canister_id()?;
+        Some(
+            idl_path
+                .join(canister_id.to_text().split_off(3))
+                .with_extension("did"),
+        )
     }
     pub fn get_canister_id_path(&self) -> &Path {
         self.canister_id_path.as_path()
