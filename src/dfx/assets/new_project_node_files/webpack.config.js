@@ -10,8 +10,8 @@ const aliases = Object.entries(dfxJson.canisters).reduce((acc, [name,]) => {
 
   return {
     ...acc,
-    ["ic:canisters/" + name]: path.join(outputRoot, "main.js"),
-    ["ic:idl/" + name]: path.join(outputRoot, "main.did.js"),
+    ["ic:canisters/" + name]: path.join(outputRoot, name + ".js"),
+    ["ic:idl/" + name]: path.join(outputRoot, name + ".did.js"),
   };
 }, {
   // This will later point to the userlib from npm, when we publish the userlib.
