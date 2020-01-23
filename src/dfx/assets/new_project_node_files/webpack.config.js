@@ -7,7 +7,7 @@ const dfxJson = require("./dfx.json");
 // canister.
 const aliases = Object.entries(dfxJson.canisters).reduce((acc, [name,value]) => {
   const outputRoot = path.join(__dirname, dfxJson.defaults.build.output, name);
-  const filename = value.main.split("/").pop().split(".")[0];
+  const filename = path.basename(value.main, ".mo");
   return {
     ...acc,
     ["ic:canisters/" + name]: path.join(outputRoot, filename + ".js"),
