@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
+use crate::lib::error::{DfxError, DfxResult};
 use ic_http_agent::Blob;
-use serde_idl::IDLProg;
+use serde_idl::{Encode, IDLArgs, IDLProg, EMPTY_DIDL};
 
 pub mod assets;
 pub mod clap;
@@ -31,5 +32,39 @@ pub fn load_idl_file(env: &dyn Environment, idl_path: &std::path::Path) -> Optio
         Some(ast)
     } else {
         None
+    }
+}
+
+pub fn blob_from_arguments(arguments: Option<&str>, arg_type: Option<&str>) -> DfxResult<Blob> {
+    let arg_type = arg_type.unwrap_or("idl");
+
+    if let Some(a) = arguments {
+        match arg_type {
+            "string" => Ok(Encode!(&a)),
+            "number" => Ok(Encode!(&a.parse::<u64>().map_err(|e| {
+                DfxError::InvalidArgument(format!(
+                    "Argument is not a valid 64-bit unsigned integer: {}",
+                    e
+                ))
+            })?)),
+            "raw" => Ok(hex::decode(&a).map_err(|e| {
+                DfxError::InvalidArgument(format!("Argument is not a valid hex string: {}", e))
+            })?),
+            "idl" => {
+                let args: IDLArgs = a
+                    .parse()
+                    .map_err(|e| DfxError::InvalidArgument(format!("Invalid IDL: {}", e)))?;
+                Ok(args.to_bytes().map_err(|e| {
+                    DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
+                })?)
+            }
+            v => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
+        }
+        .map(Blob::from)
+    } else {
+        match arg_type {
+            "raw" => Ok(Blob::empty()),
+            _ => Ok(Blob::from(EMPTY_DIDL)),
+        }
     }
 }

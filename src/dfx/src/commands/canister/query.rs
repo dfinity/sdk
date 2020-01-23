@@ -2,10 +2,8 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::util::print_idl_blob;
+use crate::util::{blob_from_arguments, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::Blob;
-use serde_idl::{Encode, IDLArgs};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -52,40 +50,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
 
-    let arg_value = if let Some(a) = arguments {
-        Some(match arg_type {
-            Some("string") => Ok(Encode!(&a)),
-            Some("number") => Ok(Encode!(&a.parse::<u64>().map_err(|e| {
-                DfxError::InvalidArgument(format!(
-                    "Argument is not a valid 64-bit unsigned integer: {}",
-                    e
-                ))
-            })?)),
-            Some("idl") | None => {
-                let args: IDLArgs = a
-                    .parse()
-                    .map_err(|e| DfxError::InvalidArgument(format!("Invalid IDL: {}", e)))?;
-                Ok(args.to_bytes().map_err(|e| {
-                    DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
-                })?)
-            }
-            Some(v) => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
-        }?)
-    } else {
-        None
-    };
-
+    let arg_value = blob_from_arguments(arguments, arg_type)?;
     eprintln!(r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#);
 
     let agent = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    if let Some(blob) = runtime.block_on(agent.query(
-        &canister_id,
-        method_name,
-        &arg_value.map(Blob::from).unwrap_or_else(Blob::empty),
-    ))? {
+    if let Some(blob) = runtime.block_on(agent.query(&canister_id, method_name, &arg_value))? {
         print_idl_blob(&blob)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     }
