@@ -81,12 +81,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    let blob = runtime.block_on(agent.query(
+    if let Some(blob) = runtime.block_on(agent.query(
         &canister_id,
         method_name,
         &arg_value.map(Blob::from).unwrap_or_else(Blob::empty),
-    ))?;
+    ))? {
+        print_idl_blob(&blob)
+            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+    }
 
-    print_idl_blob(&blob).map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     Ok(())
 }

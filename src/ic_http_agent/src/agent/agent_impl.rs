@@ -156,7 +156,7 @@ impl Agent {
         canister_id: &'a CanisterId,
         method_name: &'a str,
         arg: &'a Blob,
-    ) -> Result<Blob, AgentError> {
+    ) -> Result<Option<Blob>, AgentError> {
         self.read::<QueryResponseReply>(ReadRequest::Query {
             canister_id,
             method_name,
@@ -164,7 +164,7 @@ impl Agent {
         })
         .await
         .and_then(|response| match response {
-            ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg).unwrap_or_else(Blob::empty)),
+            ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg)),
             ReadResponse::Rejected {
                 reject_code,
                 reject_message,
