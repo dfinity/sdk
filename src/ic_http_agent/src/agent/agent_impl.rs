@@ -187,7 +187,7 @@ impl Agent {
         &self,
         request_id: &RequestId,
         mut waiter: Waiter,
-    ) -> Result<Blob, AgentError> {
+    ) -> Result<Option<Blob>, AgentError> {
         waiter.start();
 
         loop {
@@ -210,7 +210,7 @@ impl Agent {
         method_name: &str,
         arg: &Blob,
         waiter: Waiter,
-    ) -> Result<Blob, AgentError> {
+    ) -> Result<Option<Blob>, AgentError> {
         let request_id = self.call(canister_id, method_name, arg).await?;
         self.request_status_and_wait(&request_id, waiter).await
     }
@@ -251,7 +251,7 @@ impl Agent {
         module: &Blob,
         arg: &Blob,
         waiter: Waiter,
-    ) -> Result<Blob, AgentError> {
+    ) -> Result<Option<Blob>, AgentError> {
         let request_id = self.install(canister_id, module, arg).await?;
         self.request_status_and_wait(&request_id, waiter).await
     }

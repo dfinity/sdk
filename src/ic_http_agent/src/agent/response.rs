@@ -6,7 +6,7 @@ use serde::Deserialize;
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "status")]
 pub enum RequestStatusResponse {
-    Replied { reply: Blob },
+    Replied { reply: Option<Blob> },
     Rejected { code: u16, message: String },
     Unknown,
     Pending,
@@ -25,7 +25,7 @@ impl From<ReadResponse<QueryResponseReply>> for RequestStatusResponse {
                 message: reject_message,
             },
             ReadResponse::Replied { reply } => RequestStatusResponse::Replied {
-                reply: reply.map(|r| r.arg).unwrap_or_else(Blob::empty),
+                reply: reply.map(|r| r.arg),
             },
         }
     }

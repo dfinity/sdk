@@ -151,14 +151,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         println!("0x{}", String::from(request_id));
         Ok(())
     } else {
-        let blob = runtime.block_on(client.call_and_wait(
+        if let Some(blob) = runtime.block_on(client.call_and_wait(
             &canister_id,
             method_name,
             &arg_value.unwrap_or_else(Blob::empty),
             create_waiter(),
-        ))?;
-        print_idl_blob(&blob)
-            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+        ))? {
+            print_idl_blob(&blob)
+                .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+        }
         Ok(())
     }
 }
