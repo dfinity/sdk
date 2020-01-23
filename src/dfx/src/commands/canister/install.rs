@@ -47,7 +47,7 @@ async fn install_canister(agent: &Agent, canister_info: &CanisterInfo) -> DfxRes
     let wasm = std::fs::read(wasm_path)?;
 
     agent
-        .install_blob(&canister_id, &Blob::from(wasm), &Blob::empty())
+        .install(&canister_id, &Blob::from(wasm), &Blob::empty())
         .await
         .map_err(DfxError::from)
 }
@@ -71,7 +71,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             Ok(())
         } else {
             runtime
-                .block_on(agent.request_status_blob_and_wait(&request_id, create_waiter()))
+                .block_on(agent.request_status_and_wait(&request_id, create_waiter()))
                 .map(|_| ())
                 .map_err(DfxError::from)
         }
@@ -86,9 +86,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     eprint!("Request ID: ");
                     println!("0x{}", String::from(request_id));
                 } else {
-                    runtime.block_on(
-                        agent.request_status_blob_and_wait(&request_id, create_waiter()),
-                    )?;
+                    runtime
+                        .block_on(agent.request_status_and_wait(&request_id, create_waiter()))?;
                 }
             }
         }

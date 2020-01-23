@@ -5,8 +5,6 @@ use serde_cbor::error::Error as SerdeError;
 pub enum AgentError {
     InvalidClientUrl(String),
     InvalidClientResponse,
-    IDLSerializationError(),
-    IDLDeserializationError(serde_idl::Error),
     CannotCalculateRequestId(RequestIdError),
     EmptyResponse(),
     ClientError(u16, String),

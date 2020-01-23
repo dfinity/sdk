@@ -6,8 +6,7 @@ use crate::{to_request_id, Blob, CanisterId, RequestId};
 use reqwest::header::HeaderMap;
 use reqwest::Client;
 use reqwest::Method;
-use serde::{de, Deserialize, Serialize};
-use serde_idl::{Encode, IDLType};
+use serde::{Deserialize, Serialize};
 
 /// Request payloads for the /api/v1/read endpoint.
 /// This never needs to be deserialized.
@@ -152,7 +151,7 @@ impl Agent {
 
     /// The simplest for of query; sends a Blob and will return a Blob. The encoding is
     /// left as an exercise to the user.
-    pub async fn query_blob<'a>(
+    pub async fn query<'a>(
         &self,
         canister_id: &'a CanisterId,
         method_name: &'a str,
@@ -175,23 +174,7 @@ impl Agent {
         })
     }
 
-    pub async fn query<'a, TArg: IDLType, TResult: de::DeserializeOwned>(
-        &self,
-        canister_id: &'a CanisterId,
-        method_name: &'a str,
-        arg: &'a TArg,
-    ) -> Result<TResult, AgentError> {
-        self.query_blob(canister_id, method_name, &Blob::from(Encode!(arg)))
-            .await
-            .map(|result| {
-                let mut de = serde_idl::de::IDLDeserialize::new(result.as_slice());
-                let decoded: TResult = de.get_value().unwrap();
-                de.done().map_err(AgentError::IDLDeserializationError)?;
-                Ok(decoded)
-            })?
-    }
-
-    pub async fn request_status_blob(
+    pub async fn request_status(
         &self,
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
@@ -200,27 +183,7 @@ impl Agent {
             .and_then(|response| Ok(RequestStatusResponse::from(response)))
     }
 
-    // TODO: implement a request_status() function that maps the Blob to a TResult. This is
-    //       hard because the return type shouldn't be RequestStatusResponse anymore (as it is
-    //       not a generic type).
-
-    pub async fn request_status_and_wait<TResult: de::DeserializeOwned>(
-        &self,
-        request_id: &RequestId,
-        waiter: Waiter,
-    ) -> Result<TResult, AgentError> {
-        let blob = self
-            .request_status_blob_and_wait(request_id, waiter)
-            .await?;
-
-        let mut de = serde_idl::de::IDLDeserialize::new(blob.as_slice());
-        let decoded: TResult = de.get_value().unwrap();
-        de.done().map_err(AgentError::IDLDeserializationError)?;
-
-        Ok(decoded)
-    }
-
-    pub async fn request_status_blob_and_wait(
+    pub async fn request_status_and_wait(
         &self,
         request_id: &RequestId,
         mut waiter: Waiter,
@@ -228,7 +191,7 @@ impl Agent {
         waiter.start();
 
         loop {
-            match self.request_status_blob(request_id).await? {
+            match self.request_status(request_id).await? {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected { code, message } => {
                     return Err(AgentError::ClientError(code, message))
@@ -241,39 +204,18 @@ impl Agent {
         }
     }
 
-    pub async fn call<TArg: IDLType>(
-        &self,
-        canister_id: &CanisterId,
-        method_name: &str,
-        arg: &TArg,
-    ) -> Result<RequestId, AgentError> {
-        self.call_blob(canister_id, method_name, &Blob::from(Encode!(arg)))
-            .await
-    }
-
-    pub async fn call_and_wait<TArg: IDLType, TResult: de::DeserializeOwned>(
-        &self,
-        canister_id: &CanisterId,
-        method_name: &str,
-        arg: &TArg,
-        waiter: Waiter,
-    ) -> Result<TResult, AgentError> {
-        let request_id = self.call(canister_id, method_name, arg).await?;
-        self.request_status_and_wait(&request_id, waiter).await
-    }
-
-    pub async fn call_blob_and_wait(
+    pub async fn call_and_wait(
         &self,
         canister_id: &CanisterId,
         method_name: &str,
         arg: &Blob,
         waiter: Waiter,
     ) -> Result<Blob, AgentError> {
-        let request_id = self.call_blob(canister_id, method_name, arg).await?;
-        self.request_status_blob_and_wait(&request_id, waiter).await
+        let request_id = self.call(canister_id, method_name, arg).await?;
+        self.request_status_and_wait(&request_id, waiter).await
     }
 
-    pub async fn call_blob(
+    pub async fn call(
         &self,
         canister_id: &CanisterId,
         method_name: &str,
@@ -288,28 +230,7 @@ impl Agent {
         .await
     }
 
-    pub async fn install<TArg: IDLType>(
-        &self,
-        canister_id: &CanisterId,
-        module: &Blob,
-        arg: &TArg,
-    ) -> Result<RequestId, AgentError> {
-        self.install_blob(canister_id, module, &Blob::from(Encode!(arg)))
-            .await
-    }
-
-    pub async fn install_and_wait<TArg: IDLType, TResult: de::DeserializeOwned>(
-        &self,
-        canister_id: &CanisterId,
-        module: &Blob,
-        arg: &TArg,
-        waiter: Waiter,
-    ) -> Result<TResult, AgentError> {
-        let request_id = self.install(canister_id, module, arg).await?;
-        self.request_status_and_wait(&request_id, waiter).await
-    }
-
-    pub async fn install_blob(
+    pub async fn install(
         &self,
         canister_id: &CanisterId,
         module: &Blob,
@@ -324,15 +245,15 @@ impl Agent {
         .await
     }
 
-    pub async fn install_blob_and_wait(
+    pub async fn install_and_wait(
         &self,
         canister_id: &CanisterId,
         module: &Blob,
         arg: &Blob,
         waiter: Waiter,
     ) -> Result<Blob, AgentError> {
-        let request_id = self.install_blob(canister_id, module, arg).await?;
-        self.request_status_blob_and_wait(&request_id, waiter).await
+        let request_id = self.install(canister_id, module, arg).await?;
+        self.request_status_and_wait(&request_id, waiter).await
     }
 
     pub async fn ping_once(&self) -> Result<(), AgentError> {

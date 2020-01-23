@@ -9,10 +9,6 @@ edition = "2018"
 [dependencies]
 byteorder = "1.3.2"
 crc8 = "0.1.1"
-dfx_derive = { path = "../dfx_derive" }
-dfx_info = { path = "../dfx_info" }
-serde-idl = { path = "../serde_idl" }
-error = "0.1.9"
 hex = "0.4.0"
 openssl = "0.10.24"
 rand = "0.7.2"

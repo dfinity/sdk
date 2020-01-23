@@ -35,7 +35,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     let blob = runtime
-        .block_on(agent.request_status_blob_and_wait(&request_id, create_waiter()))
+        .block_on(agent.request_status_and_wait(&request_id, create_waiter()))
         .map_err(DfxError::from)?;
     print_idl_blob(&blob).map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     Ok(())
