@@ -2,7 +2,6 @@
 pkgs.mkCompositeShell {
   name = "dfinity-sdk-rust-env";
   buildInputs = [ pkgs.rls ];
-  nativeBuildInputs = [ pkgs.stdenv.cc ];
   inputsFrom = [ shell ];
   shellHook = ''
     # Set CARGO_HOME to minimize interaction with any environment outside nix
