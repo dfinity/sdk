@@ -5,13 +5,13 @@ const dfxJson = require("./dfx.json");
 // List of all aliases for canisters. This creates the module alias for
 // the `import ... from "ic:canisters/xyz"` where xyz is the name of a
 // canister.
-const aliases = Object.entries(dfxJson.canisters).reduce((acc, [name,]) => {
+const aliases = Object.entries(dfxJson.canisters).reduce((acc, [name,value]) => {
   const outputRoot = path.join(__dirname, dfxJson.defaults.build.output, name);
-
+  const filename = value.main.split("/").pop().split(".")[0];
   return {
     ...acc,
-    ["ic:canisters/" + name]: path.join(outputRoot, name + ".js"),
-    ["ic:idl/" + name]: path.join(outputRoot, name + ".did.js"),
+    ["ic:canisters/" + name]: path.join(outputRoot, filename + ".js"),
+    ["ic:idl/" + name]: path.join(outputRoot, filename + ".did.js"),
   };
 }, {
   // This will later point to the userlib from npm, when we publish the userlib.
