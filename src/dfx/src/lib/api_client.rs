@@ -293,7 +293,7 @@ mod tests {
     fn query_request_serialization() {
         use serde_cbor::Value;
 
-        let canister_id = CanisterId::from(1);
+        let canister_id = CanisterId::from_bytes(&[1]);
         let method_name = "main".to_string();
         let arg = Blob(vec![]);
 
@@ -314,7 +314,10 @@ mod tests {
                     Value::Text("query".to_string()),
                 ),
                 // TODO: when the client moves to using Blobs, move this to being a blob.
-                (Value::Text("canister_id".to_string()), Value::Integer(1)),
+                (
+                    Value::Text("canister_id".to_string()),
+                    Value::Bytes(vec![1]),
+                ),
                 (
                     Value::Text("method_name".to_string()),
                     Value::Text(method_name.clone()),
@@ -387,7 +390,7 @@ mod tests {
 
         let query = query(
             client,
-            CanisterId::from(1),
+            CanisterId::from_bytes(&[1]),
             "main".to_string(),
             Some(Blob(vec![])),
         );
@@ -458,7 +461,7 @@ mod tests {
 
         let query = query(
             client,
-            CanisterId::from(1),
+            CanisterId::from_bytes(&[1]),
             "main".to_string(),
             Some(Blob(vec![])),
         );
@@ -478,7 +481,7 @@ mod tests {
     fn install_code_request_serialization() {
         use serde_cbor::Value;
 
-        let canister_id = CanisterId::from(1);
+        let canister_id = CanisterId::from_bytes(&[1]);
         let module = Blob(vec![1]);
         let arg = Blob(vec![2]);
 
@@ -498,7 +501,10 @@ mod tests {
                     Value::Text("install_code".to_string()),
                 ),
                 // TODO: when the client moves to using Blobs, move this to being a blob.
-                (Value::Text("canister_id".to_string()), Value::Integer(1)),
+                (
+                    Value::Text("canister_id".to_string()),
+                    Value::Bytes(vec![1]),
+                ),
                 (Value::Text("module".to_string()), Value::Bytes(vec![1])),
                 (Value::Text("arg".to_string()), Value::Bytes(vec![2])),
                 (Value::Text("nonce".to_string()), Value::Null),
@@ -523,7 +529,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let future = install_code(client, CanisterId::from(1), Blob(vec![1]), None);
+        let future = install_code(client, CanisterId::from_bytes(&[1]), Blob(vec![1]), None);
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(future);
@@ -549,7 +555,7 @@ mod tests {
             url: mockito::server_url(),
         });
 
-        let future = install_code(client, CanisterId::from(1), Blob(vec![1]), None);
+        let future = install_code(client, CanisterId::from_bytes(&[1]), Blob(vec![1]), None);
 
         let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
         let result = runtime.block_on(future);

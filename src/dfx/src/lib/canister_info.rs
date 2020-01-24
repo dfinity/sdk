@@ -2,12 +2,10 @@
 use crate::config::dfinity::Config;
 use crate::lib::error::{DfxError, DfxResult};
 use ic_http_agent::{Blob, CanisterId};
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, RngCore};
 use std::cell::RefCell;
-use std::ops::Shl;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Information about a canister project (source code, destination, etc).
 #[derive(Debug)]
@@ -148,13 +146,10 @@ impl CanisterInfo {
     }
 
     pub fn generate_canister_id(&self) -> DfxResult<CanisterId> {
-        // Generate a random u64.
-        let time_since_the_epoch = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards.");
-        let cid = u64::from(time_since_the_epoch.as_millis() as u32).shl(32)
-            + u64::from(thread_rng().gen::<u32>());
+        let mut rng = thread_rng();
+        let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
+        rng.fill_bytes(v.as_mut_slice());
 
-        Ok(CanisterId::from(cid))
+        Ok(CanisterId::from(Blob(v)))
     }
 }
