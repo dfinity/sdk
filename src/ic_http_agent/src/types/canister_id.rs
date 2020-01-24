@@ -1,12 +1,11 @@
 use crate::types::blob::Blob;
-use byteorder::{ByteOrder, LittleEndian};
 use crc8::Crc8;
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{fmt, num, str};
+use std::{fmt, str};
 
 /// Prefix for [textual form of ID](https://docs.dfinity.systems/spec/public/#textual-ids)
-const IC_COLON: &str = "ic:";
+const CANISTER_ID_TEXT_PREFIX: &str = "ic:";
 
 /// A Canister ID.
 ///
@@ -31,19 +30,13 @@ impl std::convert::From<hex::FromHexError> for TextualCanisterIdError {
 }
 
 impl CanisterId {
-    pub(crate) fn from_u64(v: u64) -> CanisterId {
-        let mut buf = [0 as u8; 8];
-        LittleEndian::write_u64(&mut buf, v);
-        CanisterId(Blob(buf.to_vec()))
-    }
-
-    pub(crate) fn as_u64(&self) -> u64 {
-        LittleEndian::read_u64((self.0).0.as_slice())
-    }
-
     /// Allow to move canister Ids in blobs.
     pub fn into_blob(self) -> Blob {
         self.0
+    }
+
+    pub fn from_bytes<S: AsRef<[u8]>>(bytes: S) -> CanisterId {
+        CanisterId(Blob::from(bytes.as_ref()))
     }
 
     /// Parse the text format for canister IDs (e.g., `ic:010840FFAD`).
@@ -57,7 +50,7 @@ impl CanisterId {
             let (text_prefix, text_rest) = text.as_ref().split_at(3);
             match std::str::from_utf8(text_prefix) {
                 Ok(ref s) => {
-                    if s != &IC_COLON {
+                    if s != &CANISTER_ID_TEXT_PREFIX {
                         return Err(TextualCanisterIdError::BadPrefix);
                     }
                 }
@@ -83,7 +76,7 @@ impl CanisterId {
         let checksum_byte: u8 = crc8.calc(&(self.0).0, (self.0).0.len() as i32, 0);
         let mut buf = (self.0).0.clone();
         buf.push(checksum_byte);
-        format!("{}{}", IC_COLON, hex::encode_upper(buf))
+        format!("{}{}", CANISTER_ID_TEXT_PREFIX, hex::encode_upper(buf))
     }
 }
 
@@ -93,8 +86,7 @@ impl Serialize for CanisterId {
     where
         S: Serializer,
     {
-        // TODO(DFN-862): move this to blobs
-        serializer.serialize_u64(self.as_u64())
+        self.0.serialize(serializer)
     }
 }
 
@@ -104,7 +96,7 @@ impl<'de> Deserialize<'de> for CanisterId {
         S: Deserializer<'de>,
     {
         // TODO(DFN-862): move this to blobs
-        Ok(CanisterId::from_u64(u64::deserialize(deserializer)?))
+        Ok(CanisterId::from(Blob::deserialize(deserializer)?))
     }
 }
 
@@ -116,18 +108,11 @@ impl From<Blob> for CanisterId {
     }
 }
 
-impl From<u64> for CanisterId {
-    fn from(n: u64) -> CanisterId {
-        // We don't need to make a copy as this assume ownership.
-        CanisterId::from_u64(n)
-    }
-}
-
 impl str::FromStr for CanisterId {
-    type Err = num::ParseIntError;
+    type Err = TextualCanisterIdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(CanisterId::from_u64(u64::from_str(s)?))
+        CanisterId::from_text(s)
     }
 }
 
@@ -149,7 +134,7 @@ mod tests {
 
     #[test]
     fn check_serialize_deserialize() {
-        let id = CanisterId::from_u64(88827);
+        let id = CanisterId::from_text("ic:ABCD01A7").unwrap();
 
         // Use cbor serialization.
         let vec = serde_cbor::to_vec(&id).unwrap();
