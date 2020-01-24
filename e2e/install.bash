@@ -12,7 +12,7 @@ setup() {
 
 teardown() {
     # Verify that processes are not running (yet).
-    ! ( ps | grep \ dfx\ start )
+    ! ( ps | grep " [d]fx start" )
 }
 
 @test "install fails if no argument is provided" {

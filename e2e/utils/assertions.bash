@@ -70,6 +70,12 @@ assert_match() {
          | fail)
 }
 
+# Asserts a command will timeout. This assertion will fail if the command finishes before
+# the timeout period. If the command fails, it will also fail.
+# Arguments:
+#   $1 - The amount of time (in seconds) to wait for.
+#   $@ - The command to run.
+
 # Asserts that two values are equal.
 # Arguments:
 #    $1 - The expected value.

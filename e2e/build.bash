@@ -11,10 +11,7 @@ setup() {
 }
 
 teardown() {
-    dfx stop
-
-    # Verify that processes are killed.
-    ! ( ps | grep \ dfx\ start )
+    dfx_stop
 }
 
 @test "build fails on invalid motoko" {
