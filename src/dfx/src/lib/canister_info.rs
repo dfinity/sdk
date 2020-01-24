@@ -147,7 +147,7 @@ impl CanisterInfo {
 
     pub fn generate_canister_id(&self) -> DfxResult<CanisterId> {
         let mut rng = thread_rng();
-        let mut v: Vec<u8> = Vec::with_capacity(8);
+        let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
         rng.fill_bytes(v.as_mut_slice());
 
         Ok(CanisterId::from(Blob(v)))
