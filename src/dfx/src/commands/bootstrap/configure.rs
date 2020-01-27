@@ -4,18 +4,20 @@
 //! Maintainer : Enzo Haussecker <enzo@dfinity.org>
 //! Stability  : Experimental
 
-use crate::config::dfinity::ConfigDefaultsBootstrap;
-use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
-use clap::ArgMatches;
 use std::default::Default;
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
+
+use clap::ArgMatches;
 use url::{ParseError, Url};
 
-/// TODO (enzo): Documentation.
+use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::lib::environment::Environment;
+use crate::lib::error::{DfxError, DfxResult};
+
+/// Provides a configuration for the bootstrap server.
 pub fn configure(
     env: &dyn Environment,
     args: &ArgMatches<'_>,
@@ -44,7 +46,10 @@ fn get_config(env: &dyn Environment) -> ConfigDefaultsBootstrap {
     })
 }
 
-/// TODO (enzo): Documentation.
+/// Gets the directory containing static assets served by the bootstrap server. First checks if the
+/// directory was specified on the command-line using --root, otherwise checks if the directory was
+/// specified in the configuration file, otherise defaults to
+/// $HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap.
 fn get_root(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
@@ -71,7 +76,9 @@ fn get_root(
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid root directory: {:?}", err)))
 }
 
-/// TODO (enzo): Documentation.
+/// Gets the IP address that the bootstrap server listens on. First checks if the IP address was
+/// specified on the command-line using --ip, otherwise checks if the IP address was specified in
+/// the configuration file, otherise defaults to 127.0.0.1.
 fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<IpAddr> {
     args.value_of("ip")
         .map(|ip| ip.parse())
@@ -82,7 +89,9 @@ fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid IP address: {}", err)))
 }
 
-/// TODO (enzo): Documentation.
+/// Gets the port number that the bootstrap server listens on. First checks if the port number was
+/// specified on the command-line using --port, otherwise checks if the port number was specified
+/// in the configuration file, otherise defaults to 8081
 fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<u16> {
     args.value_of("port")
         .map(|port| port.parse())
@@ -93,7 +102,9 @@ fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResul
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid port number: {}", err)))
 }
 
-/// TODO (enzo): Documentation.
+/// Gets the list of compute provider API endpoints. First checks if the providers were specified
+/// on the command-line using --providers, otherwise checks if the providers were specified in the
+/// configuration file, otherise defaults to http://127.0.0.1:8080/api.
 fn get_providers(
     config: &ConfigDefaultsBootstrap,
     args: &ArgMatches<'_>,
@@ -120,12 +131,14 @@ fn get_providers(
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid provider URL: {}", err)))
 }
 
+/// TODO (enzo): Documentation.
 fn parse_dir(dir: &str) -> DfxResult<PathBuf> {
     fs::metadata(dir)
         .map(|_| PathBuf::from(dir))
         .map_err(|_| DfxError::Io(Error::new(ErrorKind::NotFound, dir)))
 }
 
+/// TODO (enzo): Documentation.
 fn parse_url(url: &str) -> Result<String, ParseError> {
     Url::parse(url).map(|_| String::from(url))
 }
