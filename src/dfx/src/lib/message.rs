@@ -18,7 +18,7 @@ macro_rules! user_message {
 }
 
 user_message!(
-    // dfx boostrap
+    // dfx bootstrap
     BootstrapCommand => "Starts the bootstrap server.",
     BootstrapIP => "IP address that the bootstrap server listens on. Defaults to 127.0.0.1.",
     BootstrapPort => "Port number that the bootstrap server listens on. Defaults to 8081.",

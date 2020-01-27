@@ -1,5 +1,5 @@
 //! File       : configure.rs
-//! License    : Apache 2.0 with LLVM Exceptions
+//! License    : Apache 2.0 with LLVM Exception
 //! Copyright  : 2020 DFINITY Stiftung
 //! Maintainer : Enzo Haussecker <enzo@dfinity.org>
 //! Stability  : Experimental
