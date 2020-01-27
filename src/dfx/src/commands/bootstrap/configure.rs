@@ -22,11 +22,13 @@ pub fn get_config(
     let port = get_port(&config, args)?;
     let providers = get_providers(&config, args)?;
     let root = get_root(&config, env, args)?;
+    let timeout = get_timeout(&config, args)?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
         providers: Some(providers),
         root: Some(root),
+        timeout: Some(timeout),
     })
 }
 
@@ -57,7 +59,7 @@ fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<
 
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
 /// specified on the command-line using --port, otherwise checks if the port number was specified
-/// in the dfx configuration file, otherise defaults to 8081
+/// in the dfx configuration file, otherise defaults to 8081.
 fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<u16> {
     args.value_of("port")
         .map(|port| port.parse())
@@ -125,6 +127,20 @@ fn get_root(
                 })
         })
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid directory: {:?}", err)))
+}
+
+/// Gets the maximum amount of time, in seconds, the bootstrap server will wait for upstream
+/// requests to complete. First checks if the timeout was specified on the command-line using
+/// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
+/// otherise defaults to 30.
+fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<u64> {
+    args.value_of("timeout")
+        .map(|timeout| timeout.parse())
+        .unwrap_or_else(|| {
+            let default = 30;
+            Ok(config.timeout.unwrap_or(default))
+        })
+        .map_err(|err| DfxError::InvalidArgument(format!("Invalid timeout: {}", err)))
 }
 
 /// TODO (enzo): Documentation.

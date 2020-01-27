@@ -25,12 +25,6 @@ struct State {
     counter: RelaxedCounter,
 }
 
-/// Defines the maximum amount of time the bootstrap server will wait for upstream requests to
-/// complete.
-///
-/// TODO (enzo): Consider abstracting this to a configuration option.
-const TIMEOUT: u64 = 60;
-
 /// Runs the bootstrap server.
 pub fn execute(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     env_logger::init();
@@ -108,11 +102,12 @@ fn serve_upstream(
                     body.extend_from_slice(&chunk);
                     Ok::<_, Error>(body)
                 })
-                .and_then(|body| {
+                .and_then(move |body| {
+                    let timeout = state.get_ref().config.timeout.clone().unwrap();
                     Client::new()
                         .post(uri)
                         .content_type("application/cbor")
-                        .timeout(Duration::from_secs(TIMEOUT))
+                        .timeout(Duration::from_secs(timeout))
                         .send_body(body)
                         .map_err(Error::from)
                         .and_then(|response| {

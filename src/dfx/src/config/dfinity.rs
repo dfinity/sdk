@@ -21,6 +21,7 @@ const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsB
     port: None,
     providers: None,
     root: None,
+    timeout: None,
 };
 
 const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
@@ -44,6 +45,7 @@ pub struct ConfigDefaultsBootstrap {
     pub port: Option<u16>,
     pub providers: Option<Vec<String>>,
     pub root: Option<PathBuf>,
+    pub timeout: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

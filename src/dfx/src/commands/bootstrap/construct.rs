@@ -31,4 +31,10 @@ pub fn construct() -> App<'static, 'static> {
                 .long("root")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("timeout")
+                .help(UserMessage::BootstrapTimeout.to_str())
+                .long("timeout")
+                .takes_value(true),
+        )
 }
