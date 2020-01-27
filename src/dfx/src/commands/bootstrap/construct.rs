@@ -1,9 +1,3 @@
-//! File       : construct.rs
-//! License    : Apache 2.0 with LLVM Exception
-//! Copyright  : 2020 DFINITY Stiftung
-//! Maintainer : Enzo Haussecker <enzo@dfinity.org>
-//! Stability  : Experimental
-
 use clap::{App, Arg, SubCommand};
 
 use crate::lib::message::UserMessage;

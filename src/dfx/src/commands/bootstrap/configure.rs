@@ -1,9 +1,3 @@
-//! File       : configure.rs
-//! License    : Apache 2.0 with LLVM Exception
-//! Copyright  : 2020 DFINITY Stiftung
-//! Maintainer : Enzo Haussecker <enzo@dfinity.org>
-//! Stability  : Experimental
-
 use std::default::Default;
 use std::fs;
 use std::io::{Error, ErrorKind};
