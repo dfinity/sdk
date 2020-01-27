@@ -4,10 +4,11 @@
 //! Maintainer : Enzo Haussecker <enzo@dfinity.org>
 //! Stability  : Experimental
 
-use crate::lib::message::UserMessage;
 use clap::{App, Arg, SubCommand};
 
-/// TODO (enzo): Documentation.
+use crate::lib::message::UserMessage;
+
+/// Constructs a sub-command to run the bootstrap server.
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("bootstrap")
         .about(UserMessage::BootstrapCommand.to_str())
