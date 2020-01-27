@@ -2,12 +2,10 @@
 use crate::config::dfinity::Config;
 use crate::lib::error::{DfxError, DfxResult};
 use ic_http_agent::{Blob, CanisterId};
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, RngCore};
 use std::cell::RefCell;
-use std::ops::Shl;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Information about a canister project (source code, destination, etc).
 #[derive(Debug)]
@@ -16,6 +14,7 @@ pub struct CanisterInfo {
     input_path: PathBuf,
 
     output_root: PathBuf,
+    idl_path: PathBuf,
 
     output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
@@ -39,6 +38,7 @@ impl CanisterInfo {
                 .get_build()
                 .get_output("build/"),
         );
+        let idl_path = build_root.join("idl/");
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
             DfxError::Unknown("No canisters in the configuration file.".to_string())
@@ -75,6 +75,7 @@ impl CanisterInfo {
             input_path,
 
             output_root,
+            idl_path,
             output_wasm_path,
             output_idl_path,
             output_did_js_path,
@@ -112,6 +113,18 @@ impl CanisterInfo {
     pub fn get_output_root(&self) -> &Path {
         self.output_root.as_path()
     }
+    pub fn get_idl_dir_path(&self) -> &Path {
+        self.idl_path.as_path()
+    }
+    pub fn get_idl_file_path(&self) -> Option<PathBuf> {
+        let idl_path = self.get_idl_dir_path();
+        let canister_id = self.get_canister_id()?;
+        Some(
+            idl_path
+                .join(canister_id.to_text().split_off(3))
+                .with_extension("did"),
+        )
+    }
     pub fn get_canister_id_path(&self) -> &Path {
         self.canister_id_path.as_path()
     }
@@ -133,13 +146,10 @@ impl CanisterInfo {
     }
 
     pub fn generate_canister_id(&self) -> DfxResult<CanisterId> {
-        // Generate a random u64.
-        let time_since_the_epoch = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards.");
-        let cid = u64::from(time_since_the_epoch.as_millis() as u32).shl(32)
-            + u64::from(thread_rng().gen::<u32>());
+        let mut rng = thread_rng();
+        let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
+        rng.fill_bytes(v.as_mut_slice());
 
-        Ok(CanisterId::from(cid))
+        Ok(CanisterId::from(Blob(v)))
     }
 }

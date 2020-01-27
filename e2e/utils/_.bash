@@ -41,3 +41,10 @@ dfx_start() {
         || (echo "could not connect to client on port 8080" && exit 1)
 }
 
+# Stop the client and verify it is very very stopped.
+dfx_stop() {
+    dfx stop
+
+    # Verify that processes are killed.
+    ! ( ps | grep " [d]fx start" )
+}

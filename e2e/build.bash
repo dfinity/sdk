@@ -11,10 +11,7 @@ setup() {
 }
 
 teardown() {
-    dfx stop
-
-    # Verify that processes are killed.
-    ! ( ps | grep \ dfx\ start )
+    dfx_stop
 }
 
 @test "build fails on invalid motoko" {
@@ -39,4 +36,16 @@ teardown() {
 @test "build outputs the canister ID" {
     assert_command dfx build
     [[ -f canisters/e2e_project/_canister.id ]]
+}
+
+@test "build outputs warning" {
+    install_asset warning_mo
+    assert_command dfx build
+    assert_match "warning, this pattern consuming type"
+}
+
+@test "build fails on unknown imports" {
+    install_asset import_error_mo
+    assert_command_fail dfx build
+    assert_match "Cannot find canister random"
 }

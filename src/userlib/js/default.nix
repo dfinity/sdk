@@ -5,6 +5,7 @@ let
   src = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource repoRoot ./.);
 in
 pkgs.napalm.buildPackage src {
+  root = ./.;
   name = "dfinity-sdk-userlib-js";
   # ci script now does everything CI should do. Bundle is needed because it's the output
   # of the nix derivation.

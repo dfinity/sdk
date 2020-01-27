@@ -2,7 +2,7 @@ use crate::commands::CliCommand;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use clap::{App, Arg, ArgMatches, ArgSettings, SubCommand};
+use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::Waiter;
 use std::time::Duration;
 
@@ -32,7 +32,6 @@ pub fn construct() -> App<'static, 'static> {
         .about(UserMessage::ManageCanister.to_str())
         .arg(
             Arg::with_name("client")
-                .set(ArgSettings::Global)
                 .help(UserMessage::CanisterClient.to_str())
                 .long("client")
                 .validator(|v| {

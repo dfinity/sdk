@@ -7,7 +7,6 @@
 //! A single method is exported, to_request_id, which returns a RequestId
 //! (a 256 bits slice) or an error.
 use crate::types::request_id_error::{RequestIdError, RequestIdFromStringError};
-use byteorder::{BigEndian, ByteOrder};
 use openssl::sha::Sha256;
 use serde::{ser, Serialize, Serializer};
 use std::collections::BTreeMap;
@@ -219,10 +218,8 @@ impl<'a> ser::Serializer for &'a mut RequestIdSerializer {
     }
 
     /// Serialize a `u64` value.
-    fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        let mut buf = [0 as u8; 8];
-        BigEndian::write_u64(&mut buf, v);
-        self.serialize_bytes(&buf)
+    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
+        Err(RequestIdError::UnsupportedTypeU64)
     }
 
     /// Serialize an `f32` value.
@@ -660,7 +657,7 @@ mod tests {
         };
         let data = PublicSpecExampleStruct {
             request_type: "call",
-            canister_id: CanisterId::from(1234),
+            canister_id: CanisterId::from_bytes(&[0, 0, 0, 0, 0, 0, 0x04, 0xD2]), // 1234 in u64
             method_name: "hello",
             arg: Blob(b"DIDL\x00\xFD*".to_vec()),
         };
@@ -687,7 +684,7 @@ mod tests {
             },
         }
         let data = PublicSpec::Call {
-            canister_id: CanisterId::from(1234),
+            canister_id: CanisterId::from_bytes(&[0, 0, 0, 0, 0, 0, 0x04, 0xD2]), // 1234 in u64
             method_name: "hello".to_owned(),
             arg: Some(Blob(b"DIDL\x00\xFD*".to_vec())),
         };
