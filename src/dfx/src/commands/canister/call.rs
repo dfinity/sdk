@@ -166,7 +166,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     if is_query {
         let future = query(
-            client.clone(),
+            client,
             canister_id,
             method_name.to_owned(),
             arg_value.map(Blob::from),
@@ -185,7 +185,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             println!("0x{}", String::from(request_id));
             Ok(())
         } else {
-            wait_on_request_status(&client.clone(), request_id)
+            wait_on_request_status(&client, request_id)
         }
     }
 }
