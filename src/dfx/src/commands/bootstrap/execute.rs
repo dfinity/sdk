@@ -4,10 +4,10 @@
 //! Maintainer : Enzo Haussecker <enzo@dfinity.org>
 //! Stability  : Experimental
 
-use super::configure::configure;
-use crate::config::dfinity::ConfigDefaultsBootstrap;
-use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use std::default::Default;
+use std::fs;
+use std::time::Duration;
+
 use actix_web::client::Client;
 use actix_web::http::uri::{Authority, PathAndQuery, Scheme, Uri};
 use actix_web::middleware::Logger;
@@ -19,23 +19,28 @@ use clap::ArgMatches;
 use env_logger;
 use futures::future::{ok, Either, Future};
 use futures::stream::Stream;
-use std::default::Default;
-use std::fs;
-use std::time::Duration;
 
-/// TODO (enzo): Documentation.
+use crate::commands::bootstrap::configure;
+use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::lib::environment::Environment;
+use crate::lib::error::{DfxError, DfxResult};
+
+/// Defines the state associated with the bootstrap server.
 struct State {
     config: ConfigDefaultsBootstrap,
     counter: RelaxedCounter,
 }
 
-/// TODO (enzo): Documentation.
+/// Defines the maximum amount of time the bootstrap server will wait for upstream requests to
+/// complete.
+///
+/// TODO (enzo): Consider abstracting this to a configuration option.
 const TIMEOUT: u64 = 60;
 
-/// TODO (enzo): Documentation.
+/// Runs the bootstrap server.
 pub fn execute(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     env_logger::init();
-    let config = configure(env, args)?;
+    let config = configure::get_config(env, args)?;
     let ip = config.ip.unwrap();
     let port = config.port.unwrap();
     HttpServer::new(move || {
@@ -56,7 +61,7 @@ pub fn execute(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     .map_err(|err| DfxError::Io(err))
 }
 
-/// TODO (enzo): Documentation.
+/// Serves a static asset.
 fn serve_static_asset(state: web::Data<State>, file: &str, content_type: &str) -> HttpResponse {
     let root = state.get_ref().config.root.clone().unwrap();
     match fs::read_to_string(root.join(file)) {
@@ -70,17 +75,17 @@ fn serve_static_asset(state: web::Data<State>, file: &str, content_type: &str) -
     }
 }
 
-/// TODO (enzo): Documentation.
+/// Serves the index.html file.
 fn index_html(state: web::Data<State>) -> HttpResponse {
     serve_static_asset(state, "index.html", "text/html; charset=utf-8")
 }
 
-/// TODO (enzo): Documentation.
+/// Serves the index.js file.
 fn index_js(state: web::Data<State>) -> HttpResponse {
     serve_static_asset(state, "index.js", "text/javascript; charset=utf-8")
 }
 
-/// TODO (enzo): Documentation.
+/// Serves the index.js.LICENSE file.
 fn license(state: web::Data<State>) -> HttpResponse {
     serve_static_asset(state, "index.js.LICENSE", "text/plain; charset=utf-8")
 }
