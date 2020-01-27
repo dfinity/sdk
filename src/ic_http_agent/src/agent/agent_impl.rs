@@ -1,11 +1,7 @@
-use crate::agent::agent_error::AgentError;
-use crate::agent::nonce::NonceFactory;
-use crate::agent::response::RequestStatusResponse;
-use crate::agent::waiter::Waiter;
+use crate::agent::{AgentError, NonceFactory, RequestStatusResponse, Waiter};
 use crate::{to_request_id, Blob, CanisterId, RequestId};
 use reqwest::header::HeaderMap;
-use reqwest::Client;
-use reqwest::Method;
+use reqwest::{Client, Method};
 use serde::{Deserialize, Serialize};
 
 /// Request payloads for the /api/v1/read endpoint.
