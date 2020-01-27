@@ -1,6 +1,7 @@
 {
     "advisory-db": {
         "branch": "master",
+        "builtin": false,
         "description": "Security advisory database for Rust crates published through crates.io",
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
@@ -13,6 +14,7 @@
     },
     "bats-support": {
         "branch": "v0.3.0",
+        "builtin": false,
         "description": "Supporting library for Bats test helpers",
         "homepage": null,
         "owner": "ztombol",
@@ -43,14 +45,15 @@
     },
     "napalm": {
         "branch": "master",
+        "builtin": false,
         "description": "Support for building npm packages in Nix and lightweight npm registry",
         "homepage": "",
         "owner": "nmattia",
         "repo": "napalm",
-        "rev": "8d2568d7848d82e46df55bda86203fdecb410279",
-        "sha256": "07mi0gkgr8aqvy2yyd5sh8rin0189iyg81124y3cvfsnr1mxx7z1",
+        "rev": "f8deeacc6c7fc182f15cab13819abb1bbbd9293e",
+        "sha256": "0mvyjblmd01dqyvb1i6cramjy35kn439wihabjp29vsz7b41aca6",
         "type": "tarball",
-        "url": "https://github.com/nmattia/napalm/archive/8d2568d7848d82e46df55bda86203fdecb410279.tar.gz",
+        "url": "https://github.com/nmattia/napalm/archive/f8deeacc6c7fc182f15cab13819abb1bbbd9293e.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
