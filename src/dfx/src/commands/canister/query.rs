@@ -76,7 +76,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         None
     };
 
-    eprintln!(r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#);
+    eprintln!(
+        r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#
+    );
 
     let client = env
         .get_client()
