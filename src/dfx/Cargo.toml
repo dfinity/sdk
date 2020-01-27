@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.4.12"
+version = "0.4.13"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -28,7 +28,7 @@ flate2 = "1.0.11"
 futures = "0.1.28"
 hex = "0.3.2"
 ic-http-agent = { "path" = "../ic_http_agent" }
-indicatif = "0.12.0"
+indicatif = "0.13.0"
 lazy_static = "1.4.0"
 libflate = "0.1.27"
 mockall = "0.6.0"

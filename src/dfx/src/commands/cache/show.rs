@@ -10,6 +10,6 @@ pub fn construct() -> App<'static, 'static> {
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
     let v = format!("{}", env.get_version());
-    println!("{:?}", cache::get_bin_cache(&v)?);
+    println!("{}", cache::get_bin_cache(&v)?.as_path().display());
     Ok(())
 }

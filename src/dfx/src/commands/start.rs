@@ -11,7 +11,7 @@ use futures::future::Future;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt};
@@ -75,8 +75,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let client_pathbuf = env.get_cache().get_binary_command_path("client")?;
     let nodemanager_pathbuf = env.get_cache().get_binary_command_path("nodemanager")?;
+    let temp_dir = env.get_temp_dir();
+    let state_root = env.get_temp_dir().join("state");
 
-    let pid_file_path = env.get_temp_dir().join("pid");
+    let pid_file_path = temp_dir.join("pid");
     check_previous_process_running(&pid_file_path)?;
 
     // We are doing this here to make sure we can write to the temp pid file.
@@ -108,17 +110,28 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 &client_pathbuf.clone(),
                 &nodemanager_pathbuf,
                 &pid_file_path,
+                &state_root,
                 is_killed_client,
                 request_stop,
             )
         })?;
 
+    let provider: String = match config
+        .get_config()
+        .get_defaults()
+        .get_start()
+        .provider
+        .clone()
+    {
+        Some(provider) => provider,
+        None => IC_CLIENT_BIND_ADDR.to_owned(),
+    };
     let bootstrap_dir = env
         .get_cache()
         .get_binary_command_path("js-user-library/dist/bootstrap")?;
     let frontend_watchdog = webserver(
         address_and_port,
-        url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap(),
+        url::Url::parse(&provider).unwrap(),
         &bootstrap_dir,
         give_actix,
     );
@@ -248,16 +261,24 @@ fn start_client(
     client_pathbuf: &PathBuf,
     nodemanager_pathbuf: &PathBuf,
     pid_file_path: &PathBuf,
+    state_root: &Path,
     is_killed_client: Receiver<()>,
     request_stop: Sender<()>,
 ) -> DfxResult<()> {
-    let client = client_pathbuf.as_path();
-    let nodemanager = nodemanager_pathbuf.as_path();
+    let config = format!(
+        r#"
+            [state_manager]
+            state_root = "{state_root}"
+        "#,
+        state_root = state_root.display(),
+    );
+    let client = client_pathbuf.as_path().as_os_str();
+    let nodemanager = nodemanager_pathbuf.as_path().as_os_str();
     // We use unwrap() here to transmit an error to the parent
     // thread.
     while is_killed_client.is_empty() {
         let mut cmd = std::process::Command::new(nodemanager);
-        cmd.args(&[client]);
+        cmd.args(&[client, "--config".as_ref(), config.as_ref()]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
