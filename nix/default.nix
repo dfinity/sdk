@@ -36,33 +36,34 @@ let
           let
             nixFmt = self.lib.nixFmt { root = ../.; };
           in
-          {
-            sources = super.sources // sources;
+            {
+              sources = super.sources // sources;
 
-            inherit releaseVersion;
+              inherit releaseVersion;
 
-            isMaster = super.isMaster or false;
+              isMaster = super.isMaster or false;
 
-            # The dfinity-sdk.packages.cargo-security-audit job has this RustSec
-            # advisory-db as a dependency so we add it here to the package set so
-            # that job has access to it.
-            # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
-            # back on the one defined in sources.json.
-            RustSec-advisory-db =
-              if ! isNull RustSec-advisory-db
-              then RustSec-advisory-db
-              else self.sources.advisory-db;
+              # The dfinity-sdk.packages.cargo-security-audit job has this RustSec
+              # advisory-db as a dependency so we add it here to the package set so
+              # that job has access to it.
+              # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
+              # back on the one defined in sources.json.
+              RustSec-advisory-db =
+                if ! isNull RustSec-advisory-db
+                then RustSec-advisory-db
+                else self.sources.advisory-db;
 
-            motoko = import self.sources.motoko { system = self.system; };
-            dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
-            napalm = self.callPackage self.sources.napalm {
-              pkgs = self // { nodejs = self.nodejs-12_x; };
-            };
+              motoko = import self.sources.motoko { system = self.system; };
+              dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
+              napalm = self.callPackage self.sources.napalm {
+                pkgs = self // { nodejs = self.nodejs-12_x; };
+              };
 
-            inherit (nixFmt) nix-fmt;
-            nix-fmt-check = nixFmt.check;
-          } // import ./overlays/dfinity-sdk.nix self super
+              inherit (nixFmt) nix-fmt;
+              nix-fmt-check = nixFmt.check;
+            } // import ./overlays/dfinity-sdk.nix self super
       )
     ] ++ overlays;
   };
-in pkgs
+in
+pkgs
