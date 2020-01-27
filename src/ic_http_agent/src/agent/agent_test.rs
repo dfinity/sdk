@@ -25,13 +25,13 @@ fn query() -> Result<(), AgentError> {
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
     let result = runtime.block_on(async {
         agent
-            .query(&CanisterId::from(1), "main", &Blob(vec![]))
+            .query(&CanisterId::from_bytes(&[1u8]), "main", &Blob(vec![]))
             .await
     });
 
     _m.assert();
 
-    assert_eq!(result?, blob);
+    assert_eq!(result?, Some(blob));
 
     Ok(())
 }
@@ -46,9 +46,9 @@ fn query_error() -> Result<(), AgentError> {
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
 
-    let result: Result<Blob, AgentError> = runtime.block_on(async {
+    let result: Result<Option<Blob>, AgentError> = runtime.block_on(async {
         agent
-            .query(&CanisterId::from(1234), "greet", &Blob::empty())
+            .query(&CanisterId::from_bytes(&[2u8]), "greet", &Blob::empty())
             .await
     });
 
@@ -78,9 +78,9 @@ fn query_rejected() -> Result<(), AgentError> {
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
 
-    let result: Result<Blob, AgentError> = runtime.block_on(async {
+    let result: Result<Option<Blob>, AgentError> = runtime.block_on(async {
         agent
-            .query(&CanisterId::from(1234), "greet", &Blob::empty())
+            .query(&CanisterId::from_bytes(&[3u8]), "greet", &Blob::empty())
             .await
     });
 
@@ -119,7 +119,7 @@ fn call() -> Result<(), AgentError> {
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
     let result = runtime.block_on(async {
         let request_id = agent
-            .call(&CanisterId::from(1234), "greet", &Blob::empty())
+            .call(&CanisterId::from_bytes(&[4u8]), "greet", &Blob::empty())
             .await?;
         agent.request_status(&request_id).await
     });
@@ -127,7 +127,10 @@ fn call() -> Result<(), AgentError> {
     _c.assert();
     _status.assert();
 
-    assert_eq!(result?, RequestStatusResponse::Replied { reply: blob });
+    assert_eq!(
+        result?,
+        RequestStatusResponse::Replied { reply: Some(blob) }
+    );
 
     Ok(())
 }
@@ -144,7 +147,7 @@ fn call_error() -> Result<(), AgentError> {
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
     let result = runtime.block_on(async {
         agent
-            .call(&CanisterId::from(1234), "greet", &Blob::empty())
+            .call(&CanisterId::from_bytes(&[5u8]), "greet", &Blob::empty())
             .await
     });
 
@@ -175,9 +178,9 @@ fn call_rejected() -> Result<(), AgentError> {
     })?;
 
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result: Result<Blob, AgentError> = runtime.block_on(async {
+    let result: Result<Option<Blob>, AgentError> = runtime.block_on(async {
         let request_id = agent
-            .call(&CanisterId::from(1234), "greet", &Blob::empty())
+            .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
         agent
             .request_status_and_wait(
