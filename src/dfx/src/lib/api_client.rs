@@ -320,7 +320,7 @@ mod tests {
                 ),
                 (
                     Value::Text("method_name".to_string()),
-                    Value::Text(method_name.clone()),
+                    Value::Text(method_name),
                 ),
                 (Value::Text("arg".to_string()), Value::Bytes(vec![])),
             ]
@@ -360,9 +360,7 @@ mod tests {
             serde_cbor::from_slice(&serde_cbor::to_vec(&response).unwrap()).unwrap();
 
         let expected = ReadResponse::Replied {
-            reply: Some(QueryResponseReply {
-                arg: Blob(arg.clone()),
-            }),
+            reply: Some(QueryResponseReply { arg: Blob(arg) }),
         };
 
         assert_eq!(actual, expected);
@@ -434,7 +432,7 @@ mod tests {
 
         let expected: ReadResponse<QueryResponseReply> = ReadResponse::Rejected {
             reject_code: 1, // ReadRejectCode::SysFatal,
-            reject_message: reject_message.clone(),
+            reject_message,
         };
 
         assert_eq!(actual, expected);

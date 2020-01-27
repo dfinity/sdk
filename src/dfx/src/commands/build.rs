@@ -124,7 +124,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
         let mut rng = thread_rng();
         let input_path = input_path.with_extension(format!("mo-{}", rng.gen::<u64>()));
         std::fs::write(&input_path, content.as_bytes())?;
-        input_path.clone()
+        input_path
     } else {
         params.input.to_path_buf()
     };

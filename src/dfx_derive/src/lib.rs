@@ -92,7 +92,7 @@ impl Variant {
                     .iter()
                     .map(|ident| {
                         let ident = ident.to_string();
-                        let var = format!("__field{}", ident.to_string());
+                        let var = format!("__field{}", ident);
                         syn::parse_str(&var).unwrap()
                     })
                     .collect();
