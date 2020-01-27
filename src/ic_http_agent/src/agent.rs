@@ -14,5 +14,7 @@ pub(crate) mod public {
     pub use waiter::Waiter;
 }
 
+pub(crate) use public::*;
+
 // Tests
 mod agent_test;
