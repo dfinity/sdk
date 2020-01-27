@@ -4,8 +4,6 @@
 //! Maintainer : Enzo Haussecker <enzo@dfinity.org>
 //! Stability  : Experimental
 
-extern crate bytes;
-extern crate env_logger;
 use super::configure::configure;
 use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
@@ -18,6 +16,7 @@ use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer};
 use atomic_counter::{AtomicCounter, RelaxedCounter};
 use bytes::Bytes;
 use clap::ArgMatches;
+use env_logger;
 use futures::future::{ok, Either, Future};
 use futures::stream::Stream;
 use std::default::Default;
