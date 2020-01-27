@@ -76,7 +76,7 @@ fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<
     args.value_of("ip")
         .map(|ip| ip.parse())
         .unwrap_or_else(|| {
-            let default = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
+            let default = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
             Ok(config.ip.unwrap_or(default))
         })
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid IP address: {}", err)))
