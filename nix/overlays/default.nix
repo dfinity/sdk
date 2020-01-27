@@ -1,13 +1,13 @@
 [
-  (_self: super: { isMaster = super.isMaster or false; })
-  (import ./sources.nix)
   (
-    self: _:
+    self: super:
       let
         nixFmt = self.lib.nixFmt { root = ../../.; };
       in
         # some dependencies
         {
+          isMaster = super.isMaster or false;
+
           motoko = import self.sources.motoko { system = self.system; };
           dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
           napalm = self.callPackage self.sources.napalm {
@@ -16,7 +16,6 @@
 
           inherit (nixFmt) nix-fmt;
           nix-fmt-check = nixFmt.check;
-        }
+        } // import ./dfinity-sdk.nix self super
   )
-  (import ./dfinity-sdk.nix)
 ]
