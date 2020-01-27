@@ -10,10 +10,7 @@ setup() {
 }
 
 teardown() {
-    dfx stop
-
-    # Verify that processes are killed.
-    ! ( ps | grep \ dfx\ start )
+    dfx_stop
 }
 
 @test "dfx start serves a frontend" {
