@@ -51,7 +51,7 @@ impl<'de> IDLDeserialize<'de> {
             .types
             .pop_front()
             .ok_or_else(|| Error::msg("No more values to deserialize"))?;
-        self.de.current_type.push_back(ty.clone());
+        self.de.current_type.push_back(ty);
 
         let v = T::deserialize(&mut self.de).map_err(|e| self.de.dump_error_state(e))?;
         if self.de.current_type.is_empty() && self.de.field_name.is_none() {
