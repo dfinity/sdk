@@ -15,6 +15,8 @@ pkgs.runCommandNoCC "e2e-tests" {
   # We use BATSLIB in our scripts to find the root of the BATSLIB repo.
   export BATSLIB="${sources.bats-support}"
 
+  unset MACOSX_DEPLOYMENT_TARGET
+
   # Timeout of 10 minutes is enough for now. Reminder; CI might be running with
   # less resources than a dev's computer, so e2e might take longer.
   timeout --preserve-status 600 bats --recursive ${e2e}/* | tee $out
