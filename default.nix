@@ -37,4 +37,8 @@ in
   };
 
   dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion pkgs.dfinity-sdk.packages.rust-workspace-standalone "dfx";
+
+  licenses = {
+    rust-workspace = pkgs.lib.runtime.runtimeLicensesReport pkgs.dfinity-sdk.packages.rust-workspace;
+  };
 }

@@ -22,9 +22,5 @@ in
             usePackager = false;
           };
       };
-
-    licenses = {
-      rust-workspace = super.lib.runtime.runtimeLicensesReport packages.rust-workspace;
-    };
   };
 }
