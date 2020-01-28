@@ -15,7 +15,7 @@
 //! # Serialize/Deserialize struct/enum
 //!
 //! ```
-//! # #[macro_use] extern crate serde_idl; fn main() {
+//! # #[macro_use] extern crate serde_idl;
 //! #[derive(IDLType, Deserialize)]
 //! struct List {
 //!     head: i32,
@@ -24,7 +24,6 @@
 //! let list = List { head: 42, tail: None };
 //! let bytes = Encode!(&list);
 //! Decode!(&bytes, l: List);
-//! # }
 //! ```
 //!
 //! # Operating on untyped IDL values
