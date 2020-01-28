@@ -8,6 +8,7 @@
 
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
+, userlib-js ? import ./src/userlib/js { inherit pkgs; }
 }:
 let
   lib = pkgs.lib;
@@ -69,7 +70,7 @@ let
                   cp ${pkgs.motoko.didc}/bin/didc $out
                   cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
                   mkdir $out/stdlib && cp -R ${pkgs.motoko.stdlib}/. $out/stdlib
-                  mkdir $out/js-user-library && cp -R ${pkgs.dfinity-sdk.packages.userlib.js}/. $out/js-user-library
+                  mkdir $out/js-user-library && cp -R ${userlib-js}/. $out/js-user-library
                 '';
               }
             )

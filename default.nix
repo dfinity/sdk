@@ -7,11 +7,12 @@
 , pkgs ? import ./nix { inherit system crossSystem config overlays RustSec-advisory-db; }
 }:
 rec {
-  inherit (pkgs) dfinity-sdk;
 
-  dfx = import ./dfx.nix { inherit pkgs; };
+  dfx = import ./dfx.nix { inherit pkgs userlib-js; };
 
   e2e-tests = import ./e2e { inherit pkgs; };
+
+  userlib-js = import ./src/userlib/js { inherit pkgs; };
 
   # The cargo audit job for known vulnerabilities. This generally run
   # against the advisory database pinned in sources.json; on Hydra
@@ -34,15 +35,9 @@ rec {
     rust-workspace = dfx.shell;
   };
 
-  dfx-standalone = pkgs.lib.standaloneRust
-    {
-      drv = pkgs.dfinity-sdk.packages.rust-workspace;
-      exename = "dfx";
-      usePackager = false;
-    };
-  dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion dfx-standalone "dfx";
+  dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion dfx.standalone "dfx";
 
   licenses = {
-    rust-workspace = pkgs.lib.runtime.runtimeLicensesReport pkgs.dfinity-sdk.packages.rust-workspace;
+    rust-workspace = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
   };
 }
