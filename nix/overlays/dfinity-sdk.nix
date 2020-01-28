@@ -22,7 +22,7 @@ in
             usePackager = false;
           };
 
-        e2e-tests = super.callPackage ../../e2e {};
+        e2e-tests = import ../../e2e { pkgs = self; };
 
         # The cargo audit job for known vulnerabilities. This generally run
         # against the advisory database pinned in sources.json; on Hydra
