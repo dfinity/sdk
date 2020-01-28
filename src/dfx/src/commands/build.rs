@@ -148,7 +148,9 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
 #[derive(Debug, PartialEq, Hash, Eq)]
 enum MotokoImport {
     Canister(String),
-    Local(PathBuf),
+    Ic(String),
+    Lib(String),
+    Relative(PathBuf),
 }
 
 struct MotokoImports(HashSet<MotokoImport>);
@@ -165,8 +167,55 @@ impl MotokoImports {
     }
 }
 
+fn parse_moc_deps(line: &str) -> DfxResult<MotokoImport> {
+    let (url, fullpath) = match line.find(' ') {
+        Some(index) => {
+            let (url, fullpath) = line.split_at(index);
+            (url, Some(fullpath))
+        }
+        None => (line, None),
+    };
+    let import = match url.find(':') {
+        Some(index) => {
+            let (prefix, name) = url.split_at(index);
+            if name.is_empty() {
+                return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                    format!("Unknown import {}", url),
+                )));
+            }
+            match prefix {
+                "canister" => MotokoImport::Canister(name.to_owned()),
+                "ic" => MotokoImport::Ic(name.to_owned()),
+                "mo" => MotokoImport::Lib(name.to_owned()),
+                _ => {
+                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                        format!("Unknown import {}", url),
+                    )))
+                }
+            }
+        }
+        None => match fullpath {
+            Some(fullpath) => {
+                let path = PathBuf::from(fullpath);
+                if !path.is_file() {
+                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                        format!("Cannot find import file {}", fullpath),
+                    )));
+                };
+                MotokoImport::Relative(path)
+            }
+            None => {
+                return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                    format!("Cannot resolve relative import {}", url),
+                )))
+            }
+        },
+    };
+    Ok(import)
+}
+
 fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> DfxResult {
-    let import = MotokoImport::Local(input_path.to_path_buf());
+    let import = MotokoImport::Relative(input_path.to_path_buf());
     if deps.0.contains(&import) {
         return Ok(());
     }
@@ -178,35 +227,14 @@ fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> 
 
     let output = String::from_utf8_lossy(&output.stdout);
     for dep in output.lines() {
-        let prefix: Vec<_> = dep.split(':').collect();
-        match prefix[0] {
-            "canister" => {
-                if prefix.len() != 2 {
-                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
-                        format!("Illegal canister import {}", dep),
-                    )));
-                }
-                deps.0.insert(MotokoImport::Canister(prefix[1].to_string()));
-            }
-            // TODO trace canister id once dfx supports downloading IDL from remote canisters
-            "ic" => (),
-            // TODO trace mo package once dfx supports packages
-            "mo" => (),
-            file => {
-                let path = input_path
-                    .parent()
-                    .expect("Cannot use root.")
-                    .join(file)
-                    .canonicalize()
-                    .expect("Cannot canonicalize local import file");
-                if path.is_file() {
-                    find_deps(cache, &path, deps)?;
-                } else {
-                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
-                        format!("Cannot find import file {}", path.display()),
-                    )));
-                }
-            }
+        let import = parse_moc_deps(dep)?;
+        match import {
+            MotokoImport::Canister(_) => {
+                deps.0.insert(import);
+            },
+            MotokoImport::Relative(path) => find_deps(cache, &path, deps)?,
+            MotokoImport::Lib(_) => (),
+            MotokoImport::Ic(_) => (),
         }
     }
     Ok(())
