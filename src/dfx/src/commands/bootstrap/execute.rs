@@ -10,7 +10,6 @@ use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer};
 use atomic_counter::{AtomicCounter, RelaxedCounter};
 use bytes::Bytes;
 use clap::ArgMatches;
-use env_logger;
 use futures::future::{ok, Either, Future};
 use futures::stream::Stream;
 use std::default::Default;
@@ -25,7 +24,6 @@ struct State {
 
 /// Runs the bootstrap server.
 pub fn execute(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    env_logger::init();
     let config = configure::get_config(env, args)?;
     let ip = config.ip.unwrap();
     let port = config.port.unwrap();
