@@ -1,4 +1,3 @@
-#![cfg(test)]
 use crate::agent::agent_impl::{AgentConfig, QueryResponseReply, ReadResponse};
 use crate::agent::response::RequestStatusResponse;
 use crate::{Agent, AgentError, Blob, CanisterId, Waiter};
@@ -12,7 +11,7 @@ fn query() -> Result<(), AgentError> {
         reply: Some(QueryResponseReply { arg: blob.clone() }),
     };
 
-    let _m = mock("POST", "/api/v1/read")
+    let read_mock = mock("POST", "/api/v1/read")
         .with_status(200)
         .with_header("content-type", "application/cbor")
         .with_body(serde_cbor::to_vec(&response)?)
@@ -29,7 +28,7 @@ fn query() -> Result<(), AgentError> {
             .await
     });
 
-    _m.assert();
+    read_mock.assert();
 
     assert_eq!(result?, Some(blob));
 
@@ -38,7 +37,7 @@ fn query() -> Result<(), AgentError> {
 
 #[test]
 fn query_error() -> Result<(), AgentError> {
-    let _m = mock("POST", "/api/v1/read").with_status(500).create();
+    let read_mock = mock("POST", "/api/v1/read").with_status(500).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -52,7 +51,7 @@ fn query_error() -> Result<(), AgentError> {
             .await
     });
 
-    _m.assert();
+    read_mock.assert();
 
     assert!(result.is_err());
 
@@ -66,7 +65,7 @@ fn query_rejected() -> Result<(), AgentError> {
         reject_message: "Rejected Message".to_string(),
     };
 
-    let _m = mock("POST", "/api/v1/read")
+    let read_mock = mock("POST", "/api/v1/read")
         .with_status(200)
         .with_header("content-type", "application/cbor")
         .with_body(serde_cbor::to_vec(&response)?)
@@ -84,7 +83,7 @@ fn query_rejected() -> Result<(), AgentError> {
             .await
     });
 
-    _m.assert();
+    read_mock.assert();
 
     match result {
         Err(AgentError::ClientError(code, msg)) => {
@@ -104,8 +103,8 @@ fn call() -> Result<(), AgentError> {
         reply: Some(QueryResponseReply { arg: blob.clone() }),
     };
 
-    let _c = mock("POST", "/api/v1/submit").with_status(200).create();
-    let _status = mock("POST", "/api/v1/read")
+    let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
+    let status_mock = mock("POST", "/api/v1/read")
         .with_status(200)
         .with_header("content-type", "application/cbor")
         .with_body(serde_cbor::to_vec(&response)?)
@@ -124,8 +123,8 @@ fn call() -> Result<(), AgentError> {
         agent.request_status(&request_id).await
     });
 
-    _c.assert();
-    _status.assert();
+    submit_mock.assert();
+    status_mock.assert();
 
     assert_eq!(
         result?,
@@ -137,7 +136,7 @@ fn call() -> Result<(), AgentError> {
 
 #[test]
 fn call_error() -> Result<(), AgentError> {
-    let _c = mock("POST", "/api/v1/submit").with_status(500).create();
+    let submit_mock = mock("POST", "/api/v1/submit").with_status(500).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -151,7 +150,7 @@ fn call_error() -> Result<(), AgentError> {
             .await
     });
 
-    _c.assert();
+    submit_mock.assert();
 
     assert!(result.is_err());
 
@@ -165,8 +164,8 @@ fn call_rejected() -> Result<(), AgentError> {
         reject_message: "Rejected Message".to_string(),
     };
 
-    let _c = mock("POST", "/api/v1/submit").with_status(200).create();
-    let _status = mock("POST", "/api/v1/read")
+    let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
+    let status_mock = mock("POST", "/api/v1/read")
         .with_status(200)
         .with_header("content-type", "application/cbor")
         .with_body(serde_cbor::to_vec(&response)?)
@@ -190,8 +189,8 @@ fn call_rejected() -> Result<(), AgentError> {
             .await
     });
 
-    _c.assert();
-    _status.assert();
+    submit_mock.assert();
+    status_mock.assert();
 
     match result {
         Err(AgentError::ClientError(code, msg)) => {
@@ -206,7 +205,7 @@ fn call_rejected() -> Result<(), AgentError> {
 
 #[test]
 fn ping() -> Result<(), AgentError> {
-    let _m = mock("GET", "/api/v1/read").with_status(200).create();
+    let read_mock = mock("GET", "/api/v1/read").with_status(200).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -222,7 +221,7 @@ fn ping() -> Result<(), AgentError> {
             .await
     });
 
-    _m.assert();
+    read_mock.assert();
 
     assert!(result.is_ok());
 
@@ -231,7 +230,7 @@ fn ping() -> Result<(), AgentError> {
 
 #[test]
 fn ping_okay() -> Result<(), AgentError> {
-    let _m = mock("GET", "/api/v1/read").with_status(405).create();
+    let read_mock = mock("GET", "/api/v1/read").with_status(405).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -247,7 +246,7 @@ fn ping_okay() -> Result<(), AgentError> {
             .await
     });
 
-    _m.assert();
+    read_mock.assert();
 
     assert!(result.is_ok());
 
@@ -256,7 +255,7 @@ fn ping_okay() -> Result<(), AgentError> {
 
 #[test]
 fn ping_error() -> Result<(), AgentError> {
-    let _m = mock("GET", "/api/v1/read")
+    let read_mock = mock("GET", "/api/v1/read")
         .expect(3)
         .with_status(500)
         .create();
@@ -275,7 +274,7 @@ fn ping_error() -> Result<(), AgentError> {
             .await
     });
 
-    _m.assert();
+    read_mock.assert();
 
     assert!(result.is_err());
 

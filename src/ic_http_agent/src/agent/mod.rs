@@ -1,85 +1,34 @@
-use crate::agent::{AgentError, NonceFactory, RequestStatusResponse, Waiter};
-use crate::{to_request_id, Blob, CanisterId, RequestId};
-use reqwest::header::HeaderMap;
+pub(crate) mod agent_config;
+pub(crate) mod agent_error;
+pub(crate) mod nonce;
+pub(crate) mod replica_api;
+pub(crate) mod response;
+pub(crate) mod waiter;
+
+pub(crate) mod public {
+    pub use super::Agent;
+    pub use super::agent_config::AgentConfig;
+    pub use super::agent_error::AgentError;
+    pub use super::nonce::NonceFactory;
+    pub use super::response::RequestStatusResponse;
+    pub use super::waiter::{Waiter, WaiterTrait};
+}
+
+// Tests
+#[cfg(test)]
+mod agent_test;
+
+use crate::agent::replica_api::{ReadRequest,ReadResponse,SubmitRequest,QueryResponseReply};
+use crate::{CanisterId, Blob, RequestId, to_request_id};
+use public::*;
 use reqwest::{Client, Method};
-use serde::{Deserialize, Serialize};
-
-/// Request payloads for the /api/v1/read endpoint.
-/// This never needs to be deserialized.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
-#[serde(tag = "request_type")]
-pub(crate) enum ReadRequest<'a> {
-    Query {
-        canister_id: &'a CanisterId,
-        method_name: &'a str,
-        arg: &'a Blob,
-    },
-    RequestStatus {
-        request_id: &'a RequestId,
-    },
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub(crate) struct QueryResponseReply {
-    pub arg: Blob,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-#[serde(tag = "status")]
-pub(crate) enum ReadResponse<A> {
-    Replied {
-        reply: Option<A>,
-    },
-    Rejected {
-        reject_code: u16,
-        reject_message: String,
-    },
-    Pending,
-    Unknown,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-#[serde(tag = "request_type")]
-pub(crate) enum SubmitRequest<'a> {
-    InstallCode {
-        canister_id: &'a CanisterId,
-        module: &'a Blob,
-        arg: &'a Blob,
-        nonce: &'a Option<Blob>,
-    },
-    Call {
-        canister_id: &'a CanisterId,
-        method_name: &'a str,
-        arg: &'a Blob,
-        nonce: &'a Option<Blob>,
-    },
-}
-
-pub struct AgentConfig<'a> {
-    pub url: &'a str,
-    pub nonce_factory: NonceFactory,
-}
-
-impl Default for AgentConfig<'_> {
-    fn default() -> Self {
-        Self {
-            url: "-", // Making sure this is invalid so users have to overwrite it.
-            nonce_factory: NonceFactory::random(),
-        }
-    }
-}
+use reqwest::header::HeaderMap;
 
 pub struct Agent {
     url: reqwest::Url,
     client: reqwest::Client,
     nonce_factory: NonceFactory,
 }
-
-unsafe impl std::marker::Send for Agent {}
 
 impl Agent {
     pub fn new(config: AgentConfig<'_>) -> Result<Agent, AgentError> {
@@ -101,8 +50,8 @@ impl Agent {
     }
 
     async fn read<A>(&self, request: ReadRequest<'_>) -> Result<ReadResponse<A>, AgentError>
-    where
-        A: serde::de::DeserializeOwned,
+        where
+            A: serde::de::DeserializeOwned,
     {
         let record = serde_cbor::to_vec(&request)?;
         let url = self.url.join("read")?;
@@ -136,6 +85,7 @@ impl Agent {
             .body_mut()
             .get_or_insert(reqwest::Body::from(record));
 
+        // Clippy doesn't like when return values are not used.
         let _ = self
             .client
             .execute(http_request)
@@ -158,16 +108,16 @@ impl Agent {
             method_name,
             arg,
         })
-        .await
-        .and_then(|response| match response {
-            ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg)),
-            ReadResponse::Rejected {
-                reject_code,
-                reject_message,
-            } => Err(AgentError::ClientError(reject_code, reject_message)),
-            ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
-            ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
-        })
+            .await
+            .and_then(|response| match response {
+                ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg)),
+                ReadResponse::Rejected {
+                    reject_code,
+                    reject_message,
+                } => Err(AgentError::ClientError(reject_code, reject_message)),
+                ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
+                ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
+            })
     }
 
     pub async fn request_status(
@@ -223,7 +173,7 @@ impl Agent {
             arg,
             nonce: &self.nonce_factory.generate(),
         })
-        .await
+            .await
     }
 
     pub async fn install(
@@ -238,7 +188,7 @@ impl Agent {
             arg,
             nonce: &self.nonce_factory.generate(),
         })
-        .await
+            .await
     }
 
     pub async fn install_and_wait(
@@ -260,6 +210,7 @@ impl Agent {
         if response.status().as_u16() == 405 {
             Ok(())
         } else {
+            // Verify the error is 2XX.
             response
                 .error_for_status()
                 .map(|_| ())

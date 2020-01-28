@@ -1,4 +1,4 @@
-use crate::agent::agent_impl::{QueryResponseReply, ReadResponse};
+use crate::agent::replica_api::{QueryResponseReply, ReadResponse};
 use crate::Blob;
 use serde::Deserialize;
 

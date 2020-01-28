@@ -15,7 +15,10 @@ const RETRY_PAUSE: Duration = Duration::from_millis(100);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub fn create_waiter() -> Waiter {
-    Waiter::throttle_and_timeout(RETRY_PAUSE, REQUEST_TIMEOUT)
+    Waiter::builder()
+        .throttle(RETRY_PAUSE)
+        .timeout(REQUEST_TIMEOUT)
+        .build()
 }
 
 fn builtins() -> Vec<CliCommand> {

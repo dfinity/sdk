@@ -1,16 +1,16 @@
 use crate::Blob;
+use rand::rngs::OsRng;
 use rand::Rng;
-use std::cell::RefCell;
 use std::sync::Mutex;
 
 pub struct NonceFactory {
-    inner: Mutex<RefCell<Box<dyn Iterator<Item = Blob> + Send>>>,
+    inner: Mutex<Box<dyn Iterator<Item = Blob> + Send>>,
 }
 
 impl NonceFactory {
     pub fn from_iterator(iter: Box<dyn Iterator<Item = Blob> + Send>) -> Self {
         Self {
-            inner: Mutex::new(RefCell::new(iter)),
+            inner: Mutex::new(iter),
         }
     }
 
@@ -23,7 +23,7 @@ impl NonceFactory {
     }
 
     pub fn generate(&self) -> Option<Blob> {
-        self.inner.lock().unwrap().borrow_mut().next()
+        self.inner.lock().unwrap().next()
     }
 }
 
@@ -33,7 +33,7 @@ impl Iterator for RandomBlobIter {
     type Item = Blob;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(Blob(rand::thread_rng().gen::<[u8; 16]>().to_vec()))
+        Some(Blob(OsRng.gen::<[u8; 16]>().to_vec()))
     }
 }
 
