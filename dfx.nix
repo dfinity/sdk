@@ -53,7 +53,7 @@ let
 
   # set DFX_ASSETS for the builds and shells
   addAssets = ws:
-    # override all derivations and add DFX_ASSETS as an environment variable
+  # override all derivations and add DFX_ASSETS as an environment variable
     (
       lib.mapAttrs (
         k: drv:
@@ -78,8 +78,10 @@ let
 
   # add a `standalone` target stripped of nix references
   addStandalone = ws:
-    ws // { standalone = pkgs.lib.standaloneRust
-        { drv = ws.build;
+    ws // {
+      standalone = pkgs.lib.standaloneRust
+        {
+          drv = ws.build;
           exename = "dfx";
           usePackager = false;
         };
@@ -87,20 +89,22 @@ let
 
   # fixup the shell for more convenient developer use
   fixShell = ws:
-    ws // { shell =
-      pkgs.mkCompositeShell {
-        name = "dfinity-sdk-rust-env";
-        buildInputs = [ pkgs.rls ];
-        inputsFrom = [ ws.shell ];
-        shellHook = ''
-          # Set CARGO_HOME to minimize interaction with any environment outside nix
-          export CARGO_HOME=${if pkgs.lib.isHydra then "." else toString ./.}/.cargo-home
+    ws // {
+      shell =
+        pkgs.mkCompositeShell {
+          name = "dfinity-sdk-rust-env";
+          buildInputs = [ pkgs.rls ];
+          inputsFrom = [ ws.shell ];
+          shellHook = ''
+            # Set CARGO_HOME to minimize interaction with any environment outside nix
+            export CARGO_HOME=${if pkgs.lib.isHydra then "." else toString ./.}/.cargo-home
 
-          # Set environment variable for debug version.
-          export DFX_TIMESTAMP_DEBUG_MODE_ONLY=$(date +%s)
-        '';
-      };
-};
+            # Set environment variable for debug version.
+            export DFX_TIMESTAMP_DEBUG_MODE_ONLY=$(date +%s)
+          '';
+        };
+    };
 
-in (addStandalone (addLintInputs (addAssets workspace)))
+in
+(addStandalone (addLintInputs (addAssets workspace)))
   (throw "this argument is used to trigger the functor and shouldn't actually be evaluated.")

@@ -4,7 +4,7 @@ let
   rust-workspace = rust-package.build;
 in
 {
-  lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix {} ; };
+  lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix {}; };
   dfinity-sdk = rec {
     inherit rust-package;
     packages =

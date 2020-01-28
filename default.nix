@@ -4,12 +4,8 @@
 , overlays ? []
 , src ? null
 , RustSec-advisory-db ? null
+, pkgs ? import ./nix { inherit system crossSystem config overlays RustSec-advisory-db; }
 }:
-let
-  pkgs = import ./nix {
-    inherit system crossSystem config overlays RustSec-advisory-db;
-  };
-in
 rec {
   inherit (pkgs) dfinity-sdk;
 
