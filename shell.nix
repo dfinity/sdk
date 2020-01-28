@@ -1,4 +1,4 @@
-{ pkgs ? (import ./. {}).pkgs }:
+{ pkgs ? import ./nix {} }:
 pkgs.mkCompositeShell {
   name = "dfinity-sdk-env";
   inputsFrom = pkgs.stdenv.lib.attrValues pkgs.dfinity-sdk.shells;

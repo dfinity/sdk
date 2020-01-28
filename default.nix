@@ -4,6 +4,9 @@
 , overlays ? []
 , src ? null
 , RustSec-advisory-db ? null
-}@args: {
-  inherit (import ./nix args) dfinity-sdk ;
+}: {
+  inherit (import ./nix {
+    inherit system crossSystem config overlays RustSec-advisory-db;
+  }) dfinity-sdk
+    ;
 }
