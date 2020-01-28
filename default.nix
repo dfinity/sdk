@@ -36,6 +36,12 @@ in
     rust-workspace = import ./dfx-shell.nix { inherit (pkgs.dfinity-sdk) rust-package; inherit pkgs; };
   };
 
+  dfx-standalone = pkgs.lib.standaloneRust
+    {
+      drv = pkgs.dfinity-sdk.packages.rust-workspace;
+      exename = "dfx";
+      usePackager = false;
+    };
   dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion pkgs.dfinity-sdk.packages.rust-workspace-standalone "dfx";
 
   licenses = {

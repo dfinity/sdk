@@ -14,13 +14,6 @@ in
         rust-workspace-debug = rust-package.debug;
 
         userlib.js = import ../../src/userlib/js { pkgs = self; };
-
-        rust-workspace-standalone = super.lib.standaloneRust
-          {
-            drv = rust-workspace;
-            exename = "dfx";
-            usePackager = false;
-          };
       };
   };
 }
