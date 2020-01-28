@@ -1,7 +1,7 @@
-use std::default::Default;
-use std::fs;
-use std::time::Duration;
-
+use crate::commands::bootstrap::configure;
+use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::lib::environment::Environment;
+use crate::lib::error::{DfxError, DfxResult};
 use actix_web::client::Client;
 use actix_web::http::uri::{Authority, PathAndQuery, Scheme, Uri};
 use actix_web::middleware::Logger;
@@ -13,11 +13,9 @@ use clap::ArgMatches;
 use env_logger;
 use futures::future::{ok, Either, Future};
 use futures::stream::Stream;
-
-use crate::commands::bootstrap::configure;
-use crate::config::dfinity::ConfigDefaultsBootstrap;
-use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use std::default::Default;
+use std::fs;
+use std::time::Duration;
 
 /// Defines the state associated with the bootstrap server.
 struct State {
@@ -86,6 +84,7 @@ fn serve_upstream(
 ) -> impl Future<Item = HttpResponse, Error = Error> {
     // TODO (enzo): Documentation.
     let providers = state.get_ref().config.providers.clone().unwrap();
+    let timeout = state.get_ref().config.timeout.clone().unwrap();
     let i = state.get_ref().counter.inc();
     let n = providers.len();
     if i >= n {
@@ -103,7 +102,6 @@ fn serve_upstream(
                     Ok::<_, Error>(body)
                 })
                 .and_then(move |body| {
-                    let timeout = state.get_ref().config.timeout.clone().unwrap();
                     Client::new()
                         .post(uri)
                         .content_type("application/cbor")

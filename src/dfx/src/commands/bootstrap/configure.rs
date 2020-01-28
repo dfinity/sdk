@@ -1,15 +1,13 @@
+use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::lib::environment::Environment;
+use crate::lib::error::{DfxError, DfxResult};
+use clap::ArgMatches;
 use std::default::Default;
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
-
-use clap::ArgMatches;
 use url::{ParseError, Url};
-
-use crate::config::dfinity::ConfigDefaultsBootstrap;
-use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.

@@ -1,6 +1,5 @@
-use clap::{App, Arg, SubCommand};
-
 use crate::lib::message::UserMessage;
+use clap::{App, Arg, SubCommand};
 
 /// Constructs a sub-command to run the bootstrap server.
 pub fn construct() -> App<'static, 'static> {
