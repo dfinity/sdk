@@ -30,7 +30,7 @@ in
     # of all the shells here.
     shells = {
       js-user-library = import ../../src/userlib/js/shell.nix { pkgs = self; };
-      rust-workspace = import ../rust-shell.nix { pkgs = self; shell = rust-package.shell; };
+      rust-workspace = import ../../dfx-shell.nix { pkgs = self; inherit rust-package; };
     };
 
     licenses = {
