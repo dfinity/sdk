@@ -26,4 +26,13 @@ in
   inherit (pkgs) nix-fmt nix-fmt-check;
 
   public = import ./public { inherit pkgs; };
+
+  # This is to make sure CI evaluates shell derivations, builds their
+  # dependencies and populates the hydra cache with them. We also use this in
+  # `shell.nix` in the root to provide an environment which is the composition
+  # of all the shells here.
+  shells = {
+    js-user-library = import ./src/userlib/js/shell.nix { inherit pkgs; };
+    rust-workspace = import ./dfx-shell.nix { inherit (pkgs.dfinity-sdk) rust-package; inherit pkgs; };
+  };
 }
