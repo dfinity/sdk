@@ -10,8 +10,10 @@ let
     inherit system crossSystem config overlays RustSec-advisory-db;
   };
 in
-{
+rec {
   inherit (pkgs) dfinity-sdk;
+
+  dfx = import ./dfx.nix { inherit pkgs; };
 
   e2e-tests = import ./e2e { inherit pkgs; };
 
@@ -33,7 +35,7 @@ in
   # of all the shells here.
   shells = {
     js-user-library = import ./src/userlib/js/shell.nix { inherit pkgs; };
-    rust-workspace = import ./dfx-shell.nix { inherit (pkgs.dfinity-sdk) rust-package; inherit pkgs; };
+    rust-workspace = dfx.shell;
   };
 
   dfx-standalone = pkgs.lib.standaloneRust
@@ -42,7 +44,7 @@ in
       exename = "dfx";
       usePackager = false;
     };
-  dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion pkgs.dfinity-sdk.packages.rust-workspace-standalone "dfx";
+  dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion dfx-standalone "dfx";
 
   licenses = {
     rust-workspace = pkgs.lib.runtime.runtimeLicensesReport pkgs.dfinity-sdk.packages.rust-workspace;
