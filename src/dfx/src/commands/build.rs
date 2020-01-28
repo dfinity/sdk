@@ -170,23 +170,28 @@ impl MotokoImports {
 fn parse_moc_deps(line: &str) -> DfxResult<MotokoImport> {
     let (url, fullpath) = match line.find(' ') {
         Some(index) => {
-            let (url, fullpath) = line.split_at(index);
-            (url, Some(fullpath))
+            if index >= line.len() - 1 {
+                return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                    format!("Unknown import {}", line),
+                )));
+            }
+            let (url, fullpath) = line.split_at(index + 1);
+            (url.trim_end(), Some(fullpath))
         }
         None => (line, None),
     };
     let import = match url.find(':') {
         Some(index) => {
-            let (prefix, name) = url.split_at(index);
-            if name.is_empty() {
+            if index >= line.len() - 1 {
                 return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
                     format!("Unknown import {}", url),
                 )));
             }
+            let (prefix, name) = url.split_at(index + 1);
             match prefix {
-                "canister" => MotokoImport::Canister(name.to_owned()),
-                "ic" => MotokoImport::Ic(name.to_owned()),
-                "mo" => MotokoImport::Lib(name.to_owned()),
+                "canister:" => MotokoImport::Canister(name.to_owned()),
+                "ic:" => MotokoImport::Ic(name.to_owned()),
+                "mo:" => MotokoImport::Lib(name.to_owned()),
                 _ => {
                     return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
                         format!("Unknown import {}", url),
@@ -199,7 +204,7 @@ fn parse_moc_deps(line: &str) -> DfxResult<MotokoImport> {
                 let path = PathBuf::from(fullpath);
                 if !path.is_file() {
                     return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
-                        format!("Cannot find import file {}", fullpath),
+                        format!("Cannot find import file {}", path.display()),
                     )));
                 };
                 MotokoImport::Relative(path)
