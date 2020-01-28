@@ -35,4 +35,6 @@ in
     js-user-library = import ./src/userlib/js/shell.nix { inherit pkgs; };
     rust-workspace = import ./dfx-shell.nix { inherit (pkgs.dfinity-sdk) rust-package; inherit pkgs; };
   };
+
+  dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion pkgs.dfinity-sdk.packages.rust-workspace-standalone "dfx";
 }

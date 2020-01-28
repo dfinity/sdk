@@ -1,10 +1,10 @@
 self: super:
 let
-  mkRelease = super.callPackage ./mk-release.nix {};
   rust-package = import ../../dfx.nix { pkgs = self; };
   rust-workspace = rust-package.build;
 in
 {
+  lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix {} ; };
   dfinity-sdk = rec {
     inherit rust-package;
     packages =
@@ -22,8 +22,6 @@ in
             usePackager = false;
           };
       };
-
-    dfx-release = mkRelease "dfx" self.releaseVersion packages.rust-workspace-standalone "dfx";
 
     licenses = {
       rust-workspace = super.lib.runtime.runtimeLicensesReport packages.rust-workspace;
