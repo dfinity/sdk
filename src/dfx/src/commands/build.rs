@@ -231,7 +231,7 @@ fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> 
         match import {
             MotokoImport::Canister(_) => {
                 deps.0.insert(import);
-            },
+            }
             MotokoImport::Relative(path) => find_deps(cache, &path, deps)?,
             MotokoImport::Lib(_) => (),
             MotokoImport::Ic(_) => (),
