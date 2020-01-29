@@ -34,7 +34,7 @@
     "dfinity": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "e7e5f04d454d65a0064d3b8cd452c3960d7e831a",
+        "rev": "fab97e01dcb3ad9e81f7c38098969a548e8ad8fd",
         "type": "git"
     },
     "motoko": {
