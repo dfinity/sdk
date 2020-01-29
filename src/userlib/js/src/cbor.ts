@@ -32,7 +32,6 @@ class CanisterIdEncoder implements CborEncoder<CanisterId> {
   public encode(v: CanisterId): cbor.CborValue {
     return cbor.value.u64(v.toHex(), 16);
   }
-
 }
 
 class BufferEncoder implements CborEncoder<Buffer> {
