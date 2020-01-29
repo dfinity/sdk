@@ -2,6 +2,7 @@ use crate::commands::bootstrap::configure;
 use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use actix_files::Files;
 use actix_web::client::Client;
 use actix_web::http::uri::{Authority, PathAndQuery, Scheme, Uri};
 use actix_web::middleware::Logger;
@@ -13,7 +14,6 @@ use clap::ArgMatches;
 use futures::future::{ok, Either, Future};
 use futures::stream::Stream;
 use std::default::Default;
-use std::fs;
 use std::time::Duration;
 
 /// Defines the state associated with the bootstrap server.
@@ -28,6 +28,7 @@ pub fn execute(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let ip = config.ip.unwrap();
     let port = config.port.unwrap();
     HttpServer::new(move || {
+        let root = config.root.as_ref().unwrap();
         let state = State {
             config: config.clone(),
             counter: RelaxedCounter::new(0),
@@ -35,43 +36,12 @@ pub fn execute(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         App::new()
             .wrap(Logger::default())
             .data(state)
-            .service(web::resource("/").route(web::get().to_async(index_html)))
-            .service(web::resource("/index.js").route(web::get().to_async(index_js)))
-            .service(web::resource("/index.js.LICENSE").route(web::get().to_async(license)))
             .service(web::scope("/api").default_service(web::post().to_async(serve_upstream)))
+            .default_service(Files::new("/", &root).index_file("index.html"))
     })
     .bind(format!("{}:{}", ip, port))?
     .run()
     .map_err(|err| DfxError::Io(err))
-}
-
-/// Serves a static asset.
-fn serve_static_asset(state: web::Data<State>, file: &str, content_type: &str) -> HttpResponse {
-    let root = state.get_ref().config.root.clone().unwrap();
-    match fs::read_to_string(root.join(file)) {
-        Err(err) => HttpResponse::InternalServerError()
-            .content_type("text/plain")
-            .body(err.to_string()),
-        Ok(contents) => HttpResponse::Ok()
-            .content_type(content_type.to_string())
-            .header("Access-Control-Allow-Origin", "*")
-            .body(contents),
-    }
-}
-
-/// Serves the index.html file.
-fn index_html(state: web::Data<State>) -> HttpResponse {
-    serve_static_asset(state, "index.html", "text/html; charset=utf-8")
-}
-
-/// Serves the index.js file.
-fn index_js(state: web::Data<State>) -> HttpResponse {
-    serve_static_asset(state, "index.js", "text/javascript; charset=utf-8")
-}
-
-/// Serves the index.js.LICENSE file.
-fn license(state: web::Data<State>) -> HttpResponse {
-    serve_static_asset(state, "index.js.LICENSE", "text/plain; charset=utf-8")
 }
 
 /// TODO (enzo): Documentation.
