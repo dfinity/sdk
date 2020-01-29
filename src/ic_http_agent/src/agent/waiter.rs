@@ -69,6 +69,7 @@ pub struct ComposeWaiter {
 impl ComposeWaiter {
     fn new(a: Waiter, b: Waiter) -> Self {
         Self { a, b }
+    }
 }
 impl WaiterTrait for ComposeWaiter {
     fn start(&mut self) {
