@@ -1,4 +1,4 @@
-import A "mo:stdlib/array.mo";
+import A "mo:stdlib/array";
 
 type Matrix = [[Int]];
 

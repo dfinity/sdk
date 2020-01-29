@@ -1,4 +1,4 @@
-import A "mo:stdlib/array.mo";
+import A "mo:stdlib/array";
 import Prim "mo:prim";
 
 type List<T> = ?{head : T; tail : List<T>};

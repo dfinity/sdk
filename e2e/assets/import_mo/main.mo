@@ -1,4 +1,4 @@
-import Friend "./friend.mo"
+import Friend "./friend"
 
 actor Greet {
 
