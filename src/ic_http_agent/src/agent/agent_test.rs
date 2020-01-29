@@ -1,6 +1,6 @@
-use crate::agent::agent_impl::{AgentConfig, QueryResponseReply, ReadResponse};
+use crate::agent::replica_api::{QueryResponseReply, ReadResponse};
 use crate::agent::response::RequestStatusResponse;
-use crate::{Agent, AgentError, Blob, CanisterId, Waiter};
+use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId, Waiter};
 use mockito::mock;
 use std::time::Duration;
 
@@ -182,10 +182,7 @@ fn call_rejected() -> Result<(), AgentError> {
             .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
         agent
-            .request_status_and_wait(
-                &request_id,
-                Waiter::throttle_and_timeout(Duration::from_secs(100), Duration::from_millis(10)),
-            )
+            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(1)))
             .await
     });
 
@@ -212,14 +209,7 @@ fn ping() -> Result<(), AgentError> {
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async {
-        agent
-            .ping(Waiter::throttle_and_timeout(
-                Duration::from_millis(100),
-                Duration::from_secs(3),
-            ))
-            .await
-    });
+    let result = runtime.block_on(async { agent.ping(Waiter::instant()).await });
 
     read_mock.assert();
 
@@ -237,14 +227,7 @@ fn ping_okay() -> Result<(), AgentError> {
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async {
-        agent
-            .ping(Waiter::throttle_and_timeout(
-                Duration::from_millis(100),
-                Duration::from_secs(3),
-            ))
-            .await
-    });
+    let result = runtime.block_on(async { agent.ping(Waiter::instant()).await });
 
     read_mock.assert();
 
@@ -256,7 +239,7 @@ fn ping_okay() -> Result<(), AgentError> {
 #[test]
 fn ping_error() -> Result<(), AgentError> {
     let read_mock = mock("GET", "/api/v1/read")
-        .expect(3)
+        .expect(2)
         .with_status(500)
         .create();
 
@@ -267,10 +250,12 @@ fn ping_error() -> Result<(), AgentError> {
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
     let result = runtime.block_on(async {
         agent
-            .ping(Waiter::throttle_and_timeout(
-                Duration::from_millis(40),
-                Duration::from_millis(60),
-            ))
+            .ping(
+                Waiter::builder()
+                    .throttle(Duration::from_millis(4))
+                    .timeout(Duration::from_millis(6))
+                    .build(),
+            )
             .await
     });
 
