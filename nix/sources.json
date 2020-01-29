@@ -28,19 +28,19 @@
     "common": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "72c5d937835d8f9f29914254fe98042f28bc2fff",
+        "rev": "f0253a3a0ce2b5d97dbf887cb0d3fcdb975b5b6a",
         "type": "git"
     },
     "dfinity": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "0b3071a3f7d489d560a16417d07930687a6709d4",
+        "rev": "fab97e01dcb3ad9e81f7c38098969a548e8ad8fd",
         "type": "git"
     },
     "motoko": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "4d6afaa511cd9ae62ad2bb6a3c9a0f79c818ab8d",
+        "rev": "7d223e247be606cb92aced20fa004bf836350fe9",
         "type": "git"
     },
     "napalm": {
