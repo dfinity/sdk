@@ -1,6 +1,3 @@
-use crate::commands::bootstrap::configure;
-use crate::config::dfinity::ConfigDefaultsBootstrap;
-use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use actix_files::Files;
 use actix_web::client::Client;
@@ -10,28 +7,33 @@ use actix_web::web;
 use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer};
 use atomic_counter::{AtomicCounter, RelaxedCounter};
 use bytes::Bytes;
-use clap::ArgMatches;
 use futures::future::{ok, Either, Future};
 use futures::stream::Stream;
 use std::default::Default;
+use std::net::IpAddr;
+use std::path::PathBuf;
 use std::time::Duration;
 
 /// Defines the state associated with the bootstrap server.
 struct State {
-    config: ConfigDefaultsBootstrap,
     counter: RelaxedCounter,
+    providers: Vec<String>,
+    timeout: u64,
 }
 
 /// Runs the bootstrap server.
-pub fn execute(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let config = configure::get_config(env, args)?;
-    let ip = config.ip.unwrap();
-    let port = config.port.unwrap();
+pub fn exec(
+    ip: IpAddr,
+    port: u16,
+    providers: Vec<String>,
+    root: PathBuf,
+    timeout: u64,
+) -> DfxResult {
     HttpServer::new(move || {
-        let root = config.root.as_ref().unwrap();
         let state = State {
-            config: config.clone(),
             counter: RelaxedCounter::new(0),
+            providers: providers.clone(),
+            timeout: timeout,
         };
         App::new()
             .wrap(Logger::default())
@@ -50,16 +52,14 @@ fn serve_upstream(
     payload: web::Payload,
     state: web::Data<State>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
-    // TODO (enzo): Documentation.
-    let providers = state.get_ref().config.providers.clone().unwrap();
-    let timeout = state.get_ref().config.timeout.clone().unwrap();
+    let providers = state.get_ref().providers.clone();
+    let timeout = state.get_ref().timeout.clone();
     let i = state.get_ref().counter.inc();
     let n = providers.len();
     if i >= n {
         state.get_ref().counter.reset();
     };
     let provider = providers[i % n].to_string();
-    // TODO (enzo): Documentation.
     match build(request, provider) {
         Err(err) => Either::A(ok(HttpResponse::InternalServerError().body(err.to_string()))),
         Ok(uri) => Either::B(

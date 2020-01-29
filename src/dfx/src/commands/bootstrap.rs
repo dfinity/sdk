@@ -1,7 +1,9 @@
 use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::lib::bootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use clap::ArgMatches;
+use crate::lib::message::UserMessage;
+use clap::{App, Arg, ArgMatches, SubCommand};
 use std::default::Default;
 use std::fs;
 use std::io::{Error, ErrorKind};
@@ -9,9 +11,58 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
 use url::{ParseError, Url};
 
+/// Constructs a sub-command to run the bootstrap server.
+pub fn construct() -> App<'static, 'static> {
+    SubCommand::with_name("bootstrap")
+        .about(UserMessage::BootstrapCommand.to_str())
+        .arg(
+            Arg::with_name("ip")
+                .help(UserMessage::BootstrapIP.to_str())
+                .long("ip")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("port")
+                .help(UserMessage::BootstrapPort.to_str())
+                .long("port")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("providers")
+                .help(UserMessage::BootstrapProviders.to_str())
+                .long("providers")
+                .multiple(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("root")
+                .help(UserMessage::BootstrapRoot.to_str())
+                .long("root")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("timeout")
+                .help(UserMessage::BootstrapTimeout.to_str())
+                .long("timeout")
+                .takes_value(true),
+        )
+}
+
+/// Runs the bootstrap server.
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult { 
+    let config = get_config(env, args)?;
+    bootstrap::exec(
+        config.ip.unwrap(),
+        config.port.unwrap(),
+        config.providers.unwrap(),
+        config.root.unwrap(),
+        config.timeout.unwrap(),
+    )
+}
+
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
-pub fn get_config(
+fn get_config(
     env: &dyn Environment,
     args: &ArgMatches<'_>,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
