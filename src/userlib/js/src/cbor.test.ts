@@ -37,6 +37,13 @@ test('round trip', () => {
   const { c: outputC, e: outputE, f: outputF, ...outputRest } = output;
 
   expect(blobToHex(outputC)).toBe(blobToHex(inputC));
-  expect(((outputE as any) as BigNumber).toString(16).toUpperCase()).toBe(inputE.toHex());
+  expect(buf2hex((outputE as any) as Uint8Array).toUpperCase()).toBe(inputE.toHex());
   expect(outputRest).toEqual(inputRest);
 });
+
+function buf2hex(buffer: Uint8Array) {
+  // Construct an array such that each number is translated to the
+  // hexadecimal equivalent, ensure it is a string and padded then
+  // join the elements.
+  return Array.prototype.map.call(buffer, x => ('00' + x.toString(16)).slice(-2)).join('');
+}
