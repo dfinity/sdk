@@ -107,5 +107,7 @@ let
     };
 
 in
-(addStandalone (addLintInputs (addAssets workspace)))
-  (throw "this argument is used to trigger the functor and shouldn't actually be evaluated.")
+fixShell (
+  addStandalone ((addLintInputs (addAssets workspace)))
+    (throw "this argument is used to trigger the functor and shouldn't actually be evaluated.")
+)
