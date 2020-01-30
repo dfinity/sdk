@@ -115,19 +115,13 @@ pub fn wait_on_request_status(client: &Client, request_id: RequestId) -> DfxResu
     }
 }
 
-const COMPUTE_ALLOCATION_ERROR_MSG: &str = "Must be a percent between 0 and 100";
-
 fn compute_allocation_validator(compute_allocation: String) -> Result<(), String> {
-    match compute_allocation.parse::<u64>() {
-        Ok(num) => {
-            if num > 100 {
-                Err(COMPUTE_ALLOCATION_ERROR_MSG.to_string())
-            } else {
-                Ok(())
-            }
+    if let Ok(num) = compute_allocation.parse::<u64>() {
+        if num <= 100 {
+            return Ok(());
         }
-        Err(_) => Err(COMPUTE_ALLOCATION_ERROR_MSG.to_string()),
     }
+    Err("Must be a percent between 0 and 100".to_string())
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
