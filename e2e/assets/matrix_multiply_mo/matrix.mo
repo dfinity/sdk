@@ -1,5 +1,5 @@
-import A "mo:stdlib/array.mo";
-import M "secret_import.mo";
+import A "mo:stdlib/array";
+import M "secret_import";
 
 type Matrix = [[Int]];
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+# TODO: rename this file and all the "client" references therein to "replica".
+# not yet, since I want to keep this diff small
 
 load utils/_
 
@@ -21,7 +23,7 @@ teardown() {
   dfx build
 
   # Start a client manually on a specific port.
-  $(dfx cache show)/client --config '
+  $(dfx cache show)/replica --config '
     [http_handler]
     write_port_to="port"
   ' &

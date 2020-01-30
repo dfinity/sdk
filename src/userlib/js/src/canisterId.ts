@@ -1,4 +1,4 @@
-// Canister IDs are represented as u64 in the HTTP handler of the client.
+// Canister IDs are represented as an array of bytes in the HTTP handler of the client.
 export class CanisterId {
   public static fromText(hex: string): CanisterId {
     if (hex.startsWith('ic:')) {
