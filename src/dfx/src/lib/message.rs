@@ -52,6 +52,8 @@ user_message!(
     // dfx build
     BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     SkipFrontend => "Skip building the frontend, only build the canisters.",
+    BuildVerbose => "Outputs all commands run by the build process.",
+    BuildArgs => "Specifies extra arguments passed to the compiler.",
 
     // dfx config
     ConfigureOptions => "Configures project options for your currently-selected project.",

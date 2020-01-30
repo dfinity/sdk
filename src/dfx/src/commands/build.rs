@@ -12,6 +12,7 @@ use console::Style;
 use ic_http_agent::CanisterId;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rand::{thread_rng, Rng};
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::io::Read;
@@ -31,7 +32,21 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(false)
                 .help(UserMessage::SkipFrontend.to_str()),
         )
+        .arg(
+            Arg::with_name("extra-args")
+                .long("extra-args")
+                .takes_value(true)
+                .help(UserMessage::BuildArgs.to_str()),
+        )
+        .arg(
+            Arg::with_name("verbose")
+                .long("verbose")
+                .takes_value(false)
+                .help(UserMessage::BuildVerbose.to_str()),
+        )
 }
+
+thread_local!(static VERBOSE: RefCell<bool> = RefCell::new(false));
 
 fn get_asset_fn(assets: &AssetMap) -> String {
     // Create the if/else series.
@@ -79,9 +94,9 @@ struct MotokoParams<'a> {
     // The following fields will not be used by self.to_args()
     // TODO move input into self.to_args once inject_code is deprecated.
     input: &'a Path,
-    verbose: bool,
     surpress_warning: bool,
     inject_code: bool,
+    extra_args: &'a str,
 }
 
 impl MotokoParams<'_> {
@@ -97,6 +112,10 @@ impl MotokoParams<'_> {
             for (name, canister_id) in self.idl_map.iter() {
                 cmd.args(&["--actor-alias", name, canister_id]);
             }
+        };
+        if !self.extra_args.is_empty() {
+            let args: Vec<_> = self.extra_args.split(' ').collect();
+            cmd.args(args);
         };
     }
 }
@@ -137,7 +156,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
         .arg("--package")
         .arg("stdlib")
         .arg(&stdlib_path.as_path());
-    run_command(cmd, params.verbose, params.surpress_warning)?;
+    run_command(cmd, params.surpress_warning)?;
 
     if params.inject_code {
         std::fs::remove_file(input_path)?;
@@ -201,7 +220,7 @@ fn parse_moc_deps(line: &str) -> DfxResult<MotokoImport> {
         }
         None => match fullpath {
             Some(fullpath) => {
-                let path = PathBuf::from(fullpath);
+                let path = PathBuf::from(fullpath).canonicalize()?;
                 if !path.is_file() {
                     return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
                         format!("Cannot find import file {}", path.display()),
@@ -228,7 +247,7 @@ fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> 
 
     let mut cmd = cache.get_binary_command("moc")?;
     let cmd = cmd.arg("--print-deps").arg(&input_path);
-    let output = run_command(cmd, false, false)?;
+    let output = run_command(cmd, false)?;
 
     let output = String::from_utf8_lossy(&output.stdout);
     for dep in output.lines() {
@@ -248,18 +267,16 @@ fn find_deps(cache: &dyn Cache, input_path: &Path, deps: &mut MotokoImports) -> 
 fn build_did_js(cache: &dyn Cache, input_path: &Path, output_path: &Path) -> DfxResult {
     let mut cmd = cache.get_binary_command("didc")?;
     let cmd = cmd.arg("--js").arg(&input_path).arg("-o").arg(&output_path);
-    run_command(cmd, false, false)?;
+    run_command(cmd, false)?;
     Ok(())
 }
 
-fn run_command(
-    cmd: &mut std::process::Command,
-    verbose: bool,
-    surpress_warning: bool,
-) -> DfxResult<Output> {
-    if verbose {
-        println!("{:?}", cmd);
-    }
+fn run_command(cmd: &mut std::process::Command, surpress_warning: bool) -> DfxResult<Output> {
+    VERBOSE.with(|v| {
+        if *v.borrow() {
+            println!("{:?}", cmd);
+        }
+    });
     let output = cmd.output()?;
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::CompilerError(
@@ -306,6 +323,7 @@ fn build_file(
     name: &str,
     id_map: &CanisterIdMap,
     assets: &AssetMap,
+    extra_args: &str,
 ) -> DfxResult {
     let canister_info = CanisterInfo::load(config, name).map_err(|_| {
         BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
@@ -345,11 +363,11 @@ fn build_file(
                 },
                 surpress_warning: false,
                 inject_code: true,
-                verbose: false,
                 input: &input_path,
                 output: &output_wasm_path,
                 idl_path: &idl_dir_path,
                 idl_map: &id_map,
+                extra_args,
             };
             motoko_compile(cache.as_ref(), &params, assets)?;
             // Generate IDL
@@ -362,11 +380,11 @@ fn build_file(
                 // Surpress the warnings the second time we call moc
                 surpress_warning: true,
                 inject_code: false,
-                verbose: false,
                 input: &input_path,
                 output: &output_idl_path,
                 idl_path: &idl_dir_path,
                 idl_map: &id_map,
+                extra_args,
             };
             motoko_compile(cache.as_ref(), &params, &HashMap::new())?;
             std::fs::copy(&output_idl_path, &idl_file_path)?;
@@ -462,7 +480,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     env.get_cache().install()?;
 
     let green = Style::new().green().bold();
-
     let status_bar = ProgressBar::new_spinner();
     status_bar.set_draw_target(ProgressDrawTarget::stderr());
     status_bar.set_message("Building canisters...");
@@ -474,6 +491,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         return Ok(());
     }
     let canisters = maybe_canisters.as_ref().unwrap();
+
+    if args.is_present("verbose") {
+        VERBOSE.with(|v| {
+            *v.borrow_mut() = true;
+        });
+        status_bar.set_draw_target(ProgressDrawTarget::hidden());
+    }
 
     // Build canister id map and dependency graph
     let mut id_map = HashMap::new();
@@ -518,10 +542,27 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     );
     build_stage_bar.enable_steady_tick(80);
 
+    if args.is_present("verbose") {
+        build_stage_bar.set_draw_target(ProgressDrawTarget::hidden());
+    }
+
+    let extra_args: &str = args.value_of("extra-args").unwrap_or("").trim();
+
     // Build canister
     for name in &seq.canisters {
-        build_stage_bar.println(&format!("{} canister {}", green.apply_to("Building"), name));
-        match build_file(env, &config, name, &seq.get_ids(name), &HashMap::new()) {
+        build_stage_bar.println(&format!(
+            "{} canister {}",
+            green.apply_to("Compiling"),
+            name
+        ));
+        match build_file(
+            env,
+            &config,
+            name,
+            &seq.get_ids(name),
+            &HashMap::new(),
+            extra_args,
+        ) {
             Ok(()) => {}
             Err(e) => {
                 build_stage_bar.abandon();
@@ -547,7 +588,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .current_dir(config.get_project_root())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
-    run_command(&mut cmd, false, false)?;
+    run_command(&mut cmd, false)?;
 
     build_stage_bar.inc(1);
     build_stage_bar.println(&format!(
@@ -587,7 +628,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             }
         }
 
-        match build_file(env, &config, &name, &seq.get_ids(&name), &assets) {
+        match build_file(
+            env,
+            &config,
+            &name,
+            &seq.get_ids(&name),
+            &assets,
+            extra_args,
+        ) {
             Ok(()) => {}
             Err(e) => {
                 build_stage_bar.abandon();
@@ -658,11 +706,11 @@ mod tests {
             build_target: BuildTarget::Debug,
             surpress_warning: false,
             inject_code: true,
-            verbose: false,
             input: &input_path,
             output: Path::new("/out/file.wasm"),
             idl_path: Path::new("."),
             idl_map: &HashMap::new(),
+            extra_args: "",
         };
         motoko_compile(&cache, &params, &HashMap::new()).expect("Function failed.");
 
@@ -670,11 +718,11 @@ mod tests {
             build_target: BuildTarget::IDL,
             surpress_warning: false,
             inject_code: false,
-            verbose: false,
             input: Path::new("/in/file.mo"),
             output: Path::new("/out/file.did"),
             idl_path: Path::new("."),
             idl_map: &HashMap::new(),
+            extra_args: "",
         };
         motoko_compile(&cache, &params, &HashMap::new()).expect("Function failed (didl_compile)");
         build_did_js(
@@ -738,7 +786,7 @@ mod tests {
         )
         .unwrap();
 
-        build_file(&env, &config, "name", &HashMap::new(), &HashMap::new())
+        build_file(&env, &config, "name", &HashMap::new(), &HashMap::new(), "")
             .expect("Function failed - build_file");
         assert!(output_path.exists());
     }
