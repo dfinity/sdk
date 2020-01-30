@@ -30,11 +30,9 @@ class CanisterIdEncoder implements CborEncoder<CanisterId> {
   }
 
   public encode(v: CanisterId): cbor.CborValue {
-    var h = v.toHex().match(/.{1,2}/g);
+    const h = v.toHex().match(/.{1,2}/g);
     if (!h) {
-      throw new Error(
-	'Provided Canister id is not a array of bytes'
-      );
+      throw new Error('Provided Canister id is not a array of bytes');
     }
     return cbor.value.bytes(new Uint8Array(h.map(a => parseInt(a, 16))));
   }
