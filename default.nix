@@ -38,6 +38,6 @@ rec {
   dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion dfx.standalone "dfx";
 
   licenses = {
-    rust-workspace = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
+    dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
   };
 }

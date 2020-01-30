@@ -43,9 +43,7 @@ let
 
               isMaster = super.isMaster or false;
 
-              # The dfinity-sdk.packages.cargo-security-audit job has this RustSec
-              # advisory-db as a dependency so we add it here to the package set so
-              # that job has access to it.
+              # The RustSec-advisory-db used by cargo-audit.nix.
               # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
               # back on the one defined in sources.json.
               RustSec-advisory-db =
