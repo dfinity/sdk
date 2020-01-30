@@ -61,7 +61,9 @@ let
 
               inherit (nixFmt) nix-fmt;
               nix-fmt-check = nixFmt.check;
-            } // import ./overlays/dfinity-sdk.nix self super
+
+              lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix; };
+            }
       )
     ] ++ overlays;
   };
