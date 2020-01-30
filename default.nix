@@ -10,7 +10,7 @@ rec {
 
   dfx = import ./dfx.nix { inherit pkgs userlib-js; };
 
-  e2e-tests = import ./e2e { inherit pkgs; };
+  e2e-tests = import ./e2e { inherit pkgs dfx; };
 
   userlib-js = import ./src/userlib/js { inherit pkgs; };
 
