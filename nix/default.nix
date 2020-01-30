@@ -35,13 +35,12 @@ let
         self: super:
           let
             nixFmt = self.lib.nixFmt { root = ../.; };
+            isMaster = super.isMaster or false;
           in
             {
               sources = super.sources // sources;
 
-              inherit releaseVersion;
-
-              isMaster = super.isMaster or false;
+              inherit releaseVersion isMaster;
 
               # The RustSec-advisory-db used by cargo-audit.nix.
               # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
@@ -60,7 +59,7 @@ let
               inherit (nixFmt) nix-fmt;
               nix-fmt-check = nixFmt.check;
 
-              lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix; };
+              lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix { inherit isMaster; }; };
             }
       )
     ] ++ overlays;

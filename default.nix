@@ -25,6 +25,7 @@ rec {
   inherit (pkgs) nix-fmt nix-fmt-check;
 
   public = import ./public { inherit pkgs; };
+  inherit (public) install-sh-release install-sh;
 
   # This is to make sure CI evaluates shell derivations, builds their
   # dependencies and populates the hydra cache with them. We also use this in
