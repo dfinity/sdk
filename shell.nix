@@ -1,9 +1,9 @@
 { pkgs ? import ./nix {} }:
 let
-  default = import ./. { inherit pkgs; };
+  packages = import ./. { inherit pkgs; };
 in
 pkgs.mkCompositeShell {
   name = "dfinity-sdk-env";
-  inputsFrom = pkgs.stdenv.lib.attrValues default.shells;
+  inputsFrom = pkgs.stdenv.lib.attrValues packages.shells;
   buildInputs = [ pkgs.nix-fmt ];
 }
