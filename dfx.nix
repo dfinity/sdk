@@ -64,7 +64,7 @@ let
                 DFX_ASSETS = pkgs.runCommandNoCC "dfx-assets" {} ''
                   mkdir -p $out
                   cp ${pkgs.dfinity.nodemanager}/bin/nodemanager $out
-                  cp ${pkgs.dfinity.ic-replica}/bin/client $out
+                  cp ${pkgs.dfinity.ic-replica}/bin/replica $out
                   cp ${pkgs.motoko.moc-bin}/bin/moc $out
                   cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
                   cp ${pkgs.motoko.didc}/bin/didc $out
