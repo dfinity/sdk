@@ -101,7 +101,7 @@ export function makeActorFactory(
 
     switch (status.status) {
       case RequestStatusResponseStatus.Replied: {
-        return decodeReturnValue(returnType, status.reply.arg);
+        return status.reply && decodeReturnValue(returnType, status.reply.arg);
       }
 
       case RequestStatusResponseStatus.Unknown:

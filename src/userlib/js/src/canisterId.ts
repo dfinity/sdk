@@ -10,7 +10,7 @@ export class CanisterId {
     }
   }
 
-  private static fromHex(hex: string): CanisterId {
+  public static fromHex(hex: string): CanisterId {
     return new this(hex);
   }
 
