@@ -1,12 +1,11 @@
 use crate::config::dfx_version;
 use crate::lib::error::DfxError::CacheError;
-use crate::lib::error::{CacheErrorKind, DfxError, DfxResult};
+use crate::lib::error::{CacheErrorKind, DfxResult};
 use crate::util;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use semver::Version;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
-use std::process::ExitStatus;
 
 // POSIX permissions for files in the cache.
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
@@ -187,19 +186,4 @@ pub fn list_versions() -> DfxResult<Vec<Version>> {
     }
 
     Ok(result)
-}
-
-pub fn call_cached_dfx(v: &Version) -> DfxResult<ExitStatus> {
-    let v = format!("{}", v);
-    let command_path = get_binary_path_from_version(&v, "dfx")?;
-    if command_path == std::env::current_exe()? {
-        return Err(DfxError::Unknown(
-            format_args!("Invalid cache for version {}.", v).to_string(),
-        ));
-    }
-
-    std::process::Command::new(command_path)
-        .args(std::env::args().skip(1))
-        .status()
-        .map_err(DfxError::from)
 }
