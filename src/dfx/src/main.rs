@@ -49,20 +49,7 @@ fn exec(env: &impl Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) 
 fn main() {
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
-            // If we're not using the right version, forward the call to the cache dfx.
-            if dfx_version() != env.get_version() {
-                match crate::config::cache::call_cached_dfx(env.get_version()) {
-                    Ok(status) => std::process::exit(status.code().unwrap_or(0)),
-                    Err(e) => {
-                        eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
-                        eprintln!("Installed executable: {}", dfx_version());
-                        std::process::exit(1)
-                    }
-                };
-            }
-
             let matches = cli(&env).get_matches();
-
             exec(&env, &matches, &(cli(&env)))
         }
         Err(e) => Err(e),
