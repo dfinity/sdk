@@ -14,6 +14,16 @@ import { BinaryBlob } from './types';
 export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
   __canisterId(): string;
   __getAsset(path: string): Promise<Uint8Array>;
+  __install(
+    fields: {
+      module: BinaryBlob;
+      arg?: BinaryBlob;
+    },
+    options?: {
+      maxAttempts?: number;
+      throttleDurationInMSecs?: number;
+    },
+  ): Promise<void>;
 };
 
 export interface ActorConfig {
@@ -83,7 +93,7 @@ export function makeActorFactory(
   async function requestStatusAndLoop(
     httpAgent: HttpAgent,
     requestId: RequestId,
-    func: FuncClass,
+    func: FuncClass | null,
     attempts: number,
     maxAttempts: number,
     throttle: number,
@@ -92,7 +102,7 @@ export function makeActorFactory(
 
     switch (status.status) {
       case RequestStatusResponseStatus.Replied: {
-        return decodeReturnValue(func.retTypes, status.reply.arg);
+        return func ? decodeReturnValue(func.retTypes, status.reply.arg) : null;
       }
 
       case RequestStatusResponseStatus.Unknown:
@@ -137,6 +147,47 @@ export function makeActorFactory(
         }
 
         return agent.retrieveAsset(canisterId, path);
+      },
+      async __install(
+        fields: {
+          module: BinaryBlob;
+          arg?: BinaryBlob;
+        },
+        options: {
+          maxAttempts?: number;
+          throttleDurationInMSecs?: number;
+        } = {},
+      ) {
+        const agent = httpAgent || getDefaultHttpAgent();
+        if (!agent) {
+          throw new Error('Cannot make call. httpAgent is undefined.');
+        }
+
+        // Resolve the options that can be used globally or locally.
+        const effectiveMaxAttempts = options.maxAttempts?.valueOf() || 0;
+        const effectiveThrottle = options.throttleDurationInMSecs?.valueOf() || 0;
+
+        const { requestId, response } = await agent.install(canisterId, fields);
+        if (!response.ok) {
+          throw new Error(
+            [
+              'Install failed:',
+              `  Canister ID: ${cid.toHex()}`,
+              `  Request ID: ${requestIdToHex(requestId)}`,
+              `  HTTP status code: ${response.status}`,
+              `  HTTP status text: ${response.statusText}`,
+            ].join('\n'),
+          );
+        }
+
+        return requestStatusAndLoop(
+          agent,
+          requestId,
+          null,
+          effectiveMaxAttempts,
+          effectiveMaxAttempts,
+          effectiveThrottle,
+        );
       },
     } as Actor;
 
