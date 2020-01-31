@@ -66,7 +66,7 @@ test('call', async () => {
     ...mockPartialRequest,
     sender_pubkey: keyPair.publicKey,
     sender_sig: senderSig,
-  };
+  } as CallRequest;
 
   const expectedRequestId = await requestIdOf(expectedRequest);
   expect(expectedRequestId).toEqual(mockPartialsRequestId);
