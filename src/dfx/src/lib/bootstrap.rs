@@ -33,7 +33,7 @@ pub fn exec(
         let state = State {
             counter: RelaxedCounter::new(0),
             providers: providers.clone(),
-            timeout: timeout,
+            timeout,
         };
         App::new()
             .wrap(Logger::default())
@@ -43,7 +43,7 @@ pub fn exec(
     })
     .bind(format!("{}:{}", ip, port))?
     .run()
-    .map_err(|err| DfxError::Io(err))
+    .map_err(DfxError::Io)
 }
 
 /// TODO (enzo): Documentation.
@@ -53,7 +53,7 @@ fn serve_upstream(
     state: web::Data<State>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
     let providers = state.get_ref().providers.clone();
-    let timeout = state.get_ref().timeout.clone();
+    let timeout = state.get_ref().timeout;
     let i = state.get_ref().counter.inc();
     let n = providers.len();
     if i >= n {
@@ -61,7 +61,7 @@ fn serve_upstream(
     };
     let provider = providers[i % n].to_string();
     match build(request, provider) {
-        Err(err) => Either::A(ok(HttpResponse::InternalServerError().body(err.to_string()))),
+        Err(err) => Either::A(ok(HttpResponse::InternalServerError().body(err))),
         Ok(uri) => Either::B(
             payload
                 .map_err(Error::from)
