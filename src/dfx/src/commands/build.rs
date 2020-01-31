@@ -370,15 +370,14 @@ fn build_file(
             };
             motoko_compile(cache.as_ref(), &params, &HashMap::new())?;
             std::fs::copy(&output_idl_path, &idl_file_path)?;
-            // Generate JS code
-            if canister_info.has_frontend() {
-                let output_did_js_path = canister_info.get_output_did_js_path();
-                let canister_id = canister_info.get_canister_id().ok_or_else(|| {
-                    DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId())
-                })?;
-                build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
-                build_canister_js(&canister_id, &canister_info)?;
-            }
+            // Generate JS code even if the canister doesn't have a frontend. It might still be
+            // used by another canister's frontend.
+            let output_did_js_path = canister_info.get_output_did_js_path();
+            let canister_id = canister_info
+                .get_canister_id()
+                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+            build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
+            build_canister_js(&canister_id, &canister_info)?;
 
             Ok(())
         }
