@@ -1,5 +1,5 @@
 use crate::commands::CliCommand;
-use crate::config::{dfx_version, dfx_version_str};
+use crate::config::{dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::*;
 use clap::{App, AppSettings};
