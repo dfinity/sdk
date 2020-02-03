@@ -13,7 +13,7 @@ And have this statement mean two things at once:
  - "Run all end-to-end tests for the project"
 
  - "Run all unit tests for all libraries used by this project" (we
-  e currently recompile these transitive libraries ourselves, so this
+    currently recompile these transitive libraries ourselves, so this
    "transitive testing" is a reasonable thing to do, too).
 
 These two classes of tests are quite different in their requirements
@@ -53,7 +53,7 @@ response that it expects, perhaps as a _pattern_.
 
 In each case, the last part of the action gives a "dfx result
 pattern", which permits the sequence to destructure results and bind
-variables, which may appear within the `<args>` of subsequent actions
+variables, which may appear as either the `<dynId>` or within the `<args>` of subsequent actions
 of the same sequence.
 
 **Static checks:** The test system statically checks a test's action
