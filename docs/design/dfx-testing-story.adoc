@@ -147,9 +147,9 @@ local filesystem.
 **However, we have no story for the client program running the unit
 tests of FooLib. Where does it look to find them?**
 
-When unit tests or functional tests they only exercise the public
-interface of FooLib, and never enter its private implementation
-directly, we may want these test functions to exist outside of the
+When unit tests (or functional tests) only exercise the _public_
+interface of FooLib, and _never enter its private implementation
+directly_, we may want these test functions to exist outside of the
 implementation file/directory for FooLib.  Currently, we organize
 the Motoko `stdlib` source and test trees as parallel, but distinct:
 
