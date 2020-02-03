@@ -27,7 +27,7 @@ CI, or something similar._
 
 #### Simplifying assumptions
 
-- we do not discuss building cansiters here; we assume they have been
+- we do not discuss building canisters here; we assume they have been
   built somehow; this design is about testing, not building.
 
 - each e2e test consists of starting a replica, running one or more
@@ -112,7 +112,7 @@ values.
 
 #### Technical clarification on error detection and reporting: 
 
-The result pattern-matching logic aluded to above (for the
+The result pattern-matching logic alluded to above (for the
 <candid-value-pattern> grammar) should build on the existing Rust
 codebase for Candid, not be based on commands within bash, over
 stringified versions, etc.  In particular, the test fails with special
@@ -166,7 +166,7 @@ the Motoko `stdlib` source and test trees as parallel, but distinct:
 Let's assume that all Motoko code that we want to directly unit test
 is public in its defining module.
 
-Under this assumption, we can assume that testing code is seperable
+Under this assumption, we can assume that testing code is separable
 from implementation code, and the `src` versus `test` directory
 distinction is workable.
 
