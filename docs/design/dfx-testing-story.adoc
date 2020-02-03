@@ -1,0 +1,175 @@
+## Design Doc: DFX Testing Story
+
+Creator(s): Matthew Hammer, after discussion with and input from Hans Larsen, on 2020-02-03.
+
+### Terms and goals
+
+In CI, we want to write:
+
+`dfx test`
+
+And have this statement mean two things at once:
+
+ - "Run all end-to-end tests for the project"
+
+ - "Run all unit tests for all libraries used by this project" (we
+  e currently recompile these transitive libraries ourselves, so this
+   "transitive testing" is a reasonable thing to do, too).
+
+These two classes of tests are quite different in their requirements
+of the `dfx` tool.  We consider them separately as parts 1 and 2 below.
+
+### Part 1: Authoring a CI-driven, end-to-end (e2e) test of a Motoko project
+
+Usecase: _We want to author a Motoko project, and have CI rerun a
+suite of end-to-end (e2e) tests for each commit, e.g., using Travis
+CI, or something similar._
+
+#### Simplifying assumptions
+
+- we do not discuss building cansiters here; we assume they have been built somehow; this design is about testing, not building.
+- each e2e test consists of starting a replica, running one or more "test actions" (see below), and then stopping the replica.
+- two distinct e2e tests are independent; they do not share any service state; they only share overlapping source code for canisters (probably).
+- distinct e2e tests can be run in sequence, in parallel, or even on distinct replicas (if necessary; not a priority yet).
+
+In the remainder of this document, we focus on the case of a single
+e2e test in isolation, knowing that each _additional_ e2e test is
+always an independent (additional/separable) concern.
+
+Each e2e test is given by a single sequence of test actions.  We refer
+to this sequence as the test's _action sequence_.  We use the term
+"test script" and "action sequence" interchangeably throughout.
+
+#### Test actions
+
+Each "test action" is a scriptable dfx command with an associated
+response that it expects, perhaps as a _pattern_.
+
+`<test-action> ::= `   (three distinct cases:)
+
+- `| dfx-canister-install <canister-name> <dfx-result-pattern>`
+- `| dfx-canister-call <dynId> <method-name> <args> <dfx-result-pattern>`
+- `| dfx-canister-query <dynId> <method-name> <args> <dfx-result-pattern>`
+
+In each case, the last part of the action gives a "dfx result
+pattern", which permits the sequence to destructure results and bind
+variables, which may appear within the `<args>` of subsequent actions
+of the same sequence.
+
+**Static checks:** The test system statically checks a test's action
+sequence before running it; consequently, variables cannot be used in
+the sequence without being first defined earlier in the sequence.  We
+do not check the IDL result and argument types match, however (or do
+we want to do that too?).
+
+#### Dfx result patterns
+
+Each time the test script gets a response from an action (`install` or `call` or
+`query`) we may either want to bind that value to a test script
+variable (to use in a subsequent action), or insist that that value is
+a certain value, or both.
+
+The dfx result pattern grammar permits each of these uses:
+
+```
+<dfx-result-pattern> ::= bind <test-script-var-id>
+                      | match <candid-value-pattern>
+
+<candid-value-pattern> ::= 
+   | (<candid-value-pattern>, ..., <candid-value-pattern>)
+   | record { lab_1: <candid-value-pattern>, ..., lab_k: <candid-value-pattern> }
+   | variant { lab <candid-value-pattern> }
+   | <test-script-var-id>
+   | <literal-nat>
+   | <literal-text>
+   | ( <candid-value-pattern> as <test-script-var-id> )
+...TODO
+```
+
+The second case (`match`) is a generalization of the first one
+(`bind`), as it binds variables as one possible usecase. 
+
+More generally, it consists of patterns that each attempt to match an
+IDL value, destructure it, and bind its parts to zero or more variable
+names.  The grammar above should agree with the IDL value syntax (but
+probably doesn't yet).
+
+In either the `bind` or `match` cases, the test variables being
+defined by the action's result exist within the scope of the remaining
+actions in the same sequence, but not outside of it.  These variables
+are useful for forming functional chains of test calls within the
+script symbolically, where they avoid the script explicitly mentioning
+all of the intermittent input and output values explicitly, as IDL
+values.
+
+#### Technical clarification on error detection and reporting: 
+
+The result pattern-matching logic aluded to above (for the
+<candid-value-pattern> grammar) should build on the existing Rust
+codebase for Candid, not be based on commands within bash, over
+stringified versions, etc.  In particular, the test fails with special
+kinds of test errors if this scripting syntax is malformed in some
+way; likewise, the test actions themselves must follow a formal
+syntax, and they emit associated errors, if at all, before the test
+suite runs any test actions.
+
+#### Remaining details:
+
+Many practical details remain to nail down, but the sketch above gives
+the most important definitions; we still need a discipline for listing
+multiple e2e tests within the `dfx.json` file, perhaps with distinct
+names, so that `dfx test e2e foo` and `dfx test e2e bar` do different
+things.
+
+Likewise, we may want regex logic over these names, so that `dfx test
+e2e foo*` and `dfx test e2e bar*Baz` mean and do the expected things.
+This is all TBD.
+
+
+### Part 2: Unit tests on canister Wasm from Motoko source
+
+Suppose a developer writes a Motoko library `FooLib` with a set of
+public functions and a set of (publicly visible) unit test functions
+that exercise the other (public or private) functions of `FooLib`.
+
+Currently, we have a story for a Motoko project to import `FooLib` and
+use its public interface when it can point to `FooLib` somewhere on the
+local filesystem.
+
+**However, we have no story for the client program running the unit
+tests of FooLib. Where does it look to find them?**
+
+When unit tests or functional tests they only exercise the public
+interface of FooLib, and never enter its private implementation
+directly, we may want these test functions to exist outside of the
+implementation file/directory for FooLib.  Currently, we organize
+the Motoko `stdlib` source and test trees as parallel, but distinct:
+
+(Omitting all but two modules, for concision:)
+```
+/src/buf.mo
+/src/hash.mo
+/test/bufTest.mo
+/test/hashTest.mo
+```
+
+#### Key Assumption, to simplify public/private visibility: 
+
+Let's assume that all Motoko code that we want to directly unit test
+is public in its defining module.
+
+Under this assumption, we can assume that testing code is seperable
+from implementation code, and the `src` versus `test` directory
+distinction is workable.
+
+Of course, this implementation module versus test module separation
+does not make sense for unit tests of private functions.  Those tests
+require a different approach, where the (publicly-exposed) test code
+is mixed into the module itself, where it can access private members
+to test them.  While this usecase is important, it's a complex use
+case in terms of visibility (public test and private code being
+tested), so let's set it aside for now.
+
+#### Remaining details:
+
+_(Very similar to those of Part 1.)_
