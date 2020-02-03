@@ -27,10 +27,18 @@ CI, or something similar._
 
 #### Simplifying assumptions
 
-- we do not discuss building cansiters here; we assume they have been built somehow; this design is about testing, not building.
-- each e2e test consists of starting a replica, running one or more "test actions" (see below), and then stopping the replica.
-- two distinct e2e tests are independent; they do not share any service state; they only share overlapping source code for canisters (probably).
-- distinct e2e tests can be run in sequence, in parallel, or even on distinct replicas (if necessary; not a priority yet).
+- we do not discuss building cansiters here; we assume they have been
+  built somehow; this design is about testing, not building.
+
+- each e2e test consists of starting a replica, running one or more
+  "test actions" (see below), and then stopping the replica.
+
+- two distinct e2e tests are independent; they do not share any
+  service state; they only share overlapping source code for canisters
+  (probably).
+
+- distinct e2e tests can be run in sequence, in parallel, or even on
+  distinct replicas (if necessary; not a priority yet).
 
 In the remainder of this document, we focus on the case of a single
 e2e test in isolation, knowing that each _additional_ e2e test is
@@ -53,8 +61,8 @@ response that it expects, perhaps as a _pattern_.
 
 In each case, the last part of the action gives a "dfx result
 pattern", which permits the sequence to destructure results and bind
-variables, which may appear as either the `<dynId>` or within the `<args>` of subsequent actions
-of the same sequence.
+variables, which may appear as either the `<dynId>` or within the
+`<args>` of subsequent actions of the same sequence.
 
 **Static checks:** The test system statically checks a test's action
 sequence before running it; consequently, variables cannot be used in
@@ -64,10 +72,10 @@ we want to do that too?).
 
 #### Dfx result patterns
 
-Each time the test script gets a response from an action (`install` or `call` or
-`query`) we may either want to bind that value to a test script
-variable (to use in a subsequent action), or insist that that value is
-a certain value, or both.
+Each time the test script gets a response from an action (`install` or
+`call` or `query`) we may either want to bind that value to a test
+script variable (to use in a subsequent action), or insist that that
+value is a certain value, or both.
 
 The dfx result pattern grammar permits each of these uses:
 
