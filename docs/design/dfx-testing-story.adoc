@@ -180,4 +180,6 @@ tested), so let's set it aside for now.
 
 #### Remaining details:
 
-_(Very similar to those of Part 1.)_
+- How does `dfx` discover the test functions of the `test` modules?
+- For instance, can it discover all of the public methods of each test module and merely assume each is a unit test?
+- Other details that are similar to those of Part 1 with respect to `dfx.json`.
