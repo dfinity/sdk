@@ -57,7 +57,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let (frontend_url, address_and_port) = frontend_address(args, &config)?;
 
-    let client_pathbuf = env.get_cache().get_binary_command_path("client")?;
+    let client_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let nodemanager_pathbuf = env.get_cache().get_binary_command_path("nodemanager")?;
     let temp_dir = env.get_temp_dir();
     let state_root = env.get_temp_dir().join("state");
