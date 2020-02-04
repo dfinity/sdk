@@ -216,15 +216,21 @@ install and call these canisters:
 dfx-testing-story-example
 ├── dfx.json
 ├── src
-│   └── main.mo
+│   ├── adapton.mo
+│   ├── cleanSheets.mo
+│   ├── eval.mo
+│   ├── main.mo
+│   └── types.mo
 └── test
     ├── aliceBob
-    │   ├── aliceCanister.mo
-    │   ├── bobCanister.mo
-    │   └── test-script
-    └── aliceBobCharlie
-        ├── charlieCanister.mo
-        └── test-script
+    │   ├── aliceCanister.mo
+    │   ├── bobCanister.mo
+    │   └── test-script
+    ├── aliceBobCharlie
+    │   ├── charlieCanister.mo
+    │   └── test-script
+    ├── simpleAdaptonDivByZero.mo
+    └── simpleExcelEmulation.mo
 ```
 
 The tree contains two example test scripts, for a 2-party (2-canister)
