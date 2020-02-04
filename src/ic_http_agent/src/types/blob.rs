@@ -6,10 +6,18 @@ use std::fmt;
 use rand::{thread_rng, RngCore};
 
 /// A binary "blob", i.e. a byte array
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq)]
 pub struct Blob(pub Vec<u8>);
 
 impl Blob {
+    pub fn empty() -> Blob {
+        Blob(Vec::new())
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.0.as_slice()
+    }
+
     #[cfg(test)]
     pub fn random(size: usize) -> Blob {
         let mut rng = thread_rng();
@@ -17,6 +25,12 @@ impl Blob {
         rng.fill_bytes(v.as_mut_slice());
 
         Blob(v)
+    }
+}
+
+impl PartialEq for Blob {
+    fn eq(&self, other: &Self) -> bool {
+        other.0.eq(&self.0)
     }
 }
 

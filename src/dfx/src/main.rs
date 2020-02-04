@@ -3,6 +3,7 @@ use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::*;
 use clap::{App, AppSettings};
+use ic_http_agent::AgentError;
 
 mod commands;
 mod config;
@@ -86,7 +87,7 @@ fn main() {
             DfxError::CommandMustBeRunInAProject => {
                 eprintln!("Command must be run in a project directory (with a dfx.json file).");
             }
-            DfxError::ClientError(code, message) => {
+            DfxError::AgentError(AgentError::ClientError(code, message)) => {
                 eprintln!("Client error (code {}): {}", code, message);
             }
             DfxError::Unknown(err) => {
