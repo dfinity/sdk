@@ -4,24 +4,38 @@ Creator(s): Matthew Hammer, after discussion with and input from Hans Larsen, on
 
 ### Terms and goals
 
+ - unit tests --- one canister for all the unit tests, together;
+   a standard library provides the framework for this canister (TBD).
+
+ - functional tests --- one canister for each test, built and run separately.
+
+ - e2e tests --- many canisters each; each requires a `test-script` to coordinate.
+
+
 In CI, we want to write, as humans and as CI scripts:
 
 `dfx test`
 
-And have this statement mean two things at once:
+And variations that permit more control over what tests run:
 
- - "Run all end-to-end tests for the project" (`dfx test e2e` for _just_ this behavior).
-
- - "Run all unit tests for all libraries used by this project" (`dfx test unit` for _just_ this behavior. we
+ - `dfx test unit` for "Run all unit tests for all libraries used by this project" (we
     currently recompile these transitive libraries ourselves, so this
    "transitive testing" is a reasonable thing to do, too).
 
- - "Run all functional tests for all libraries used by this project"
-   (for tests that are between unit tests and e2e tests in complexity; see the example project tree.)
+ - `dfx test func` for "Run all functional tests".
 
+ - `dfx test func X` for "Run only the functional test named X".
 
-These classes of tests are quite different in their requirements
-of the `dfx` tool.  We consider the first two separately as parts 1 and 2 below.
+ - `dfx test e2e` for "Run all end-to-end tests for the project".
+
+ - `dfx test e2e X` for "Run only end-to-end test named X".
+
+We consider e2e tests and unit tests in the parts below.
+
+These classes of tests are quite different in their requirements of
+the `dfx` tool.  The functional tests provide a common half-way point;
+see the example project tree for more details.
+
 
 ### Part 1: Authoring a CI-driven, end-to-end (e2e) test of a Motoko project
 
