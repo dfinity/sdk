@@ -4,7 +4,7 @@ install aliceCanister
 ==> #ok(aliceId)
 call bobId addFriend aliceId
 ==> #ok(())
-call AliceId addFriend BobId
+call aliceId addFriend BobId
 ==> #ok(())
 call bobId collaborateWithAlice
 ==> #ok(())
