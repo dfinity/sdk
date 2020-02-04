@@ -78,6 +78,9 @@ fn run_webserver(
             )
             .wrap(middleware::Logger::default())
             .service(web::scope(client_api_uri.path()).default_service(web::to_async(forward)))
+            .service(web::resource("/candid").default_service(
+                actix_files::Files::new("/", &serve_dir).index_file("candid.html"),
+            ))
             .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
     })
     .bind(bind)?

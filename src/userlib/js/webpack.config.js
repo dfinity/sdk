@@ -97,6 +97,10 @@ const bootstrapConfig = {
       template: 'bootstrap/index.html',
       filename: 'index.html'
     }),
+    new HtmlWebpackPlugin({
+      template: 'bootstrap/candid.html',
+      filename: 'candid.html'
+    }),
     new CopyWebpackPlugin([{
         from: 'bootstrap/dfinity.png',
         to: 'favicon.ico',

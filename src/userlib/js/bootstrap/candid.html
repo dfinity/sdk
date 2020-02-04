@@ -1,0 +1,64 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DFINITY Canister Candid UI</title>
+    <style>
+      .signature {
+	  font-size: 15px;
+	  font-weight: 400;
+          margin-bottom: 10px;
+      }
+      .argument, .result {
+          background-color: #F9F9F9;
+	  border: 1px solid #E5E5E5;
+	  color: #545454;
+	  font-family: 'Roboto Mono', sans-serif;
+	  font-size: 15px;
+	  font-weight: 400;          
+          height: auto;
+          margin-bottom: 10px; 
+          margin-right: 10px;         
+      }
+      .argument:focus {
+	border: 1px solid #02ADEA;
+      }
+      .result {
+          display: none;
+      }
+      .error {
+          color: #cc0000;
+      }
+      .left {
+          text-align: left;
+          width: 84%;
+          display: inline-block;
+          overflow-wrap: break-word;
+      }
+      .right {
+          text-align: right;
+          width: 15%;
+          display: inline-block;
+      }
+      .btn {
+	  background-color: #02ADEA;
+	  border-color: #02ADEA;
+	  border-radius: .25rem;
+	  color: #FFF;
+	  font-family: 'Montserrat', sans-serif;
+	  font-size: 18px;
+	  font-weight: 700;
+          margin-bottom: 10px;
+      }      
+    </style>
+</head>
+<body>
+  <div class="service">
+    <h1>Service Matrix</h1>
+    <div>
+      This service has the following methods:
+      <ul id="methods">
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
