@@ -15,15 +15,15 @@
                 "AliceBob": {
                     "_comment:": "test-script installs and scripts bots `alice` and `bob`"
                     "test-script": "test/aliceBob/test-script"
-                    "alice": "test/aliceBob/aliceCanister.mo"
-                    "bob": "test/aliceBob/bobCanister.mo"
+                    "aliceCanister": "test/aliceBob/aliceCanister.mo"
+                    "bobCanister": "test/aliceBob/bobCanister.mo"
                 }
                 "AliceBobCharlie": {
                     "_comment:": "reuse bots `alice` and `bob`, and includes bot `charlie`"
                     "test-script": "test/aliceBobCharlie/test-script"
-                    "alice": "test/aliceBob/aliceCanister.mo"
-                    "bob": "test/aliceBob/bobCanister.mo"
-                    "charlie": "test/aliceBobCharlie/charlieCanister.mo"
+                    "aliceCanister": "test/aliceBob/aliceCanister.mo"
+                    "bobCanister": "test/aliceBob/bobCanister.mo"
+                    "charlieCanister": "test/aliceBobCharlie/charlieCanister.mo"
                 }
             }
         },
