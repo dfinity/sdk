@@ -8,7 +8,8 @@ pub struct AgentConfig<'a> {
 impl Default for AgentConfig<'_> {
     fn default() -> Self {
         Self {
-            url: "-", // Making sure this is invalid so users have to overwrite it.
+            // Making sure this is invalid so users have to overwrite it.
+            url: "-",
             nonce_factory: NonceFactory::random(),
         }
     }

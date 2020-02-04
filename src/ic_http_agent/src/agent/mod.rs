@@ -6,23 +6,22 @@ pub(crate) mod response;
 pub(crate) mod waiter;
 
 pub(crate) mod public {
-    pub use super::Agent;
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
     pub use super::response::RequestStatusResponse;
     pub use super::waiter::{Waiter, WaiterTrait};
+    pub use super::Agent;
 }
 
-// Tests
 #[cfg(test)]
 mod agent_test;
 
-use crate::agent::replica_api::{ReadRequest,ReadResponse,SubmitRequest,QueryResponseReply};
-use crate::{CanisterId, Blob, RequestId, to_request_id};
+use crate::agent::replica_api::{QueryResponseReply, ReadRequest, ReadResponse, SubmitRequest};
+use crate::{to_request_id, Blob, CanisterId, RequestId};
 use public::*;
-use reqwest::{Client, Method};
 use reqwest::header::HeaderMap;
+use reqwest::{Client, Method};
 
 pub struct Agent {
     url: reqwest::Url,
@@ -50,8 +49,8 @@ impl Agent {
     }
 
     async fn read<A>(&self, request: ReadRequest<'_>) -> Result<ReadResponse<A>, AgentError>
-        where
-            A: serde::de::DeserializeOwned,
+    where
+        A: serde::de::DeserializeOwned,
     {
         let record = serde_cbor::to_vec(&request)?;
         let url = self.url.join("read")?;
@@ -108,16 +107,16 @@ impl Agent {
             method_name,
             arg,
         })
-            .await
-            .and_then(|response| match response {
-                ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg)),
-                ReadResponse::Rejected {
-                    reject_code,
-                    reject_message,
-                } => Err(AgentError::ClientError(reject_code, reject_message)),
-                ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
-                ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
-            })
+        .await
+        .and_then(|response| match response {
+            ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg)),
+            ReadResponse::Rejected {
+                reject_code,
+                reject_message,
+            } => Err(AgentError::ClientError(reject_code, reject_message)),
+            ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
+            ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
+        })
     }
 
     pub async fn request_status(
@@ -173,7 +172,7 @@ impl Agent {
             arg,
             nonce: &self.nonce_factory.generate(),
         })
-            .await
+        .await
     }
 
     pub async fn install(
@@ -188,7 +187,7 @@ impl Agent {
             arg,
             nonce: &self.nonce_factory.generate(),
         })
-            .await
+        .await
     }
 
     pub async fn install_and_wait(
