@@ -1,0 +1,31 @@
+{
+    "canisters": {
+        "cleanSheets": {
+            "_comment:": "we list `main` service code versus its `unit-tests` (each is a single Motoko function to run) versus its `functional-tests` (each is an `install-and-go`), versus `e2e-tests` that each involve more than a single `install-and-go`, and require a `test-script` over several canisters."
+
+            "main": "src/main.mo"
+            "unit-tests": {
+                "all": "test/main.mo"
+            },            
+            "func-tests": {
+                "functionalTest1": "test/simpleAdaptonDivByZero.mo",
+                "functionalTest2": "test/simpleExcelEmulation.mo",
+            },
+            "e2e-tests": {
+                "AliceBob": {
+                    "_comment:": "test-script installs and scripts bots `alice` and `bob`"
+                    "test-script": "test/aliceBob/test-script"
+                    "alice": "test/aliceBob/aliceCanister.mo"
+                    "bob": "test/aliceBob/bobCanister.mo"
+                }
+                "AliceBobCharlie": {
+                    "_comment:": "reuse bots `alice` and `bob`, and includes bot `charlie`"
+                    "test-script": "test/aliceBobCharlie/test-script"
+                    "alice": "test/aliceBob/aliceCanister.mo"
+                    "bob": "test/aliceBob/bobCanister.mo"
+                    "charlie": "test/aliceBobCharlie/charlieCanister.mo"
+                }
+            }
+        },
+    }
+}

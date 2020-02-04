@@ -1,0 +1,10 @@
+install bobCanister
+==> #ok(bobId)
+install aliceCanister
+==> #ok(aliceId)
+call bobId addFriend aliceId
+==> #ok(())
+call AliceId addFriend BobId
+==> #ok(())
+call bobId collaborateWithAlice
+==> #ok(())

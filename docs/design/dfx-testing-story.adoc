@@ -4,20 +4,24 @@ Creator(s): Matthew Hammer, after discussion with and input from Hans Larsen, on
 
 ### Terms and goals
 
-In CI, we want to write:
+In CI, we want to write, as humans and as CI scripts:
 
 `dfx test`
 
 And have this statement mean two things at once:
 
- - "Run all end-to-end tests for the project"
+ - "Run all end-to-end tests for the project" (`dfx test e2e` for _just_ this behavior).
 
- - "Run all unit tests for all libraries used by this project" (we
+ - "Run all unit tests for all libraries used by this project" (`dfx test unit` for _just_ this behavior. we
     currently recompile these transitive libraries ourselves, so this
    "transitive testing" is a reasonable thing to do, too).
 
-These two classes of tests are quite different in their requirements
-of the `dfx` tool.  We consider them separately as parts 1 and 2 below.
+ - "Run all functional tests for all libraries used by this project"
+   (for tests that are between unit tests and e2e tests in complexity; see the example project tree.)
+
+
+These classes of tests are quite different in their requirements
+of the `dfx` tool.  We consider the first two separately as parts 1 and 2 below.
 
 ### Part 1: Authoring a CI-driven, end-to-end (e2e) test of a Motoko project
 
@@ -83,7 +87,7 @@ The dfx result pattern grammar permits each of these uses:
 <dfx-result-pattern> ::= bind <test-script-var-id>
                       | match <candid-value-pattern>
 
-<candid-value-pattern> ::= 
+<candid-value-pattern> ::=
    | (<candid-value-pattern>, ..., <candid-value-pattern>)
    | record { lab_1: <candid-value-pattern>, ..., lab_k: <candid-value-pattern> }
    | variant { lab <candid-value-pattern> }
@@ -95,7 +99,7 @@ The dfx result pattern grammar permits each of these uses:
 ```
 
 The second case (`match`) is a generalization of the first one
-(`bind`), as it binds variables as one possible usecase. 
+(`bind`), as it binds variables as one possible usecase.
 
 More generally, it consists of patterns that each attempt to match an
 IDL value, destructure it, and bind its parts to zero or more variable
@@ -110,7 +114,7 @@ script symbolically, where they avoid the script explicitly mentioning
 all of the intermittent input and output values explicitly, as IDL
 values.
 
-#### Technical clarification on error detection and reporting: 
+#### Technical clarification on error detection and reporting:
 
 The result pattern-matching logic alluded to above (for the
 <candid-value-pattern> grammar) should build on the existing Rust
@@ -161,7 +165,7 @@ the Motoko `stdlib` source and test trees as parallel, but distinct:
 /test/hashTest.mo
 ```
 
-#### Key Assumption, to simplify public/private visibility: 
+#### Key Assumption, to simplify public/private visibility:
 
 Let's assume that all Motoko code that we want to directly unit test
 is public in its defining module.
@@ -183,3 +187,41 @@ tested), so let's set it aside for now.
 - How does `dfx` discover the test functions of the `test` modules?
 - For instance, can it discover all of the public methods of each test module and merely assume each is a unit test?
 - Other details that are similar to those of Part 1 with respect to `dfx.json`.
+
+
+
+### Example project files
+
+To help nail down the remaining details listed above, this proposal
+includes an example project tree, illustrating how the `dfx.json` file
+relates to this tree, and the files that it contains, including the
+canister source that is just for tests, and the test scripts that
+install and call these canisters:
+
+```
+dfx-testing-story-example
+├── dfx.json
+├── src
+│   ├── main.mo
+└── test
+    ├── aliceBob
+    │   ├── aliceCanister.mo
+    │   ├── bobCanister.mo
+    │   └── test-script
+    └── aliceBobCharlie
+        ├── charlieCanister.mo
+        └── test-script
+```
+
+The tree contains two example test scripts, for a 2-party (2-canister)
+interaction, and for a 3-party (3-canister) interaction.
+
+The example test scripts (the `test-script` files) in this project
+tree give example-based proposals for concrete syntax for the test
+scripts, and their test actions.
+
+Note: The Motoko-like pattern syntax in those files should be replaced
+with syntax that is consistent with Candid's concrete syntax
+definitions.  (the Motoko-like syntax is generally shorter and
+more readable to me.)
+
