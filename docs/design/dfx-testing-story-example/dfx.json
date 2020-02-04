@@ -3,7 +3,7 @@
         "cleanSheets": {
             "_comment:": "we list `main` service code versus its `unit-tests` (each is a single Motoko function to run) versus its `functional-tests` (each is an `install-and-go`), versus `e2e-tests` that each involve more than a single `install-and-go`, and require a `test-script` over several canisters."
 
-            "main": "src/main.mo"
+            "main": "src/cleanSheets.mo"
             "unit-tests": {
                 "all": "test/main.mo"
             },            
