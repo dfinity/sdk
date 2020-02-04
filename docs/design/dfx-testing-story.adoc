@@ -216,7 +216,7 @@ install and call these canisters:
 dfx-testing-story-example
 ├── dfx.json
 ├── src
-│   ├── main.mo
+│   └── main.mo
 └── test
     ├── aliceBob
     │   ├── aliceCanister.mo
