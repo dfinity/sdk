@@ -1,9 +1,9 @@
 use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
-use crate::lib::api_client::{Client, ClientConfig};
 use crate::lib::error::DfxResult;
+use ic_http_agent::{Agent, AgentConfig};
+use lazy_init::Lazy;
 use semver::Version;
-use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -18,14 +18,17 @@ pub trait Environment {
     fn is_in_project(&self) -> bool;
     fn get_temp_dir(&self) -> &Path;
     fn get_version(&self) -> &Version;
-    fn get_client(&self) -> Option<Client>;
+
+    // Timelines are actually needed for mockall to work properly.
+    #[allow(clippy::needless_lifetimes)]
+    fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
 }
 
 pub struct EnvironmentImpl {
     config: Option<Rc<Config>>,
     temp_dir: PathBuf,
 
-    client: RefCell<Option<Client>>,
+    agent: Lazy<Option<Agent>>,
     cache: Rc<dyn Cache>,
 
     version: Version,
@@ -65,7 +68,7 @@ impl EnvironmentImpl {
             cache: Rc::new(DiskBasedCache::with_version(&version)),
             config: config.map(Rc::new),
             temp_dir,
-            client: RefCell::new(None),
+            agent: Lazy::new(),
             version: version.clone(),
         })
     }
@@ -92,48 +95,46 @@ impl Environment for EnvironmentImpl {
         &self.version
     }
 
-    fn get_client(&self) -> Option<Client> {
-        {
-            let mut cache = self.client.borrow_mut();
-            if cache.is_some() {
-                return Some(cache.as_ref().unwrap().clone());
-            }
+    fn get_agent(&self) -> Option<&Agent> {
+        self.agent
+            .get_or_create(move || {
+                if let Some(config) = self.config.as_ref() {
+                    let start = config.get_config().get_defaults().get_start();
+                    let address = start.get_address("localhost");
+                    let port = start.get_port(8080);
 
-            let config = self
-                .config
-                .as_ref()
-                .expect("Trying to access a client outside of a dfx project.");
-            let start = config.get_config().get_defaults().get_start();
-            let address = start.get_address("localhost");
-            let port = start.get_port(8080);
-
-            *cache = Some(Client::new(ClientConfig {
-                url: format!("http://{}:{}", address, port),
-            }));
-        }
-
-        // Have to recursively call ourselves to avoid cache getting out of scope.
-        self.get_client()
+                    Agent::new(AgentConfig {
+                        url: format!("http://{}:{}", address, port).as_str(),
+                        ..AgentConfig::default()
+                    })
+                    .ok()
+                } else {
+                    None
+                }
+            })
+            .as_ref()
     }
 }
 
-pub struct ClientEnvironment<'a> {
+pub struct AgentEnvironment<'a> {
     backend: &'a dyn Environment,
-    client: Client,
+    agent: Agent,
 }
 
-impl<'a> ClientEnvironment<'a> {
-    pub fn new(backend: &'a dyn Environment, client_url: &str) -> Self {
-        ClientEnvironment {
+impl<'a> AgentEnvironment<'a> {
+    pub fn new(backend: &'a dyn Environment, agent_url: &str) -> Self {
+        AgentEnvironment {
             backend,
-            client: Client::new(ClientConfig {
-                url: client_url.to_string(),
-            }),
+            agent: Agent::new(AgentConfig {
+                url: agent_url,
+                ..AgentConfig::default()
+            })
+            .unwrap(),
         }
     }
 }
 
-impl<'a> Environment for ClientEnvironment<'a> {
+impl<'a> Environment for AgentEnvironment<'a> {
     fn get_cache(&self) -> Rc<dyn Cache> {
         self.backend.get_cache()
     }
@@ -154,7 +155,7 @@ impl<'a> Environment for ClientEnvironment<'a> {
         self.backend.get_version()
     }
 
-    fn get_client(&self) -> Option<Client> {
-        Some(self.client.clone())
+    fn get_agent(&self) -> Option<&Agent> {
+        Some(&self.agent)
     }
 }

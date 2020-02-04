@@ -1,4 +1,3 @@
-pub mod api_client;
 pub mod canister_info;
 pub mod environment;
 pub mod error;

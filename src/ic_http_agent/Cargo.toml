@@ -8,13 +8,15 @@ edition = "2018"
 
 [dependencies]
 crc8 = "0.1.1"
-error = "0.1.9"
 hex = "0.4.0"
 openssl = "0.10.24"
-reqwest = "0.9.20"
+rand = "0.7.2"
+reqwest = "0.10.0"
 serde = "1.0.101"
 serde_bytes = "0.11.2"
 serde_cbor = "0.10"
+url = "2.1.0"
 
 [dev-dependencies]
-rand = "0.7.2"
+tokio = "0.2.6"
+mockito = "0.20.0"
