@@ -45,11 +45,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn install_canister(
-    client: &Client,
-    canister_info: &CanisterInfo,
-    compute_allocation: u64,
-) -> DfxResult<RequestId> {
+pub fn install_canister(client: &Client, canister_info: &CanisterInfo) -> DfxResult<RequestId> {
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
@@ -63,13 +59,7 @@ pub fn install_canister(
     let wasm_path = canister_info.get_output_wasm_path();
     let wasm = std::fs::read(wasm_path)?;
 
-    let install = install_code(
-        client.clone(),
-        canister_id,
-        Blob::from(wasm),
-        None,
-        compute_allocation,
-    );
+    let install = install_code(client.clone(), canister_id, Blob::from(wasm), None);
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let request_id = runtime.block_on(install)?;
@@ -138,7 +128,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .unwrap();
     if let Some(canister_name) = args.value_of("canister_name") {
         let canister_info = CanisterInfo::load(&config, canister_name)?;
-        let request_id = install_canister(&client, &canister_info, compute_allocation)?;
+        let request_id = install_canister(&client, &canister_info)?;
 
         if args.is_present("async") {
             eprint!("Request ID: ");
@@ -152,7 +142,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
                 let canister_info = CanisterInfo::load(&config, canister_name)?;
-                let request_id = install_canister(&client, &canister_info, compute_allocation)?;
+                let request_id = install_canister(&client, &canister_info)?;
 
                 if args.is_present("async") {
                     eprint!("Request ID: ");
