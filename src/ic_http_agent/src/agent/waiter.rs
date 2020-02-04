@@ -58,7 +58,7 @@ impl WaiterBuilder {
         self.with(Waiter::throttle(throttle))
     }
     pub fn build(mut self) -> Waiter {
-        self.inner.take().unwrap_or_else(|| Waiter::instant())
+        self.inner.take().unwrap_or_else(Waiter::instant)
     }
 }
 
