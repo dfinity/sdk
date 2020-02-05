@@ -7,7 +7,6 @@
 //! A single method is exported, to_request_id, which returns a RequestId
 //! (a 256 bits slice) or an error.
 use crate::types::request_id_error::{RequestIdError, RequestIdFromStringError};
-use byteorder::{BigEndian, ByteOrder};
 use openssl::sha::Sha256;
 use serde::{ser, Serialize, Serializer};
 use std::collections::BTreeMap;
@@ -204,25 +203,27 @@ impl<'a> ser::Serializer for &'a mut RequestIdSerializer {
     }
 
     /// Serialize a `u8` value.
-    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
-        Err(RequestIdError::UnsupportedTypeU8)
+    fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
+        self.serialize_u64(v as u64)
     }
 
     /// Serialize a `u16` value.
-    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
-        Err(RequestIdError::UnsupportedTypeU16)
+    fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
+        self.serialize_u64(v as u64)
     }
 
     /// Serialize a `u32` value.
-    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
-        Err(RequestIdError::UnsupportedTypeU32)
+    fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
+        self.serialize_u64(v as u64)
     }
 
     /// Serialize a `u64` value.
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        let mut buf = [0 as u8; 8];
-        BigEndian::write_u64(&mut buf, v);
-        self.serialize_bytes(&buf)
+        let mut buffer = [0; 32];
+        let mut writable = &mut buffer[..];
+        leb128::write::unsigned(&mut writable, v)
+            .map_err(|e| RequestIdError::Custom(format!("{}", e)))?;
+        self.serialize_bytes(&buffer)
     }
 
     /// Serialize an `f32` value.

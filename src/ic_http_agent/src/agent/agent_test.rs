@@ -1,4 +1,4 @@
-use crate::agent::replica_api::{QueryResponseReply, ReadResponse};
+use crate::agent::replica_api::{QueryResponseReply, ReadResponse, SubmitRequest};
 use crate::agent::response::RequestStatusResponse;
 use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId, Waiter};
 use mockito::mock;
@@ -202,6 +202,17 @@ fn call_rejected() -> Result<(), AgentError> {
 
 #[test]
 fn install() -> Result<(), AgentError> {
+    let canister_id = CanisterId::from_bytes(&[5u8]);
+    let module = Blob::from(&[1, 2]);
+    let request = serde_cbor::ser::to_vec(&SubmitRequest::InstallCode {
+        canister_id: &canister_id,
+        module: &module,
+        arg: &Blob::empty(),
+        nonce: &None,
+        compute_allocation: 0,
+    })
+    .unwrap();
+
     let blob = Blob(Vec::from("Hello World"));
     let response = ReadResponse::Replied {
         reply: Some(QueryResponseReply { arg: blob.clone() }),
@@ -221,13 +232,7 @@ fn install() -> Result<(), AgentError> {
 
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
     let result = runtime.block_on(async {
-        let request_id = agent
-            .install(
-                &CanisterId::from_bytes(&[4u8]),
-                &Blob::from(&[1, 2]),
-                &Blob::empty(),
-            )
-            .await?;
+        let request_id = agent.install(&canister_id, &module, &Blob::empty()).await?;
         agent.request_status(&request_id).await
     });
 
