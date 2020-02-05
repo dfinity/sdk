@@ -201,6 +201,48 @@ fn call_rejected() -> Result<(), AgentError> {
 }
 
 #[test]
+fn install() -> Result<(), AgentError> {
+    let blob = Blob(Vec::from("Hello World"));
+    let response = ReadResponse::Replied {
+        reply: Some(QueryResponseReply { arg: blob.clone() }),
+    };
+
+    let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
+    let status_mock = mock("POST", "/api/v1/read")
+        .with_status(200)
+        .with_header("content-type", "application/cbor")
+        .with_body(serde_cbor::to_vec(&response)?)
+        .create();
+
+    let agent = Agent::new(AgentConfig {
+        url: &mockito::server_url(),
+        ..AgentConfig::default()
+    })?;
+
+    let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+    let result = runtime.block_on(async {
+        let request_id = agent
+            .install(
+                &CanisterId::from_bytes(&[4u8]),
+                &Blob::from(&[1, 2]),
+                &Blob::empty(),
+            )
+            .await?;
+        agent.request_status(&request_id).await
+    });
+
+    submit_mock.assert();
+    status_mock.assert();
+
+    assert_eq!(
+        result?,
+        RequestStatusResponse::Replied { reply: Some(blob) }
+    );
+
+    Ok(())
+}
+
+#[test]
 fn ping() -> Result<(), AgentError> {
     let read_mock = mock("GET", "/api/v1/read").with_status(200).create();
 

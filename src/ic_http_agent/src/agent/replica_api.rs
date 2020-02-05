@@ -47,6 +47,7 @@ pub(crate) enum SubmitRequest<'a> {
         module: &'a Blob,
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
+        compute_allocation: u8,
     },
     Call {
         canister_id: &'a CanisterId,

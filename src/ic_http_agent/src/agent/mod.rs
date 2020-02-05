@@ -18,7 +18,7 @@ pub(crate) mod public {
 mod agent_test;
 
 use crate::agent::replica_api::{QueryResponseReply, ReadRequest, ReadResponse, SubmitRequest};
-use crate::{to_request_id, Blob, CanisterId, RequestId};
+use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, RequestId};
 use public::*;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Method};
@@ -181,13 +181,8 @@ impl Agent {
         module: &Blob,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
-        self.submit(SubmitRequest::InstallCode {
-            canister_id,
-            module,
-            arg,
-            nonce: &self.nonce_factory.generate(),
-        })
-        .await
+        self.install_with_attrs(canister_id, module, arg, &CanisterAttributes::default())
+            .await
     }
 
     pub async fn install_and_wait(
@@ -199,6 +194,24 @@ impl Agent {
     ) -> Result<Option<Blob>, AgentError> {
         let request_id = self.install(canister_id, module, arg).await?;
         self.request_status_and_wait(&request_id, waiter).await
+    }
+
+    pub async fn install_with_attrs(
+        &self,
+        canister_id: &CanisterId,
+        module: &Blob,
+        arg: &Blob,
+        attributes: &CanisterAttributes,
+    ) -> Result<RequestId, AgentError> {
+        eprintln!("1");
+        self.submit(SubmitRequest::InstallCode {
+            canister_id,
+            module,
+            arg,
+            nonce: &self.nonce_factory.generate(),
+            compute_allocation: attributes.compute_allocation.0,
+        })
+        .await
     }
 
     pub async fn ping_once(&self) -> Result<(), AgentError> {
