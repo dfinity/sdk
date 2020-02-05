@@ -98,8 +98,8 @@ const bootstrapConfig = {
       filename: 'index.html'
     }),
     new HtmlWebpackPlugin({
-      template: 'bootstrap/candid.html',
-      filename: 'candid.html'
+      template: 'bootstrap/candid/index.html',
+      filename: 'candid/index.html'
     }),
     new CopyWebpackPlugin([{
         from: 'bootstrap/dfinity.png',
