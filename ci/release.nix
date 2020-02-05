@@ -5,7 +5,7 @@
 let
   pkgs = import ../nix {};
 in
-pkgs.ci ../release-jobset.nix
+pkgs.ci ../release.nix
   {
     inherit supportedSystems scrubJobs src;
     rev = pkgs.lib.commitIdFromGitRepo (pkgs.lib.gitDir ../.);

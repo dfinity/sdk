@@ -35,17 +35,14 @@ let
         self: super:
           let
             nixFmt = self.lib.nixFmt { root = ../.; };
+            isMaster = super.isMaster or false;
           in
             {
               sources = super.sources // sources;
 
-              inherit releaseVersion;
+              inherit releaseVersion isMaster;
 
-              isMaster = super.isMaster or false;
-
-              # The dfinity-sdk.packages.cargo-security-audit job has this RustSec
-              # advisory-db as a dependency so we add it here to the package set so
-              # that job has access to it.
+              # The RustSec-advisory-db used by cargo-audit.nix.
               # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
               # back on the one defined in sources.json.
               RustSec-advisory-db =
@@ -61,7 +58,9 @@ let
 
               inherit (nixFmt) nix-fmt;
               nix-fmt-check = nixFmt.check;
-            } // import ./overlays/dfinity-sdk.nix self super
+
+              lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix { inherit isMaster; }; };
+            }
       )
     ] ++ overlays;
   };

@@ -1,5 +1,5 @@
+use crate::commands::canister::create_waiter;
 use crate::config::dfinity::Config;
-use crate::lib::api_client::{ping, Client, ClientConfig};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -8,17 +8,15 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use futures::future::Future;
+use ic_http_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt};
-use tokio::prelude::FutureExt;
 use tokio::runtime::Runtime;
 
-const TIMEOUT_IN_SECS: u64 = 10;
 const IC_CLIENT_BIND_ADDR: &str = "http://localhost:8080/api";
 
 pub fn construct() -> App<'static, 'static> {
@@ -39,30 +37,16 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
-    std::thread::sleep(Duration::from_millis(500));
-
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    // Try to ping for 1 second, then timeout after 5 seconds if ping hasn't succeeded.
-    let start = Instant::now();
-    while {
-        let client = Client::new(ClientConfig {
-            url: frontend_url.to_string(),
-        });
+    let agent = Agent::new(AgentConfig {
+        url: frontend_url,
+        ..AgentConfig::default()
+    })?;
 
-        runtime
-            .block_on(ping(client).timeout(Duration::from_millis(300)))
-            .is_err()
-    } {
-        if Instant::now().duration_since(start) > Duration::from_secs(TIMEOUT_IN_SECS) {
-            return Err(DfxError::Unknown(
-                "Timeout during start of the client.".to_owned(),
-            ));
-        }
-        std::thread::sleep(Duration::from_millis(200));
-    }
-
-    Ok(())
+    runtime
+        .block_on(agent.ping(create_waiter()))
+        .map_err(DfxError::from)
 }
 
 // TODO: Refactor exec into more manageable pieces.

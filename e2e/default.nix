@@ -1,5 +1,6 @@
 { pkgs ? import ../nix { inherit system; }
 , system ? builtins.currentSystem
+, dfx ? import ../dfx.nix { inherit pkgs; }
 }:
 let
   e2e = lib.noNixFiles (lib.gitOnlySource ../. "e2e");
@@ -19,7 +20,7 @@ let
     ps
     python3
     which
-    dfinity-sdk.packages.rust-workspace-standalone
+    dfx.standalone
   ];
 in
 
