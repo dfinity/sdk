@@ -57,7 +57,7 @@ Notes: We assume *upstream* is `origin`.
 
 ===  Build
 
-Our build process is described in the nix derivation release-jobset.nix. This
+Our build process is described in the nix derivation release.nix. This
 mainly invokes the dfx-release derivation passing the annotated tag on HEAD
 (which happens right now to be the stable branch). Along with building release
 binaries and files for each platform, it generates a manifest for S3 providing
