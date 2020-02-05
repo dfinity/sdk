@@ -204,14 +204,6 @@ fn call_rejected() -> Result<(), AgentError> {
 fn install() -> Result<(), AgentError> {
     let canister_id = CanisterId::from_bytes(&[5u8]);
     let module = Blob::from(&[1, 2]);
-    let request = serde_cbor::ser::to_vec(&SubmitRequest::InstallCode {
-        canister_id: &canister_id,
-        module: &module,
-        arg: &Blob::empty(),
-        nonce: &None,
-        compute_allocation: 0,
-    })
-    .unwrap();
 
     let blob = Blob(Vec::from("Hello World"));
     let response = ReadResponse::Replied {
