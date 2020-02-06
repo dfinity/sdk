@@ -33,7 +33,6 @@ function generateWebpackConfigForCanister(name, info) {
 
   const outputRoot = path.join(__dirname, dfxJson.defaults.build.output, name);
   const inputRoot = __dirname;
-  //const entry = 
 
   return {
     mode: "production",

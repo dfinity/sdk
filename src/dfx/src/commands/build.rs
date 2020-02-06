@@ -282,9 +282,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     let mut language_bindings = assets::language_bindings()?;
 
     for f in language_bindings.entries()? {
-        //let mut file = language_bindings.entries()?.next().unwrap()?;
         let mut file = f.unwrap();
-        //println!("{}", file.path()?.display());
         let mut file_contents = String::new();
         file.read_to_string(&mut file_contents)?;
 

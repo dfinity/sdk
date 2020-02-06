@@ -13,7 +13,7 @@ for (let [name, func] of Object.entries(actor._fields)) {
 
 // The following functions can go into userlib.
 // But keeping it here also has benefits: user can change the code to fit
-// whatever style we like.
+// whatever style they like.
 
 function showArgs(args) {
   return '('.concat(args.map(arg => arg.name)) + ')';
