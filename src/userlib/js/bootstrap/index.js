@@ -68,12 +68,13 @@ if (!canisterId) {
   document.body.replaceChild(div, document.body.getElementsByTagName('app').item(0));
 } else {
   if (window.location.pathname == '/candid') {
-    // Load index.js from the canister.
+    // Load candid.js from the canister.
     icHttpAgent.retrieveAsset(canisterId, 'candid.js')
       .then(content => {
         const indexJs = new TextDecoder().decode(content);
-        const script = document.getElementById('candid');
+        const script = document.createElement('script');
         script.innerText = indexJs;
+        document.head.appendChild(script);        
       });
   } else {
     // Load index.js from the canister.
