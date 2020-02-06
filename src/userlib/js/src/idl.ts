@@ -133,17 +133,17 @@ abstract class ConstructType<T = any> extends Type<T> {
 }
 
 /**
- * Represents an IDL None, a type which has no inhabitants.
+ * Represents an IDL Empty, a type which has no inhabitants.
  * Since no values exist for this type, it cannot be serialised or deserialised.
- * Result types like `Result<Text, None>` should always succeed.
+ * Result types like `Result<Text, Empty>` should always succeed.
  */
-class NoneClass extends PrimitiveType<never> {
+class EmptyClass extends PrimitiveType<never> {
   public covariant(x: any): x is never {
     return false;
   }
 
   public encodeValue(): never {
-    throw new Error('None cannot appear as a function argument');
+    throw new Error('Empty cannot appear as a function argument');
   }
 
   public encodeType() {
@@ -151,11 +151,11 @@ class NoneClass extends PrimitiveType<never> {
   }
 
   public decodeValue(): never {
-    throw new Error('None cannot appear as an output');
+    throw new Error('Empty cannot appear as an output');
   }
 
   get name() {
-    return 'None';
+    return 'empty';
   }
 }
 
@@ -183,7 +183,7 @@ class BoolClass extends PrimitiveType<boolean> {
   }
 
   get name() {
-    return 'Bool';
+    return 'bool';
   }
 }
 
@@ -208,7 +208,7 @@ class UnitClass extends PrimitiveType<null> {
   }
 
   get name() {
-    return 'Unit';
+    return 'null';
   }
 }
 
@@ -236,7 +236,7 @@ class TextClass extends PrimitiveType<string> {
   }
 
   get name() {
-    return 'Text';
+    return 'text';
   }
 }
 
@@ -263,7 +263,7 @@ class IntClass extends PrimitiveType<BigNumber> {
   }
 
   get name() {
-    return 'Int';
+    return 'int';
   }
 }
 
@@ -293,7 +293,7 @@ class NatClass extends PrimitiveType<BigNumber> {
   }
 
   get name() {
-    return 'Nat';
+    return 'nat';
   }
 }
 
@@ -337,7 +337,7 @@ export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   }
 
   get name() {
-    return `Int${this._bits}`;
+    return `int${this._bits}`;
   }
 }
 
@@ -380,7 +380,7 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
   }
 
   get name() {
-    return `Nat${this._bits}`;
+    return `nat${this._bits}`;
   }
 }
 
@@ -420,7 +420,7 @@ class VecClass<T> extends ConstructType<T[]> {
   }
 
   get name() {
-    return `Vec(${this._type.name})`;
+    return `vec ${this._type.name}`;
   }
 }
 
@@ -463,7 +463,7 @@ class OptClass<T> extends ConstructType<T | null> {
   }
 
   get name() {
-    return `Opt(${this._type.name})`;
+    return `opt ${this._type.name}`;
   }
 }
 
@@ -518,7 +518,7 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   get name() {
     const fields = this._fields.map(([key, value]) => key + ':' + value.name);
-    return `Record(${fields.join(',')})`;
+    return `record {${fields.join(';')}}`;
   }
 }
 
@@ -616,7 +616,7 @@ class VariantClass extends ConstructType<Record<string, any>> {
 
   get name() {
     const fields = this._fields.map(([key, type]) => key + ':' + type.name);
-    return `Variant(${fields.join(',')})`;
+    return `variant {${fields.join(';')}}`;
   }
 }
 
@@ -665,7 +665,7 @@ class RecClass<T = any> extends ConstructType<T> {
   }
 
   get name() {
-    return `Rec(${this._id})`;
+    return `rec(${this._id})`;
   }
 }
 
@@ -791,7 +791,7 @@ export class ActorInterface {
 }
 
 // Export Types instances.
-export const None = new NoneClass();
+export const Empty = new EmptyClass();
 export const Bool = new BoolClass();
 export const Unit = new UnitClass();
 export const Text = new TextClass();

@@ -1,6 +1,5 @@
 import canister from 'ic:canisters/{project_name}';
 import candid from 'ic:idl/{project_name}';
-import { IDL } from 'ic:userlib';
 
 document.getElementById('title').innerText = 'Service {project_name}';
 
