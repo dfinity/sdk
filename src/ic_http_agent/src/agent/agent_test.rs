@@ -1,4 +1,4 @@
-use crate::agent::replica_api::{QueryResponseReply, ReadResponse, SubmitRequest};
+use crate::agent::replica_api::{QueryResponseReply, ReadResponse};
 use crate::agent::response::RequestStatusResponse;
 use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId, Waiter};
 use mockito::mock;

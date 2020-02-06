@@ -45,7 +45,7 @@ pub fn construct() -> App<'static, 'static> {
 async fn install_canister(
     agent: &Agent,
     canister_info: &CanisterInfo,
-    compute_allocation: &ComputeAllocation,
+    compute_allocation: ComputeAllocation,
 ) -> DfxResult<RequestId> {
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
@@ -65,10 +65,7 @@ async fn install_canister(
             &canister_id,
             &Blob::from(wasm),
             &Blob::empty(),
-            &CanisterAttributes {
-                compute_allocation: *compute_allocation,
-                ..CanisterAttributes::default()
-            },
+            &CanisterAttributes { compute_allocation },
         )
         .await
         .map_err(DfxError::from)
@@ -102,11 +99,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     if let Some(canister_name) = args.value_of("canister_name") {
         let canister_info = CanisterInfo::load(&config, canister_name)?;
-        let request_id = runtime.block_on(install_canister(
-            &agent,
-            &canister_info,
-            &compute_allocation,
-        ))?;
+        let request_id =
+            runtime.block_on(install_canister(&agent, &canister_info, compute_allocation))?;
 
         if args.is_present("async") {
             eprint!("Request ID: ");
@@ -126,7 +120,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 let request_id = runtime.block_on(install_canister(
                     &agent,
                     &canister_info,
-                    &compute_allocation,
+                    compute_allocation,
                 ))?;
 
                 if args.is_present("async") {
