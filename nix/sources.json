@@ -26,9 +26,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "ref": "master",
+        "ref": "basvandijk/nixpkgs-19.09-2020-02-05",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "598cfb3e67bf9d557f89d39e28e74fb5666984e1",
+        "rev": "244febe0b7c5ce1e98e6753f7bcb7d4011ebd5c7",
         "type": "git"
     },
     "dfinity": {
