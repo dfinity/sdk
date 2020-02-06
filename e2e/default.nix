@@ -26,7 +26,7 @@ in
 
 builtins.derivation {
   name = "e2e-tests";
-  inherit system;
+  system = pkgs.stdenv.system;
   PATH = pkgs.lib.makeSearchPath "bin" inputs;
   BATSLIB = sources.bats-support;
   builder =

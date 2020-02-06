@@ -51,7 +51,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let arg_type: Option<&str> = args.value_of("type");
 
     let arg_value = blob_from_arguments(arguments, arg_type)?;
-    eprintln!(r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#);
+    eprintln!(
+        r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#
+    );
 
     let agent = env
         .get_agent()
