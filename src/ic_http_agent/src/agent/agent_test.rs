@@ -276,6 +276,10 @@ fn ping_okay() -> Result<(), AgentError> {
 }
 
 #[test]
+// test that the agent (re)tries to reach the server.
+// We spawn an agent that waits 400ms between requests, and times out after 600ms. The agent is
+// expected to hit the server at ~ 0ms and ~ 400 ms, and then shut down at 600ms, so we check that
+// the server got two requests.
 fn ping_error() -> Result<(), AgentError> {
     let read_mock = mock("GET", "/api/v1/read")
         .expect(2)
@@ -291,8 +295,8 @@ fn ping_error() -> Result<(), AgentError> {
         agent
             .ping(
                 Waiter::builder()
-                    .throttle(Duration::from_millis(4))
-                    .timeout(Duration::from_millis(6))
+                    .throttle(Duration::from_millis(400))
+                    .timeout(Duration::from_millis(600))
                     .build(),
             )
             .await
