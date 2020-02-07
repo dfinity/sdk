@@ -88,6 +88,10 @@ class TypeTable {
 export abstract class Type<T = any> {
   public abstract readonly name: string;
 
+  public display(): string {
+    return this.name;
+  }
+
   /* Implement `T` in the IDL spec, only needed for non-primitive types */
   public buildTypeTable(typeTable: TypeTable): void {
     if (!typeTable.has(this)) {
@@ -518,7 +522,7 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   get name() {
     const fields = this._fields.map(([key, value]) => key + ':' + value.name);
-    return `record {${fields.join(';')}}`;
+    return `record {${fields.join('; ')}}`;
   }
 }
 
@@ -616,7 +620,7 @@ class VariantClass extends ConstructType<Record<string, any>> {
 
   get name() {
     const fields = this._fields.map(([key, type]) => key + ':' + type.name);
-    return `variant {${fields.join(';')}}`;
+    return `variant {${fields.join('; ')}}`;
   }
 }
 
@@ -665,7 +669,14 @@ class RecClass<T = any> extends ConstructType<T> {
   }
 
   get name() {
-    return `rec(${this._id})`;
+    return `rec_${this._id}`;
+  }
+
+  public display() {
+    if (!this._type) {
+      throw Error('Recursive type uninitialized.');
+    }
+    return `&mu;${this.name}.${this._type.name}`;
   }
 }
 
@@ -681,6 +692,12 @@ export class FuncClass {
     public retTypes: Type[] = [],
     public annotations: string[] = [],
   ) {}
+  public display(): string {
+    const args = this.argTypes.map(arg => arg.display()).join(', ');
+    const rets = this.retTypes.map(arg => arg.display()).join(', ');
+    const annon = ' ' + this.annotations.join(' ');
+    return `(${args}) &rarr; (${rets})${annon}`;
+  }
 }
 
 /**
@@ -702,7 +719,7 @@ export function encode(argTypes: Array<Type<any>>, args: any[]) {
   const vals = Buffer.concat(
     zipWith(argTypes, args, (t, x) => {
       if (!t.covariant(x)) {
-        throw new Error(`Invalid ${t.name} argument: "${JSON.stringify(x)}"`);
+        throw new Error(`Invalid ${t.display()} argument: "${JSON.stringify(x)}"`);
       }
 
       return t.encodeValue(x);

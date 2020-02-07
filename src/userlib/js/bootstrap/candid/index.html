@@ -8,7 +8,7 @@
 	  font-weight: 400;
           margin-bottom: 10px;
       }
-      .argument, .result {
+      .argument, .result, .status {
           background-color: #F9F9F9;
 	  border: 1px solid #E5E5E5;
 	  color: #545454;
@@ -19,14 +19,18 @@
           margin-bottom: 10px; 
           margin-right: 10px;         
       }
-      .argument:focus {
-	border: 1px solid #02ADEA;
+      .reject {
+	  border: 1px solid #cc0000;
       }
       .result {
           display: none;
       }
       .error {
           color: #cc0000;
+      }
+      .status {
+          color: #cc0000;
+          display: none;
       }
       .left {
           text-align: left;

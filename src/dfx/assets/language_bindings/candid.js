@@ -6,44 +6,83 @@ document.getElementById('title').innerText = 'Service {project_name}';
 
 const actor = candid({IDL});
 for (let [name, func] of Object.entries(actor._fields)) {
-  const sig = showArgs(func.argTypes) + " &rarr; " + showArgs(func.retTypes);
-  renderMethod(canister[name], name, sig, func.argTypes.length);
+  renderMethod(name, func, canister[name]);
 }
 
-
-// The following functions can go into userlib.
-// But keeping it here also has benefits: user can change the code to fit
-// whatever style they like.
-
-function showArgs(args) {
-  return '('.concat(args.map(arg => arg.name)) + ')';
-}
-
-function renderMethod(f, method, sig, arg_length) {
-  const list = document.getElementById("methods");
-  const item = document.createElement("li");
-  var html = `<div class="signature">${method}: ${sig}</div>`;
-  for (var i = 0; i < arg_length; i++) {
-    html += `<input class='argument' id='${method}_arg${i}'></input> `;
-  };
-  html += `<button class='btn' id='${method}'>Call</button>`;
-  html += `<div class='result' id='${method}_result'><span class='left'></span><span class='right'></span></div>`;
-  item.innerHTML = html;
-  list.append(item);
+function renderMethod(name, idl_func, f) {
+  const status = document.createElement("div");
+  status.className = 'status';
   
-  document.getElementById(method).addEventListener("click", function() {
-    const field = `${method}_result`;
-    const dom = document.getElementById(field);
-    const left = dom.getElementsByClassName('left')[0];
-    const right = dom.getElementsByClassName('right')[0];
+  const item = document.createElement("li");  
+
+  const sig = document.createElement("div");
+  sig.className = 'signature';
+  sig.innerHTML = `${name}: ${idl_func.display()}`;
+  item.appendChild(sig);
+
+  const button = document.createElement("button");
+  button.className = 'btn';
+  button.id = name;
+  if (idl_func.annotations.includes('query')) {
+    button.innerText = 'Query';
+  } else {
+    button.innerText = 'Call';
+  }  
+
+  const arg_length = idl_func.argTypes.length;
+  for (var i = 0; i < arg_length; i++) {
+    const t = idl_func.argTypes[i];
+    const arg = document.createElement("input");
+    arg.className = 'argument';
+    arg.id = `${name}_arg${i}`;
+    item.appendChild(arg);
+
+    arg.addEventListener("focus", function () {
+      arg.className = 'argument';
+    });
+    arg.addEventListener("blur", function() {
+      try {
+        const value = JSON.parse(arg.value);
+        if (!t.covariant(value)) {
+          throw new Error(`Invalid ${t.display()} argument: ${arg.value}`);
+        }
+        status.style.display = 'none';
+        button.disabled = false;
+      } catch(err) {
+        arg.className += ' reject';        
+        status.style.display = 'block';
+        button.disabled = true;        
+        status.innerText = 'ParseError: ' + err.message;
+      };
+    });
+  }
+
+  item.appendChild(button);
+  item.appendChild(status);
+
+  const result = document.createElement("div");
+  result.className = 'result';
+  result.id = `${name}_result`;
+  const left = document.createElement("span");
+  left.className = 'left';
+  const right = document.createElement("span");
+  right.className = 'right';
+  result.appendChild(left);
+  result.appendChild(right);  
+  item.appendChild(result);
+
+  const list = document.getElementById("methods");
+  list.append(item);
+
+  button.addEventListener("click", function() {
     left.className = 'left';
     left.innerText = 'Waiting...';
-    right.innerText = '';
-    dom.style.display = 'block';
+    right.innerText = ''
+    result.style.display = 'block';
     (async function () {
       var args = [];
       for (var i = 0; i < arg_length; i++) {
-        const arg = document.getElementById(`${method}_arg${i}`).value;
+        const arg = document.getElementById(`${name}_arg${i}`).value;
         args.push(JSON.parse(arg));
       }
       const t_before = Date.now();
@@ -55,5 +94,5 @@ function renderMethod(f, method, sig, arg_length) {
       left.className += ' error';
       left.innerText = err.name + ': ' + err.message;
     });
-  });
+  });  
 };

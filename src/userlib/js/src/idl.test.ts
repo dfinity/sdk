@@ -110,7 +110,7 @@ test('IDL encoding (tuple)', () => {
     'Pairs',
   );
   expect(() => IDL.encode([IDL.Tuple(IDL.Int, IDL.Text)], [[0]])).toThrow(
-    /Invalid record {_0_:int;_1_:text} argument/,
+    /Invalid record {_0_:int; _1_:text} argument/,
   );
 });
 
@@ -205,9 +205,9 @@ test('IDL encoding (variants)', () => {
   const Result = IDL.Variant({ ok: IDL.Text, err: IDL.Text });
   test_(Result, { ok: 'good' }, '4449444c016b029cc20171e58eb4027101000004676f6f64', 'Result ok');
   test_(Result, { err: 'uhoh' }, '4449444c016b029cc20171e58eb402710100010475686f68', 'Result err');
-  expect(() => IDL.encode([Result], [{}])).toThrow(/Invalid variant {ok:text;err:text} argument/);
+  expect(() => IDL.encode([Result], [{}])).toThrow(/Invalid variant {ok:text; err:text} argument/);
   expect(() => IDL.encode([Result], [{ ok: 'ok', err: 'err' }])).toThrow(
-    /Invalid variant {ok:text;err:text} argument/,
+    /Invalid variant {ok:text; err:text} argument/,
   );
 
   // Test that nullary constructors work as expected
@@ -227,7 +227,7 @@ test('IDL encoding (variants)', () => {
   );
   expect(() =>
     IDL.encode([IDL.Variant({ ok: IDL.Text, err: IDL.Empty })], [{ err: 'uhoh' }]),
-  ).toThrow(/Invalid variant {ok:text;err:empty} argument:/);
+  ).toThrow(/Invalid variant {ok:text; err:empty} argument:/);
 
   // Test for option
   test_(IDL.Opt(IDL.Nat), null, '4449444c016e7d010000', 'Null option');
