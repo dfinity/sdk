@@ -8,14 +8,14 @@ const actor = candid({IDL});
 for (let [name, func] of Object.entries(actor._fields)) {
   renderMethod(name, func, canister[name]);
 }
+const console = document.createElement("div");
+console.className = 'console';
+document.body.appendChild(console);
 
 function renderMethod(name, idl_func, f) {
   const status = document.createElement("div");
   status.className = 'status';
 
-  const console = document.createElement("div");
-  console.className = 'console';
-  
   const item = document.createElement("li");
 
   const sig = document.createElement("div");
@@ -25,7 +25,6 @@ function renderMethod(name, idl_func, f) {
 
   const button = document.createElement("button");
   button.className = 'btn';
-  button.id = name;
   if (idl_func.annotations.includes('query')) {
     button.innerText = 'Query';
   } else {
@@ -50,7 +49,7 @@ function renderMethod(name, idl_func, f) {
         }
         const value = JSON.parse(arg.value);
         if (!t.covariant(value)) {
-          throw new Error(`Invalid ${t.display()} argument: ${arg.value}`);
+          throw new Error(`Expect ${arg.value} to be of type ${t.display()}`);
         }
         status.style.display = 'none';
         button.disabled = false;
@@ -68,7 +67,6 @@ function renderMethod(name, idl_func, f) {
 
   const result = document.createElement("div");
   result.className = 'result';
-  result.id = `${name}_result`;
   const left = document.createElement("span");
   left.className = 'left';
   const right = document.createElement("span");
@@ -97,20 +95,24 @@ function renderMethod(name, idl_func, f) {
       left.innerText = JSON.stringify(result);
       right.innerText = `(${duration}s)`;
 
-      const input_line = document.createElement("div");
-      input_line.className = 'console-line';
       const show_args = args.map(arg => JSON.stringify(arg)).join(', ');
-      input_line.innerText = `> ${name}(${show_args})`;
-      console.appendChild(input_line);
-      const output_line = document.createElement("div");
-      output_line.className = 'console-line';
-      output_line.innerText = JSON.stringify(result);
-      console.appendChild(output_line);
+      log(`› ${name}(${show_args})`);
+      log(JSON.stringify(result));
     })().catch(err => {
       left.className += ' error';
       left.innerText = err.name + ': ' + err.message;
     });
   });
-
-  document.body.appendChild(console);
 };
+
+function log(content) {
+  const console = document.getElementsByClassName("console")[0];
+  const line = document.createElement("div");
+  line.className = 'console-line';
+  if (content instanceof Element) {
+    line.appendChild(content);
+  } else {
+    line.innerText = content;
+  }
+  console.appendChild(line);
+}
