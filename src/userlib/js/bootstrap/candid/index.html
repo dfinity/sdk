@@ -12,7 +12,7 @@
           background-color: #F9F9F9;
 	  border: 1px solid #E5E5E5;
 	  color: #545454;
-	  font-family: 'Roboto Mono', sans-serif;
+	  font-family: sans-serif;
 	  font-size: 15px;
 	  font-weight: 400;          
           height: auto;
@@ -52,7 +52,22 @@
 	  font-size: 18px;
 	  font-weight: 700;
           margin-bottom: 10px;
-      }      
+      }
+      .console {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          font-family: sans-serif;
+          background-color: #F9F9F9;
+          color: #545454;
+      }
+      .console-line {
+          overflow-wrap: break-word;
+          flex: 0;
+          flex-basis: auto;
+          border: 0;
+          margin-bottom: 5px;
+      }
     </style>
 </head>
 <body>

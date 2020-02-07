@@ -12,8 +12,11 @@ for (let [name, func] of Object.entries(actor._fields)) {
 function renderMethod(name, idl_func, f) {
   const status = document.createElement("div");
   status.className = 'status';
+
+  const console = document.createElement("div");
+  console.className = 'console';
   
-  const item = document.createElement("li");  
+  const item = document.createElement("li");
 
   const sig = document.createElement("div");
   sig.className = 'signature';
@@ -27,7 +30,7 @@ function renderMethod(name, idl_func, f) {
     button.innerText = 'Query';
   } else {
     button.innerText = 'Call';
-  }  
+  }
 
   const arg_length = idl_func.argTypes.length;
   for (var i = 0; i < arg_length; i++) {
@@ -42,6 +45,9 @@ function renderMethod(name, idl_func, f) {
     });
     arg.addEventListener("blur", function() {
       try {
+        if (arg.value === '') {
+          return;
+        }
         const value = JSON.parse(arg.value);
         if (!t.covariant(value)) {
           throw new Error(`Invalid ${t.display()} argument: ${arg.value}`);
@@ -52,7 +58,7 @@ function renderMethod(name, idl_func, f) {
         arg.className += ' reject';        
         status.style.display = 'block';
         button.disabled = true;        
-        status.innerText = 'ParseError: ' + err.message;
+        status.innerHTML = 'ParseError: ' + err.message;
       };
     });
   }
@@ -90,9 +96,21 @@ function renderMethod(name, idl_func, f) {
       const duration = (Date.now() - t_before)/1000;
       left.innerText = JSON.stringify(result);
       right.innerText = `(${duration}s)`;
+
+      const input_line = document.createElement("div");
+      input_line.className = 'console-line';
+      const show_args = args.map(arg => JSON.stringify(arg)).join(', ');
+      input_line.innerText = `> ${name}(${show_args})`;
+      console.appendChild(input_line);
+      const output_line = document.createElement("div");
+      output_line.className = 'console-line';
+      output_line.innerText = JSON.stringify(result);
+      console.appendChild(output_line);
     })().catch(err => {
       left.className += ' error';
       left.innerText = err.name + ': ' + err.message;
     });
-  });  
+  });
+
+  document.body.appendChild(console);
 };

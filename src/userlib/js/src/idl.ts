@@ -438,7 +438,7 @@ class OptClass<T> extends ConstructType<T | null> {
   }
 
   public covariant(x: any): x is T | null {
-    return x == null || this._type.covariant(x);
+    return x === null || this._type.covariant(x);
   }
 
   public encodeValue(x: T | null) {
