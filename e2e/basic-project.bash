@@ -14,12 +14,12 @@ teardown() {
   dfx_stop
 }
 
-@test "build + install + call + request-status -- greet_mo" {
+@test "build + install + call + request_status -- greet_mo" {
     install_asset greet_mo
     dfx_start
     dfx build
     INSTALL_REQUEST_ID=$(dfx canister install hello --async)
-    dfx canister request-status $INSTALL_REQUEST_ID
+    dfx canister request_status $INSTALL_REQUEST_ID
 
     assert_command dfx canister call hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
@@ -33,14 +33,14 @@ teardown() {
     assert_command dfx canister call --query hello greet '("Bongalo")'
     assert_eq '("Hello, Bongalo!")'
 
-    # Using call --async and request-status.
+    # Using call --async and request_status.
     assert_command dfx canister call --async hello greet '("Blueberry")'
     # At this point $output is the request ID.
-    assert_command dfx canister request-status $stdout
+    assert_command dfx canister request_status $stdout
     assert_eq '("Hello, Blueberry!")'
 }
 
-@test "build + install + call + request-status -- counter_wat" {
+@test "build + install + call + request_status -- counter_wat" {
     skip "WAT not supporting IDL"
     install_asset counter_wat
 
@@ -70,18 +70,18 @@ teardown() {
 
     run dfx canister call 42 write --async
     [[ $status == 0 ]]
-    dfx canister request-status $stdout
+    dfx canister request_status $stdout
     [[ $status == 0 ]]
 
     # Write has no return value. But we can _call_ read too.
     run dfx canister call 42 read --async
     [[ $status == 0 ]]
-    run dfx canister request-status $stdout
+    run dfx canister request_status $stdout
     [[ $status == 0 ]]
     [[ "$stdout" == "D" ]]
 }
 
-@test "build + install + call + request-status -- counter_mo" {
+@test "build + install + call + request_status -- counter_mo" {
     install_asset counter_mo
     dfx_start
     dfx build
@@ -109,7 +109,7 @@ teardown() {
     assert_eq "(3)"
 
     assert_command dfx canister call hello inc --async
-    assert_command dfx canister request-status $stdout
+    assert_command dfx canister request_status $stdout
 
     # Call write.
     assert_command dfx canister call hello write '(1337)'
@@ -117,7 +117,7 @@ teardown() {
 
     # Write has no return value. But we can _call_ read too.
     assert_command dfx canister call hello read --async
-    assert_command dfx canister request-status $stdout
+    assert_command dfx canister request_status $stdout
     assert_eq "(1337)"
 }
 

@@ -10,7 +10,7 @@ use std::str::FromStr;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("request-status")
+    SubCommand::with_name("request_status")
         .about(UserMessage::RequestCallStatus.to_str())
         .arg(
             Arg::with_name("request_id")
