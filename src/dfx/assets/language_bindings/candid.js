@@ -49,7 +49,7 @@ function renderMethod(name, idl_func, f) {
         }
         const value = JSON.parse(arg.value);
         if (!t.covariant(value)) {
-          throw new Error(`Expect ${arg.value} to be of type ${t.display()}`);
+          throw new Error(`${arg.value} is not of type ${t.display()}`);
         }
         status.style.display = 'none';
         button.disabled = false;

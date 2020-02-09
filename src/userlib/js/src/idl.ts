@@ -88,8 +88,13 @@ class TypeTable {
 export abstract class Type<T = any> {
   public abstract readonly name: string;
 
+  /* Display type name */
   public display(): string {
     return this.name;
+  }
+
+  public valueToString(x: T): string {
+    return JSON.stringify(x);
   }
 
   /* Implement `T` in the IDL spec, only needed for non-primitive types */
@@ -148,6 +153,10 @@ class EmptyClass extends PrimitiveType<never> {
 
   public encodeValue(): never {
     throw new Error('Empty cannot appear as a function argument');
+  }
+
+  public valueToString(): never {
+    throw new Error('Empty cannot appear as a value');
   }
 
   public encodeType() {
@@ -269,6 +278,10 @@ class IntClass extends PrimitiveType<BigNumber> {
   get name() {
     return 'int';
   }
+
+  public valueToString(x: BigNumber | number) {
+    return x.toString();
+  }
 }
 
 /**
@@ -298,6 +311,10 @@ class NatClass extends PrimitiveType<BigNumber> {
 
   get name() {
     return 'nat';
+  }
+
+  public valueToString(x: BigNumber | number) {
+    return x.toString();
   }
 }
 
@@ -343,6 +360,10 @@ export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   get name() {
     return `int${this._bits}`;
   }
+
+  public valueToString(x: BigNumber | number) {
+    return x.toString();
+  }
 }
 
 /**
@@ -386,6 +407,10 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
   get name() {
     return `nat${this._bits}`;
   }
+
+  public valueToString(x: BigNumber | number) {
+    return x.toString();
+  }
 }
 
 /**
@@ -425,6 +450,11 @@ class VecClass<T> extends ConstructType<T[]> {
 
   get name() {
     return `vec ${this._type.name}`;
+  }
+
+  public valueToString(x: T[]) {
+    const elements = x.map(e => this._type.valueToString(e));
+    return 'vec {' + elements.join('; ') + '}';
   }
 }
 
