@@ -102,7 +102,7 @@ function renderMethod(name, idl_func, f) {
       right.innerText = `(${duration}s)`;
 
       const show_args = valuesToString(idl_func.argTypes, args);
-      log(`› ${name}(${show_args})`);
+      log(`› ${name}${show_args}`);
       log(show_result);
     })().catch(err => {
       left.className += ' error';
@@ -116,7 +116,7 @@ function zipWith(xs, ys, f) {
 }
 
 function valuesToString(types, values) {
-  return zipWith(types, values, ((t, v) => t.valueToString(v))).join(', ');
+  return '(' + zipWith(types, values, ((t, v) => t.valueToString(v))).join(', ') + ')';
 }
 
 function log(content) {

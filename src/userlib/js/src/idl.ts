@@ -279,8 +279,8 @@ class IntClass extends PrimitiveType<BigNumber> {
     return 'int';
   }
 
-  public valueToString(x: BigNumber | number) {
-    return x.toString();
+  public valueToString(x: BigNumber) {
+    return x.toFixed();
   }
 }
 
@@ -313,8 +313,8 @@ class NatClass extends PrimitiveType<BigNumber> {
     return 'nat';
   }
 
-  public valueToString(x: BigNumber | number) {
-    return x.toString();
+  public valueToString(x: BigNumber) {
+    return x.toFixed();
   }
 }
 
