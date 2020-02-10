@@ -499,6 +499,14 @@ class OptClass<T> extends ConstructType<T | null> {
   get name() {
     return `opt ${this._type.name}`;
   }
+
+  public valueToString(x: T | null) {
+    if (x === null) {
+      return 'null';
+    } else {
+      return `opt ${this._type.valueToString(x)}`;
+    }
+  }
 }
 
 /**
@@ -552,6 +560,12 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   get name() {
     const fields = this._fields.map(([key, value]) => key + ':' + value.name);
+    return `record {${fields.join('; ')}}`;
+  }
+
+  public valueToString(x: Record<string, any>) {
+    const values = this._fields.map(([key]) => x[key]);
+    const fields = zipWith(this._fields, values, ([k, c], d) => k + '=' + c.valueToString(d));
     return `record {${fields.join('; ')}}`;
   }
 }
@@ -652,6 +666,16 @@ class VariantClass extends ConstructType<Record<string, any>> {
     const fields = this._fields.map(([key, type]) => key + ':' + type.name);
     return `variant {${fields.join('; ')}}`;
   }
+
+  public valueToString(x: Record<string, any>) {
+    for (const [name, type] of this._fields) {
+      if (x.hasOwnProperty(name)) {
+        const value = type.valueToString(x[name]);
+        return `variant {${name}=${value}}`;
+      }
+    }
+    throw Error('Variant has no data: ' + x);
+  }
 }
 
 /**
@@ -707,6 +731,13 @@ class RecClass<T = any> extends ConstructType<T> {
       throw Error('Recursive type uninitialized.');
     }
     return `&mu;${this.name}.${this._type.name}`;
+  }
+
+  public valueToString(x: T) {
+    if (!this._type) {
+      throw Error('Recursive type uninitialized.');
+    }
+    return this._type.valueToString(x);
   }
 }
 
