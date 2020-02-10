@@ -2,16 +2,10 @@
   "private": true,
   "name": "@internet-computer/js-user-library",
   "version": "0.1.0",
-  "main": "dist/lib.node.js",
-  "browser": {
-    "./dist/lib.node.js": "./dist/lib.web.js"
-  },
-  "files": [
-    "dist/**/*"
-  ],
+  "main": "src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "bundle": "npm run build && webpack",
+    "bundle": "npm run build",
     "ci": "npm run prettier && npm run lint && npm run build && npm run test",
     "lint": "tslint --project tsconfig.json --config tslint.json",
     "lint:fix": "npm run lint -- --fix",
