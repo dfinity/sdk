@@ -92,18 +92,32 @@ function renderMethod(name, idl_func, f) {
       const t_before = Date.now();
       const result = await f.apply(null, args);
       const duration = (Date.now() - t_before)/1000;
-      left.innerText = JSON.stringify(result);
+      var show_result = '';
+      if (idl_func.retTypes.length === 1) {
+        show_result = idl_func.retTypes[0].valueToString(result);
+      } else {
+        show_result = valuesToString(idl_func.retTypes, result);
+      }
+      left.innerText = show_result;
       right.innerText = `(${duration}s)`;
 
-      const show_args = args.map(arg => JSON.stringify(arg)).join(', ');
+      const show_args = valuesToString(idl_func.argTypes, args);
       log(`› ${name}(${show_args})`);
-      log(JSON.stringify(result));
+      log(show_result);
     })().catch(err => {
       left.className += ' error';
       left.innerText = err.name + ': ' + err.message;
     });
   });
 };
+
+function zipWith(xs, ys, f) {
+  return xs.map((x, i) => f(x, ys[i]));
+}
+
+function valuesToString(types, values) {
+  return zipWith(types, values, ((t, v) => t.valueToString(v))).join(', ');
+}
 
 function log(content) {
   const console = document.getElementsByClassName("console")[0];
