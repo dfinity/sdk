@@ -104,6 +104,8 @@ impl MotokoParams<'_> {
 /// Compile a motoko file.
 fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMap) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
+    cmd.stdout(std::process::Stdio::inherit());
+    cmd.stderr(std::process::Stdio::inherit());
 
     let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
     let stdlib_path = cache.get_binary_command_path("stdlib")?;
