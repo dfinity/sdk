@@ -36,7 +36,9 @@ let
 
   pkgs = import ./nix { inherit system config overlays releaseVersion; };
 
+  packages = import ./. { inherit pkgs; };
+
 in
 pkgs.lib.optionalAttrs doRelease {
-  inherit (pkgs.dfinity-sdk) dfx-release install-sh-release;
+  inherit (packages) dfx-release install-sh-release;
 }
