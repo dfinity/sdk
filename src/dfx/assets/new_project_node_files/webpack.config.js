@@ -33,11 +33,13 @@ function generateWebpackConfigForCanister(name, info) {
 
   const outputRoot = path.join(__dirname, dfxJson.defaults.build.output, name);
   const inputRoot = __dirname;
-  const entry = path.join(inputRoot, info.frontend.entrypoint);
 
   return {
     mode: "production",
-    entry,
+    entry: {
+      index: path.join(inputRoot, info.frontend.entrypoint),
+      candid: path.join(outputRoot, 'candid.js'),
+    },
     devtool: "source-map",
     optimization: {
       minimize: true,
@@ -47,7 +49,7 @@ function generateWebpackConfigForCanister(name, info) {
       alias: aliases,
     },
     output: {
-      filename: "index.js",
+      filename: "[name].js",
       path: path.join(outputRoot, "assets"),
     },
     plugins: [

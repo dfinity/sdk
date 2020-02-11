@@ -29,11 +29,11 @@ test('IDL encoding (magic number)', () => {
   expect(() => IDL.decode([IDL.Nat], Buffer.from('4449444d2a'))).toThrow(/Wrong magic number:/);
 });
 
-test('IDL encoding (none)', () => {
-  // None
-  expect(() => IDL.encode([IDL.None], [undefined])).toThrow(/Invalid None argument:/);
-  expect(() => IDL.decode([IDL.None], Buffer.from('DIDL'))).toThrow(
-    /None cannot appear as an output/,
+test('IDL encoding (empty)', () => {
+  // Empty
+  expect(() => IDL.encode([IDL.Empty], [undefined])).toThrow(/Invalid empty argument:/);
+  expect(() => IDL.decode([IDL.Empty], Buffer.from('DIDL'))).toThrow(
+    /Empty cannot appear as an output/,
   );
 });
 
@@ -51,8 +51,8 @@ test('IDL encoding (text)', () => {
     '4449444c016e7101000107486920e298830a',
     'Nested text with unicode',
   );
-  expect(() => IDL.encode([IDL.Text], [0])).toThrow(/Invalid Text argument/);
-  expect(() => IDL.encode([IDL.Text], [null])).toThrow(/Invalid Text argument/);
+  expect(() => IDL.encode([IDL.Text], [0])).toThrow(/Invalid text argument/);
+  expect(() => IDL.encode([IDL.Text], [null])).toThrow(/Invalid text argument/);
 });
 
 test('IDL encoding (int)', () => {
@@ -81,7 +81,7 @@ test('IDL encoding (nat)', () => {
     '4449444c00017d808098f4e9b5ca6a',
     'Positive BigInt',
   );
-  expect(() => IDL.encode([IDL.Nat], [-1])).toThrow(/Invalid Nat argument/);
+  expect(() => IDL.encode([IDL.Nat], [-1])).toThrow(/Invalid nat argument/);
   testEncode(IDL.Opt(IDL.Int), 42, '4449444c016e7c0100012a', 'Nested Int (number)');
 });
 
@@ -108,9 +108,9 @@ test('IDL encoding (fixed-width number)', () => {
   test_(IDL.Nat32, 42, '4449444c0001792a000000', 'Nat32');
   test_(IDL.Nat32, 0xffffffff, '4449444c000179ffffffff', 'Nat32');
   test_(IDL.Nat64, new BigNumber(1234567890), '4449444c000178d202964900000000', 'Positive Nat64');
-  expect(() => IDL.encode([IDL.Nat32], [-42])).toThrow(/Invalid Nat32 argument/);
-  expect(() => IDL.encode([IDL.Int8], [256])).toThrow(/Invalid Int8 argument/);
-  expect(() => IDL.encode([IDL.Int32], [0xffffffff])).toThrow(/Invalid Int32 argument/);
+  expect(() => IDL.encode([IDL.Nat32], [-42])).toThrow(/Invalid nat32 argument/);
+  expect(() => IDL.encode([IDL.Int8], [256])).toThrow(/Invalid int8 argument/);
+  expect(() => IDL.encode([IDL.Int32], [0xffffffff])).toThrow(/Invalid int32 argument/);
 });
 
 test('IDL encoding (tuple)', () => {
@@ -122,7 +122,7 @@ test('IDL encoding (tuple)', () => {
     'Pairs',
   );
   expect(() => IDL.encode([IDL.Tuple(IDL.Int, IDL.Text)], [[0]])).toThrow(
-    /Invalid Record\(_0_:Int,_1_:Text\) argument/,
+    /Invalid record {_0_:int; _1_:text} argument/,
   );
 });
 
@@ -135,9 +135,9 @@ test('IDL encoding (array)', () => {
     'Array of Ints',
   );
   expect(() => IDL.encode([IDL.Vec(IDL.Int)], [new BigNumber(0)])).toThrow(
-    /Invalid Vec\(Int\) argument/,
+    /Invalid vec int argument/,
   );
-  expect(() => IDL.encode([IDL.Vec(IDL.Int)], [['fail']])).toThrow(/Invalid Vec\(Int\) argument/);
+  expect(() => IDL.encode([IDL.Vec(IDL.Int)], [['fail']])).toThrow(/Invalid vec int argument/);
 });
 
 test('IDL encoding (array + tuples)', () => {
@@ -208,8 +208,8 @@ test('IDL encoding (bool)', () => {
   // Bool
   test_(IDL.Bool, true, '4449444c00017e01', 'true');
   test_(IDL.Bool, false, '4449444c00017e00', 'false');
-  expect(() => IDL.encode([IDL.Bool], [0])).toThrow(/Invalid Bool argument/);
-  expect(() => IDL.encode([IDL.Bool], ['false'])).toThrow(/Invalid Bool argument/);
+  expect(() => IDL.encode([IDL.Bool], [0])).toThrow(/Invalid bool argument/);
+  expect(() => IDL.encode([IDL.Bool], ['false'])).toThrow(/Invalid bool argument/);
 });
 
 test('IDL encoding (variants)', () => {
@@ -217,9 +217,9 @@ test('IDL encoding (variants)', () => {
   const Result = IDL.Variant({ ok: IDL.Text, err: IDL.Text });
   test_(Result, { ok: 'good' }, '4449444c016b029cc20171e58eb4027101000004676f6f64', 'Result ok');
   test_(Result, { err: 'uhoh' }, '4449444c016b029cc20171e58eb402710100010475686f68', 'Result err');
-  expect(() => IDL.encode([Result], [{}])).toThrow(/Invalid Variant\(ok:Text,err:Text\) argument/);
+  expect(() => IDL.encode([Result], [{}])).toThrow(/Invalid variant {ok:text; err:text} argument/);
   expect(() => IDL.encode([Result], [{ ok: 'ok', err: 'err' }])).toThrow(
-    /Invalid Variant\(ok:Text,err:Text\) argument/,
+    /Invalid variant {ok:text; err:text} argument/,
   );
 
   // Test that nullary constructors work as expected
@@ -230,16 +230,16 @@ test('IDL encoding (variants)', () => {
     'Nullary constructor in variant',
   );
 
-  // Test that None within variants works as expected
+  // Test that Empty within variants works as expected
   test_(
-    IDL.Variant({ ok: IDL.Text, err: IDL.None }),
+    IDL.Variant({ ok: IDL.Text, err: IDL.Empty }),
     { ok: 'good' },
     '4449444c016b029cc20171e58eb4026f01000004676f6f64',
-    'None within variants',
+    'Empty within variants',
   );
   expect(() =>
-    IDL.encode([IDL.Variant({ ok: IDL.Text, err: IDL.None })], [{ err: 'uhoh' }]),
-  ).toThrow(/Invalid Variant\(ok:Text,err:None\) argument:/);
+    IDL.encode([IDL.Variant({ ok: IDL.Text, err: IDL.Empty })], [{ err: 'uhoh' }]),
+  ).toThrow(/Invalid variant {ok:text; err:empty} argument:/);
 
   // Test for option
   test_(IDL.Opt(IDL.Nat), null, '4449444c016e7d010000', 'Null option');
