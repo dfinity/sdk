@@ -60,6 +60,12 @@ test('IDL encoding (int)', () => {
   test_(IDL.Int, new BigNumber(0), '4449444c00017c00', 'Int');
   test_(IDL.Int, new BigNumber(42), '4449444c00017c2a', 'Int');
   test_(IDL.Int, new BigNumber(1234567890), '4449444c00017cd285d8cc04', 'Positive Int');
+  test_(
+    IDL.Int,
+    new BigNumber('60000000000000000'),
+    '4449444c00017c808098f4e9b5caea00',
+    'Positive BigInt',
+  );
   test_(IDL.Int, new BigNumber(-1234567890), '4449444c00017caefaa7b37b', 'Negative Int');
   test_(IDL.Opt(IDL.Int), new BigNumber(42), '4449444c016e7c0100012a', 'Nested Int');
   testEncode(IDL.Opt(IDL.Int), 42, '4449444c016e7c0100012a', 'Nested Int (number)');
@@ -69,6 +75,12 @@ test('IDL encoding (nat)', () => {
   // Nat
   test_(IDL.Nat, new BigNumber(42), '4449444c00017d2a', 'Nat');
   test_(IDL.Nat, new BigNumber(1234567890), '4449444c00017dd285d8cc04', 'Positive Nat');
+  test_(
+    IDL.Nat,
+    new BigNumber('60000000000000000'),
+    '4449444c00017d808098f4e9b5ca6a',
+    'Positive BigInt',
+  );
   expect(() => IDL.encode([IDL.Nat], [-1])).toThrow(/Invalid Nat argument/);
   testEncode(IDL.Opt(IDL.Int), 42, '4449444c016e7c0100012a', 'Nested Int (number)');
 });
