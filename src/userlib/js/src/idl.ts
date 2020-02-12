@@ -97,6 +97,41 @@ export abstract class Type<T = any> {
     return JSON.stringify(x);
   }
 
+  //public abstract inputUI(id: string): HTMLElement;
+  public inputUI(dom: HTMLElement, id: string): void {
+    const status = document.createElement('div');
+    status.className = 'status';
+    const arg = document.createElement('input');
+    arg.className = 'argument';
+    arg.id = id;
+    const idl = this;
+    
+    arg.addEventListener('focus', function() {
+      arg.className = 'argument';
+    });
+    arg.addEventListener('blur', function() {
+      try {
+        if (arg.value === '') {
+          return;
+        }
+        const value = JSON.parse(arg.value);
+        if (!idl.covariant(value)) {
+          throw new Error(`${arg.value} is not of type ${idl.display()}`);
+        }
+        status.style.display = 'none';
+        //button.disabled = false;
+      } catch (err) {
+        arg.className += ' reject';
+        status.style.display = 'block';
+        //button.disabled = true;
+        status.innerHTML = 'ParseError: ' + err.message;
+      }
+    });
+    //const input = document.createElement('div');
+    dom.appendChild(arg);
+    dom.appendChild(status);
+  }  
+
   /* Implement `T` in the IDL spec, only needed for non-primitive types */
   public buildTypeTable(typeTable: TypeTable): void {
     if (!typeTable.has(this)) {
@@ -452,6 +487,10 @@ class VecClass<T> extends ConstructType<T[]> {
     return `vec ${this._type.name}`;
   }
 
+  public display() {
+    return `vec ${this._type.display()}`;
+  }
+
   public valueToString(x: T[]) {
     const elements = x.map(e => this._type.valueToString(e));
     return 'vec {' + elements.join('; ') + '}';
@@ -498,6 +537,10 @@ class OptClass<T> extends ConstructType<T | null> {
 
   get name() {
     return `opt ${this._type.name}`;
+  }
+
+  public display() {
+    return `opt ${this._type.display()}`;
   }
 
   public valueToString(x: T | null) {
@@ -552,8 +595,8 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   public decodeValue(b: Pipe) {
     const x: Record<string, any> = {};
-    for (const [key, value] of this._fields) {
-      x[key] = value.decodeValue(b);
+    for (const [key, type] of this._fields) {
+      x[key] = type.decodeValue(b);
     }
     return x;
   }
@@ -563,10 +606,51 @@ class RecordClass extends ConstructType<Record<string, any>> {
     return `record {${fields.join('; ')}}`;
   }
 
+  public display() {
+    const fields = this._fields.map(([key, value]) => key + ':' + value.display());
+    return `record {${fields.join('; ')}}`;
+  }
+
   public valueToString(x: Record<string, any>) {
     const values = this._fields.map(([key]) => x[key]);
     const fields = zipWith(this._fields, values, ([k, c], d) => k + '=' + c.valueToString(d));
     return `record {${fields.join('; ')}}`;
+  }
+  
+  public inputUI(dom: HTMLElement, id: string): void {
+    super.inputUI(dom, id);
+    
+    const form = document.createElement('div');
+    form.className = 'form-container';
+    var ids: string[][] = [];
+    for (const [key, type] of this._fields) {
+      const key_id = id + `_${key}`;
+      ids.push([key, key_id]);
+      const label = document.createElement('label');
+      label.innerText = key;
+      form.appendChild(label);
+      type.inputUI(form, key_id);      
+    }
+    const button = document.createElement('button');
+    button.className = 'btn';
+    button.innerText = 'Close';
+
+    button.addEventListener('click', function() {
+      var values = [];
+      for (const [key, key_id] of ids) {
+        // @ts-ignore
+        const arg = document.getElementById(key_id).value;
+        values.push('"' + key + '":' + arg);
+      }
+      const result = `{${values.join(', ')}}`;
+      const input = document.getElementById(id);
+      // @ts-ignore      
+      input.value = result;
+      form.style.display = 'none';
+    });
+    
+    form.appendChild(button);
+    dom.appendChild(form);
   }
 }
 
@@ -664,6 +748,11 @@ class VariantClass extends ConstructType<Record<string, any>> {
 
   get name() {
     const fields = this._fields.map(([key, type]) => key + ':' + type.name);
+    return `variant {${fields.join('; ')}}`;
+  }
+
+  public display() {
+    const fields = this._fields.map(([key, type]) => key + ':' + type.display());
     return `variant {${fields.join('; ')}}`;
   }
 
