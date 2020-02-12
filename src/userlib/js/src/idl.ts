@@ -88,6 +88,15 @@ class TypeTable {
 export abstract class Type<T = any> {
   public abstract readonly name: string;
 
+  /* Display type name */
+  public display(): string {
+    return this.name;
+  }
+
+  public valueToString(x: T): string {
+    return JSON.stringify(x);
+  }
+
   /* Implement `T` in the IDL spec, only needed for non-primitive types */
   public buildTypeTable(typeTable: TypeTable): void {
     if (!typeTable.has(this)) {
@@ -133,17 +142,21 @@ abstract class ConstructType<T = any> extends Type<T> {
 }
 
 /**
- * Represents an IDL None, a type which has no inhabitants.
+ * Represents an IDL Empty, a type which has no inhabitants.
  * Since no values exist for this type, it cannot be serialised or deserialised.
- * Result types like `Result<Text, None>` should always succeed.
+ * Result types like `Result<Text, Empty>` should always succeed.
  */
-class NoneClass extends PrimitiveType<never> {
+class EmptyClass extends PrimitiveType<never> {
   public covariant(x: any): x is never {
     return false;
   }
 
   public encodeValue(): never {
-    throw new Error('None cannot appear as a function argument');
+    throw new Error('Empty cannot appear as a function argument');
+  }
+
+  public valueToString(): never {
+    throw new Error('Empty cannot appear as a value');
   }
 
   public encodeType() {
@@ -151,11 +164,11 @@ class NoneClass extends PrimitiveType<never> {
   }
 
   public decodeValue(): never {
-    throw new Error('None cannot appear as an output');
+    throw new Error('Empty cannot appear as an output');
   }
 
   get name() {
-    return 'None';
+    return 'empty';
   }
 }
 
@@ -183,7 +196,7 @@ class BoolClass extends PrimitiveType<boolean> {
   }
 
   get name() {
-    return 'Bool';
+    return 'bool';
   }
 }
 
@@ -208,7 +221,7 @@ class UnitClass extends PrimitiveType<null> {
   }
 
   get name() {
-    return 'Unit';
+    return 'null';
   }
 }
 
@@ -236,7 +249,7 @@ class TextClass extends PrimitiveType<string> {
   }
 
   get name() {
-    return 'Text';
+    return 'text';
   }
 }
 
@@ -263,7 +276,11 @@ class IntClass extends PrimitiveType<BigNumber> {
   }
 
   get name() {
-    return 'Int';
+    return 'int';
+  }
+
+  public valueToString(x: BigNumber) {
+    return x.toFixed();
   }
 }
 
@@ -293,7 +310,11 @@ class NatClass extends PrimitiveType<BigNumber> {
   }
 
   get name() {
-    return 'Nat';
+    return 'nat';
+  }
+
+  public valueToString(x: BigNumber) {
+    return x.toFixed();
   }
 }
 
@@ -337,7 +358,11 @@ export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   }
 
   get name() {
-    return `Int${this._bits}`;
+    return `int${this._bits}`;
+  }
+
+  public valueToString(x: BigNumber | number) {
+    return x.toString();
   }
 }
 
@@ -380,7 +405,11 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
   }
 
   get name() {
-    return `Nat${this._bits}`;
+    return `nat${this._bits}`;
+  }
+
+  public valueToString(x: BigNumber | number) {
+    return x.toString();
   }
 }
 
@@ -420,7 +449,12 @@ class VecClass<T> extends ConstructType<T[]> {
   }
 
   get name() {
-    return `Vec(${this._type.name})`;
+    return `vec ${this._type.name}`;
+  }
+
+  public valueToString(x: T[]) {
+    const elements = x.map(e => this._type.valueToString(e));
+    return 'vec {' + elements.join('; ') + '}';
   }
 }
 
@@ -434,7 +468,7 @@ class OptClass<T> extends ConstructType<T | null> {
   }
 
   public covariant(x: any): x is T | null {
-    return x == null || this._type.covariant(x);
+    return x === null || this._type.covariant(x);
   }
 
   public encodeValue(x: T | null) {
@@ -463,7 +497,15 @@ class OptClass<T> extends ConstructType<T | null> {
   }
 
   get name() {
-    return `Opt(${this._type.name})`;
+    return `opt ${this._type.name}`;
+  }
+
+  public valueToString(x: T | null) {
+    if (x === null) {
+      return 'null';
+    } else {
+      return `opt ${this._type.valueToString(x)}`;
+    }
   }
 }
 
@@ -518,7 +560,13 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   get name() {
     const fields = this._fields.map(([key, value]) => key + ':' + value.name);
-    return `Record(${fields.join(',')})`;
+    return `record {${fields.join('; ')}}`;
+  }
+
+  public valueToString(x: Record<string, any>) {
+    const values = this._fields.map(([key]) => x[key]);
+    const fields = zipWith(this._fields, values, ([k, c], d) => k + '=' + c.valueToString(d));
+    return `record {${fields.join('; ')}}`;
   }
 }
 
@@ -616,7 +664,17 @@ class VariantClass extends ConstructType<Record<string, any>> {
 
   get name() {
     const fields = this._fields.map(([key, type]) => key + ':' + type.name);
-    return `Variant(${fields.join(',')})`;
+    return `variant {${fields.join('; ')}}`;
+  }
+
+  public valueToString(x: Record<string, any>) {
+    for (const [name, type] of this._fields) {
+      if (x.hasOwnProperty(name)) {
+        const value = type.valueToString(x[name]);
+        return `variant {${name}=${value}}`;
+      }
+    }
+    throw Error('Variant has no data: ' + x);
   }
 }
 
@@ -665,7 +723,21 @@ class RecClass<T = any> extends ConstructType<T> {
   }
 
   get name() {
-    return `Rec(${this._id})`;
+    return `rec_${this._id}`;
+  }
+
+  public display() {
+    if (!this._type) {
+      throw Error('Recursive type uninitialized.');
+    }
+    return `&mu;${this.name}.${this._type.name}`;
+  }
+
+  public valueToString(x: T) {
+    if (!this._type) {
+      throw Error('Recursive type uninitialized.');
+    }
+    return this._type.valueToString(x);
   }
 }
 
@@ -681,6 +753,12 @@ export class FuncClass {
     public retTypes: Type[] = [],
     public annotations: string[] = [],
   ) {}
+  public display(): string {
+    const args = this.argTypes.map(arg => arg.display()).join(', ');
+    const rets = this.retTypes.map(arg => arg.display()).join(', ');
+    const annon = ' ' + this.annotations.join(' ');
+    return `(${args}) &rarr; (${rets})${annon}`;
+  }
 }
 
 /**
@@ -702,7 +780,7 @@ export function encode(argTypes: Array<Type<any>>, args: any[]) {
   const vals = Buffer.concat(
     zipWith(argTypes, args, (t, x) => {
       if (!t.covariant(x)) {
-        throw new Error(`Invalid ${t.name} argument: "${JSON.stringify(x)}"`);
+        throw new Error(`Invalid ${t.display()} argument: "${JSON.stringify(x)}"`);
       }
 
       return t.encodeValue(x);
@@ -791,7 +869,7 @@ export class ActorInterface {
 }
 
 // Export Types instances.
-export const None = new NoneClass();
+export const Empty = new EmptyClass();
 export const Bool = new BoolClass();
 export const Unit = new UnitClass();
 export const Text = new TextClass();

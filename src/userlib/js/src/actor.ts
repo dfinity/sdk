@@ -39,7 +39,7 @@ function getDefaultHttpAgent() {
 
 const REQUEST_STATUS_RETRY_WAIT_DURATION_IN_MSECS = 500;
 const DEFAULT_ACTOR_CONFIG: Partial<ActorConfig> = {
-  maxAttempts: 10,
+  maxAttempts: 30,
   throttleDurationInMSecs: REQUEST_STATUS_RETRY_WAIT_DURATION_IN_MSECS,
 };
 
