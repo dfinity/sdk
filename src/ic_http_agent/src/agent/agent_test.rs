@@ -182,7 +182,7 @@ fn call_rejected() -> Result<(), AgentError> {
             .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
         agent
-            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(1)))
+            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(100)))
             .await
     });
 
