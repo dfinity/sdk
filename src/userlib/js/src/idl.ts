@@ -2,11 +2,11 @@
 import BigNumber from 'bignumber.js';
 import Pipe = require('buffer-pipe');
 import { Buffer } from 'buffer/';
+import * as UI from './idl-ui';
 import { JsonValue } from './types';
 import { idlLabelToId } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 import { readIntLE, readUIntLE, writeIntLE, writeUIntLE } from './utils/leb128';
-import * as UI from './idl-ui';
 
 // tslint:disable:max-line-length
 /**
@@ -590,7 +590,7 @@ class RecordClass extends ConstructType<Record<string, any>> {
     const fields = zipWith(this._fields, values, ([k, c], d) => k + '=' + c.valueToString(d));
     return `record {${fields.join('; ')}}`;
   }
-  
+
   public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
     return UI.renderRecord(dom, id, this);
   }
@@ -770,7 +770,7 @@ class RecClass<T = any> extends ConstructType<T> {
     }
     return this._type.valueToString(x);
   }
-  
+
   public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
     if (!this._type) {
       throw Error('Recursive type uninitialized.');

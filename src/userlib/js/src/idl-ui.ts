@@ -1,5 +1,7 @@
 import { Type } from './idl';
 
+// tslint:disable:no-shadowed-variable
+
 export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLInputElement {
   const status = document.createElement('div');
   status.className = 'status';
@@ -7,11 +9,11 @@ export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLIn
   arg.className = 'argument';
   arg.id = id;
   arg.placeholder = idl.display();
-    
-  arg.addEventListener('focus', function() {
+
+  arg.addEventListener('focus', () => {
     arg.className = 'argument';
   });
-  arg.addEventListener('blur', function() {
+  arg.addEventListener('blur', () => {
     try {
       if (arg.value === '') {
         return;
@@ -32,13 +34,19 @@ export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLIn
   return arg;
 }
 
-export function renderComposite(dom: HTMLElement, id: string, idl: Type, render:any, parse:any): HTMLInputElement {
+export function renderComposite(
+  dom: HTMLElement,
+  id: string,
+  idl: Type,
+  render: any,
+  parse: any,
+): HTMLInputElement {
   const input = renderPrimitive(dom, id, idl);
   const open = document.createElement('button');
   open.innerText = '...';
   dom.appendChild(open);
-  
-  open.addEventListener('click', function() {
+
+  open.addEventListener('click', () => {
     open.disabled = true;
     const form = document.createElement('div');
     form.className = 'popup-form';
@@ -46,9 +54,9 @@ export function renderComposite(dom: HTMLElement, id: string, idl: Type, render:
     const close = document.createElement('button');
     close.innerText = 'X';
     form.appendChild(close);
-    open.insertAdjacentElement('afterend', form);    
-    
-    close.addEventListener('click', function() {
+    open.insertAdjacentElement('afterend', form);
+
+    close.addEventListener('click', () => {
       open.disabled = false;
       const result = parse(args);
       input.value = result;
@@ -59,22 +67,22 @@ export function renderComposite(dom: HTMLElement, id: string, idl: Type, render:
 }
 
 export function renderRecord(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
-  const render = function (dom: HTMLElement, id: string): HTMLInputElement[] {
-    var args = [];
+  const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
+    const args = [];
     for (const [key, type] of idl._fields) {
       const label = document.createElement('label');
-      const key_id = id + '_' + key;
+      const keyId = id + '_' + key;
       label.innerText = key + ' ';
       dom.appendChild(label);
-      const arg = type.renderInput(dom, key_id);
+      const arg = type.renderInput(dom, keyId);
       args.push(arg);
     }
     return args;
   };
-  const parse = function (args: HTMLInputElement[]): string {
-    var values: string[] = [];
+  const parse = (args: HTMLInputElement[]): string => {
+    const values: string[] = [];
     // @ts-ignore
-    idl._fields.forEach(([key,_], i) => {
+    idl._fields.forEach(([key, _], i) => {
       const val = '"' + key + '":' + args[i].value;
       values.push(val);
     });
@@ -84,14 +92,14 @@ export function renderRecord(dom: HTMLElement, id: string, idl: any): HTMLInputE
 }
 
 export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
-  const render = function (dom: HTMLElement, id: string): HTMLInputElement[] {
+  const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = true;
     dom.appendChild(checkbox);
-    const opt = idl._type.renderInput(dom, id+'_opt');
-    
-    checkbox.addEventListener('click', function() {
+    const opt = idl._type.renderInput(dom, id + '_opt');
+
+    checkbox.addEventListener('click', () => {
       if (checkbox.checked) {
         opt.style.display = 'block';
       } else {
@@ -100,7 +108,7 @@ export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputE
     });
     return [checkbox, opt];
   };
-  const parse = function (args: HTMLInputElement[]): string {
+  const parse = (args: HTMLInputElement[]): string => {
     if (args[0].checked) {
       return args[1].value;
     } else {
@@ -108,21 +116,4 @@ export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputE
     }
   };
   return renderComposite(dom, id, idl, render, parse);
-  /*
-  const input = renderPrimitive(dom, id, idl as Type);
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.checked = false;
-  dom.appendChild(checkbox);
-  
-  checkbox.addEventListener('click', function() {
-    if (checkbox.checked === true) {
-      idl._type.renderInput(dom, id+'_opt');
-    } else {
-      const el = document.getElementById(id+'_opt') as HTMLElement;
-      el.style.display = 'none';
-    }
-  });
-  return input;*/
 }
-
