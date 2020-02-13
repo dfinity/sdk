@@ -276,26 +276,49 @@ fn run_command(
     }
 }
 
+fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
+    path.to_str().ok_or_else(|| {
+        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+            "Unable to convert output canister js path to a string: {:#?}",
+            path
+        )))
+    })
+}
+
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
     let output_canister_js_path = canister_info.get_output_canister_js_path();
 
     let mut language_bindings = assets::language_bindings()?;
 
-    let mut file = language_bindings.entries()?.next().unwrap()?;
-    let mut file_contents = String::new();
-    file.read_to_string(&mut file_contents)?;
+    for f in language_bindings.entries()? {
+        let mut file = f?;
+        let mut file_contents = String::new();
+        file.read_to_string(&mut file_contents)?;
 
-    let new_file_contents = file_contents
-        .replace("{canister_id}", &canister_id.to_text())
-        .replace("{project_name}", canister_info.get_name());
+        let new_file_contents = file_contents
+            .replace("{canister_id}", &canister_id.to_text())
+            .replace("{project_name}", canister_info.get_name());
 
-    let output_canister_js_path_str = output_canister_js_path.to_str().ok_or_else(|| {
-        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
-            "Unable to convert output canister js path to a string: {:#?}",
-            output_canister_js_path
-        )))
-    })?;
-    std::fs::write(output_canister_js_path_str, new_file_contents)?;
+        match decode_path_to_str(&file.path()?)? {
+            "candid.js" => {
+                let output_candid_js_path = output_canister_js_path
+                    .parent()
+                    .expect("cannot use root")
+                    .join("candid.js");
+                std::fs::write(
+                    decode_path_to_str(&output_candid_js_path)?,
+                    new_file_contents,
+                )?;
+            }
+            "canister.js" => {
+                std::fs::write(
+                    decode_path_to_str(output_canister_js_path)?,
+                    new_file_contents,
+                )?;
+            }
+            _ => unreachable!(),
+        }
+    }
 
     Ok(())
 }
