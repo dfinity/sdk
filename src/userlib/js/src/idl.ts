@@ -6,6 +6,7 @@ import { JsonValue } from './types';
 import { idlLabelToId } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 import { readIntLE, readUIntLE, writeIntLE, writeUIntLE } from './utils/leb128';
+import * as UI from './idl-ui';
 
 // tslint:disable:max-line-length
 /**
@@ -97,40 +98,9 @@ export abstract class Type<T = any> {
     return JSON.stringify(x);
   }
 
-  //public abstract inputUI(id: string): HTMLElement;
-  public inputUI(dom: HTMLElement, id: string): void {
-    const status = document.createElement('div');
-    status.className = 'status';
-    const arg = document.createElement('input');
-    arg.className = 'argument';
-    arg.id = id;
-    const idl = this;
-    
-    arg.addEventListener('focus', function() {
-      arg.className = 'argument';
-    });
-    arg.addEventListener('blur', function() {
-      try {
-        if (arg.value === '') {
-          return;
-        }
-        const value = JSON.parse(arg.value);
-        if (!idl.covariant(value)) {
-          throw new Error(`${arg.value} is not of type ${idl.display()}`);
-        }
-        status.style.display = 'none';
-        //button.disabled = false;
-      } catch (err) {
-        arg.className += ' reject';
-        status.style.display = 'block';
-        //button.disabled = true;
-        status.innerHTML = 'ParseError: ' + err.message;
-      }
-    });
-    //const input = document.createElement('div');
-    dom.appendChild(arg);
-    dom.appendChild(status);
-  }  
+  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
+    return UI.renderPrimitive(dom, id, this);
+  }
 
   /* Implement `T` in the IDL spec, only needed for non-primitive types */
   public buildTypeTable(typeTable: TypeTable): void {
@@ -550,6 +520,10 @@ class OptClass<T> extends ConstructType<T | null> {
       return `opt ${this._type.valueToString(x)}`;
     }
   }
+
+  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
+    return UI.renderOption(dom, id, this);
+  }
 }
 
 /**
@@ -617,40 +591,8 @@ class RecordClass extends ConstructType<Record<string, any>> {
     return `record {${fields.join('; ')}}`;
   }
   
-  public inputUI(dom: HTMLElement, id: string): void {
-    super.inputUI(dom, id);
-    
-    const form = document.createElement('div');
-    form.className = 'form-container';
-    var ids: string[][] = [];
-    for (const [key, type] of this._fields) {
-      const key_id = id + `_${key}`;
-      ids.push([key, key_id]);
-      const label = document.createElement('label');
-      label.innerText = key;
-      form.appendChild(label);
-      type.inputUI(form, key_id);      
-    }
-    const button = document.createElement('button');
-    button.className = 'btn';
-    button.innerText = 'Close';
-
-    button.addEventListener('click', function() {
-      var values = [];
-      for (const [key, key_id] of ids) {
-        // @ts-ignore
-        const arg = document.getElementById(key_id).value;
-        values.push('"' + key + '":' + arg);
-      }
-      const result = `{${values.join(', ')}}`;
-      const input = document.getElementById(id);
-      // @ts-ignore      
-      input.value = result;
-      form.style.display = 'none';
-    });
-    
-    form.appendChild(button);
-    dom.appendChild(form);
+  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
+    return UI.renderRecord(dom, id, this);
   }
 }
 
@@ -827,6 +769,13 @@ class RecClass<T = any> extends ConstructType<T> {
       throw Error('Recursive type uninitialized.');
     }
     return this._type.valueToString(x);
+  }
+  
+  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
+    if (!this._type) {
+      throw Error('Recursive type uninitialized.');
+    }
+    return this._type.renderInput(dom, id);
   }
 }
 

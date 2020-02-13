@@ -13,9 +13,6 @@ console.className = 'console';
 document.body.appendChild(console);
 
 function renderMethod(name, idl_func, f) {
-  const status = document.createElement("div");
-  status.className = 'status';
-
   const item = document.createElement("li");
 
   const sig = document.createElement("div");
@@ -34,36 +31,11 @@ function renderMethod(name, idl_func, f) {
   const arg_length = idl_func.argTypes.length;
   for (var i = 0; i < arg_length; i++) {
     const t = idl_func.argTypes[i];
-    const arg = document.createElement("input");
-    arg.className = 'argument';
-    arg.id = `${name}_arg${i}`;
-    item.appendChild(arg);
-
-    arg.addEventListener("focus", function () {
-      arg.className = 'argument';
-    });
-    arg.addEventListener("blur", function() {
-      try {
-        if (arg.value === '') {
-          return;
-        }
-        const value = JSON.parse(arg.value);
-        if (!t.covariant(value)) {
-          throw new Error(`${arg.value} is not of type ${t.display()}`);
-        }
-        status.style.display = 'none';
-        button.disabled = false;
-      } catch(err) {
-        arg.className += ' reject';        
-        status.style.display = 'block';
-        button.disabled = true;        
-        status.innerHTML = 'ParseError: ' + err.message;
-      };
-    });
+    const id = `${name}_arg${i}`;
+    t.renderInput(item, id);
   }
 
   item.appendChild(button);
-  item.appendChild(status);
 
   const result = document.createElement("div");
   result.className = 'result';
