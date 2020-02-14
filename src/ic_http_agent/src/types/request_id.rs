@@ -219,11 +219,12 @@ impl<'a> ser::Serializer for &'a mut RequestIdSerializer {
 
     /// Serialize a `u64` value.
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        let mut buffer = [0; 32];
+        // 10 bytes is enough for a 64-bit number in leb128.
+        let mut buffer = [0; 10];
         let mut writable = &mut buffer[..];
-        leb128::write::unsigned(&mut writable, v)
+        let n_bytes = leb128::write::unsigned(&mut writable, v)
             .map_err(|e| RequestIdError::Custom(format!("{}", e)))?;
-        self.serialize_bytes(&buffer)
+        self.serialize_bytes(&buffer[..n_bytes])
     }
 
     /// Serialize an `f32` value.

@@ -141,8 +141,12 @@ impl Agent {
                 RequestStatusResponse::Rejected { code, message } => {
                     return Err(AgentError::ClientError(code, message))
                 }
-                RequestStatusResponse::Unknown => (),
-                RequestStatusResponse::Pending => (),
+                RequestStatusResponse::Unknown => {
+                    println!("\nunknown\n");
+                }
+                RequestStatusResponse::Pending => {
+                    println!("\npending\n");
+                }
             };
 
             waiter.wait()?;
@@ -203,7 +207,6 @@ impl Agent {
         arg: &Blob,
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
-        eprintln!("1");
         self.submit(SubmitRequest::InstallCode {
             canister_id,
             module,
