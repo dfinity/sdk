@@ -1,14 +1,15 @@
 use crate::config::dfinity::ConfigDefaultsBootstrap;
-use crate::lib::bootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use std::default::Default;
 use std::fs;
 use std::io::{Error, ErrorKind};
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
+use std::str::FromStr;
 use url::{ParseError, Url};
 
 /// Constructs a sub-command to run the bootstrap server.
@@ -49,23 +50,26 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 /// Runs the bootstrap server.
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult { 
+pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = get_config(env, args)?;
-    bootstrap::exec(
-        config.ip.unwrap(),
-        config.port.unwrap(),
-        config.providers.unwrap(),
-        config.root.unwrap(),
-        config.timeout.unwrap(),
+    webserver(
+        SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
+        Url::from_str(config.providers.unwrap().first().unwrap()).unwrap(),
+        &config.root.unwrap(),
+        crossbeam::unbounded().0,
     )
+    .join()
+    .map_err(|e| {
+        DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed while running frontend proxy thead -- {:?}", e),
+        ))
+    })
 }
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
-fn get_config(
-    env: &dyn Environment,
-    args: &ArgMatches<'_>,
-) -> DfxResult<ConfigDefaultsBootstrap> {
+fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ConfigDefaultsBootstrap> {
     let config = get_config_from_file(env);
     let ip = get_ip(&config, args)?;
     let port = get_port(&config, args)?;
