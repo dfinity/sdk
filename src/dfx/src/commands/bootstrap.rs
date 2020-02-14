@@ -52,11 +52,14 @@ pub fn construct() -> App<'static, 'static> {
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = get_config(env, args)?;
+
+    let (sender, receiver) = crossbeam::unbounded();
+
     webserver(
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
         Url::from_str(config.providers.unwrap().first().unwrap()).unwrap(),
         &config.root.unwrap(),
-        crossbeam::unbounded().0,
+        sender,
     )
     .join()
     .map_err(|e| {
@@ -64,7 +67,17 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             ErrorKind::Other,
             format!("Failed while running frontend proxy thead -- {:?}", e),
         ))
-    })
+    })?;
+
+    // Wait for the webserver to be started.
+    let _ = receiver.recv().expect("Failed to receive server...");
+
+    // Tell the user.
+    eprintln!("Webserver started...");
+
+    // And then wait forever.
+    #[allow(clippy::empty_loop)]
+    loop {}
 }
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
