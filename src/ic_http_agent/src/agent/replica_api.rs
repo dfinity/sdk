@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /// Request payloads for the /api/v1/read endpoint.
 /// This never needs to be deserialized.
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "snake_case")]
 #[serde(tag = "request_type")]
 pub(crate) enum ReadRequest<'a> {
     Query {
