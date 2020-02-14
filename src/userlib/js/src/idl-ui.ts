@@ -38,16 +38,18 @@ export function renderComposite(
   dom: HTMLElement,
   id: string,
   idl: Type,
+  open: HTMLElement,
+  event: string,
   render: any,
   parse: any,
 ): HTMLInputElement {
   const input = renderPrimitive(dom, id, idl);
-  const open = document.createElement('button');
-  open.innerText = '...';
   dom.appendChild(open);
 
-  open.addEventListener('click', () => {
-    open.disabled = true;
+  open.addEventListener(event, () => {
+    input.setAttribute('disabled', '');
+    open.setAttribute('disabled', '');
+
     const form = document.createElement('div');
     form.className = 'popup-form';
     const args = render(form, id);
@@ -57,7 +59,9 @@ export function renderComposite(
     open.insertAdjacentElement('afterend', form);
 
     close.addEventListener('click', () => {
-      open.disabled = false;
+      input.setAttribute('disabled');
+      open.removeAttribute('disabled');
+
       const result = parse(args);
       input.value = result;
       (form.parentNode as Node).removeChild(form);
@@ -67,6 +71,9 @@ export function renderComposite(
 }
 
 export function renderRecord(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
+  const open = document.createElement('button');
+  open.innerText = '...';
+
   const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
     const args = [];
     for (const [key, type] of idl._fields) {
@@ -88,24 +95,16 @@ export function renderRecord(dom: HTMLElement, id: string, idl: any): HTMLInputE
     });
     return `{${values.join(', ')}}`;
   };
-  return renderComposite(dom, id, idl, render, parse);
+  return renderComposite(dom, id, idl, open, 'click', render, parse);
 }
 
 export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
-  const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = true;
-    dom.appendChild(checkbox);
-    const opt = idl._type.renderInput(dom, id + '_opt');
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = false;
 
-    checkbox.addEventListener('click', () => {
-      if (checkbox.checked) {
-        opt.style.display = 'block';
-      } else {
-        opt.style.display = 'none';
-      }
-    });
+  const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
+    const opt = idl._type.renderInput(dom, id + '_opt');
     return [checkbox, opt];
   };
   const parse = (args: HTMLInputElement[]): string => {
@@ -115,5 +114,29 @@ export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputE
       return 'null';
     }
   };
-  return renderComposite(dom, id, idl, render, parse);
+  return renderComposite(dom, id, idl, checkbox, 'change', render, parse);
+}
+
+export function renderVariant(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
+  const select = document.createElement('select');
+  for (const [key, type] of idl._fields) {
+    const option = document.createElement('option');
+    option.innerText = key;
+    select.appendChild(option);
+  }
+  select.selectedIndex = -1;
+
+  const render = (dom: HTMLElement, id: string): HTMLElement[] => {
+    const index = select.selectedIndex;
+    const [_, type] = idl._fields[index];
+    const variant = type.renderInput(dom, id + '_' + index);
+    return [select, variant];
+  };
+  const parse = (args: HTMLElement[]): string => {
+    const select = args[0] as HTMLSelectElement;
+    const selected = select.options[select.selectedIndex].text;
+    const val = args[1] as HTMLInputElement;
+    return `{"${selected}":${val.value}}`;
+  };
+  return renderComposite(dom, id, idl, select, 'change', render, parse);
 }

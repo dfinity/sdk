@@ -707,6 +707,10 @@ class VariantClass extends ConstructType<Record<string, any>> {
     }
     throw Error('Variant has no data: ' + x);
   }
+
+  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
+    return UI.renderVariant(dom, id, this);
+  }
 }
 
 /**
@@ -761,7 +765,7 @@ class RecClass<T = any> extends ConstructType<T> {
     if (!this._type) {
       throw Error('Recursive type uninitialized.');
     }
-    return `&mu;${this.name}.${this._type.name}`;
+    return `μ${this.name}.${this._type.name}`;
   }
 
   public valueToString(x: T) {
