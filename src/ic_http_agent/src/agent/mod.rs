@@ -141,12 +141,8 @@ impl Agent {
                 RequestStatusResponse::Rejected { code, message } => {
                     return Err(AgentError::ClientError(code, message))
                 }
-                RequestStatusResponse::Unknown => {
-                    println!("\nunknown\n");
-                }
-                RequestStatusResponse::Pending => {
-                    println!("\npending\n");
-                }
+                RequestStatusResponse::Unknown => (),
+                RequestStatusResponse::Pending => (),
             };
 
             waiter.wait()?;
