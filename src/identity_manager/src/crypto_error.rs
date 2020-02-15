@@ -9,6 +9,7 @@ pub enum Error {
     CryptoError,
     NoProvider,
     IdentityFailedToInitialize,
+    PemError(pem::PemError),
     IOError(std::io::Error),
 }
 
@@ -21,6 +22,12 @@ impl From<ring::error::Unspecified> for Error {
 impl From<ring::error::KeyRejected> for Error {
     fn from(_: ring::error::KeyRejected) -> Self {
         Error::CryptoError
+    }
+}
+
+impl From<pem::PemError> for Error {
+    fn from(e: pem::PemError) -> Self {
+        Error::PemError(e)
     }
 }
 

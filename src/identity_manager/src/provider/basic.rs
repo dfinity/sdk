@@ -18,9 +18,29 @@ pub struct BasicProvider {
 }
 
 impl BasicProvider {
-    pub fn new(path: PathBuf) -> Self {
-        Self { path }
+    pub fn new(path: PathBuf) -> Result<Self> {
+        generate(path.clone())?;
+        Ok(Self { path })
     }
+}
+
+fn generate(path: PathBuf) -> Result<()> {
+    let rng = rand::SystemRandom::new();
+    let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
+    let mut pem_file = path.clone();
+    // We create a temporary file that gets overwritten every time
+    // we create a new provider for now.
+    pem_file.push("creds.pem");
+    fs::write(
+        pem_file.clone(),
+        encode_pem_private_key(&(*pkcs8_bytes.as_ref())),
+    )?;
+
+    assert_eq!(
+        pem::parse(fs::read(pem_file)?)?.contents,
+        pkcs8_bytes.as_ref()
+    );
+    Ok(())
 }
 
 struct BasicProviderReady {
@@ -29,22 +49,10 @@ struct BasicProviderReady {
 
 impl Provider for BasicProvider {
     fn provide(&self) -> Result<Box<dyn IdentityWallet>> {
-        let rng = rand::SystemRandom::new();
-        let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
         let mut pem_file = self.path.clone();
-        // We create a temporary file that gets overwritten every time
-        // we create a new provider for now.
         pem_file.push("creds.pem");
-        fs::write(
-            pem_file.clone(),
-            encode_pem_private_key(&(*pkcs8_bytes.as_ref())),
-        )?;
 
-        assert_eq!(
-            pem::parse(fs::read(pem_file).unwrap()).unwrap().contents,
-            pkcs8_bytes.as_ref()
-        );
-
+        let pkcs8_bytes = pem::parse(fs::read(pem_file)?)?.contents;
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
 
         Ok(Box::new(BasicProviderReady { key_pair }))
@@ -62,12 +70,12 @@ impl IdentityWallet for BasicProviderReady {
         public_key.verify(msg, signature.as_ref())?;
         Ok(Signature {
             signer: self.principal(),
-            signature,
+            signature: signature.as_ref().to_vec(),
             public_key: public_key_bytes.to_vec(),
         })
     }
     fn principal(&self) -> Principal {
-        Principal::new_self_authenticating(&self.key_pair)
+        Principal::self_authenticating(&self.key_pair)
     }
 }
 

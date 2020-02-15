@@ -11,9 +11,22 @@ pub(crate) enum ReadRequest<'a> {
         canister_id: &'a CanisterId,
         method_name: &'a str,
         arg: &'a Blob,
+        sender: common::Blob,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sender_pubkey: Option<common::Blob>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "sender_sig")]
+        signature: Option<common::Blob>,
     },
     RequestStatus {
         request_id: &'a RequestId,
+        // Double check here the public spec and fix as applicable.
+        sender: common::Blob,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sender_pubkey: Option<common::Blob>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "sender_sig")]
+        signature: Option<common::Blob>,
     },
 }
 
@@ -47,11 +60,25 @@ pub(crate) enum SubmitRequest<'a> {
         module: &'a Blob,
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
+        // TODO: We need a common Rust library that http handler pulls
+        // for the API. (On top of the reference implementation)
+        sender: common::Blob,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sender_pubkey: Option<common::Blob>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "sender_sig")]
+        signature: Option<common::Blob>,
     },
     Call {
         canister_id: &'a CanisterId,
         method_name: &'a str,
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
+        sender: common::Blob,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sender_pubkey: Option<common::Blob>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "sender_sig")]
+        signature: Option<common::Blob>,
     },
 }

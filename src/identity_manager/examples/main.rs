@@ -14,9 +14,9 @@ fn main() -> Result<()> {
     let pkcs8_bytes = pem::parse(fs::read("creds.pem").unwrap()).unwrap().contents;
     let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
     let sig = key_pair.sign(MESSAGE);
-    assert_eq!(sig.as_ref(), signed_message.signature.as_ref());
+    assert_eq!(sig.as_ref().to_vec(), signed_message.signature);
     assert_eq!(
-        Principal::new_self_authenticating(&key_pair),
+        Principal::self_authenticating(&key_pair),
         signed_message.signer
     );
     assert_eq!(
@@ -30,10 +30,7 @@ fn main() -> Result<()> {
     peer_public_key.verify(MESSAGE, sig.as_ref())?;
 
     let signed_message_2 = identity.sign(MESSAGE)?;
-    assert_eq!(
-        *signed_message_2.signature.as_ref(),
-        *signed_message.signature.as_ref()
-    );
+    assert_eq!(*signed_message_2.signature, *signed_message.signature);
     assert_eq!(signed_message_2.public_key, signed_message.public_key);
     assert_eq!(signed_message_2.signer, signed_message.signer);
 

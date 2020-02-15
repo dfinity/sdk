@@ -20,9 +20,9 @@ fn main() -> Result<()> {
     let pkcs8_bytes = pem::parse(fs::read(path).unwrap()).unwrap().contents;
     let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
     let sig = key_pair.sign(message.as_bytes());
-    assert_eq!(sig.as_ref(), signed_message.signature.as_ref());
+    assert_eq!(sig.as_ref().to_vec(), signed_message.signature);
     assert_eq!(
-        Principal::new_self_authenticating(&key_pair),
+        Principal::self_authenticating(&key_pair),
         signed_message.signer
     );
     assert_eq!(

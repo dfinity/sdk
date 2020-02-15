@@ -6,5 +6,5 @@ use crate::principal::Principal;
 pub struct Signature {
     pub signer: Principal,
     pub public_key: Vec<u8>,
-    pub signature: ring::signature::Signature,
+    pub signature: Vec<u8>,
 }
