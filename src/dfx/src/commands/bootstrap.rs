@@ -57,7 +57,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     webserver(
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
-        Url::from_str(config.providers.unwrap().first().unwrap()).unwrap(),
+        config
+            .providers
+            .map(|vec| vec.iter().map(|uri| Url::from_str(uri).unwrap()).collect())
+            .unwrap(),
         &config.root.unwrap(),
         sender,
     )
