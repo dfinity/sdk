@@ -98,6 +98,10 @@ export abstract class Type<T = any> {
     return JSON.stringify(x);
   }
 
+  public stringToValue(str: string): T {
+    return JSON.parse(str);
+  }
+
   public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
     return UI.renderPrimitive(dom, id, this);
   }
@@ -795,6 +799,7 @@ export class FuncClass {
     public retTypes: Type[] = [],
     public annotations: string[] = [],
   ) {}
+
   public display(): string {
     const args = this.argTypes.map(arg => arg.display()).join(', ');
     const rets = this.retTypes.map(arg => arg.display()).join(', ');

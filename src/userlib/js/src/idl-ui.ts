@@ -1,4 +1,4 @@
-import { Type } from './idl';
+import { FuncClass, Type } from './idl';
 
 // tslint:disable:no-shadowed-variable
 
@@ -18,7 +18,7 @@ export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLIn
       if (arg.value === '') {
         return;
       }
-      const value = JSON.parse(arg.value);
+      const value = idl.stringToValue(arg.value);
       if (!idl.covariant(value)) {
         throw new Error(`${arg.value} is not of type ${idl.display()}`);
       }
@@ -44,6 +44,7 @@ export function renderComposite(
   parse: any,
 ): HTMLInputElement {
   const input = renderPrimitive(dom, id, idl);
+  input.className = 'composite';
   dom.appendChild(open);
 
   open.addEventListener(event, () => {
@@ -59,12 +60,13 @@ export function renderComposite(
     open.insertAdjacentElement('afterend', form);
 
     close.addEventListener('click', () => {
-      input.setAttribute('disabled');
-      open.removeAttribute('disabled');
-
+      // TODO validate args
       const result = parse(args);
       input.value = result;
+      input.removeAttribute('disabled');
+      open.removeAttribute('disabled');
       (form.parentNode as Node).removeChild(form);
+      input.focus();
     });
   });
   return input;
@@ -103,15 +105,20 @@ export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputE
   checkbox.type = 'checkbox';
   checkbox.checked = false;
 
-  const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
+  const render = (dom: HTMLElement, id: string): HTMLInputElement => {
     const opt = idl._type.renderInput(dom, id + '_opt');
-    return [checkbox, opt];
-  };
-  const parse = (args: HTMLInputElement[]): string => {
-    if (args[0].checked) {
-      return args[1].value;
+    if (!checkbox.checked) {
+      opt.style.display = 'none';
     } else {
+      opt.style.display = 'block';
+    }
+    return opt;
+  };
+  const parse = (arg: HTMLInputElement): string => {
+    if (!checkbox.checked || arg.value === '') {
       return 'null';
+    } else {
+      return arg.value;
     }
   };
   return renderComposite(dom, id, idl, checkbox, 'change', render, parse);
@@ -126,17 +133,15 @@ export function renderVariant(dom: HTMLElement, id: string, idl: any): HTMLInput
   }
   select.selectedIndex = -1;
 
-  const render = (dom: HTMLElement, id: string): HTMLElement[] => {
+  const render = (dom: HTMLElement, id: string): HTMLInputElement => {
     const index = select.selectedIndex;
     const [_, type] = idl._fields[index];
     const variant = type.renderInput(dom, id + '_' + index);
-    return [select, variant];
+    return variant;
   };
-  const parse = (args: HTMLElement[]): string => {
-    const select = args[0] as HTMLSelectElement;
+  const parse = (arg: HTMLInputElement): string => {
     const selected = select.options[select.selectedIndex].text;
-    const val = args[1] as HTMLInputElement;
-    return `{"${selected}":${val.value}}`;
+    return `{"${selected}":${arg.value}}`;
   };
   return renderComposite(dom, id, idl, select, 'change', render, parse);
 }

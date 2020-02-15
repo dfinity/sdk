@@ -28,12 +28,12 @@ function renderMethod(name, idl_func, f) {
     button.innerText = 'Call';
   }
 
-  const arg_length = idl_func.argTypes.length;
-  for (var i = 0; i < arg_length; i++) {
-    const t = idl_func.argTypes[i];
+  const inputs = [];
+  idl_func.argTypes.forEach((arg, i) => {
     const id = `${name}_arg${i}`;
-    t.renderInput(item, id);
-  }
+    const input = arg.renderInput(item, id);
+    inputs.push(input);
+  });
 
   item.appendChild(button);
 
@@ -56,11 +56,7 @@ function renderMethod(name, idl_func, f) {
     right.innerText = ''
     result.style.display = 'block';
     (async function () {
-      var args = [];
-      for (var i = 0; i < arg_length; i++) {
-        const arg = document.getElementById(`${name}_arg${i}`).value;
-        args.push(JSON.parse(arg));
-      }
+      const args = inputs.map((arg, i) => idl_func.argTypes[i].stringToValue(arg.value));
       const t_before = Date.now();
       const result = await f.apply(null, args);
       const duration = (Date.now() - t_before)/1000;
