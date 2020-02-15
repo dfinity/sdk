@@ -67,12 +67,23 @@ if (!canisterId) {
   div.innerText = 'Could not find the canister ID to use. Please provide one in the query parameters.';
   document.body.replaceChild(div, document.body.getElementsByTagName('app').item(0));
 } else {
-  // Load index.js from the canister.
-  icHttpAgent.retrieveAsset(canisterId, 'index.js')
-    .then(content => {
-      const indexJs = new TextDecoder().decode(content);
-      const script = document.createElement('script');
-      script.innerText = indexJs;
-      document.head.appendChild(script);
-    });
+  if (window.location.pathname == '/candid') {
+    // Load candid.js from the canister.
+    icHttpAgent.retrieveAsset(canisterId, 'candid.js')
+      .then(content => {
+        const indexJs = new TextDecoder().decode(content);
+        const script = document.createElement('script');
+        script.innerText = indexJs;
+        document.head.appendChild(script);        
+      });
+  } else {
+    // Load index.js from the canister.
+    icHttpAgent.retrieveAsset(canisterId, 'index.js')
+      .then(content => {
+        const indexJs = new TextDecoder().decode(content);
+        const script = document.createElement('script');
+        script.innerText = indexJs;
+        document.head.appendChild(script);
+      });
+  }
 }
