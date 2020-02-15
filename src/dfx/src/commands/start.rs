@@ -58,7 +58,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let (frontend_url, address_and_port) = frontend_address(args, &config)?;
 
     let client_pathbuf = env.get_cache().get_binary_command_path("replica")?;
-    let nodemanager_pathbuf = env.get_cache().get_binary_command_path("nodemanager")?;
     let temp_dir = env.get_temp_dir();
     let state_root = env.get_temp_dir().join("state");
 
@@ -92,7 +91,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .spawn(move || {
             start_client(
                 &client_pathbuf.clone(),
-                &nodemanager_pathbuf,
                 &pid_file_path,
                 &state_root,
                 is_killed_client,
@@ -233,7 +231,6 @@ fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
 
 fn start_client(
     client_pathbuf: &PathBuf,
-    nodemanager_pathbuf: &PathBuf,
     pid_file_path: &PathBuf,
     state_root: &Path,
     is_killed_client: Receiver<()>,
@@ -247,12 +244,11 @@ fn start_client(
         state_root = state_root.display(),
     );
     let client = client_pathbuf.as_path().as_os_str();
-    let nodemanager = nodemanager_pathbuf.as_path().as_os_str();
     // We use unwrap() here to transmit an error to the parent
     // thread.
     while is_killed_client.is_empty() {
-        let mut cmd = std::process::Command::new(nodemanager);
-        cmd.args(&[client, "--config".as_ref(), config.as_ref()]);
+        let mut cmd = std::process::Command::new(client);
+        cmd.args(&["--config", config.as_ref()]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
