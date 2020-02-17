@@ -24,10 +24,9 @@ impl BasicProvider {
     }
 }
 
-fn generate(path: PathBuf) -> Result<()> {
+fn generate(mut pem_file: PathBuf) -> Result<()> {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
-    let mut pem_file = path.clone();
     // We create a temporary file that gets overwritten every time
     // we create a new provider for now.
     pem_file.push("creds.pem");

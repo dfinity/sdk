@@ -6,8 +6,9 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 const SELF_AUTHENTICATING_PRINCIPAL_LEN: usize = 33;
 
 /// A principal describes the security context of an identity, namely
-/// the role. In the case of the Internet Computer this maps currently
-/// to the identifiers exposed to a canister.
+/// any identity that can be authenticated along with a specific
+/// role. In the case of the Internet Computer this maps currently to
+/// the identities that can be authenticated by a canister.
 ///
 /// Note a principal is not necessarily tied with a public key-pair,
 /// yet we need at least a key-pair of a related principal to sign
@@ -49,7 +50,9 @@ impl<'de> Deserialize<'de> for Principal {
         let bytes = Vec::<u8>::deserialize(deserializer)?;
         let last_byte = bytes
             .last()
-            .ok_or("empty slice of bytes can not be parsed into an principal identifier".to_owned())
+            .ok_or_else(|| {
+                "empty slice of bytes can not be parsed into an principal identifier".to_owned()
+            })
             .map_err(de::Error::custom)?;
         match last_byte {
             0x02 => Ok(Principal(PrincipalInner::SelfAuthenticating(bytes))),
