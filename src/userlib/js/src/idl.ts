@@ -106,6 +106,10 @@ export abstract class Type<T = any> {
     return UI.renderPrimitive(dom, id, this);
   }
 
+  public defaultString(): string | null {
+    return null;
+  }
+
   /* Implement `T` in the IDL spec, only needed for non-primitive types */
   public buildTypeTable(typeTable: TypeTable): void {
     if (!typeTable.has(this)) {
@@ -230,6 +234,10 @@ class UnitClass extends PrimitiveType<null> {
   }
 
   get name() {
+    return 'null';
+  }
+
+  public defaultString(): string | null {
     return 'null';
   }
 }
@@ -523,6 +531,10 @@ class OptClass<T> extends ConstructType<[T] | []> {
     } else {
       return `opt ${this._type.valueToString(x[0])}`;
     }
+  }
+
+  public defaultString(): null | string {
+    return '[]';
   }
 
   public renderInput(dom: HTMLElement, id: string): HTMLInputElement {

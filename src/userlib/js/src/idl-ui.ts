@@ -20,6 +20,10 @@ export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLIn
   arg.className = 'argument';
   arg.id = id;
   arg.placeholder = idl.display();
+  const val = idl.defaultString();
+  if (val) {
+    arg.value = val;
+  }
 
   arg.addEventListener('parse', () => {
     try {
@@ -162,9 +166,9 @@ export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputE
   };
   const parse = (arg: HTMLInputElement[]): string => {
     if (!arg || !arg.length) {
-      return 'null';
+      return '[]';
     } else {
-      return arg[0].value;
+      return '[' + arg[0].value + ']';
     }
   };
   return renderComposite(dom, id, idl, checkbox, 'change', render, parse);
