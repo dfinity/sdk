@@ -13,7 +13,7 @@ function validate(idl: Type, arg: HTMLInputElement): any {
 const parseEvent = new Event('parse');
 
 export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLInputElement {
-  const container = document.createElement('span');    
+  const container = document.createElement('span');
   const status = document.createElement('div');
   status.className = 'status';
   const arg = document.createElement('input');
@@ -39,7 +39,7 @@ export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLIn
   });
   arg.addEventListener('focus', () => {
     arg.className = 'argument';
-  });  
+  });
 
   container.appendChild(arg);
   container.appendChild(status);
@@ -73,7 +73,7 @@ export function renderComposite(
       input.focus();
       return;
     }
-    
+
     const close = document.createElement('button');
     close.innerText = 'X';
     form.appendChild(close);
@@ -87,7 +87,7 @@ export function renderComposite(
       }
       const result = parse(args);
       input.removeAttribute('disabled');
-      open.removeAttribute('disabled');      
+      open.removeAttribute('disabled');
       input.value = result;
       (form.parentNode as Node).removeChild(form);
       input.focus();
