@@ -182,7 +182,7 @@ fn call_rejected() -> Result<(), AgentError> {
             .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
         agent
-            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(1)))
+            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(100)))
             .await
     });
 
@@ -196,6 +196,45 @@ fn call_rejected() -> Result<(), AgentError> {
         }
         _ => unreachable!(),
     }
+
+    Ok(())
+}
+
+#[test]
+fn install() -> Result<(), AgentError> {
+    let canister_id = CanisterId::from_bytes(&[5u8]);
+    let module = Blob::from(&[1, 2]);
+
+    let blob = Blob(Vec::from("Hello World"));
+    let response = ReadResponse::Replied {
+        reply: Some(QueryResponseReply { arg: blob.clone() }),
+    };
+
+    let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
+    let status_mock = mock("POST", "/api/v1/read")
+        .with_status(200)
+        .with_header("content-type", "application/cbor")
+        .with_body(serde_cbor::to_vec(&response)?)
+        .create();
+
+    let agent = Agent::new(AgentConfig {
+        url: &mockito::server_url(),
+        ..AgentConfig::default()
+    })?;
+
+    let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+    let result = runtime.block_on(async {
+        let request_id = agent.install(&canister_id, &module, &Blob::empty()).await?;
+        agent.request_status(&request_id).await
+    });
+
+    submit_mock.assert();
+    status_mock.assert();
+
+    assert_eq!(
+        result?,
+        RequestStatusResponse::Replied { reply: Some(blob) }
+    );
 
     Ok(())
 }

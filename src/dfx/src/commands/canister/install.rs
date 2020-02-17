@@ -4,7 +4,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::{Agent, Blob, RequestId};
+use ic_http_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};
+use std::convert::TryInto;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -30,9 +31,22 @@ pub fn construct() -> App<'static, 'static> {
                 .long("async")
                 .takes_value(false),
         )
+        .arg(
+            Arg::with_name("compute-allocation")
+                .help(UserMessage::InstallComputeAllocation.to_str())
+                .long("compute-allocation")
+                .short("c")
+                .takes_value(true)
+                .default_value("0")
+                .validator(compute_allocation_validator),
+        )
 }
 
-async fn install_canister(agent: &Agent, canister_info: &CanisterInfo) -> DfxResult<RequestId> {
+async fn install_canister(
+    agent: &Agent,
+    canister_info: &CanisterInfo,
+    compute_allocation: ComputeAllocation,
+) -> DfxResult<RequestId> {
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
@@ -47,9 +61,23 @@ async fn install_canister(agent: &Agent, canister_info: &CanisterInfo) -> DfxRes
     let wasm = std::fs::read(wasm_path)?;
 
     agent
-        .install(&canister_id, &Blob::from(wasm), &Blob::empty())
+        .install_with_attrs(
+            &canister_id,
+            &Blob::from(wasm),
+            &Blob::empty(),
+            &CanisterAttributes { compute_allocation },
+        )
         .await
         .map_err(DfxError::from)
+}
+
+fn compute_allocation_validator(compute_allocation: String) -> Result<(), String> {
+    if let Ok(num) = compute_allocation.parse::<u64>() {
+        if num <= 100 {
+            return Ok(());
+        }
+    }
+    Err("Must be a percent between 0 and 100".to_string())
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -59,11 +87,20 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let compute_allocation: ComputeAllocation = args
+        .value_of("compute-allocation")
+        .unwrap_or("0")
+        .parse::<u64>()
+        .unwrap()
+        .try_into()
+        .expect("Compute Allocation must be a percentage.");
+
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     if let Some(canister_name) = args.value_of("canister_name") {
         let canister_info = CanisterInfo::load(&config, canister_name)?;
-        let request_id = runtime.block_on(install_canister(&agent, &canister_info))?;
+        let request_id =
+            runtime.block_on(install_canister(&agent, &canister_info, compute_allocation))?;
 
         if args.is_present("async") {
             eprint!("Request ID: ");
@@ -80,7 +117,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
                 let canister_info = CanisterInfo::load(&config, canister_name)?;
-                let request_id = runtime.block_on(install_canister(&agent, &canister_info))?;
+                let request_id = runtime.block_on(install_canister(
+                    &agent,
+                    &canister_info,
+                    compute_allocation,
+                ))?;
 
                 if args.is_present("async") {
                     eprint!("Request ID: ");
