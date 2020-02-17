@@ -100,7 +100,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let bootstrap_dir = env
         .get_cache()
-        .get_binary_command_path("js-user-library/dist/bootstrap")?;
+        .get_binary_command_path("js-user-library/bootstrap")?;
     let frontend_watchdog = webserver(
         address_and_port,
         vec![url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap()],
