@@ -462,16 +462,16 @@ class VecClass<T> extends ConstructType<T[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-class OptClass<T> extends ConstructType<T[]> {
+class OptClass<T> extends ConstructType<[T] | []> {
   constructor(protected _type: Type<T>) {
     super();
   }
 
-  public covariant(x: any[]): x is T[] {
+  public covariant(x: any): x is [T] | [] {
     return Array.isArray(x) && (x.length === 0 || (x.length === 1 && this._type.covariant(x[0])));
   }
 
-  public encodeValue(x: T[]) {
+  public encodeValue(x: [T] | []) {
     if (x.length === 0) {
       return Buffer.from([0]);
     } else {
@@ -487,7 +487,7 @@ class OptClass<T> extends ConstructType<T[]> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public decodeValue(b: Pipe): T[] {
+  public decodeValue(b: Pipe): [T] | [] {
     const len = b.read(1).toString('hex');
     if (len === '00') {
       return [];
@@ -500,7 +500,7 @@ class OptClass<T> extends ConstructType<T[]> {
     return `opt ${this._type.name}`;
   }
 
-  public valueToString(x: T[]) {
+  public valueToString(x: [T] | []) {
     if (x.length === 0) {
       return 'null';
     } else {
