@@ -281,10 +281,9 @@ fn ping_okay() -> Result<(), AgentError> {
 // expected to hit the server at ~ 0ms and ~ 400 ms, and then shut down at 600ms, so we check that
 // the server got two requests.
 fn ping_error() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/read")
-        .expect(2)
-        .with_status(500)
-        .create();
+    // This mock is never asserted as we don't know (nor do we need to know) how many times
+    // it is called.
+    let _read_mock = mock("GET", "/api/v1/read").with_status(500).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -295,14 +294,12 @@ fn ping_error() -> Result<(), AgentError> {
         agent
             .ping(
                 Waiter::builder()
-                    .throttle(Duration::from_millis(400))
-                    .timeout(Duration::from_millis(600))
+                    .throttle(Duration::from_millis(4))
+                    .timeout(Duration::from_millis(6))
                     .build(),
             )
             .await
     });
-
-    read_mock.assert();
 
     assert!(result.is_err());
 
