@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use clap::ArgMatches;
 
+mod bootstrap;
 mod build;
 mod cache;
 mod canister;
@@ -39,6 +40,7 @@ impl CliCommand {
 /// Returns all builtin commands understood by DFx.
 pub fn builtin() -> Vec<CliCommand> {
     vec![
+        CliCommand::new(bootstrap::construct(), bootstrap::exec),
         CliCommand::new(build::construct(), build::exec),
         CliCommand::new(cache::construct(), cache::exec),
         CliCommand::new(canister::construct(), canister::exec),
