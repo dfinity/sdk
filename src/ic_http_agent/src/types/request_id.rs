@@ -203,23 +203,28 @@ impl<'a> ser::Serializer for &'a mut RequestIdSerializer {
     }
 
     /// Serialize a `u8` value.
-    fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
-        Err(RequestIdError::UnsupportedTypeU8)
+    fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
+        self.serialize_u64(v as u64)
     }
 
     /// Serialize a `u16` value.
-    fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
-        Err(RequestIdError::UnsupportedTypeU16)
+    fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
+        self.serialize_u64(v as u64)
     }
 
     /// Serialize a `u32` value.
-    fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
-        Err(RequestIdError::UnsupportedTypeU32)
+    fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
+        self.serialize_u64(v as u64)
     }
 
     /// Serialize a `u64` value.
-    fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
-        Err(RequestIdError::UnsupportedTypeU64)
+    fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
+        // 10 bytes is enough for a 64-bit number in leb128.
+        let mut buffer = [0; 10];
+        let mut writable = &mut buffer[..];
+        let n_bytes = leb128::write::unsigned(&mut writable, v)
+            .map_err(|e| RequestIdError::Custom(format!("{}", e)))?;
+        self.serialize_bytes(&buffer[..n_bytes])
     }
 
     /// Serialize an `f32` value.

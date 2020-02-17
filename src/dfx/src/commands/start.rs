@@ -167,19 +167,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             // >>>>>>> origin/master:src/dfx/src/commands/start.rs
         })?;
 
-    let provider: String = match config
-        .get_config()
-        .get_defaults()
-        .get_start()
-        .provider
-        .clone()
-    {
-        Some(provider) => provider,
-        None => IC_CLIENT_BIND_ADDR.to_owned(),
-    };
     let bootstrap_dir = env
         .get_cache()
-        .get_binary_command_path("js-user-library/dist/bootstrap")?;
+        .get_binary_command_path("js-user-library/bootstrap")?;
 
     // Now we can read the file. If there are no contents we need to
     // fail. We check if the watcher thinks the file has been written.
@@ -197,6 +187,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // change, and thus restart the proxy process.
     let is_killed = is_killed_client.clone();
 
+    // TODO XXX -- Add an object -- it is ridiculous now.
     let frontend_watchdog = spawn_and_update_proxy(
         address_and_port,
         client_port_path.clone(),
@@ -210,6 +201,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     .as_path(),
             )
             .as_path(),
+        vec![url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap()],
+        &bootstrap_dir,
         give_actix,
         actix_handler.clone(),
         rcv_wait_fwatcher,

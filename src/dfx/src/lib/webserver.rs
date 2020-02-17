@@ -6,7 +6,8 @@ use actix_web::{http, middleware, web, App, Error, HttpRequest, HttpResponse, Ht
 use crossbeam::channel::Sender;
 use futures::Future;
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 /// The amount of time to wait for the client to answer, in seconds.
@@ -14,13 +15,22 @@ use url::Url;
 /// even though our normal canister commands don't have timeouts themselves.
 const FORWARD_REQUEST_TIMEOUT_IN_SECS: u64 = 20;
 
+struct ForwardActixData {
+    pub providers: Vec<Url>,
+    pub counter: usize,
+}
+
 fn forward(
     req: HttpRequest,
     payload: web::Payload,
-    url: web::Data<Url>,
     client: web::Data<Client>,
+    actix_data: web::Data<Arc<Mutex<ForwardActixData>>>,
 ) -> impl Future<Item = HttpResponse, Error = Error> {
-    let mut new_url = url.get_ref().clone();
+    let mut data = actix_data.lock().unwrap();
+    data.counter += 1;
+    let count = data.counter;
+
+    let mut new_url = data.providers[count % data.providers.len()].clone();
     new_url.set_path(req.uri().path());
     new_url.set_query(req.uri().query());
 
@@ -56,6 +66,7 @@ fn forward(
 pub fn run_webserver(
     bind: SocketAddr,
     client_api_port: String,
+    providers: Vec<url::Url>,
     serve_dir: PathBuf,
     inform_parent: Sender<Server>,
 ) -> Result<(), std::io::Error> {
@@ -69,12 +80,20 @@ pub fn run_webserver(
     let client_api_uri =
         url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");
     eprintln!("client: {:?}", client_api_uri);
+    eprint!("client(s): ");
+    providers.iter().for_each(|uri| eprint!("{} ", uri));
+    eprint!("\n");
+
     let _sys = System::new("dfx-frontend-http-server");
+    let forward_data = Arc::new(Mutex::new(ForwardActixData {
+        providers,
+        counter: 0,
+    }));
 
     let handler = HttpServer::new(move || {
         App::new()
             .data(Client::new())
-            .data(client_api_uri.clone())
+            .data(forward_data.clone())
             .wrap(
                 Cors::new()
                     .allowed_methods(vec!["POST"])
@@ -84,7 +103,7 @@ pub fn run_webserver(
                     .max_age(3600),
             )
             .wrap(middleware::Logger::default())
-            .service(web::scope(client_api_uri.path()).default_service(web::to_async(forward)))
+            .service(web::scope("/api").default_service(web::to_async(forward)))
             .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
     })
     .bind(bind)?
@@ -100,3 +119,33 @@ pub fn run_webserver(
 
     Ok(())
 }
+// <<<<<<< HEAD
+// ||||||| merged common ancestors
+
+// pub fn webserver(
+//     bind: SocketAddr,
+//     client_api_uri: url::Url,
+//     serve_dir: &Path,
+//     inform_parent: Sender<Server>,
+// ) -> std::thread::JoinHandle<()> {
+//     let serve_dir = PathBuf::from(serve_dir);
+//     std::thread::Builder::new()
+//         .name("Frontend".into())
+//         .spawn(move || run_webserver(bind, client_api_uri, serve_dir, inform_parent).unwrap())
+//         .unwrap()
+// }
+// =======
+
+// pub fn webserver(
+//     bind: SocketAddr,
+//     clients_api_uri: Vec<url::Url>,
+//     serve_dir: &Path,
+//     inform_parent: Sender<Server>,
+// ) -> std::thread::JoinHandle<()> {
+//     let serve_dir = PathBuf::from(serve_dir);
+//     std::thread::Builder::new()
+//         .name("Frontend".into())
+//         .spawn(move || run_webserver(bind, clients_api_uri, serve_dir, inform_parent).unwrap())
+//         .unwrap()
+// }
+// >>>>>>> origin/master
