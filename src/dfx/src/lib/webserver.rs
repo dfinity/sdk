@@ -148,4 +148,12 @@ pub fn run_webserver(
 //         .spawn(move || run_webserver(bind, clients_api_uri, serve_dir, inform_parent).unwrap())
 //         .unwrap()
 // }
-// >>>>>>> origin/master
+
+pub fn webserver(
+    bind: SocketAddr,
+    clients_api_uri: Vec<url::Url>,
+    serve_dir: &Path,
+    inform_parent: Sender<Server>,
+) -> std::thread::JoinHandle<()> {
+    unimplemented!()
+}

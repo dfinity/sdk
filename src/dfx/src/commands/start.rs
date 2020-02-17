@@ -4,6 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::proxy::{Proxy, ProxyConfig};
+
 use actix_server::Server;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
@@ -21,6 +22,7 @@ use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -56,7 +58,10 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
         .map_err(DfxError::from)
 }
 
-// TODO: Refactor exec into more manageable pieces.
+// TODO: Refactor exec into more manageable pieces. XXX
+//
+//
+// Rename to replica
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
@@ -74,7 +79,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let client_configuration_dir = env.get_dfx_root().unwrap().join("client-configuration");
     fs::create_dir_all(&client_configuration_dir)?;
     let client_configuration_path = client_configuration_dir.join("client-1.toml");
-    fs::File::create(&client_configuration_path)?;
     let client_port_path = client_configuration_dir.join("client-1.port");
 
     write_client_configuration(&client_configuration_path, &client_port_path)?;
@@ -82,7 +86,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // that. This ensures if we read the file and it has contents we
     // can assume it is due to our spawned client process.
     std::fs::write(&client_port_path, "")?;
-
     // We are doing this here to make sure we can write to the temp pid file.
     std::fs::write(&pid_file_path, "")?;
 
@@ -171,6 +174,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_cache()
         .get_binary_command_path("js-user-library/bootstrap")?;
 
+    //     std::thread::sleep(Duration::from_millis(20));
+    // >>>>>>> Stashed changes:dfx/src/commands/start.rs
     // Now we can read the file. If there are no contents we need to
     // fail. We check if the watcher thinks the file has been written.
     // let client_port: String = watcher.join().map_err(|e| {
@@ -395,6 +400,7 @@ fn start_client(
 }
 
 fn write_client_configuration(configuration_path: &PathBuf, port_file_path: &PathBuf) -> DfxResult {
+    let handle = fs::File::create(&configuration_path)?;
     let config = generate_client_configuration(port_file_path)?;
     eprintln!(
         "Writing client configuration file to: {:?}",
@@ -453,13 +459,12 @@ fn spawn_and_update_proxy(
             let mut proxy = Proxy::new(proxy_config);
             // Start the proxy first. Below, we panic to propagate the error
             // to the parent thread as an error via join().
-
             while is_killed.is_empty() {
                 // Check the port and then start the proxy. Below, we panic to propagate the error
                 // to the parent thread as an error via join().
-
+                eprintln!("Checking client!");
                 let port = retrieve_client_port(
-                    Some(proxy.port()),
+                    None,
                     &client_port_path,
                     rcv_wait_fwatcher.clone(),
                     request_stop_echo.clone(),
@@ -467,7 +472,8 @@ fn spawn_and_update_proxy(
                 )
                 .expect("Failed to watch port configuration file");
                 proxy = if is_killed.is_empty() && port != proxy.port() {
-                    let proxy = proxy.set_client_api_port(port).clone();
+                    let proxy = proxy.set_client_api_port(port.clone()).clone();
+                    eprintln!("Client bound at {}", port);
                     proxy
                         .restart(inform_parent.clone(), server_receiver.clone())
                         .expect("Failed to restart the proxy")
@@ -491,14 +497,14 @@ fn retrieve_client_port(
             format!("Failed to create watcher for port pid file: {}", e),
         ))
     })?;
-    if let Some(port_on_enter_ok) = port_on_enter {
-        let port_after_enter =
-            fs::read_to_string(&client_port_path).map_err(DfxError::RuntimeError)?;
-        if port_on_enter_ok == port_after_enter {
-            // Do not block if the port is the one we expected.
-            return Ok(port_after_enter);
-        }
-    }
+    // if let Some(port_on_enter_ok) = port_on_enter {
+    //     let port_after_enter =
+    //         fs::read_to_string(&client_port_path).map_err(DfxError::RuntimeError)?;
+    //     if port_on_enter_ok != port_after_enter {
+    //         // Do not block if the port is the one we expected.
+    //         return Ok(port_after_enter);
+    //     }
+    // }
     watcher
         .watch(&client_port_path, move |event| {
             if let Ok(e) = rcv_wait_fwatcher.try_recv() {

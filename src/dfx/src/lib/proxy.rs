@@ -7,12 +7,15 @@ use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
+/// A proxy that forwards requests from the cli to the network.
 #[derive(Clone, Debug)]
 pub struct Proxy {
     config: ProxyConfig,
     server_handle: ProxyServer,
 }
 
+/// Provide basic information to the proxy about the API port, the
+/// address and the serve directory.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProxyConfig {
     pub client_api_port: String,
@@ -74,7 +77,11 @@ impl Proxy {
             }
         }
     }
-    #[inline(always)]
+
+    /// Start a proxy with the provided configuration. Returns a proxy
+    /// handle.  Can fail to return a new proxy.
+    /// # Panics
+    /// Currently, we panic if the underlying webserver does not start.
     pub fn start(self, sender: Sender<Server>, receiver: Receiver<Server>) -> Result<Self> {
         run_webserver(
             self.config.bind,
@@ -90,7 +97,8 @@ impl Proxy {
         Ok(new_server)
     }
 
-    #[inline(always)]
+    /// Set the api port used by the replica. Returns a new proxy
+    /// object, but does not restart the proxy.
     pub fn set_client_api_port(self, client_api_port: String) -> Self {
         let mut handle = self;
         handle.config.client_api_port = client_api_port;
@@ -98,7 +106,6 @@ impl Proxy {
     }
 
     /// Restart a proxy with a new configuration.
-    //
     pub fn restart(self, sender: Sender<Server>, receiver: Receiver<Server>) -> Result<Self> {
         let config = self.config.clone();
         let mut handle = self.shutdown()?;
@@ -110,4 +117,10 @@ impl Proxy {
     pub fn port(&self) -> String {
         self.config.client_api_port.clone()
     }
+}
+
+///
+pub struct CoordinateProxy {
+    inform_parent: Sender<Server>,
+    server_receiver: Receiver<Server>,
 }
