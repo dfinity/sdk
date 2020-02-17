@@ -11,20 +11,16 @@ export function lebEncode(value: number | BigNumber): Buffer {
   if (value.lt(0)) {
     throw new Error('Cannot leb encode negative values.');
   }
-  if (value.eq(0)) {
-    // Clamp to 0.
-    return Buffer.from([0]);
-  }
 
   const pipe = new Pipe();
-  while (value.gt(0)) {
+  while (true) {
     const i = value.mod(0x80).toNumber();
     value = value.idiv(0x80);
-
-    if (value.gt(0)) {
-      pipe.write([i | 0x80]);
-    } else {
+    if (value.eq(0)) {
       pipe.write([i]);
+      break;
+    } else {
+      pipe.write([i | 0x80]);
     }
   }
 
@@ -49,35 +45,34 @@ export function slebEncode(value: BigNumber | number): Buffer {
   if (typeof value === 'number') {
     value = new BigNumber(value);
   }
+  value = value.integerValue();
 
-  if (value.gte(0)) {
-    return lebEncode(value);
+  const isNeg = value.lt(0);
+  if (isNeg) {
+    value = value.abs().minus(1);
   }
-
-  value = value
-    .abs()
-    .integerValue()
-    .minus(1);
-
-  // We need to special case 0, as it would return an empty buffer. Since
-  // we removed 1 above, this is really -1.
-  if (value.eq(0)) {
-    return Buffer.from([0x7f]);
-  }
-
   const pipe = new Pipe();
-  while (value.gt(0)) {
-    // We swap the bits here again, and remove 1 to do two's complement.
-    const i = 0x80 - value.mod(0x80).toNumber() - 1;
+  while (true) {
+    const i = getLowerBytes(value);
     value = value.idiv(0x80);
-
-    if (value.gt(0)) {
-      pipe.write([i | 0x80]);
-    } else {
+    if ((isNeg && value.eq(0) && (i & 0x40) !== 0) ||
+        (!isNeg && value.eq(0) && (i & 0x40) === 0)) {
       pipe.write([i]);
+      break;
+    } else {
+      pipe.write([i | 0x80]);
     }
   }
 
+  function getLowerBytes(num: BigNumber): number {
+    const bytes = num.mod(0x80).toNumber();
+    if (isNeg) {
+      // We swap the bits here again, and remove 1 to do two's complement.
+      return 0x80 - bytes - 1;
+    } else {
+      return bytes;
+    }
+  }
   return pipe.buffer;
 }
 
