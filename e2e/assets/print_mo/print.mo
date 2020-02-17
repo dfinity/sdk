@@ -1,5 +1,7 @@
+import Debug "mo:stdlib/debug";
+
 actor HelloActor {
   public func hello() : async () {
-    debugPrint("Hello, World! from DFINITY \n");
+    Debug.print("Hello, World! from DFINITY \n");
   }
 };

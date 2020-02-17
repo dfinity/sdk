@@ -7,14 +7,14 @@
 # Returns:
 #   none
 assert_command() {
-    eval "$( ("$@") \
-        2> >(out2=$(cat); declare -x -p out2) \
-         > >(out1=$(cat); declare -x -p out1); \
-        status=$?; declare -x -p status \
-    )"
+    local stderrf="$(mktemp)"
+    local stdoutf="$(mktemp)"
+    local statusf="$(mktemp)"
+    ( set +e; "$@" 2>"$stderrf" >"$stdoutf"; echo -n "$?" > "$statusf" )
+    status="$(<$statusf)"; rm "$statusf"
 
-    stderr="$out2"
-    stdout="$out1"
+    stderr="$(cat $stderrf)"; rm "$stderrf"
+    stdout="$(cat $stdoutf)"; rm "$stdoutf"
     output="$( \
         [ "$stderr" ] && echo $stderr || true; \
         [ "$stdout" ] && echo $stdout || true; \
@@ -33,14 +33,14 @@ assert_command() {
 # Returns:
 #   none
 assert_command_fail() {
-    eval "$( ("$@") \
-        2> >(out2=$(cat); declare -x -p out2) \
-         > >(out1=$(cat); declare -x -p out1); \
-        status=$?; declare -x -p status \
-    )"
+    local stderrf="$(mktemp)"
+    local stdoutf="$(mktemp)"
+    local statusf="$(mktemp)"
+    ( set +e; "$@" 2>"$stderrf" >"$stdoutf"; echo -n "$?" >"$statusf" )
+    status="$(<$statusf)"; rm "$statusf"
 
-    stderr="$out2"
-    stdout="$out1"
+    stderr="$(cat $stderrf)"; rm "$stderrf"
+    stdout="$(cat $stdoutf)"; rm "$stdoutf"
     output="$(
         [ "$stderr" ] && echo $stderr || true;
         [ "$stdout" ] && echo $stdout || true;
@@ -69,6 +69,12 @@ assert_match() {
          | batslib_decorate "output does not match" \
          | fail)
 }
+
+# Asserts a command will timeout. This assertion will fail if the command finishes before
+# the timeout period. If the command fails, it will also fail.
+# Arguments:
+#   $1 - The amount of time (in seconds) to wait for.
+#   $@ - The command to run.
 
 # Asserts that two values are equal.
 # Arguments:

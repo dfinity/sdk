@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "dfx",
-    "lib/dfx_derive",
-    "lib/dfx_info",
-    "lib/ic_http_agent",
-    "lib/serde_idl",
+    "src/dfx",
+    "src/dfx_derive",
+    "src/dfx_info",
+    "src/ic_http_agent",
+    "src/serde_idl",
 ]

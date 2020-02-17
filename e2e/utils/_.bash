@@ -47,3 +47,11 @@ dfx_start() {
         "until nc -z localhost ${port}; do echo waiting for client; sleep 1; done" \
         || (echo "could not connect to client on port ${port}" && exit 1)
 }
+
+# Stop the client and verify it is very very stopped.
+dfx_stop() {
+    dfx stop
+
+    # Verify that processes are killed.
+    ! ( ps | grep " [d]fx start" )
+}

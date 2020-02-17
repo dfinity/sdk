@@ -1,6 +1,20 @@
 {
+    "advisory-db": {
+        "branch": "master",
+        "builtin": false,
+        "description": "Security advisory database for Rust crates published through crates.io",
+        "homepage": "https://rustsec.org",
+        "owner": "RustSec",
+        "repo": "advisory-db",
+        "rev": "891a872b7303281141cc554dc78279d91ce1efd7",
+        "sha256": "0r2figyrax8db3d5l50yxkybpgdlf0xm16l4ks5c1ymx8p3gjk0x",
+        "type": "tarball",
+        "url": "https://github.com/RustSec/advisory-db/archive/891a872b7303281141cc554dc78279d91ce1efd7.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "bats-support": {
         "branch": "v0.3.0",
+        "builtin": false,
         "description": "Supporting library for Bats test helpers",
         "homepage": null,
         "owner": "ztombol",
@@ -11,16 +25,35 @@
         "url": "https://github.com/ztombol/bats-support/archive/24a72e14349690bcbf7c151b9d2d1cdd32d36eb1.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "common": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/common",
+        "rev": "7cf0a0864bf0670a7cad441067af0178fe51d506",
+        "type": "git"
+    },
+    "dfinity": {
+        "ref": "v0.5.0-alpha.0",
+        "repo": "ssh://git@github.com/dfinity-lab/dfinity",
+        "rev": "85aa86a2b2a5fbba63caff11e38c3d157636658c",
+        "type": "git"
+    },
+    "motoko": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/motoko",
+        "rev": "c178e042321ae45fe9c0bb3842f04abb423e043d",
+        "type": "git"
+    },
     "napalm": {
         "branch": "master",
+        "builtin": false,
         "description": "Support for building npm packages in Nix and lightweight npm registry",
         "homepage": "",
         "owner": "nmattia",
         "repo": "napalm",
-        "rev": "efa23622d704082359439ad8add0a185b4ebb56c",
-        "sha256": "0cbxyv23kzqqa54z4w7z9cvk96z19d5ghsh9vzbwsp07baabsakm",
+        "rev": "f8deeacc6c7fc182f15cab13819abb1bbbd9293e",
+        "sha256": "0mvyjblmd01dqyvb1i6cramjy35kn439wihabjp29vsz7b41aca6",
         "type": "tarball",
-        "url": "https://github.com/nmattia/napalm/archive/efa23622d704082359439ad8add0a185b4ebb56c.tar.gz",
+        "url": "https://github.com/nmattia/napalm/archive/f8deeacc6c7fc182f15cab13819abb1bbbd9293e.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

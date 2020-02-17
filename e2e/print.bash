@@ -10,7 +10,7 @@ setup() {
 }
 
 teardown() {
-    dfx stop
+    dfx_stop
 }
 
 @test "print_mo" {

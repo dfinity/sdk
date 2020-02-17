@@ -1,0 +1,14 @@
+{
+  "extends": [
+    "config:base"
+  ],
+  "assignees": [
+      "eftychis",
+      "hansl"
+  ],
+  "automerge": false,
+  "schedule": [
+      "before 7am every weekday",
+      "weekends"
+  ]
+}
