@@ -19,7 +19,7 @@ const aliases = Object.entries(dfxJson.canisters).reduce((acc, [name,value]) => 
     process.env["HOME"],
     ".cache/dfinity/versions",
     dfxJson.dfx || process.env["DFX_VERSION"],
-    "js-user-library/",
+    "js-user-library/dist/lib.prod.js",
   ),
 });
 

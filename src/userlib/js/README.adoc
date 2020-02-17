@@ -1,28 +1,5 @@
-= JavaScript User Library
-
-This is an internal document and is not published to NPM. The public facing README is in
-`./README.md`. This file can be safely removed once we are open sourced.
-
-Package: `@internet-computer/userlib`
+= js-user-library
 
 == Development
 
-=== How to build and use locally
-
-In this repo:
-
-[source,bash]
-cd src/userlib/js  # You are here
-npm install
-npm run build
-pwd  # Keep this
-cp -rf . $(dfx cache show)
-
-Alternatively, it might be easier to simply create a symlink;
-
-[source,bash]
-rm -rf $(dfx cache show)/js-user-library
-ln -s src/userlib/js $(dfx cache show)/js-user-library
-
-Then you just need to run `npm run build` when you change the code. You can also use
-`npm run build -- --watch` for a quick watch mode.
+Run `nix-shell` in this directory, and then use `npm` as normal.
