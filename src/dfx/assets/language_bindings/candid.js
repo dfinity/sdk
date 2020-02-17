@@ -12,6 +12,8 @@ const console = document.createElement("div");
 console.className = 'console';
 document.body.appendChild(console);
 
+const parseEvent = new Event('parse');    
+
 function renderMethod(name, idl_func, f) {
   const item = document.createElement("li");
 
@@ -51,6 +53,12 @@ function renderMethod(name, idl_func, f) {
   list.append(item);
 
   button.addEventListener("click", function() {
+    inputs.forEach(arg => arg.dispatchEvent(parseEvent));
+    const isReject = inputs.some(arg => arg.classList.contains('reject'));
+    if (isReject) {
+      return;
+    }
+    
     left.className = 'left';
     left.innerText = 'Waiting...';
     right.innerText = ''
