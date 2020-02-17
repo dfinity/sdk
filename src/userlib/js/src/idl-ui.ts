@@ -62,9 +62,6 @@ export function renderComposite(
   container.appendChild(open);
 
   open.addEventListener(event, () => {
-    input.setAttribute('disabled', '');
-    open.setAttribute('disabled', '');
-
     const form = document.createElement('div');
     form.className = 'popup-form';
     const args = render(form, id);
@@ -74,6 +71,8 @@ export function renderComposite(
       return;
     }
 
+    input.setAttribute('disabled', '');
+    open.setAttribute('disabled', '');
     const close = document.createElement('button');
     close.innerText = 'X';
     form.appendChild(close);
