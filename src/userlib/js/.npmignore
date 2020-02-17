@@ -7,7 +7,7 @@
 !src/**/*.js
 !types/**/*.d.ts
 !package.json
-!README.adoc
+!README.md
 
 # The following line further removes all test files (which matches .js and .d.ts).
 src/**/*.test.*
