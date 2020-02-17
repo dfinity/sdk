@@ -69,7 +69,10 @@ let
                   cp ${pkgs.motoko.didc}/bin/didc $out
                   cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
                   mkdir $out/stdlib && cp -R ${pkgs.motoko.stdlib}/. $out/stdlib
-                  mkdir $out/js-user-library && cp -R ${userlib-js}/. $out/js-user-library
+
+                  mkdir $out/js-user-library
+                  tar xvzf ${userlib-js.out}/internet-computer-*.tgz --strip-component 1 --directory $out/js-user-library
+                  cp -R ${userlib-js.lib}/node_modules $out/js-user-library
                 '';
               }
             )

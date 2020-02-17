@@ -1,3 +1,9 @@
-dist/
-out/
+build_info.json
 node_modules/
+dist/
+**/*.js
+**/*.js.map
+**/*.d.ts
+
+# Cannot ignore candid.js, the last bastion of JS code in our app.
+bootstrap/candid/candid.js
