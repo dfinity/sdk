@@ -462,20 +462,20 @@ class VecClass<T> extends ConstructType<T[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-class OptClass<T> extends ConstructType<T | null> {
+class OptClass<T> extends ConstructType<[T] | []> {
   constructor(protected _type: Type<T>) {
     super();
   }
 
-  public covariant(x: any): x is T | null {
-    return x === null || this._type.covariant(x);
+  public covariant(x: any): x is [T] | [] {
+    return Array.isArray(x) && (x.length === 0 || (x.length === 1 && this._type.covariant(x[0])));
   }
 
-  public encodeValue(x: T | null) {
-    if (x === null) {
+  public encodeValue(x: [T] | []) {
+    if (x.length === 0) {
       return Buffer.from([0]);
     } else {
-      return Buffer.concat([Buffer.from([1]), this._type.encodeValue(x)]);
+      return Buffer.concat([Buffer.from([1]), this._type.encodeValue(x[0])]);
     }
   }
 
@@ -487,12 +487,12 @@ class OptClass<T> extends ConstructType<T | null> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public decodeValue(b: Pipe): T | null {
+  public decodeValue(b: Pipe): [T] | [] {
     const len = b.read(1).toString('hex');
     if (len === '00') {
-      return null;
+      return [];
     } else {
-      return this._type.decodeValue(b);
+      return [this._type.decodeValue(b)];
     }
   }
 
@@ -500,11 +500,11 @@ class OptClass<T> extends ConstructType<T | null> {
     return `opt ${this._type.name}`;
   }
 
-  public valueToString(x: T | null) {
-    if (x === null) {
+  public valueToString(x: [T] | []) {
+    if (x.length === 0) {
       return 'null';
     } else {
-      return `opt ${this._type.valueToString(x)}`;
+      return `opt ${this._type.valueToString(x[0])}`;
     }
   }
 }
