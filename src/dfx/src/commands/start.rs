@@ -175,6 +175,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let frontend_watchdog = spawn_and_update_proxy(
         proxy_config,
         client_port_path,
+        // =======
+        //         .get_binary_command_path("js-user-library/dist/bootstrap")?;
+        //     let frontend_watchdog = webserver(
+        //         address_and_port,
+        //         vec![url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap()],
+        //         &bootstrap_dir,
+        // >>>>>>> origin/master
         give_actix,
         actix_handler.clone(),
         rcv_wait_fwatcher,
