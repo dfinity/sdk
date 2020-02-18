@@ -63,7 +63,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .unwrap(),
         &config.root.unwrap(),
         sender,
-    )
+    )?
     .join()
     .map_err(|e| {
         DfxError::RuntimeError(Error::new(

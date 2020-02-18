@@ -20,13 +20,11 @@ use serde::Serialize;
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::Duration;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
-
-const TIMEOUT_IN_SECS: u64 = 10;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("start")
@@ -78,7 +76,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let client_configuration_dir = temp_dir.join("client-configuration");
     fs::create_dir_all(&client_configuration_dir)?;
-    let client_configuration_path = client_configuration_dir.join("client-1.toml");
     let client_port_path = client_configuration_dir.join("client-1.port");
 
     // write_client_configuration(&client_configuration_path, &client_port_path)?;
@@ -128,7 +125,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .name("NodeManager".into())
         .spawn({
             let is_killed_client = is_killed_client.clone();
-            let request_stop = request_stop.clone();
             let client_port_path = client_port_path.clone();
             move || {
                 start_client(
@@ -163,15 +159,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // actor could be constantly be modifying its ingress port. Thus,
     // we need to spawn a proxy actor equipped with a watch for a port
     // change, and thus restart the proxy process.
-    let is_killed = is_killed_client.clone();
+    let is_killed = is_killed_client;
 
-    let providers = vec![url::Url::parse("http://localhost").expect("Failed to parse localhost")];
+    // By default we reach to no external IC nodes.
+    let providers = Vec::new(); //vec![url::Url::parse("http://localhost").expect("Failed to parse localhost")];
 
     let proxy_config = ProxyConfig {
         client_api_port: address_and_port.port(),
         bind: address_and_port,
         serve_dir: bootstrap_dir,
-        providers: providers,
+        providers,
     };
 
     // TODO XXX -- Add an object -- it is ridiculous now.
@@ -393,7 +390,7 @@ fn generate_client_configuration(
         http_handler: HttpHandlerConfig {
             write_port_to: port_file_path,
         },
-        state_root: state_root,
+        state_root,
     };
     toml::to_string(&http_values).map_err(DfxError::CouldNotSerializeClientConfiguration)
 }
@@ -418,7 +415,6 @@ fn spawn_and_update_proxy(
     is_killed: Receiver<()>,
     b: ProgressBar,
 ) -> std::io::Result<std::thread::JoinHandle<()>> {
-    let serve_dir = PathBuf::from(proxy_config.serve_dir.clone());
     std::thread::Builder::new()
         .name("Frontend".into())
         .spawn(move || {
@@ -430,7 +426,6 @@ fn spawn_and_update_proxy(
                 // to the parent thread as an error via join().
                 eprintln!("Checking client!");
                 let port = retrieve_client_port(
-                    None,
                     &client_port_path,
                     rcv_wait_fwatcher.clone(),
                     request_stop_echo.clone(),
@@ -451,7 +446,7 @@ fn spawn_and_update_proxy(
 }
 
 fn retrieve_client_port(
-    port_on_enter: Option<String>,
+    // port_on_enter: Option<String>,
     client_port_path: &PathBuf,
     rcv_wait_fwatcher: Receiver<()>,
     request_stop_echo: Sender<()>,
@@ -507,5 +502,5 @@ fn retrieve_client_port(
     fs::read_to_string(&client_port_path)
         .map_err(DfxError::RuntimeError)?
         .parse::<u16>()
-        .map_err(|e| DfxError::CouldNotParsePort(e))
+        .map_err(DfxError::CouldNotParsePort)
 }

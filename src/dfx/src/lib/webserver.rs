@@ -65,8 +65,8 @@ fn forward(
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     bind: SocketAddr,
-    client_api_port: u16,
-    providers: Vec<url::Url>,
+    client_api_port: Option<u16>,
+    mut providers: Vec<url::Url>,
     serve_dir: PathBuf,
     inform_parent: Sender<Server>,
 ) -> Result<(), std::io::Error> {
@@ -75,12 +75,18 @@ pub fn run_webserver(
     // We have to shutdown faster than the client restarts.
     const SHUTDOWN_WAIT_TIME: u64 = 1;
 
-    let ic_client_bind_addr =
-        "http://localhost:".to_owned() + client_api_port.to_string().as_str() + "/api";
-    let ic_client_bind_addr = ic_client_bind_addr.as_str();
-    let client_api_uri =
-        url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");
-    eprintln!("client: {:?}", client_api_uri);
+    // Is the proxy local?
+    if let Some(localhost_port) = client_api_port {
+        let ic_client_bind_addr =
+            "http://localhost:".to_owned() + localhost_port.to_string().as_str() + "/api";
+        let ic_client_bind_addr = ic_client_bind_addr.as_str();
+        let client_api_uri =
+            url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");
+        // Add the localhost as an option.
+        providers.push(client_api_uri);
+        eprintln!("client: {:?}", localhost_port);
+    }
+
     eprint!("client(s): ");
     providers.iter().for_each(|uri| eprint!("{} ", uri));
     eprint!("\n");
@@ -120,41 +126,15 @@ pub fn run_webserver(
 
     Ok(())
 }
-// <<<<<<< HEAD
-// ||||||| merged common ancestors
-
-// pub fn webserver(
-//     bind: SocketAddr,
-//     client_api_uri: url::Url,
-//     serve_dir: &Path,
-//     inform_parent: Sender<Server>,
-// ) -> std::thread::JoinHandle<()> {
-//     let serve_dir = PathBuf::from(serve_dir);
-//     std::thread::Builder::new()
-//         .name("Frontend".into())
-//         .spawn(move || run_webserver(bind, client_api_uri, serve_dir, inform_parent).unwrap())
-//         .unwrap()
-// }
-// =======
-
-// pub fn webserver(
-//     bind: SocketAddr,
-//     clients_api_uri: Vec<url::Url>,
-//     serve_dir: &Path,
-//     inform_parent: Sender<Server>,
-// ) -> std::thread::JoinHandle<()> {
-//     let serve_dir = PathBuf::from(serve_dir);
-//     std::thread::Builder::new()
-//         .name("Frontend".into())
-//         .spawn(move || run_webserver(bind, clients_api_uri, serve_dir, inform_parent).unwrap())
-//         .unwrap()
-// }
 
 pub fn webserver(
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
     serve_dir: &Path,
     inform_parent: Sender<Server>,
-) -> std::thread::JoinHandle<()> {
-    unimplemented!()
+) -> std::io::Result<std::thread::JoinHandle<()>> {
+    std::thread::Builder::new().name("Frontend".into()).spawn({
+        let serve_dir = serve_dir.to_path_buf();
+        move || run_webserver(bind, None, clients_api_uri, serve_dir, inform_parent).unwrap()
+    })
 }

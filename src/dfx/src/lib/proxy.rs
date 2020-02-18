@@ -86,7 +86,7 @@ impl Proxy {
     pub fn start(self, sender: Sender<Server>, receiver: Receiver<Server>) -> Result<Self> {
         run_webserver(
             self.config.bind,
-            self.config.client_api_port.clone(),
+            Some(self.config.client_api_port),
             self.config.providers.clone(),
             self.config.serve_dir.clone(),
             sender.clone(),
@@ -117,7 +117,7 @@ impl Proxy {
 
     /// Return proxy client api port.
     pub fn port(&self) -> u16 {
-        self.config.client_api_port.clone()
+        self.config.client_api_port
     }
 }
 
