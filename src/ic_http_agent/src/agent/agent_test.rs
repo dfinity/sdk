@@ -182,7 +182,7 @@ fn call_rejected() -> Result<(), AgentError> {
             .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
         agent
-            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(1)))
+            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(100)))
             .await
     });
 
@@ -196,6 +196,45 @@ fn call_rejected() -> Result<(), AgentError> {
         }
         _ => unreachable!(),
     }
+
+    Ok(())
+}
+
+#[test]
+fn install() -> Result<(), AgentError> {
+    let canister_id = CanisterId::from_bytes(&[5u8]);
+    let module = Blob::from(&[1, 2]);
+
+    let blob = Blob(Vec::from("Hello World"));
+    let response = ReadResponse::Replied {
+        reply: Some(QueryResponseReply { arg: blob.clone() }),
+    };
+
+    let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
+    let status_mock = mock("POST", "/api/v1/read")
+        .with_status(200)
+        .with_header("content-type", "application/cbor")
+        .with_body(serde_cbor::to_vec(&response)?)
+        .create();
+
+    let agent = Agent::new(AgentConfig {
+        url: &mockito::server_url(),
+        ..AgentConfig::default()
+    })?;
+
+    let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
+    let result = runtime.block_on(async {
+        let request_id = agent.install(&canister_id, &module, &Blob::empty()).await?;
+        agent.request_status(&request_id).await
+    });
+
+    submit_mock.assert();
+    status_mock.assert();
+
+    assert_eq!(
+        result?,
+        RequestStatusResponse::Replied { reply: Some(blob) }
+    );
 
     Ok(())
 }
@@ -242,10 +281,9 @@ fn ping_okay() -> Result<(), AgentError> {
 // expected to hit the server at ~ 0ms and ~ 400 ms, and then shut down at 600ms, so we check that
 // the server got two requests.
 fn ping_error() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/read")
-        .expect(2)
-        .with_status(500)
-        .create();
+    // This mock is never asserted as we don't know (nor do we need to know) how many times
+    // it is called.
+    let _read_mock = mock("GET", "/api/v1/read").with_status(500).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -256,14 +294,12 @@ fn ping_error() -> Result<(), AgentError> {
         agent
             .ping(
                 Waiter::builder()
-                    .throttle(Duration::from_millis(400))
-                    .timeout(Duration::from_millis(600))
+                    .throttle(Duration::from_millis(4))
+                    .timeout(Duration::from_millis(6))
                     .build(),
             )
             .await
     });
-
-    read_mock.assert();
 
     assert!(result.is_err());
 

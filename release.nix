@@ -36,7 +36,7 @@ let
 
   pkgs = import ./nix { inherit system config overlays releaseVersion; };
 
-  packages = import ./. { inherit pkgs; };
+  packages = import ./. { inherit pkgs src; };
 
 in
 pkgs.lib.optionalAttrs doRelease {
