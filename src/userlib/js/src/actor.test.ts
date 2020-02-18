@@ -129,7 +129,7 @@ test('makeActor', async () => {
         'Content-Type': 'application/cbor',
       },
       body: cbor.encode({
-        request_type: 'request-status',
+        request_type: 'request_status',
         request_id: expectedCallRequestId,
         nonce: nonces[1],
         sender_pubkey: senderPubKey,
@@ -145,7 +145,7 @@ test('makeActor', async () => {
       'Content-Type': 'application/cbor',
     },
     body: cbor.encode({
-      request_type: 'request-status',
+      request_type: 'request_status',
       request_id: expectedCallRequestId,
       nonce: nonces[2],
       sender_pubkey: senderPubKey,
@@ -160,7 +160,7 @@ test('makeActor', async () => {
       'Content-Type': 'application/cbor',
     },
     body: cbor.encode({
-      request_type: 'request-status',
+      request_type: 'request_status',
       request_id: expectedCallRequestId,
       nonce: nonces[3],
       sender_pubkey: senderPubKey,
