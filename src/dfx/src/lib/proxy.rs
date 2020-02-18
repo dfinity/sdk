@@ -18,9 +18,10 @@ pub struct Proxy {
 /// address and the serve directory.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProxyConfig {
-    pub client_api_port: String,
+    pub client_api_port: u16,
     pub bind: SocketAddr,
     pub serve_dir: PathBuf,
+    pub providers: Vec<url::Url>,
 }
 
 #[derive(Clone, Debug)]
@@ -86,6 +87,7 @@ impl Proxy {
         run_webserver(
             self.config.bind,
             self.config.client_api_port.clone(),
+            self.config.providers.clone(),
             self.config.serve_dir.clone(),
             sender.clone(),
         )
@@ -99,7 +101,7 @@ impl Proxy {
 
     /// Set the api port used by the replica. Returns a new proxy
     /// object, but does not restart the proxy.
-    pub fn set_client_api_port(self, client_api_port: String) -> Self {
+    pub fn set_client_api_port(self, client_api_port: u16) -> Self {
         let mut handle = self;
         handle.config.client_api_port = client_api_port;
         handle
@@ -114,7 +116,7 @@ impl Proxy {
     }
 
     /// Return proxy client api port.
-    pub fn port(&self) -> String {
+    pub fn port(&self) -> u16 {
         self.config.client_api_port.clone()
     }
 }

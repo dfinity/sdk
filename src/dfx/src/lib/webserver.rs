@@ -65,7 +65,7 @@ fn forward(
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     bind: SocketAddr,
-    client_api_port: String,
+    client_api_port: u16,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
     inform_parent: Sender<Server>,
@@ -75,7 +75,8 @@ pub fn run_webserver(
     // We have to shutdown faster than the client restarts.
     const SHUTDOWN_WAIT_TIME: u64 = 1;
 
-    let ic_client_bind_addr = "http://localhost:".to_owned() + client_api_port.as_str() + "/api";
+    let ic_client_bind_addr =
+        "http://localhost:".to_owned() + client_api_port.to_string().as_str() + "/api";
     let ic_client_bind_addr = ic_client_bind_addr.as_str();
     let client_api_uri =
         url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");

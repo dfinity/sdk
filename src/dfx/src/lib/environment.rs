@@ -17,6 +17,10 @@ pub trait Environment {
     fn get_config(&self) -> Option<Rc<Config>>;
 
     fn is_in_project(&self) -> bool;
+    /// Return a temporary directory for configuration if none exists
+    /// for the current project or if not in a project. Following
+    /// invocations by other processes in the same project should
+    /// return the same configuration directory.
     fn get_temp_dir(&self) -> &Path;
     fn get_version(&self) -> &Version;
 
@@ -102,7 +106,7 @@ impl Environment for EnvironmentImpl {
                 if let Some(config) = self.config.as_ref() {
                     let start = config.get_config().get_defaults().get_start();
                     let address = start.get_address("localhost");
-                    let dfx_root = self.get_temp_dir().expect("Could not retrieve dfx root");
+                    let dfx_root = self.get_temp_dir();
                     let client_configuration_dir = dfx_root.join("client-configuration");
                     let client_port_path = client_configuration_dir.join("client-1.port");
                     let port = read_to_string(&client_port_path)
