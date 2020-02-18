@@ -8,5 +8,5 @@ in
 pkgs.ci ../release.nix
   {
     inherit supportedSystems scrubJobs src;
-    rev = pkgs.lib.commitIdFromGitRepo (pkgs.lib.gitDir ../.);
+    rev = if src != null then src.rev else pkgs.lib.commitIdFromGitRepo (pkgs.lib.gitDir ../.);
   }
