@@ -9,6 +9,6 @@
   "automerge": false,
   "schedule": [
       "before 7am every weekday",
-      "weekends"
+      "every weekend"
   ]
 }
