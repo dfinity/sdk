@@ -10,7 +10,7 @@ in
 pkgs.ci ../.
   {
     inherit supportedSystems scrubJobs isMaster;
-    rev = src.rev;
+    rev = if src != null then src.rev else pkgs.lib.commitIdFromGitRepo (pkgs.lib.gitDir ../.);
     packageSetArgs = {
       inherit RustSec-advisory-db;
     };
