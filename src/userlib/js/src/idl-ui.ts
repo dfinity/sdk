@@ -129,29 +129,6 @@ export function renderRecord(dom: HTMLElement, id: string, idl: any): HTMLInputE
 }
 
 export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
-  /*
-  const container = document.createElement('span');
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.checked = false;
-  checkbox.value = '[]';
-  container.appendChild(checkbox);
-
-  checkbox.addEventListener('change', () => {
-    if (checkbox.checked) {
-      const opt = idl._type.renderInput(container, id + '_opt');
-      opt.addEventListener('input', () => {
-        checkbox.value = '[' + opt.value + ']';
-      });
-    } else {
-      const remove = checkbox.nextElementSibling as Node;
-      (remove.parentNode as Node).removeChild(remove);
-      checkbox.value = '[]';
-    }
-  });
-  dom.appendChild(container);
-  return checkbox;
-  */
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.checked = false;
