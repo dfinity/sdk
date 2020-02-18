@@ -11,7 +11,7 @@ packages (crates).
 If you want to install `dfx` from source via nix, you can run, in the top level directory,
 
 [source,bash]
-nix-env -iA rust-workspace-standalone -f .
+nix-env -iA dfx.standalone -f .
 
 To create the tarball that would be uploaded as part of a release, run
 
