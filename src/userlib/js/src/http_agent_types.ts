@@ -87,7 +87,7 @@ export const enum QueryResponseStatus {
 // The types of values allowed in the `request_type` field for read requests.
 export const enum ReadRequestType {
   Query = 'query',
-  RequestStatus = 'request-status',
+  RequestStatus = 'request_status',
 }
 
 // The fields in a "query" read request.
@@ -98,13 +98,13 @@ export interface QueryRequest extends Record<string, any> {
   arg: BinaryBlob;
 }
 
-// The fields in a "request-status" read request.
+// The fields in a "request_status" read request.
 export interface RequestStatusRequest extends Record<string, any> {
   request_type: ReadRequestType.RequestStatus;
   request_id: RequestId;
 }
 
-// An ADT that represents responses to a "request-status" read request.
+// An ADT that represents responses to a "request_status" read request.
 export type RequestStatusResponse =
   | RequestStatusResponsePending
   | RequestStatusResponseReplied
