@@ -1,28 +1,23 @@
 use crate::commands::canister::create_waiter;
 use crate::config::dfinity::Config;
+use crate::lib::client_toml_config::generate_client_configuration;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::proxy::{Proxy, ProxyConfig};
+use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
+use crate::lib::proxy_process::spawn_and_update_proxy;
 
-use actix_server::Server;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use futures::future::Future;
-use hotwatch::{
-    blocking::{Flow, Hotwatch},
-    Event,
-};
 use ic_http_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
-use serde::Serialize;
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Command;
-use std::time::Duration;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -57,10 +52,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
         .map_err(DfxError::from)
 }
 
-// TODO: Refactor exec into more manageable pieces. XXX
-//
-//
-// Rename to replica
+// TODO(eftychis)/In progress: Rename to replica.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
@@ -118,23 +110,19 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // sane.
 
     let replica_config = generate_client_configuration(&client_port_path, &state_root)?;
-    eprintln!("{}", replica_config.clone());
-    std::thread::sleep(Duration::from_millis(1000));
+
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
     let client_watchdog = std::thread::Builder::new().name("replica".into()).spawn({
         let is_killed_client = is_killed_client.clone();
-        let client_port_path = client_port_path.clone();
         let b = b.clone();
 
         move || {
             start_client(
                 &client_pathbuf,
                 &pid_file_path,
-                &state_root,
                 is_killed_client,
                 request_stop,
-                &client_port_path,
                 replica_config,
                 b,
             )
@@ -145,9 +133,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_cache()
         .get_binary_command_path("js-user-library/bootstrap")?;
 
-    b.set_message("XXX");
-    std::thread::sleep(Duration::from_millis(1000));
-
     // We have a long-lived nodes actor and a proxy actor. The nodes
     // actor could be constantly be modifying its ingress port. Thus,
     // we need to spawn a proxy actor equipped with a watch for a port
@@ -155,7 +140,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let is_killed = is_killed_client;
 
     // By default we reach to no external IC nodes.
-    let providers = Vec::new(); //vec![url::Url::parse("http://localhost").expect("Failed to parse localhost")];
+    let providers = Vec::new();
 
     let proxy_config = ProxyConfig {
         client_api_port: address_and_port.port(),
@@ -164,17 +149,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         providers,
     };
 
-    // TODO XXX -- Add an object -- it is ridiculous now.
-    let frontend_watchdog = spawn_and_update_proxy(
-        proxy_config,
-        client_port_path,
-        give_actix,
-        actix_handler.clone(),
+    let supervisor_actor = CoordinateProxy {
+        inform_parent: give_actix,
+        server_receiver: actix_handler.clone(),
         rcv_wait_fwatcher,
         request_stop_echo,
         is_killed,
-        b.clone(),
-    )?;
+    };
+
+    let frontend_watchdog =
+        spawn_and_update_proxy(proxy_config, client_port_path, supervisor_actor, b.clone())?;
 
     b.set_message("Pinging the Internet Computer client...");
     ping_and_wait(&frontend_url)?;
@@ -308,10 +292,8 @@ fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
 fn start_client(
     client_pathbuf: &PathBuf,
     pid_file_path: &PathBuf,
-    state_root: &PathBuf,
     is_killed_client: Receiver<()>,
     request_stop: Sender<()>,
-    port_file_path: &PathBuf,
     config: String,
     b: ProgressBar,
 ) -> DfxResult<()> {
@@ -353,141 +335,4 @@ fn start_client(
         .send(())
         .expect("Could not signal parent thread from client runner");
     Ok(())
-}
-
-#[derive(Debug, Serialize)]
-struct HttpHandlerConfig<'a> {
-    write_port_to: &'a PathBuf,
-}
-#[derive(Debug, Serialize)]
-struct StateManagerConfig<'a> {
-    state_root: &'a PathBuf,
-}
-
-#[derive(Debug, Serialize)]
-struct ClientTomlConfig<'a> {
-    http_handler: HttpHandlerConfig<'a>,
-    state_root: StateManagerConfig<'a>,
-}
-
-fn generate_client_configuration(
-    port_file_path: &PathBuf,
-    state_root: &PathBuf,
-) -> DfxResult<String> {
-    let http_values = ClientTomlConfig {
-        http_handler: HttpHandlerConfig {
-            write_port_to: port_file_path,
-        },
-        state_root: StateManagerConfig { state_root },
-    };
-    toml::to_string(&http_values).map_err(DfxError::CouldNotSerializeClientConfiguration)
-}
-
-// Note: This is going to get refactored with the client. Furthermore,
-// removing one argument just makes things more complex.
-// TODO(eftychis): JIRA: SDK-695
-#[allow(clippy::too_many_arguments)]
-fn spawn_and_update_proxy(
-    proxy_config: ProxyConfig,
-    client_port_path: PathBuf,
-
-    inform_parent: Sender<Server>,
-    server_receiver: Receiver<Server>,
-
-    rcv_wait_fwatcher: Receiver<()>,
-    request_stop_echo: Sender<()>,
-
-    is_killed: Receiver<()>,
-    b: ProgressBar,
-) -> std::io::Result<std::thread::JoinHandle<()>> {
-    std::thread::Builder::new()
-        .name("Frontend".into())
-        .spawn(move || {
-            let mut proxy = Proxy::new(proxy_config);
-            // Start the proxy first. Below, we panic to propagate the error
-            // to the parent thread as an error via join().
-
-            // Check the port and then start the proxy. Below, we panic to propagate the error
-            // to the parent thread as an error via join().
-            b.set_message("Checking client!");
-            let port = retrieve_client_port(
-                &client_port_path,
-                rcv_wait_fwatcher.clone(),
-                request_stop_echo.clone(),
-                &b,
-            )
-            .expect("Failed to watch port configuration file");
-
-            let proxy = proxy.set_client_api_port(port.clone()).clone();
-            b.set_message(format!("Client bound at {}", port).as_str());
-            proxy
-                .restart(inform_parent.clone(), server_receiver.clone())
-                .expect("Failed to restart the proxy");
-
-            while is_killed.is_empty() {
-                //wait!
-            }
-        })
-}
-
-fn retrieve_client_port(
-    client_port_path: &PathBuf,
-    rcv_wait_fwatcher: Receiver<()>,
-    request_stop_echo: Sender<()>,
-    b: &ProgressBar,
-) -> DfxResult<u16> {
-    let mut watcher = Hotwatch::new_with_custom_delay(Duration::from_millis(100)).map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed to create watcher for port pid file: {}", e),
-        ))
-    })?;
-
-    watcher
-        .watch(&client_port_path, move |event| {
-            if let Ok(e) = rcv_wait_fwatcher.try_recv() {
-                // We are in a weird state where the replica exited with an error,
-                // but we are still waiting for the pid file to change. As this change
-                // is never going to occur we need to exit our wait and stop tracking
-                // the file. We need to re-send the error to properly handle it later
-                // on. Worst case we will panic at this point.
-                #[allow(clippy::unit_arg)]
-                request_stop_echo
-                    // We are re-sending the signal here. It is a unit
-                    // right now but that can easily change.
-                    .send(e)
-                    .expect("Watcher could not re-signal request to stop.");
-                return Flow::Exit;
-            }
-            match event {
-                // We pretty much want to unblock for any events
-                // except a rescan. A move, create etc event should
-                // lead to a failure.
-                Event::Rescan => Flow::Continue,
-                _ => Flow::Exit,
-            }
-        })
-        .map_err(|e| {
-            DfxError::RuntimeError(Error::new(
-                ErrorKind::Other,
-                format!("Failed to watch port pid file: {}", e),
-            ))
-        })?;
-    b.set_message("Waiting for client to bind their http server port...");
-    // We are blocking here and actually processing write events.
-
-    let port_after_enter = fs::read_to_string(&client_port_path).map_err(DfxError::RuntimeError)?;
-
-    if port_after_enter != "" {
-        let port = port_after_enter
-            .parse::<u16>()
-            .map_err(DfxError::CouldNotParsePort);
-        return port;
-    }
-
-    watcher.run();
-    fs::read_to_string(&client_port_path)
-        .map_err(DfxError::RuntimeError)?
-        .parse::<u16>()
-        .map_err(DfxError::CouldNotParsePort)
 }

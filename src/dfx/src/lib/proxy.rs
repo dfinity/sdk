@@ -116,13 +116,19 @@ impl Proxy {
     }
 
     /// Return proxy client api port.
+    #[allow(dead_code)]
     pub fn port(&self) -> u16 {
         self.config.client_api_port
     }
 }
 
-///
+/// Supervise a Proxy.
+// This should be used to refactor and simplify handling of both proxy
+// and replica.
 pub struct CoordinateProxy {
-    inform_parent: Sender<Server>,
-    server_receiver: Receiver<Server>,
+    pub inform_parent: Sender<Server>,
+    pub server_receiver: Receiver<Server>,
+    pub rcv_wait_fwatcher: Receiver<()>,
+    pub request_stop_echo: Sender<()>,
+    pub is_killed: Receiver<()>,
 }
