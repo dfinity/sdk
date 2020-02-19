@@ -289,6 +289,10 @@ fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
 /// this function will panic when an error occurs that implies
 /// termination of the replica and nee the attention of the parent
 /// thread.
+///
+/// # Panics
+/// We panic here to transmit an error to the parent
+/// thread.
 fn start_client(
     client_pathbuf: &PathBuf,
     pid_file_path: &PathBuf,
@@ -299,8 +303,6 @@ fn start_client(
 ) -> DfxResult<()> {
     b.set_message("Generating IC local replica configuration.");
     let client = client_pathbuf.as_path().as_os_str();
-    // We panic here to transmit an error to the parent
-    // thread.
     while is_killed_client.is_empty() {
         let mut cmd = std::process::Command::new(client);
         cmd.args(&["--config", config.as_ref()]);
