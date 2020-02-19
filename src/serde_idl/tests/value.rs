@@ -72,7 +72,10 @@ fn test_variant() {
 fn test_reference() {
     use IDLValue::*;
     check(Service("ic:00".to_string()), "4449444c01690001000100");
-    check(Service("ic:ABCD01A7".to_string()), "4449444c01690001000103abcd01");
+    check(
+        Service("ic:ABCD01A7".to_string()),
+        "4449444c01690001000103abcd01",
+    );
 }
 
 fn parse_check(str: &str) {
