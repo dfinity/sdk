@@ -90,8 +90,7 @@ impl Proxy {
             self.config.providers.clone(),
             self.config.serve_dir.clone(),
             sender.clone(),
-        )
-        .expect("Failed to start webserver.");
+        )?;
 
         let mut new_server = Proxy::new(self.config);
         let handle = ServerHandle { sender, receiver };
