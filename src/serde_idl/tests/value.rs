@@ -67,6 +67,18 @@ fn test_variant() {
     test_decode(&encoded, &value);
 }
 
+#[test]
+fn test_reference() {
+    use IDLValue::*;
+    //check(Service("ic:00".to_string()), "4449444c016900010001");
+    let value = Service("ic:00".to_string());
+    let bytes = hex("4449444c01690001000100");
+    test_encode(&value, &bytes);
+    let value = Service("ic:ABCD01A7".to_string());
+    let bytes = hex("4449444c01690001000103abcd01");
+    test_encode(&value, &bytes);
+}
+
 fn parse_check(str: &str) {
     let args = str.parse::<IDLArgs>().unwrap();
     let encoded = args.to_bytes().unwrap();

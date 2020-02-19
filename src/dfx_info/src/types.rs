@@ -29,6 +29,7 @@ pub enum Type {
     Vec(Box<Type>),
     Record(Vec<Field>),
     Variant(Vec<Field>),
+    Service,
 }
 
 #[derive(Debug, PartialEq, Hash, Eq, Clone)]
@@ -38,10 +39,12 @@ pub struct Field {
     pub ty: Type,
 }
 
+// This function decides only non-primitive types go into the type table
 pub fn is_primitive(t: &Type) -> bool {
     use Type::*;
     match t {
         Null | Bool | Nat | Int | Text => true,
+        Service => false,
         Unknown => panic!("Unknown type"),
         Knot(_) => true,
         Opt(_) | Vec(_) | Record(_) | Variant(_) => false,

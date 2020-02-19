@@ -69,6 +69,7 @@ Arg: IDLValue = {
         IDLValue::Record(fs)
      },
     "variant" "{" <VariantField> "}" => IDLValue::Variant(Box::new(<>)),
+    "service" <"text"> => IDLValue::Service(<>),
 }
 
 Field: IDLField = {

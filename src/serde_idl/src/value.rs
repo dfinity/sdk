@@ -16,6 +16,7 @@ pub enum IDLValue {
     Vec(Vec<IDLValue>),
     Record(Vec<IDLField>),
     Variant(Box<IDLField>),
+    Service(String),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -110,6 +111,7 @@ impl fmt::Display for IDLValue {
                 write!(f, "}}")
             }
             IDLValue::Variant(ref v) => write!(f, "variant {{ {} }}", v),
+            IDLValue::Service(ref s) => write!(f, "service \"{}\"", s),
         }
     }
 }
@@ -169,6 +171,7 @@ impl dfx_info::IDLType for IDLValue {
                 };
                 Type::Variant(vec![f])
             }
+            IDLValue::Service(_) => Type::Service,
         }
     }
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
@@ -203,6 +206,7 @@ impl dfx_info::IDLType for IDLValue {
                 ser.serialize_element(&v.val)?;
                 Ok(())
             }
+            IDLValue::Service(ref s) => serializer.serialize_service(s),
         }
     }
 }

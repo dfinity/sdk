@@ -4,8 +4,10 @@ use super::error::{Error, Result};
 
 use super::value::IDLValue;
 use dfx_info::types::{Field, Type};
+use ic_http_agent::CanisterId;
 use std::collections::HashMap;
 use std::io;
+use std::io::Write;
 use std::vec::Vec;
 
 use leb128::write::{signed as sleb128_encode, unsigned as leb128_encode};
@@ -67,6 +69,9 @@ impl ValueSerializer {
     fn write_leb128(&mut self, value: u64) {
         leb128_encode(&mut self.value, value).unwrap();
     }
+    fn write(&mut self, bytes: &[u8]) {
+        self.value.write_all(bytes).unwrap();
+    }
 }
 
 impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
@@ -74,7 +79,7 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
     type Compound = Compound<'a>;
     fn serialize_bool(self, v: bool) -> Result<()> {
         let v = if v { 1 } else { 0 };
-        self.write_leb128(v);
+        self.write(&[v]);
         Ok(())
     }
     fn serialize_int(self, v: i64) -> Result<()> {
@@ -89,6 +94,15 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
         let mut buf = Vec::from(v.as_bytes());
         self.write_leb128(buf.len() as u64);
         self.value.append(&mut buf);
+        Ok(())
+    }
+    fn serialize_service(self, v: &str) -> Result<()> {
+        // We only have public ids for now.
+        let blob = CanisterId::from_text(v).unwrap().into_blob();
+        let blob = blob.as_slice();
+        self.write(&[1]);
+        self.write_leb128(blob.len() as u64);
+        self.write(blob);
         Ok(())
     }
     fn serialize_null(self, _v: ()) -> Result<()> {
@@ -208,6 +222,11 @@ impl TypeSerialize {
                         leb128_encode(&mut buf, u64::from(*hash))?;
                         self.encode(&mut buf, ty)?;
                     }
+                }
+                Type::Service => {
+                    sleb128_encode(&mut buf, -23)?;
+                    // TODO add method types
+                    leb128_encode(&mut buf, 0)?;
                 }
                 _ => panic!("unreachable"),
             };

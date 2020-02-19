@@ -47,6 +47,7 @@
 //! ```
 
 extern crate dfx_info;
+extern crate ic_http_agent;
 extern crate leb128;
 extern crate num_enum;
 extern crate serde;

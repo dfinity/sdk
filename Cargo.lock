@@ -2607,6 +2607,7 @@ version = "0.1.0"
 dependencies = [
  "dfx_info 0.0.0",
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-http-agent 0.1.0",
  "lalrpop 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lalrpop-util 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "leb128 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
