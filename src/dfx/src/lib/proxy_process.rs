@@ -36,7 +36,7 @@ pub fn spawn_and_update_proxy(
             )
             .expect("Failed to watch port configuration file");
 
-            let proxy = proxy.set_client_api_port(port.clone()).clone();
+            let proxy = proxy.set_client_api_port(port.clone());
             b.set_message(format!("Client bound at {}", port).as_str());
             proxy
                 .restart(
