@@ -25,6 +25,7 @@ enum Opcode {
     Vec = -19,
     Record = -20,
     Variant = -21,
+    Service = -23,
 }
 
 /// Use this struct to deserialize a sequence of Rust values (heterogeneous) from IDL binary message.
@@ -152,16 +153,20 @@ impl<'de> Deserializer<'de> {
     fn sleb128_read(&mut self) -> Result<i64> {
         sleb128_decode(&mut self.input).map_err(Error::msg)
     }
-    fn parse_string(&mut self, len: usize) -> Result<String> {
-        let mut buf = Vec::new();
-        buf.resize(len, 0);
-        self.input.read_exact(&mut buf)?;
-        String::from_utf8(buf).map_err(Error::msg)
-    }
     fn parse_byte(&mut self) -> Result<u8> {
         let mut buf = [0u8; 1];
         self.input.read_exact(&mut buf)?;
         Ok(buf[0])
+    }
+    fn parse_bytes(&mut self, len: usize) -> Result<Vec<u8>> {
+        let mut buf = Vec::new();
+        buf.resize(len, 0);
+        self.input.read_exact(&mut buf)?;
+        Ok(buf)
+    }
+    fn parse_string(&mut self, len: usize) -> Result<String> {
+        let buf = self.parse_bytes(len)?;
+        String::from_utf8(buf).map_err(Error::msg)
     }
     fn parse_magic(&mut self) -> Result<()> {
         let mut buf = [0u8; 4];
@@ -187,6 +192,18 @@ impl<'de> Deserializer<'de> {
                     buf.push(RawValue::U(obj_len));
                     for _ in 0..obj_len {
                         buf.push(RawValue::U(self.leb128_read()?));
+                        buf.push(RawValue::I(self.sleb128_read()?));
+                    }
+                }
+                Ok(Opcode::Service) => {
+                    let meth_len = self.leb128_read()?;
+                    buf.push(RawValue::U(meth_len));
+                    for _ in 0..meth_len {
+                        let name_len = self.leb128_read()?;
+                        buf.push(RawValue::U(name_len));
+                        for _ in 0..name_len {
+                            buf.push(RawValue::U(self.parse_byte()? as u64));
+                        }
                         buf.push(RawValue::I(self.sleb128_read()?));
                     }
                 }
@@ -298,6 +315,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             Opcode::Opt => self.deserialize_option(visitor),
             Opcode::Record => self.deserialize_struct("_", &[], visitor),
             Opcode::Variant => self.deserialize_enum("_", &[], visitor),
+            Opcode::Service => self.deserialize_any(visitor),
         }
     }
 
@@ -341,6 +359,24 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
                     }
                 }
                 visitor.visit_enum(Compound::new(&mut self, Style::Enum { len, fs }))
+            }
+            Opcode::Service => {
+                self.check_type(Opcode::Service)?;
+                let len = self.pop_current_type()?.get_u64()? as u32;
+                for _ in 0..len {
+                    let name_len = self.pop_current_type()?.get_u64()? as u32;
+                    for _ in 0..name_len {
+                        self.pop_current_type()?.get_u64()?;
+                    }
+                    self.pop_current_type()?.get_i64()?;
+                }
+                let bit = self.parse_byte()?;
+                if bit != 1u8 {
+                    return Err(Error::msg("Opaque reference not supported"));
+                }
+                let len = self.leb128_read()? as usize;
+                let vec = self.parse_bytes(len)?;
+                visitor.visit_byte_buf(vec)
             }
         }
     }

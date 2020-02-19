@@ -1,4 +1,5 @@
 use dfx_info::types::{Field, Type};
+use ic_http_agent::CanisterId;
 use serde::de;
 use serde::de::{Deserialize, Visitor};
 use std::fmt;
@@ -206,7 +207,11 @@ impl dfx_info::IDLType for IDLValue {
                 ser.serialize_element(&v.val)?;
                 Ok(())
             }
-            IDLValue::Service(ref s) => serializer.serialize_service(s),
+            IDLValue::Service(ref s) => {
+                let blob = CanisterId::from_text(s).unwrap().into_blob();
+                let blob = blob.as_slice();
+                serializer.serialize_service(blob)
+            }
         }
     }
 }
@@ -240,6 +245,10 @@ impl<'de> Deserialize<'de> for IDLValue {
                 E: serde::de::Error,
             {
                 self.visit_string(String::from(value))
+            }
+            fn visit_byte_buf<E>(self, blob: Vec<u8>) -> Result<IDLValue, E> {
+                let canister_id = CanisterId::from_bytes(blob);
+                Ok(IDLValue::Service(canister_id.to_text()))
             }
             fn visit_none<E>(self) -> Result<IDLValue, E> {
                 Ok(IDLValue::None)

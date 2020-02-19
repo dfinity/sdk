@@ -4,7 +4,6 @@ use super::error::{Error, Result};
 
 use super::value::IDLValue;
 use dfx_info::types::{Field, Type};
-use ic_http_agent::CanisterId;
 use std::collections::HashMap;
 use std::io;
 use std::io::Write;
@@ -96,10 +95,8 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
         self.value.append(&mut buf);
         Ok(())
     }
-    fn serialize_service(self, v: &str) -> Result<()> {
+    fn serialize_service(self, blob: &[u8]) -> Result<()> {
         // We only have public ids for now.
-        let blob = CanisterId::from_text(v).unwrap().into_blob();
-        let blob = blob.as_slice();
         self.write(&[1]);
         self.write_leb128(blob.len() as u64);
         self.write(blob);

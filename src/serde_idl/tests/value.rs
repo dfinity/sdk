@@ -15,6 +15,7 @@ fn test_parser() {
     parse_check(
         "(variant { cons=record{ 42; variant { cons=record{43; variant { nil=record{} }} } } })",
     );
+    parse_check("(service \"ic:00\")");
 }
 
 #[test]
