@@ -110,7 +110,7 @@ impl Environment for EnvironmentImpl {
                     let client_configuration_dir = dfx_root.join("client-configuration");
                     let client_port_path = client_configuration_dir.join("client-1.port");
                     let port = read_to_string(&client_port_path)
-                        .expect("Could not read configuration file");
+                        .expect("Could not read port configuration file");
 
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
