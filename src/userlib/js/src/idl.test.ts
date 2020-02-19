@@ -47,7 +47,7 @@ test('IDL encoding (text)', () => {
   test_(IDL.Text, 'Hi ☃\n', '4449444c00017107486920e298830a', 'Text with unicode');
   test_(
     IDL.Opt(IDL.Text),
-    'Hi ☃\n',
+    ['Hi ☃\n'],
     '4449444c016e7101000107486920e298830a',
     'Nested text with unicode',
   );
@@ -67,8 +67,8 @@ test('IDL encoding (int)', () => {
     'Positive BigInt',
   );
   test_(IDL.Int, new BigNumber(-1234567890), '4449444c00017caefaa7b37b', 'Negative Int');
-  test_(IDL.Opt(IDL.Int), new BigNumber(42), '4449444c016e7c0100012a', 'Nested Int');
-  testEncode(IDL.Opt(IDL.Int), 42, '4449444c016e7c0100012a', 'Nested Int (number)');
+  test_(IDL.Opt(IDL.Int), [new BigNumber(42)], '4449444c016e7c0100012a', 'Nested Int');
+  testEncode(IDL.Opt(IDL.Int), [42], '4449444c016e7c0100012a', 'Nested Int (number)');
 });
 
 test('IDL encoding (nat)', () => {
@@ -81,8 +81,8 @@ test('IDL encoding (nat)', () => {
     '4449444c00017d808098f4e9b5ca6a',
     'Positive BigInt',
   );
+  testEncode(IDL.Opt(IDL.Nat), [42], '4449444c016e7d0100012a', 'Nested Nat (number)');
   expect(() => IDL.encode([IDL.Nat], [-1])).toThrow(/Invalid nat argument/);
-  testEncode(IDL.Opt(IDL.Int), 42, '4449444c016e7c0100012a', 'Nested Int (number)');
 });
 
 test('IDL encoding (fixed-width number)', () => {
@@ -242,8 +242,15 @@ test('IDL encoding (variants)', () => {
   ).toThrow(/Invalid variant {ok:text; err:empty} argument:/);
 
   // Test for option
-  test_(IDL.Opt(IDL.Nat), null, '4449444c016e7d010000', 'Null option');
-  test_(IDL.Opt(IDL.Nat), new BigNumber(1), '4449444c016e7d01000101', 'Non-null option');
+  test_(IDL.Opt(IDL.Nat), [], '4449444c016e7d010000', 'None option');
+  test_(IDL.Opt(IDL.Nat), [new BigNumber(1)], '4449444c016e7d01000101', 'Some option');
+  test_(
+    IDL.Opt(IDL.Opt(IDL.Nat)),
+    [[new BigNumber(1)]],
+    '4449444c026e7d6e000101010101',
+    'Nested option',
+  );
+  test_(IDL.Opt(IDL.Opt(IDL.Unit)), [[null]], '4449444c026e7f6e0001010101', 'Null option');
 
   // Type description sharing
   test_(
@@ -257,12 +264,12 @@ test('IDL encoding (variants)', () => {
 test('IDL encoding (rec)', () => {
   // Test for recursive types
   const List = IDL.Rec();
-  expect(() => IDL.encode([List], [null])).toThrow(/Recursive type uninitialized/);
+  expect(() => IDL.encode([List], [[]])).toThrow(/Recursive type uninitialized/);
   List.fill(IDL.Opt(IDL.Record({ head: IDL.Int, tail: List })));
-  test_(List, null, '4449444c026e016c02a0d2aca8047c90eddae70400010000', 'Empty list');
+  test_(List, [], '4449444c026e016c02a0d2aca8047c90eddae70400010000', 'Empty list');
   test_(
     List,
-    { head: new BigNumber(1), tail: { head: new BigNumber(2), tail: null } },
+    [{ head: new BigNumber(1), tail: [{ head: new BigNumber(2), tail: [] }] }],
     '4449444c026e016c02a0d2aca8047c90eddae7040001000101010200',
     'List',
   );
@@ -272,10 +279,10 @@ test('IDL encoding (rec)', () => {
   const List2 = IDL.Rec();
   List1.fill(IDL.Opt(List2));
   List2.fill(IDL.Record({ head: IDL.Int, tail: List1 }));
-  test_(List1, null, '4449444c026e016c02a0d2aca8047c90eddae70400010000', 'Empty list');
+  test_(List1, [], '4449444c026e016c02a0d2aca8047c90eddae70400010000', 'Empty list');
   test_(
     List1,
-    { head: new BigNumber(1), tail: { head: new BigNumber(2), tail: null } },
+    [{ head: new BigNumber(1), tail: [{ head: new BigNumber(2), tail: [] }] }],
     '4449444c026e016c02a0d2aca8047c90eddae7040001000101010200',
     'List',
   );
@@ -287,7 +294,7 @@ test('IDL encoding (multiple arguments)', () => {
   // Test for multiple arguments
   test_args(
     [IDL.Nat, IDL.Opt(IDL.Text), Result],
-    [new BigNumber(42), 'test', { ok: 'good' }],
+    [new BigNumber(42), ['test'], { ok: 'good' }],
     '4449444c026e716b029cc20171e58eb40271037d00012a0104746573740004676f6f64',
     'Multiple arguments',
   );
