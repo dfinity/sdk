@@ -37,7 +37,6 @@ dfx_start() {
     dfx start --background "$@" 3>&-
     local project_dir=${pwd}
     local dfx_config_root=.dfx/client-configuration
-    sleep 5
     printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
     test -f ${dfx_config_root}/client-1.port
     local port=$(cat ${dfx_config_root}/client-1.port)
