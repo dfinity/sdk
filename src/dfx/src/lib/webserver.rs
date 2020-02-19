@@ -78,7 +78,7 @@ pub fn run_webserver(
     // Is the proxy local?
     if let Some(localhost_port) = client_api_port {
         let ic_client_bind_addr =
-            "http://localhost:".to_owned() + localhost_port.to_string().as_str() + "/api";
+            "http://localhost:".to_owned() + localhost_port.to_string().as_str();
         let ic_client_bind_addr = ic_client_bind_addr.as_str();
         let client_api_uri =
             url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");

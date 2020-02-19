@@ -131,7 +131,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let bootstrap_dir = env
         .get_cache()
-        .get_binary_command_path("js-user-library/bootstrap")?;
+        .get_binary_command_path("js-user-library/dist/bootstrap")?;
 
     // We have a long-lived nodes actor and a proxy actor. The nodes
     // actor could be constantly be modifying its ingress port. Thus,
