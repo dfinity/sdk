@@ -21,7 +21,8 @@ use std::process::Command;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
 
-/// Start a host command.
+/// Provide necessary arguments to start the Internet Computer
+/// locally. See `exec` for further information.
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("start")
         .about(UserMessage::StartNode.to_str())
@@ -53,6 +54,9 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 }
 
 // TODO(eftychis)/In progress: Rename to replica.
+/// Start the Internet Computer locally. Spawns a proxy to forward and
+/// manage browser requests. Responsible for running the network (one
+/// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()

@@ -84,7 +84,7 @@ pub fn run_webserver(
             url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");
         // Add the localhost as an option.
         providers.push(client_api_uri);
-        eprintln!("client: {:?}", localhost_port);
+        eprintln!("client address: {:?}", ic_client_bind_addr);
     }
 
     eprint!("client(s): ");
