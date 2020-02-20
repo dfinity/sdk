@@ -37,6 +37,20 @@ function getDefaultHttpAgent() {
     : window.icHttpAgent;
 }
 
+// IDL functions can have multiple return values, so decoding always
+// produces an array. Ensure that functions with single or zero return
+// values behave as expected.
+function decodeReturnValue(types: IDL.Type[], msg: BinaryBlob) {
+  const returnValues = IDL.decode(types, Buffer.from(msg));
+  if (returnValues.length === 0) {
+    return undefined;
+  } else if (returnValues.length === 1) {
+    return returnValues[0];
+  } else {
+    return returnValues;
+  }
+}
+
 const REQUEST_STATUS_RETRY_WAIT_DURATION_IN_MSECS = 500;
 const DEFAULT_ACTOR_CONFIG: Partial<ActorConfig> = {
   maxAttempts: 30,
@@ -78,16 +92,7 @@ export function makeActorFactory(
 
     switch (status.status) {
       case RequestStatusResponseStatus.Replied: {
-        const returnValue = IDL.decode(func.retTypes, Buffer.from(status.reply.arg));
-
-        // IDL functions can have multiple return values, so decoding always
-        // produces an array. Ensure that functions with single return
-        // values behave as expected.
-        if (returnValue.length === 1) {
-          return returnValue[0];
-        } else {
-          return returnValue;
-        }
+        return decodeReturnValue(func.retTypes, status.reply.arg);
       }
 
       case RequestStatusResponseStatus.Unknown:
@@ -155,7 +160,7 @@ export function makeActorFactory(
               );
 
             case QueryResponseStatus.Replied:
-              return IDL.decode(func.retTypes, result.reply.arg);
+              return decodeReturnValue(func.retTypes, result.reply.arg);
           }
         } else {
           const { requestId, response } = await agent.call(cid, { methodName, arg });
