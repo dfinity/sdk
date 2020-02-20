@@ -21,7 +21,7 @@ teardown() {
     INSTALL_REQUEST_ID=$(dfx canister install hello --async)
     dfx canister request-status $INSTALL_REQUEST_ID
 
-    assert_command dfx canister call hello greet '(service "ic:00")'
+    assert_command dfx canister call hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
 
     assert_command dfx canister call hello greet --type raw '4449444c00017103e29883'

@@ -209,8 +209,7 @@ impl dfx_info::IDLType for IDLValue {
             }
             IDLValue::Service(ref s) => {
                 let blob = CanisterId::from_text(s).unwrap().into_blob();
-                let blob = blob.as_slice();
-                serializer.serialize_service(blob)
+                serializer.serialize_blob(blob.as_slice())
             }
         }
     }

@@ -95,8 +95,7 @@ impl<'a> dfx_info::Serializer for &'a mut ValueSerializer {
         self.value.append(&mut buf);
         Ok(())
     }
-    fn serialize_service(self, blob: &[u8]) -> Result<()> {
-        // We only have public ids for now.
+    fn serialize_blob(self, blob: &[u8]) -> Result<()> {
         self.write(&[1]);
         self.write_leb128(blob.len() as u64);
         self.write(blob);
