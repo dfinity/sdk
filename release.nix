@@ -32,7 +32,7 @@ let
   # versionMatch is `null` if `src.gitTag` is not of the right format like "1.23.456"
   # and it's a list of matches like [ "1.23.456" ] when it is.
   versionMatches = builtins.match "([0-9]+\.[0-9]+\.[0-9]+)" src.gitTag;
-  releaseVersion = if versionMatches == null then "latest" else builtins.head versionMatches;
+  releaseVersion = if versionMatches == null then "unreleased" else builtins.head versionMatches;
 
   pkgs = import ./nix { inherit system config overlays releaseVersion; };
 
