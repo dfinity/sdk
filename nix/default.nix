@@ -4,7 +4,7 @@
 , crossSystem ? null
 , config ? {}
 , overlays ? []
-, releaseVersion ? "unreleased"
+, releaseVersion ? "latest"
 , RustSec-advisory-db ? null
 }:
 let

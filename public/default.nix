@@ -88,21 +88,10 @@ rec {
         # `revision` will be printed by `install.sh` as follows:
         #
         #   log "Executing DFINITY SDK install script, commit: @revision@"
-        #
-        # On release `version` will be based on the git tag and will be a
-        # version number like `0.5.0`. In that case the revision that gets
-        # embedded in `install.sh` is: `140bc06 (0.5.0)`.
-        #
-        # Note that this is the revision corresponding to the `0.5.0` tag.
-        #
-        # When not doing a release, like when building locally, on PRs or for
-        # `master`, `version` will be set to `unreleased` and `revision` will be set
-        # to a default of `omitted when not a release`. We do this so that
-        # we don't build the `install-sh-release` derivation for every commit.
         revision =
-          if src != null && version != "unreleased"
-          then "${builtins.substring 0 7 src.rev} (${version})"
-          else "omitted when not a release";
+          if src != null
+          then src.revision
+          else pkgs.lib.commitIdFromGitRepo (pkgs.lib.gitDir ../.);
 
         manifest = ./manifest.json;
         buildInputs = [ pkgs.jo install-sh-lint install-sh ];
