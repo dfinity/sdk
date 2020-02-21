@@ -186,6 +186,7 @@ fn call_rejected() -> Result<(), AgentError> {
             .await
     });
 
+    eprintln!("result: {:?}", result);
     match result {
         Err(AgentError::ClientError(code, msg)) => {
             assert_eq!(code, 1234);
