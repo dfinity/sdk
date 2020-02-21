@@ -13,20 +13,20 @@ struct StateManagerConfig<'a> {
 }
 
 #[derive(Debug, Serialize)]
-struct ClientTomlConfig<'a> {
+pub struct ClientTomlConfig<'a> {
+    state_manager: StateManagerConfig<'a>,
     http_handler: HttpHandlerConfig<'a>,
-    state_root: StateManagerConfig<'a>,
 }
 
 pub fn generate_client_configuration(
     port_file_path: &PathBuf,
     state_root: &PathBuf,
 ) -> DfxResult<String> {
-    let http_values = ClientTomlConfig {
+    let config = ClientTomlConfig {
         http_handler: HttpHandlerConfig {
             write_port_to: port_file_path,
         },
-        state_root: StateManagerConfig { state_root },
+        state_manager: StateManagerConfig { state_root },
     };
-    toml::to_string(&http_values).map_err(DfxError::CouldNotSerializeClientConfiguration)
+    toml::to_string(&config).map_err(DfxError::CouldNotSerializeClientConfiguration)
 }

@@ -84,10 +84,19 @@ impl Proxy {
     /// # Panics
     /// Currently, we panic if the underlying webserver does not start.
     pub fn start(self, sender: Sender<Server>, receiver: Receiver<Server>) -> Result<Self> {
+        let mut providers = self.config.providers.clone();
+
+        let ic_client_bind_addr = "http://localhost:".to_owned() + self.port().to_string().as_str();
+        let ic_client_bind_addr = ic_client_bind_addr.as_str();
+        let client_api_uri =
+            url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");
+        // Add the localhost as an option.
+        providers.push(client_api_uri);
+        eprintln!("client address: {:?}", ic_client_bind_addr);
+
         run_webserver(
             self.config.bind,
-            Some(self.config.client_api_port),
-            self.config.providers.clone(),
+            providers,
             self.config.serve_dir.clone(),
             sender.clone(),
         )?;
@@ -115,8 +124,7 @@ impl Proxy {
     }
 
     /// Return proxy client api port.
-    #[allow(dead_code)]
-    pub fn port(&self) -> u16 {
+    fn port(&self) -> u16 {
         self.config.client_api_port
     }
 }

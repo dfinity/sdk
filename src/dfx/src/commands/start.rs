@@ -103,17 +103,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let (give_actix, actix_handler) = unbounded();
     let request_stop_echo = request_stop.clone();
     let rcv_wait_fwatcher = rcv_wait.clone();
-
-    // We wait for the port to be determined here. Note this sets the
-    // stage for a few issues:
-    // i) What happens if the port file is moved? (Undefined behaviour)
-    // ii) How do we deal with client failures, as we now block
-    // iii) What if another process modifies the file? (ignore)
-    // iv) order of execution between watcher and client
-
-    // Ensure watcher is ready. Poor man's solution to keep things
-    // sane.
-
+    b.set_message("Generating IC local replica configuration.");
     let replica_config = generate_client_configuration(&client_port_path, &state_root)?;
 
     // TODO(eftychis): we need a proper manager type when we start
@@ -295,12 +285,11 @@ fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
 
 /// Starts the client. It is supposed to be used in a thread, thus
 /// this function will panic when an error occurs that implies
-/// termination of the replica and nee the attention of the parent
+/// termination of the replica and need the attention of the parent
 /// thread.
 ///
 /// # Panics
-/// We panic here to transmit an error to the parent
-/// thread.
+/// We panic here to transmit an error to the parent thread.
 fn start_client(
     client_pathbuf: &PathBuf,
     pid_file_path: &PathBuf,
@@ -313,7 +302,7 @@ fn start_client(
     let client = client_pathbuf.as_path().as_os_str();
 
     let mut cmd = std::process::Command::new(client);
-    cmd.args(&["--config", config.as_ref()]);
+    cmd.args(&["--config", format!("{}", config).as_str()]);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
 
@@ -347,9 +336,12 @@ fn start_client(
 
         match child.try_wait() {
             Ok(Some(status)) => {
-                b.set_message(format!("local replica exited with: {}", status).as_str())
+                // An error occurred: exit the loop.
+                b.set_message(format!("local replica exited with: {}", status).as_str());
+                break;
             }
             Ok(None) => {
+                // No change in exit status.
                 continue;
             }
             Err(e) => {
