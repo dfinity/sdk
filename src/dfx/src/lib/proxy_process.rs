@@ -6,6 +6,7 @@ use hotwatch::{Event, Hotwatch};
 use indicatif::ProgressBar;
 use std::fs;
 use std::path::PathBuf;
+use std::time::Duration;
 
 pub fn spawn_and_update_proxy(
     proxy_config: ProxyConfig,
@@ -26,7 +27,8 @@ pub fn spawn_and_update_proxy(
 
             let (send_port, rcv_port) = unbounded();
 
-            let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize!");
+            let mut hotwatch = Hotwatch::new_with_custom_delay(std::time::Duration::from_secs(30))
+                .expect("hotwatch failed to initialize!");
             let is_killed = proxy_supervisor.is_killed.clone();
             // We start a hotwatch watcher. It will run on the
             // background, with "watch life" equal to the lifetime of
@@ -102,6 +104,7 @@ pub fn spawn_and_update_proxy(
                 });
 
             while proxy_supervisor.is_killed.is_empty() {
+                std::thread::sleep(Duration::from_millis(1000));
                 //wait!
             }
         })

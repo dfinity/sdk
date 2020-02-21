@@ -334,7 +334,7 @@ fn start_client(
 
         // We check every 100ms on the replica. This logic should be
         // transferred / substituted by a supervisor object.
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(Duration::from_millis(1000));
 
         match child.try_wait() {
             Ok(Some(status)) => {
