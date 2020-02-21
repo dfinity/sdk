@@ -1,16 +1,11 @@
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxError;
 use crate::lib::proxy::{CoordinateProxy, Proxy, ProxyConfig};
 
-use crossbeam::channel::{Receiver, Sender};
-use hotwatch::{
-    blocking::{Flow, Hotwatch},
-    Event,
-};
+use crossbeam::unbounded;
+use hotwatch::{Event, Hotwatch};
 use indicatif::ProgressBar;
 use std::fs;
-use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
-use std::time::Duration;
 
 pub fn spawn_and_update_proxy(
     proxy_config: ProxyConfig,
@@ -28,12 +23,59 @@ pub fn spawn_and_update_proxy(
             // Check the port and then start the proxy. Below, we panic to propagate the error
             // to the parent thread as an error via join().
             b.set_message("Checking client!");
-            let port = retrieve_client_port(
-                &client_port_path,
-                proxy_supervisor.is_killed.clone(),
-                proxy_supervisor.request_stop_echo.clone(),
-                &b,
-            )
+
+            let (send_port, rcv_port) = unbounded();
+
+            let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize!");
+            let is_killed = proxy_supervisor.is_killed.clone();
+            // We start a hotwatch watcher. It will run on the
+            // background, with "watch life" equal to the lifetime of
+            // the value. We attempt on each sensible event to read
+            // the port.
+            hotwatch
+                .watch(&client_port_path, {
+                    let client_port_path = client_port_path.clone();
+                    move |event: Event| {
+                        if !is_killed.is_empty() {
+                            // We are in a weird state where the replica exited with an error,
+                            // but we are still waiting for the pid file to change. As this change
+                            // is never going to occur we need to exit our wait and stop tracking
+                            // the file. We need to re-send the error to properly handle it later
+                            // on. Worst case we will panic at this point.
+                            //
+                            // Disconnect the sender. This should unblock the port receiver.
+                            let _ = send_port;
+                        }
+                        match event {
+                            // We pretty much want to unblock for any events
+                            // except a rescan. A move, create etc event should
+                            // lead to a failure.
+                            Event::Rescan => {}
+                            _ => {
+                                let port = fs::read_to_string(&client_port_path)
+                                    .map_err(DfxError::RuntimeError)
+                                    .expect("failed to read port file")
+                                    .parse::<u16>();
+                                if let Ok(port) = port {
+                                    send_port.send(port).expect("Failed to send port");
+                                }
+                            }
+                        }
+                    }
+                })
+                .expect("failed to watch replica port file!");
+
+            let port_after_enter =
+                fs::read_to_string(&client_port_path).unwrap_or_else(|_| "".to_owned());
+
+            let port = if port_after_enter != "" {
+                port_after_enter
+                    .parse::<u16>()
+                    .map_err(DfxError::CouldNotParsePort)
+            } else {
+                // Fail if sender is disconnected.
+                Ok(rcv_port.recv().expect("Failed to receive port"))
+            }
             .unwrap_or_else(|e| {
                 proxy_supervisor
                     .request_stop_echo
@@ -42,7 +84,8 @@ pub fn spawn_and_update_proxy(
 
                 panic!("Failed to watch port configuration file {:?}", e);
             });
-
+            // Stop watching.
+            let _ = hotwatch;
             let proxy = proxy.set_client_api_port(port.clone());
             b.set_message(format!("Client bound at {}", port).as_str());
             proxy
@@ -62,66 +105,4 @@ pub fn spawn_and_update_proxy(
                 //wait!
             }
         })
-}
-
-fn retrieve_client_port(
-    client_port_path: &PathBuf,
-    is_killed: Receiver<()>,
-    request_stop_echo: Sender<()>,
-    b: &ProgressBar,
-) -> DfxResult<u16> {
-    let mut watcher = Hotwatch::new_with_custom_delay(Duration::from_millis(100)).map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed to create watcher for port pid file: {}", e),
-        ))
-    })?;
-
-    watcher
-        .watch(&client_port_path, move |event| {
-            if let Ok(e) = is_killed.try_recv() {
-                // We are in a weird state where the replica exited with an error,
-                // but we are still waiting for the pid file to change. As this change
-                // is never going to occur we need to exit our wait and stop tracking
-                // the file. We need to re-send the error to properly handle it later
-                // on. Worst case we will panic at this point.
-                #[allow(clippy::unit_arg)]
-                request_stop_echo
-                    // We are re-sending the signal here. It is a unit
-                    // right now but that can easily change.
-                    .send(e)
-                    .expect("Watcher could not re-signal request to stop.");
-                return Flow::Exit;
-            }
-            match event {
-                // We pretty much want to unblock for any events
-                // except a rescan. A move, create etc event should
-                // lead to a failure.
-                Event::Rescan => Flow::Continue,
-                _ => Flow::Exit,
-            }
-        })
-        .map_err(|e| {
-            DfxError::RuntimeError(Error::new(
-                ErrorKind::Other,
-                format!("Failed to watch port pid file: {}", e),
-            ))
-        })?;
-    b.set_message("Waiting for client to bind their http server port...");
-    // We are blocking here and actually processing write events.
-
-    let port_after_enter = fs::read_to_string(&client_port_path).map_err(DfxError::RuntimeError)?;
-
-    if port_after_enter != "" {
-        let port = port_after_enter
-            .parse::<u16>()
-            .map_err(DfxError::CouldNotParsePort);
-        return port;
-    }
-
-    watcher.run();
-    fs::read_to_string(&client_port_path)
-        .map_err(DfxError::RuntimeError)?
-        .parse::<u16>()
-        .map_err(DfxError::CouldNotParsePort)
 }

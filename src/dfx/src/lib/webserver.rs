@@ -71,7 +71,7 @@ pub fn run_webserver(
 ) -> Result<(), std::io::Error> {
     eprintln!("binding to: {:?}", bind);
 
-    const SHUTDOWN_WAIT_TIME: u64 = 1;
+    const SHUTDOWN_WAIT_TIME: u64 = 60;
 
     eprint!("client(s): ");
     providers.iter().for_each(|uri| eprint!("{} ", uri));
