@@ -4,6 +4,7 @@ use serde::Serialize;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub struct HttpHandlerConfig {
     /// Instructs the HTTP handler to use the specified port
     pub use_port: Option<u16>,
@@ -40,14 +41,14 @@ impl ReplicaConfig {
     }
 
     #[allow(dead_code)]
-    pub fn with_port(&mut self, port: u16) -> &mut Self {
+    pub fn with_port(mut self, port: u16) -> Self {
         self.http_handler.use_port = Some(port);
         self.http_handler.write_port_to = None;
         self
     }
 
     #[allow(dead_code)]
-    pub fn with_random_port(&mut self, write_port_to: &Path) -> &mut Self {
+    pub fn with_random_port(mut self, write_port_to: &Path) -> Self {
         self.http_handler.use_port = None;
         self.http_handler.write_port_to = Some(write_port_to.to_path_buf());
         self

@@ -9,6 +9,7 @@ use slog::Drain;
 use slog_async;
 use slog_term;
 
+mod actors;
 mod commands;
 mod config;
 mod lib;
