@@ -7,7 +7,7 @@ use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-/// A proxy that forwards requests from the cli to the network.
+/// A proxy that forwards requests from the browser to the network.
 #[derive(Clone, Debug)]
 pub struct Proxy {
     config: ProxyConfig,
@@ -44,11 +44,7 @@ impl Proxy {
         }
     }
 
-    // Shutdown and start are private (for now). The cost of inlining
-    // is minimal, while as the logic gets more complicated inlining
-    // them in restart function has the possibility to reduce terms as
-    // rustc gets better.
-    #[inline(always)]
+    // Shutdown and start are private (for now).
     fn shutdown(self) -> Result<Self> {
         match self.server_handle {
             // In case the server is down we recall new() as in the
