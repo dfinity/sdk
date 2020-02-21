@@ -186,9 +186,6 @@ fn call_rejected() -> Result<(), AgentError> {
             .await
     });
 
-    submit_mock.assert();
-    status_mock.assert();
-
     match result {
         Err(AgentError::ClientError(code, msg)) => {
             assert_eq!(code, 1234);
@@ -196,6 +193,9 @@ fn call_rejected() -> Result<(), AgentError> {
         }
         _ => unreachable!(),
     }
+
+    submit_mock.assert();
+    status_mock.assert();
 
     Ok(())
 }
