@@ -332,9 +332,9 @@ fn start_client(
         // We have to wait for the child to exit here. We *should*
         // always wait(). Read related documentation.
 
-        // We check every 100ms on the replica. This logic should be
+        // We check every 1s on the replica. This logic should be
         // transferred / substituted by a supervisor object.
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(Duration::from_millis(1000));
 
         match child.try_wait() {
             Ok(Some(status)) => {
