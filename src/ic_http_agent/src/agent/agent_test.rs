@@ -191,7 +191,7 @@ fn call_rejected() -> Result<(), AgentError> {
             assert_eq!(code, 1234);
             assert_eq!(msg, "Rejected Message");
         }
-        _ => unreachable!(),
+        result => unreachable!("{:?}", result),
     }
 
     submit_mock.assert();
