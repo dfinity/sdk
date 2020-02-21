@@ -30,11 +30,18 @@ pub fn spawn_and_update_proxy(
             b.set_message("Checking client!");
             let port = retrieve_client_port(
                 &client_port_path,
-                proxy_supervisor.rcv_wait_fwatcher.clone(),
+                proxy_supervisor.is_killed.clone(),
                 proxy_supervisor.request_stop_echo.clone(),
                 &b,
             )
-            .expect("Failed to watch port configuration file");
+            .unwrap_or_else(|e| {
+                proxy_supervisor
+                    .request_stop_echo
+                    .try_send(())
+                    .expect("Client thread couldn't signal parent to stop");
+
+                panic!("Failed to watch port configuration file {:?}", e);
+            });
 
             let proxy = proxy.set_client_api_port(port.clone());
             b.set_message(format!("Client bound at {}", port).as_str());
@@ -43,7 +50,13 @@ pub fn spawn_and_update_proxy(
                     proxy_supervisor.inform_parent.clone(),
                     proxy_supervisor.server_receiver.clone(),
                 )
-                .expect("Failed to restart the proxy");
+                .unwrap_or_else(|e| {
+                    proxy_supervisor
+                        .request_stop_echo
+                        .try_send(())
+                        .expect("Client thread couldn't signal parent to stop");
+                    panic!("Failed to restart the proxy {:?}", e);
+                });
 
             while proxy_supervisor.is_killed.is_empty() {
                 //wait!
@@ -53,7 +66,7 @@ pub fn spawn_and_update_proxy(
 
 fn retrieve_client_port(
     client_port_path: &PathBuf,
-    rcv_wait_fwatcher: Receiver<()>,
+    is_killed: Receiver<()>,
     request_stop_echo: Sender<()>,
     b: &ProgressBar,
 ) -> DfxResult<u16> {
@@ -66,7 +79,7 @@ fn retrieve_client_port(
 
     watcher
         .watch(&client_port_path, move |event| {
-            if let Ok(e) = rcv_wait_fwatcher.try_recv() {
+            if let Ok(e) = is_killed.try_recv() {
                 // We are in a weird state where the replica exited with an error,
                 // but we are still waiting for the pid file to change. As this change
                 // is never going to occur we need to exit our wait and stop tracking

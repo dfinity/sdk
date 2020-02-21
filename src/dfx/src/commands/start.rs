@@ -98,9 +98,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     b.enable_steady_tick(80);
 
     // Must be unbounded, as a killed child should not deadlock.
+
     let (request_stop, rcv_wait) = unbounded();
     let (broadcast_stop, is_killed_client) = unbounded();
     let (give_actix, actix_handler) = unbounded();
+
     let request_stop_echo = request_stop.clone();
     let rcv_wait_fwatcher = rcv_wait.clone();
     b.set_message("Generating IC local replica configuration.");
@@ -302,7 +304,7 @@ fn start_client(
     let client = client_pathbuf.as_path().as_os_str();
 
     let mut cmd = std::process::Command::new(client);
-    cmd.args(&["--config", format!("{}", config).as_str()]);
+    cmd.args(&["--config", config.as_str()]);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
 
