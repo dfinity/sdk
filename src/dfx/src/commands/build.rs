@@ -385,7 +385,7 @@ fn build_file(
                     Some(Profile::Release) => BuildTarget::Release,
                     _ => BuildTarget::Debug,
                 },
-                // Surpress the warnings the second time we call moc                
+                // Surpress the warnings the second time we call moc
                 surpress_warning: true,
                 inject_code: true,
                 verbose: false,
@@ -395,7 +395,7 @@ fn build_file(
                 idl_map: &id_map,
             };
             motoko_compile(cache.as_ref(), &params, assets)?;
-            
+
             Ok(())
         }
         Some(ext) => Err(DfxError::BuildError(BuildErrorKind::InvalidExtension(
