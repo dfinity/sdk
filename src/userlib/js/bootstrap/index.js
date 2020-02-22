@@ -72,9 +72,8 @@ if (!canisterId) {
     // Load candid.js from the canister.
     icHttpAgent.retrieveAsset(canisterId, 'candid.js')
       .then(content => {
-        const js = new TextDecoder().decode(content);
-        const dataUri = 'data:text/javascript;charset=utf-8,'
-              + encodeURIComponent(js);
+        const js = new TextDecoder().decode(content);        
+        const dataUri = 'data:text/javascript;base64,' + btoa(js);
         (async () => {
           const candid = await import(/* webpackIgnore: true */dataUri);
           const canister =
@@ -83,7 +82,7 @@ if (!canisterId) {
                 });
           const render = await import('./candid/candid.js');
           const actor = candid.default({IDL});
-          render.render(actor, canister);
+          render.render(canisterId, actor, canister);
         })();
       });
   } else {

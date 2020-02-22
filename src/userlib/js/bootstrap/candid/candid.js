@@ -1,5 +1,6 @@
 
-export function render(actor, canister) {
+export function render(id, actor, canister) {
+  document.getElementById('title').innerText = `Service ${id}`;
   for (let [name, func] of Object.entries(actor._fields)) {
     renderMethod(name, func, canister[name]);
   }

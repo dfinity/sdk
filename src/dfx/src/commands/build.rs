@@ -376,7 +376,9 @@ fn build_file(
                 .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
             build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
-            // Add Candid JS binding to assets.
+            // Add Candid and JS binding to assets.
+            let candid_content = base64::encode(&std::fs::read(&output_idl_path)?);
+            assets.insert("candid.did".to_owned(), candid_content);
             let did_js_content = base64::encode(&std::fs::read(&output_did_js_path)?);
             assets.insert("candid.js".to_owned(), did_js_content);
             // Generate wasm
