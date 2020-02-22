@@ -754,7 +754,7 @@ mod tests {
         )
         .unwrap();
 
-        build_file(&env, &config, "name", &HashMap::new(), &HashMap::new())
+        build_file(&env, &config, "name", &HashMap::new(), &mut HashMap::new())
             .expect("Function failed - build_file");
         assert!(output_path.exists());
     }
