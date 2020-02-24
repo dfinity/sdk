@@ -2,8 +2,12 @@ use crate::commands::CliCommand;
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::*;
-use clap::{App, AppSettings};
+use clap::{App, AppSettings, Arg};
 use ic_http_agent::AgentError;
+use slog;
+use slog::Drain;
+use slog_async;
+use slog_term;
 
 mod commands;
 mod config;
@@ -15,6 +19,18 @@ fn cli(_: &impl Environment) -> App<'_, '_> {
         .about("The DFINITY Executor.")
         .version(dfx_version_str())
         .global_setting(AppSettings::ColoredHelp)
+        .arg(
+            Arg::with_name("verbose")
+                .long("verbose")
+                .short("v")
+                .multiple(true),
+        )
+        .arg(
+            Arg::with_name("quiet")
+                .long("quiet")
+                .short("q")
+                .multiple(true),
+        )
         .subcommands(
             commands::builtin()
                 .into_iter()
@@ -95,6 +111,33 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
     None
 }
 
+/// Setup a logger with the proper configuration.
+/// The verbose_level can be negative, in which case it's a quiet mode which removes warnings,
+/// then errors entirely.
+fn setup_logging(verbose_level: i64) -> slog::Logger {
+    let log_level = match verbose_level {
+        -3 => slog::Level::Critical,
+        -2 => slog::Level::Error,
+        -1 => slog::Level::Warning,
+        0 => slog::Level::Info,
+        1 => slog::Level::Debug,
+        x => {
+            if x > 0 {
+                slog::Level::Trace
+            } else {
+                return slog::Logger::root(slog::Discard, slog::o!());
+            }
+        }
+    };
+
+    let plain = slog_term::PlainSyncDecorator::new(std::io::stderr());
+    let drain = lib::logger::PlainFormat::new(plain).fuse();
+    let drain = slog::LevelFilter::new(drain, log_level).fuse();
+    let drain = slog_async::Async::new(drain).build().fuse();
+
+    slog::Logger::root(drain, slog::o!("version" => dfx_version_str()))
+}
+
 fn main() {
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
@@ -103,7 +146,27 @@ fn main() {
             }
 
             let matches = cli(&env).get_matches();
-            exec(&env, &matches, &(cli(&env)))
+
+            // Create a logger with our argument matches.
+            let level =
+                matches.occurrences_of("verbose") as i64 - matches.occurrences_of("quiet") as i64;
+            let log = setup_logging(level);
+            // Only show the progress bar if the level is INFO or more.
+            let progress_bar = level >= 0;
+
+            // Need to recreate the environment because we use it to get matches.
+            // TODO(hansl): resolve this double-create problem.
+            match EnvironmentImpl::new().map(|x| x.with_logger(log).with_progress_bar(progress_bar))
+            {
+                Ok(env) => {
+                    slog::trace!(
+                        env.get_logger(),
+                        "Trace mode enabled. Lots of logs coming up."
+                    );
+                    exec(&env, &matches, &(cli(&env)))
+                }
+                Err(e) => Err(e),
+            }
         }
         Err(e) => Err(e),
     };
