@@ -1,24 +1,29 @@
 use crate::commands::canister::create_waiter;
 use crate::config::dfinity::Config;
+use crate::lib::client_toml_config::generate_client_configuration;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::webserver::webserver;
+use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
+use crate::lib::proxy_process::spawn_and_update_proxy;
+
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use futures::future::Future;
 use ic_http_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
-use sysinfo::{System, SystemExt};
+use std::time::Duration;
+use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 use tokio::runtime::Runtime;
 
-const IC_CLIENT_BIND_ADDR: &str = "http://localhost:8080/api";
-
+/// Provide necessary arguments to start the Internet Computer
+/// locally. See `exec` for further information.
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("start")
         .about(UserMessage::StartNode.to_str())
@@ -49,7 +54,10 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
         .map_err(DfxError::from)
 }
 
-// TODO: Refactor exec into more manageable pieces.
+// TODO(eftychis)/In progress: Rename to replica.
+/// Start the Internet Computer locally. Spawns a proxy to forward and
+/// manage browser requests. Responsible for running the network (one
+/// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
@@ -64,7 +72,17 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let pid_file_path = temp_dir.join("pid");
     check_previous_process_running(&pid_file_path)?;
 
-    // We are doing this here to make sure we can write to the temp pid file.
+    let client_configuration_dir = temp_dir.join("client-configuration");
+    fs::create_dir_all(&client_configuration_dir)?;
+    let client_port_path = client_configuration_dir.join("client-1.port");
+
+    // Touch the client port file. This ensures it is empty prior to
+    // handing it over to the replica. If we read the file and it has
+    // contents we shall assume it is due to our spawned client
+    // process.
+    std::fs::write(&client_port_path, "")?;
+    // We are doing this here to make sure we can write to the temp
+    // pid file.
     std::fs::write(&pid_file_path, "")?;
 
     if args.is_present("background") {
@@ -80,37 +98,75 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     b.enable_steady_tick(80);
 
     // Must be unbounded, as a killed child should not deadlock.
+
     let (request_stop, rcv_wait) = unbounded();
     let (broadcast_stop, is_killed_client) = unbounded();
     let (give_actix, actix_handler) = unbounded();
 
+    let request_stop_echo = request_stop.clone();
+    let rcv_wait_fwatcher = rcv_wait.clone();
+    b.set_message("Generating IC local replica configuration.");
+    let replica_config = generate_client_configuration(&client_port_path, &state_root)?;
+
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
-    let client_watchdog = std::thread::Builder::new()
-        .name("NodeManager".into())
-        .spawn(move || {
+    let client_watchdog = std::thread::Builder::new().name("replica".into()).spawn({
+        let is_killed_client = is_killed_client.clone();
+        let b = b.clone();
+
+        move || {
             start_client(
-                &client_pathbuf.clone(),
+                &client_pathbuf,
                 &pid_file_path,
-                &state_root,
                 is_killed_client,
                 request_stop,
+                replica_config,
+                b,
             )
-        })?;
+        }
+    })?;
 
     let bootstrap_dir = env
         .get_cache()
         .get_binary_command_path("js-user-library/dist/bootstrap")?;
-    let frontend_watchdog = webserver(
-        address_and_port,
-        vec![url::Url::parse(IC_CLIENT_BIND_ADDR).unwrap()],
-        &bootstrap_dir,
-        give_actix,
-    );
+
+    // We have a long-lived replica process and a proxy. We use
+    // currently a messaging pattern to supervise. This is going to
+    // be tidied up over a more formal actor framework.
+    let is_killed = is_killed_client;
+
+    // By default we reach to no external IC nodes.
+    let providers = Vec::new();
+
+    let proxy_config = ProxyConfig {
+        client_api_port: address_and_port.port(),
+        bind: address_and_port,
+        serve_dir: bootstrap_dir,
+        providers,
+    };
+
+    let supervisor_actor_handle = CoordinateProxy {
+        inform_parent: give_actix,
+        server_receiver: actix_handler.clone(),
+        rcv_wait_fwatcher,
+        request_stop_echo,
+        is_killed,
+    };
+
+    let frontend_watchdog = spawn_and_update_proxy(
+        proxy_config,
+        client_port_path,
+        supervisor_actor_handle,
+        b.clone(),
+    )?;
 
     b.set_message("Pinging the Internet Computer client...");
     ping_and_wait(&frontend_url)?;
     b.finish_with_message("Internet Computer client started...");
+
+    // TODO/In Progress(eftychis): Here we should define a Supervisor
+    // actor to keep track and spawn these two processes
+    // independently.
 
     // We have two side processes involving multiple threads running at
     // this point. We first wait for a signal that one of the processes
@@ -229,50 +285,86 @@ fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
     Ok(())
 }
 
+/// Starts the client. It is supposed to be used in a thread, thus
+/// this function will panic when an error occurs that implies
+/// termination of the replica and need the attention of the parent
+/// thread.
+///
+/// # Panics
+/// We panic here to transmit an error to the parent thread.
 fn start_client(
     client_pathbuf: &PathBuf,
     pid_file_path: &PathBuf,
-    state_root: &Path,
     is_killed_client: Receiver<()>,
     request_stop: Sender<()>,
+    config: String,
+    b: ProgressBar,
 ) -> DfxResult<()> {
-    let config = format!(
-        r#"
-            [state_manager]
-            state_root = "{state_root}"
-        "#,
-        state_root = state_root.display(),
-    );
+    b.set_message("Generating IC local replica configuration.");
     let client = client_pathbuf.as_path().as_os_str();
-    // We use unwrap() here to transmit an error to the parent
-    // thread.
+
+    let mut cmd = std::process::Command::new(client);
+    cmd.args(&["--config", config.as_str()]);
+    cmd.stdout(std::process::Stdio::inherit());
+    cmd.stderr(std::process::Stdio::inherit());
+
+    // If the replica itself fails, we are probably into deeper trouble than
+    // we can solve at this point and the user is better rerunning the server.
+    let mut child = cmd.spawn().unwrap_or_else(|e| {
+        request_stop
+            .try_send(())
+            .expect("Client thread couldn't signal parent to stop");
+        // We still want to send an error message.
+        panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
+    });
+
+    // Update the pid file.
+    if let Ok(pid) = sysinfo::get_current_pid() {
+        let _ = std::fs::write(&pid_file_path, pid.to_string());
+    }
+
+    // N.B. The logic below fixes errors from replica causing
+    // restarts. We do not want to respawn the replica on a failure.
+    // This should be substituted with a supervisor.
+
+    // Did we receive a kill signal?
     while is_killed_client.is_empty() {
-        let mut cmd = std::process::Command::new(client);
-        cmd.args(&["--config", config.as_ref()]);
-        cmd.stdout(std::process::Stdio::inherit());
-        cmd.stderr(std::process::Stdio::inherit());
-
-        // If the nodemanager itself fails, we are probably deeper into troubles than
-        // we can solve at this point and the user is better rerunning the server.
-        let mut child = cmd.spawn().unwrap_or_else(|e| {
-            request_stop
-                .try_send(())
-                .expect("Client thread couldn't signal parent to stop");
-            // We still want to send an error message.
-            panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
-        });
-
-        // Update the pid file.
-        if let Ok(pid) = sysinfo::get_current_pid() {
-            let _ = std::fs::write(&pid_file_path, pid.to_string());
-        }
-
         // We have to wait for the child to exit here. We *should*
         // always wait(). Read related documentation.
-        if child.wait().is_err() {
-            break;
+
+        // We check every 1s on the replica. This logic should be
+        // transferred / substituted by a supervisor object.
+        std::thread::sleep(Duration::from_millis(1000));
+
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                // An error occurred: exit the loop.
+                b.set_message(format!("local replica exited with: {}", status).as_str());
+                break;
+            }
+            Ok(None) => {
+                // No change in exit status.
+                continue;
+            }
+            Err(e) => {
+                request_stop
+                    .send(())
+                    .expect("Could not signal parent thread from client runner");
+                panic!("Failed to check the status of the replica: {}", e)
+            }
         }
     }
+    // Terminate the replica; wait() then signal stop. Ignore errors
+    // -- we might get InvalidInput: that is fine -- process might
+    // have terminated already.
+    Process::new(child.id() as Pid, None, 0).kill(Signal::Term);
+    match child.wait() {
+        Ok(status) => b.set_message(format!("Replica exited with {}", status).as_str()),
+        Err(e) => b.set_message(
+            format!("Failed to properly wait for the replica to terminate {}", e).as_str(),
+        ),
+    }
+
     // We DO want to panic here, if we can not signal our
     // parent. This is interpreted as an error via join by the
     // parent thread.
