@@ -65,6 +65,9 @@ impl EnvironmentImpl {
         //   1. DFX_VERSION environment variable
         //   2. dfx.json "dfx" field
         //   3. this binary's version
+        // If any of those are empty string, we stop the fallback and use the current version.
+        // If any of those are a valid version, we try to use that directly as is.
+        // If any of those are an invalid version, we will show an error to the user.
         let version = match std::env::var("DFX_VERSION") {
             Err(_) => match &config {
                 None => dfx_version().clone(),
@@ -73,7 +76,13 @@ impl EnvironmentImpl {
                     Some(v) => Version::parse(&v)?,
                 },
             },
-            Ok(v) => Version::parse(&v)?,
+            Ok(v) => {
+                if v.is_empty() {
+                    dfx_version().clone()
+                } else {
+                    Version::parse(&v)?
+                }
+            }
         };
 
         Ok(EnvironmentImpl {
