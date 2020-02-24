@@ -300,16 +300,6 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
             .replace("{project_name}", canister_info.get_name());
 
         match decode_path_to_str(&file.path()?)? {
-            "candid.js" => {
-                let output_candid_js_path = output_canister_js_path
-                    .parent()
-                    .expect("cannot use root")
-                    .join("candid.js");
-                std::fs::write(
-                    decode_path_to_str(&output_candid_js_path)?,
-                    new_file_contents,
-                )?;
-            }
             "canister.js" => {
                 std::fs::write(
                     decode_path_to_str(output_canister_js_path)?,
@@ -328,7 +318,7 @@ fn build_file(
     config: &Config,
     name: &str,
     id_map: &CanisterIdMap,
-    assets: &AssetMap,
+    assets: &mut AssetMap,
 ) -> DfxResult {
     let canister_info = CanisterInfo::load(config, name).map_err(|_| {
         BuildError(BuildErrorKind::CanisterNameIsNotInConfigError(
@@ -360,21 +350,7 @@ fn build_file(
             let cache = env.get_cache();
             let idl_dir_path = canister_info.get_idl_dir_path();
             std::fs::create_dir_all(&idl_dir_path)?;
-            // Generate wasm
-            let params = MotokoParams {
-                build_target: match profile {
-                    Some(Profile::Release) => BuildTarget::Release,
-                    _ => BuildTarget::Debug,
-                },
-                surpress_warning: false,
-                inject_code: true,
-                verbose: false,
-                input: &input_path,
-                output: &output_wasm_path,
-                idl_path: &idl_dir_path,
-                idl_map: &id_map,
-            };
-            motoko_compile(cache.as_ref(), &params, assets)?;
+
             // Generate IDL
             let output_idl_path = canister_info.get_output_idl_path();
             let idl_file_path = canister_info
@@ -382,8 +358,7 @@ fn build_file(
                 .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
             let params = MotokoParams {
                 build_target: BuildTarget::IDL,
-                // Surpress the warnings the second time we call moc
-                surpress_warning: true,
+                surpress_warning: false,
                 inject_code: false,
                 verbose: false,
                 input: &input_path,
@@ -401,6 +376,27 @@ fn build_file(
                 .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
             build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
             build_canister_js(&canister_id, &canister_info)?;
+            // Add Candid and JS binding to assets.
+            let candid_content = base64::encode(&std::fs::read(&output_idl_path)?);
+            assets.insert("candid.did".to_owned(), candid_content);
+            let did_js_content = base64::encode(&std::fs::read(&output_did_js_path)?);
+            assets.insert("candid.js".to_owned(), did_js_content);
+            // Generate wasm
+            let params = MotokoParams {
+                build_target: match profile {
+                    Some(Profile::Release) => BuildTarget::Release,
+                    _ => BuildTarget::Debug,
+                },
+                // Surpress the warnings the second time we call moc
+                surpress_warning: true,
+                inject_code: true,
+                verbose: false,
+                input: &input_path,
+                output: &output_wasm_path,
+                idl_path: &idl_dir_path,
+                idl_map: &id_map,
+            };
+            motoko_compile(cache.as_ref(), &params, assets)?;
 
             Ok(())
         }
@@ -543,7 +539,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // Build canister
     for name in &seq.canisters {
         build_stage_bar.println(&format!("{} canister {}", green.apply_to("Building"), name));
-        match build_file(env, &config, name, &seq.get_ids(name), &HashMap::new()) {
+        match build_file(env, &config, name, &seq.get_ids(name), &mut HashMap::new()) {
             Ok(()) => {}
             Err(e) => {
                 build_stage_bar.abandon();
@@ -609,7 +605,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             }
         }
 
-        match build_file(env, &config, &name, &seq.get_ids(&name), &assets) {
+        match build_file(env, &config, &name, &seq.get_ids(&name), &mut assets) {
             Ok(()) => {}
             Err(e) => {
                 build_stage_bar.abandon();
@@ -760,7 +756,7 @@ mod tests {
         )
         .unwrap();
 
-        build_file(&env, &config, "name", &HashMap::new(), &HashMap::new())
+        build_file(&env, &config, "name", &HashMap::new(), &mut HashMap::new())
             .expect("Function failed - build_file");
         assert!(output_path.exists());
     }

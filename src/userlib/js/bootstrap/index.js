@@ -4,6 +4,7 @@ import {
   makeAuthTransform,
   makeKeyPair,
   makeNonceTransform,
+  IDL,
 } from '../out';
 
 const localStorageIdentityKey = 'dfinity-ic-user-identity';
@@ -71,10 +72,18 @@ if (!canisterId) {
     // Load candid.js from the canister.
     icHttpAgent.retrieveAsset(canisterId, 'candid.js')
       .then(content => {
-        const indexJs = new TextDecoder().decode(content);
-        const script = document.createElement('script');
-        script.innerText = indexJs;
-        document.head.appendChild(script);        
+        const js = new TextDecoder().decode(content);        
+        const dataUri = 'data:text/javascript;base64,' + btoa(js);
+        (async () => {
+          const candid = await import(/* webpackIgnore: true */dataUri);
+          const canister =
+                icHttpAgent.makeActorFactory(candid.default)({
+                  canisterId: canisterId,
+                });
+          const render = await import('./candid/candid.js');
+          const actor = candid.default({IDL});
+          render.render(canisterId, actor, canister);
+        })();
       });
   } else {
     // Load index.js from the canister.
@@ -82,7 +91,7 @@ if (!canisterId) {
       .then(content => {
         const indexJs = new TextDecoder().decode(content);
         const script = document.createElement('script');
-        script.innerText = indexJs;
+        script.innerHTML = indexJs;
         document.head.appendChild(script);
       });
   }

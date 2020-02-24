@@ -38,7 +38,6 @@ function generateWebpackConfigForCanister(name, info) {
     mode: "production",
     entry: {
       index: path.join(inputRoot, info.frontend.entrypoint),
-      candid: path.join(outputRoot, 'candid.js'),
     },
     devtool: "source-map",
     optimization: {
