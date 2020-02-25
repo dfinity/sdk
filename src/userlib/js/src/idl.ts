@@ -119,10 +119,6 @@ export abstract class Type<T = any> {
     return JSON.parse(str);
   }
 
-  public defaultString(): string | null {
-    return null;
-  }
-
   /* Implement `T` in the IDL spec, only needed for non-primitive types */
   public buildTypeTable(typeTable: TypeTable): void {
     if (!typeTable.has(this)) {
@@ -259,10 +255,6 @@ export class UnitClass extends PrimitiveType<null> {
   }
 
   get name() {
-    return 'null';
-  }
-
-  public defaultString(): string | null {
     return 'null';
   }
 }
@@ -584,10 +576,6 @@ export class OptClass<T> extends ConstructType<[T] | []> {
     } else {
       return `opt ${this._type.valueToString(x[0])}`;
     }
-  }
-
-  public defaultString(): null | string {
-    return '[]';
   }
 }
 

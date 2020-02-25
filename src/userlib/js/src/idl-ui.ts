@@ -43,8 +43,55 @@ class Render implements IDL.Visitor<HTMLElement, HTMLInputElement> {
   }
 }
 
+class Default implements IDL.Visitor<null, string | null> {
+  public visitEmpty(t: IDL.EmptyClass, d: null): string | null {
+    return null;
+  }
+  public visitBool(t: IDL.BoolClass, d: null): string | null {
+    return null;
+  }
+  public visitUnit(t: IDL.UnitClass, d: null): string | null {
+    return 'null';
+  }
+  public visitText(t: IDL.TextClass, d: null): string | null {
+    return null;
+  }
+  public visitInt(t: IDL.IntClass, d: null): string | null {
+    return null;
+  }
+  public visitNat(t: IDL.NatClass, d: null): string | null {
+    return null;
+  }
+  public visitFixedInt(t: IDL.FixedIntClass, d: null): string | null {
+    return null;
+  }
+  public visitFixedNat(t: IDL.FixedNatClass, d: null): string | null {
+    return null;
+  }
+  public visitVec<T>(t: IDL.VecClass<T>, d: null): string | null {
+    return null;
+  }
+  public visitOpt<T>(t: IDL.OptClass<T>, d: null): string | null {
+    return '[]';
+  }
+  public visitRecord(t: IDL.RecordClass, d: null): string | null {
+    return null;
+  }
+  public visitVariant(t: IDL.VariantClass, d: null): string | null {
+    return null;
+  }
+  public visitRec<T>(t: IDL.RecClass<T>, d: null): string | null {
+    // @ts-ignore
+    return defaultString(t._type as IDL.Type);
+  }
+}
+
 export function renderInput(t: IDL.Type, dom: HTMLElement): HTMLInputElement {
   return t.accept(new Render(), dom);
+}
+
+function defaultString(t: IDL.Type): string | null {
+  return t.accept(new Default(), null);
 }
 
 // tslint:disable:no-shadowed-variable
@@ -66,7 +113,7 @@ function renderPrimitive(dom: HTMLElement, idl: IDL.Type): HTMLInputElement {
   const arg = document.createElement('input');
   arg.className = 'argument';
   arg.placeholder = idl.display();
-  const val = idl.defaultString();
+  const val = defaultString(idl);
   if (val) {
     arg.value = val;
   }

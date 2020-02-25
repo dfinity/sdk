@@ -2,10 +2,6 @@ import { IDL, UI } from '../../out';
 
 export function render(id, actor, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
-  /*const el = document.createElement('div');
-  UI.renderInput(IDL.Bool, el);
-  UI.renderInput(IDL.Opt(IDL.Bool), el);
-  document.body.appendChild(el);*/
   for (const [name, func] of Object.entries(actor._fields)) {
     renderMethod(name, func, canister[name]);
   }
