@@ -47,8 +47,6 @@ fn exec(env: &impl Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) 
     }
 }
 
-<<<<<<< Updated upstream
-=======
 fn is_warning_disabled(warning: &str) -> bool {
     // By default, warnings are all enabled.
     let env_warnings = std::env::var("DFX_WARNING").unwrap_or_else(|_| "".to_string());
@@ -97,7 +95,6 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
     None
 }
 
->>>>>>> Stashed changes
 fn main() {
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
