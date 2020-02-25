@@ -6,4 +6,5 @@ export * from './http_agent_transforms';
 export * from './http_agent_types';
 
 import * as IDL from './idl';
-export { IDL };
+import * as UI from './idl-plugin';
+export { IDL, UI };

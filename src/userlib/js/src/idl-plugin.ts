@@ -1,8 +1,55 @@
-import { FuncClass, Type } from './idl';
+import * as IDL from './idl';
+
+class Render implements IDL.Visitor<HTMLElement, HTMLInputElement> {
+  public visitEmpty(t: IDL.EmptyClass, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitBool(t: IDL.BoolClass, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitUnit(t: IDL.UnitClass, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitText(t: IDL.TextClass, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitInt(t: IDL.IntClass, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitNat(t: IDL.NatClass, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitFixedInt(t: IDL.FixedIntClass, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitFixedNat(t: IDL.FixedNatClass, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitVec<T>(t: IDL.VecClass<T>, d: HTMLElement): HTMLInputElement {
+    return renderPrimitive(d, t);
+  }
+  public visitOpt<T>(t: IDL.OptClass<T>, d: HTMLElement): HTMLInputElement {
+    return renderOption(d, t);
+  }
+  public visitRecord(t: IDL.RecordClass, d: HTMLElement): HTMLInputElement {
+    return renderRecord(d, t);
+  }
+  public visitVariant(t: IDL.VariantClass, d: HTMLElement): HTMLInputElement {
+    return renderVariant(d, t);
+  }
+  public visitRec<T>(t: IDL.RecClass<T>, d: HTMLElement): HTMLInputElement {
+    // @ts-ignore
+    return renderInput(t._type as IDL.Type, d);
+  }
+}
+
+export function renderInput(t: IDL.Type, dom: HTMLElement): HTMLInputElement {
+  return t.accept(new Render(), dom);
+}
 
 // tslint:disable:no-shadowed-variable
 
-function validate(idl: Type, arg: HTMLInputElement): any {
+function validate(idl: IDL.Type, arg: HTMLInputElement) {
   const value = idl.stringToValue(arg.value);
   if (!idl.covariant(value)) {
     throw new Error(`${arg.value} is not of type ${idl.display()}`);
@@ -12,13 +59,12 @@ function validate(idl: Type, arg: HTMLInputElement): any {
 
 const parseEvent = new Event('parse');
 
-export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLInputElement {
+function renderPrimitive(dom: HTMLElement, idl: IDL.Type): HTMLInputElement {
   const container = document.createElement('span');
   const status = document.createElement('div');
   status.className = 'status';
   const arg = document.createElement('input');
   arg.className = 'argument';
-  arg.id = id;
   arg.placeholder = idl.display();
   const val = idl.defaultString();
   if (val) {
@@ -51,24 +97,23 @@ export function renderPrimitive(dom: HTMLElement, id: string, idl: Type): HTMLIn
   return arg;
 }
 
-export function renderComposite(
+function renderComposite(
   dom: HTMLElement,
-  id: string,
-  idl: Type,
+  idl: IDL.Type,
   open: HTMLElement,
   event: string,
-  render: (dom: HTMLElement, id: string) => HTMLInputElement[],
+  render: (dom: HTMLElement) => HTMLInputElement[],
   parse: (args: HTMLInputElement[]) => string,
 ): HTMLInputElement {
   const container = document.createElement('span');
-  const input = renderPrimitive(container, id, idl);
-  // input.className = 'composite';
+  const input = renderPrimitive(container, idl);
+  input.className = 'composite';
   container.appendChild(open);
 
   open.addEventListener(event, () => {
     const form = document.createElement('div');
     form.className = 'popup-form';
-    const args = render(form, id);
+    const args = render(form);
     if (!args || !args.length) {
       input.value = parse(args);
       input.focus();
@@ -100,18 +145,18 @@ export function renderComposite(
   return input;
 }
 
-export function renderRecord(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
+function renderRecord(dom: HTMLElement, idl: IDL.RecordClass): HTMLInputElement {
   const open = document.createElement('button');
   open.innerText = '...';
 
-  const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
+  const render = (dom: HTMLElement): HTMLInputElement[] => {
     const args = [];
+    // @ts-ignore
     for (const [key, type] of idl._fields) {
       const label = document.createElement('label');
-      const keyId = id + '_' + key;
       label.innerText = key + ' ';
       dom.appendChild(label);
-      const arg = type.renderInput(dom, keyId);
+      const arg = renderInput(type, dom);
       args.push(arg);
     }
     return args;
@@ -125,17 +170,18 @@ export function renderRecord(dom: HTMLElement, id: string, idl: any): HTMLInputE
     });
     return `{${values.join(', ')}}`;
   };
-  return renderComposite(dom, id, idl, open, 'click', render, parse);
+  return renderComposite(dom, idl, open, 'click', render, parse);
 }
 
-export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
+function renderOption<T>(dom: HTMLElement, idl: IDL.OptClass<T>): HTMLInputElement {
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.checked = false;
 
-  const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
+  const render = (dom: HTMLElement): HTMLInputElement[] => {
     if (checkbox.checked) {
-      const opt = idl._type.renderInput(dom, id + '_opt');
+      // @ts-ignore
+      const opt = renderInput(idl._type, dom);
       return [opt];
     } else {
       return [];
@@ -148,11 +194,12 @@ export function renderOption(dom: HTMLElement, id: string, idl: any): HTMLInputE
       return '[' + arg[0].value + ']';
     }
   };
-  return renderComposite(dom, id, idl, checkbox, 'change', render, parse);
+  return renderComposite(dom, idl, checkbox, 'change', render, parse);
 }
 
-export function renderVariant(dom: HTMLElement, id: string, idl: any): HTMLInputElement {
+function renderVariant(dom: HTMLElement, idl: IDL.VariantClass): HTMLInputElement {
   const select = document.createElement('select');
+  // @ts-ignore
   for (const [key, type] of idl._fields) {
     const option = document.createElement('option');
     option.innerText = key;
@@ -160,15 +207,16 @@ export function renderVariant(dom: HTMLElement, id: string, idl: any): HTMLInput
   }
   select.selectedIndex = -1;
 
-  const render = (dom: HTMLElement, id: string): HTMLInputElement[] => {
+  const render = (dom: HTMLElement): HTMLInputElement[] => {
     const index = select.selectedIndex;
+    // @ts-ignore
     const [_, type] = idl._fields[index];
-    const variant = type.renderInput(dom, id + '_' + index);
+    const variant = renderInput(type, dom);
     return [variant];
   };
   const parse = (arg: HTMLInputElement[]): string => {
     const selected = select.options[select.selectedIndex].text;
     return `{"${selected}":${arg[0].value}}`;
   };
-  return renderComposite(dom, id, idl, select, 'change', render, parse);
+  return renderComposite(dom, idl, select, 'change', render, parse);
 }

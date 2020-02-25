@@ -1,12 +1,17 @@
+import { IDL, UI } from '../../out';
 
 export function render(id, actor, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
-  for (let [name, func] of Object.entries(actor._fields)) {
+  /*const el = document.createElement('div');
+  UI.renderInput(IDL.Bool, el);
+  UI.renderInput(IDL.Opt(IDL.Bool), el);
+  document.body.appendChild(el);*/
+  for (const [name, func] of Object.entries(actor._fields)) {
     renderMethod(name, func, canister[name]);
   }
   const console = document.createElement("div");
   console.className = 'console';
-  document.body.appendChild(console);  
+  document.body.appendChild(console);
 }
 
 const parseEvent = new Event('parse');    
@@ -29,8 +34,7 @@ function renderMethod(name, idl_func, f) {
 
   const inputs = [];
   idl_func.argTypes.forEach((arg, i) => {
-    const id = `${name}_arg${i}`;
-    const input = arg.renderInput(item, id);
+    const input = UI.renderInput(arg, item);
     inputs.push(input);
   });
 
@@ -43,7 +47,7 @@ function renderMethod(name, idl_func, f) {
   const right = document.createElement("span");
   right.className = 'right';
   result.appendChild(left);
-  result.appendChild(right);  
+  result.appendChild(right);
   item.appendChild(result);
 
   const list = document.getElementById("methods");

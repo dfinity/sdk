@@ -2,7 +2,6 @@
 import BigNumber from 'bignumber.js';
 import Pipe = require('buffer-pipe');
 import { Buffer } from 'buffer/';
-import * as UI from './idl-ui';
 import { JsonValue } from './types';
 import { idlLabelToId } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
@@ -83,11 +82,29 @@ class TypeTable {
   }
 }
 
+export interface Visitor<D, R> {
+  visitEmpty(t: EmptyClass, data: D): R;
+  visitBool(t: BoolClass, data: D): R;
+  visitUnit(t: UnitClass, data: D): R;
+  visitText(t: TextClass, data: D): R;
+  visitInt(t: IntClass, data: D): R;
+  visitNat(t: NatClass, data: D): R;
+  visitFixedInt(t: FixedIntClass, data: D): R;
+  visitFixedNat(t: FixedNatClass, data: D): R;
+  visitVec<T>(t: VecClass<T>, data: D): R;
+  visitOpt<T>(t: OptClass<T>, data: D): R;
+  visitRecord(t: RecordClass, data: D): R;
+  visitVariant(t: VariantClass, data: D): R;
+  visitRec<T>(t: RecClass<T>, data: D): R;
+}
+
 /**
  * Represents an IDL type.
  */
 export abstract class Type<T = any> {
   public abstract readonly name: string;
+
+  public abstract accept<D, R>(v: Visitor<D, R>, d: D): R;
 
   /* Display type name */
   public display(): string {
@@ -100,10 +117,6 @@ export abstract class Type<T = any> {
 
   public stringToValue(str: string): T {
     return JSON.parse(str);
-  }
-
-  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
-    return UI.renderPrimitive(dom, id, this);
   }
 
   public defaultString(): string | null {
@@ -159,7 +172,11 @@ abstract class ConstructType<T = any> extends Type<T> {
  * Since no values exist for this type, it cannot be serialised or deserialised.
  * Result types like `Result<Text, Empty>` should always succeed.
  */
-class EmptyClass extends PrimitiveType<never> {
+export class EmptyClass extends PrimitiveType<never> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitEmpty(this, d);
+  }
+
   public covariant(x: any): x is never {
     return false;
   }
@@ -188,7 +205,11 @@ class EmptyClass extends PrimitiveType<never> {
 /**
  * Represents an IDL Bool
  */
-class BoolClass extends PrimitiveType<boolean> {
+export class BoolClass extends PrimitiveType<boolean> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitBool(this, d);
+  }
+
   public covariant(x: any): x is boolean {
     return typeof x === 'boolean';
   }
@@ -216,7 +237,11 @@ class BoolClass extends PrimitiveType<boolean> {
 /**
  * Represents an IDL Null
  */
-class UnitClass extends PrimitiveType<null> {
+export class UnitClass extends PrimitiveType<null> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitUnit(this, d);
+  }
+
   public covariant(x: any): x is null {
     return x === null;
   }
@@ -245,7 +270,11 @@ class UnitClass extends PrimitiveType<null> {
 /**
  * Represents an IDL Text
  */
-class TextClass extends PrimitiveType<string> {
+export class TextClass extends PrimitiveType<string> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitText(this, d);
+  }
+
   public covariant(x: any): x is string {
     return typeof x === 'string';
   }
@@ -273,7 +302,11 @@ class TextClass extends PrimitiveType<string> {
 /**
  * Represents an IDL Int
  */
-class IntClass extends PrimitiveType<BigNumber> {
+export class IntClass extends PrimitiveType<BigNumber> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitInt(this, d);
+  }
+
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
@@ -304,7 +337,11 @@ class IntClass extends PrimitiveType<BigNumber> {
 /**
  * Represents an IDL Nat
  */
-class NatClass extends PrimitiveType<BigNumber> {
+export class NatClass extends PrimitiveType<BigNumber> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitNat(this, d);
+  }
+
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
@@ -341,6 +378,10 @@ class NatClass extends PrimitiveType<BigNumber> {
 export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   constructor(private _bits: number) {
     super();
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitFixedInt(this, d);
   }
 
   public covariant(x: any): x is BigNumber {
@@ -391,6 +432,10 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
     super();
   }
 
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitFixedNat(this, d);
+  }
+
   public covariant(x: any): x is BigNumber {
     const max = new BigNumber(2).pow(this._bits);
     if (x instanceof BigNumber && x.isInteger() && !x.isNegative()) {
@@ -434,9 +479,13 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
  * Represents an IDL Array
  * @param {Type} t
  */
-class VecClass<T> extends ConstructType<T[]> {
+export class VecClass<T> extends ConstructType<T[]> {
   constructor(protected _type: Type<T>) {
     super();
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitVec(this, d);
   }
 
   public covariant(x: any): x is T[] {
@@ -483,9 +532,13 @@ class VecClass<T> extends ConstructType<T[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-class OptClass<T> extends ConstructType<[T] | []> {
+export class OptClass<T> extends ConstructType<[T] | []> {
   constructor(protected _type: Type<T>) {
     super();
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitOpt(this, d);
   }
 
   public covariant(x: any): x is [T] | [] {
@@ -536,22 +589,22 @@ class OptClass<T> extends ConstructType<[T] | []> {
   public defaultString(): null | string {
     return '[]';
   }
-
-  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
-    return UI.renderOption(dom, id, this);
-  }
 }
 
 /**
  * Represents an IDL Record
  * @param {Object} [fields] - mapping of function name to Type
  */
-class RecordClass extends ConstructType<Record<string, any>> {
+export class RecordClass extends ConstructType<Record<string, any>> {
   protected readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
     super();
     this._fields = Object.entries(fields).sort((a, b) => idlLabelToId(a[0]) - idlLabelToId(b[0]));
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitRecord(this, d);
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -606,10 +659,6 @@ class RecordClass extends ConstructType<Record<string, any>> {
     const fields = zipWith(this._fields, values, ([k, c], d) => k + '=' + c.valueToString(d));
     return `record {${fields.join('; ')}}`;
   }
-
-  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
-    return UI.renderRecord(dom, id, this);
-  }
 }
 
 /**
@@ -649,12 +698,16 @@ class TupleClass<T extends any[]> extends RecordClass {
  * Represents an IDL Variant
  * @param {Object} [fields] - mapping of function name to Type
  */
-class VariantClass extends ConstructType<Record<string, any>> {
+export class VariantClass extends ConstructType<Record<string, any>> {
   private readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
     super();
     this._fields = Object.entries(fields).sort((a, b) => idlLabelToId(a[0]) - idlLabelToId(b[0]));
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitVariant(this, d);
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -723,20 +776,20 @@ class VariantClass extends ConstructType<Record<string, any>> {
     }
     throw Error('Variant has no data: ' + x);
   }
-
-  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
-    return UI.renderVariant(dom, id, this);
-  }
 }
 
 /**
  * Represents a reference to an IDL type, used for defining recursive data
  * types.
  */
-class RecClass<T = any> extends ConstructType<T> {
+export class RecClass<T = any> extends ConstructType<T> {
   private static _counter = 0;
   private _id = RecClass._counter++;
   private _type: ConstructType<T> | undefined = undefined;
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitRec(this, d);
+  }
 
   public fill(t: ConstructType<T>) {
     this._type = t;
@@ -789,13 +842,6 @@ class RecClass<T = any> extends ConstructType<T> {
       throw Error('Recursive type uninitialized.');
     }
     return this._type.valueToString(x);
-  }
-
-  public renderInput(dom: HTMLElement, id: string): HTMLInputElement {
-    if (!this._type) {
-      throw Error('Recursive type uninitialized.');
-    }
-    return this._type.renderInput(dom, id);
   }
 }
 
