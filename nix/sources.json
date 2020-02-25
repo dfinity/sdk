@@ -26,9 +26,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "ref": "master",
+        "ref": "nm-rust-1.41",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "7278afe2b6ddcd0c78c82fae38160bc4583fc1a6",
+        "rev": "41df0086da4df0fac660f6e8fb0305a68396b757",
         "type": "git"
     },
     "dfinity": {
