@@ -103,7 +103,6 @@ fn main() {
             }
 
             let matches = cli(&env).get_matches();
-
             exec(&env, &matches, &(cli(&env)))
         }
         Err(e) => Err(e),
