@@ -47,6 +47,57 @@ fn exec(env: &impl Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) 
     }
 }
 
+<<<<<<< Updated upstream
+=======
+fn is_warning_disabled(warning: &str) -> bool {
+    // By default, warnings are all enabled.
+    let env_warnings = std::env::var("DFX_WARNING").unwrap_or_else(|_| "".to_string());
+    env_warnings
+        .split(',')
+        .filter(|w| w.starts_with('-'))
+        .any(|w| w.chars().skip(1).collect::<String>().eq(warning))
+}
+
+/// In some cases, redirect the dfx execution to the proper version.
+/// This will ALWAYS return None, OR WILL TERMINATE THE PROCESS. There is no Ok()
+/// version of this (nor should there be).
+///
+/// Note: the right return type for communicating this would be [Option<!>], but since the
+/// never type is experimental, we just assert on the calling site.
+fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
+    // Verify we're using the same version as the dfx.json, and if not just redirect the
+    // call to the cache.
+    if dfx_version() != env.get_version() {
+        // Show a warning to the user.
+        if !is_warning_disabled("version_check") {
+            eprintln!(
+                concat!(
+                    "Warning: The version of DFX used ({}) is different than the version ",
+                    "being run ({}).\n",
+                    "This might happen because your dfx.json specifies an older version, or ",
+                    "DFX_VERSION is set in your environment.\n",
+                    "We are forwarding the command line to the old version. To disable this ",
+                    "warning, set the DFX_WARNING=-version_check environment variable.\n"
+                ),
+                env.get_version(),
+                dfx_version()
+            );
+        }
+
+        match crate::config::cache::call_cached_dfx(env.get_version()) {
+            Ok(status) => std::process::exit(status.code().unwrap_or(0)),
+            Err(e) => {
+                eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
+                eprintln!("Installed executable: {}", dfx_version());
+                std::process::exit(1)
+            }
+        };
+    }
+
+    None
+}
+
+>>>>>>> Stashed changes
 fn main() {
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
