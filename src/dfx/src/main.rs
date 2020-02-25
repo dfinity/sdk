@@ -66,13 +66,12 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
     // Verify we're using the same version as the dfx.json, and if not just redirect the
     // call to the cache.
     if dfx_version() != env.get_version() {
-        // Show a message to the user when the version in dfx.json is older than the version
-        // being run (hopefully this is a global version).
-        if !is_warning_disabled("version_check") && env.get_version() < dfx_version() {
+        // Show a warning to the user.
+        if !is_warning_disabled("version_check") {
             eprintln!(
                 concat!(
-                    "Warning: An older version of DFX ({}) than the version installed ({}) is ",
-                    "being used.\n",
+                    "Warning: The version of DFX used ({}) is different than the version ",
+                    "being run ({}).\n",
                     "This might happen because your dfx.json specifies an older version, or ",
                     "DFX_VERSION is set in your environment.\n",
                     "We are forwarding the command line to the old version. To disable this ",
