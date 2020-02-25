@@ -66,8 +66,14 @@ pub enum DfxError {
     /// Configuration is invalid.
     CouldNotSerializeConfiguration(serde_json::error::Error),
 
-    // An error during parsing of a version string.
+    /// Client TOML Serialization error.
+    CouldNotSerializeClientConfiguration(toml::ser::Error),
+
+    /// An error during parsing of a version string.
     VersionCouldNotBeParsed(semver::SemVerError),
+
+    /// String provided is not a port
+    CouldNotParsePort(std::num::ParseIntError),
 }
 
 /// The result of running a DFX command.

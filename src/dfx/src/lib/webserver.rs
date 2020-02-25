@@ -63,18 +63,20 @@ fn forward(
 }
 
 /// Run the webserver in the current thread.
-fn run_webserver(
+pub fn run_webserver(
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
     inform_parent: Sender<Server>,
 ) -> Result<(), std::io::Error> {
     eprintln!("binding to: {:?}", bind);
+
+    const SHUTDOWN_WAIT_TIME: u64 = 60;
+
     eprint!("client(s): ");
     providers.iter().for_each(|uri| eprint!("{} ", uri));
     eprint!("\n");
 
-    const SHUTDOWN_WAIT_TIME: u64 = 60;
     let _sys = System::new("dfx-frontend-http-server");
     let forward_data = Arc::new(Mutex::new(ForwardActixData {
         providers,
@@ -116,10 +118,9 @@ pub fn webserver(
     clients_api_uri: Vec<url::Url>,
     serve_dir: &Path,
     inform_parent: Sender<Server>,
-) -> std::thread::JoinHandle<()> {
-    let serve_dir = PathBuf::from(serve_dir);
-    std::thread::Builder::new()
-        .name("Frontend".into())
-        .spawn(move || run_webserver(bind, clients_api_uri, serve_dir, inform_parent).unwrap())
-        .unwrap()
+) -> std::io::Result<std::thread::JoinHandle<()>> {
+    std::thread::Builder::new().name("Frontend".into()).spawn({
+        let serve_dir = serve_dir.to_path_buf();
+        move || run_webserver(bind, clients_api_uri, serve_dir, inform_parent).unwrap()
+    })
 }

@@ -18,7 +18,7 @@ rec {
 
   inherit (pkgs) nix-fmt nix-fmt-check;
 
-  public = import ./public { inherit pkgs; };
+  public = import ./public { inherit pkgs src; };
   inherit (public) install-sh-release install-sh;
 
   # This is to make sure CI evaluates shell derivations, builds their

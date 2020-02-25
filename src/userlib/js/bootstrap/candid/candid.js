@@ -1,16 +1,13 @@
-import canister from 'ic:canisters/{project_name}';
-import candid from 'ic:idl/{project_name}';
-import { IDL } from 'ic:userlib';
 
-document.getElementById('title').innerText = 'Service {project_name}';
-
-const actor = candid({IDL});
-for (let [name, func] of Object.entries(actor._fields)) {
-  renderMethod(name, func, canister[name]);
+export function render(id, actor, canister) {
+  document.getElementById('title').innerText = `Service ${id}`;
+  for (let [name, func] of Object.entries(actor._fields)) {
+    renderMethod(name, func, canister[name]);
+  }
+  const console = document.createElement("div");
+  console.className = 'console';
+  document.body.appendChild(console);  
 }
-const console = document.createElement("div");
-console.className = 'console';
-document.body.appendChild(console);
 
 function renderMethod(name, idl_func, f) {
   const status = document.createElement("div");
