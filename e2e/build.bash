@@ -33,6 +33,13 @@ teardown() {
     assert_command dfx build
 }
 
+@test "build twice produces the same wasm binary" {
+  assert_command dfx build
+  cp canisters/e2e_project/main.wasm ./old.wasm
+  assert_command dfx build
+  assert_command cmp canisters/e2e_project/main.wasm ./old.wasm
+}
+
 @test "build outputs the canister ID" {
     assert_command dfx build
     [[ -f canisters/e2e_project/_canister.id ]]
