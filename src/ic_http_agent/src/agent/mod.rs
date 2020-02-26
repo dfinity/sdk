@@ -17,6 +17,8 @@ pub(crate) mod public {
 #[cfg(test)]
 mod agent_test;
 
+pub mod signer;
+
 use crate::agent::replica_api::{QueryResponseReply, ReadRequest, ReadResponse, SubmitRequest};
 use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, RequestId};
 use public::*;
