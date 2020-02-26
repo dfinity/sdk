@@ -37,7 +37,7 @@ teardown() {
   assert_command dfx build
   cp canisters/e2e_project/main.wasm ./old.wasm
   assert_command dfx build
-  assert_command cmp canisters/e2e_project/main.wasm ./old.wasm
+  assert_command diff canisters/e2e_project/main.wasm ./old.wasm
 }
 
 @test "build outputs the canister ID" {
