@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-fn add_assets(fn_name: &str, f: &mut File, path: &str) -> () {
+fn add_assets(fn_name: &str, f: &mut File, path: &str) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
     let tar_gz = File::create(&tgz_path).unwrap();
