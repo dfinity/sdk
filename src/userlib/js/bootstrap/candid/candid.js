@@ -1,4 +1,4 @@
-import { IDL, UI } from '../../out';
+import { UI } from '../../out';
 
 export function render(id, actor, canister) {
   document.getElementById('title').innerText = `Service ${id}`;

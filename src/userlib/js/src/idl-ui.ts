@@ -1,88 +1,51 @@
 import * as IDL from './idl';
 
-class Render implements IDL.Visitor<HTMLElement, HTMLInputElement> {
-  public visitEmpty(t: IDL.EmptyClass, d: HTMLElement): HTMLInputElement {
+// tslint:disable:max-classes-per-file
+class Render extends IDL.Visitor<HTMLElement, HTMLInputElement> {
+  public visitPrimitive<T>(t: IDL.PrimitiveType<T>, d: HTMLElement): HTMLInputElement {
     return renderPrimitive(d, t);
   }
-  public visitBool(t: IDL.BoolClass, d: HTMLElement): HTMLInputElement {
+  public visitVec<T>(t: IDL.VecClass<T>, ty: IDL.Type<T>, d: HTMLElement): HTMLInputElement {
     return renderPrimitive(d, t);
   }
-  public visitUnit(t: IDL.UnitClass, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
+  public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: HTMLElement): HTMLInputElement {
+    return renderOption(d, t, ty);
   }
-  public visitText(t: IDL.TextClass, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
+  public visitRecord(
+    t: IDL.RecordClass,
+    fields: Array<[string, IDL.Type]>,
+    d: HTMLElement,
+  ): HTMLInputElement {
+    return renderRecord(d, t, fields);
   }
-  public visitInt(t: IDL.IntClass, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
+  public visitVariant(
+    t: IDL.VariantClass,
+    fields: Array<[string, IDL.Type]>,
+    d: HTMLElement,
+  ): HTMLInputElement {
+    return renderVariant(d, t, fields);
   }
-  public visitNat(t: IDL.NatClass, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
-  }
-  public visitFixedInt(t: IDL.FixedIntClass, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
-  }
-  public visitFixedNat(t: IDL.FixedNatClass, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
-  }
-  public visitVec<T>(t: IDL.VecClass<T>, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
-  }
-  public visitOpt<T>(t: IDL.OptClass<T>, d: HTMLElement): HTMLInputElement {
-    return renderOption(d, t);
-  }
-  public visitRecord(t: IDL.RecordClass, d: HTMLElement): HTMLInputElement {
-    return renderRecord(d, t);
-  }
-  public visitVariant(t: IDL.VariantClass, d: HTMLElement): HTMLInputElement {
-    return renderVariant(d, t);
-  }
-  public visitRec<T>(t: IDL.RecClass<T>, d: HTMLElement): HTMLInputElement {
-    // @ts-ignore
-    return renderInput(t._type as IDL.Type, d);
+  public visitRec<T>(
+    t: IDL.RecClass<T>,
+    ty: IDL.ConstructType<T>,
+    d: HTMLElement,
+  ): HTMLInputElement {
+    return renderInput(ty, d);
   }
 }
 
-class Default implements IDL.Visitor<null, string | null> {
-  public visitEmpty(t: IDL.EmptyClass, d: null): string | null {
-    return null;
-  }
-  public visitBool(t: IDL.BoolClass, d: null): string | null {
+class Default extends IDL.Visitor<null, string | null> {
+  public visitType<T>(t: IDL.Type<T>, d: null): string | null {
     return null;
   }
   public visitUnit(t: IDL.UnitClass, d: null): string | null {
     return 'null';
   }
-  public visitText(t: IDL.TextClass, d: null): string | null {
-    return null;
-  }
-  public visitInt(t: IDL.IntClass, d: null): string | null {
-    return null;
-  }
-  public visitNat(t: IDL.NatClass, d: null): string | null {
-    return null;
-  }
-  public visitFixedInt(t: IDL.FixedIntClass, d: null): string | null {
-    return null;
-  }
-  public visitFixedNat(t: IDL.FixedNatClass, d: null): string | null {
-    return null;
-  }
-  public visitVec<T>(t: IDL.VecClass<T>, d: null): string | null {
-    return null;
-  }
-  public visitOpt<T>(t: IDL.OptClass<T>, d: null): string | null {
+  public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: null): string | null {
     return '[]';
   }
-  public visitRecord(t: IDL.RecordClass, d: null): string | null {
-    return null;
-  }
-  public visitVariant(t: IDL.VariantClass, d: null): string | null {
-    return null;
-  }
-  public visitRec<T>(t: IDL.RecClass<T>, d: null): string | null {
-    // @ts-ignore
-    return defaultString(t._type as IDL.Type);
+  public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): string | null {
+    return defaultString(ty);
   }
 }
 
@@ -192,14 +155,17 @@ function renderComposite(
   return input;
 }
 
-function renderRecord(dom: HTMLElement, idl: IDL.RecordClass): HTMLInputElement {
+function renderRecord(
+  dom: HTMLElement,
+  idl: IDL.RecordClass,
+  fields: Array<[string, IDL.Type]>,
+): HTMLInputElement {
   const open = document.createElement('button');
   open.innerText = '...';
 
   const render = (dom: HTMLElement): HTMLInputElement[] => {
     const args = [];
-    // @ts-ignore
-    for (const [key, type] of idl._fields) {
+    for (const [key, type] of fields) {
       const label = document.createElement('label');
       label.innerText = key + ' ';
       dom.appendChild(label);
@@ -210,8 +176,7 @@ function renderRecord(dom: HTMLElement, idl: IDL.RecordClass): HTMLInputElement 
   };
   const parse = (args: HTMLInputElement[]): string => {
     const values: string[] = [];
-    // @ts-ignore
-    idl._fields.forEach(([key, _], i) => {
+    fields.forEach(([key, _], i) => {
       const val = '"' + key + '":' + args[i].value;
       values.push(val);
     });
@@ -220,15 +185,18 @@ function renderRecord(dom: HTMLElement, idl: IDL.RecordClass): HTMLInputElement 
   return renderComposite(dom, idl, open, 'click', render, parse);
 }
 
-function renderOption<T>(dom: HTMLElement, idl: IDL.OptClass<T>): HTMLInputElement {
+function renderOption<T>(
+  dom: HTMLElement,
+  idl: IDL.OptClass<T>,
+  ty: IDL.Type<T>,
+): HTMLInputElement {
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.checked = false;
 
   const render = (dom: HTMLElement): HTMLInputElement[] => {
     if (checkbox.checked) {
-      // @ts-ignore
-      const opt = renderInput(idl._type, dom);
+      const opt = renderInput(ty, dom);
       return [opt];
     } else {
       return [];
@@ -244,10 +212,13 @@ function renderOption<T>(dom: HTMLElement, idl: IDL.OptClass<T>): HTMLInputEleme
   return renderComposite(dom, idl, checkbox, 'change', render, parse);
 }
 
-function renderVariant(dom: HTMLElement, idl: IDL.VariantClass): HTMLInputElement {
+function renderVariant(
+  dom: HTMLElement,
+  idl: IDL.VariantClass,
+  fields: Array<[string, IDL.Type]>,
+): HTMLInputElement {
   const select = document.createElement('select');
-  // @ts-ignore
-  for (const [key, type] of idl._fields) {
+  for (const [key, type] of fields) {
     const option = document.createElement('option');
     option.innerText = key;
     select.appendChild(option);
@@ -256,8 +227,7 @@ function renderVariant(dom: HTMLElement, idl: IDL.VariantClass): HTMLInputElemen
 
   const render = (dom: HTMLElement): HTMLInputElement[] => {
     const index = select.selectedIndex;
-    // @ts-ignore
-    const [_, type] = idl._fields[index];
+    const [_, type] = fields[index];
     const variant = renderInput(type, dom);
     return [variant];
   };

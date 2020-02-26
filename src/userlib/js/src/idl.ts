@@ -82,20 +82,56 @@ class TypeTable {
   }
 }
 
-export interface Visitor<D, R> {
-  visitEmpty(t: EmptyClass, data: D): R;
-  visitBool(t: BoolClass, data: D): R;
-  visitUnit(t: UnitClass, data: D): R;
-  visitText(t: TextClass, data: D): R;
-  visitInt(t: IntClass, data: D): R;
-  visitNat(t: NatClass, data: D): R;
-  visitFixedInt(t: FixedIntClass, data: D): R;
-  visitFixedNat(t: FixedNatClass, data: D): R;
-  visitVec<T>(t: VecClass<T>, data: D): R;
-  visitOpt<T>(t: OptClass<T>, data: D): R;
-  visitRecord(t: RecordClass, data: D): R;
-  visitVariant(t: VariantClass, data: D): R;
-  visitRec<T>(t: RecClass<T>, data: D): R;
+export abstract class Visitor<D, R> {
+  public visitType<T>(t: Type<T>, data: D): R {
+    throw new Error('Not implemented');
+  }
+  public visitPrimitive<T>(t: PrimitiveType<T>, data: D): R {
+    return this.visitType(t, data);
+  }
+  public visitEmpty(t: EmptyClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitBool(t: BoolClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitUnit(t: UnitClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitText(t: TextClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitInt(t: IntClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitNat(t: NatClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitFixedInt(t: FixedIntClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitFixedNat(t: FixedNatClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+
+  public visitConstruct<T>(t: ConstructType<T>, data: D): R {
+    return this.visitType(t, data);
+  }
+  public visitVec<T>(t: VecClass<T>, ty: Type<T>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitOpt<T>(t: OptClass<T>, ty: Type<T>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitRecord(t: RecordClass, fields: Array<[string, Type]>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitVariant(t: VariantClass, fields: Array<[string, Type]>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitRec<T>(t: RecClass<T>, ty: ConstructType<T>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
 }
 
 /**
@@ -150,14 +186,14 @@ export abstract class Type<T = any> {
   protected abstract _buildTypeTableImpl(typeTable: TypeTable): void;
 }
 
-abstract class PrimitiveType<T = any> extends Type<T> {
+export abstract class PrimitiveType<T = any> extends Type<T> {
   public _buildTypeTableImpl(typeTable: TypeTable): void {
     // No type table encoding for Primitive types.
     return;
   }
 }
 
-abstract class ConstructType<T = any> extends Type<T> {
+export abstract class ConstructType<T = any> extends Type<T> {
   public encodeType(typeTable: TypeTable) {
     return typeTable.indexOf(this.name);
   }
@@ -477,7 +513,7 @@ export class VecClass<T> extends ConstructType<T[]> {
   }
 
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
-    return v.visitVec(this, d);
+    return v.visitVec(this, this._type, d);
   }
 
   public covariant(x: any): x is T[] {
@@ -530,7 +566,7 @@ export class OptClass<T> extends ConstructType<[T] | []> {
   }
 
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
-    return v.visitOpt(this, d);
+    return v.visitOpt(this, this._type, d);
   }
 
   public covariant(x: any): x is [T] | [] {
@@ -592,7 +628,7 @@ export class RecordClass extends ConstructType<Record<string, any>> {
   }
 
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
-    return v.visitRecord(this, d);
+    return v.visitRecord(this, this._fields, d);
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -695,7 +731,7 @@ export class VariantClass extends ConstructType<Record<string, any>> {
   }
 
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
-    return v.visitVariant(this, d);
+    return v.visitVariant(this, this._fields, d);
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -776,7 +812,10 @@ export class RecClass<T = any> extends ConstructType<T> {
   private _type: ConstructType<T> | undefined = undefined;
 
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
-    return v.visitRec(this, d);
+    if (!this._type) {
+      throw Error('Recursive type uninitialized.');
+    }
+    return v.visitRec(this, this._type, d);
   }
 
   public fill(t: ConstructType<T>) {
