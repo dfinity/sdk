@@ -23,6 +23,16 @@ function _getVariable(queryName, localStorageName, defaultValue) {
   return defaultValue;
 }
 
+// Retrieve and execute a JavaScript file from the server.
+function _loadJs(canisterId, filename) {
+  return icHttpAgent.retrieveAsset(canisterId, filename)
+    .then(content => {
+      const js = new TextDecoder().decode(content);
+      const dataUri = 'data:text/javascript;base64,' + btoa(js);
+      return import(/* webpackIgnore: true */dataUri);
+    });
+}
+
 let k = _getVariable('userIdentity', localStorageIdentityKey);
 let keyPair;
 if (k) {
@@ -70,29 +80,16 @@ if (!canisterId) {
 } else {
   if (window.location.pathname == '/candid') {
     // Load candid.js from the canister.
-    icHttpAgent.retrieveAsset(canisterId, 'candid.js')
-      .then(content => {
-        const js = new TextDecoder().decode(content);        
-        const dataUri = 'data:text/javascript;base64,' + btoa(js);
-        (async () => {
-          const candid = await import(/* webpackIgnore: true */dataUri);
-          const canister =
-                icHttpAgent.makeActorFactory(candid.default)({
-                  canisterId: canisterId,
-                });
-          const render = await import('./candid/candid.js');
+    _loadJs(canisterId, 'candid.js')
+      .then(candid => {
+        const canister = icHttpAgent.makeActorFactory(candid.default)({ canisterId });
+        return import('./candid/candid.js').then(render => {
           const actor = candid.default({IDL});
           render.render(canisterId, actor, canister);
-        })();
+        });
       });
   } else {
     // Load index.js from the canister.
-    icHttpAgent.retrieveAsset(canisterId, 'index.js')
-      .then(content => {
-        const indexJs = new TextDecoder().decode(content);
-        const script = document.createElement('script');
-        script.innerHTML = indexJs;
-        document.head.appendChild(script);
-      });
+    setTimeout(() => _loadJs(canisterId, 'index.js'), 0);
   }
 }
