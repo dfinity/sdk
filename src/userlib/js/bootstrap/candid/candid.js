@@ -10,8 +10,6 @@ export function render(id, actor, canister) {
   document.body.appendChild(console);
 }
 
-const parseEvent = new Event('parse');    
-
 function renderMethod(name, idl_func, f) {
   const item = document.createElement("li");
 
@@ -50,7 +48,7 @@ function renderMethod(name, idl_func, f) {
   list.append(item);
 
   button.addEventListener("click", function() {
-    inputs.forEach(arg => arg.dispatchEvent(parseEvent));
+    inputs.forEach(arg => arg.dispatchEvent(UI.parseEvent));
     const isReject = inputs.some(arg => arg.classList.contains('reject'));
     if (isReject) {
       return;

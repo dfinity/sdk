@@ -60,6 +60,12 @@ function defaultString(t: IDL.Type): string | null {
 // tslint:disable:no-shadowed-variable
 
 function validate(idl: IDL.Type, arg: HTMLInputElement) {
+  if (arg.value === '') {
+    const str = defaultString(idl);
+    if (str) {
+      arg.value = str;
+    }
+  }
   const value = idl.stringToValue(arg.value);
   if (!idl.covariant(value)) {
     throw new Error(`${arg.value} is not of type ${idl.display()}`);
@@ -67,7 +73,7 @@ function validate(idl: IDL.Type, arg: HTMLInputElement) {
   return value;
 }
 
-const parseEvent = new Event('parse');
+export const parseEvent = new Event('parse');
 
 function renderPrimitive(dom: HTMLElement, idl: IDL.Type): HTMLInputElement {
   const container = document.createElement('span');
@@ -76,10 +82,6 @@ function renderPrimitive(dom: HTMLElement, idl: IDL.Type): HTMLInputElement {
   const arg = document.createElement('input');
   arg.className = 'argument';
   arg.placeholder = idl.display();
-  const val = defaultString(idl);
-  if (val) {
-    arg.value = val;
-  }
 
   arg.addEventListener('parse', () => {
     try {
