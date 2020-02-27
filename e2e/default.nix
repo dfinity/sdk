@@ -11,6 +11,7 @@ let
     bats
     bash
     coreutils
+    diffutils
     curl
     findutils
     gnugrep
