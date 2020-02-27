@@ -11,16 +11,15 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use console::Style;
 use ic_http_agent::CanisterId;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
-use rand::{thread_rng, Rng};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsStr;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 
-type AssetMap = HashMap<String, String>;
-type CanisterIdMap = HashMap<String, String>;
-type CanisterDependencyMap = HashMap<String, HashSet<String>>;
+type AssetMap = BTreeMap<String, String>;
+type CanisterIdMap = BTreeMap<String, String>;
+type CanisterDependencyMap = BTreeMap<String, BTreeSet<String>>;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
@@ -121,8 +120,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
             content = before.to_string() + get_asset_fn(assets).as_str() + after;
         }
 
-        let mut rng = thread_rng();
-        let input_path = input_path.with_extension(format!("mo-{}", rng.gen::<u64>()));
+        let input_path = input_path.with_extension("mo-assets".to_string());
         std::fs::write(&input_path, content.as_bytes())?;
         input_path
     } else {
@@ -145,7 +143,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
     Ok(())
 }
 
-#[derive(Debug, PartialEq, Hash, Eq)]
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
 enum MotokoImport {
     Canister(String),
     Ic(String),
@@ -153,11 +151,11 @@ enum MotokoImport {
     Relative(PathBuf),
 }
 
-struct MotokoImports(HashSet<MotokoImport>);
+struct MotokoImports(BTreeSet<MotokoImport>);
 
 impl MotokoImports {
-    pub fn get_canisters(&self) -> HashSet<String> {
-        let mut res = HashSet::new();
+    pub fn get_canisters(&self) -> BTreeSet<String> {
+        let mut res = BTreeSet::new();
         for dep in self.0.iter() {
             if let MotokoImport::Canister(ref name) = dep {
                 res.insert(name.to_owned());
@@ -366,7 +364,7 @@ fn build_file(
                 idl_path: &idl_dir_path,
                 idl_map: &id_map,
             };
-            motoko_compile(cache.as_ref(), &params, &HashMap::new())?;
+            motoko_compile(cache.as_ref(), &params, &BTreeMap::new())?;
             std::fs::copy(&output_idl_path, &idl_file_path)?;
             // Generate JS code even if the canister doesn't have a frontend. It might still be
             // used by another canister's frontend.
@@ -413,7 +411,7 @@ fn build_file(
 
 struct BuildSequence {
     canisters: Vec<String>,
-    seen: HashSet<String>,
+    seen: BTreeSet<String>,
     deps: CanisterDependencyMap,
     id_map: CanisterIdMap,
 }
@@ -422,7 +420,7 @@ impl BuildSequence {
     fn new(deps: CanisterDependencyMap, id_map: CanisterIdMap) -> DfxResult<Self> {
         let mut res = BuildSequence {
             canisters: Vec::new(),
-            seen: HashSet::new(),
+            seen: BTreeSet::new(),
             deps,
             id_map,
         };
@@ -430,7 +428,7 @@ impl BuildSequence {
         Ok(res)
     }
     fn get_ids(&self, name: &str) -> CanisterIdMap {
-        let mut res = HashMap::new();
+        let mut res = BTreeMap::new();
         // It's okay to unwrap because we have already traversed the dependency graph without errors.
         let deps = self.deps.get(name).unwrap();
         for canister in deps.iter() {
@@ -494,8 +492,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let canisters = maybe_canisters.as_ref().unwrap();
 
     // Build canister id map and dependency graph
-    let mut id_map = HashMap::new();
-    let mut deps = HashMap::new();
+    let mut id_map = BTreeMap::new();
+    let mut deps = BTreeMap::new();
     for name in canisters.keys() {
         let canister_info = CanisterInfo::load(&config, name)?;
         status_bar.set_message("Generating canister ids...");
@@ -516,7 +514,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         id_map.insert(name.to_owned(), canister_id);
 
         let input_path = canister_info.get_main_path();
-        let mut canister_deps = MotokoImports(HashSet::new());
+        let mut canister_deps = MotokoImports(BTreeSet::new());
         find_deps(env.get_cache().as_ref(), &input_path, &mut canister_deps)?;
         deps.insert(name.to_owned(), canister_deps.get_canisters());
     }
@@ -539,7 +537,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // Build canister
     for name in &seq.canisters {
         build_stage_bar.println(&format!("{} canister {}", green.apply_to("Building"), name));
-        match build_file(env, &config, name, &seq.get_ids(name), &mut HashMap::new()) {
+        match build_file(env, &config, name, &seq.get_ids(name), &mut BTreeMap::new()) {
             Ok(()) => {}
             Err(e) => {
                 build_stage_bar.abandon();
@@ -680,9 +678,9 @@ mod tests {
             input: &input_path,
             output: Path::new("/out/file.wasm"),
             idl_path: Path::new("."),
-            idl_map: &HashMap::new(),
+            idl_map: &BTreeMap::new(),
         };
-        motoko_compile(&cache, &params, &HashMap::new()).expect("Function failed.");
+        motoko_compile(&cache, &params, &BTreeMap::new()).expect("Function failed.");
 
         let params = MotokoParams {
             build_target: BuildTarget::IDL,
@@ -692,9 +690,9 @@ mod tests {
             input: Path::new("/in/file.mo"),
             output: Path::new("/out/file.did"),
             idl_path: Path::new("."),
-            idl_map: &HashMap::new(),
+            idl_map: &BTreeMap::new(),
         };
-        motoko_compile(&cache, &params, &HashMap::new()).expect("Function failed (didl_compile)");
+        motoko_compile(&cache, &params, &BTreeMap::new()).expect("Function failed (didl_compile)");
         build_did_js(
             &cache,
             Path::new("/out/file.did"),
@@ -710,7 +708,7 @@ mod tests {
             .expect("Could not read temp file.");
 
         let re = regex::Regex::new(
-            &r"moc .*?.mo-[0-9]+ -o /out/file.wasm -c --debug --package stdlib stdlib
+            &r"moc .*?.mo-assets -o /out/file.wasm -c --debug --package stdlib stdlib
                 moc /in/file.mo -o /out/file.did --idl --package stdlib stdlib
                 didc --js /out/file.did -o /out/file.did.js"
                 .replace("                ", ""),
@@ -756,8 +754,14 @@ mod tests {
         )
         .unwrap();
 
-        build_file(&env, &config, "name", &HashMap::new(), &mut HashMap::new())
-            .expect("Function failed - build_file");
+        build_file(
+            &env,
+            &config,
+            "name",
+            &BTreeMap::new(),
+            &mut BTreeMap::new(),
+        )
+        .expect("Function failed - build_file");
         assert!(output_path.exists());
     }
 }

@@ -3,7 +3,7 @@
 use crate::lib::error::{DfxError, DfxResult};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::default::Default;
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
@@ -81,7 +81,7 @@ pub struct ConfigInterface {
     pub profile: Option<Profile>,
     pub version: Option<u32>,
     pub dfx: Option<String>,
-    pub canisters: Option<HashMap<String, ConfigCanistersCanister>>,
+    pub canisters: Option<BTreeMap<String, ConfigCanistersCanister>>,
     pub defaults: Option<ConfigDefaults>,
 }
 
