@@ -87,9 +87,27 @@ if (!canisterId) {
           const actor = candid.default({IDL});
           render.render(canisterId, actor, canister);
         });
+      })
+      .catch(err => {
+        const div = document.createElement('div');
+        div.innerText = 'An error happened while loading candid:';
+        const pre = document.createElement('pre');
+        pre.innerHTML = err.stack;
+        div.appendChild(pre);
+        document.body.replaceChild(div, document.body.getElementsByTagName('app').item(0));
       });
   } else {
     // Load index.js from the canister.
-    setTimeout(() => _loadJs(canisterId, 'index.js'), 0);
+    setTimeout(() => {
+      _loadJs(canisterId, 'index.js')
+          .catch(err => {
+            const div = document.createElement('div');
+            div.innerText = 'An error happened while loading the canister:';
+            const pre = document.createElement('pre');
+            pre.innerHTML = err.stack;
+            div.appendChild(pre);
+            document.body.replaceChild(div, document.body.getElementsByTagName('app').item(0));
+          });
+      }, 0);
   }
 }
