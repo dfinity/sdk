@@ -1,22 +1,16 @@
 {
   "private": true,
-  "name": "@internet-computer/js-user-library",
-  "version": "0.1.0",
-  "main": "dist/lib.node.js",
-  "browser": {
-    "./dist/lib.node.js": "./dist/lib.web.js"
-  },
-  "files": [
-    "dist/**/*"
-  ],
+  "name": "@internet-computer/userlib",
+  "version": "0.5.0",
+  "main": "src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "bundle": "npm run build && webpack",
     "ci": "npm run prettier && npm run lint && npm run build && npm run test",
     "lint": "tslint --project tsconfig.json --config tslint.json",
     "lint:fix": "npm run lint -- --fix",
-    "prettier": "npx prettier --check src/**",
-    "prettier:write": "prettier --check src/** --write",
+    "prettier": "npx prettier --check src/**.ts bootstrap/**.ts",
+    "prettier:write": "npm run prettier -- --write",
     "test": "jest --verbose"
   },
   "dependencies": {

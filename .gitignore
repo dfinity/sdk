@@ -15,3 +15,6 @@ target/
 # Mac Temporary Files
 .DS_Store
 **/.DS_Store
+
+# Node Modules
+**/node_modules/

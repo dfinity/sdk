@@ -1,5 +1,6 @@
-{ pkgs }:
-
+{ pkgs ? import ../../../nix { inherit system; }
+, system ? builtins.currentSystem
+}:
 let
   repoRoot = ../../..;
   src = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource repoRoot ./.);
@@ -7,6 +8,9 @@ in
 pkgs.napalm.buildPackage src {
   root = ./.;
   name = "dfinity-sdk-userlib-js";
+
+  outputs = [ "out" "lib" ];
+
   # ci script now does everything CI should do. Bundle is needed because it's the output
   # of the nix derivation.
   npmCommands = [
@@ -16,9 +20,13 @@ pkgs.napalm.buildPackage src {
   ];
 
   installPhase = ''
+    npm pack
     mkdir -p $out
-    cp -R dist $out
-    cp package.json $out
-    cp README.adoc $out
+
+    cp internet-computer-*.tgz $out
+
+    # Copy node_modules to be reused elsewhere.
+    mkdir -p $lib
+    cp -R node_modules $lib
   '';
 }
