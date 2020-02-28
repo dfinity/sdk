@@ -2,7 +2,9 @@ use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
+use crate::lib::identity_interface::Identity;
 use crate::lib::progress_bar::ProgressBar;
+
 use ic_http_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;
@@ -149,9 +151,14 @@ impl Environment for EnvironmentImpl {
                     let start = config.get_config().get_defaults().get_start();
                     let address = start.get_address("localhost");
                     let port = start.get_port(8000);
+                    let dfx_root = self.get_temp_dir();
+                    // This is the default to keep precedence sane,
+                    // not deal with home folders or cache right now.
+                    let local_project_identity = dfx_root.join("identity");
 
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
+                        signer: Box::new(Identity::new(local_project_identity)),
                         ..AgentConfig::default()
                     })
                     .ok()

@@ -8,17 +8,23 @@ pub(crate) mod waiter;
 pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
+    pub use super::signer::Signer;
     pub use super::nonce::NonceFactory;
     pub use super::response::RequestStatusResponse;
     pub use super::waiter::{Waiter, WaiterTrait};
+    pub use super::replica_api::{SignedMessage, MessageWithSender};
     pub use super::Agent;
 }
 
 #[cfg(test)]
 mod agent_test;
 
-use crate::agent::replica_api::{QueryResponseReply, ReadRequest, ReadResponse, SubmitRequest};
-use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, RequestId};
+pub mod signer;
+
+use crate::agent::replica_api::{QueryResponseReply, ReadRequest,  ReadResponse, SubmitRequest};
+use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
+use crate::agent::signer::Signer;
+
 use public::*;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Method};
@@ -27,6 +33,7 @@ pub struct Agent {
     url: reqwest::Url,
     client: reqwest::Client,
     nonce_factory: NonceFactory,
+    signer: Box<dyn Signer>,
 }
 
 impl Agent {
@@ -45,6 +52,7 @@ impl Agent {
                 .map_err(|_| AgentError::InvalidClientUrl(String::from(url)))?,
             client: Client::builder().default_headers(default_headers).build()?,
             nonce_factory: config.nonce_factory,
+            signer: config.signer,
         })
     }
 
@@ -72,11 +80,12 @@ impl Agent {
     }
 
     async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
-        // If there's an error calculating the Request Id, submit won't work anyway, so do this
-        // first.
-        let request_id = to_request_id(&request).map_err(AgentError::from)?;
+        // We need to calculate the signature, and thus also the
+        // request id initially.
+        let request: Box<SubmitRequest<'_>> = Box::new(request);
+        let (request_id,signed_request) =self.signer.sign(request)?;
 
-        let record = serde_cbor::to_vec(&request)?;
+        let record = serde_cbor::to_vec(&signed_request)?;
         let url = self.url.join("submit")?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
@@ -102,6 +111,9 @@ impl Agent {
         method_name: &'a str,
         arg: &'a Blob,
     ) -> Result<Option<Blob>, AgentError> {
+
+
+
         self.read::<QueryResponseReply>(ReadRequest::Query {
             canister_id,
             method_name,
@@ -171,7 +183,8 @@ impl Agent {
             method_name,
             arg,
             nonce: &self.nonce_factory.generate(),
-        })
+        }
+        )
         .await
     }
 
