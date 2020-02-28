@@ -25,6 +25,10 @@ let
       "^.cargo/config$"
     ];
     static = pkgs.stdenv.isLinux;
+
+    override = _: {
+      RUST_TEST_THREADS = 1;
+    };
   };
 
   # add extra executables used when linting

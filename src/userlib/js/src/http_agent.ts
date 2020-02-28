@@ -167,7 +167,12 @@ export class HttpAgent {
     return this.query(canisterId, { methodName: '__dfx_asset_path', arg }).then(response => {
       switch (response.status) {
         case QueryResponseStatus.Rejected:
-          throw new Error(`An error happened while retrieving asset "${path}".`);
+          throw new Error(
+            `An error happened while retrieving asset "${path}":\n` +
+              `  Status: ${response.status}\n` +
+              `  Message: ${response.reject_message}\n`,
+          );
+
         case QueryResponseStatus.Replied:
           const [content] = IDL.decode([IDL.Text], response.reply.arg);
           return toByteArray('' + content);
