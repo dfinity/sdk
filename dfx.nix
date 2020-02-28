@@ -93,11 +93,17 @@ let
       shell =
         pkgs.mkCompositeShell {
           name = "dfinity-sdk-rust-env";
-          buildInputs = [ pkgs.rls ];
+          buildInputs = [
+            pkgs.rustPlatform.rustcSrc
+            pkgs.rls
+          ];
           inputsFrom = [ ws.shell ];
           shellHook = ''
             # Set CARGO_HOME to minimize interaction with any environment outside nix
             export CARGO_HOME=${if pkgs.lib.isHydra then "." else toString ./.}/.cargo-home
+
+            # Set RUST_SRC_PATH for IDE and LSP servers to use.
+            export RUST_SRC_PATH=${pkgs.rustPlatform.rustcSrc}
 
             # Set environment variable for debug version.
             export DFX_TIMESTAMP_DEBUG_MODE_ONLY=$(date +%s)
