@@ -2,6 +2,8 @@ use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
+use crate::lib::identity_interface::Identity;
+
 use ic_http_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;
@@ -127,9 +129,13 @@ impl Environment for EnvironmentImpl {
                     let client_port_path = client_configuration_dir.join("client-1.port");
                     let port = read_to_string(&client_port_path)
                         .expect("Could not read port configuration file");
+                    // This is the default to keep precedence sane,
+                    // not deal with home folders or cache right now.
+                    let local_project_identity = dfx_root.join("identity");
 
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
+                        signer: Box::new(Identity::new(local_project_identity)),
                         ..AgentConfig::default()
                     })
                     .ok()
