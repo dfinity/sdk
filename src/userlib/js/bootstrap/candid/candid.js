@@ -1,4 +1,4 @@
-import { UI } from '../../out';
+import { UI } from '@internet-computer/userlib';
 
 export function render(id, actor, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
