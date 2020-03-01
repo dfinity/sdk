@@ -1,5 +1,6 @@
 use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
+use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use ic_http_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
@@ -41,8 +42,6 @@ pub struct EnvironmentImpl {
 
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
-        use crate::config::dfx_version;
-
         let config = match Config::from_current_dir() {
             Err(err) => {
                 if err.kind() == std::io::ErrorKind::NotFound {
@@ -61,12 +60,29 @@ impl EnvironmentImpl {
         };
         std::fs::create_dir_all(&temp_dir)?;
 
-        let version = match &config {
-            None => dfx_version().clone(),
-            Some(c) => match &c.get_config().get_dfx() {
+        // Figure out which version of DFX we should be running. This will use the following
+        // fallback sequence:
+        //   1. DFX_VERSION environment variable
+        //   2. dfx.json "dfx" field
+        //   3. this binary's version
+        // If any of those are empty string, we stop the fallback and use the current version.
+        // If any of those are a valid version, we try to use that directly as is.
+        // If any of those are an invalid version, we will show an error to the user.
+        let version = match std::env::var("DFX_VERSION") {
+            Err(_) => match &config {
                 None => dfx_version().clone(),
-                Some(v) => Version::parse(&v)?,
+                Some(c) => match &c.get_config().get_dfx() {
+                    None => dfx_version().clone(),
+                    Some(v) => Version::parse(&v)?,
+                },
             },
+            Ok(v) => {
+                if v.is_empty() {
+                    dfx_version().clone()
+                } else {
+                    Version::parse(&v)?
+                }
+            }
         };
 
         Ok(EnvironmentImpl {

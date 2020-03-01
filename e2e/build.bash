@@ -33,6 +33,15 @@ teardown() {
     assert_command dfx build
 }
 
+# TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
+# Currently due to new canister ids, the wasm binary will be different for inter-canister calls.
+@test "build twice produces the same wasm binary" {
+  assert_command dfx build
+  cp canisters/e2e_project/main.wasm ./old.wasm
+  assert_command dfx build
+  assert_command diff canisters/e2e_project/main.wasm ./old.wasm
+}
+
 @test "build outputs the canister ID" {
     assert_command dfx build
     [[ -f canisters/e2e_project/_canister.id ]]

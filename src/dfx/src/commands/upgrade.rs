@@ -5,7 +5,7 @@ use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
 use serde::{Deserialize, Deserializer};
-use std::{collections::HashMap, env, fs, os::unix::fs::PermissionsExt};
+use std::{collections::BTreeMap, env, fs, os::unix::fs::PermissionsExt};
 use tar::Archive;
 
 pub fn construct() -> App<'static, 'static> {
@@ -39,12 +39,12 @@ where
         .map_err(|e| serde::de::Error::custom(format!("invalid SemVer: {}", e)))
 }
 
-fn deserialize_tags<'de, D>(deserializer: D) -> Result<HashMap<String, Version>, D::Error>
+fn deserialize_tags<'de, D>(deserializer: D) -> Result<BTreeMap<String, Version>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let tags: HashMap<String, String> = Deserialize::deserialize(deserializer)?;
-    let mut result = HashMap::<String, Version>::new();
+    let tags: BTreeMap<String, String> = Deserialize::deserialize(deserializer)?;
+    let mut result = BTreeMap::<String, Version>::new();
 
     for (tag, version) in tags.into_iter() {
         result.insert(tag, parse_semver::<D>(&version)?);
@@ -70,7 +70,7 @@ where
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 struct Manifest {
     #[serde(deserialize_with = "deserialize_tags")]
-    tags: HashMap<String, Version>,
+    tags: BTreeMap<String, Version>,
     #[serde(deserialize_with = "deserialize_versions")]
     versions: Vec<Version>,
 }
@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn test_parse_manifest() {
         let manifest: Manifest = serde_json::from_str(&MANIFEST).unwrap();
-        let mut tags = HashMap::new();
+        let mut tags = BTreeMap::new();
         tags.insert(
             "latest".to_string(),
             semver::Version::parse("0.4.1").unwrap(),

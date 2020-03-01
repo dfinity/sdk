@@ -11,7 +11,7 @@ use indicatif::{ProgressBar, ProgressDrawTarget};
 use lazy_static::lazy_static;
 use semver::Version;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -177,7 +177,7 @@ fn write_files_from_entries<R: Sized + Read>(
     archive: &mut Archive<R>,
     root: &Path,
     dry_run: bool,
-    variables: &HashMap<String, String>,
+    variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     for entry in archive.entries()? {
         let mut file = entry?;
@@ -232,7 +232,7 @@ fn scaffold_frontend_code(
     project_name: &Path,
     arg_no_frontend: bool,
     arg_frontend: bool,
-    variables: &HashMap<String, String>,
+    variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let node_installed = std::process::Command::new("node")
         .arg("--version")
@@ -342,7 +342,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .to_str()
         .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
 
-    let variables: HashMap<String, String> = [
+    let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
         ("dfx_version".to_string(), version_str.clone()),
         ("dot".to_string(), ".".to_string()),
