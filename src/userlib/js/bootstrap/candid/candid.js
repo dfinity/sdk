@@ -28,8 +28,9 @@ function renderMethod(name, idl_func, f) {
 
   const inputs = [];
   idl_func.argTypes.forEach((arg, i) => {
-    const input = UI.renderInput(arg, item);
-    inputs.push(input);
+    const inputbox = UI.renderInput(arg);
+    inputs.push(inputbox);
+    inputbox.render(item);
   });
 
   item.appendChild(button);
@@ -48,8 +49,8 @@ function renderMethod(name, idl_func, f) {
   list.append(item);
 
   button.addEventListener("click", function() {
-    inputs.forEach(arg => arg.dispatchEvent(UI.parseEvent));
-    const isReject = inputs.some(arg => arg.classList.contains('reject'));
+    const args = inputs.map(arg => arg.parse());
+    const isReject = inputs.some(arg => arg.isRejected());
     if (isReject) {
       return;
     }
@@ -59,7 +60,7 @@ function renderMethod(name, idl_func, f) {
     right.innerText = ''
     result.style.display = 'block';
     (async function () {
-      const args = inputs.map((arg, i) => idl_func.argTypes[i].stringToValue(arg.value));
+      //const args = inputs.map((arg, i) => idl_func.argTypes[i].stringToValue(arg.input.value));
       const t_before = Date.now();
       const result = await f.apply(null, args);
       const duration = (Date.now() - t_before)/1000;
@@ -77,7 +78,7 @@ function renderMethod(name, idl_func, f) {
       log(show_result);
     })().catch(err => {
       left.className += ' error';
-      left.innerText = err.name + ': ' + err.message;
+      left.innerText = err.stack;
     });
   });
 };

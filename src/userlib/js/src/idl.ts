@@ -130,7 +130,7 @@ export abstract class Visitor<D, R> {
     return this.visitConstruct(t, data);
   }
   public visitRec<T>(t: RecClass<T>, ty: ConstructType<T>, data: D): R {
-    return this.visitConstruct(t, data);
+    return this.visitConstruct(ty, data);
   }
 }
 

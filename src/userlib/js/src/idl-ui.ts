@@ -1,36 +1,31 @@
 import * as IDL from './idl';
 
 // tslint:disable:max-classes-per-file
-class Render extends IDL.Visitor<HTMLElement, HTMLInputElement> {
-  public visitPrimitive<T>(t: IDL.PrimitiveType<T>, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
+export class Format {
+  constructor(public showInput: boolean, public form: InputForm | null, public hasClose: boolean) {}
+}
+
+class Render extends IDL.Visitor<null, InputBox> {
+  public visitPrimitive<T>(t: IDL.PrimitiveType<T>, d: null): InputBox {
+    return new InputBox(t, null);
   }
-  public visitVec<T>(t: IDL.VecClass<T>, ty: IDL.Type<T>, d: HTMLElement): HTMLInputElement {
-    return renderPrimitive(d, t);
+  public visitRecord(t: IDL.RecordClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
+    const form = new RecordForm(fields);
+    return new InputBox(t, form);
   }
-  public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: HTMLElement): HTMLInputElement {
-    return renderOption(d, t, ty);
+  public visitVariant(t: IDL.VariantClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
+    const form = new VariantForm(fields);
+    return new InputBox(t, form);
   }
-  public visitRecord(
-    t: IDL.RecordClass,
-    fields: Array<[string, IDL.Type]>,
-    d: HTMLElement,
-  ): HTMLInputElement {
-    return renderRecord(d, t, fields);
+  public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: null): InputBox {
+    const form = new OptionForm(ty);
+    return new InputBox(t, form);
   }
-  public visitVariant(
-    t: IDL.VariantClass,
-    fields: Array<[string, IDL.Type]>,
-    d: HTMLElement,
-  ): HTMLInputElement {
-    return renderVariant(d, t, fields);
+  public visitVec<T>(t: IDL.VecClass<T>, ty: IDL.Type<T>, d: null): InputBox {
+    return new InputBox(t, null);
   }
-  public visitRec<T>(
-    t: IDL.RecClass<T>,
-    ty: IDL.ConstructType<T>,
-    d: HTMLElement,
-  ): HTMLInputElement {
-    return renderInput(ty, d);
+  public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): InputBox {
+    return renderInput(ty);
   }
 }
 
@@ -49,66 +44,215 @@ class Default extends IDL.Visitor<null, string | null> {
   }
 }
 
-export function renderInput(t: IDL.Type, dom: HTMLElement): HTMLInputElement {
-  return t.accept(new Render(), dom);
+export function renderInput(t: IDL.Type): InputBox {
+  return t.accept(new Render(), null);
 }
 
 function defaultString(t: IDL.Type): string | null {
   return t.accept(new Default(), null);
 }
 
-// tslint:disable:no-shadowed-variable
+class InputBox {
+  public input: HTMLInputElement;
+  public status: HTMLElement;
+  public label: string | null = null;
+  public value: any = undefined;
 
-function validate(idl: IDL.Type, arg: HTMLInputElement) {
-  if (arg.value === '') {
-    const str = defaultString(idl);
-    if (str) {
-      arg.value = str;
+  constructor(public idl: IDL.Type, public form: InputForm | null = null) {
+    const status = document.createElement('div');
+    status.className = 'status';
+    this.status = status;
+
+    const input = document.createElement('input');
+    input.className = 'argument';
+    input.placeholder = idl.display();
+    this.input = input;
+
+    input.addEventListener('blur', () => {
+      if (input.value === '') {
+        return;
+      }
+      this.parse();
+    });
+    input.addEventListener('focus', () => {
+      input.className = 'argument';
+    });
+  }
+  public isRejected(): boolean {
+    return this.value === undefined;
+  }
+  public parse(): any {
+    if (this.input.disabled && this.form) {
+      const value = this.form.parse();
+      this.value = value;
+      if (value !== undefined) {
+        this.input.value = this.idl.valueToString(value);
+      }
+      return value;
+    }
+    if (this.input.value === '') {
+      const str = defaultString(this.idl);
+      if (str) {
+        this.input.value = str;
+      }
+    }
+    try {
+      const value = this.idl.stringToValue(this.input.value);
+      if (!this.idl.covariant(value)) {
+        throw new Error(`${this.input.value} is not of type ${this.idl.display()}`);
+      }
+      this.status.style.display = 'none';
+      this.value = value;
+      return value;
+    } catch (err) {
+      this.input.className += ' reject';
+      this.status.style.display = 'block';
+      this.status.innerHTML = 'InputError: ' + err.message;
+      this.value = undefined;
+      return undefined;
     }
   }
-  const value = idl.stringToValue(arg.value);
-  if (!idl.covariant(value)) {
-    throw new Error(`${arg.value} is not of type ${idl.display()}`);
+  public render(dom: HTMLElement): void {
+    const container = document.createElement('span');
+    if (this.label) {
+      const label = document.createElement('label');
+      label.innerText = this.label;
+      container.appendChild(label);
+    }
+    container.appendChild(this.input);
+    container.appendChild(this.status);
+
+    if (this.form) {
+      this.form.render(container);
+      const input = this.input;
+      this.form.open.addEventListener(this.form.event, () => {
+        input.setAttribute('disabled', '');
+      });
+    }
+    dom.appendChild(container);
   }
-  return value;
 }
 
-export const parseEvent = new Event('parse');
+abstract class InputForm {
+  public form: InputBox[] = [];
+  public open: HTMLElement = document.createElement('button');
+  public event: string = 'click';
 
-function renderPrimitive(dom: HTMLElement, idl: IDL.Type): HTMLInputElement {
-  const container = document.createElement('span');
-  const status = document.createElement('div');
-  status.className = 'status';
-  const arg = document.createElement('input');
-  arg.className = 'argument';
-  arg.placeholder = idl.display();
-
-  arg.addEventListener('parse', () => {
-    try {
-      const value = validate(idl, arg);
-      status.style.display = 'none';
-    } catch (err) {
-      arg.className += ' reject';
-      status.style.display = 'block';
-      status.innerHTML = 'InputError: ' + err.message;
-    }
-  });
-  arg.addEventListener('blur', () => {
-    if (arg.value === '') {
+  public abstract parse(): any;
+  public abstract generateForm(): any;
+  public renderForm(dom: HTMLElement): void {
+    if (!this.form.length) {
       return;
     }
-    arg.dispatchEvent(parseEvent);
-  });
-  arg.addEventListener('focus', () => {
-    arg.className = 'argument';
-  });
-
-  container.appendChild(arg);
-  container.appendChild(status);
-  dom.appendChild(container);
-  return arg;
+    const form = document.createElement('div');
+    form.className = 'popup-form';
+    this.form.forEach(e => e.render(form));
+    dom.appendChild(form);
+  }
+  public render(dom: HTMLElement): void {
+    dom.appendChild(this.open);
+    const form = this;
+    form.open.addEventListener(form.event, () => {
+      while (dom.lastElementChild) {
+        if (dom.lastElementChild !== form.open) {
+          dom.removeChild(dom.lastElementChild);
+        } else {
+          break;
+        }
+      }
+      // Render form
+      form.generateForm();
+      form.renderForm(dom);
+    });
+  }
 }
 
+class RecordForm extends InputForm {
+  constructor(public fields: Array<[string, IDL.Type]>) {
+    super();
+    this.open.innerText = '...';
+    this.event = 'click';
+  }
+  public generateForm(): void {
+    this.form = this.fields.map(([key, type]) => {
+      const input = renderInput(type);
+      input.label = key + ' ';
+      return input;
+    });
+  }
+  public parse(): Record<string, any> | undefined {
+    const v: Record<string, any> = {};
+    this.fields.forEach(([key, _], i) => {
+      const value = this.form[i].parse();
+      v[key] = value;
+    });
+    if (this.form.some(input => input.isRejected())) {
+      return undefined;
+    }
+    return v;
+  }
+}
+
+class VariantForm extends InputForm {
+  constructor(public fields: Array<[string, IDL.Type]>) {
+    super();
+    const select = document.createElement('select');
+    for (const [key, type] of fields) {
+      const option = document.createElement('option');
+      option.innerText = key;
+      select.appendChild(option);
+    }
+    select.selectedIndex = -1;
+    this.open = select;
+    this.event = 'change';
+  }
+  public generateForm(): void {
+    const index = (this.open as HTMLSelectElement).selectedIndex;
+    const [_, type] = this.fields[index];
+    const variant = renderInput(type);
+    this.form = [variant];
+  }
+  public parse(): Record<string, any> | undefined {
+    const select = this.open as HTMLSelectElement;
+    const selected = select.options[select.selectedIndex].text;
+    const value = this.form[0].parse();
+    if (value === undefined) {
+      return undefined;
+    }
+    const v: Record<string, any> = {};
+    v[selected] = value;
+    return v;
+  }
+}
+
+class OptionForm extends InputForm {
+  constructor(public ty: IDL.Type) {
+    super();
+    this.open = document.createElement('input');
+    (this.open as HTMLInputElement).type = 'checkbox';
+    this.event = 'change';
+  }
+  public generateForm(): void {
+    if ((this.open as HTMLInputElement).checked) {
+      const opt = renderInput(this.ty);
+      this.form = [opt];
+    } else {
+      this.form = [];
+    }
+  }
+  public parse<T>(): [T] | [] | undefined {
+    if (this.form.length === 0) {
+      return [];
+    } else {
+      const value = this.form[0].parse();
+      if (value === undefined) {
+        return undefined;
+      }
+      return [value];
+    }
+  }
+}
+/*
 function renderComposite(
   dom: HTMLElement,
   idl: IDL.Type,
@@ -156,86 +300,4 @@ function renderComposite(
   dom.appendChild(container);
   return input;
 }
-
-function renderRecord(
-  dom: HTMLElement,
-  idl: IDL.RecordClass,
-  fields: Array<[string, IDL.Type]>,
-): HTMLInputElement {
-  const open = document.createElement('button');
-  open.innerText = '...';
-
-  const render = (dom: HTMLElement): HTMLInputElement[] => {
-    const args = [];
-    for (const [key, type] of fields) {
-      const label = document.createElement('label');
-      label.innerText = key + ' ';
-      dom.appendChild(label);
-      const arg = renderInput(type, dom);
-      args.push(arg);
-    }
-    return args;
-  };
-  const parse = (args: HTMLInputElement[]): string => {
-    const values: string[] = [];
-    fields.forEach(([key, _], i) => {
-      const val = '"' + key + '":' + args[i].value;
-      values.push(val);
-    });
-    return `{${values.join(', ')}}`;
-  };
-  return renderComposite(dom, idl, open, 'click', render, parse);
-}
-
-function renderOption<T>(
-  dom: HTMLElement,
-  idl: IDL.OptClass<T>,
-  ty: IDL.Type<T>,
-): HTMLInputElement {
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.checked = false;
-
-  const render = (dom: HTMLElement): HTMLInputElement[] => {
-    if (checkbox.checked) {
-      const opt = renderInput(ty, dom);
-      return [opt];
-    } else {
-      return [];
-    }
-  };
-  const parse = (arg: HTMLInputElement[]): string => {
-    if (!arg || !arg.length) {
-      return '[]';
-    } else {
-      return '[' + arg[0].value + ']';
-    }
-  };
-  return renderComposite(dom, idl, checkbox, 'change', render, parse);
-}
-
-function renderVariant(
-  dom: HTMLElement,
-  idl: IDL.VariantClass,
-  fields: Array<[string, IDL.Type]>,
-): HTMLInputElement {
-  const select = document.createElement('select');
-  for (const [key, type] of fields) {
-    const option = document.createElement('option');
-    option.innerText = key;
-    select.appendChild(option);
-  }
-  select.selectedIndex = -1;
-
-  const render = (dom: HTMLElement): HTMLInputElement[] => {
-    const index = select.selectedIndex;
-    const [_, type] = fields[index];
-    const variant = renderInput(type, dom);
-    return [variant];
-  };
-  const parse = (arg: HTMLInputElement[]): string => {
-    const selected = select.options[select.selectedIndex].text;
-    return `{"${selected}":${arg[0].value}}`;
-  };
-  return renderComposite(dom, idl, select, 'change', render, parse);
-}
+*/
