@@ -224,6 +224,7 @@ class VariantForm extends InputForm {
       select.appendChild(option);
     }
     select.selectedIndex = -1;
+    select.className = 'open';
     this.open = select;
     this.event = 'change';
   }
@@ -251,6 +252,7 @@ class OptionForm extends InputForm {
     super();
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
+    checkbox.className = 'open';
     this.open = checkbox;
     this.event = 'change';
   }
@@ -284,6 +286,7 @@ class VecForm extends InputForm {
     len.max = '100';
     len.style.width = '3em';
     len.placeholder = 'length';
+    len.className = 'open';
     this.open = len;
     this.event = 'change';
   }

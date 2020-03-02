@@ -60,7 +60,6 @@ function renderMethod(name, idl_func, f) {
     right.innerText = ''
     result.style.display = 'block';
     (async function () {
-      //const args = inputs.map((arg, i) => idl_func.argTypes[i].stringToValue(arg.input.value));
       const t_before = Date.now();
       const result = await f.apply(null, args);
       const duration = (Date.now() - t_before)/1000;
