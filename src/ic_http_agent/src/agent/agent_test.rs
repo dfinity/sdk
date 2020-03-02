@@ -90,7 +90,7 @@ fn query_rejected() -> Result<(), AgentError> {
             assert_eq!(code, 1234);
             assert_eq!(msg, "Rejected Message");
         }
-        _ => unreachable!(),
+        result => unreachable!("{:?}", result),
     }
 
     Ok(())
@@ -186,16 +186,16 @@ fn call_rejected() -> Result<(), AgentError> {
             .await
     });
 
-    submit_mock.assert();
-    status_mock.assert();
-
     match result {
         Err(AgentError::ClientError(code, msg)) => {
             assert_eq!(code, 1234);
             assert_eq!(msg, "Rejected Message");
         }
-        _ => unreachable!(),
+        result => unreachable!("{:?}", result),
     }
+
+    submit_mock.assert();
+    status_mock.assert();
 
     Ok(())
 }
