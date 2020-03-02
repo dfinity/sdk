@@ -1450,7 +1450,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "identity_manager"
+name = "ic-identity-manager"
 version = "0.1.0"
 dependencies = [
  "openssl 0.10.28 (registry+https://github.com/rust-lang/crates.io-index)",
