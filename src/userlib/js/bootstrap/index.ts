@@ -40,7 +40,9 @@ async function _loadJs(canisterId: string, filename: string): Promise<any> {
   const content = await window.icHttpAgent.retrieveAsset(canisterId, filename);
   const js = new TextDecoder().decode(content);
   const dataUri = 'data:text/javascript;base64,' + btoa(js);
-  return import(/* webpackIgnore: true */ dataUri);
+  // TODO(hansl): either get rid of eval, or rid of webpack, or make this
+  // work without this horrible hack.
+  return eval('import("' + dataUri + '")'); // tslint:disable-line
 }
 
 const k = _getVariable('userIdentity', localStorageIdentityKey);
