@@ -42,7 +42,7 @@ async function _loadJs(canisterId: string, filename: string): Promise<any> {
   const dataUri = 'data:text/javascript;base64,' + btoa(js);
   // TODO(hansl): either get rid of eval, or rid of webpack, or make this
   // work without this horrible hack.
-  return eval('import("' + dataUri + '")');  // tslint:disable-line
+  return eval('import("' + dataUri + '")'); // tslint:disable-line
 }
 
 const k = _getVariable('userIdentity', localStorageIdentityKey);
