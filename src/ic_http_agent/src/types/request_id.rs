@@ -105,7 +105,7 @@ impl RequestIdSerializer {
     /// Finish the hashing and returns the RequestId for the structure that was
     /// serialized.
     ///
-    /// This can only be called once (it borrows self). Since this whole class is not public,
+    /// This can only be called once (it moves self). Since this whole class is not public,
     /// it should not be a problem.
     pub fn finish(mut self) -> Result<RequestId, RequestIdError> {
         if self.fields.is_some() {
@@ -572,6 +572,14 @@ impl<'a> ser::SerializeStruct for &'a mut RequestIdSerializer {
             return Err(RequestIdError::InvalidState);
         }
 
+        // If the key is sender_sig or sender_pubkey, skip!
+        // XXX: We should move to a more structured solution like in
+        // message_id, where we have a canonical form and it is easy
+        // to drop keys.
+        if key == "sender_sig" || key == "sender_pubkey" {
+            return Ok(());
+        }
+
         let key_hash = self.hash_value(key)?;
         let value_hash = self.hash_value(value)?;
 
@@ -673,6 +681,80 @@ mod tests {
             hex::encode(request_id.0.to_vec()),
             "8781291c347db32a9d8c10eb62b710fce5a93be676474c42babc74c51858f94b"
         );
+    }
+
+    #[test]
+    // Tests that signature and public key do NOT contribute to the request id.
+    fn public_spec_example_signed() {
+        #[derive(Serialize)]
+        struct PublicSpecExampleStruct {
+            request_type: &'static str,
+            canister_id: CanisterId,
+            method_name: &'static str,
+            arg: Blob,
+        };
+        let data = PublicSpecExampleStruct {
+            request_type: "call",
+            canister_id: CanisterId::from_bytes(&[0, 0, 0, 0, 0, 0, 0x04, 0xD2]), // 1234 in u64
+            method_name: "hello",
+            arg: Blob(b"DIDL\x00\xFD*".to_vec()),
+        };
+
+        // Hash taken from the example on the public spec as above.
+        let request_id = to_request_id(&data).unwrap();
+        assert_eq!(
+            hex::encode(request_id.0.to_vec()),
+            "8781291c347db32a9d8c10eb62b710fce5a93be676474c42babc74c51858f94b"
+        );
+
+        // We should drop sender_sig or sender_pubkey keys.
+        #[derive(Serialize)]
+        struct PublicSpecExampleStructSigned {
+            request_type: &'static str,
+            canister_id: CanisterId,
+            method_name: &'static str,
+            arg: Blob,
+            sender_pubkey: Blob,
+            #[serde(rename = "sender_sig")]
+            signature: Blob,
+        };
+        let data = PublicSpecExampleStructSigned {
+            request_type: "call",
+            canister_id: CanisterId::from_bytes(&[0, 0, 0, 0, 0, 0, 0x04, 0xD2]), // 1234 in u64
+            method_name: "hello",
+            arg: Blob(b"DIDL\x00\xFD*".to_vec()),
+            sender_pubkey: Blob(vec![1, 2, 3, 4, 5]),
+            signature: Blob(vec![1, 2, 3, 4, 5, 6]),
+        };
+
+        let request_id_signed = to_request_id(&data).unwrap();
+        assert_eq!(request_id_signed, request_id);
+
+        // We should drop sender_sig or sender_pubkey keys.
+        #[derive(Serialize)]
+        struct PublicSpecExampleStructSignedWithSender {
+            request_type: &'static str,
+            canister_id: CanisterId,
+            method_name: &'static str,
+            arg: Blob,
+            sender: Blob,
+            sender_pubkey: Blob,
+            #[serde(rename = "sender_sig")]
+            signature: Blob,
+        };
+        let data = PublicSpecExampleStructSignedWithSender {
+            request_type: "call",
+            canister_id: CanisterId::from_bytes(&[0, 0, 0, 0, 0, 0, 0x04, 0xD2]), // 1234 in u64
+            method_name: "hello",
+            arg: Blob(b"DIDL\x00\xFD*".to_vec()),
+            sender: Blob(vec![1, 2, 3, 4, 5, 7]),
+            sender_pubkey: Blob(vec![1, 2, 3, 4, 5]),
+            signature: Blob(vec![1, 2, 3, 4, 5, 6]),
+        };
+
+        // The request id includes the sender field (the principal) though.
+        let request_id_signed2 = to_request_id(&data).unwrap();
+        assert_ne!(request_id_signed2, request_id);
     }
 
     /// The same example as above, except we use the ApiClient enum newtypes.
