@@ -14,7 +14,7 @@ In this repo:
 [source,bash]
 cd src/userlib/js  # You are here
 npm install
-npm run build
+npm run bundle
 pwd  # Keep this
 cp -rf . $(dfx cache show)
 
