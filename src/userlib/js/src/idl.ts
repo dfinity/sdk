@@ -151,10 +151,6 @@ export abstract class Type<T = any> {
     return JSON.stringify(x);
   }
 
-  public stringToValue(str: string): T {
-    return JSON.parse(str);
-  }
-
   /* Implement `T` in the IDL spec, only needed for non-primitive types */
   public buildTypeTable(typeTable: TypeTable): void {
     if (!typeTable.has(this)) {
@@ -324,6 +320,10 @@ export class TextClass extends PrimitiveType<string> {
 
   get name() {
     return 'text';
+  }
+
+  public valueToString(x: string) {
+    return '"' + x + '"';
   }
 }
 

@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js';
 import * as IDL from './idl';
 
 // tslint:disable:max-classes-per-file
@@ -8,6 +9,11 @@ export class Format {
 class Render extends IDL.Visitor<null, InputBox> {
   public visitPrimitive<T>(t: IDL.PrimitiveType<T>, d: null): InputBox {
     return new InputBox(t, null);
+  }
+  public visitUnit(t: IDL.UnitClass, d: null): InputBox {
+    const input = new InputBox(t, null);
+    input.input.type = 'hidden';
+    return input;
   }
   public visitRecord(t: IDL.RecordClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
     const form = new RecordForm(fields);
@@ -22,25 +28,41 @@ class Render extends IDL.Visitor<null, InputBox> {
     return new InputBox(t, form);
   }
   public visitVec<T>(t: IDL.VecClass<T>, ty: IDL.Type<T>, d: null): InputBox {
-    return new InputBox(t, null);
+    const form = new VecForm(ty);
+    return new InputBox(t, form);
   }
   public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): InputBox {
     return renderInput(ty);
   }
 }
 
-class Default extends IDL.Visitor<null, string | null> {
-  public visitType<T>(t: IDL.Type<T>, d: null): string | null {
+class Parse extends IDL.Visitor<string, any> {
+  public visitUnit(t: IDL.UnitClass, v: string): null {
     return null;
   }
-  public visitUnit(t: IDL.UnitClass, d: null): string | null {
-    return 'null';
+  public visitBool(t: IDL.BoolClass, v: string): boolean {
+    if (v === 'true') {
+      return true;
+    }
+    if (v === 'false') {
+      return false;
+    }
+    throw new Error(`Cannot parse ${v} as boolean`);
   }
-  public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: null): string | null {
-    return '[]';
+  public visitText(t: IDL.TextClass, v: string): string {
+    return v;
   }
-  public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): string | null {
-    return defaultString(ty);
+  public visitInt(t: IDL.IntClass, v: string): BigNumber {
+    return new BigNumber(v);
+  }
+  public visitNat(t: IDL.NatClass, v: string): BigNumber {
+    return new BigNumber(v);
+  }
+  public visitFixedInt(t: IDL.FixedIntClass, v: string): BigNumber {
+    return new BigNumber(v);
+  }
+  public visitFixedNat(t: IDL.FixedNatClass, v: string): BigNumber {
+    return new BigNumber(v);
   }
 }
 
@@ -48,8 +70,8 @@ export function renderInput(t: IDL.Type): InputBox {
   return t.accept(new Render(), null);
 }
 
-function defaultString(t: IDL.Type): string | null {
-  return t.accept(new Default(), null);
+function parsePrimitive(t: IDL.Type, d: string) {
+  return t.accept(new Parse(), d);
 }
 
 class InputBox {
@@ -82,22 +104,14 @@ class InputBox {
     return this.value === undefined;
   }
   public parse(): any {
-    if (this.input.disabled && this.form) {
+    if (this.form) {
       const value = this.form.parse();
       this.value = value;
-      if (value !== undefined) {
-        this.input.value = this.idl.valueToString(value);
-      }
       return value;
     }
-    if (this.input.value === '') {
-      const str = defaultString(this.idl);
-      if (str) {
-        this.input.value = str;
-      }
-    }
+
     try {
-      const value = this.idl.stringToValue(this.input.value);
+      const value = parsePrimitive(this.idl, this.input.value);
       if (!this.idl.covariant(value)) {
         throw new Error(`${this.input.value} is not of type ${this.idl.display()}`);
       }
@@ -123,11 +137,9 @@ class InputBox {
     container.appendChild(this.status);
 
     if (this.form) {
+      this.input.type = 'hidden';
       this.form.render(container);
       const input = this.input;
-      this.form.open.addEventListener(this.form.event, () => {
-        input.setAttribute('disabled', '');
-      });
     }
     dom.appendChild(container);
   }
@@ -136,12 +148,16 @@ class InputBox {
 abstract class InputForm {
   public form: InputBox[] = [];
   public open: HTMLElement = document.createElement('button');
-  public event: string = 'click';
+  public event: string = 'change';
 
   public abstract parse(): any;
   public abstract generateForm(): any;
   public renderForm(dom: HTMLElement): void {
-    if (!this.form.length) {
+    if (this.form.length === 0) {
+      return;
+    }
+    if (this.form.length === 1) {
+      this.form[0].render(dom);
       return;
     }
     const form = document.createElement('div');
@@ -179,6 +195,11 @@ class RecordForm extends InputForm {
       input.label = key + ' ';
       return input;
     });
+  }
+  public render(dom: HTMLElement): void {
+    // No open button for record
+    this.generateForm();
+    this.renderForm(dom);
   }
   public parse(): Record<string, any> | undefined {
     const v: Record<string, any> = {};
@@ -228,8 +249,9 @@ class VariantForm extends InputForm {
 class OptionForm extends InputForm {
   constructor(public ty: IDL.Type) {
     super();
-    this.open = document.createElement('input');
-    (this.open as HTMLInputElement).type = 'checkbox';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    this.open = checkbox;
     this.event = 'change';
   }
   public generateForm(): void {
@@ -252,52 +274,44 @@ class OptionForm extends InputForm {
     }
   }
 }
-/*
-function renderComposite(
-  dom: HTMLElement,
-  idl: IDL.Type,
-  open: HTMLElement,
-  event: string,
-  render: (dom: HTMLElement) => HTMLInputElement[],
-  parse: (args: HTMLInputElement[]) => string,
-): HTMLInputElement {
-  const container = document.createElement('span');
-  const input = renderPrimitive(container, idl);
-  input.className = 'composite';
-  container.appendChild(open);
 
-  open.addEventListener(event, () => {
-    const form = document.createElement('div');
-    form.className = 'popup-form';
-    const args = render(form);
-    if (!args || !args.length) {
-      input.value = parse(args);
-      input.focus();
+class VecForm extends InputForm {
+  constructor(public ty: IDL.Type) {
+    super();
+    const len = document.createElement('input');
+    len.type = 'number';
+    len.min = '0';
+    len.max = '100';
+    len.style.width = '3em';
+    len.placeholder = 'length';
+    this.open = len;
+    this.event = 'change';
+  }
+  public generateForm(): void {
+    const len = (this.open as HTMLInputElement).valueAsNumber;
+    this.form = [];
+    for (let i = 0; i < len; i++) {
+      const t = renderInput(this.ty);
+      this.form.push(t);
+    }
+  }
+  public renderForm(dom: HTMLElement): void {
+    // Same code as parent class except the single length optimization
+    if (this.form.length === 0) {
       return;
     }
-
-    input.setAttribute('disabled', '');
-    open.setAttribute('disabled', '');
-    const close = document.createElement('button');
-    close.innerText = 'X';
-    form.appendChild(close);
-    open.insertAdjacentElement('afterend', form);
-
-    close.addEventListener('click', () => {
-      args.forEach(arg => arg.dispatchEvent(parseEvent));
-      const isReject = args.some(arg => arg.classList.contains('reject'));
-      if (isReject) {
-        return;
-      }
-      const result = parse(args);
-      input.removeAttribute('disabled');
-      open.removeAttribute('disabled');
-      input.value = result;
-      (form.parentNode as Node).removeChild(form);
-      input.focus();
+    const form = document.createElement('div');
+    form.className = 'popup-form';
+    this.form.forEach(e => e.render(form));
+    dom.appendChild(form);
+  }
+  public parse<T>(): T[] | undefined {
+    const value = this.form.map(input => {
+      return input.parse();
     });
-  });
-  dom.appendChild(container);
-  return input;
+    if (this.form.some(input => input.isRejected())) {
+      return undefined;
+    }
+    return value;
+  }
 }
-*/
