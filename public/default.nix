@@ -90,7 +90,7 @@ rec {
         #   log "Executing DFINITY SDK install script, commit: @revision@"
         revision =
           if src != null
-          then src.revision
+          then src.rev
           else pkgs.lib.commitIdFromGitRepo (pkgs.lib.gitDir ../.);
 
         manifest = ./manifest.json;
