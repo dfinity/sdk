@@ -5,7 +5,6 @@ use crate::lib::error::DfxResult;
 use ic_http_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;
-use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
