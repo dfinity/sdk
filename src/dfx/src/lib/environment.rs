@@ -5,7 +5,6 @@ use crate::lib::error::DfxResult;
 use ic_http_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;
-use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -122,11 +121,7 @@ impl Environment for EnvironmentImpl {
                 if let Some(config) = self.config.as_ref() {
                     let start = config.get_config().get_defaults().get_start();
                     let address = start.get_address("localhost");
-                    let dfx_root = self.get_temp_dir();
-                    let client_configuration_dir = dfx_root.join("client-configuration");
-                    let client_port_path = client_configuration_dir.join("client-1.port");
-                    let port = read_to_string(&client_port_path)
-                        .expect("Could not read port configuration file");
+                    let port = start.get_port(8000);
 
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
