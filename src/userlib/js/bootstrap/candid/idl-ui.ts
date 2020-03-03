@@ -1,5 +1,5 @@
-import BigNumber from 'bignumber.js';
 import { IDL } from '@internet-computer/userlib';
+import BigNumber from 'bignumber.js';
 
 // tslint:disable:max-classes-per-file
 
