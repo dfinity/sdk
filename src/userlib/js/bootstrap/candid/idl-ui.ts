@@ -1,10 +1,7 @@
 import BigNumber from 'bignumber.js';
-import * as IDL from './idl';
+import { IDL } from '@internet-computer/userlib';
 
 // tslint:disable:max-classes-per-file
-export class Format {
-  constructor(public showInput: boolean, public form: InputForm | null, public hasClose: boolean) {}
-}
 
 class Render extends IDL.Visitor<null, InputBox> {
   public visitPrimitive<T>(t: IDL.PrimitiveType<T>, d: null): InputBox {

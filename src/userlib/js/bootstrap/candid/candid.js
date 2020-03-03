@@ -1,4 +1,4 @@
-import { UI } from '@internet-computer/userlib';
+import * as UI from './idl-ui';
 
 export function render(id, actor, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
