@@ -26,7 +26,7 @@ pub trait Environment {
     fn get_temp_dir(&self) -> &Path;
     fn get_version(&self) -> &Version;
 
-    // Timelines are actually needed for mockall to work properly.
+    // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
     fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
 
@@ -34,7 +34,7 @@ pub trait Environment {
     fn new_spinner(&self, message: &str) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
 
-    // Timelines are actually needed for mockall to work properly.
+    // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
     fn log<'a>(&self, record: &Record<'a>) {
         self.get_logger().log(record);
