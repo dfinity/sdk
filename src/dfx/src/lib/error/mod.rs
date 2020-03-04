@@ -60,6 +60,9 @@ pub enum DfxError {
     InvalidData(String),
     RuntimeError(std::io::Error),
 
+    /// Failed to clean up state.
+    CleanState(std::io::Error),
+
     /// The ide server shouldn't be started from a terminal.
     LanguageServerFromATerminal,
 
