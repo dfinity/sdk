@@ -2,9 +2,11 @@ use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
+use crate::lib::progress_bar::ProgressBar;
 use ic_http_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;
+use slog::Record;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -26,9 +28,19 @@ pub trait Environment {
     fn get_state_dir(&self) -> PathBuf;
     fn get_version(&self) -> &Version;
 
-    // Timelines are actually needed for mockall to work properly.
+    // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
     fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
+
+    fn get_logger(&self) -> &slog::Logger;
+    fn new_spinner(&self, message: &str) -> ProgressBar;
+    fn new_progress(&self, message: &str) -> ProgressBar;
+
+    // Explicit lifetimes are actually needed for mockall to work properly.
+    #[allow(clippy::needless_lifetimes)]
+    fn log<'a>(&self, record: &Record<'a>) {
+        self.get_logger().log(record);
+    }
 }
 
 pub struct EnvironmentImpl {
@@ -39,6 +51,9 @@ pub struct EnvironmentImpl {
     cache: Rc<dyn Cache>,
 
     version: Version,
+
+    logger: Option<slog::Logger>,
+    progress: bool,
 }
 
 impl EnvironmentImpl {
@@ -92,7 +107,19 @@ impl EnvironmentImpl {
             temp_dir,
             agent: Lazy::new(),
             version: version.clone(),
+            logger: None,
+            progress: true,
         })
+    }
+
+    pub fn with_logger(mut self, logger: slog::Logger) -> Self {
+        self.logger = Some(logger);
+        self
+    }
+
+    pub fn with_progress_bar(mut self, progress: bool) -> Self {
+        self.progress = progress;
+        self
     }
 }
 
@@ -139,6 +166,24 @@ impl Environment for EnvironmentImpl {
                 }
             })
             .as_ref()
+    }
+
+    fn get_logger(&self) -> &slog::Logger {
+        self.logger
+            .as_ref()
+            .expect("Log was not setup, but is being used.")
+    }
+
+    fn new_spinner(&self, message: &str) -> ProgressBar {
+        if self.progress {
+            ProgressBar::new_spinner(message)
+        } else {
+            ProgressBar::discard()
+        }
+    }
+
+    fn new_progress(&self, _message: &str) -> ProgressBar {
+        ProgressBar::discard()
     }
 }
 
@@ -187,5 +232,17 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_agent(&self) -> Option<&Agent> {
         Some(&self.agent)
+    }
+
+    fn get_logger(&self) -> &slog::Logger {
+        self.backend.get_logger()
+    }
+
+    fn new_spinner(&self, message: &str) -> ProgressBar {
+        self.backend.new_spinner(message)
+    }
+
+    fn new_progress(&self, message: &str) -> ProgressBar {
+        self.backend.new_progress(message)
     }
 }
