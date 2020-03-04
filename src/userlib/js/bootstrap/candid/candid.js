@@ -69,7 +69,8 @@ function renderMethod(name, idl_func, f) {
       } else {
         show_result = valuesToString(idl_func.retTypes, result);
       }
-      left.innerText = show_result;
+      show_result = encodeStr(show_result);
+      left.innerHTML = show_result;
       right.innerText = `(${duration}s)`;
 
       const show_args = valuesToString(idl_func.argTypes, args);
@@ -86,6 +87,19 @@ function zipWith(xs, ys, f) {
   return xs.map((x, i) => f(x, ys[i]));
 }
 
+function encodeStr(str) {
+  const escapeChars = {
+    ' ' : '&nbsp;',
+    '<' : '&lt;',
+    '>' : '&gt;',
+    '\n' : '<br>',
+  };
+  const regex = new RegExp('[ <>\n]', 'g');
+  return str.replace(regex, m => {
+    return escapeChars[m];
+  });
+}
+
 function valuesToString(types, values) {
   return '(' + zipWith(types, values, ((t, v) => t.valueToString(v))).join(', ') + ')';
 }
@@ -97,7 +111,7 @@ function log(content) {
   if (content instanceof Element) {
     line.appendChild(content);
   } else {
-    line.innerText = content;
+    line.innerHTML = content;
   }
   console.appendChild(line);
 }
