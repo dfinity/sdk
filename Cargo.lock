@@ -875,7 +875,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "actix 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-cors 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
