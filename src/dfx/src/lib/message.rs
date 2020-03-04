@@ -75,6 +75,7 @@ user_message!(
     NewFrontend => "Install the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.",
 
     // dfx start
+    CleanState => "Cleans state of current project.",
     StartNode => "Starts the local network client.",
     NodeAddress => "Specifies the host name and port number to bind the frontend to.",
     StartBackground => "Exits the dfx leaving the client running. Will wait until the client replies before exiting.",
