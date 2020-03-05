@@ -37,6 +37,20 @@ impl Principal {
     }
 }
 
+impl AsRef<[u8]> for Principal {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
+
+impl AsRef<[u8]> for PrincipalInner {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            PrincipalInner::SelfAuthenticating(v) => v,
+        }
+    }
+}
+
 impl Serialize for Principal {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self.0.clone() {
