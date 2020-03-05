@@ -84,7 +84,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
     let client_watchdog = std::thread::Builder::new().name("replica".into()).spawn({
-        let is_killed_client = is_killed_client.clone();
         let b = b.clone();
 
         move || {
