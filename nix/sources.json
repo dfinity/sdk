@@ -26,9 +26,10 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "ref": "master",
+        "branch": "basvandijk/rust-1.41.1",
+        "ref": "basvandijk/rust-1.41.1",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "b7a8085fd17a5a970be267245634099339186f7a",
+        "rev": "07e63f3e8075e88a4ffd9ecb4dd7f36f56251c3b",
         "type": "git"
     },
     "dfinity": {
