@@ -1,4 +1,4 @@
-import { IDL, CanisterId } from '@internet-computer/userlib';
+import { CanisterId, IDL } from '@internet-computer/userlib';
 import BigNumber from 'bignumber.js';
 
 // tslint:disable:max-classes-per-file
