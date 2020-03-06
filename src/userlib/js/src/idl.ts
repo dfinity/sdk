@@ -2,6 +2,7 @@
 import BigNumber from 'bignumber.js';
 import Pipe = require('buffer-pipe');
 import { Buffer } from 'buffer/';
+import { CanisterId } from './canisterId';
 import { JsonValue } from './types';
 import { idlLabelToId } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
@@ -26,6 +27,9 @@ const enum IDLTypeIds {
   Vector = -19,
   Record = -20,
   Variant = -21,
+  Func = -22,
+  Service = -23,
+  Principal = -24,
 }
 
 const magicNumber = 'DIDL';
@@ -95,7 +99,7 @@ export abstract class Visitor<D, R> {
   public visitBool(t: BoolClass, data: D): R {
     return this.visitPrimitive(t, data);
   }
-  public visitUnit(t: UnitClass, data: D): R {
+  public visitNull(t: NullClass, data: D): R {
     return this.visitPrimitive(t, data);
   }
   public visitText(t: TextClass, data: D): R {
@@ -111,6 +115,9 @@ export abstract class Visitor<D, R> {
     return this.visitPrimitive(t, data);
   }
   public visitFixedNat(t: FixedNatClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitPrincipal(t: PrincipalClass, data: D): R {
     return this.visitPrimitive(t, data);
   }
 
@@ -265,9 +272,9 @@ export class BoolClass extends PrimitiveType<boolean> {
 /**
  * Represents an IDL Null
  */
-export class UnitClass extends PrimitiveType<null> {
+export class NullClass extends PrimitiveType<null> {
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
-    return v.visitUnit(this, d);
+    return v.visitNull(this, d);
   }
 
   public covariant(x: any): x is null {
@@ -873,6 +880,45 @@ export class RecClass<T = any> extends ConstructType<T> {
 }
 
 /**
+ * Represents a principal reference
+ */
+export class PrincipalClass extends PrimitiveType<CanisterId> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitPrincipal(this, d);
+  }
+
+  public covariant(x: any): x is CanisterId {
+    return x instanceof CanisterId;
+  }
+
+  public encodeValue(x: CanisterId): Buffer {
+    const hex = x.toHex();
+    const buf = Buffer.from(hex, 'hex');
+    const len = lebEncode(buf.length);
+    return Buffer.concat([Buffer.from([1]), len, buf]);
+  }
+
+  public encodeType() {
+    return slebEncode(IDLTypeIds.Principal);
+  }
+
+  public decodeValue(b: Pipe): CanisterId {
+    const x = b.read(1).toString('hex');
+    if (x !== '01') {
+      throw new Error('Cannot decode principal');
+    }
+    const len = lebDecode(b).toNumber();
+    const hex = b.read(len).toString('hex');
+    // TODO implement checksum
+    return CanisterId.fromText('ic:' + hex + '00');
+  }
+
+  get name() {
+    return 'principal';
+  }
+}
+
+/**
  * Represents an async function which can return data.
  * @param argTypes Argument types.
  * @param retTypes Return types.
@@ -1003,7 +1049,7 @@ export class ActorInterface {
 // Export Types instances.
 export const Empty = new EmptyClass();
 export const Bool = new BoolClass();
-export const Unit = new UnitClass();
+export const Null = new NullClass();
 export const Text = new TextClass();
 export const Int = new IntClass();
 export const Nat = new NatClass();
@@ -1017,6 +1063,8 @@ export const Nat8 = new FixedNatClass(8);
 export const Nat16 = new FixedNatClass(16);
 export const Nat32 = new FixedNatClass(32);
 export const Nat64 = new FixedNatClass(64);
+
+export const Principal = new PrincipalClass();
 
 export function Tuple<T extends any[]>(...types: T): TupleClass<T> {
   return new TupleClass(types);
