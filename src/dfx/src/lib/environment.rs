@@ -2,7 +2,6 @@ use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
-use crate::lib::identity_interface::Identity;
 use crate::lib::progress_bar::ProgressBar;
 
 use ic_http_agent::{Agent, AgentConfig};
@@ -157,14 +156,9 @@ impl Environment for EnvironmentImpl {
                     let start = config.get_config().get_defaults().get_start();
                     let address = start.get_address("localhost");
                     let port = start.get_port(8000);
-                    let dfx_root = self.get_temp_dir();
-                    // This is the default to keep precedence sane,
-                    // not deal with home folders or cache right now.
-                    let local_project_identity = dfx_root.join("identity");
 
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
-                        signer: Box::new(Identity::new(local_project_identity)),
                         ..AgentConfig::default()
                     })
                     .ok()
@@ -201,17 +195,10 @@ pub struct AgentEnvironment<'a> {
 
 impl<'a> AgentEnvironment<'a> {
     pub fn new(backend: &'a dyn Environment, agent_url: &str) -> Self {
-        // We do not expose the path directly for now.
-        let dfx_root = backend.get_temp_dir();
-        // This is the default to keep precedence sane,
-        // not deal with home folders or cache right now.
-        let local_project_identity = dfx_root.join("identity");
-
         AgentEnvironment {
             backend,
             agent: Agent::new(AgentConfig {
                 url: agent_url,
-                signer: Box::new(Identity::new(local_project_identity)),
                 ..AgentConfig::default()
             })
             .unwrap(),

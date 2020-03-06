@@ -2,7 +2,6 @@ pub mod canister_info;
 pub mod client_toml_config;
 pub mod environment;
 pub mod error;
-pub mod identity_interface;
 pub mod logger;
 pub mod message;
 pub mod progress_bar;
