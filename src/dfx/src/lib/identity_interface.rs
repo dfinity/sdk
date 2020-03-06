@@ -2,8 +2,8 @@ use ic_http_agent::to_request_id;
 use ic_http_agent::AgentError;
 use ic_http_agent::Blob;
 use ic_http_agent::RequestId;
+use ic_http_agent::SignedMessage;
 use ic_http_agent::Signer;
-use ic_http_agent::{MessageWithSender, SignedMessage};
 use std::path::PathBuf;
 
 // This is a stand in for the identity type of the identity manager.
@@ -30,16 +30,12 @@ impl Signer for Identity {
         ),
         AgentError,
     > {
-        let mut sender = vec![0; 32];
-        sender.push(0x02);
-        let sender = Blob::from(sender);
-        let request_with_sender = MessageWithSender { request, sender };
-        let request_id = to_request_id(&request_with_sender).map_err(AgentError::from)?;
+        let request_id = to_request_id(&request).map_err(AgentError::from)?;
 
         let signature = Blob::from(vec![1; 32]);
         let sender_pubkey = Blob::from(vec![2; 32]);
         let signed_request = SignedMessage {
-            request_with_sender,
+            request_with_sender: request,
             signature,
             sender_pubkey,
         };
@@ -57,14 +53,11 @@ mod test {
     proptest! {
     #[test]
     fn request_id_identity(request: String) {
-        let mut sender = vec![0; 32];
-        sender.push(0x02);
-        let sender = Blob::from(sender);
         #[derive(Clone,Serialize)]
         struct TestAPI { inner : String}
         let request = TestAPI { inner: request};
 
-        let request_with_sender = MessageWithSender { request:request.clone(), sender };
+        let request_with_sender = request.clone();
         let actual_request_id = to_request_id(&request_with_sender).expect("Failed to produce request id");
         let signer = Identity::new(PathBuf::from(""));
         let request_id = signer.sign(Box::new(request)).expect("Failed to sign").0;
