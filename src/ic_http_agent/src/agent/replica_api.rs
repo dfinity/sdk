@@ -69,7 +69,7 @@ pub struct MessageWithSender<T: Serialize> {
 #[serde(rename_all = "snake_case")]
 pub struct SignedMessage<T: Serialize> {
     #[serde(flatten)]
-    pub request_with_sender: MessageWithSender<T>,
+    pub request_with_sender: T,
     pub sender_pubkey: Blob,
     #[serde(rename = "sender_sig")]
     pub signature: Blob,

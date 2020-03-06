@@ -1,5 +1,5 @@
 use crate::agent::agent_error::AgentError;
-use crate::agent::replica_api::{MessageWithSender, SignedMessage};
+use crate::agent::replica_api::SignedMessage;
 use crate::types::request_id::to_request_id;
 use crate::{Blob, RequestId};
 
@@ -56,8 +56,15 @@ impl Signer for DummyIdentity {
     > {
         let mut sender = vec![0; 32];
         sender.push(0x02);
-        let sender = Blob::from(sender);
-        let request_with_sender = MessageWithSender { request, sender };
+        // Bug(eftychis): Note normally the behavior here is to add a
+        // sender field that contributes to the request id. Right now
+        // there seems to be an issue with the behavior of sender in
+        // the request id. Trying to figure out if the correct
+        // behaviour changed and where the deviation happens.
+
+        // let sender = Blob::from(sender);
+        // let request_with_sender = MessageWithSender { request, sender };
+        let request_with_sender = request;
         let request_id = to_request_id(&request_with_sender).map_err(AgentError::from)?;
 
         let signature = Blob::from(vec![1; 32]);
@@ -82,14 +89,11 @@ mod test {
     proptest! {
     #[test]
     fn request_id_dummy_signer(request: String) {
-        let mut sender = vec![0; 32];
-        sender.push(0x02);
-        let sender = Blob::from(sender);
         #[derive(Clone,Serialize)]
         struct TestAPI { inner : String}
         let request = TestAPI { inner: request};
 
-        let request_with_sender = MessageWithSender { request:request.clone(), sender };
+        let request_with_sender = request.clone();
         let actual_request_id = to_request_id(&request_with_sender).expect("Failed to produce request id");
         let signer = DummyIdentity {};
         let request_id = signer.sign(Box::new(request)).expect("Failed to sign").0;
