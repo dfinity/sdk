@@ -26,6 +26,8 @@ pub trait Environment {
     /// invocations by other processes in the same project should
     /// return the same configuration directory.
     fn get_temp_dir(&self) -> &Path;
+    /// Return the directory where state for replica(s) is kept.
+    fn get_state_dir(&self) -> PathBuf;
     fn get_version(&self) -> &Version;
 
     // Explicit lifetimes are actually needed for mockall to work properly.
@@ -140,6 +142,10 @@ impl Environment for EnvironmentImpl {
         &self.temp_dir
     }
 
+    fn get_state_dir(&self) -> PathBuf {
+        self.get_temp_dir().join("state")
+    }
+
     fn get_version(&self) -> &Version {
         &self.version
     }
@@ -228,6 +234,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_temp_dir(&self) -> &Path {
         self.backend.get_temp_dir()
+    }
+
+    fn get_state_dir(&self) -> PathBuf {
+        self.backend.get_state_dir()
     }
 
     fn get_version(&self) -> &Version {
