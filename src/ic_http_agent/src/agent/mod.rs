@@ -8,11 +8,11 @@ pub(crate) mod waiter;
 pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
-    pub use super::signer::Signer;
     pub use super::nonce::NonceFactory;
+    pub use super::replica_api::{MessageWithSender, SignedMessage};
     pub use super::response::RequestStatusResponse;
+    pub use super::signer::Signer;
     pub use super::waiter::{Waiter, WaiterTrait};
-    pub use super::replica_api::{SignedMessage, MessageWithSender};
     pub use super::Agent;
 }
 
@@ -21,9 +21,9 @@ mod agent_test;
 
 pub mod signer;
 
-use crate::agent::replica_api::{QueryResponseReply, ReadRequest,  ReadResponse, SubmitRequest};
-use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
+use crate::agent::replica_api::{QueryResponseReply, ReadRequest, ReadResponse, SubmitRequest};
 use crate::agent::signer::Signer;
+use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 
 use public::*;
 use reqwest::header::HeaderMap;
@@ -83,7 +83,7 @@ impl Agent {
         // We need to calculate the signature, and thus also the
         // request id initially.
         let request: Box<SubmitRequest<'_>> = Box::new(request);
-        let (request_id,signed_request) =self.signer.sign(request)?;
+        let (request_id, signed_request) = self.signer.sign(request)?;
 
         let record = serde_cbor::to_vec(&signed_request)?;
         let url = self.url.join("submit")?;
@@ -111,9 +111,6 @@ impl Agent {
         method_name: &'a str,
         arg: &'a Blob,
     ) -> Result<Option<Blob>, AgentError> {
-
-
-
         self.read::<QueryResponseReply>(ReadRequest::Query {
             canister_id,
             method_name,
@@ -183,8 +180,7 @@ impl Agent {
             method_name,
             arg,
             nonce: &self.nonce_factory.generate(),
-        }
-        )
+        })
         .await
     }
 
