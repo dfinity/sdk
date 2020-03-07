@@ -916,6 +916,10 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
   get name() {
     return 'principal';
   }
+  public valueToString(x: CanisterId) {
+    // TODO implement toText
+    return x.toHex();
+  }
 }
 
 /**

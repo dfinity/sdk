@@ -12,9 +12,6 @@ class Render extends IDL.Visitor<null, InputBox> {
     input.input.type = 'hidden';
     return input;
   }
-  public visitPrincipal(t: IDL.PrincipalClass, d: null): InputBox {
-    return new InputBox(t, null);
-  }
   public visitRecord(t: IDL.RecordClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
     const form = new RecordForm(fields);
     return new InputBox(t, form);
