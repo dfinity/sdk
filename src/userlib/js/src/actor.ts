@@ -3,7 +3,6 @@ import { CanisterId } from './canisterId';
 import { HttpAgent } from './http_agent';
 import { QueryResponseStatus, RequestStatusResponseStatus } from './http_agent_types';
 import * as IDL from './idl';
-import { FuncClass } from './idl';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
 
@@ -93,7 +92,7 @@ export function makeActorFactory(
   async function requestStatusAndLoop(
     httpAgent: HttpAgent,
     requestId: RequestId,
-    func: FuncClass | null,
+    returnType: IDL.Type[],
     attempts: number,
     maxAttempts: number,
     throttle: number,
@@ -102,7 +101,7 @@ export function makeActorFactory(
 
     switch (status.status) {
       case RequestStatusResponseStatus.Replied: {
-        return func ? decodeReturnValue(func.retTypes, status.reply.arg) : null;
+        return decodeReturnValue(returnType, status.reply.arg);
       }
 
       case RequestStatusResponseStatus.Unknown:
@@ -117,7 +116,7 @@ export function makeActorFactory(
 
         // Wait a little, then retry.
         return new Promise(resolve => setTimeout(resolve, throttle)).then(() =>
-          requestStatusAndLoop(httpAgent, requestId, func, attempts, maxAttempts, throttle),
+          requestStatusAndLoop(httpAgent, requestId, returnType, attempts, maxAttempts, throttle),
         );
 
       case RequestStatusResponseStatus.Rejected:
@@ -183,7 +182,7 @@ export function makeActorFactory(
         return requestStatusAndLoop(
           agent,
           requestId,
-          null,
+          [],
           effectiveMaxAttempts,
           effectiveMaxAttempts,
           effectiveThrottle,
@@ -232,7 +231,7 @@ export function makeActorFactory(
           return requestStatusAndLoop(
             agent,
             requestId,
-            func,
+            func.retTypes,
             maxAttempts,
             maxAttempts,
             throttleDurationInMSecs,

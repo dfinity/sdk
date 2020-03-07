@@ -23,7 +23,7 @@ import {
 } from './http_agent_types';
 import * as IDL from './idl';
 import { requestIdOf } from './request_id';
-import { BinaryBlob, blobFromHex, blobToHex } from './types';
+import { BinaryBlob, blobFromHex } from './types';
 const API_VERSION = 'v1';
 
 // HttpAgent options that can be used at construction.
