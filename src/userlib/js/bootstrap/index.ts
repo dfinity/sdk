@@ -39,7 +39,7 @@ function _getVariable(
 async function _loadJs(canisterId: string, filename: string): Promise<any> {
   const content = await window.icHttpAgent.retrieveAsset(canisterId, filename);
   const js = new TextDecoder().decode(content);
-  const dataUri = 'data:text/javascript;base64,' + btoa(js);
+  const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
   // TODO(hansl): either get rid of eval, or rid of webpack, or make this
   // work without this horrible hack.
   return eval('import("' + dataUri + '")'); // tslint:disable-line
@@ -100,7 +100,7 @@ async function _main() {
       const candid = await _loadJs(canisterId, 'candid.js');
       const canister = window.icHttpAgent.makeActorFactory(candid.default)({ canisterId });
       // @ts-ignore: Could not find a declaration file for module
-      const render: any = await import(/* webpackIgnore: true */ './candid/candid.js');
+      const render: any = await import('./candid/candid.js');
       const actor = candid.default({ IDL });
       render.render(canisterId, actor, canister);
     } else {
