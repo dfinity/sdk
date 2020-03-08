@@ -1,4 +1,11 @@
 // tslint:disable:no-bitwise
+// Note: this file uses buffer-pipe, which on Node only, uses the Node Buffer
+//       implementation, which isn't compatible with the NPM buffer package
+//       which we use everywhere else. This means that we have to transform
+//       one into the other, hence why every function that returns a Buffer
+//       actually return `new Buffer(pipe.buffer)`.
+// TODO: The best solution would be to have our own buffer type around
+//       Uint8Array which is standard.
 import BigNumber from 'bignumber.js';
 import Pipe = require('buffer-pipe');
 import { Buffer } from 'buffer/';
@@ -24,7 +31,7 @@ export function lebEncode(value: number | BigNumber): Buffer {
     }
   }
 
-  return pipe.buffer;
+  return new Buffer(pipe.buffer);
 }
 
 export function lebDecode(pipe: Pipe): BigNumber {
@@ -73,7 +80,7 @@ export function slebEncode(value: BigNumber | number): Buffer {
       return bytes;
     }
   }
-  return pipe.buffer;
+  return new Buffer(pipe.buffer);
 }
 
 export function slebDecode(pipe: Pipe): BigNumber {
@@ -128,7 +135,7 @@ export function writeIntLE(value: BigNumber | number, byteLength: number): Buffe
     pipe.write([byte]);
     mul = mul.times(256);
   }
-  return pipe.buffer;
+  return new Buffer(pipe.buffer);
 }
 
 export function readUIntLE(pipe: Pipe, byteLength: number): BigNumber {

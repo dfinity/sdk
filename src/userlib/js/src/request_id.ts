@@ -2,6 +2,7 @@ import borc from 'borc';
 import { Buffer } from 'buffer/';
 import { CanisterId } from './canisterId';
 import { BinaryBlob, blobFromHex, blobToHex } from './types';
+import { lebEncode } from './utils/leb128';
 
 export type RequestId = BinaryBlob & { __requestId__: void };
 export function toHex(requestId: RequestId): string {
@@ -23,6 +24,8 @@ async function hashValue(value: unknown): Promise<Buffer> {
     return hashValue(value.value);
   } else if (typeof value === 'string') {
     return hashString(value);
+  } else if (typeof value === 'number') {
+    return hash(lebEncode(value) as BinaryBlob);
   } else if (value instanceof CanisterId) {
     // HTTP handler expects canister_id to be an u64 & hashed in this way.
     // work-around for endianness problem until we switch to blobs
