@@ -1,6 +1,6 @@
 // Canister IDs are represented as an array of bytes in the HTTP handler of the client.
 export class CanisterId {
-  public static fromHex(hex: string): CanisterId {
+  private static fromHex(hex: string): CanisterId {
     return new this(hex);
   }
   public static fromText(hex: string): CanisterId {
