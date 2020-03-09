@@ -1,8 +1,38 @@
+//! Provides identity management and operations for the Internet
+//! Computer (IC). Namely, we generate, load and revoke credentials
+//! related to principals, provide principal mapping seamlessly with
+//! corresponding key-pairs.
+//!
+//! # Definitions
+//!
+//! An [`Identity`] is a construct that denotes the set of claims of an
+//! entity about itself.
+//!
+//! A [`Principal`] describes the security context of an identity, namely
+//! any identity that can be authenticated along with a specific
+//! role. In the case of the Internet Computer this maps currently to
+//! the identities that can be authenticated by a canister.
+//!
+//! `Identification` is the procedure whereby an entity claims a certain
+//! identity, while verification is the procedure whereby that claim
+//! is checked. Authentication is the assertion of an entity’s claim
+//! to an identity.
+//!
+//! A `role` represents the set of actions an entity equipped with that
+//! role can exercise.
+//!
+//! An `identifier` is a sequence of bytes/string utilized as a name for
+//! a principal. That allows a principal to be referenced.
+//!
+//! A `controller` is a principal with an administrative-control role
+//! over a corresponding canister. Each canister has one or more
+//! controllers.
+
 use crate::crypto_error::Error;
 use crate::crypto_error::Result;
 use crate::provider::basic::BasicProvider;
 use crate::provider::Provider;
-use crate::signature::Signature;
+use crate::types::Signature;
 
 use std::path::PathBuf;
 
@@ -14,15 +44,14 @@ use std::path::PathBuf;
 /// a provider.
 pub struct Identity {
     // TODO(eftychis): This changes into a precendence map. Note that
-    // in the future Principals are not going to be tied necessarily
-    // with Identifiers from a canister's perspective.
+    // principals are not going to be tied with credentials. We keep
+    // it simple, simply picking the first provider.
     inner: Vec<Box<dyn Provider>>,
 }
 
 impl Identity {
-    /// Return a corresponding provided a path.
-    // Passing a simple configuration until we know all the necessary
-    // configuration.
+    /// Return a corresponding provided a profile path.  We pass a simple
+    /// configuration for now, but this might change in the future.
     pub fn new(path: PathBuf) -> Result<Self> {
         let basic_provider = BasicProvider::new(path)?;
         Ok(Self {

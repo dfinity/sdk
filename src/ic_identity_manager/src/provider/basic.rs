@@ -1,7 +1,15 @@
+//! Provides a basic example provider that utilizes unencrypted PEM
+//! files. This is provided as a basic stepping stone to provide
+//! further functionality. Note that working with unencrypted PEM is
+//! not the best idea.
+//!
+//! However, there are two options: i) prompt the user per call, as
+//! the agent is "stateless" or ii) provide long-running service
+//! providers -- such as PGP, ssh-agent.
 use crate::crypto_error::Result;
 use crate::principal::Principal;
 use crate::provider::{IdentityWallet, Provider};
-use crate::signature::Signature;
+use crate::types::Signature;
 
 use pem::{encode, Pem};
 use ring::signature::Ed25519KeyPair;

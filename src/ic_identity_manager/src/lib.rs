@@ -1,44 +1,80 @@
-//! Provides identity management and operations for the
-//! Internet Computer (IC). Namely, we generate, load and store
-//! credentials related to principals, provide principal mapping
-//! seamlessly with corresponding key-pairs.
+//! This crate is written with the purpose to provide seamless
+//! authentication of all requests, as the IC Public Spec dictates, guide
+//! any authorization actions and manage principals.  A user should be
+//! able to use an IC agent tool, such as dfx, providing minimum input or
+//! distraction.
 //!
-//! # Definitions
-//! An identity is a construct that denotes the set of claims of an
-//! entity about itself.
+//! # Goals and Guidelines
 //!
-//! A principal describes the security context of an identity, namely
-//! any identity that can be authenticated along with a specific
-//! role. In the case of the Internet Computer this maps currently to
-//! the identities that can be authenticated by a canister.
+//! Users should not worry about the signature schemes used,
+//! appropriate keys to be used, or authorizing devices.
 //!
-//! Identification is the procedure whereby an entity claims a certain
-//! identity, while verification is the procedure whereby that claim
-//! is checked. Authentication is the assertion of an entity’s claim
-//! to an identity.
+//! In summary, we want to ensure all requests performed by the agent
+//! using this library provide seamless authrntication of every request
+//! performed.
 //!
-//! A role represents the set of actions an entity equipped with that
-//! role can exercise.
+//! We aim to keep the user happy while at the same time, authenticate
+//! properly avoiding temporary measures. Namely, we should sign every
+//! single request out of the box, no turn-off buttons. To that end,
+//! we aim to offer a "works out of the box" experience, meanwhile at
+//! appropriate intervals, as things stabilize, we expose more control
+//! to the user. In the end we make the user happy out of the box,
+//! while we still provide the means to the experienced user to
+//! operate and experiment.
 //!
-//! An identifier is a sequence of bytes/string utilized as a name for
-//! a principal. That allows a principal to be referenced.
+//! Furthermore, we want to avoid teaching the user "bad habits". For
+//! example, leaving unencrypted key PEM format files in a git
+//! directory.
 //!
-//! A controller is a principal with an administrative-control role
-//! over a corresponding canister. Each canister has one or more
-//! controllers. A controller can be a person, an organization, or
-//! another canister
-
+//! As a result we need to work without requiring the user to provide
+//! us key files in every invocation of dfx or other IC agent.
+//!
+//! We should not incentivize the user to provide their system
+//! credentials to communicate with the IC either. Each principal will
+//! have multiple associated keys that should be revocable and not
+//! associated with any other service. Note that different canister
+//! operations or communicating with different canisters may require
+//! different principals. The user should not be forced to provide a
+//! set of master credential on each invocation of the agent. Finally,
+//! associating a system host with an IC request enables tracking and
+//! makes portability an issue.
+//!
+//! As this is in development and constant improvement and features
+//! are added we generally aim and advise to avoid exposing non-stable
+//! features directly to the user. Internal representations are always
+//! subject to change.
+//!
+//! To that end we do need to take special care for backwards
+//! compatibility. We do not want a user to have issues while running
+//! multiple projects, or migrating a project to a newer version of
+//! the user agent and thus this library.
+//!
+//! # Usage
+//!
+//! We expose a single type [`Identity`], currently providing only
+//! signing and principal.
 //!
 //! # Examples
-//! [TODO]
+//! ```not_run
+//! use ic_identity_manager::identity::Identity;
+//!
+//! let identity =
+//! Identity::new(std::path::PathBuf::from("temp_dir")).expect("Failed to construct an identity object");
+//! let _signed_message = identity.sign(b"Hello World! This is Bob").expect("Signing failed");
+//! ```
 //! # Identity Precedence
 //! [TODO]
 //!
 //! # Providers
-//! [TODO]
+//!
 
+/// Provides basic error type and messages.
 pub mod crypto_error;
+/// Defines an identity object and API.
 pub mod identity;
+/// Defines various types of Principals, how their identifiers are
+/// represented, and required encodings, conforming with the design
+/// and public spec.
 pub mod principal;
 mod provider;
-mod signature;
+mod types;

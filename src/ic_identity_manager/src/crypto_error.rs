@@ -1,15 +1,21 @@
 use std::{error, result};
 
 #[derive(Debug)]
+/// Error type for Identity operations. This can involve system
+/// runtime faults, setup or cryptography failures.
 pub enum Error {
     /// A CryptoError is isomorphic to unit on purpose. In case of
     /// such a failure, we establish a new This is nice as Rust is
     /// eager in general so we don't have to worry about lazy
     /// evaluation of errors.
     CryptoError,
+    /// No provider was found.
     NoProvider,
+    /// Failed to initialize.
     IdentityFailedToInitialize,
+    /// Failed to parse provided PEM input string.
     PemError(pem::PemError),
+    /// Failed to access file.
     IOError(std::io::Error),
 }
 
