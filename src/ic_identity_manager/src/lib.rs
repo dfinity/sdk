@@ -79,3 +79,5 @@ pub mod principal;
 
 mod basic;
 mod types;
+
+pub use identity::Identity;
