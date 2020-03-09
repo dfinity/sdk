@@ -74,9 +74,13 @@ user_message!(
     DryRun => "Provides a preview the directories and files to be created without adding them to the file system.",
     NewFrontend => "Install the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.",
 
+    // dfx replica
+    Replica => "Start a local replica.",
+    ReplicaPort => "The port the local replica should listen to.",
+
     // dfx start
     CleanState => "Cleans state of current project.",
-    StartNode => "Starts the local network client.",
+    StartNode => "Starts the local replica and a web server for the current project.",
     NodeAddress => "Specifies the host name and port number to bind the frontend to.",
     StartBackground => "Exits the dfx leaving the client running. Will wait until the client replies before exiting.",
 

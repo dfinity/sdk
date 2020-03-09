@@ -636,6 +636,18 @@ impl<'a> ser::SerializeStructVariant for &'a mut RequestIdSerializer {
 /// Derive the request ID from a serializable data structure.
 ///
 /// See https://hydra.dfinity.systems//build/268411/download/1/dfinity/spec/public/index.html#api-request-id
+///
+/// # Warnings
+///
+/// The argument type simply needs to be serializable; the function
+/// does NOT sift between fields to include them or not and assumes
+/// the passed value only includes fields that are not part of the
+/// envelope and should be included in the calculation of the request
+/// id.
+///
+/// # Panics
+///
+/// This function panics if the value provided is not a struct or a map.
 pub fn to_request_id<'a, V>(value: &V) -> Result<RequestId, RequestIdError>
 where
     V: 'a + Serialize,

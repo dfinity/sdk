@@ -3,6 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};
 use slog::info;
