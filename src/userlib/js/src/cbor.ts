@@ -52,7 +52,7 @@ class BufferEncoder implements CborEncoder<Buffer> {
   }
 
   public encode(v: Buffer): cbor.CborValue {
-    return cbor.value.bytes(new Uint8Array(v.buffer));
+    return cbor.value.bytes(new Uint8Array(v));
   }
 }
 

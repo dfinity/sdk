@@ -3,7 +3,6 @@ import { CanisterId } from './canisterId';
 import { HttpAgent } from './http_agent';
 import { QueryResponseStatus, RequestStatusResponseStatus } from './http_agent_types';
 import * as IDL from './idl';
-import { FuncClass } from './idl';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
 
@@ -14,6 +13,16 @@ import { BinaryBlob } from './types';
 export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
   __canisterId(): string;
   __getAsset(path: string): Promise<Uint8Array>;
+  __install(
+    fields: {
+      module: BinaryBlob;
+      arg?: BinaryBlob;
+    },
+    options?: {
+      maxAttempts?: number;
+      throttleDurationInMSecs?: number;
+    },
+  ): Promise<void>;
 };
 
 export interface ActorConfig {
@@ -83,7 +92,7 @@ export function makeActorFactory(
   async function requestStatusAndLoop(
     httpAgent: HttpAgent,
     requestId: RequestId,
-    func: FuncClass,
+    returnType: IDL.Type[],
     attempts: number,
     maxAttempts: number,
     throttle: number,
@@ -92,7 +101,7 @@ export function makeActorFactory(
 
     switch (status.status) {
       case RequestStatusResponseStatus.Replied: {
-        return decodeReturnValue(func.retTypes, status.reply.arg);
+        return decodeReturnValue(returnType, status.reply.arg);
       }
 
       case RequestStatusResponseStatus.Unknown:
@@ -107,7 +116,7 @@ export function makeActorFactory(
 
         // Wait a little, then retry.
         return new Promise(resolve => setTimeout(resolve, throttle)).then(() =>
-          requestStatusAndLoop(httpAgent, requestId, func, attempts, maxAttempts, throttle),
+          requestStatusAndLoop(httpAgent, requestId, returnType, attempts, maxAttempts, throttle),
         );
 
       case RequestStatusResponseStatus.Rejected:
@@ -137,6 +146,47 @@ export function makeActorFactory(
         }
 
         return agent.retrieveAsset(canisterId, path);
+      },
+      async __install(
+        fields: {
+          module: BinaryBlob;
+          arg?: BinaryBlob;
+        },
+        options: {
+          maxAttempts?: number;
+          throttleDurationInMSecs?: number;
+        } = {},
+      ) {
+        const agent = httpAgent || getDefaultHttpAgent();
+        if (!agent) {
+          throw new Error('Cannot make call. httpAgent is undefined.');
+        }
+
+        // Resolve the options that can be used globally or locally.
+        const effectiveMaxAttempts = options.maxAttempts?.valueOf() || 0;
+        const effectiveThrottle = options.throttleDurationInMSecs?.valueOf() || 0;
+
+        const { requestId, response } = await agent.install(canisterId, fields);
+        if (!response.ok) {
+          throw new Error(
+            [
+              'Install failed:',
+              `  Canister ID: ${cid.toHex()}`,
+              `  Request ID: ${requestIdToHex(requestId)}`,
+              `  HTTP status code: ${response.status}`,
+              `  HTTP status text: ${response.statusText}`,
+            ].join('\n'),
+          );
+        }
+
+        return requestStatusAndLoop(
+          agent,
+          requestId,
+          [],
+          effectiveMaxAttempts,
+          effectiveMaxAttempts,
+          effectiveThrottle,
+        );
       },
     } as Actor;
 
@@ -181,7 +231,7 @@ export function makeActorFactory(
           return requestStatusAndLoop(
             agent,
             requestId,
-            func,
+            func.retTypes,
             maxAttempts,
             maxAttempts,
             throttleDurationInMSecs,
