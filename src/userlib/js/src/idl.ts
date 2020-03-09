@@ -880,7 +880,7 @@ export class RecClass<T = any> extends ConstructType<T> {
 }
 
 /**
- * Represents a principal reference
+ * Represents an IDL principal reference
  */
 export class PrincipalClass extends PrimitiveType<CanisterId> {
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
@@ -908,7 +908,10 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
       throw new Error('Cannot decode principal');
     }
     const len = lebDecode(b).toNumber();
-    const hex = b.read(len).toString('hex');
+    const hex = b
+      .read(len)
+      .toString('hex')
+      .toUpperCase();
     // TODO implement checksum
     return CanisterId.fromText('ic:' + hex + '00');
   }
@@ -917,13 +920,12 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
     return 'principal';
   }
   public valueToString(x: CanisterId) {
-    // TODO implement toText
-    return x.toHex();
+    return x.toText();
   }
 }
 
 /**
- * Represents an async function which can return data.
+ * Represents an IDL function reference.
  * @param argTypes Argument types.
  * @param retTypes Return types.
  * @param annotations Function annotations.
@@ -1044,9 +1046,6 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
  * @param {Object} [fields] - a map of function names to IDL function signatures
  */
 export class ActorInterface {
-  protected _id: Blob | null = null;
-  protected _batch: boolean = false;
-
   constructor(public _fields: Record<string, FuncClass>) {}
 }
 

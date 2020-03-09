@@ -215,14 +215,14 @@ test('IDL encoding (bool)', () => {
 
 test('IDL encoding (principal)', () => {
   // Principal
-  test_(IDL.Principal, CanisterId.fromText('ic:caffee00'), '4449444c0001680103caffee', 'principal');
+  test_(IDL.Principal, CanisterId.fromText('ic:CAFFEE00'), '4449444c0001680103caffee', 'principal');
   test_(
     IDL.Principal,
     CanisterId.fromText('ic:000000000000000107'),
     '4449444c00016801080000000000000001',
     'principal',
   );
-  expect(() => IDL.encode([IDL.Principal], ['ic:caffee00'])).toThrow(/Invalid principal argument/);
+  expect(() => IDL.encode([IDL.Principal], ['ic:CAFFEE00'])).toThrow(/Invalid principal argument/);
   expect(() => IDL.decode([IDL.Principal], Buffer.from('4449444c00016803caffee', 'hex'))).toThrow(
     /Cannot decode principal/,
   );
