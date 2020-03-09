@@ -18,7 +18,7 @@ use crate::types::Signature;
 /// constraint, or open connections to all possible means of
 /// authentication, that are provided in the identity profile we
 /// loaded.
-pub trait Provider {
+pub trait Provider: Sync {
     /// Setup the corresponding principal and return a value
     /// that can provide signing.
     fn provide(&self) -> Result<Box<dyn IdentityWallet>>;

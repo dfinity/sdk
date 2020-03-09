@@ -78,3 +78,5 @@ pub mod identity;
 pub mod principal;
 mod provider;
 mod types;
+
+pub use identity::Identity;
