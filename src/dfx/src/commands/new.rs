@@ -7,10 +7,10 @@ use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use console::{style, Style};
 use indicatif::HumanBytes;
-use indicatif::{ProgressBar, ProgressDrawTarget};
 use lazy_static::lazy_static;
 use semver::Version;
 use serde_json::Value;
+use slog::{info, warn, Logger};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -120,7 +120,7 @@ impl std::fmt::Display for Status<'_> {
     }
 }
 
-pub fn create_file(path: &Path, content: &str, dry_run: bool) -> DfxResult {
+pub fn create_file(log: &Logger, path: &Path, content: &str, dry_run: bool) -> DfxResult {
     if !dry_run {
         if let Some(p) = path.parent() {
             std::fs::create_dir_all(p)?;
@@ -128,12 +128,12 @@ pub fn create_file(path: &Path, content: &str, dry_run: bool) -> DfxResult {
         std::fs::write(&path, content)?;
     }
 
-    eprintln!("{}", Status::Create(path, content.len()));
+    info!(log, "{}", Status::Create(path, content.len()));
     Ok(())
 }
 
 #[allow(dead_code)]
-pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> DfxResult {
+pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxResult {
     let path = path.as_ref();
     if path.is_dir() {
         return Ok(());
@@ -143,11 +143,11 @@ pub fn create_dir<P: AsRef<Path>>(path: P, dry_run: bool) -> DfxResult {
         std::fs::create_dir_all(&path)?;
     }
 
-    eprintln!("{}", Status::CreateDir(path));
+    info!(log, "{}", Status::CreateDir(path));
     Ok(())
 }
 
-pub fn init_git(project_name: &Path) -> DfxResult {
+pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
     let init_status = std::process::Command::new("git")
         .arg("init")
         .current_dir(project_name)
@@ -156,7 +156,7 @@ pub fn init_git(project_name: &Path) -> DfxResult {
         .status();
 
     if init_status.is_ok() && init_status.unwrap().success() {
-        eprintln!("Creating git repository...");
+        info!(log, "Creating git repository...");
         std::process::Command::new("git")
             .arg("add")
             .current_dir(project_name)
@@ -174,6 +174,7 @@ pub fn init_git(project_name: &Path) -> DfxResult {
 }
 
 fn write_files_from_entries<R: Sized + Read>(
+    log: &Logger,
     archive: &mut Archive<R>,
     root: &Path,
     dry_run: bool,
@@ -209,7 +210,7 @@ fn write_files_from_entries<R: Sized + Read>(
         });
 
         let p = PathBuf::from(p);
-        create_file(p.as_path(), s.as_str(), dry_run)?;
+        create_file(log, p.as_path(), s.as_str(), dry_run)?;
     }
 
     Ok(())
@@ -228,12 +229,14 @@ fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
 }
 
 fn scaffold_frontend_code(
+    env: &dyn Environment,
     dry_run: bool,
     project_name: &Path,
     arg_no_frontend: bool,
     arg_frontend: bool,
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
+    let log = env.get_logger();
     let node_installed = std::process::Command::new("node")
         .arg("--version")
         .output()
@@ -247,6 +250,7 @@ fn scaffold_frontend_code(
         // Check if node is available, and if it is create the files for the frontend build.
         let mut new_project_node_files = assets::new_project_node_files()?;
         write_files_from_entries(
+            log,
             &mut new_project_node_files,
             project_name,
             dry_run,
@@ -282,14 +286,10 @@ fn scaffold_frontend_code(
             })?;
             std::fs::write(&dfx_path, pretty)?;
 
-            let b = ProgressBar::new_spinner();
-            b.set_draw_target(ProgressDrawTarget::stderr());
-
-            b.set_message("Installing node dependencies...");
-            b.enable_steady_tick(80);
-
             // Install node modules. Error is not blocking, we just show a message instead.
             if node_installed {
+                let b = env.new_spinner("Installing node dependencies...");
+
                 if npm_install(project_name)?.wait().is_ok() {
                     b.finish_with_message("Done.");
                 } else {
@@ -300,14 +300,21 @@ fn scaffold_frontend_code(
             }
         }
     } else if !arg_frontend && !node_installed {
-        eprintln!("Node could not be found. Skipping installing the frontend example code.");
-        eprintln!("\nYou can bypass this check by using the --frontend flag.")
+        warn!(
+            log,
+            "Node could not be found. Skipping installing the frontend example code."
+        );
+        warn!(
+            log,
+            "You can bypass this check by using the --frontend flag."
+        );
     }
 
     Ok(())
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+    let log = env.get_logger();
     let dry_run = args.is_present(DRY_RUN);
     let project_name_path = args
         .value_of(PROJECT_NAME)
@@ -326,16 +333,23 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let latest_version = get_latest_version(RELEASE_ROOT, Some(*CHECK_VERSION_TIMEOUT)).ok();
 
     if is_upgrade_necessary(latest_version.as_ref(), current_version) {
-        warn_upgrade(latest_version.as_ref(), current_version);
+        warn_upgrade(log, latest_version.as_ref(), current_version);
     }
 
     if !env.get_cache().is_installed()? {
         env.get_cache().install()?;
     }
 
-    eprintln!(r#"Creating new project "{}"..."#, project_name.display());
+    info!(
+        log,
+        r#"Creating new project "{}"..."#,
+        project_name.display()
+    );
     if dry_run {
-        eprintln!(r#"Running in dry mode. Nothing will be committed to disk."#);
+        warn!(
+            log,
+            r#"Running in dry mode. Nothing will be committed to disk."#
+        );
     }
 
     let project_name_str = project_name
@@ -352,9 +366,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     .collect();
 
     let mut new_project_files = assets::new_project_files()?;
-    write_files_from_entries(&mut new_project_files, project_name, dry_run, &variables)?;
+    write_files_from_entries(
+        log,
+        &mut new_project_files,
+        project_name,
+        dry_run,
+        &variables,
+    )?;
 
     scaffold_frontend_code(
+        env,
         dry_run,
         project_name,
         args.is_present("no-frontend"),
@@ -383,18 +404,19 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             }
 
             if should_git {
-                init_git(&project_name)?;
+                init_git(log, &project_name)?;
             }
         }
 
         #[cfg(not(target_os = "macos"))]
         {
-            init_git(&project_name)?;
+            init_git(log, &project_name)?;
         }
     }
 
     // Print welcome message.
-    eprintln!(
+    info!(
+        log,
         // This needs to be included here because we cannot use the result of a function for
         // the format!() rule (and so it cannot be moved in the util::assets module).
         include_str!("../../assets/welcome.txt"),
@@ -406,22 +428,28 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     Ok(())
 }
 
-fn warn_upgrade(latest_version: Option<&Version>, current_version: &Version) {
-    eprintln!("You seem to be running an outdated version of dfx.");
+fn warn_upgrade(log: &Logger, latest_version: Option<&Version>, current_version: &Version) {
+    warn!(log, "You seem to be running an outdated version of dfx.");
 
     let red = Style::new().red();
     let green = Style::new().green();
     let yellow = Style::new().yellow();
 
-    eprint!(
-        "\nCurrent version: {}",
-        red.apply_to(current_version.clone())
-    );
+    let mut version_comparison =
+        format!("Current version: {}", red.apply_to(current_version.clone()));
     if let Some(v) = latest_version {
-        eprint!("{}", yellow.apply_to(" → "));
-        eprintln!("latest version: {}", green.apply_to(v));
+        version_comparison += format!(
+            "{} latest version: {}",
+            yellow.apply_to(" → "),
+            green.apply_to(v)
+        )
+        .as_str();
     }
-    eprintln!("\nYou are strongly encouraged to upgrade by running 'dfx upgrade'!");
+
+    warn!(
+        log,
+        "\nYou are strongly encouraged to upgrade by running 'dfx upgrade'!"
+    );
 }
 
 #[cfg(test)]

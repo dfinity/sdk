@@ -6,18 +6,21 @@
       .signature {
 	  font-size: 15px;
 	  font-weight: 400;
-          margin-bottom: 10px;
+          margin: 5px;
       }
-      .argument, .result, .status {
+      .argument, .result, .status, .composite {
           background-color: #F9F9F9;
 	  border: 1px solid #E5E5E5;
 	  color: #545454;
-	  font-family: sans-serif;
+	  font-family: monospace;
 	  font-size: 15px;
 	  font-weight: 400;          
           height: auto;
-          margin-bottom: 10px; 
-          margin-right: 10px;         
+          margin-right: 10px;
+          margin-bottom: 10px;
+      }
+      .open {
+          margin: 5px;
       }
       .reject {
 	  border: 1px solid #cc0000;
@@ -48,16 +51,21 @@
 	  border-color: #02ADEA;
 	  border-radius: .25rem;
 	  color: #FFF;
-	  font-family: 'Montserrat', sans-serif;
+	  font-family: sans-serif;
 	  font-size: 18px;
 	  font-weight: 700;
-          margin-bottom: 10px;
+          margin: 5px;
+      }
+      .popup-form {
+          border: 1px solid #E5E5E5;
+          padding-top: 10px;
+          padding-left: 10px;
       }
       .console {
           display: flex;
           flex: 1;
           flex-direction: column;
-          font-family: sans-serif;
+          font-family: monospace;
           background-color: #F9F9F9;
           color: #545454;
       }

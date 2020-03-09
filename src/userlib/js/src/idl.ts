@@ -82,11 +82,65 @@ class TypeTable {
   }
 }
 
+export abstract class Visitor<D, R> {
+  public visitType<T>(t: Type<T>, data: D): R {
+    throw new Error('Not implemented');
+  }
+  public visitPrimitive<T>(t: PrimitiveType<T>, data: D): R {
+    return this.visitType(t, data);
+  }
+  public visitEmpty(t: EmptyClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitBool(t: BoolClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitUnit(t: UnitClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitText(t: TextClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitInt(t: IntClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitNat(t: NatClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitFixedInt(t: FixedIntClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitFixedNat(t: FixedNatClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+
+  public visitConstruct<T>(t: ConstructType<T>, data: D): R {
+    return this.visitType(t, data);
+  }
+  public visitVec<T>(t: VecClass<T>, ty: Type<T>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitOpt<T>(t: OptClass<T>, ty: Type<T>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitRecord(t: RecordClass, fields: Array<[string, Type]>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitVariant(t: VariantClass, fields: Array<[string, Type]>, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitRec<T>(t: RecClass<T>, ty: ConstructType<T>, data: D): R {
+    return this.visitConstruct(ty, data);
+  }
+}
+
 /**
  * Represents an IDL type.
  */
 export abstract class Type<T = any> {
   public abstract readonly name: string;
+
+  public abstract accept<D, R>(v: Visitor<D, R>, d: D): R;
 
   /* Display type name */
   public display(): string {
@@ -128,14 +182,14 @@ export abstract class Type<T = any> {
   protected abstract _buildTypeTableImpl(typeTable: TypeTable): void;
 }
 
-abstract class PrimitiveType<T = any> extends Type<T> {
+export abstract class PrimitiveType<T = any> extends Type<T> {
   public _buildTypeTableImpl(typeTable: TypeTable): void {
     // No type table encoding for Primitive types.
     return;
   }
 }
 
-abstract class ConstructType<T = any> extends Type<T> {
+export abstract class ConstructType<T = any> extends Type<T> {
   public encodeType(typeTable: TypeTable) {
     return typeTable.indexOf(this.name);
   }
@@ -146,7 +200,11 @@ abstract class ConstructType<T = any> extends Type<T> {
  * Since no values exist for this type, it cannot be serialised or deserialised.
  * Result types like `Result<Text, Empty>` should always succeed.
  */
-class EmptyClass extends PrimitiveType<never> {
+export class EmptyClass extends PrimitiveType<never> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitEmpty(this, d);
+  }
+
   public covariant(x: any): x is never {
     return false;
   }
@@ -175,7 +233,11 @@ class EmptyClass extends PrimitiveType<never> {
 /**
  * Represents an IDL Bool
  */
-class BoolClass extends PrimitiveType<boolean> {
+export class BoolClass extends PrimitiveType<boolean> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitBool(this, d);
+  }
+
   public covariant(x: any): x is boolean {
     return typeof x === 'boolean';
   }
@@ -203,7 +265,11 @@ class BoolClass extends PrimitiveType<boolean> {
 /**
  * Represents an IDL Null
  */
-class UnitClass extends PrimitiveType<null> {
+export class UnitClass extends PrimitiveType<null> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitUnit(this, d);
+  }
+
   public covariant(x: any): x is null {
     return x === null;
   }
@@ -228,7 +294,11 @@ class UnitClass extends PrimitiveType<null> {
 /**
  * Represents an IDL Text
  */
-class TextClass extends PrimitiveType<string> {
+export class TextClass extends PrimitiveType<string> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitText(this, d);
+  }
+
   public covariant(x: any): x is string {
     return typeof x === 'string';
   }
@@ -251,12 +321,20 @@ class TextClass extends PrimitiveType<string> {
   get name() {
     return 'text';
   }
+
+  public valueToString(x: string) {
+    return '"' + x + '"';
+  }
 }
 
 /**
  * Represents an IDL Int
  */
-class IntClass extends PrimitiveType<BigNumber> {
+export class IntClass extends PrimitiveType<BigNumber> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitInt(this, d);
+  }
+
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
@@ -287,7 +365,11 @@ class IntClass extends PrimitiveType<BigNumber> {
 /**
  * Represents an IDL Nat
  */
-class NatClass extends PrimitiveType<BigNumber> {
+export class NatClass extends PrimitiveType<BigNumber> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitNat(this, d);
+  }
+
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
@@ -324,6 +406,10 @@ class NatClass extends PrimitiveType<BigNumber> {
 export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   constructor(private _bits: number) {
     super();
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitFixedInt(this, d);
   }
 
   public covariant(x: any): x is BigNumber {
@@ -374,6 +460,10 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
     super();
   }
 
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitFixedNat(this, d);
+  }
+
   public covariant(x: any): x is BigNumber {
     const max = new BigNumber(2).pow(this._bits);
     if (x instanceof BigNumber && x.isInteger() && !x.isNegative()) {
@@ -417,9 +507,13 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
  * Represents an IDL Array
  * @param {Type} t
  */
-class VecClass<T> extends ConstructType<T[]> {
+export class VecClass<T> extends ConstructType<T[]> {
   constructor(protected _type: Type<T>) {
     super();
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitVec(this, this._type, d);
   }
 
   public covariant(x: any): x is T[] {
@@ -452,6 +546,10 @@ class VecClass<T> extends ConstructType<T[]> {
     return `vec ${this._type.name}`;
   }
 
+  public display() {
+    return `vec ${this._type.display()}`;
+  }
+
   public valueToString(x: T[]) {
     const elements = x.map(e => this._type.valueToString(e));
     return 'vec {' + elements.join('; ') + '}';
@@ -462,9 +560,13 @@ class VecClass<T> extends ConstructType<T[]> {
  * Represents an IDL Option
  * @param {Type} t
  */
-class OptClass<T> extends ConstructType<[T] | []> {
+export class OptClass<T> extends ConstructType<[T] | []> {
   constructor(protected _type: Type<T>) {
     super();
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitOpt(this, this._type, d);
   }
 
   public covariant(x: any): x is [T] | [] {
@@ -500,6 +602,10 @@ class OptClass<T> extends ConstructType<[T] | []> {
     return `opt ${this._type.name}`;
   }
 
+  public display() {
+    return `opt ${this._type.display()}`;
+  }
+
   public valueToString(x: [T] | []) {
     if (x.length === 0) {
       return 'null';
@@ -513,12 +619,16 @@ class OptClass<T> extends ConstructType<[T] | []> {
  * Represents an IDL Record
  * @param {Object} [fields] - mapping of function name to Type
  */
-class RecordClass extends ConstructType<Record<string, any>> {
+export class RecordClass extends ConstructType<Record<string, any>> {
   protected readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
     super();
     this._fields = Object.entries(fields).sort((a, b) => idlLabelToId(a[0]) - idlLabelToId(b[0]));
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitRecord(this, this._fields, d);
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -552,14 +662,19 @@ class RecordClass extends ConstructType<Record<string, any>> {
 
   public decodeValue(b: Pipe) {
     const x: Record<string, any> = {};
-    for (const [key, value] of this._fields) {
-      x[key] = value.decodeValue(b);
+    for (const [key, type] of this._fields) {
+      x[key] = type.decodeValue(b);
     }
     return x;
   }
 
   get name() {
     const fields = this._fields.map(([key, value]) => key + ':' + value.name);
+    return `record {${fields.join('; ')}}`;
+  }
+
+  public display() {
+    const fields = this._fields.map(([key, value]) => key + ':' + value.display());
     return `record {${fields.join('; ')}}`;
   }
 
@@ -607,12 +722,16 @@ class TupleClass<T extends any[]> extends RecordClass {
  * Represents an IDL Variant
  * @param {Object} [fields] - mapping of function name to Type
  */
-class VariantClass extends ConstructType<Record<string, any>> {
+export class VariantClass extends ConstructType<Record<string, any>> {
   private readonly _fields: Array<[string, Type]>;
 
   constructor(fields: Record<string, Type> = {}) {
     super();
     this._fields = Object.entries(fields).sort((a, b) => idlLabelToId(a[0]) - idlLabelToId(b[0]));
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitVariant(this, this._fields, d);
   }
 
   public covariant(x: any): x is Record<string, any> {
@@ -667,6 +786,11 @@ class VariantClass extends ConstructType<Record<string, any>> {
     return `variant {${fields.join('; ')}}`;
   }
 
+  public display() {
+    const fields = this._fields.map(([key, type]) => key + ':' + type.display());
+    return `variant {${fields.join('; ')}}`;
+  }
+
   public valueToString(x: Record<string, any>) {
     for (const [name, type] of this._fields) {
       if (x.hasOwnProperty(name)) {
@@ -682,10 +806,17 @@ class VariantClass extends ConstructType<Record<string, any>> {
  * Represents a reference to an IDL type, used for defining recursive data
  * types.
  */
-class RecClass<T = any> extends ConstructType<T> {
+export class RecClass<T = any> extends ConstructType<T> {
   private static _counter = 0;
   private _id = RecClass._counter++;
   private _type: ConstructType<T> | undefined = undefined;
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    if (!this._type) {
+      throw Error('Recursive type uninitialized.');
+    }
+    return v.visitRec(this, this._type, d);
+  }
 
   public fill(t: ConstructType<T>) {
     this._type = t;
@@ -730,7 +861,7 @@ class RecClass<T = any> extends ConstructType<T> {
     if (!this._type) {
       throw Error('Recursive type uninitialized.');
     }
-    return `&mu;${this.name}.${this._type.name}`;
+    return `μ${this.name}.${this._type.name}`;
   }
 
   public valueToString(x: T) {
@@ -753,6 +884,7 @@ export class FuncClass {
     public retTypes: Type[] = [],
     public annotations: string[] = [],
   ) {}
+
   public display(): string {
     const args = this.argTypes.map(arg => arg.display()).join(', ');
     const rets = this.retTypes.map(arg => arg.display()).join(', ');

@@ -1,11 +1,11 @@
 use crate::commands::canister::create_waiter;
 use crate::config::dfinity::Config;
-use crate::lib::client_toml_config::generate_client_configuration;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
+use crate::lib::replica_config::ReplicaConfig;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
@@ -39,6 +39,12 @@ pub fn construct() -> App<'static, 'static> {
                 .long("background")
                 .takes_value(false),
         )
+        .arg(
+            Arg::with_name("clean")
+                .help(UserMessage::CleanState.to_str())
+                .long("clean")
+                .takes_value(false),
+        )
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -67,10 +73,18 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let client_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let temp_dir = env.get_temp_dir();
-    let state_root = env.get_temp_dir().join("state");
+    let state_root = env.get_state_dir();
 
     let pid_file_path = temp_dir.join("pid");
     check_previous_process_running(&pid_file_path)?;
+    // As we know no start process is running in this project, we can
+    // clean up the state if it is necessary.
+    if args.is_present("clean") {
+        // Clean the contents of the provided directory including the
+        // directory itself. N.B. This does NOT follow symbolic links -- and I
+        // hope we do not need to.
+        fs::remove_dir_all(state_root.clone()).map_err(DfxError::CleanState)?;
+    }
 
     let client_configuration_dir = temp_dir.join("client-configuration");
     fs::create_dir_all(&client_configuration_dir)?;
@@ -106,7 +120,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let request_stop_echo = request_stop.clone();
     let rcv_wait_fwatcher = rcv_wait.clone();
     b.set_message("Generating IC local replica configuration.");
-    let replica_config = generate_client_configuration(&client_port_path, &state_root)?;
+    let replica_config = ReplicaConfig::new(&state_root)
+        .with_random_port(&client_port_path)
+        .to_toml()?;
 
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.

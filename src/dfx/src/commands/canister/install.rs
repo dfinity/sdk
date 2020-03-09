@@ -3,8 +3,10 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_http_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};
+use slog::info;
 use std::convert::TryInto;
 use tokio::runtime::Runtime;
 
@@ -43,15 +45,18 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 async fn install_canister(
+    env: &dyn Environment,
     agent: &Agent,
     canister_info: &CanisterInfo,
     compute_allocation: ComputeAllocation,
 ) -> DfxResult<RequestId> {
+    let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
 
-    eprintln!(
+    info!(
+        log,
         "Installing code for canister {}, with canister_id {}",
         canister_info.get_name(),
         canister_id.to_text(),
@@ -81,6 +86,7 @@ fn compute_allocation_validator(compute_allocation: String) -> Result<(), String
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+    let log = env.get_logger();
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -99,11 +105,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     if let Some(canister_name) = args.value_of("canister_name") {
         let canister_info = CanisterInfo::load(&config, canister_name)?;
-        let request_id =
-            runtime.block_on(install_canister(&agent, &canister_info, compute_allocation))?;
+        let request_id = runtime.block_on(install_canister(
+            env,
+            &agent,
+            &canister_info,
+            compute_allocation,
+        ))?;
 
         if args.is_present("async") {
-            eprint!("Request ID: ");
+            info!(log, "Request ID: ");
             println!("0x{}", String::from(request_id));
             Ok(())
         } else {
@@ -118,13 +128,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             for canister_name in canisters.keys() {
                 let canister_info = CanisterInfo::load(&config, canister_name)?;
                 let request_id = runtime.block_on(install_canister(
+                    env,
                     &agent,
                     &canister_info,
                     compute_allocation,
                 ))?;
 
                 if args.is_present("async") {
-                    eprint!("Request ID: ");
+                    info!(log, "Request ID: ");
                     println!("0x{}", String::from(request_id));
                 } else {
                     runtime
