@@ -1,11 +1,11 @@
 use crate::commands::canister::create_waiter;
 use crate::config::dfinity::Config;
-use crate::lib::client_toml_config::generate_client_configuration;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
+use crate::lib::replica_config::ReplicaConfig;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
@@ -120,7 +120,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let request_stop_echo = request_stop.clone();
     let rcv_wait_fwatcher = rcv_wait.clone();
     b.set_message("Generating IC local replica configuration.");
-    let replica_config = generate_client_configuration(&client_port_path, &state_root)?;
+    let replica_config = ReplicaConfig::new(&state_root)
+        .with_random_port(&client_port_path)
+        .to_toml()?;
 
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
