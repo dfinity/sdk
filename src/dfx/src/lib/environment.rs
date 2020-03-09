@@ -3,6 +3,7 @@ use crate::config::dfinity::Config;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
+
 use ic_http_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;

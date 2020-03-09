@@ -38,7 +38,7 @@ pub(crate) enum ReadResponse<A> {
     Unknown,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "request_type")]
 pub(crate) enum SubmitRequest<'a> {
@@ -55,4 +55,22 @@ pub(crate) enum SubmitRequest<'a> {
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
     },
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct MessageWithSender<T: Serialize> {
+    #[serde(flatten)]
+    pub request: T,
+    pub sender: Blob,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct SignedMessage<T: Serialize> {
+    #[serde(flatten)]
+    pub request_with_sender: T,
+    pub sender_pubkey: Blob,
+    #[serde(rename = "sender_sig")]
+    pub signature: Blob,
 }
