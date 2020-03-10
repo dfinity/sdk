@@ -36,7 +36,11 @@ function _getVariable(
 }
 
 // Retrieve and execute a JavaScript file from the server.
-async function _loadJs(canisterId: string, filename: string, onload = async () => {}): Promise<any> {
+async function _loadJs(
+  canisterId: string,
+  filename: string,
+  onload = async () => {},
+): Promise<any> {
   const content = await window.icHttpAgent.retrieveAsset(canisterId, filename);
   const js = new TextDecoder().decode(content);
   const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
