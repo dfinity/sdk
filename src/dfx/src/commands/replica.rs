@@ -67,30 +67,30 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // pid file.
     std::fs::write(&pid_file_path, "")?;
 
-    // Start the client.
+    // Start the replica.
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
 
-    b.set_message("Starting up the client...");
+    b.set_message("Starting up the replica...");
     b.enable_steady_tick(80);
 
     // Must be unbounded, as a killed child should not deadlock.
     let (request_stop, _rcv_wait) = unbounded();
-    let (_broadcast_stop, is_killed_client) = unbounded();
+    let (_broadcast_stop, is_killed_replica) = unbounded();
 
     b.set_message("Generating IC local replica configuration.");
     let replica_config = ReplicaConfig::new(&state_root).with_port(port).to_toml()?;
 
     // TODO(eftychis): we need a proper manager type when we start
-    // spawning multiple client processes and registry.
-    let client_watchdog = std::thread::Builder::new().name("replica".into()).spawn({
+    // spawning multiple replica processes and registry.
+    let replica_watchdog = std::thread::Builder::new().name("replica".into()).spawn({
         let b = b.clone();
 
         move || {
-            start_client(
+            start_replica(
                 &replica_binary_path,
                 &pid_file_path,
-                is_killed_client,
+                is_killed_replica,
                 request_stop,
                 replica_config,
                 b,
@@ -98,41 +98,41 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         }
     })?;
 
-    b.set_message("Pinging the Internet Computer client...");
+    b.set_message("Pinging the Internet Computer replica...");
     ping_and_wait(format!("http://localhost:{}", port).as_str())?;
-    b.finish_with_message("Internet Computer client started...");
+    b.finish_with_message("Internet Computer replica started...");
 
-    // Join and handle errors for the client watchdog thread. Here we
-    // check the result of client_watchdog and start_client.
-    client_watchdog.join().map_err(|e| {
+    // Join and handle errors for the replica watchdog thread. Here we
+    // check the result of replica_watchdog and start_replica.
+    replica_watchdog.join().map_err(|e| {
         DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
-            format!("Failed while running client thread -- {:?}", e),
+            format!("Failed while running replica thread -- {:?}", e),
         ))
     })??;
 
     Ok(())
 }
 
-/// Starts the client. It is supposed to be used in a thread, thus
+/// Starts the replica. It is supposed to be used in a thread, thus
 /// this function will panic when an error occurs that implies
 /// termination of the replica and need the attention of the parent
 /// thread.
 ///
 /// # Panics
 /// We panic here to transmit an error to the parent thread.
-fn start_client(
-    client_pathbuf: &PathBuf,
+fn start_replica(
+    replica_pathbuf: &PathBuf,
     pid_file_path: &PathBuf,
-    is_killed_client: Receiver<()>,
+    is_killed_replica: Receiver<()>,
     request_stop: Sender<()>,
     config: String,
     b: ProgressBar,
 ) -> DfxResult<()> {
     b.set_message("Generating IC local replica configuration.");
-    let client = client_pathbuf.as_path().as_os_str();
+    let replica = replica_pathbuf.as_path().as_os_str();
 
-    let mut cmd = std::process::Command::new(client);
+    let mut cmd = std::process::Command::new(replica);
     cmd.args(&["--config", config.as_str()]);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
@@ -142,7 +142,7 @@ fn start_client(
     let mut child = cmd.spawn().unwrap_or_else(|e| {
         request_stop
             .try_send(())
-            .expect("Client thread couldn't signal parent to stop");
+            .expect("Replica thread couldn't signal parent to stop");
         // We still want to send an error message.
         panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
     });
@@ -157,7 +157,7 @@ fn start_client(
     // This should be substituted with a supervisor.
 
     // Did we receive a kill signal?
-    while is_killed_client.is_empty() {
+    while is_killed_replica.is_empty() {
         // We have to wait for the child to exit here. We *should*
         // always wait(). Read related documentation.
 
@@ -178,7 +178,7 @@ fn start_client(
             Err(e) => {
                 request_stop
                     .send(())
-                    .expect("Could not signal parent thread from client runner");
+                    .expect("Could not signal parent thread from replica runner");
                 panic!("Failed to check the status of the replica: {}", e)
             }
         }
@@ -199,6 +199,6 @@ fn start_client(
     // parent thread.
     request_stop
         .send(())
-        .expect("Could not signal parent thread from client runner");
+        .expect("Could not signal parent thread from replica runner");
     Ok(())
 }
