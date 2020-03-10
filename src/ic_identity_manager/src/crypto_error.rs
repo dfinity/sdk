@@ -13,6 +13,8 @@ pub enum Error {
     NoProvider,
     /// Failed to initialize.
     IdentityFailedToInitialize,
+    /// Failed to initialize provider.
+    ProviderFailedToInitialize,
     /// Failed to parse provided PEM input string.
     PemError(pem::PemError),
     /// Failed to access file.

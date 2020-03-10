@@ -6,7 +6,7 @@
 //! However, there are two options: i) prompt the user per call, as
 //! the agent is "stateless" or ii) provide long-running service
 //! providers -- such as PGP, ssh-agent.
-use crate::crypto_error::Result;
+use crate::crypto_error::{Error, Result};
 use crate::principal::Principal;
 use crate::provider::{IdentityWallet, Provider};
 use crate::types::Signature;
@@ -18,7 +18,7 @@ use ring::{
     signature::{self, KeyPair},
 };
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Clone)]
 pub struct BasicProvider {
@@ -27,27 +27,26 @@ pub struct BasicProvider {
 
 impl BasicProvider {
     pub fn new(path: PathBuf) -> Result<Self> {
-        generate(path.clone())?;
+        if !path.is_dir() {
+            return Err(Error::ProviderFailedToInitialize);
+        }
         Ok(Self { path })
     }
 }
 
-fn generate(mut pem_file: PathBuf) -> Result<()> {
+fn generate(profile_path: &impl AsRef<Path>) -> Result<PathBuf> {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
     // We create a temporary file that gets overwritten every time
     // we create a new provider for now.
-    pem_file.push("creds.pem");
-    fs::write(
-        pem_file.clone(),
-        encode_pem_private_key(&(*pkcs8_bytes.as_ref())),
-    )?;
+    let pem_file = profile_path.as_ref().join("creds.pem");
+    fs::write(&pem_file, encode_pem_private_key(&(*pkcs8_bytes.as_ref())))?;
 
     assert_eq!(
-        pem::parse(fs::read(pem_file)?)?.contents,
+        pem::parse(fs::read(&pem_file)?)?.contents,
         pkcs8_bytes.as_ref()
     );
-    Ok(())
+    Ok(pem_file)
 }
 
 struct BasicProviderReady {
@@ -56,8 +55,16 @@ struct BasicProviderReady {
 
 impl Provider for BasicProvider {
     fn provide(&self) -> Result<Box<dyn IdentityWallet>> {
-        let mut pem_file = self.path.clone();
-        pem_file.push("creds.pem");
+        let mut dir = fs::read_dir(&self.path)?;
+        let name: std::ffi::OsString = "creds.pem".to_owned().into();
+        let pem_file = if dir.any(|n| match n {
+            Ok(n) => n.file_name() == name,
+            Err(_) => false,
+        }) {
+            self.path.join("creds.pem")
+        } else {
+            generate(&self.path)?
+        };
 
         let pkcs8_bytes = pem::parse(fs::read(pem_file)?)?.contents;
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
