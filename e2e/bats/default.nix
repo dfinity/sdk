@@ -1,9 +1,9 @@
 { pkgs ? import ../../nix { inherit system; }
 , system ? builtins.currentSystem
-, dfx ? import ../dfx.nix { inherit pkgs; }
+, dfx ? import ../../dfx.nix { inherit pkgs; }
 }:
 let
-  e2e = lib.noNixFiles (lib.gitOnlySource ../. "bats");
+  e2e = lib.noNixFiles (lib.gitOnlySource ../../. ./.);
   lib = pkgs.lib;
   sources = pkgs.sources;
 
