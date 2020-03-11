@@ -228,6 +228,47 @@ test('IDL encoding (principal)', () => {
   );
 });
 
+test('IDL encoding (function)', () => {
+  // Function
+  test_(
+    IDL.Func([IDL.Text], [IDL.Nat], []),
+    [CanisterId.fromText('ic:CAFFEE59'), 'foo'],
+    '4449444c016a0171017d000100010103caffee03666f6f',
+    'function',
+  );
+  test_(
+    IDL.Func([IDL.Text], [IDL.Nat], ['query']),
+    [CanisterId.fromText('ic:CAFFEE59'), 'foo'],
+    '4449444c016a0171017d01010100010103caffee03666f6f',
+    'query function',
+  );
+});
+
+test('IDL encoding (service)', () => {
+  // Service
+  test_(
+    IDL.Service({ foo: IDL.Func([IDL.Text], [IDL.Nat], []) }),
+    CanisterId.fromText('ic:CAFFEE59'),
+    '4449444c026a0171017d00690103666f6f0001010103caffee',
+    'service',
+  );
+  test_(
+    IDL.Service({ foo: IDL.Func([IDL.Text], [IDL.Nat], ['query']) }),
+    CanisterId.fromText('ic:CAFFEE59'),
+    '4449444c026a0171017d0101690103666f6f0001010103caffee',
+    'service',
+  );
+  test_(
+    IDL.Service({
+      foo: IDL.Func([IDL.Text], [IDL.Nat], []),
+      foo2: IDL.Func([IDL.Text], [IDL.Nat], []),
+    }),
+    CanisterId.fromText('ic:CAFFEE59'),
+    '4449444c026a0171017d00690203666f6f0004666f6f320001010103caffee',
+    'service',
+  );
+});
+
 test('IDL encoding (variants)', () => {
   // Variants
   const Result = IDL.Variant({ ok: IDL.Text, err: IDL.Text });

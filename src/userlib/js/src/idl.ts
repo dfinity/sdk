@@ -886,6 +886,10 @@ export class RecClass<T = any> extends ConstructType<T> {
 }
 
 function decodePrincipalId(b: Pipe): CanisterId {
+  const x = b.read(1).toString('hex');
+  if (x !== '01') {
+    throw new Error('Cannot decode principal');
+  }
   const len = lebDecode(b).toNumber();
   const hex = b
     .read(len)
@@ -918,10 +922,6 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
   }
 
   public decodeValue(b: Pipe): CanisterId {
-    const x = b.read(1).toString('hex');
-    if (x !== '01') {
-      throw new Error('Cannot decode principal');
-    }
     return decodePrincipalId(b);
   }
 
@@ -965,9 +965,18 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
   }
 
   public _buildTypeTableImpl(T: TypeTable) {
+    this.argTypes.forEach(arg => arg.buildTypeTable(T));
+    this.retTypes.forEach(arg => arg.buildTypeTable(T));
+
     const opCode = slebEncode(IDLTypeIds.Func);
-    const zero = Buffer.from([0]);
-    T.add(this, Buffer.concat([opCode, zero, zero, zero]));
+    const argLen = lebEncode(this.argTypes.length);
+    const args = Buffer.concat(this.argTypes.map(arg => arg.encodeType(T)));
+    const retLen = lebEncode(this.retTypes.length);
+    const rets = Buffer.concat(this.retTypes.map(arg => arg.encodeType(T)));
+    const annLen = lebEncode(this.annotations.length);
+    const anns = Buffer.concat(this.annotations.map(a => this.encodeAnnotation(a)));
+
+    T.add(this, Buffer.concat([opCode, argLen, args, retLen, rets, annLen, anns]));
   }
 
   public decodeValue(b: Pipe): [CanisterId, string] {
@@ -999,6 +1008,16 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
     const annon = ' ' + this.annotations.join(' ');
     return `(${args}) → (${rets})${annon}`;
   }
+
+  private encodeAnnotation(ann: string): Buffer {
+    if (ann === 'query') {
+      return Buffer.from([1]);
+    } else if (ann === 'oneway') {
+      return Buffer.from([2]);
+    } else {
+      throw new Error('Illeagal function annotation');
+    }
+  }
 }
 
 export class ServiceClass extends ConstructType<CanisterId> {
@@ -1022,16 +1041,19 @@ export class ServiceClass extends ConstructType<CanisterId> {
   }
 
   public _buildTypeTableImpl(T: TypeTable) {
+    this._fields.forEach(([_, func]) => func.buildTypeTable(T));
     const opCode = slebEncode(IDLTypeIds.Service);
-    const zero = Buffer.from([0]);
-    T.add(this, Buffer.concat([opCode, zero]));
+    const len = lebEncode(this._fields.length);
+    const meths = this._fields.map(([label, func]) => {
+      const labelBuf = Buffer.from(label, 'utf8');
+      const labelLen = lebEncode(labelBuf.length);
+      return Buffer.concat([labelLen, labelBuf, func.encodeType(T)]);
+    });
+
+    T.add(this, Buffer.concat([opCode, len, Buffer.concat(meths)]));
   }
 
   public decodeValue(b: Pipe): CanisterId {
-    const x = b.read(1).toString('hex');
-    if (x !== '01') {
-      throw new Error('Cannot decode service');
-    }
     return decodePrincipalId(b);
   }
   get name() {
@@ -1121,12 +1143,14 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           break;
         }
         case IDLTypeIds.Func: {
-          for (let k = 0; k < 3; k++) {
+          for (let k = 0; k < 2; k++) {
             let funcLength = lebDecode(pipe).toNumber();
             while (funcLength--) {
               slebDecode(pipe);
             }
           }
+          const annLen = lebDecode(pipe).toNumber();
+          pipe.read(annLen);
           break;
         }
         case IDLTypeIds.Service: {
