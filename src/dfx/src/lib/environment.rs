@@ -1,4 +1,4 @@
-use crate::config::cache::{Cache, DiskBasedCache};
+use crate::config::cache::{get_profile_path, Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
@@ -158,13 +158,11 @@ impl Environment for EnvironmentImpl {
                     let start = config.get_config().get_defaults().get_start();
                     let address = start.get_address("localhost");
                     let port = start.get_port(8000);
-                    let dfx_root = self.get_temp_dir();
-                    // This is the default to keep precedence sane.
-                    let local_project_identity = dfx_root.join("identity");
-                    if create_dir_all(&local_project_identity).is_err() {
-                        return None;
-                    }
-
+                    // This is the default to keep it simple.
+                    let local_project_identity = match get_profile_path() {
+                        Ok(p) => p,
+                        Err(_) => return None,
+                    };
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
                         signer: Box::new(Identity::new(local_project_identity)),
@@ -204,15 +202,7 @@ pub struct AgentEnvironment<'a> {
 
 impl<'a> AgentEnvironment<'a> {
     pub fn new(backend: &'a dyn Environment, agent_url: &str) -> Self {
-        // We do not expose the path directly for now.
-        let dfx_root = backend.get_temp_dir();
-        // This is the default to keep precedence sane,
-        // not deal with home folders or cache right now.
-        let local_project_identity = dfx_root.join("identity");
-        // This is for sanity. The environment should have created
-        // this already. N.B. Do not assume the existence of this
-        // directory yet.
-        create_dir_all(&local_project_identity).expect("Failed to construct identity profile");
+        let local_project_identity = get_profile_path().expect("Failed to access profile");
         AgentEnvironment {
             backend,
             agent: Agent::new(AgentConfig {
@@ -220,7 +210,7 @@ impl<'a> AgentEnvironment<'a> {
                 signer: Box::new(Identity::new(local_project_identity)),
                 ..AgentConfig::default()
             })
-            .unwrap(),
+            .expect("Failed to construct agent"),
         }
     }
 }
