@@ -11,7 +11,6 @@ on:
     types: niv-updater-nudge
   schedule:
     # * is a special character in YAML so you have to quote this string
-    # Run every 20min, as we like it that way (but it should be hourly)
     - cron:  '0 16 * * *'
 jobs:
   niv-updater:
