@@ -107,9 +107,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     std::thread::spawn(move || {
         for _ in signals.forever() {
-            broadcast_stop
-                .try_send(())
-                .expect("Could not terminate.");
+            broadcast_stop.try_send(()).expect("Could not terminate.");
             eprintln!("FOUND SIGNAL!");
         }
     });
