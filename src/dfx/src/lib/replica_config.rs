@@ -62,7 +62,7 @@ impl ReplicaConfig {
         self
     }
 
-    pub fn with_scheduler(&mut self, scheduler : SchedulerConfig) -> &mut Self {
+    pub fn with_scheduler(&mut self, scheduler: SchedulerConfig) -> &mut Self {
         self.scheduler = scheduler;
         self
     }
