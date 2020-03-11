@@ -1,10 +1,4 @@
-import {
-  Actor,
-  CanisterId,
-  IDL,
-  blobFromUint8Array,
-  makeActorFactory,
-} from '@internet-computer/userlib';
+import { Actor, CanisterId, blobFromUint8Array } from '@internet-computer/userlib';
 import httpAgent from '../agent';
 import * as path from 'path';
 import { readFileSync } from 'fs';
