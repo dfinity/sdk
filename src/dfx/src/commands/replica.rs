@@ -109,7 +109,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         for _ in signals.forever() {
             broadcast_stop
                 .try_send(())
-                .unwrap_or_else(|_| panic!("Could not terminate."));
+                .expect("Could not terminate.");
             eprintln!("FOUND SIGNAL!");
         }
     });
