@@ -12,7 +12,7 @@ on:
   schedule:
     # * is a special character in YAML so you have to quote this string
     # Run every 20min, as we like it that way (but it should be hourly)
-    - cron:  '*/20 * * * *'
+    - cron:  '* * 1 * *'
 jobs:
   niv-updater:
     name: 'Check for updates'
@@ -21,7 +21,7 @@ jobs:
       - name: niv-updater-action
         uses: knl/niv-updater-action@v4
         with:
-          whitelist: 'common,advisory-db,napalm' 
+          whitelist: 'common,advisory-db,napalm'
           labels: |
             automerge-squash
         env:
