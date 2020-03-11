@@ -139,6 +139,12 @@ export abstract class Visitor<D, R> {
   public visitRec<T>(t: RecClass<T>, ty: ConstructType<T>, data: D): R {
     return this.visitConstruct(ty, data);
   }
+  public visitFunc(t: FuncClass, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitService(t: ServiceClass, data: D): R {
+    return this.visitConstruct(t, data);
+  }
 }
 
 /**
@@ -930,18 +936,120 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
  * @param retTypes Return types.
  * @param annotations Function annotations.
  */
-export class FuncClass {
-  constructor(
-    public argTypes: Type[] = [],
-    public retTypes: Type[] = [],
-    public annotations: string[] = [],
-  ) {}
+export class FuncClass extends ConstructType<[CanisterId, string]> {
+  constructor(public argTypes: Type[], public retTypes: Type[], public annotations: string[] = []) {
+    super();
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitFunc(this, d);
+  }
+  public covariant(x: any): x is [CanisterId, string] {
+    return (
+      Array.isArray(x) && x.length === 2 && x[0] instanceof CanisterId && typeof x[1] === 'string'
+    );
+  }
+
+  public encodeValue(x: [CanisterId, string]): Buffer {
+    const hex = x[0].toHex();
+    const buf = Buffer.from(hex, 'hex');
+    const len = lebEncode(buf.length);
+    const canister = Buffer.concat([Buffer.from([1]), len, buf]);
+
+    const method = Buffer.from(x[1], 'utf8');
+    const methodLen = lebEncode(method.length);
+    return Buffer.concat([Buffer.from([1]), canister, methodLen, method]);
+  }
+
+  public _buildTypeTableImpl(T: TypeTable) {
+    const opCode = slebEncode(IDLTypeIds.Func);
+    const zero = Buffer.from([0]);
+    T.add(this, Buffer.concat([opCode, zero, zero, zero]));
+  }
+
+  public decodeValue(b: Pipe): [CanisterId, string] {
+    const x = b.read(1).toString('hex');
+    if (x !== '01') {
+      throw new Error('Cannot decode function reference');
+    }
+    const len = lebDecode(b).toNumber();
+    const hex = b
+      .read(len)
+      .toString('hex')
+      .toUpperCase();
+    // TODO implement checksum
+    const canister = CanisterId.fromText('ic:' + hex + '00');
+
+    const mLen = lebDecode(b).toNumber();
+    const method = b.read(mLen).toString('utf8');
+    return [canister, method];
+  }
+
+  get name() {
+    const args = this.argTypes.map(arg => arg.name).join(', ');
+    const rets = this.retTypes.map(arg => arg.name).join(', ');
+    const annon = ' ' + this.annotations.join(' ');
+    return `(${args}) -> (${rets})${annon}`;
+  }
+
+  public valueToString(x: [CanisterId, string]) {
+    return x[0].toText() + '.' + x[1];
+  }
 
   public display(): string {
     const args = this.argTypes.map(arg => arg.display()).join(', ');
     const rets = this.retTypes.map(arg => arg.display()).join(', ');
     const annon = ' ' + this.annotations.join(' ');
-    return `(${args}) &rarr; (${rets})${annon}`;
+    return `(${args}) → (${rets})${annon}`;
+  }
+}
+
+export class ServiceClass extends ConstructType<CanisterId> {
+  public readonly _fields: Array<[string, FuncClass]>;
+  constructor(fields: Record<string, FuncClass>) {
+    super();
+    this._fields = Object.entries(fields).sort((a, b) => idlLabelToId(a[0]) - idlLabelToId(b[0]));
+  }
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitService(this, d);
+  }
+  public covariant(x: any): x is CanisterId {
+    return x instanceof CanisterId;
+  }
+
+  public encodeValue(x: CanisterId): Buffer {
+    const hex = x.toHex();
+    const buf = Buffer.from(hex, 'hex');
+    const len = lebEncode(buf.length);
+    return Buffer.concat([Buffer.from([1]), len, buf]);
+  }
+
+  public _buildTypeTableImpl(T: TypeTable) {
+    const opCode = slebEncode(IDLTypeIds.Service);
+    const zero = Buffer.from([0]);
+    T.add(this, Buffer.concat([opCode, zero]));
+  }
+
+  public decodeValue(b: Pipe): CanisterId {
+    const x = b.read(1).toString('hex');
+    if (x !== '01') {
+      throw new Error('Cannot decode service');
+    }
+    const len = lebDecode(b).toNumber();
+    const hex = b
+      .read(len)
+      .toString('hex')
+      .toUpperCase();
+    // TODO implement checksum
+    return CanisterId.fromText('ic:' + hex + '00');
+  }
+  get name() {
+    const fields = this._fields.map(([key, value]) => key + ':' + value.name);
+    return `service {${fields.join('; ')}}`;
+  }
+
+  public valueToString(x: CanisterId) {
+    return x.toText();
   }
 }
 
@@ -1021,6 +1129,24 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           }
           break;
         }
+        case IDLTypeIds.Func: {
+          for (let k = 0; k < 3; k++) {
+            let funcLength = lebDecode(pipe).toNumber();
+            while (funcLength--) {
+              slebDecode(pipe);
+            }
+          }
+          break;
+        }
+        case IDLTypeIds.Service: {
+          let servLength = lebDecode(pipe).toNumber();
+          while (servLength--) {
+            const l = lebDecode(pipe).toNumber();
+            pipe.read(l);
+            slebDecode(pipe);
+          }
+          break;
+        }
         default:
           throw new Error('Illegal op_code: ' + ty);
       }
@@ -1091,4 +1217,8 @@ export function Rec() {
 
 export function Func(args: Type[], ret: Type[], annotations: string[] = []) {
   return new FuncClass(args, ret, annotations);
+}
+
+export function Service(t: Record<string, FuncClass>): ServiceClass {
+  return new ServiceClass(t);
 }
