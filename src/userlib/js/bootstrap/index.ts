@@ -36,10 +36,18 @@ function _getVariable(
 }
 
 // Retrieve and execute a JavaScript file from the server.
-async function _loadJs(canisterId: string, filename: string): Promise<any> {
+async function _loadJs(
+  canisterId: string,
+  filename: string,
+  onload = async () => {},
+): Promise<any> {
   const content = await window.icHttpAgent.retrieveAsset(canisterId, filename);
   const js = new TextDecoder().decode(content);
   const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
+
+  // Run an event function so the callee can execute some code before loading the
+  // Javascript.
+  await onload();
   // TODO(hansl): either get rid of eval, or rid of webpack, or make this
   // work without this horrible hack.
   return eval('import("' + dataUri + '")'); // tslint:disable-line
@@ -105,7 +113,9 @@ async function _main() {
       render.render(canisterId, actor, canister);
     } else {
       // Load index.js from the canister and execute it.
-      await _loadJs(canisterId, 'index.js');
+      await _loadJs(canisterId, 'index.js', async () => {
+        document.getElementById('ic-progress')!.remove();
+      });
     }
   }
 }
