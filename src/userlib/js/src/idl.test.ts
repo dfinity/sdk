@@ -1,5 +1,6 @@
 // tslint:disable
 import BigNumber from 'bignumber.js';
+import { CanisterId } from './canisterId';
 import * as IDL from './idl';
 import { Buffer } from 'buffer/';
 
@@ -37,9 +38,9 @@ test('IDL encoding (empty)', () => {
   );
 });
 
-test('IDL encoding (unit)', () => {
+test('IDL encoding (null)', () => {
   // Null
-  test_(IDL.Unit, null, '4449444c00017f', 'Null value');
+  test_(IDL.Null, null, '4449444c00017f', 'Null value');
 });
 
 test('IDL encoding (text)', () => {
@@ -151,7 +152,7 @@ test('IDL encoding (array + tuples)', () => {
 
   // Nested Tuples
   test_(
-    IDL.Tuple(IDL.Tuple(IDL.Tuple(IDL.Tuple(IDL.Unit)))),
+    IDL.Tuple(IDL.Tuple(IDL.Tuple(IDL.Tuple(IDL.Null)))),
     [[[[null]]]],
     '4449444c046c01007f6c0100006c0100016c0100020103',
     'Nested Tuples',
@@ -212,6 +213,21 @@ test('IDL encoding (bool)', () => {
   expect(() => IDL.encode([IDL.Bool], ['false'])).toThrow(/Invalid bool argument/);
 });
 
+test('IDL encoding (principal)', () => {
+  // Principal
+  test_(IDL.Principal, CanisterId.fromText('ic:CAFFEE00'), '4449444c0001680103caffee', 'principal');
+  test_(
+    IDL.Principal,
+    CanisterId.fromText('ic:000000000000000107'),
+    '4449444c00016801080000000000000001',
+    'principal',
+  );
+  expect(() => IDL.encode([IDL.Principal], ['ic:CAFFEE00'])).toThrow(/Invalid principal argument/);
+  expect(() => IDL.decode([IDL.Principal], Buffer.from('4449444c00016803caffee', 'hex'))).toThrow(
+    /Cannot decode principal/,
+  );
+});
+
 test('IDL encoding (variants)', () => {
   // Variants
   const Result = IDL.Variant({ ok: IDL.Text, err: IDL.Text });
@@ -224,7 +240,7 @@ test('IDL encoding (variants)', () => {
 
   // Test that nullary constructors work as expected
   test_(
-    IDL.Variant({ foo: IDL.Unit }),
+    IDL.Variant({ foo: IDL.Null }),
     { foo: null },
     '4449444c016b01868eb7027f010000',
     'Nullary constructor in variant',
@@ -250,7 +266,7 @@ test('IDL encoding (variants)', () => {
     '4449444c026e7d6e000101010101',
     'Nested option',
   );
-  test_(IDL.Opt(IDL.Opt(IDL.Unit)), [[null]], '4449444c026e7f6e0001010101', 'Null option');
+  test_(IDL.Opt(IDL.Opt(IDL.Null)), [[null]], '4449444c026e7f6e0001010101', 'Null option');
 
   // Type description sharing
   test_(
