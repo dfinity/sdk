@@ -76,7 +76,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Must be unbounded, as a killed child should not deadlock.
     let (request_stop, _rcv_wait) = unbounded();
-    let (_broadcast_stop, is_killed_replica) = unbounded();
+    let (broadcast_stop, is_killed_replica) = unbounded();
 
     b.set_message("Generating IC local replica configuration.");
     let replica_config = ReplicaConfig::new(&state_root).with_port(port).to_toml()?;
