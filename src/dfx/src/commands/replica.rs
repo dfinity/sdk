@@ -2,7 +2,7 @@ use crate::commands::canister::create_waiter;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::replica_config::ReplicaConfig;
+use crate::lib::replica_config::{ReplicaConfig, SchedulerConfig};
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
@@ -32,6 +32,20 @@ pub fn construct() -> App<'static, 'static> {
                         .map(|_| ())
                 }),
         )
+        .arg(
+            Arg::with_name("message-gas-max")
+                .help(UserMessage::ReplicaMessageGasMax.to_str())
+                .long("message-gas-max")
+                .takes_value(true)
+                .default_value("5368709120"),
+        )
+        .arg(
+            Arg::with_name("round-gas-max")
+                .help(UserMessage::ReplicaRoundGasMax.to_str())
+                .long("round-gas-max")
+                .takes_value(true)
+                .default_value("26843545600"),
+        )
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -45,6 +59,32 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     runtime
         .block_on(agent.ping(create_waiter()))
         .map_err(DfxError::from)
+}
+
+fn get_scheduler(args: &ArgMatches<'_>) -> DfxResult<SchedulerConfig> {
+    // Get mssage gas limit.
+    let message_gas_max = args
+        .value_of("message-gas-max")
+        .expect("default value")
+        .parse()
+        .map_err(|err| DfxError::InvalidArgument(format!("Invalid message gas limit: {}", err)))?;
+    // Get round gas limit.
+    let round_gas_max = args
+        .value_of("round-gas-max")
+        .expect("default value")
+        .parse()
+        .map_err(|err| DfxError::InvalidArgument(format!("Invalid round gas limit: {}", err)))?;
+    // Check message and round gas limits.
+    if message_gas_max >= round_gas_max {
+        let err = "Round gas limit must exceed message gas limit.".to_string();
+        Err(DfxError::InvalidArgument(err))
+    } else {
+        // Return scheduler configuration.
+        Ok(SchedulerConfig {
+            exec_gas: Some(message_gas_max),
+            round_gas_max: Some(round_gas_max),
+        })
+    }
 }
 
 // TODO(eftychis)/In progress: Rename to replica.
@@ -63,6 +103,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .parse::<u16>()
         .expect("Unreachable. Port should have been validated by clap.");
 
+    let scheduler = get_scheduler(args)?;
+
     // We are doing this here to make sure we can write to the temp
     // pid file.
     std::fs::write(&pid_file_path, "")?;
@@ -79,7 +121,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let (_broadcast_stop, is_killed_client) = unbounded();
 
     b.set_message("Generating IC local replica configuration.");
-    let replica_config = ReplicaConfig::new(&state_root).with_port(port).to_toml()?;
+    let replica_config = ReplicaConfig::new(&state_root)
+        .with_port(port)
+        .with_scheduler(scheduler)
+        .to_toml()?;
 
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
