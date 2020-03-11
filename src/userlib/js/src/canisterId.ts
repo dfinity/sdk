@@ -1,12 +1,17 @@
 // Canister IDs are represented as an array of bytes in the HTTP handler of the client.
 export class CanisterId {
-  public static fromText(hex: string): CanisterId {
-    if (hex.startsWith('ic:')) {
-      // Remove the checksum from the hexadecimal.
-      // TODO: validate the checksum.
-      return this.fromHex(hex.slice(3, -2));
+  public static fromText(text: string): CanisterId {
+    if (text.startsWith('ic:')) {
+      const hex = text.slice(3);
+      if (hex.length % 2 === 0 && /^[0-9A-F]+$/.test(hex)) {
+        // Remove the checksum from the hexadecimal.
+        // TODO: validate the checksum.
+        return this.fromHex(hex.slice(0, -2));
+      } else {
+        throw new Error('Cannot parse canister id: ' + text);
+      }
     } else {
-      throw new Error('CanisterId not a "ic:" url: ' + hex);
+      throw new Error('CanisterId not a "ic:" url: ' + text);
     }
   }
 
@@ -18,5 +23,8 @@ export class CanisterId {
 
   public toHex(): string {
     return this._idHex;
+  }
+  public toText(): string {
+    return 'ic:' + this.toHex() + '00';
   }
 }
