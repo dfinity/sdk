@@ -4,18 +4,19 @@
 , userlib-js ? import ../../src/userlib/js { inherit pkgs; }
 }:
 let
-  e2e = pkgs.lib.noNixFiles (lib.gitOnlySource ../../. ./.);
+  e2e = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.);
+  inputs = with pkgs; [
+    coreutils
+    dfx.standalone
+    nodejs-12_x
+  ];
 in
 
 pkgs.napalm.buildPackage e2e {
   root = ./.;
   name = "node-e2e-tests";
   buildInputs = inputs;
-  PATH = pkgs.lib.makeSearchPath "bin" [
-    coreutils
-    dfx.standalone
-    nodejs-12_x
-  ];
+  PATH = pkgs.lib.makeSearchPath "bin" inputs;
 
   npmCommands = [
     "npm install"
