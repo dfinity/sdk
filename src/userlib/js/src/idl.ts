@@ -885,6 +885,15 @@ export class RecClass<T = any> extends ConstructType<T> {
   }
 }
 
+function decodePrincipalId(b: Pipe): CanisterId {
+  const len = lebDecode(b).toNumber();
+  const hex = b
+    .read(len)
+    .toString('hex')
+    .toUpperCase();
+  return CanisterId.fromHex(hex);
+}
+
 /**
  * Represents an IDL principal reference
  */
@@ -913,13 +922,7 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
     if (x !== '01') {
       throw new Error('Cannot decode principal');
     }
-    const len = lebDecode(b).toNumber();
-    const hex = b
-      .read(len)
-      .toString('hex')
-      .toUpperCase();
-    // TODO implement checksum
-    return CanisterId.fromText('ic:' + hex + '00');
+    return decodePrincipalId(b);
   }
 
   get name() {
@@ -972,13 +975,7 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
     if (x !== '01') {
       throw new Error('Cannot decode function reference');
     }
-    const len = lebDecode(b).toNumber();
-    const hex = b
-      .read(len)
-      .toString('hex')
-      .toUpperCase();
-    // TODO implement checksum
-    const canister = CanisterId.fromText('ic:' + hex + '00');
+    const canister = decodePrincipalId(b);
 
     const mLen = lebDecode(b).toNumber();
     const method = b.read(mLen).toString('utf8');
@@ -1035,13 +1032,7 @@ export class ServiceClass extends ConstructType<CanisterId> {
     if (x !== '01') {
       throw new Error('Cannot decode service');
     }
-    const len = lebDecode(b).toNumber();
-    const hex = b
-      .read(len)
-      .toString('hex')
-      .toUpperCase();
-    // TODO implement checksum
-    return CanisterId.fromText('ic:' + hex + '00');
+    return decodePrincipalId(b);
   }
   get name() {
     const fields = this._fields.map(([key, value]) => key + ':' + value.name);
@@ -1165,14 +1156,6 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   }
 
   return output;
-}
-
-/**
- * A wrapper over a client and an IDL
- * @param {Object} [fields] - a map of function names to IDL function signatures
- */
-export class ActorInterface {
-  constructor(public _fields: Record<string, FuncClass>) {}
 }
 
 // Export Types instances.
