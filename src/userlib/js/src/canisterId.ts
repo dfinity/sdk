@@ -16,7 +16,7 @@ export class CanisterId {
         const id = hex.slice(0, -2);
         const checksum = hex.slice(-2);
         if (checksum !== getCrc(id)) {
-          throw new Error('Illeagal CanisterId: ' + text);
+          throw new Error('Illegal CanisterId: ' + text);
         }
         return this.fromHex(id);
       } else {
