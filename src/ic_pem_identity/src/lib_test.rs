@@ -21,7 +21,7 @@ fn works() {
 
     std::fs::write(&pem_file_path, pem::encode(&pem)).unwrap();
 
-    let signer = PemIdentity::new(&pem_file_path).unwrap();
+    let signer = PemIdentity::from_file(&pem_file_path).unwrap();
 
     let arg = Blob::empty();
     let canister_id = CanisterId::from(Blob::empty());
