@@ -76,7 +76,9 @@ user_message!(
 
     // dfx replica
     Replica => "Start a local replica.",
+    ReplicaMessageGasMax => "Maximum amount of gas a single message can consume.",
     ReplicaPort => "The port the local replica should listen to.",
+    ReplicaRoundGasMax => "Maximum amount of gas a single round can consume.",
 
     // dfx start
     CleanState => "Cleans state of current project.",
