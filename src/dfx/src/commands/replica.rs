@@ -65,9 +65,9 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Replica
         state_root: env.get_state_dir(),
     };
     Ok(ReplicaConfig {
-        http_handler: http_handler,
-        scheduler: scheduler,
-        state_manager: state_manager,
+        http_handler,
+        scheduler,
+        state_manager,
     })
 }
 
@@ -99,7 +99,7 @@ fn get_message_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) 
     args.value_of("message-gas-limit")
         .map(|limit| limit.parse())
         .unwrap_or_else(|| {
-            let default = 5368709120;
+            let default = 5_368_709_120;
             Ok(config.message_gas_limit.unwrap_or(default))
         })
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid message gas limit: {}", err)))
@@ -112,7 +112,7 @@ fn get_round_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) ->
     args.value_of("round-gas-limit")
         .map(|limit| limit.parse())
         .unwrap_or_else(|| {
-            let default = 26843545600;
+            let default = 26_843_545_600;
             Ok(config.round_gas_limit.unwrap_or(default))
         })
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid round gas limit: {}", err)))
