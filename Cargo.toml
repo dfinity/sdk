@@ -4,5 +4,6 @@ members = [
     "src/dfx_derive",
     "src/dfx_info",
     "src/ic_http_agent",
+    "src/ic_pem_identity",
     "src/serde_idl",
 ]

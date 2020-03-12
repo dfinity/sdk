@@ -9,7 +9,9 @@ pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
-    pub use super::replica_api::{MessageWithSender, SignedMessage};
+    pub use super::replica_api::{
+        MessageWithSender, ReadRequest, Request, SignedMessage, SubmitRequest,
+    };
     pub use super::response::RequestStatusResponse;
     pub use super::signer::Signer;
     pub use super::waiter::{Waiter, WaiterTrait};
@@ -21,7 +23,9 @@ mod agent_test;
 
 pub mod signer;
 
-use crate::agent::replica_api::{QueryResponseReply, ReadRequest, ReadResponse, SubmitRequest};
+use crate::agent::replica_api::{
+    QueryResponseReply, ReadRequest, ReadResponse, Request, SubmitRequest,
+};
 use crate::agent::signer::Signer;
 use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 
@@ -82,8 +86,7 @@ impl Agent {
     async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
         // We need to calculate the signature, and thus also the
         // request id initially.
-        let request: Box<SubmitRequest<'_>> = Box::new(request);
-        let (request_id, signed_request) = self.signer.sign(request)?;
+        let (request_id, signed_request) = self.signer.sign(Request::Submit(request))?;
 
         let record = serde_cbor::to_vec(&signed_request)?;
         let url = self.url.join("submit")?;

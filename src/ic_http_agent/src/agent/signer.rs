@@ -1,7 +1,7 @@
 use crate::agent::agent_error::AgentError;
-use crate::agent::replica_api::SignedMessage;
+use crate::agent::replica_api::{Request, SignedMessage};
 use crate::types::request_id::to_request_id;
-use crate::{Blob, RequestId};
+use crate::{Blob, MessageWithSender, PrincipalId, RequestId};
 
 /// A Signer amends the request with the [Signature] fields, computing
 /// the request id in the process.
@@ -16,16 +16,7 @@ use crate::{Blob, RequestId};
 // lifetime, which ends up complicating and polluting the remaining
 // code.
 pub trait Signer: Sync {
-    fn sign<'a>(
-        &self,
-        request: Box<(dyn erased_serde::Serialize + Send + Sync + 'a)>,
-    ) -> Result<
-        (
-            RequestId,
-            Box<dyn erased_serde::Serialize + Send + Sync + 'a>,
-        ),
-        AgentError,
-    >;
+    fn sign<'a>(&self, request: Request<'a>) -> Result<(RequestId, SignedMessage<'a>), AgentError>;
 }
 
 pub struct DummyIdentity {}
@@ -44,59 +35,54 @@ pub struct DummyIdentity {}
 // process. Doing it this manually here ends up being messy and
 // distracts from the logic. Thus, we use the erased_serde crate.
 impl Signer for DummyIdentity {
-    fn sign<'a>(
-        &self,
-        request: Box<(dyn erased_serde::Serialize + Send + Sync + 'a)>,
-    ) -> Result<
-        (
-            RequestId,
-            Box<dyn erased_serde::Serialize + Send + Sync + 'a>,
-        ),
-        AgentError,
-    > {
-        let mut sender = vec![0; 32];
-        sender.push(0x02);
+    fn sign<'a>(&self, request: Request<'a>) -> Result<(RequestId, SignedMessage<'a>), AgentError> {
         // Bug(eftychis): Note normally the behavior here is to add a
         // sender field that contributes to the request id. Right now
         // there seems to be an issue with the behavior of sender in
         // the request id. Trying to figure out if the correct
         // behaviour changed and where the deviation happens.
+        let sender = PrincipalId::self_authenticating(Blob::from(vec![0; 32]));
 
-        // let sender = Blob::from(sender);
-        // let request_with_sender = MessageWithSender { request, sender };
-        let request_with_sender = request;
+        let request_with_sender = MessageWithSender { request, sender };
         let request_id = to_request_id(&request_with_sender).map_err(AgentError::from)?;
 
         let signature = Blob::from(vec![1; 32]);
         let sender_pubkey = Blob::from(vec![2; 32]);
         let signed_request = SignedMessage {
             request_with_sender,
-            signature,
+            sender_sig: signature,
             sender_pubkey,
         };
-        Ok((request_id, Box::new(signed_request)))
+        Ok((request_id, signed_request))
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use proptest::prelude::*;
-    use serde::Serialize;
+    use crate::agent::replica_api::ReadRequest;
+    use crate::CanisterId;
 
-    // TODO(eftychis): Provide arbitrary strategies for the replica
-    // API.
-    proptest! {
     #[test]
-    fn request_id_dummy_signer(request: String) {
-        #[derive(Clone,Serialize)]
-        struct TestAPI { inner : String}
-        let request = TestAPI { inner: request};
+    fn request_id_dummy_signer() {
+        let sender = PrincipalId::self_authenticating(Blob::from(vec![0; 32]));
 
-        let request_with_sender = request.clone();
-        let actual_request_id = to_request_id(&request_with_sender).expect("Failed to produce request id");
+        let arg = Blob::random(10);
+        let canister_id = CanisterId::from(Blob::random(10));
+        let request = Request::Read(ReadRequest::Query {
+            arg: &arg,
+            canister_id: &canister_id,
+            method_name: "Some Method",
+        });
+
+        let request_with_sender = MessageWithSender {
+            request: request.clone(),
+            sender,
+        };
+        let actual_request_id =
+            to_request_id(&request_with_sender).expect("Failed to produce request id");
         let signer = DummyIdentity {};
-        let request_id = signer.sign(Box::new(request)).expect("Failed to sign").0;
+        let request_id = signer.sign(request).expect("Failed to sign").0;
         assert_eq!(request_id, actual_request_id)
-    }}
+    }
 }

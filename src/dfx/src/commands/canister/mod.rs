@@ -3,7 +3,8 @@ use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::Waiter;
+use ic_http_agent::{Signer, Waiter};
+use std::path::PathBuf;
 use std::time::Duration;
 
 mod call;
@@ -44,6 +45,20 @@ pub fn construct() -> App<'static, 'static> {
                 })
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("profile")
+                .help(UserMessage::CanisterClient.to_str())
+                .long("profile")
+                .short("p")
+                .validator(|v| {
+                    if PathBuf::from(v).exists() {
+                        Ok(())
+                    } else {
+                        Err("Profile file must exist.".to_string())
+                    }
+                })
+                .takes_value(true),
+        )
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
@@ -51,11 +66,21 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let subcommand = args.subcommand();
 
     // Need storage for ClientEnvironment ownership.
+    let maybe_signer: Option<Box<dyn Signer>> = if args.is_present("profile") {
+        let profile = args.value_of("profile").expect("Could not find profile.");
+        let profile_path = PathBuf::from(profile);
+        Some(Box::new(ic_pem_identity::PemIdentity::from_file(
+            &profile_path,
+        )?))
+    } else {
+        None
+    };
     let mut _client_env: Option<AgentEnvironment<'_>> = None;
     let env = if args.is_present("client") {
         _client_env = Some(AgentEnvironment::new(
             env,
             args.value_of("client").expect("Could not find client."),
+            maybe_signer,
         ));
         _client_env.as_ref().unwrap()
     } else {

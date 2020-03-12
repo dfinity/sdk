@@ -384,6 +384,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     )?;
 
     if !dry_run {
+        ic_pem_identity::PemIdentity::generate(&project_name.join("id.pem"))?;
+
         // If on mac, we should validate that XCode toolchain was installed.
         #[cfg(target_os = "macos")]
         {

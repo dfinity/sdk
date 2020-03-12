@@ -4,7 +4,7 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
 
-use ic_http_agent::{Agent, AgentConfig};
+use ic_http_agent::{Agent, AgentConfig, Signer};
 use lazy_init::Lazy;
 use semver::Version;
 use slog::Record;
@@ -194,14 +194,30 @@ pub struct AgentEnvironment<'a> {
 }
 
 impl<'a> AgentEnvironment<'a> {
-    pub fn new(backend: &'a dyn Environment, agent_url: &str) -> Self {
-        AgentEnvironment {
-            backend,
-            agent: Agent::new(AgentConfig {
-                url: agent_url,
-                ..AgentConfig::default()
-            })
-            .unwrap(),
+    pub fn new(
+        backend: &'a dyn Environment,
+        agent_url: &str,
+        signer: Option<Box<dyn Signer>>,
+    ) -> Self {
+        if let Some(signer) = signer {
+            AgentEnvironment {
+                backend,
+                agent: Agent::new(AgentConfig {
+                    url: agent_url,
+                    signer,
+                    ..AgentConfig::default()
+                })
+                .unwrap(),
+            }
+        } else {
+            AgentEnvironment {
+                backend,
+                agent: Agent::new(AgentConfig {
+                    url: agent_url,
+                    ..AgentConfig::default()
+                })
+                .unwrap(),
+            }
         }
     }
 }

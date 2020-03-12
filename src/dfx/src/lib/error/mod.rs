@@ -5,6 +5,7 @@ mod cache;
 
 pub use build::BuildErrorKind;
 pub use cache::CacheErrorKind;
+use ic_pem_identity::PemIdentityError;
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
@@ -77,6 +78,9 @@ pub enum DfxError {
 
     /// String provided is not a port
     CouldNotParsePort(std::num::ParseIntError),
+
+    /// Identity load error when using PEM files.
+    PemIdentityError(ic_pem_identity::PemIdentityError),
 }
 
 /// The result of running a DFX command.
@@ -115,5 +119,11 @@ impl From<serde_json::error::Error> for DfxError {
 impl From<semver::SemVerError> for DfxError {
     fn from(err: semver::SemVerError) -> DfxError {
         DfxError::VersionCouldNotBeParsed(err)
+    }
+}
+
+impl From<ic_pem_identity::PemIdentityError> for DfxError {
+    fn from(err: PemIdentityError) -> Self {
+        DfxError::PemIdentityError(err)
     }
 }
