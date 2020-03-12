@@ -2,7 +2,7 @@ import * as UI from './idl-ui';
 
 export function render(id, actor, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
-  for (const [name, func] of Object.entries(actor._fields)) {
+  for (const [name, func] of actor._fields) {
     renderMethod(name, func, canister[name]);
   }
   const console = document.createElement("div");
@@ -73,12 +73,12 @@ function renderMethod(name, idl_func, f) {
       left.innerHTML = show_result;
       right.innerText = `(${duration}s)`;
 
-      const show_args = valuesToString(idl_func.argTypes, args);
+      const show_args = encodeStr(valuesToString(idl_func.argTypes, args));
       log(`› ${name}${show_args}`);
       log(show_result);
     })().catch(err => {
       left.className += ' error';
-      left.innerText = err.stack;
+      left.innerText = err.message;
     });
   });
 };

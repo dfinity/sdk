@@ -12,7 +12,7 @@ import { blobFromHex, Nonce } from './types';
 
 test('makeActor', async () => {
   const actorInterface = () => {
-    return new IDL.ActorInterface({
+    return IDL.Service({
       greet: IDL.Func([IDL.Text], [IDL.Text]),
     });
   };

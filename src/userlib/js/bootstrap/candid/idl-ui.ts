@@ -31,6 +31,12 @@ class Render extends IDL.Visitor<null, InputBox> {
   public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): InputBox {
     return renderInput(ty);
   }
+  public visitService(t: IDL.ServiceClass, d: null): InputBox {
+    return new InputBox(t, null);
+  }
+  public visitFunc(t: IDL.FuncClass, d: null): InputBox {
+    return new InputBox(t, null);
+  }
 }
 
 class Parse extends IDL.Visitor<string, any> {
@@ -63,6 +69,13 @@ class Parse extends IDL.Visitor<string, any> {
   }
   public visitPrincipal(t: IDL.PrincipalClass, v: string): CanisterId {
     return CanisterId.fromText(v);
+  }
+  public visitService(t: IDL.ServiceClass, v: string): CanisterId {
+    return CanisterId.fromText(v);
+  }
+  public visitFunc(t: IDL.FuncClass, v: string): [CanisterId, string] {
+    const x = v.split('.', 2);
+    return [CanisterId.fromText(x[0]), x[1]];
   }
 }
 
