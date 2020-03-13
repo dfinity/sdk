@@ -79,12 +79,53 @@ class Parse extends IDL.Visitor<string, any> {
   }
 }
 
+class Random extends IDL.Visitor<string, any> {
+  public visitNull(t: IDL.NullClass, v: string): null {
+    return null;
+  }
+  public visitBool(t: IDL.BoolClass, v: string): boolean {
+    return Math.random() < 0.5;
+  }
+  public visitText(t: IDL.TextClass, v: string): string {
+    return Math.random().toString(36).substring(6);
+  }
+  public visitInt(t: IDL.IntClass, v: string): BigNumber {
+    return new BigNumber(this.generateNumber(true));
+  }
+  public visitNat(t: IDL.NatClass, v: string): BigNumber {
+    return new BigNumber(this.generateNumber(false));
+  }
+  public visitFixedInt(t: IDL.FixedIntClass, v: string): BigNumber {
+    return new BigNumber(this.generateNumber(true));
+  }
+  public visitFixedNat(t: IDL.FixedNatClass, v: string): BigNumber {
+    return new BigNumber(this.generateNumber(false));
+  }
+  private generateNumber(signed: boolean): number {
+    const num = Math.floor(Math.random() * 100);
+    if (signed) {
+      if (Math.random() < 0.5) {
+        return +num;
+      } else {
+        return -num;
+      }
+    } else {
+      return num;
+    }
+  }
+}
+
 export function renderInput(t: IDL.Type): InputBox {
   return t.accept(new Render(), null);
 }
 
 function parsePrimitive(t: IDL.Type, d: string) {
   return t.accept(new Parse(), d);
+}
+
+function generatePrimitive(t: IDL.Type) {
+  // TODO: in the future we may want to take a string to specify how random values are generated
+  return t.accept(new Random(), '');
 }
 
 class InputBox {
@@ -124,6 +165,11 @@ class InputBox {
     }
 
     try {
+      if (this.input.value === '') {
+        const value = generatePrimitive(this.idl);
+        this.value = value;
+        return value;
+      }
       const value = parsePrimitive(this.idl, this.input.value);
       if (!this.idl.covariant(value)) {
         throw new Error(`${this.input.value} is not of type ${this.idl.display()}`);
