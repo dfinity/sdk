@@ -14,7 +14,6 @@
     "test": "jest --verbose"
   },
   "dependencies": {
-    "crc": "3.8.0",
     "base64-js": "1.3.1",
     "bignumber.js": "^9.0.0",
     "borc": "^2.1.1",
@@ -30,7 +29,6 @@
     "@types/base64-js": "^1.2.5",
     "@types/crc": "^3.4.0",
     "@types/jest": "^24.0.18",
-    "@types/crc": "^3.4.0",
     "copy-webpack-plugin": "^5.1.1",
     "html-webpack-plugin": "^3.2.0",
     "jest": "^24.9.0",
