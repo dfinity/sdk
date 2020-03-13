@@ -9,7 +9,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code...
+      - name: Check out code
         uses: actions/checkout@v1
-      - name: Check commits...
+      - name: Check commits
         uses: commitsar-app/commitsar@v0.11.2
