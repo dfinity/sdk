@@ -2,28 +2,31 @@
 <head>
     <meta charset="UTF-8">
     <title>DFINITY Canister Candid UI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&display=swap" rel="stylesheet">
     <style>
       .signature {
-	  font-size: 15px;
-	  font-weight: 400;
+	  //font-size: 15px;
+	  //font-weight: 400;
           margin: 5px;
       }
-      .argument, .result, .status, .composite {
-          background-color: #F9F9F9;
-	  border: 1px solid #E5E5E5;
-	  color: #545454;
-	  font-family: monospace;
-	  font-size: 15px;
-	  font-weight: 400;          
+      .argument, .status, .result, .composite {
+          //background-color: #F9F9F9;
+	  //border: 1px solid #E5E5E5;
+	  //color: #545454;
+	  font-family: 'Gloria Hallelujah', cursive;
+	  //font-size: 15px;
+	  //font-weight: 400;          
           height: auto;
           margin-right: 10px;
           margin-bottom: 10px;
       }
       .open {
+          font-family: 'Gloria Hallelujah', cursive;          
           margin: 5px;
       }
       .reject {
-	  border: 1px solid #cc0000;
+	  //border: 1px solid #cc0000;
+          color: #cc0000;
       }
       .result {
           display: none;
@@ -46,18 +49,19 @@
           width: 15%;
           display: inline-block;
       }
+      /*
       .btn {
 	  background-color: #02ADEA;
 	  border-color: #02ADEA;
 	  border-radius: .25rem;
 	  color: #FFF;
-	  font-family: sans-serif;
+	  font-family: 'Gloria Hallelujah', cursive;
 	  font-size: 18px;
 	  font-weight: 700;
           margin: 5px;
-      }
+      }*/
       .popup-form {
-          border: 1px solid #E5E5E5;
+          //border: 1px solid #E5E5E5;
           padding-top: 10px;
           padding-left: 10px;
       }
@@ -65,7 +69,7 @@
           display: flex;
           flex: 1;
           flex-direction: column;
-          font-family: monospace;
+          //font-family: 'Gloria Hallelujah', cursive;
           background-color: #F9F9F9;
           color: #545454;
       }
@@ -76,6 +80,18 @@
           border: 0;
           margin-left: 5px;
           margin-bottom: 5px;
+      }
+      wired-card {
+          //display: block;
+          //width: 100%;
+          box-sizing: border-box;
+      }
+      body {
+          font-family: 'Gloria Hallelujah', cursive;
+          font-weight: 400;
+          font-size: 19px;
+          letter-spacing: 0.05em;          
+          line-height: 2;
       }
     </style>
 </head>

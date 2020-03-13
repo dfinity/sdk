@@ -1,11 +1,12 @@
-import * as UI from './idl-ui';
+import * as UI from './wired';
+import * as Wired from 'wired-elements';
 
 export function render(id, actor, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
   for (const [name, func] of actor._fields) {
     renderMethod(name, func, canister[name]);
   }
-  const console = document.createElement("div");
+  const console = document.createElement("wired-card");
   console.className = 'console';
   document.body.appendChild(console);
 }
@@ -18,8 +19,8 @@ function renderMethod(name, idl_func, f) {
   sig.innerHTML = `${name}: ${idl_func.display()}`;
   item.appendChild(sig);
 
-  const button = document.createElement("button");
-  button.className = 'btn';
+  const button = document.createElement("wired-button");
+  //button.className = 'btn';
   if (idl_func.annotations.includes('query')) {
     button.innerText = 'Query';
   } else {
@@ -35,7 +36,7 @@ function renderMethod(name, idl_func, f) {
 
   item.appendChild(button);
 
-  const result = document.createElement("div");
+  const result = document.createElement("wired-card");
   result.className = 'result';
   const left = document.createElement("span");
   left.className = 'left';

@@ -21,6 +21,7 @@
     "buffer": "^5.4.3",
     "buffer-pipe": "0.0.4",
     "simple-cbor": "^0.2.0",
+    "wired-elements": "^2.0.0",
     "tweetnacl": "^1.0.1"
   },
   "devDependencies": {
