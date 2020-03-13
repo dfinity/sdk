@@ -1,0 +1,194 @@
+= FeatureTemplate Design Doc
+// Author field:
+Hans Larsen <hans@dfinity.org>
+v0.1, 2020-01-01
+:draft:
+:toc:
+
+== Objective
+////
+:required:
+
+In a few sentences, describe the key objectives. Why do we need this feature?
+What are we trying to accomplish?
+
+Just a few sentences.
+////
+
+== Approvals
+////
+:required:
+
+Leave as many as needed:
+////
+- [ ] Consensus: Paul Liu
+- [ ] P2P: Hassen
+- [ ] Execution Environment: Akhi
+- [ ] Message Routing: Roman
+- [ ] Infrastructure: TBD/Maria
+- [ ] ORT: John
+- [ ] Crypto: Maria
+- [ ] SDK: Hans
+- [ ] Wasm: Maciej
+- [ ] Documentation: Lisa
+
+== Background
+////
+:optional:
+
+Include as much information as necessary here to understand the design. Include
+glossary if necessary in this section. Links to examples, related projects
+or other design docs. Any previous/current version of this feature.
+
+Do not write ideas about how to solve the problem here.
+
+This is a good place for requirements and constraints.
+////
+
+== Expected User/Developer Experience
+////
+:required: Either User and/or Developer experience should be explained.
+
+Describe what
+////
+
+== Prior Art
+////
+:optional: But recommended.
+
+Link to other products available as comparatives to this design. For example,
+if another tool has a similar feature, list pros/cons/shortcomings of that tool.
+////
+
+== Prototype
+////
+:optional:
+
+If a proof of concept is available, include a link to the files here (even if
+it's in the same PR).
+////
+
+== Detailed Design
+////
+:required:
+
+Full design on how to implement the feature. Use this section to also describe
+why some simpler approaches did not work. Mention other things to watch out
+for during implementation.
+
+Keep in mind that you might not be the person implementing the design.
+////
+
+=== Public API
+////
+:optional: Required if there is any public API changes
+
+List any new or current API changes. List traits, methods, arguments and any
+types. A good way is to paste an example of the API in the language it will be
+implemented, for example (with Rust):
+
+[source,rust]
+----
+/// Confabulate the splines using reverse polarity. Can return an error if
+/// the space is asynchronously stochastic.
+pub fn confabulate(spline: &mut [&Spline], polarity: bool) -> Result<(), Error> {}
+----
+
+It's important to avoid implementations here and speak in general terms.
+////
+
+=== Security Considerations
+////
+:optional:
+
+How will this feature impact security, and what needs to be done to keep it
+secure. Considerations should include:
+  - User input sanitization
+  - Existing security protocols and standards
+  - Permissions, Access Control and capabilities
+  - Privacy, GDPR considerations, etc.
+  - Anything else that can affect security and privacy.
+////
+
+=== Performance Considerations
+////
+:optional:
+
+How will the feature affect speed and performance. Will there be a need to
+benchmark the feature (and if so, how)? Is there any considerations to keep
+in mind for avoiding and preventing future regressions?
+////
+
+=== Integration Plan
+////
+:optional: Required if there are interactions with other tools.
+
+How will this feature interact with other tools? Is there any changes outside
+of the SDK that are required to make this feature work? Does this feature
+have integration with `dfx`?
+////
+
+=== Publishing Plan
+////
+:optional: Required if there are new packages.
+
+Explain which new packages will be released and published with this feature.
+Include any changes to current released packages.
+////
+
+== Breaking Changes
+////
+:optional:
+
+Does this feature create or require breaking changes?
+////
+
+=== Deprecation
+////
+:optional:
+
+Does this feature deprecates any existing APIs?
+////
+
+== Documentation
+////
+:required:
+
+How will this feature be documented? Which people need to be involved?
+////
+
+== Rollout / Migration
+////
+:optional:
+
+How can we minimize impact to users? How do we maximize adoption?
+////
+
+== Rollback Plan
+////
+:optional:
+
+How do you plan to rollback the change if a major issue is found?
+////
+
+== Maintenance Plan
+////
+:required:
+
+How do you plan to maintain this feature for the next years? Can the
+APIs be cleanly evolved? Can Breaking Changes in the future be avoided?
+
+If this is a service, what is the update and monitoring strategy?
+
+If this is a package, how do we plan to publish and deploy it? This includes
+version numbering.
+////
+
+== Work Breakdown
+////
+:required:
+
+Description of the various phases and milestones, and approximate time
+estimates. This is supposed to be a bullet point list, and will likely
+result in one task per bullet.
+////
