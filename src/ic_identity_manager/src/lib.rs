@@ -76,5 +76,6 @@ pub mod identity;
 /// represented, and required encodings, conforming with the design
 /// and public spec.
 pub mod principal;
-mod provider;
+
+mod basic;
 mod types;

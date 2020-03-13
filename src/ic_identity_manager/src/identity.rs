@@ -28,10 +28,9 @@
 //! over a corresponding canister. Each canister has one or more
 //! controllers.
 
+use crate::basic::BasicProvider;
 use crate::crypto_error::Error;
 use crate::crypto_error::Result;
-use crate::provider::basic::BasicProvider;
-use crate::provider::Provider;
 use crate::types::Signature;
 
 use std::path::PathBuf;
@@ -46,7 +45,7 @@ pub struct Identity {
     // TODO(eftychis): This changes into a precendence map. Note that
     // principals are not going to be tied with credentials. We keep
     // it simple, simply picking the first provider.
-    inner: Vec<Box<dyn Provider>>,
+    inner: BasicProvider,
 }
 
 impl Identity {
@@ -55,13 +54,13 @@ impl Identity {
     pub fn new(path: PathBuf) -> Result<Self> {
         let basic_provider = BasicProvider::new(path)?;
         Ok(Self {
-            inner: vec![Box::new(basic_provider)],
+            inner: basic_provider,
         })
     }
     /// Sign the provided message assuming a certain principal.
     pub fn sign(&self, msg: &[u8]) -> Result<Signature> {
-        let provider = self.inner.first().ok_or(Error::NoProvider)?;
-        let identity = provider
+        let identity = self
+            .inner
             .provide()
             .map_err(|_| Error::IdentityFailedToInitialize)?;
         identity.sign(msg)

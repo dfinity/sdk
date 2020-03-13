@@ -8,7 +8,6 @@
 //! providers -- such as PGP, ssh-agent.
 use crate::crypto_error::{Error, Result};
 use crate::principal::Principal;
-use crate::provider::{IdentityWallet, Provider};
 use crate::types::Signature;
 
 use pem::{encode, Pem};
@@ -19,6 +18,10 @@ use ring::{
 };
 use std::fs;
 use std::path::{Path, PathBuf};
+
+// This module should not be re-exported. We want to ensure
+// construction and handling of keys is done only here.
+use self::private::BasicProviderReady;
 
 #[derive(Clone)]
 pub struct BasicProvider {
@@ -49,12 +52,8 @@ fn generate(profile_path: &impl AsRef<Path>) -> Result<PathBuf> {
     Ok(pem_file)
 }
 
-struct BasicProviderReady {
-    key_pair: Ed25519KeyPair,
-}
-
-impl Provider for BasicProvider {
-    fn provide(&self) -> Result<Box<dyn IdentityWallet>> {
+impl BasicProvider {
+    pub fn provide(&self) -> Result<BasicProviderReady> {
         let mut dir = fs::read_dir(&self.path)?;
         let name: std::ffi::OsString = "creds.pem".to_owned().into();
         let pem_file = if dir.any(|n| match n {
@@ -69,27 +68,43 @@ impl Provider for BasicProvider {
         let pkcs8_bytes = pem::parse(fs::read(pem_file)?)?.contents;
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
 
-        Ok(Box::new(BasicProviderReady { key_pair }))
+        Ok(BasicProviderReady { key_pair })
     }
 }
 
-impl IdentityWallet for BasicProviderReady {
-    fn sign(&self, msg: &[u8]) -> Result<Signature> {
-        let signature = self.key_pair.sign(msg);
-        // At this point we shall validate the signature in this first
-        // skeleton version.
-        let public_key_bytes = self.key_pair.public_key().as_ref();
-
-        let public_key = signature::UnparsedPublicKey::new(&signature::ED25519, public_key_bytes);
-        public_key.verify(msg, signature.as_ref())?;
-        Ok(Signature {
-            signer: self.principal(),
-            signature: signature.as_ref().to_vec(),
-            public_key: public_key_bytes.to_vec(),
-        })
+// The contents of this module while public, that is can be known and
+// handled as of the new Rust iteration by other modules in the crate,
+// the type constructor and associated functions shall be visible only
+// by the parent module, and should not be re-exported. This is
+// essentially a sealed type.
+mod private {
+    use super::*;
+    /// We enforce a state transition, reading the key as necessary, only
+    /// to sign. TODO(eftychis): We should erase pin and erase the key
+    /// from memory afterwards.
+    pub struct BasicProviderReady {
+        pub key_pair: Ed25519KeyPair,
     }
-    fn principal(&self) -> Principal {
-        Principal::self_authenticating(&self.key_pair)
+
+    impl BasicProviderReady {
+        pub fn sign(&self, msg: &[u8]) -> Result<Signature> {
+            let signature = self.key_pair.sign(msg);
+            // At this point we shall validate the signature in this first
+            // skeleton version.
+            let public_key_bytes = self.key_pair.public_key().as_ref();
+
+            let public_key =
+                signature::UnparsedPublicKey::new(&signature::ED25519, public_key_bytes);
+            public_key.verify(msg, signature.as_ref())?;
+            Ok(Signature {
+                signer: self.principal(),
+                signature: signature.as_ref().to_vec(),
+                public_key: public_key_bytes.to_vec(),
+            })
+        }
+        fn principal(&self) -> Principal {
+            Principal::self_authenticating(&self.key_pair)
+        }
     }
 }
 
