@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: niv-updater-action
-        uses: knl/niv-updater-action@v4
+        uses: knl/niv-updater-action@v5
         with:
           whitelist: 'common,advisory-db,napalm'
           labels: |

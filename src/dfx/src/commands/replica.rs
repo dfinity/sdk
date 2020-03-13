@@ -118,7 +118,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Must be unbounded, as a killed child should not deadlock.
     let (request_stop, _rcv_wait) = unbounded();
-    let (_broadcast_stop, is_killed_replica) = unbounded();
+    let (broadcast_stop, is_killed_replica) = unbounded();
 
     b.set_message("Generating IC local replica configuration.");
     let replica_config = ReplicaConfig::new(&state_root)
@@ -146,6 +146,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     b.set_message("Pinging the Internet Computer replica...");
     ping_and_wait(format!("http://localhost:{}", port).as_str())?;
     b.finish_with_message("Internet Computer replica started...");
+
+    // Wait for a SIGTERM signal.
+    let signals = signal_hook::iterator::Signals::new(&[signal_hook::SIGTERM])?;
+
+    std::thread::spawn(move || {
+        for _ in signals.forever() {
+            broadcast_stop.try_send(()).expect("Could not terminate.");
+            eprintln!("FOUND SIGNAL!");
+        }
+    });
 
     // Join and handle errors for the replica watchdog thread. Here we
     // check the result of replica_watchdog and start_replica.
