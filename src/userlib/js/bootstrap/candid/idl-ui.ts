@@ -103,15 +103,11 @@ class Random extends IDL.Visitor<string, any> {
   }
   private generateNumber(signed: boolean): number {
     const num = Math.floor(Math.random() * 100);
-    if (signed) {
-      if (Math.random() < 0.5) {
-        return +num;
-      } else {
+    if (signed && Math.random() < 0.5) {
         return -num;
+      } else {
+        return num;
       }
-    } else {
-      return num;
-    }
   }
 }
 
