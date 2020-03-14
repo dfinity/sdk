@@ -166,9 +166,9 @@ class InputBox {
 
     try {
       if (this.input.value === '') {
-        const value = generatePrimitive(this.idl);
-        this.value = value;
-        return value;
+        const v = generatePrimitive(this.idl);
+        this.value = v;
+        return v;
       }
       const value = parsePrimitive(this.idl, this.input.value);
       if (!this.idl.covariant(value)) {
