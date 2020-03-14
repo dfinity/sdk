@@ -1,5 +1,6 @@
 import { CanisterId, IDL } from '@internet-computer/userlib';
 import BigNumber from 'bignumber.js';
+import * as UI from 'wired-elements';
 
 // tslint:disable:max-classes-per-file
 
@@ -10,6 +11,7 @@ class Render extends IDL.Visitor<null, InputBox> {
   public visitNull(t: IDL.NullClass, d: null): InputBox {
     const input = new InputBox(t, null);
     input.input.type = 'hidden';
+    input.input.style.display = 'none';
     return input;
   }
   public visitRecord(t: IDL.RecordClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
@@ -88,18 +90,18 @@ function parsePrimitive(t: IDL.Type, d: string) {
 }
 
 class InputBox {
-  public input: HTMLInputElement;
+  public input: UI.WiredInput;
   public status: HTMLElement;
   public label: string | null = null;
   public value: any = undefined;
 
   constructor(public idl: IDL.Type, public form: InputForm | null = null) {
     const status = document.createElement('div');
-    status.className = 'status';
+    status.classList.add('status');
     this.status = status;
 
-    const input = document.createElement('input');
-    input.className = 'argument';
+    const input = document.createElement('wired-input') as UI.WiredInput;
+    input.classList.add('argument');
     input.placeholder = idl.display();
     this.input = input;
 
@@ -110,7 +112,7 @@ class InputBox {
       this.parse();
     });
     input.addEventListener('focus', () => {
-      input.className = 'argument';
+      input.classList.remove('reject');
     });
   }
   public isRejected(): boolean {
@@ -132,7 +134,7 @@ class InputBox {
       this.value = value;
       return value;
     } catch (err) {
-      this.input.className += ' reject';
+      this.input.classList.add('reject');
       this.status.style.display = 'block';
       this.status.innerHTML = 'InputError: ' + err.message;
       this.value = undefined;
@@ -146,13 +148,14 @@ class InputBox {
       label.innerText = this.label;
       container.appendChild(label);
     }
-    container.appendChild(this.input);
-    container.appendChild(this.status);
 
     if (this.form) {
       this.input.type = 'hidden';
       this.form.render(container);
       const input = this.input;
+    } else {
+      container.appendChild(this.input);
+      container.appendChild(this.status);
     }
     dom.appendChild(container);
   }
@@ -173,10 +176,13 @@ abstract class InputForm {
       this.form[0].render(dom);
       return;
     }
-    const form = document.createElement('div');
-    form.className = 'popup-form';
-    this.form.forEach(e => e.render(form));
-    dom.appendChild(form);
+    const card = document.createElement('div');// as UI.WiredCard;
+    const div = document.createElement('div');
+    card.classList.add('popup-form');
+    this.form.forEach(e => e.render(div));
+    card.appendChild(div);
+    //card.requestUpdate();
+    dom.appendChild(card);
   }
   public render(dom: HTMLElement): void {
     dom.appendChild(this.open);
@@ -230,26 +236,35 @@ class RecordForm extends InputForm {
 class VariantForm extends InputForm {
   constructor(public fields: Array<[string, IDL.Type]>) {
     super();
-    const select = document.createElement('select');
-    for (const [key, type] of fields) {
-      const option = document.createElement('option');
+    const select = document.createElement('wired-combo') as UI.WiredCombo;
+    for (let i = 0; i < fields.length; i++) {
+      const [key, type] = fields[i];
+      const option = document.createElement('wired-item') as UI.WiredItem;
+      option.value = key;
       option.innerText = key;
       select.appendChild(option);
     }
-    select.selectedIndex = -1;
-    select.className = 'open';
+    //select.selectedIndex = -1;
+    select.classList.add('open');
     this.open = select;
-    this.event = 'change';
+    this.event = 'selected';
   }
   public generateForm(): void {
-    const index = (this.open as HTMLSelectElement).selectedIndex;
-    const [_, type] = this.fields[index];
-    const variant = renderInput(type);
-    this.form = [variant];
+    const key = (this.open as UI.WiredCombo).selected;
+    for (let i = 0; i < this.fields.length; i++) {
+      if (key === this.fields[i][0]) {
+        const variant = renderInput(this.fields[i][1]);
+        this.form = [variant];
+        return;
+      }
+    }
+    //const [_, type] = this.fields[index];
+    //const variant = renderInput(type);
+    //this.form = [variant];
   }
   public parse(): Record<string, any> | undefined {
-    const select = this.open as HTMLSelectElement;
-    const selected = select.options[select.selectedIndex].text;
+    const select = this.open as UI.WiredCombo;
+    const selected = select.selected!;
     const value = this.form[0].parse();
     if (value === undefined) {
       return undefined;
@@ -263,9 +278,9 @@ class VariantForm extends InputForm {
 class OptionForm extends InputForm {
   constructor(public ty: IDL.Type) {
     super();
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'open';
+    const checkbox = document.createElement('wired-checkbox') as UI.WiredCheckbox;
+    //checkbox.type = 'checkbox';
+    //checkbox.className = 'open';
     this.open = checkbox;
     this.event = 'change';
   }
@@ -293,7 +308,7 @@ class OptionForm extends InputForm {
 class VecForm extends InputForm {
   constructor(public ty: IDL.Type) {
     super();
-    const len = document.createElement('input');
+    const len = document.createElement('wired-input') as UI.WiredInput;
     len.type = 'number';
     len.min = '0';
     len.max = '100';
@@ -304,7 +319,7 @@ class VecForm extends InputForm {
     this.event = 'change';
   }
   public generateForm(): void {
-    const len = (this.open as HTMLInputElement).valueAsNumber;
+    const len = +(this.open as UI.WiredInput).value;
     this.form = [];
     for (let i = 0; i < len; i++) {
       const t = renderInput(this.ty);

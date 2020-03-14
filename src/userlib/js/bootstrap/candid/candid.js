@@ -1,4 +1,4 @@
-import * as UI from './wired';
+import * as UI from './idl-ui';
 import * as Wired from 'wired-elements';
 
 export function render(id, actor, canister) {
