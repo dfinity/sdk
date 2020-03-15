@@ -124,6 +124,10 @@ function generatePrimitive(t: IDL.Type) {
   return t.accept(new Random(), '');
 }
 
+export interface ParseConfig {
+  random?: boolean;
+}
+
 class InputBox {
   public input: HTMLInputElement;
   public status: HTMLElement;
@@ -144,7 +148,7 @@ class InputBox {
       if (input.value === '') {
         return;
       }
-      this.parse();
+      this.parse({});
     });
     input.addEventListener('focus', () => {
       input.className = 'argument';
@@ -153,15 +157,16 @@ class InputBox {
   public isRejected(): boolean {
     return this.value === undefined;
   }
-  public parse(): any {
+
+  public parse(config: ParseConfig = {}): any {
     if (this.form) {
-      const value = this.form.parse();
+      const value = this.form.parse(config);
       this.value = value;
       return value;
     }
 
     try {
-      if (this.input.value === '') {
+      if (config.random && this.input.value === '') {
         const v = generatePrimitive(this.idl);
         this.value = v;
         return v;
@@ -205,7 +210,7 @@ abstract class InputForm {
   public open: HTMLElement = document.createElement('button');
   public event: string = 'change';
 
-  public abstract parse(): any;
+  public abstract parse(config: ParseConfig): any;
   public abstract generateForm(): any;
   public renderForm(dom: HTMLElement): void {
     if (this.form.length === 0) {
@@ -256,10 +261,10 @@ class RecordForm extends InputForm {
     this.generateForm();
     this.renderForm(dom);
   }
-  public parse(): Record<string, any> | undefined {
+  public parse(config: ParseConfig): Record<string, any> | undefined {
     const v: Record<string, any> = {};
     this.fields.forEach(([key, _], i) => {
-      const value = this.form[i].parse();
+      const value = this.form[i].parse(config);
       v[key] = value;
     });
     if (this.form.some(input => input.isRejected())) {
@@ -289,10 +294,10 @@ class VariantForm extends InputForm {
     const variant = renderInput(type);
     this.form = [variant];
   }
-  public parse(): Record<string, any> | undefined {
+  public parse(config: ParseConfig): Record<string, any> | undefined {
     const select = this.open as HTMLSelectElement;
     const selected = select.options[select.selectedIndex].text;
-    const value = this.form[0].parse();
+    const value = this.form[0].parse(config);
     if (value === undefined) {
       return undefined;
     }
@@ -319,11 +324,11 @@ class OptionForm extends InputForm {
       this.form = [];
     }
   }
-  public parse<T>(): [T] | [] | undefined {
+  public parse<T>(config: ParseConfig): [T] | [] | undefined {
     if (this.form.length === 0) {
       return [];
     } else {
-      const value = this.form[0].parse();
+      const value = this.form[0].parse(config);
       if (value === undefined) {
         return undefined;
       }
@@ -363,9 +368,9 @@ class VecForm extends InputForm {
     this.form.forEach(e => e.render(form));
     dom.appendChild(form);
   }
-  public parse<T>(): T[] | undefined {
+  public parse<T>(config: ParseConfig): T[] | undefined {
     const value = this.form.map(input => {
-      return input.parse();
+      return input.parse(config);
     });
     if (this.form.some(input => input.isRejected())) {
       return undefined;
