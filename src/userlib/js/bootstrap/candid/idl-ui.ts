@@ -148,7 +148,7 @@ class InputBox {
       if (input.value === '') {
         return;
       }
-      this.parse({});
+      this.parse();
     });
     input.addEventListener('focus', () => {
       input.className = 'argument';
