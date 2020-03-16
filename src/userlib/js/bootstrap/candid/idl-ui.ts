@@ -81,12 +81,53 @@ class Parse extends IDL.Visitor<string, any> {
   }
 }
 
+class Random extends IDL.Visitor<string, any> {
+  public visitNull(t: IDL.NullClass, v: string): null {
+    return null;
+  }
+  public visitBool(t: IDL.BoolClass, v: string): boolean {
+    return Math.random() < 0.5;
+  }
+  public visitText(t: IDL.TextClass, v: string): string {
+    return Math.random().toString(36).substring(6);
+  }
+  public visitInt(t: IDL.IntClass, v: string): BigNumber {
+    return new BigNumber(this.generateNumber(true));
+  }
+  public visitNat(t: IDL.NatClass, v: string): BigNumber {
+    return new BigNumber(this.generateNumber(false));
+  }
+  public visitFixedInt(t: IDL.FixedIntClass, v: string): BigNumber {
+    return new BigNumber(this.generateNumber(true));
+  }
+  public visitFixedNat(t: IDL.FixedNatClass, v: string): BigNumber {
+    return new BigNumber(this.generateNumber(false));
+  }
+  private generateNumber(signed: boolean): number {
+    const num = Math.floor(Math.random() * 100);
+    if (signed && Math.random() < 0.5) {
+        return -num;
+      } else {
+        return num;
+      }
+  }
+}
+
 export function renderInput(t: IDL.Type): InputBox {
   return t.accept(new Render(), null);
 }
 
 function parsePrimitive(t: IDL.Type, d: string) {
   return t.accept(new Parse(), d);
+}
+
+function generatePrimitive(t: IDL.Type) {
+  // TODO: in the future we may want to take a string to specify how random values are generated
+  return t.accept(new Random(), '');
+}
+
+export interface ParseConfig {
+  random?: boolean;
 }
 
 class InputBox {
@@ -118,14 +159,20 @@ class InputBox {
   public isRejected(): boolean {
     return this.value === undefined;
   }
-  public parse(): any {
+
+  public parse(config: ParseConfig = {}): any {
     if (this.form) {
-      const value = this.form.parse();
+      const value = this.form.parse(config);
       this.value = value;
       return value;
     }
 
     try {
+      if (config.random && this.input.value === '') {
+        const v = generatePrimitive(this.idl);
+        this.value = v;
+        return v;
+      }
       const value = parsePrimitive(this.idl, this.input.value);
       if (!this.idl.covariant(value)) {
         throw new Error(`${this.input.value} is not of type ${this.idl.display()}`);
@@ -166,7 +213,7 @@ abstract class InputForm {
   public open: HTMLElement = document.createElement('button');
   public event: string = 'change';
 
-  public abstract parse(): any;
+  public abstract parse(config: ParseConfig): any;
   public abstract generateForm(): any;
   public renderForm(dom: HTMLElement): void {
     if (this.form.length === 0) {
@@ -220,10 +267,10 @@ class RecordForm extends InputForm {
     this.generateForm();
     this.renderForm(dom);
   }
-  public parse(): Record<string, any> | undefined {
+  public parse(config: ParseConfig): Record<string, any> | undefined {
     const v: Record<string, any> = {};
     this.fields.forEach(([key, _], i) => {
-      const value = this.form[i].parse();
+      const value = this.form[i].parse(config);
       v[key] = value;
     });
     if (this.form.some(input => input.isRejected())) {
@@ -262,10 +309,10 @@ class VariantForm extends InputForm {
     //const variant = renderInput(type);
     //this.form = [variant];
   }
-  public parse(): Record<string, any> | undefined {
+  public parse(config: ParseConfig): Record<string, any> | undefined {
     const select = this.open as UI.WiredCombo;
     const selected = select.selected!;
-    const value = this.form[0].parse();
+    const value = this.form[0].parse(config);
     if (value === undefined) {
       return undefined;
     }
@@ -292,11 +339,11 @@ class OptionForm extends InputForm {
       this.form = [];
     }
   }
-  public parse<T>(): [T] | [] | undefined {
+  public parse<T>(config: ParseConfig): [T] | [] | undefined {
     if (this.form.length === 0) {
       return [];
     } else {
-      const value = this.form[0].parse();
+      const value = this.form[0].parse(config);
       if (value === undefined) {
         return undefined;
       }
@@ -336,9 +383,9 @@ class VecForm extends InputForm {
     this.form.forEach(e => e.render(form));
     dom.appendChild(form);
   }
-  public parse<T>(): T[] | undefined {
+  public parse<T>(config: ParseConfig): T[] | undefined {
     const value = this.form.map(input => {
-      return input.parse();
+      return input.parse(config);
     });
     if (this.form.some(input => input.isRejected())) {
       return undefined;

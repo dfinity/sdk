@@ -19,14 +19,6 @@ function renderMethod(name, idl_func, f) {
   sig.innerHTML = `${name}: ${idl_func.display()}`;
   item.appendChild(sig);
 
-  const button = document.createElement("wired-button");
-  //button.className = 'btn';
-  if (idl_func.annotations.includes('query')) {
-    button.innerText = 'Query';
-  } else {
-    button.innerText = 'Call';
-  }
-
   const inputs = [];
   idl_func.argTypes.forEach((arg, i) => {
     const inputbox = UI.renderInput(arg);
@@ -34,9 +26,22 @@ function renderMethod(name, idl_func, f) {
     inputbox.render(item);
   });
 
+  const button = document.createElement("button");
+  button.className = 'btn';
+  if (idl_func.annotations.includes('query')) {
+    button.innerText = 'Query';
+  } else {
+    button.innerText = 'Call';
+  }  
   item.appendChild(button);
 
+  const random = document.createElement("button");
+  random.className = 'btn';
+  random.innerText = 'Lucky';
+  item.appendChild(random);
+
   const result = document.createElement("wired-card");
+
   result.className = 'result';
   const left = document.createElement("span");
   left.className = 'left';
@@ -49,13 +54,7 @@ function renderMethod(name, idl_func, f) {
   const list = document.getElementById("methods");
   list.append(item);
 
-  button.addEventListener("click", function() {
-    const args = inputs.map(arg => arg.parse());
-    const isReject = inputs.some(arg => arg.isRejected());
-    if (isReject) {
-      return;
-    }
-    
+  function call(args) {
     left.className = 'left';
     left.innerText = 'Waiting...';
     right.innerText = ''
@@ -80,7 +79,25 @@ function renderMethod(name, idl_func, f) {
     })().catch(err => {
       left.className += ' error';
       left.innerText = err.message;
-    });
+    });    
+  }
+  
+  random.addEventListener("click", function() {
+    const args = inputs.map(arg => arg.parse({ random: true }));
+    const isReject = inputs.some(arg => arg.isRejected());
+    if (isReject) {
+      return;
+    }    
+    call(args);
+  });
+  
+  button.addEventListener("click", function() {
+    const args = inputs.map(arg => arg.parse());
+    const isReject = inputs.some(arg => arg.isRejected());
+    if (isReject) {
+      return;
+    }
+    call(args);
   });
 };
 
