@@ -160,7 +160,7 @@ impl Environment for EnvironmentImpl {
                     let port = start.get_port(8000);
                     let dfx_root = self.get_temp_dir();
                     // This is the default to keep precedence sane.
-                    let local_project_identity = dfx_root.join("identity");
+                    let local_project_identity = dfx_root.join("identity").join("default");
                     if create_dir_all(&local_project_identity).is_err() {
                         return None;
                     }
@@ -208,7 +208,7 @@ impl<'a> AgentEnvironment<'a> {
         let dfx_root = backend.get_temp_dir();
         // This is the default to keep precedence sane,
         // not deal with home folders or cache right now.
-        let local_project_identity = dfx_root.join("identity");
+        let local_project_identity = dfx_root.join("identity").join("default");
         // This is for sanity. The environment should have created
         // this already. N.B. Do not assume the existence of this
         // directory yet.
