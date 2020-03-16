@@ -12,6 +12,10 @@ export type JsonValue = boolean | string | number | JsonArray | JsonObject;
 // https://developer.mozilla.org/en-US/docs/Web/API/Blob
 export type BinaryBlob = Buffer & { __BLOB: never };
 
+export function blobFromUint8Array(arr: Uint8Array): BinaryBlob {
+  return Buffer.from(arr) as BinaryBlob;
+}
+
 export function blobFromHex(hex: string): BinaryBlob {
   return Buffer.from(hex, 'hex') as BinaryBlob;
 }

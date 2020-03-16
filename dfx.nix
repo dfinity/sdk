@@ -24,11 +24,11 @@ let
       ".*Cargo\.lock$"
       "^.cargo/config$"
     ];
+    cargoTestCommands = _: [
+      ''cargo $cargo_options test $cargo_test_options --workspace --exclude ic-http-agent''
+      ''RUST_TEST_THREADS=1 cargo $cargo_options test $cargo_test_options -p ic-http-agent''
+    ];
     static = pkgs.stdenv.isLinux;
-
-    override = _: {
-      RUST_TEST_THREADS = 1;
-    };
   };
 
   # add extra executables used when linting

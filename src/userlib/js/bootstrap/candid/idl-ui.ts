@@ -1,4 +1,4 @@
-import { IDL } from '@internet-computer/userlib';
+import { CanisterId, IDL } from '@internet-computer/userlib';
 import BigNumber from 'bignumber.js';
 
 // tslint:disable:max-classes-per-file
@@ -7,7 +7,7 @@ class Render extends IDL.Visitor<null, InputBox> {
   public visitPrimitive<T>(t: IDL.PrimitiveType<T>, d: null): InputBox {
     return new InputBox(t, null);
   }
-  public visitUnit(t: IDL.UnitClass, d: null): InputBox {
+  public visitNull(t: IDL.NullClass, d: null): InputBox {
     const input = new InputBox(t, null);
     input.input.type = 'hidden';
     return input;
@@ -31,10 +31,16 @@ class Render extends IDL.Visitor<null, InputBox> {
   public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): InputBox {
     return renderInput(ty);
   }
+  public visitService(t: IDL.ServiceClass, d: null): InputBox {
+    return new InputBox(t, null);
+  }
+  public visitFunc(t: IDL.FuncClass, d: null): InputBox {
+    return new InputBox(t, null);
+  }
 }
 
 class Parse extends IDL.Visitor<string, any> {
-  public visitUnit(t: IDL.UnitClass, v: string): null {
+  public visitNull(t: IDL.NullClass, v: string): null {
     return null;
   }
   public visitBool(t: IDL.BoolClass, v: string): boolean {
@@ -60,6 +66,16 @@ class Parse extends IDL.Visitor<string, any> {
   }
   public visitFixedNat(t: IDL.FixedNatClass, v: string): BigNumber {
     return new BigNumber(v);
+  }
+  public visitPrincipal(t: IDL.PrincipalClass, v: string): CanisterId {
+    return CanisterId.fromText(v);
+  }
+  public visitService(t: IDL.ServiceClass, v: string): CanisterId {
+    return CanisterId.fromText(v);
+  }
+  public visitFunc(t: IDL.FuncClass, v: string): [CanisterId, string] {
+    const x = v.split('.', 2);
+    return [CanisterId.fromText(x[0]), x[1]];
   }
 }
 

@@ -1,9 +1,10 @@
 use crate::lib::error::{DfxError, DfxResult};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::default::Default;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HttpHandlerConfig {
     /// Instructs the HTTP handler to use the specified port
     pub use_port: Option<u16>,
@@ -15,30 +16,53 @@ pub struct HttpHandlerConfig {
     pub write_port_to: Option<PathBuf>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct SchedulerConfig {
+    pub exec_gas: Option<u64>,
+    pub round_gas_max: Option<u64>,
+}
+
+impl SchedulerConfig {
+    pub fn validate(self) -> DfxResult<Self> {
+        if self.exec_gas >= self.round_gas_max {
+            let message = "Round gas limit must exceed message gas limit.";
+            Err(DfxError::InvalidData(message.to_string()))
+        } else {
+            Ok(self)
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct StateManagerConfig {
     pub state_root: PathBuf,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ReplicaConfig {
-    pub state_manager: StateManagerConfig,
     pub http_handler: HttpHandlerConfig,
+    pub scheduler: SchedulerConfig,
+    pub state_manager: StateManagerConfig,
 }
 
 impl ReplicaConfig {
     pub fn new(state_root: &Path) -> Self {
         ReplicaConfig {
-            state_manager: StateManagerConfig {
-                state_root: state_root.to_path_buf(),
-            },
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
                 use_port: None,
             },
+            scheduler: SchedulerConfig {
+                exec_gas: None,
+                round_gas_max: None,
+            },
+            state_manager: StateManagerConfig {
+                state_root: state_root.to_path_buf(),
+            },
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_port(&mut self, port: u16) -> &mut Self {
         self.http_handler.use_port = Some(port);
         self.http_handler.write_port_to = None;
