@@ -85,7 +85,7 @@ export type ActorConstructor = (config: ActorConfig) => Actor;
 // const reply2 = await actor(httpAgent2).greet();
 // ```
 export function makeActorFactory(
-  actorInterfaceFactory: (_: { IDL: typeof IDL }) => IDL.ActorInterface,
+  actorInterfaceFactory: (_: { IDL: typeof IDL }) => IDL.ServiceClass,
 ): ActorConstructor {
   const actorInterface = actorInterfaceFactory({ IDL });
 
@@ -190,7 +190,7 @@ export function makeActorFactory(
       },
     } as Actor;
 
-    for (const [methodName, func] of Object.entries(actorInterface._fields)) {
+    for (const [methodName, func] of actorInterface._fields) {
       actor[methodName] = async (...args: any[]) => {
         const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
