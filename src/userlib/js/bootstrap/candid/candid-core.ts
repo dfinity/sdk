@@ -210,7 +210,7 @@ export class VecForm extends InputForm {
     super(ui);
   }
   public generateForm(): void {
-    const len = (this.ui.open as HTMLInputElement).valueAsNumber;
+    const len = +(this.ui.open as HTMLInputElement).value;
     this.form = [];
     for (let i = 0; i < len; i++) {
       const t = this.ui.render(this.ty);
