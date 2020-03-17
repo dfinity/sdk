@@ -11,6 +11,8 @@ openssl = "0.10.28"
 pem = "0.7.0"
 ring = "0.16.11"
 serde = { version = "1.0", features = ["derive"] }
+ic-http-agent = { path = "../ic_http_agent" }
+
 
 [dev-dependencies]
 serde_cbor = "0.10"

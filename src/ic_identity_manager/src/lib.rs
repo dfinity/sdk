@@ -21,10 +21,6 @@
 pub mod crypto_error;
 /// Defines an identity object and API.
 pub mod identity;
-/// Defines various types of Principals, how their identifiers are
-/// represented, and required encodings, conforming with the design
-/// and public spec.
-pub mod principal;
 
 mod basic;
 mod types;

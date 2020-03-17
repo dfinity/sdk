@@ -1,4 +1,4 @@
-use crate::principal::Principal;
+use ic_http_agent::Principal;
 
 // Note perhaps in the future we will need to indicate the schema
 // type.

@@ -1490,6 +1490,7 @@ dependencies = [
 name = "ic-identity-manager"
 version = "0.1.0"
 dependencies = [
+ "ic-http-agent 0.1.0",
  "openssl 0.10.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "pem 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ring 0.16.11 (registry+https://github.com/rust-lang/crates.io-index)",

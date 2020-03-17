@@ -7,9 +7,9 @@
 //! the agent is "stateless" or ii) provide long-running service
 //! providers -- such as PGP, ssh-agent.
 use crate::crypto_error::{Error, Result};
-use crate::principal::Principal;
 use crate::types::Signature;
 
+use ic_http_agent::Principal;
 use pem::{encode, Pem};
 use ring::signature::Ed25519KeyPair;
 use ring::{
@@ -103,7 +103,7 @@ mod private {
             })
         }
         fn principal(&self) -> Principal {
-            Principal::self_authenticating(&self.key_pair)
+            Principal::self_authenticating(&self.key_pair.public_key())
         }
     }
 }

@@ -1,6 +1,6 @@
+use ic_http_agent::Principal;
 use ic_identity_manager::crypto_error::Result;
 use ic_identity_manager::identity::Identity;
-use ic_identity_manager::principal::Principal;
 use ring::signature::{self, KeyPair};
 use std::env::current_dir;
 use std::fs;
@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     let sig = key_pair.sign(MESSAGE);
     assert_eq!(sig.as_ref().to_vec(), signed_message.signature);
     assert_eq!(
-        Principal::self_authenticating(&key_pair),
+        Principal::self_authenticating(&key_pair.public_key()),
         signed_message.signer
     );
     assert_eq!(
