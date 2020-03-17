@@ -1,0 +1,67 @@
+.signature {
+    margin: 5px;
+}
+.argument, .result, .status, .composite {
+    font-family: 'Gloria Hallelujah', cursive;
+    font-size: 15px;
+    font-weight: 400;          
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+.open {
+    font-family: 'Gloria Hallelujah', cursive;    
+    margin: 5px;
+}
+.reject {
+    color: #cc0000;
+}
+.result {
+    display: none;
+}
+.error {
+    color: #cc0000;
+}
+.status {
+    color: #cc0000;
+    display: none;
+}
+.btn {
+    margin: 5px;
+}
+.left {
+    text-align: left;
+    width: 84%;
+    display: inline-block;
+    overflow-wrap: break-word;
+}
+.right {
+    text-align: right;
+    width: 15%;
+    display: inline-block;
+}
+.popup-form {
+    padding-top: 10px;
+    padding-left: 15px;
+}
+.console {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    background-color: #F9F9F9;
+    color: #545454;
+}
+.console-line {
+    overflow-wrap: break-word;
+    flex: 0;
+    flex-basis: auto;
+    border: 0;
+    margin-left: 5px;
+    margin-bottom: 5px;
+}
+body {
+    font-family: 'Gloria Hallelujah', cursive;
+    font-weight: 400;
+    font-size: 19px;
+    letter-spacing: 0.05em;          
+    line-height: 2;
+}

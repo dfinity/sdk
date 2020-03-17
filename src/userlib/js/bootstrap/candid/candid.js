@@ -1,7 +1,13 @@
-import * as UI from './idl-ui';
+import * as UI from './wired';
 import { WiredCard, WiredButton } from 'wired-elements';
+import './wired.css';
 
 export function render(id, actor, canister) {
+  const font = document.createElement('link');
+  font.href = 'https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&display=swap';
+  font.rel = 'stylesheet';
+  document.head.appendChild(font);
+  
   document.getElementById('title').innerText = `Service ${id}`;
   for (const [name, func] of actor._fields) {
     renderMethod(name, func, canister[name]);
@@ -27,7 +33,7 @@ function renderMethod(name, idl_func, f) {
   });
 
   const button = document.createElement("wired-button");
-  //button.className = 'btn';
+  button.classList.add('btn');
   if (idl_func.annotations.includes('query')) {
     button.innerText = 'Query';
   } else {
@@ -36,7 +42,7 @@ function renderMethod(name, idl_func, f) {
   item.appendChild(button);
 
   const random = document.createElement("wired-button");
-  //random.className = 'btn';
+  random.classList.add('btn');
   random.innerText = 'Lucky';
   item.appendChild(random);
 
