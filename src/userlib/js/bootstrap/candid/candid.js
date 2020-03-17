@@ -1,4 +1,5 @@
 import * as UI from './candid-ui';
+import './candid.css';
 
 export function render(id, actor, canister) {
   document.getElementById('title').innerText = `Service ${id}`;

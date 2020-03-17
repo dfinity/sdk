@@ -13,6 +13,9 @@ export interface UIConfig {
 }
 
 export interface FormConfig {
+  open?: HTMLElement;
+  event?: string;
+  container: string;
   render(t: IDL.Type): InputBox;
 }
 
@@ -52,11 +55,6 @@ export class InputBox {
     if (this.ui.input) {
       const input = this.ui.input as HTMLInputElement;
       try {
-        /*if (config.random && input.value === '') {
-          const v = generatePrimitive(this.idl);
-          this.value = v;
-          return v;
-        }*/
         const value = this.ui.parse(this.idl, config, input.value);
         if (!this.idl.covariant(value)) {
           throw new Error(`${input.value} is not of type ${this.idl.display()}`);
@@ -95,8 +93,7 @@ export class InputBox {
 
 export abstract class InputForm {
   public form: InputBox[] = [];
-  public open: HTMLElement = document.createElement('button');
-  public event: string = 'change';
+  constructor(public ui: FormConfig) {}
 
   public abstract parse(config: ParseConfig): any;
   public abstract generateForm(): any;
@@ -104,38 +101,41 @@ export abstract class InputForm {
     if (this.form.length === 0) {
       return;
     }
-    if (this.form.length === 1) {
+    if (!(this instanceof VecForm) && this.form.length === 1) {
       this.form[0].render(dom);
       return;
     }
-    const form = document.createElement('div');
-    form.className = 'popup-form';
+    const form = document.createElement(this.ui.container);
+    form.classList.add('popup-form');
     this.form.forEach(e => e.render(form));
     dom.appendChild(form);
   }
   public render(dom: HTMLElement): void {
-    dom.appendChild(this.open);
-    const form = this;
-    form.open.addEventListener(form.event, () => {
-      while (dom.lastElementChild) {
-        if (dom.lastElementChild !== form.open) {
-          dom.removeChild(dom.lastElementChild);
-        } else {
-          break;
+    if (this.ui.open && this.ui.event) {
+      dom.appendChild(this.ui.open);
+      const form = this;
+      form.ui.open!.addEventListener(form.ui.event!, () => {
+        while (dom.lastElementChild) {
+          if (dom.lastElementChild !== form.ui.open) {
+            dom.removeChild(dom.lastElementChild);
+          } else {
+            break;
+          }
         }
-      }
-      // Render form
-      form.generateForm();
-      form.renderForm(dom);
-    });
+        // Render form
+        form.generateForm();
+        form.renderForm(dom);
+      });
+    } else {
+      this.generateForm();
+      this.renderForm(dom);
+    }
   }
 }
 
 export class RecordForm extends InputForm {
   constructor(public fields: Array<[string, IDL.Type]>, public ui: FormConfig) {
-    super();
-    this.open.innerText = '...';
-    this.event = 'click';
+    super(ui);
   }
   public generateForm(): void {
     this.form = this.fields.map(([key, type]) => {
@@ -143,11 +143,6 @@ export class RecordForm extends InputForm {
       input.label = key + ' ';
       return input;
     });
-  }
-  public render(dom: HTMLElement): void {
-    // No open button for record
-    this.generateForm();
-    this.renderForm(dom);
   }
   public parse(config: ParseConfig): Record<string, any> | undefined {
     const v: Record<string, any> = {};
@@ -164,26 +159,16 @@ export class RecordForm extends InputForm {
 
 export class VariantForm extends InputForm {
   constructor(public fields: Array<[string, IDL.Type]>, public ui: FormConfig) {
-    super();
-    const select = document.createElement('select');
-    for (const [key, type] of fields) {
-      const option = document.createElement('option');
-      option.innerText = key;
-      select.appendChild(option);
-    }
-    select.selectedIndex = -1;
-    select.className = 'open';
-    this.open = select;
-    this.event = 'change';
+    super(ui);
   }
   public generateForm(): void {
-    const index = (this.open as HTMLSelectElement).selectedIndex;
+    const index = (this.ui.open as HTMLSelectElement).selectedIndex;
     const [_, type] = this.fields[index];
     const variant = this.ui.render(type);
     this.form = [variant];
   }
   public parse(config: ParseConfig): Record<string, any> | undefined {
-    const select = this.open as HTMLSelectElement;
+    const select = this.ui.open as HTMLSelectElement;
     const selected = select.options[select.selectedIndex].text;
     const value = this.form[0].parse(config);
     if (value === undefined) {
@@ -197,15 +182,10 @@ export class VariantForm extends InputForm {
 
 export class OptionForm extends InputForm {
   constructor(public ty: IDL.Type, public ui: FormConfig) {
-    super();
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'open';
-    this.open = checkbox;
-    this.event = 'change';
+    super(ui);
   }
   public generateForm(): void {
-    if ((this.open as HTMLInputElement).checked) {
+    if ((this.ui.open as HTMLInputElement).checked) {
       const opt = this.ui.render(this.ty);
       this.form = [opt];
     } else {
@@ -227,34 +207,15 @@ export class OptionForm extends InputForm {
 
 export class VecForm extends InputForm {
   constructor(public ty: IDL.Type, public ui: FormConfig) {
-    super();
-    const len = document.createElement('input');
-    len.type = 'number';
-    len.min = '0';
-    len.max = '100';
-    len.style.width = '3em';
-    len.placeholder = 'length';
-    len.className = 'open';
-    this.open = len;
-    this.event = 'change';
+    super(ui);
   }
   public generateForm(): void {
-    const len = (this.open as HTMLInputElement).valueAsNumber;
+    const len = (this.ui.open as HTMLInputElement).valueAsNumber;
     this.form = [];
     for (let i = 0; i < len; i++) {
       const t = this.ui.render(this.ty);
       this.form.push(t);
     }
-  }
-  public renderForm(dom: HTMLElement): void {
-    // Same code as parent class except the single length optimization
-    if (this.form.length === 0) {
-      return;
-    }
-    const form = document.createElement('div');
-    form.className = 'popup-form';
-    this.form.forEach(e => e.render(form));
-    dom.appendChild(form);
   }
   public parse<T>(config: ParseConfig): T[] | undefined {
     const value = this.form.map(input => {

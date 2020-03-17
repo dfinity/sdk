@@ -6,7 +6,7 @@ import * as UI from './candid-core';
 type InputBox = UI.InputBox;
 
 const InputConfig: UI.UIConfig = { parse: parsePrimitive };
-const FormConfig: UI.FormConfig = { render: renderInput };
+const FormConfig: UI.FormConfig = { render: renderInput, container: 'div' };
 
 const inputBox = (t: IDL.Type, config: Partial<UI.UIConfig>) => {
   return new UI.InputBox(t, {...InputConfig, ...config});
@@ -25,7 +25,7 @@ const vecForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
 };
 
 class Render extends IDL.Visitor<null, InputBox> {
-  public visitPrimitive<T>(t: IDL.PrimitiveType<T>, d: null): InputBox {
+  public visitType<T>(t: IDL.Type<T>, d: null): InputBox {
     const input = document.createElement('input');
     input.classList.add('argument');
     input.placeholder = t.display();
@@ -39,31 +39,37 @@ class Render extends IDL.Visitor<null, InputBox> {
     return inputBox(t, { form });
   }
   public visitVariant(t: IDL.VariantClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
-    const form = variantForm(fields, {});
+    const select = document.createElement('select');
+    for (const [key, type] of fields) {
+      const option = document.createElement('option');
+      option.innerText = key;
+      select.appendChild(option);
+    }
+    select.selectedIndex = -1;
+    select.classList.add('open');
+    const form = variantForm(fields, { open: select, event: 'change' });
     return inputBox(t, { form });
   }
   public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: null): InputBox {
-    const form = optForm(ty, {});
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.classList.add('open');
+    const form = optForm(ty, { open: checkbox, event: 'change' });
     return inputBox(t, { form });
   }
   public visitVec<T>(t: IDL.VecClass<T>, ty: IDL.Type<T>, d: null): InputBox {
-    const form = vecForm(ty, {});
+    const len = document.createElement('input');
+    len.type = 'number';
+    len.min = '0';
+    len.max = '100';
+    len.style.width = '3em';
+    len.placeholder = 'len';
+    len.classList.add('open');
+    const form = vecForm(ty, { open: len, event: 'change' });
     return inputBox(t, { form });
   }
   public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): InputBox {
     return renderInput(ty);
-  }
-  public visitService(t: IDL.ServiceClass, d: null): InputBox {
-    const input = document.createElement('input');
-    input.classList.add('argument');
-    input.placeholder = t.display();
-    return inputBox(t, { input });
-  }
-  public visitFunc(t: IDL.FuncClass, d: null): InputBox {
-    const input = document.createElement('input');
-    input.classList.add('argument');
-    input.placeholder = t.display();
-    return inputBox(t, { input });
   }
 }
 
@@ -144,7 +150,7 @@ export function renderInput(t: IDL.Type): InputBox {
 }
 
 function parsePrimitive(t: IDL.Type, config: UI.ParseConfig, d: string) {
-  if (config.random) {
+  if (config.random && d === '') {
     return t.accept(new Random(), d);
   } else {
     return t.accept(new Parse(), d);
