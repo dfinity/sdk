@@ -155,6 +155,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let providers = Vec::new();
 
     let proxy_config = ProxyConfig {
+        logger: env.get_logger().clone(),
         client_api_port: address_and_port.port(),
         bind: address_and_port,
         serve_dir: bootstrap_dir,
