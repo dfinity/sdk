@@ -6,6 +6,28 @@ Run `nix-shell` in the `dfx` directory to bring the right version of `rustc` and
 `cargo` into scope. Inside the shell use `cargo` to build and test the Rust
 packages (crates).
 
+== Conventional Commits
+
+We use a squash & merge PR strategy, which means that each PR will result in exactly
+one commit in `master`. When releasing, we are using the history to know which commits
+and what messages make into the release notes (and what needs to be documented).
+
+That means we enforce conventional commits to help us distinguish those commits. When
+creating a PR, we have a special check that validate the PR title and will fail if it
+doesn't follow the conventional commit standard (see
+https://www.conventionalcommits.org/).
+
+What that means is your PR title should start with one of the following prefix:
+
+* `feat:`. Your PR implement a new feature and should be documented. If version numbers
+  were following semver, this would mean that we need to put the PR in the next minor.
+* `fix:`. Your PR fixes an issue. There should be a link to the issue being fixed.
+  In SemVer, this would be merged in both minor and patch branches.
+* `refactor:`, `chore:`, `build:`, `docs:`, `test:` does not affect the release notes
+  and will be ignored.
+* `release:`. Your PR is for tagging a release and should be ignored, but will be
+  a break point for the log history when doing release notes.
+
 == Documentation
 
 https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfx.doc.x86_64-linux/dfx/index.html[Latest cargo docs].
