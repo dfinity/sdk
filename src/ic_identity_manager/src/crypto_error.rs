@@ -5,9 +5,8 @@ use std::{error, result};
 /// runtime faults, setup or cryptography failures.
 pub enum Error {
     /// A CryptoError is isomorphic to unit on purpose. In case of
-    /// such a failure, we establish a new This is nice as Rust is
-    /// eager in general so we don't have to worry about lazy
-    /// evaluation of errors.
+    /// such a failure, as Rust is eager in general so we don't have
+    /// to worry about lazy evaluation of errors.
     CryptoError,
     /// No provider was found.
     NoProvider,
