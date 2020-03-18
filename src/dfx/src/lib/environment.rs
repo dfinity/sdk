@@ -159,7 +159,6 @@ impl Environment for EnvironmentImpl {
                     let address = start.get_address("localhost");
                     let port = start.get_port(8000);
                     let dfx_root = self.get_temp_dir();
-                    // This is the default to keep precedence sane.
                     let local_project_identity = dfx_root.join("identity").join("default");
                     if create_dir_all(&local_project_identity).is_err() {
                         return None;
@@ -206,12 +205,8 @@ impl<'a> AgentEnvironment<'a> {
     pub fn new(backend: &'a dyn Environment, agent_url: &str) -> Self {
         // We do not expose the path directly for now.
         let dfx_root = backend.get_temp_dir();
-        // This is the default to keep precedence sane,
-        // not deal with home folders or cache right now.
         let local_project_identity = dfx_root.join("identity").join("default");
-        // This is for sanity. The environment should have created
-        // this already. N.B. Do not assume the existence of this
-        // directory yet.
+        // N.B. Do not assume the existence of this directory yet.
         create_dir_all(&local_project_identity).expect("Failed to construct identity profile");
         AgentEnvironment {
             backend,
