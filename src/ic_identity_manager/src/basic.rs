@@ -21,14 +21,14 @@ use std::path::{Path, PathBuf};
 
 // This module should not be re-exported. We want to ensure
 // construction and handling of keys is done only here.
-use self::private::BasicProviderReady;
+use self::private::BasicSignerReady;
 
 #[derive(Clone)]
-pub struct BasicProvider {
+pub struct BasicSigner {
     path: PathBuf,
 }
 
-impl BasicProvider {
+impl BasicSigner {
     pub fn new(path: PathBuf) -> Result<Self> {
         if !path.is_dir() {
             return Err(Error::ProviderFailedToInitialize);
@@ -52,8 +52,8 @@ fn generate(profile_path: &impl AsRef<Path>) -> Result<PathBuf> {
     Ok(pem_file)
 }
 
-impl BasicProvider {
-    pub fn provide(&self) -> Result<BasicProviderReady> {
+impl BasicSigner {
+    pub fn provide(&self) -> Result<BasicSignerReady> {
         let mut dir = fs::read_dir(&self.path)?;
         let name: std::ffi::OsString = "creds.pem".to_owned().into();
         let pem_file = if dir.any(|n| match n {
@@ -68,7 +68,7 @@ impl BasicProvider {
         let pkcs8_bytes = pem::parse(fs::read(pem_file)?)?.contents;
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
 
-        Ok(BasicProviderReady { key_pair })
+        Ok(BasicSignerReady { key_pair })
     }
 }
 
@@ -82,11 +82,11 @@ mod private {
     /// We enforce a state transition, reading the key as necessary, only
     /// to sign. TODO(eftychis): We should erase pin and erase the key
     /// from memory afterwards.
-    pub struct BasicProviderReady {
+    pub struct BasicSignerReady {
         pub key_pair: Ed25519KeyPair,
     }
 
-    impl BasicProviderReady {
+    impl BasicSignerReady {
         pub fn sign(&self, msg: &[u8]) -> Result<Signature> {
             let signature = self.key_pair.sign(msg);
             // At this point we shall validate the signature in this first
