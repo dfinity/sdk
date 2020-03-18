@@ -1,10 +1,14 @@
+use actix::dev::Stream;
 use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
 use actix_web::client::Client;
-use actix_web::{http, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{
+    http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
+};
 use crossbeam::channel::Sender;
 use futures::Future;
+use slog::{debug, info, trace, Logger};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -17,6 +21,7 @@ const FORWARD_REQUEST_TIMEOUT_IN_SECS: u64 = 20;
 
 struct ForwardActixData {
     pub providers: Vec<Url>,
+    pub logger: slog::Logger,
     pub counter: usize,
 }
 
@@ -30,12 +35,12 @@ fn forward(
     data.counter += 1;
     let count = data.counter;
 
-    let mut new_url = data.providers[count % data.providers.len()].clone();
-    new_url.set_path(req.uri().path());
-    new_url.set_query(req.uri().query());
+    let mut url = data.providers[count % data.providers.len()].clone();
+    url.set_path(req.uri().path());
+    url.set_query(req.uri().query());
 
     let forwarded_req = client
-        .request_from(new_url.as_str(), req.head())
+        .request_from(url.as_str(), req.head())
         .no_decompress()
         .timeout(std::time::Duration::from_secs(
             FORWARD_REQUEST_TIMEOUT_IN_SECS,
@@ -46,40 +51,90 @@ fn forward(
         forwarded_req
     };
 
-    forwarded_req
-        .send_stream(payload)
+    let logger = data.logger.clone();
+
+    // TODO(hansl): move this all to async/await. Jeez....
+    // (PS: the reason I don't do this yet is moving actix to async/await is a bit more
+    //      involved than replacing this single function)
+    payload
         .map_err(Error::from)
-        .map(|res| {
-            let mut client_resp = HttpResponse::build(res.status());
-            for (header_name, header_value) in res
-                .headers()
-                .iter()
-                .filter(|(h, _)| *h != "connection" && *h != "content-length")
-            {
-                client_resp.header(header_name.clone(), header_value.clone());
-            }
-            client_resp.streaming(res)
+        .fold(web::BytesMut::new(), move |mut body, chunk| {
+            body.extend_from_slice(&chunk);
+            Ok::<_, Error>(body)
+        })
+        .and_then(move |req_body| {
+            // We streamed the whole body in memory. Let's log some informations.
+            debug!(
+                logger,
+                "Request ({}) to replica ({})",
+                indicatif::HumanBytes(req_body.len() as u64),
+                url,
+            );
+            trace!(logger, "  type  {}", req.content_type());
+            trace!(logger, "  body  {}", hex::encode(&req_body));
+
+            forwarded_req
+                .send_body(req_body)
+                .map_err(Error::from)
+                .and_then(|mut res| {
+                    res.take_payload()
+                        .map_err(Error::from)
+                        .fold(web::BytesMut::new(), move |mut body, chunk| {
+                            body.extend_from_slice(&chunk);
+                            Ok::<_, Error>(body)
+                        })
+                        .and_then(move |res_body| {
+                            let mut client_resp = HttpResponse::build(res.status());
+                            for (header_name, header_value) in res
+                                .headers()
+                                .iter()
+                                .filter(|(h, _)| *h != "connection" && *h != "content-length")
+                            {
+                                client_resp.header(header_name.clone(), header_value.clone());
+                            }
+
+                            debug!(
+                                logger,
+                                "Response ({}) with status code {}",
+                                indicatif::HumanBytes(res_body.len() as u64),
+                                res.status().as_u16()
+                            );
+                            trace!(logger, "  type  {}", res.content_type());
+                            trace!(logger, "  body  {}", hex::encode(&res_body));
+
+                            client_resp.body(res_body)
+                        })
+                })
         })
 }
 
 /// Run the webserver in the current thread.
 pub fn run_webserver(
+    logger: Logger,
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
     inform_parent: Sender<Server>,
 ) -> Result<(), std::io::Error> {
-    eprintln!("binding to: {:?}", bind);
+    info!(logger, "binding to: {:?}", bind);
 
     const SHUTDOWN_WAIT_TIME: u64 = 60;
 
-    eprint!("client(s): ");
-    providers.iter().for_each(|uri| eprint!("{} ", uri));
-    eprint!("\n");
+    info!(
+        logger,
+        "client(s): {}",
+        providers
+            .iter()
+            .map(|x| x.clone().into_string())
+            .collect::<Vec<String>>()
+            .as_slice()
+            .join(", ")
+    );
 
     let _sys = System::new("dfx-frontend-http-server");
     let forward_data = Arc::new(Mutex::new(ForwardActixData {
         providers,
+        logger: logger.clone(),
         counter: 0,
     }));
 
@@ -114,6 +169,7 @@ pub fn run_webserver(
 }
 
 pub fn webserver(
+    logger: Logger,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
     serve_dir: &Path,
@@ -121,6 +177,6 @@ pub fn webserver(
 ) -> std::io::Result<std::thread::JoinHandle<()>> {
     std::thread::Builder::new().name("Frontend".into()).spawn({
         let serve_dir = serve_dir.to_path_buf();
-        move || run_webserver(bind, clients_api_uri, serve_dir, inform_parent).unwrap()
+        move || run_webserver(logger, bind, clients_api_uri, serve_dir, inform_parent).unwrap()
     })
 }
