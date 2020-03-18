@@ -3,7 +3,6 @@
 }
 .argument, .result, .status, .composite {
     font-family: 'Gloria Hallelujah', cursive;
-    font-size: 15px;
     font-weight: 400;          
     margin-right: 10px;
     margin-bottom: 10px;
@@ -62,6 +61,6 @@ body {
     font-family: 'Gloria Hallelujah', cursive;
     font-weight: 400;
     font-size: 19px;
-    letter-spacing: 0.05em;          
+    letter-spacing: 0.05em;
     line-height: 2;
 }
