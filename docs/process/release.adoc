@@ -1,21 +1,24 @@
 = Release Process
 
-This document describes the release process for DFINITY SDK. We review the
-mechanism, the automation provided and the checklist process.
+This document describes the release process for the DFINITY SDK, with step-by-step instructions, information about automation, and a checklist.
 
 == Overview
 
-Releases are done following the checklist rule: preferrably by two people
-familiar with the process, i.e. 1 driver 1 validator. The validator should be
-the person most familiar with the process. A successful release is the result of
-coordination between automation, manual labor and validation. We should improve
-the release process continuously. In the following mechanism section we describe
-the operation of how to get a new release out.
+Release candidates are staged and promoted using the checklist in this document.
+Each release of the SDK requires two people who are familiar with the process: a *driver* and a *validator*. 
+The *validator* should be the person most familiar with the process and be able to assist with debugging or resolving issues if the *driver* building the release runs into trouble. 
+
+A successful release is the result of coordination between automation, manual steps performed by team members, and a validation process.
+Our goal is to update this document with the latest information as we iterate to improve the release process. 
 
 == Checklist
 
+After the team has reviewed the list of fixes and features at a Go/No-Go release review meeting, there will be a decision about whether to build a release candidate.
+
+If the new release is given the Go green light, the *driver* and *validator* use this checklist to stage or promote a release candidate.
+
 [%interactive]
-* [ ] Participants
+* [ ] Participants:
 ** [ ] Driver
 ** [ ] Validator
 ** [ ] CI (system up)
@@ -26,59 +29,56 @@ the operation of how to get a new release out.
      * [ ] `dfx/Cargo.toml`
      * [ ] `public/manifest.json` (only adding the version to the list)
      * [ ] `Cargo.lock`
-   . [ ] Update manifest to include new version; *Ensure* latest remains the same
-   . [ ] Create a pull request with the above 2 changes and get the validator to approve it
-   . [ ] Switch to stable branch and `git pull origin stable`
-   . [ ] Run `git pull origin master --ff-only`
-   . [ ] Create tags with `git tag -a version -m " Release: version"`
-   . [ ] Double check the tag points correctly and is an annotated one: `git log` and  `git describe --always`
-   . [ ] Push tag first to avoid triggering hydra incorrectly `git push origin version`
-   . [ ] Push the stable branch now `git push origin stable`
-   . [ ] Check hydra
-   . [ ] Prepare PR for manifest
-   . [ ] Update release notes
-   . [ ] Update manifest once all builds are done (see https://blobules.dfinity.systems/sdk-release/ and https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release)
+   . [ ] Update manifest to include new version; *Ensure* latest remains the same.
+   . [ ] Create a pull request with the above 2 changes and get the validator to approve it.
+   . [ ] Switch to stable branch and run `git pull origin stable`.
+   . [ ] Run `git pull origin master --ff-only`.
+   . [ ] Create a tag by running `git tag -a <version> -m " Release: <version>"`.
+   . [ ] Double-check the tag points to the correct version and that the tag has an annotation using `git log` and  `git describe --always` commands.
+   . [ ] Push the tag first to avoid triggering hydra incorrectly by running the `git push origin version` command.
+   . [ ] Push the stable branch by running the `git push origin stable` command.
+   . [ ] Check hydra CI for a successful build.
+   . [ ] Notify team members that the new build is ready for manual installation and testing using the DFX_VERSION=<verion> environment variable.
+   . [ ] Update release notes and documentation based on the Go/No-go list of merged PRs.
+   . [ ] Prepare a PR for manifest.
+   . [ ] Update the manifest once all builds are done (see https://blobules.dfinity.systems/sdk-release/ and https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release)
      *  [ ] Linux
      *  [ ] Darwin
+  * [ ] Tag and publish documentation using `git tag -a <version> -m <documentation-archive-message>`.
+  * [ ] Deploy updated documentation using Netlify.
 
 Notes: We assume *upstream* is `origin`.
 
-
-== Requirements & Properties
+== Requirements and properties
 
  - Semi-automation
  - Consistent delivery
  - Validation
  - Rollback
- - Railguards
- - Flexibity
+ - Guardrails
+ - Flexibility
 
 == Mechanism
 
 ===  Build
 
-Our build process is described in the nix derivation release.nix. This
-mainly invokes the dfx-release derivation passing the annotated tag on HEAD
-(which happens right now to be the stable branch). Along with building release
-binaries and files for each platform, it generates a manifest for S3 providing
-it with the tag name. This allows us to keep a directory structure with all past
-and upcoming releases in S3.
+Our build process is described in the `nix` derivation release.
+The `nix` derivation mainly invokes the `dfx-release` derivation passing the annotated tag on HEAD (which happens right now to be the stable branch). 
+The `dfx-release` derivation builds the release binaries and files for each platform and generates a manifest for S3 that includes the tag name. 
+The release tag allows us to keep a directory structure with all past and upcoming releases in S3.
 
 ===  CI
 
 CI release-related operation is split into two jobsets:
 
- - Generation and publishing of 'install.sh' and 'manifest.json'
- - Tagging of a commit to release, building publishing necessary executables and files for supported platforms
-
+ - Generation and publishing of 'install.sh' and 'manifest.json'.
+ - Tagging of a commit to release, building and publishing the necessary executables and files for supported platforms.
 
 ===  Manifest
 
-We utilize a manifest to indicate to users (and in particular to our installer
-and dfx) available and supported versions for download. This allows us to
-rollback a release or remove a release from the list of supported releases. See
-link:../specification/version_management{outfilesuffix}[Version Management] for
-details on the format of the manifest.
+We utilize a manifest to indicate to users (and in particular to our installer and dfx executable) available and supported versions for download. 
+The manifest allows us to rollback a release or remove a release from the list of supported releases. 
+See link:../specification/version_management{outfilesuffix}[Version Management] for details on the format of the manifest.
 
 The manifest is generated when a patch is applied on master by the CI.
 
@@ -92,12 +92,12 @@ A candidate changelog is generated automatically using the respective tool
 (under scripts directory). Right now the release notes need to be updated
 manually in github.
 
-=== Publishing of Artifacts
+=== Publishing of artifacts
 
 === Process
 
-We now summarize the release process. Our first step is to ensure the proper and
-valid state of master branch. Then we update cargo and the manifest
+We now summarize the release process. 
+Our first step is to ensure the proper and valid state of master branch. Then we update cargo and the manifest
 accordingly. We create and push an annotated tag on stable. Meanwhile, we
 generate the changelog, inspect, clarify and develop it appropriately for public
 purview. Ensuring the proper artifacts are available in S3, we can now publish
