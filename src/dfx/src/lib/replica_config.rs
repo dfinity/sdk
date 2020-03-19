@@ -34,6 +34,16 @@ impl SchedulerConfig {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ArtifactPoolConfig {
+    pub consensus_pool_path: PathBuf,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CryptoConfig {
+    pub crypto_root: PathBuf,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct StateManagerConfig {
     pub state_root: PathBuf,
 }
@@ -43,10 +53,12 @@ pub struct ReplicaConfig {
     pub http_handler: HttpHandlerConfig,
     pub scheduler: SchedulerConfig,
     pub state_manager: StateManagerConfig,
+    pub crypto: CryptoConfig,
+    pub artifact_pool: ArtifactPoolConfig,
 }
 
 impl ReplicaConfig {
-    pub fn new(state_root: &Path) -> Self {
+    pub fn new(state_root: &PathBuf) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
@@ -57,7 +69,13 @@ impl ReplicaConfig {
                 round_gas_max: None,
             },
             state_manager: StateManagerConfig {
-                state_root: state_root.to_path_buf(),
+                state_root: state_root.join("ic_state"),
+            },
+            crypto: CryptoConfig {
+                crypto_root: state_root.join("ic_crypto"),
+            },
+            artifact_pool: ArtifactPoolConfig {
+                consensus_pool_path: state_root.join("ic_consensus"),
             },
         }
     }
