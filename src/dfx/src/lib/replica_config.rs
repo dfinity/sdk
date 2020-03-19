@@ -69,13 +69,13 @@ impl ReplicaConfig {
                 round_gas_max: None,
             },
             state_manager: StateManagerConfig {
-                state_root: state_root.join("ic_state"),
+                state_root: state_root.join("replicated_state"),
             },
             crypto: CryptoConfig {
-                crypto_root: state_root.join("ic_crypto"),
+                crypto_root: state_root.join("crypto_store"),
             },
             artifact_pool: ArtifactPoolConfig {
-                consensus_pool_path: state_root.join("ic_consensus"),
+                consensus_pool_path: state_root.join("consensus_pool"),
             },
         }
     }
