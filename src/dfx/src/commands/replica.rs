@@ -60,7 +60,7 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Replica
     }
     .validate()?;
 
-    let mut replica_config = ReplicaConfig::new(&env.get_state_dir());
+    let mut replica_config = ReplicaConfig::new(env.get_state_dir());
     replica_config.http_handler = http_handler;
     replica_config.scheduler = scheduler;
     Ok(replica_config)

@@ -58,7 +58,7 @@ pub struct ReplicaConfig {
 }
 
 impl ReplicaConfig {
-    pub fn new(state_root: &PathBuf) -> Self {
+    pub fn new(state_root: PathBuf) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
