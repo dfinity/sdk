@@ -3,9 +3,7 @@ use crate::config::dfinity::ConfigDefaultsReplica;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::replica_config::{
-    HttpHandlerConfig, ReplicaConfig, SchedulerConfig, StateManagerConfig,
-};
+use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
@@ -61,14 +59,11 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Replica
         round_gas_max: Some(round_gas_limit),
     }
     .validate()?;
-    let state_manager = StateManagerConfig {
-        state_root: env.get_state_dir(),
-    };
-    Ok(ReplicaConfig {
-        http_handler,
-        scheduler,
-        state_manager,
-    })
+
+    let mut replica_config = ReplicaConfig::new(env.get_state_dir());
+    replica_config.http_handler = http_handler;
+    replica_config.scheduler = scheduler;
+    Ok(replica_config)
 }
 
 /// Gets the configuration options for the Internet Computer replica as they were specified in the
