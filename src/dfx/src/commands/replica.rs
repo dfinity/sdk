@@ -1,8 +1,8 @@
 use crate::actors;
-use crate::actors::replica::config::ReplicaConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::message::UserMessage;
+use crate::lib::replica_config::ReplicaConfig;
 
 use actix::Actor;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -40,8 +40,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .expect("Unreachable. Port should have been validated by clap.");
 
     let system = actix::System::new("dfx-replica");
+    let mut config = ReplicaConfig::new(&state_root);
+    config.with_port(port);
+
     actors::replica::Replica::new(actors::replica::Config {
-        replica_config: ReplicaConfig::new(&state_root).with_port(port),
+        replica_config: config,
         replica_path: replica_pathbuf,
         logger: Some(env.get_logger().clone()),
     })

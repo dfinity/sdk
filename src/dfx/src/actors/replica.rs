@@ -1,6 +1,6 @@
-use crate::actors::replica::config::ReplicaConfig;
 use crate::actors::replica::signals::ReplicaRestarted;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::replica_config::ReplicaConfig;
 
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, Running};
 use crossbeam::channel::{unbounded, Receiver, Sender};
@@ -9,8 +9,6 @@ use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
-
-pub mod config;
 
 pub mod signals {
     use actix::prelude::*;
