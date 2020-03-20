@@ -44,7 +44,8 @@ If the new release is given the Go green light, the *driver* and *validator* use
    . [ ] Update the manifest once all builds are done (see https://blobules.dfinity.systems/sdk-release/ and https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release)
      *  [ ] Linux
      *  [ ] Darwin
-  * [ ] Tag and publish documentation using `git tag -a <version> -m <documentation-archive-message>`.
+  * [ ] Tag the documentation using `git tag -a <version> -m <documentation-archive-message>`.
+  * [ ] Publish the tag on the remote server using `git push origin <tagname>`.
   * [ ] Deploy updated documentation using Netlify.
 
 Notes: We assume *upstream* is `origin`.
