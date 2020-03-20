@@ -187,6 +187,30 @@ impl Handler<signals::ReplicaRestarted> for Replica {
     }
 }
 
+enum ChildOrReceiver {
+    Child,
+    Receiver,
+}
+
+/// Function that waits for a child or a receiver to stop. This encapsulate the polling so
+/// it is easier to maintain.
+fn wait_for_child_or_receiver(
+    child: &mut std::process::Child,
+    receiver: &Receiver<()>,
+) -> ChildOrReceiver {
+    loop {
+        // Ping-pong between waiting 100 msec for a receiver signal, and check if
+        // the child quited.
+        if let Ok(()) = receiver.recv_timeout(std::time::Duration::from_millis(100)) {
+            return ChildOrReceiver::Receiver;
+        }
+
+        if let Ok(Some(_)) = child.try_wait() {
+            return ChildOrReceiver::Child;
+        }
+    }
+}
+
 fn replica_start_thread(
     logger: Logger,
     config_toml: String,
@@ -225,19 +249,16 @@ fn replica_start_thread(
             });
             addr.do_send(signals::ReplicaRestarted { port });
 
-            loop {
-                // Ping-pong between waiting 100 msec for a stop signal, and check if
-                // the child quited.
-                // Breaking without done = true will wait and restart the replica.
-                if let Ok(()) = receiver.recv_timeout(std::time::Duration::from_millis(100)) {
+            // This waits for the child to stop, or the receiver to receive a message.
+            // We don't restart the replica if done = true.
+            match wait_for_child_or_receiver(&mut child, &receiver) {
+                ChildOrReceiver::Receiver => {
                     debug!(logger, "Got signal to stop. Killing replica process...");
                     let _ = child.kill();
                     let _ = child.wait();
                     done = true;
-                    break;
                 }
-
-                if let Ok(Some(_)) = child.try_wait() {
+                ChildOrReceiver::Child => {
                     debug!(logger, "Replica process failed.");
                     // Reset waiter if last start was over 2 seconds ago, and do not wait.
                     if std::time::Instant::now().duration_since(last_start)
@@ -252,7 +273,6 @@ fn replica_start_thread(
                         // Wait before we start it again.
                         let _ = waiter.wait();
                     }
-                    break;
                 }
             }
         }
