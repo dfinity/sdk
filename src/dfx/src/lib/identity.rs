@@ -13,8 +13,7 @@ impl Identity {
     /// configuration.
     pub fn new(identity_config_path: PathBuf) -> Self {
         Self(
-            // We panic as discussed, as that should not be the
-            // case. I personally prefer this to be an error.
+            // We expect an identity profile to be provided.
             ic_identity_manager::Identity::new(identity_config_path)
                 .expect("Expected a valid identity configuration"),
         )
