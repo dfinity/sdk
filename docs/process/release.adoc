@@ -5,7 +5,7 @@ This document describes the release process for the DFINITY SDK, with step-by-st
 == Overview
 
 Before starting the release process, the team should conduct a brief Go/No-Go release review to evaluate the current state of fixes and features ready to be included in a release candidate.
-After reviewing the list of fixes and features at a Go/No-Go release review meeting, there will be a decision about whether to build a release candidate.
+After reviewing the list of fixes and features, the team will decide whether to proceed with staging a build.
 
 If the new release is given the Go green light, two people who are familiar with the process—a *driver* and a *validator*—use the checklist in this document to stage or promote a release candidate.
 
