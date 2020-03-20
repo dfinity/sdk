@@ -29,13 +29,13 @@ Our goal is to update this document with the latest information as we iterate to
      * [ ] `public/manifest.json` (only adding the version to the list)
      * [ ] `Cargo.lock`
    . [ ] Update manifest to include new version; *Ensure* latest remains the same.
-   . [ ] Create a pull request with the above 2 changes and get the validator to approve it.
-   . [ ] Switch to stable branch and run `git pull origin stable`.
+   . [ ] Create a pull request with the above changes and get the validator to approve it.
+   . [ ] Check out the `stable` branch, then run `git pull origin stable`.
    . [ ] Run `git pull origin master --ff-only`.
    . [ ] Create a tag by running `git tag -a <version> -m " Release: <version>"`.
    . [ ] Double-check the tag points to the correct version and that the tag has an annotation using `git log` and  `git describe --always` commands.
-   . [ ] Push the tag first to avoid triggering hydra incorrectly by running the `git push origin version` command.
-   . [ ] Push the stable branch by running the `git push origin stable` command.
+   . [ ] Push the tag first by running the `git push origin <version>` command to avoid triggering hydra CI incorrectly.
+   . [ ] Push the `stable` branch by running the `git push origin stable` command.
    . [ ] Check hydra CI for a successful build.
    . [ ] Notify team members that the new build is ready for manual installation and testing using the `DFX_VERSION=<version>` environment variable.
    . [ ] Update release notes and documentation based on the Go/No-go list of merged PRs.
