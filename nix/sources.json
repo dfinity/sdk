@@ -37,6 +37,13 @@
         "rev": "a847ecc0bb8a1893f2cfb8d26dd31d69cb019eb6",
         "type": "git"
     },
+    "ic-ref": {
+        "branch": "legacy2",
+        "ref": "legacy2",
+        "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
+        "rev": "14e8b5d88b4363e6b85c2bf6d16d349a0bf88043",
+        "type": "git"
+    },
     "motoko": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
@@ -55,11 +62,5 @@
         "type": "tarball",
         "url": "https://github.com/nmattia/napalm/archive/47e8d246cba57a346db15f6a33ba61c54d3b5c05.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "ic-ref": {
-        "ref": "legacy",
-        "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "bbe2d89deade98d8e50fc297e3d6f0f01b4eb65b",
-        "type": "git"
     }
 }

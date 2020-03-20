@@ -35,9 +35,16 @@ dfx_start() {
     if [ "$USE_IC_REF" = "true" ]
     then
         ic-ref --pick-port --write-port-to port 3>&- &
+        echo $! > ic-ref.pid
+
+        sleep 5
 
         test -f port
         local port=$(cat port)
+
+        dfx bootstrap --port 8000 --providers http://127.0.0.1:${port}/api &
+        echo $! > dfx-bootstrap.pid
+
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
@@ -61,7 +68,15 @@ dfx_start() {
 dfx_stop() {
     if [ "$USE_IC_REF" = "true" ]
     then
-        pkill ic-ref
+        test -f ic-ref.pid
+        printf "Killing ic-ref at pid: %u\n" "$(cat ic-ref.pid)"
+        kill $(cat ic-ref.pid)
+        rm -f ic-ref.pid
+
+        test -f dfx-bootstrap.pid
+        printf "Killing dfx bootstrap at pid: %u\n" "$(cat dfx-bootstrap.pid)"
+        kill $(cat dfx-bootstrap.pid)
+        rm -f dfx-bootstrap.pid
     else
         dfx stop
 
