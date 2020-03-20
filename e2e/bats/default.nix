@@ -1,7 +1,7 @@
 { pkgs ? import ../../nix { inherit system; }
 , system ? builtins.currentSystem
 , dfx ? import ../../dfx.nix { inherit pkgs; }
-, use_ic_ref ? true
+, use_ic_ref ? false
 }:
 let
   e2e = lib.noNixFiles (lib.gitOnlySource ../../. ./.);
@@ -24,8 +24,7 @@ let
     procps
     which
     dfx.standalone
-    ic-ref
-  ];
+  ] ++ lib.optional use_ic_ref ic-ref;
 in
 
 builtins.derivation {
