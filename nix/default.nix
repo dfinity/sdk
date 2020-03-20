@@ -57,6 +57,7 @@ let
               napalm = self.callPackage self.sources.napalm {
                 pkgs = self // { nodejs = self.nodejs-12_x; };
               };
+              ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref;
 
               inherit (nixFmt) nix-fmt;
               nix-fmt-check = nixFmt.check;

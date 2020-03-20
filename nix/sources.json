@@ -55,5 +55,11 @@
         "type": "tarball",
         "url": "https://github.com/nmattia/napalm/archive/47e8d246cba57a346db15f6a33ba61c54d3b5c05.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "ic-ref": {
+        "ref": "legacy",
+        "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
+        "rev": "bbe2d89deade98d8e50fc297e3d6f0f01b4eb65b",
+        "type": "git"
     }
 }
