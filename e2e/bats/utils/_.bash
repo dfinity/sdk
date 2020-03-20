@@ -31,7 +31,6 @@ dfx_new() {
 
 # Start the client in the background.
 dfx_start() {
-    echo $USE_IC_REF
     if [ "$USE_IC_REF" = "true" ]
     then
         ic-ref --pick-port --write-port-to port 3>&- &
@@ -44,7 +43,6 @@ dfx_start() {
 
         dfx bootstrap --port 8000 --providers http://127.0.0.1:${port}/api &
         echo $! > dfx-bootstrap.pid
-
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
@@ -56,8 +54,8 @@ dfx_start() {
         test -f ${dfx_config_root}/client-1.port
         local port=$(cat ${dfx_config_root}/client-1.port)
     fi
-    printf "Client Configured Port: %s\n" "${port}"
 
+    printf "Client Configured Port: %s\n" "${port}"
 
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for client; sleep 1; done" \
