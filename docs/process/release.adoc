@@ -1,21 +1,20 @@
-= Release Process
+= Release process
 
 This document describes the release process for the DFINITY SDK, with step-by-step instructions, information about automation, and a checklist.
 
 == Overview
 
-Release candidates are staged and promoted using the checklist in this document.
-Each release of the SDK requires two people who are familiar with the process: a *driver* and a *validator*. 
+Before starting the release process, the team should conduct a brief Go/No-Go release review to evaluate the current state of fixes and features ready to be included in a release candidate.
+After reviewing the list of fixes and features at a Go/No-Go release review meeting, there will be a decision about whether to build a release candidate.
+
+If the new release is given the Go green light, two people who are familiar with the process—a *driver* and a *validator*—use the checklist in this document to stage or promote a release candidate.
+
 The *validator* should be the person most familiar with the process and be able to assist with debugging or resolving issues if the *driver* building the release runs into trouble. 
 
 A successful release is the result of coordination between automation, manual steps performed by team members, and a validation process.
 Our goal is to update this document with the latest information as we iterate to improve the release process. 
 
 == Checklist
-
-After the team has reviewed the list of fixes and features at a Go/No-Go release review meeting, there will be a decision about whether to build a release candidate.
-
-If the new release is given the Go green light, the *driver* and *validator* use this checklist to stage or promote a release candidate.
 
 [%interactive]
 * [ ] Participants:
@@ -38,7 +37,7 @@ If the new release is given the Go green light, the *driver* and *validator* use
    . [ ] Push the tag first to avoid triggering hydra incorrectly by running the `git push origin version` command.
    . [ ] Push the stable branch by running the `git push origin stable` command.
    . [ ] Check hydra CI for a successful build.
-   . [ ] Notify team members that the new build is ready for manual installation and testing using the DFX_VERSION=<verion> environment variable.
+   . [ ] Notify team members that the new build is ready for manual installation and testing using the `DFX_VERSION=<version>` environment variable.
    . [ ] Update release notes and documentation based on the Go/No-go list of merged PRs.
    . [ ] Prepare a PR for manifest.
    . [ ] Update the manifest once all builds are done (see https://blobules.dfinity.systems/sdk-release/ and https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release)
@@ -63,8 +62,8 @@ Notes: We assume *upstream* is `origin`.
 
 ===  Build
 
-Our build process is described in the `nix` derivation release.
-The `nix` derivation mainly invokes the `dfx-release` derivation passing the annotated tag on HEAD (which happens right now to be the stable branch). 
+Our build process is described in the `release.nix` derivation.
+The `release.nix` derivation mainly invokes the `dfx-release` derivation passing the annotated tag on HEAD (which happens right now to be the stable branch). 
 The `dfx-release` derivation builds the release binaries and files for each platform and generates a manifest for S3 that includes the tag name. 
 The release tag allows us to keep a directory structure with all past and upcoming releases in S3.
 
