@@ -9,7 +9,7 @@ pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
-    pub use super::replica_api::{MessageWithSender, SignedMessage};
+    pub use super::replica_api::{MessageWithSender, SignedMessage, Request, ReadRequest};
     pub use super::response::RequestStatusResponse;
     pub use super::signer::Signer;
     pub use super::waiter::{Waiter, WaiterTrait};

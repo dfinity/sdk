@@ -50,20 +50,16 @@ impl Signer for DummyIdentity {
 #[cfg(test)]
 mod test {
     use super::*;
-
     use crate::agent::replica_api::{ReadRequest, Request};
     use crate::CanisterId;
 
     use proptest::prelude::*;
-    use serde::Serialize;
 
     // TODO(eftychis): Provide arbitrary strategies for the replica
     // API.
     proptest! {
     #[test]
     fn request_id_dummy_signer(request_body: String) {
-        #[derive(Clone,Serialize)]
-        struct TestAPI { inner : String}
         let arg = Blob::random(10);
         let canister_id = CanisterId::from(Blob::random(10));
         let request = ReadRequest::Query {
