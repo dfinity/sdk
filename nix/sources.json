@@ -41,7 +41,7 @@
         "branch": "legacy2",
         "ref": "legacy2",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "14e8b5d88b4363e6b85c2bf6d16d349a0bf88043",
+        "rev": "65c7af2f9c6d8ef8450604fe15d7120db124b78f",
         "type": "git"
     },
     "motoko": {
