@@ -40,7 +40,7 @@ builtins.derivation {
       # We want $HOME/.cache to be in a new temporary directory.
       export HOME=$(mktemp -d -t dfx-e2e-home-XXXX)
 
-      export USE_IC_REF=${if use_ic_ref then "true" else "false"}
+      export USE_IC_REF=${if use_ic_ref then "1" else ""}
 
       # Timeout of 10 minutes is enough for now. Reminder; CI might be running with
       # less resources than a dev's computer, so e2e might take longer.

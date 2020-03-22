@@ -31,7 +31,7 @@ dfx_new() {
 
 # Start the client in the background.
 dfx_start() {
-    if [ "$USE_IC_REF" = "true" ]
+    if [ "$USE_IC_REF" ]
     then
         ic-ref --pick-port --write-port-to port 3>&- &
         echo $! > ic-ref.pid
@@ -64,7 +64,7 @@ dfx_start() {
 
 # Stop the client and verify it is very very stopped.
 dfx_stop() {
-    if [ "$USE_IC_REF" = "true" ]
+    if [ "$USE_IC_REF" ]
     then
         test -f ic-ref.pid
         printf "Killing ic-ref at pid: %u\n" "$(cat ic-ref.pid)"
