@@ -4,6 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use slog::info;
 use std::default::Default;
 use std::fs;
 use std::io::{Error, ErrorKind};
@@ -51,11 +52,13 @@ pub fn construct() -> App<'static, 'static> {
 
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+    let logger = env.get_logger();
     let config = get_config(env, args)?;
 
     let (sender, receiver) = crossbeam::unbounded();
 
     webserver(
+        logger.clone(),
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
         config
             .providers
@@ -76,7 +79,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let _ = receiver.recv().expect("Failed to receive server...");
 
     // Tell the user.
-    eprintln!("Webserver started...");
+    info!(logger, "Webserver started...");
 
     // And then wait forever.
     #[allow(clippy::empty_loop)]
