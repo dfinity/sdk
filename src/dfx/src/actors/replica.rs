@@ -200,7 +200,7 @@ fn wait_for_child_or_receiver(
 ) -> ChildOrReceiver {
     loop {
         // Ping-pong between waiting 100 msec for a receiver signal, and check if
-        // the child quited.
+        // the child quit.
         if let Ok(()) = receiver.recv_timeout(std::time::Duration::from_millis(100)) {
             return ChildOrReceiver::Receiver;
         }
