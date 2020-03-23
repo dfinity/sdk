@@ -21,6 +21,15 @@ impl SignalWatchdog {
 impl Actor for SignalWatchdog {
     type Context = Context<Self>;
 
+    // TODO(hansl): move this function to use tokio::signal once we support async/await. See below.
+    // Essentially this hides a huge problem; tokio::signal moved to use async/await and
+    // std::future::Future, which is fine. To support this 2 signals watchdog actor we need
+    // to be able to select the signals together using futures::select. This is where it gets
+    // wacky; we need to update our version of futures for this, but the latest isn't backward
+    // compatible with the current version we use.
+    // The best way to manage this is to move to async/await everywhere, upgrade futures
+    // at the same time, then here move to using tokio::signal and futures::select the two
+    // receivers.
     fn started(&mut self, _ctx: &mut Self::Context) {
         let signals =
             signal_hook::iterator::Signals::new(&[signal_hook::SIGTERM, signal_hook::SIGINT])
