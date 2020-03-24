@@ -6,7 +6,7 @@ use std::fmt;
 use rand::{thread_rng, RngCore};
 
 /// A binary "blob", i.e. a byte array
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Ord, PartialOrd, Eq)]
 pub struct Blob(pub Vec<u8>);
 
 impl Blob {
