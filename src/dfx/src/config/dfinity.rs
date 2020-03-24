@@ -13,6 +13,7 @@ pub const CONFIG_FILE_NAME: &str = "dfx.json";
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bootstrap: None,
     build: None,
+    replica: None,
     start: None,
 };
 
@@ -24,6 +25,14 @@ const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsB
     timeout: None,
 };
 
+const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
+
+const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
+    message_gas_limit: None,
+    port: None,
+    round_gas_limit: None,
+};
+
 const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     address: None,
     port: None,
@@ -31,9 +40,7 @@ const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     serve_root: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
     pub main: Option<String>,
     pub frontend: Option<Value>,
@@ -48,17 +55,24 @@ pub struct ConfigDefaultsBootstrap {
     pub timeout: Option<u64>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsBuild {
+    pub output: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsReplica {
+    pub message_gas_limit: Option<u64>,
+    pub port: Option<u16>,
+    pub round_gas_limit: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsStart {
     pub address: Option<String>,
     pub nodes: Option<u64>,
     pub port: Option<u16>,
     pub serve_root: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ConfigDefaultsBuild {
-    pub output: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -73,6 +87,7 @@ pub enum Profile {
 pub struct ConfigDefaults {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
+    pub replica: Option<ConfigDefaultsReplica>,
     pub start: Option<ConfigDefaultsStart>,
 }
 
@@ -152,6 +167,12 @@ impl ConfigDefaults {
         match &self.build {
             Some(x) => &x,
             None => &EMPTY_CONFIG_DEFAULTS_BUILD,
+        }
+    }
+    pub fn get_replica(&self) -> &ConfigDefaultsReplica {
+        match &self.replica {
+            Some(x) => &x,
+            None => &EMPTY_CONFIG_DEFAULTS_REPLICA,
         }
     }
     pub fn get_start(&self) -> &ConfigDefaultsStart {

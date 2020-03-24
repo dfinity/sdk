@@ -10,6 +10,8 @@ pub enum AgentError {
     ClientError(u16, String),
     TimeoutWaitingForResponse,
 
+    SigningError(String),
+
     InvalidCborData(serde_cbor::Error),
     ReqwestError(reqwest::Error),
     SerdeError(SerdeError),

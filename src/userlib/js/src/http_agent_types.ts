@@ -48,14 +48,21 @@ export interface CallRequest extends Record<string, any> {
   method_name: string;
   arg: BinaryBlob;
 }
+export interface InstallCodeRequest extends Record<string, any> {
+  request_type: SubmitRequestType.InstallCode;
+  canister_id: CanisterId;
+  module: BinaryBlob;
+  arg?: BinaryBlob;
+}
 // tslint:enable:camel-case
 
 // The types of values allowed in the `request_type` field for submit requests.
 export enum SubmitRequestType {
   Call = 'call',
+  InstallCode = 'install_code',
 }
 
-export type SubmitRequest = CallRequest;
+export type SubmitRequest = CallRequest | InstallCodeRequest;
 export interface SubmitResponse {
   requestId: RequestId;
   response: Response;

@@ -1,18 +1,43 @@
+import { crc8 } from 'crc';
+
+function getCrc(hex: string): string {
+  return crc8(Buffer.from(hex, 'hex'))
+    .toString(16)
+    .toUpperCase()
+    .padStart(2, '0');
+}
+
 // Canister IDs are represented as an array of bytes in the HTTP handler of the client.
 export class CanisterId {
-  public static fromText(hex: string): CanisterId {
-    if (hex.startsWith('ic:')) {
-      // Remove the checksum from the hexadecimal.
-      // TODO: validate the checksum.
-      return new this(hex.slice(3, -2));
+  public static fromText(text: string): CanisterId {
+    if (text.startsWith('ic:')) {
+      const hex = text.slice(3);
+      if (hex.length >= 2 && hex.length % 2 === 0 && /^[0-9A-F]+$/.test(hex)) {
+        const id = hex.slice(0, -2);
+        const checksum = hex.slice(-2);
+        if (checksum !== getCrc(id)) {
+          throw new Error('Illegal CanisterId: ' + text);
+        }
+        return this.fromHex(id);
+      } else {
+        throw new Error('Cannot parse CanisterId: ' + text);
+      }
     } else {
-      throw new Error('CanisterId not a ic: url: ' + hex);
+      throw new Error('CanisterId is not a "ic:" url: ' + text);
     }
+  }
+
+  public static fromHex(hex: string): CanisterId {
+    return new this(hex);
   }
 
   protected constructor(private _idHex: string) {}
 
   public toHex(): string {
     return this._idHex;
+  }
+  public toText(): string {
+    const crc = getCrc(this._idHex);
+    return 'ic:' + this.toHex() + crc;
   }
 }

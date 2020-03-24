@@ -23,7 +23,8 @@ import {
 } from './http_agent_types';
 import * as IDL from './idl';
 import { requestIdOf } from './request_id';
-import { BinaryBlob } from './types';
+import { BinaryBlob, blobFromHex } from './types';
+
 const API_VERSION = 'v1';
 
 // HttpAgent options that can be used at construction.
@@ -150,6 +151,21 @@ export class HttpAgent {
       canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
+    });
+  }
+
+  public install(
+    canisterId: CanisterId | string,
+    fields: {
+      module: BinaryBlob;
+      arg?: BinaryBlob;
+    },
+  ): Promise<SubmitResponse> {
+    return this.submit({
+      request_type: SubmitRequestType.InstallCode,
+      canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
+      module: fields.module,
+      arg: fields.arg || blobFromHex(''),
     });
   }
 
