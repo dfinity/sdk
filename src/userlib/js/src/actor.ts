@@ -191,6 +191,9 @@ export function makeActorFactory(
     } as Actor;
 
     for (const [methodName, func] of actorInterface._fields) {
+      actor[methodName + '_type'] = async () => {
+        return func;
+      };
       actor[methodName] = async (...args: any[]) => {
         const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
