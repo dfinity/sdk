@@ -4,7 +4,7 @@ use crate::lib::replica_config::ReplicaConfig;
 
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, Running};
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use ic_http_agent::{Waiter, WaiterTrait};
+use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -84,7 +84,7 @@ impl Replica {
 
     fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
         // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Waiter::builder()
+        let mut waiter = Delay::builder()
             .throttle(Duration::from_millis(100))
             .timeout(Duration::from_secs(30))
             .build();
@@ -97,7 +97,9 @@ impl Replica {
                 }
             }
 
-            waiter.wait()?;
+            waiter
+                .wait()
+                .map_err(|_| DfxError::ReplicaCouldNotBeStarted())?;
         }
     }
 
@@ -222,9 +224,9 @@ fn replica_start_thread(
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Waiter::builder()
+        let mut waiter = Delay::builder()
             .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), Duration::from_secs(1), 1.0)
+            .exponential_backoff(Duration::from_secs(1), 1.2)
             .build();
         waiter.start();
 
