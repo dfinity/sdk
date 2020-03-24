@@ -4,6 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use atty;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use std::path::PathBuf;
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
@@ -82,10 +83,19 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
 
 fn run_ide(env: &dyn Environment, main_path: String) -> DfxResult {
     let stdlib_path = env.get_cache().get_binary_command_path("base")?;
+    let mut cmd = env.get_cache().get_binary_command("mo-ide")?;
+    if PathBuf::from("vessel.json").exists() {
+        let output = std::process::Command::new("vessel")
+            .arg("sources")
+            .output()?;
+        if output.status.success() {
+            if let Ok(stdout) = std::str::from_utf8(&output.stdout) {
+                cmd.args(stdout.split(" "));
+            }
+        }
+    }
 
-    let output = env
-        .get_cache()
-        .get_binary_command("mo-ide")?
+    let output = cmd
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         // Point at the right canister

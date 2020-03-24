@@ -296,6 +296,18 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
     };
 
     cmd.arg(&input_path);
+
+    if PathBuf::from("vessel.json").exists() {
+        let output = std::process::Command::new("vessel")
+            .arg("sources")
+            .output()?;
+        if output.status.success() {
+            if let Ok(stdout) = std::str::from_utf8(&output.stdout) {
+                cmd.args(stdout.split(" "));
+            }
+        }
+    }
+
     params.to_args(&mut cmd);
     let cmd = cmd
         .env("MOC_RTS", mo_rts_path.as_path())
