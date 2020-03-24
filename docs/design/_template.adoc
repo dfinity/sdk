@@ -5,7 +5,7 @@ v0.1, 2020-01-01
 :draft:
 :toc:
 
-== Objective
+== Overview
 ////
 :required:
 
@@ -15,34 +15,30 @@ What are we trying to accomplish?
 Just a few sentences.
 ////
 
-== Approvals
-////
-:required:
-
-Leave as many as needed:
-////
-- [ ] Consensus: Paul Liu
-- [ ] P2P: Hassen
-- [ ] Execution Environment: Akhi
-- [ ] Message Routing: Roman
-- [ ] Infrastructure: TBD/Maria
-- [ ] ORT: John
-- [ ] Crypto: Maria
-- [ ] SDK: Hans
-- [ ] Wasm: Maciej
-- [ ] Documentation: Lisa
-
 == Background
 ////
-:optional:
+:required:
 
 Include as much information as necessary here to understand the design. Include
 glossary if necessary in this section. Links to examples, related projects
 or other design docs. Any previous/current version of this feature.
 
 Do not write ideas about how to solve the problem here.
+////
 
-This is a good place for requirements and constraints.
+=== Problem Statement
+////
+:required:
+
+State the problem this design solves, in a concise way. A few sentences, not more.
+////
+
+=== Requirements
+////
+:optional:
+
+State which requirements are necessary to consider this problem solved. This is in
+relation to the solution, not the problem.
 ////
 
 == Expected User/Developer Experience
@@ -60,14 +56,6 @@ Link to other products available as comparatives to this design. For example,
 if another tool has a similar feature, list pros/cons/shortcomings of that tool.
 ////
 
-== Prototype
-////
-:optional:
-
-If a proof of concept is available, include a link to the files here (even if
-it's in the same PR).
-////
-
 == Detailed Design
 ////
 :required:
@@ -77,6 +65,20 @@ why some simpler approaches did not work. Mention other things to watch out
 for during implementation.
 
 Keep in mind that you might not be the person implementing the design.
+////
+
+=== Considered Solutions
+////
+:required:
+
+What solutions were considered, with a list of pros and cons of each solutions.
+////
+
+=== Recommended Solution
+////
+:required:
+
+What solution from the above are you recommending, and most importantly, WHY?
 ////
 
 === Public API
@@ -95,6 +97,14 @@ pub fn confabulate(spline: &mut [&Spline], polarity: bool) -> Result<(), Error> 
 ----
 
 It's important to avoid implementations here and speak in general terms.
+////
+
+=== Prototype
+////
+:optional:
+
+If a proof of concept is available, include a link to the files here (even if
+it's in the same PR).
 ////
 
 === Security Considerations
@@ -119,23 +129,6 @@ benchmark the feature (and if so, how)? Is there any considerations to keep
 in mind for avoiding and preventing future regressions?
 ////
 
-=== Integration Plan
-////
-:optional: Required if there are interactions with other tools.
-
-How will this feature interact with other tools? Is there any changes outside
-of the SDK that are required to make this feature work? Does this feature
-have integration with `dfx`?
-////
-
-=== Publishing Plan
-////
-:optional: Required if there are new packages.
-
-Explain which new packages will be released and published with this feature.
-Include any changes to current released packages.
-////
-
 == Breaking Changes
 ////
 :optional:
@@ -157,21 +150,40 @@ Does this feature deprecates any existing APIs?
 How will this feature be documented? Which people need to be involved?
 ////
 
-== Rollout / Migration
+== Lifecycle
+
+=== Integration Plan
+////
+:optional: Required if there are interactions with other tools.
+
+How will this feature interact with other tools? Is there any changes outside
+of the SDK that are required to make this feature work? Does this feature
+have integration with `dfx`?
+////
+
+=== Publishing Plan
+////
+:optional: Required if there are new packages.
+
+Explain which new packages will be released and published with this feature.
+Include any changes to current released packages.
+////
+
+=== Rollout / Migration
 ////
 :optional:
 
 How can we minimize impact to users? How do we maximize adoption?
 ////
 
-== Rollback Plan
+=== Rollback Plan
 ////
 :optional:
 
 How do you plan to rollback the change if a major issue is found?
 ////
 
-== Maintenance Plan
+=== Maintenance Plan
 ////
 :required:
 
@@ -188,7 +200,7 @@ version numbering.
 ////
 :required:
 
-Description of the various phases and milestones, and approximate time
-estimates. This is supposed to be a bullet point list, and will likely
-result in one task per bullet.
+Description of the various phases and milestones. This is supposed to be a
+bullet point list of high level stories and tasks. It is not meant to be a
+1:1 ratio of PRs.
 ////
