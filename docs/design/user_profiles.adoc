@@ -1,0 +1,663 @@
+= FeatureTemplate Design Doc
+// Author field:
+Eftychios Theodorakis <eftychis@dfinity.org>
+
+v0.1, 2020-03-24
+:draft:
+:toc:
+
+== Objective
+////
+:required:
+
+In a few sentences, describe the key objectives. Why do we need this feature?
+What are we trying to accomplish?
+
+Just a few sentences.
+////
+
+We want a simple, forward and backward compatible to some extend user
+profile file hierarchy structure. A developer wants to test multi-user
+interaction, switch between testing and production principals for the
+same project, create easily dummy principals for testing and
+development purposes. Thus, we want to provide the user with multiple
+principals and relate them with signing services or key pairs directly
+to enable signing of requests.
+
+== Approvals
+
+////
+:required:
+////
+
+
+- [ ] SDK: Hans, Stanley
+
+
+== Background
+
+////
+:optional:
+Include as much information as necessary here to understand the design. Include
+glossary if necessary in this section. Links to examples, related projects
+or other design docs. Any previous/current version of this feature.
+
+Do not write ideas about how to solve the problem here.
+
+This is a good place for requirements and constraints.
+////
+
+=== Definitions
+
+. Identity:
+
+An identity is a construct that denotes the set of claims of an entity
+about itself. Identification is the procedure whereby an entity
+claims a certain identity, while verification is the procedure whereby
+that claim is checked. Authentication is the assertion of an entity’s
+claim to an identity.
+
+. Role:
+
+A role represents the set of actions an entity equipped with that role can exercise.
+
+. Principal:
+
+A principal describes the security context of an identity, namely any
+identity that can be authenticated along with a specific role. In the
+case of the Internet Computer this maps currently to the identities
+that can be authenticated by a canister.
+
+. Identifier
+
+An identifier is a sequence of bytes/string utilized as a name for a
+principal. That allows a principal to be referenced.
+
+. User:
+
+A user is an external party that interacts with the IC replica via dfx
+(program).
+
+. Game:
+
+We use the following definition of a security game is a series of
+actions taken by two players, an adversary and the system, in some
+prescribed order and a defined winning condition for the
+adversary. Our goal is to ensure that the adversary loses with
+overwhelming probability to some parameter -- usually a key length.
+
+. Signing Provider
+
+Provides access to signing functionality. Can be a key for instance.
+
+. Access Files
+
+Files pertaining information about a signing provider.
+
+
+. Identity Hierarchy:
+
+The representation of principals and access to related signing
+providers: private keys, hardware management keys, gpg key handles,
+via a persisted file hierarchy.
+
+
+
+=== Requirements
+
+. User may have different principals (profiles) and be able to share
+them between the same project or different projects
+. As such a user may reuse signing providers between projects (in the
+future allow multiple signing providers per principal)
+
+=== Constraints
+
+User principal identifiers (self-authenticating ones) are [to be]
+derived and specific to the canister id. This means that principals
+need to be referenced by the user independently of the canister.
+
+
+=== Related Art
+////
+:optional: But recommended.
+
+Link to other products available as comparatives to this design. For example,
+if another tool has a similar feature, list pros/cons/shortcomings of that tool.
+////
+
+All of the related work has different underlying goals and
+architecture, however provide possible paths, tools or choices to
+consider.
+
+*  AWS CLI
+
+AWS is focused on keeping credentials, as its use case is [AWS CLI
+Documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-where).
+AWS focuses on spawning production services all under a particular
+role, at a relatively trusted system, and utilizes session or
+ephemeral keys, thus usually making use of environment variables
+directly. Furthermore, AWS CLI lacks the concept of projects. As a
+result the cli stores all credentials locally in
+``````~/.aws/credentials`` separate from the user implementation. AWS
+provides the notion of named
+[profiles](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html).
+Furthermore, it provides a series of authentication strategies beyond credentials.
+
+* Google cloud services CLI
+
+Similar to AWS. More focused on API keys that are provided to the
+application.
+
+*  GPG
+
+Data of GPG are kept usually under `~/.gnupg` In general it uses its
+own file extensions and data format and organization. (Specifally, two
+are used gpg and kbx.) GPG encrypts all private key files (and
+compress them). Also keeps track of a trust database with key
+relations for validation. It also keeps track of a randomness pool and
+lock files.
+
+Keys are concentrated into keyrings (secret and public). Revocation
+certificates are kept individually however. Filenames in that case use
+the fingerprint of the respective key.
+
+To provide convenient usage it provides `gpg-agent`, which stores
+decrypted keys in memory for the duration of its session. For more
+information see gnupg
+[configuration](https://www.gnupg.org/documentation/manuals/gnupg/GPG-Configuration.html).
+
+*  SSH
+
+OpenSSH stores credentials or data necessary to interface with a
+authenticating and signing service concentrated under a .ssh folder
+per user. A user may configure which file is to be used per case or
+provide it during invocation. It also provides an ssh-agent, that is
+being accessed for ssh sessions.
+
+
+
+== Expected User/Developer Experience
+
+////
+:required: Either User and/or Developer experience should be explained.
+
+Describe what
+////
+
+User seamlessly switches between user profiles. A user is informed on
+the principal they are issuing a request under. They are able to alter
+principals, add new ones and remove existing ones, assign access to
+new signing keys.
+
+
+=== Security Considerations
+////
+:optional:
+
+How will this feature impact security, and what needs to be done to keep it
+secure. Considerations should include:
+  - User input sanitization
+  - Existing security protocols and standards
+  - Permissions, Access Control and capabilities
+  - Privacy, GDPR considerations, etc.
+  - Anything else that can affect security and privacy.
+////
+
+==== Security models:
+
+We suppose two different models to indicate different decisions and
+mitigation results. In both models, the adversary is not able to gain
+access to the key points related to the desired principal.
+
+===== Adversary local access
+
+ First, an adversary that has local access to the system without
+ actual user, superuser or root access. The adversary can thus not
+ access the identity hierarchy files.
+
+===== Adversary user system access
+
+The adversary has access to the system in the role of the user or an
+administrator that can run programs with the same capabilities as the
+user and access the identity hierarchy. Absent the user providing the
+passphrase the adversary does not have access to all signing
+facilities and can not issue requests. However, the adversary learns
+about principals and relations with signing functionality.
+
+
+==== Path
+
+File permissions need to be set to allow only user (or root/superuser)
+access. Files containing secret information, such as access files
+described below, should be encrypted by default. User input containing
+passphrases should use a proper prompt (see existing crates).
+
+
+
+=== Performance Considerations
+////
+:optional:
+
+How will the feature affect speed and performance. Will there be a need to
+benchmark the feature (and if so, how)? Is there any considerations to keep
+in mind for avoiding and preventing future regressions?
+////
+
+N/A.
+
+
+== Prototype
+////
+:optional:
+
+If a proof of concept is available, include a link to the files here (even if
+it's in the same PR).
+////
+
+
+== Detailed Design
+////
+:required:
+
+Full design on how to implement the feature. Use this section to also describe
+why some simpler approaches did not work. Mention other things to watch out
+for during implementation.
+
+Keep in mind that you might not be the person implementing the design.
+////
+
+Below we represent a principal by a profile identifier -- `<principal
+profile identifier >`.
+
+==== Global Profiles Structure
+
+The identity hierarchy is represented by a series of files under
+``<cache>/identity/``. At the root of ``<cache>/identity/`` there
+is``<cache>/identity/metadata.json``. It represents only versioning
+information and any other metadata, future versions elect to add.
+
+
+ For each principal ``<principal profile identifier >` we assign the
+following file ``<cache>/identity/<principal identifier
+alias>/principal.json``. This assumes that user printed principal
+identifiers are valid names in the system.
+
+[source,json]
+----
+{
+  "version": "1.*",
+  "access": [
+    {
+      "id": "awesome key one",
+      "type": "pem",
+      "path": "<file path>"
+    },
+    {
+      "id": "awesome key two",
+      "type": "hw-piv-x",
+      "path": "<file path>"
+    }
+  ]
+}
+----
+
+Later in the future these can easily be augmented with extra fields.
+
+
+===== Note on Principals -- Principal Profiles
+
+Recall that in the future principal identifiers will be connected to
+canister identifier. This poses a complexity as principal identifiers
+as recognized by an IC replica are not simply project specific but
+canister installation specific. For that reason we mention above
+`<principal profile identifier >`. We have several choices:
+
+1. We support principals with current identifier and preserve the
+identifier post the suggested alterations to the way principal
+self-authenticating identifiers shall be computed.
+2. We support now or in the near future principals with their
+identifiers deviating per installation possibly. We expose a common
+identifier to the user to handle the principal, a profile for that
+principal. That is the user picks the identifier to be used by dfx for
+the principal.
+3. We support principals with current identifier and proceed to a
+breaking change introducing a profile identifier as in option 2
+
+In summary:
+
+* Each principal file includes the following:
+
+- Versioning information
+- Access file tree structure (each node is a file path plus access type)
+
+* Each access file data is represented according to its type (e.g. PEM encoded)
+
+* <cache>/identity/metadata.json
+- Versioning information
+
+
+
+===== Fault Tolerance
+
+Note that if an access file is missing or an entry in the principal
+data file is incorrect, the user can manually or via prompt fix the
+issue, by removing the entry or assigning the key to the correct
+principal. Adding extra fields or removing fields allows us to move
+between versions if the need arises. The identity hierarchy is loosely
+coupled with the credentials or the signing providers, allowing one to
+modify it without endangering access to services or loss of secrets.
+
+
+==== Local Project
+
+Locally each project should persist the principal that should be used
+on particular operations. Example of different operations that might
+reach for different profiles.
+
+As projects should be shareable between individuals, that information
+should not lie with the project configuration or committied into
+version control (git by default). Recall also xthat in the future
+principal identifiers will be connected to canister identifier.
+
+Thus, in each project, we may place optionally the following file
+
+. .dfx/identity.json
+
+[source,json]
+----
+{
+  "version": "1.*",
+  "command": [
+    {
+      "canister": "principal identifier"
+    }
+  ]
+}
+----
+
+
+This is kept minimal. We reference the version, to aid in future
+modifications. The fiel command and canister can be set to
+default. They represent respectively the principal that should be used
+when a particular <command> request issued for the corresponding
+<canister>. The usual simple project profile will look like:
+
+[source,json]
+----
+{
+  "version": "1.*",
+  "default": [
+    {
+      "default": "principal identifier"
+    }
+  ]
+}
+----
+
+Repeated entries will lead to undefined behaviour.
+
+==== DFX
+
+Each invocation of dfx should make it apparent which principal was
+used for which invocation. One could consider simply exposing if a
+principal is differnt than the defauly. However, that is error prone:
+a user can easily move a project or continue issueing update
+instructions in a controller role.
+
+
+====  Agent
+
+To ensure access to encrypted files we spawn an agent process.
+
+There are two paths. One appears to be using the
+[gpg-agent](https://linux.die.net/man/1/gpg-agent). Another path is to
+simply spawn our own agent and provide a way to reconnect via local
+socket.
+
+One consideration for running our dedicated agent is affecting
+inadvertently a user's other activities.
+
+Note we can afford to have a not so stable agent. That is in case the
+program is unable to conenct to the agent we simply prompt the user
+for a passphrase.
+
+==== CLI commands
+
+To expose the above functionality, we add a ``principal`` main
+command, along with related subcommands. These expose only the current
+provided functionality, yet can be easily extended.
+
+```principal` -> ```new` (default operation)
+```principal` -> ```new` -> [key type] -> [--with (file/access information)]
+```principal` -> ```new` -> ```yubikey`
+```principal` -> ```key` -> ```show` [principal identifier(s)]
+```principal` -> ```remove`[principal identifier(s)]
+```principal` -> ```list`
+```principal` -> ```show` [principal identifier]
+
+Above [key type] can be [pem-key] or [yubikey]. This can be extended
+later to [gpg] or any other provider of signing functionality. Note
+that passphrase or other sensitive information are not passed via
+flags to avoid being saved into history. They are provided
+interactively.
+
+
+
+==== JSON vs YAML vs TOML
+
+
+A consideration was given between JSON, YAML and TOML. TOML while
+simple is restrictive related to future tree structures we want
+represented. Yaml appears a better candidate, however it might be more
+complicated. We make currently extensive usage of JSON, thus the
+tentative suggestion is to use JSON and if any issues arise to proceed
+to YAML in the future.
+
+
+==== Crates to consider
+
+tty passphrase prompt:
+
+* https://crates.io/crates/rpassword
+* https://crates.io/crates/ttyaskpass
+
+
+=== Public API
+
+////
+:optional: Required if there is any public API changes
+
+////
+List any new or current API changes. List traits, methods, arguments and any
+types. A good way is to paste an example of the API in the language it will be
+implemented, for example (with Rust):
+////
+
+[source,rust]
+----
+/// Confabulate the splines using reverse polarity. Can return an error if
+/// the space is asynchronously stochastic.
+pub fn confabulate(spline: &mut [&Spline], polarity: bool) -> Result<(), Error> {}
+----
+
+////
+It's important to avoid implementations here and speak in general terms.
+////
+
+
+Current feature discusses persisted structures and their management,
+thus requires no Public Spec API changes.
+
+
+
+
+=== Integration Plan
+////
+:optional: Required if there are interactions with other tools.
+
+How will this feature interact with other tools? Is there any changes outside
+of the SDK that are required to make this feature work? Does this feature
+have integration with `dfx`?
+////
+
+There is no related work outside SDK. User profiles are supported by the identity manager, for dfx.
+
+
+=== Publishing Plan
+
+////
+:optional: Required if there are new packages.
+
+Explain which new packages will be released and published with this feature.
+Include any changes to current released packages.
+////
+
+Packages affected by this change are dfx and the identity manager.
+
+== Breaking Changes
+
+////
+:optional:
+
+Does this feature create or require breaking changes?
+////
+
+None
+
+=== Deprecation
+
+////
+:optional:
+
+Does this feature deprecates any existing APIs?
+////
+
+N/A.
+
+== Documentation
+
+////
+:required:
+
+How will this feature be documented? Which people need to be involved?
+////
+
+Critical Stakeholders: Lisa, Alexa
+Stakeholders: Stanley, Eftychis
+Interested Parties: (feel free to add your name)
+
+This feature should be split into smaller passes and documented
+partially as we expose more user facing subfeatures. Initially, a
+simple note that a user can generate a new principal is necessary, and
+that this principal can be accessed in all projects that use the
+latest dfx.
+
+We should provide internal documentation as to the file structure of
+the identity profiles. It is up to the discretion of the Critical
+stakeholders to decide if that information needs to be represented. It
+is then the job of the critical stakeholders and stakeholders to
+produce a user-friendly version of the documentation.
+
+If we use the gpg-agent, we should provide ```advanced user`
+documentation, explaining the options under which we use the
+agent. Only a single instance of the agent per session may exist and
+thus we may interfere with usage of the agent.
+
+
+
+Features to be documented:
+
+- commands
+- file structure (to be determined by stakeholders)
+- agent (selectively)
+
+
+
+== Rollout / Migration
+////
+:optional:
+
+How can we minimize impact to users? How do we maximize adoption?
+////
+
+There is minimal impact to the users, as they can pick to use default
+principal initially. This is a "pay as you go" feature. Users using
+older versions of dfx -- directly or indirectly -- are missing related
+functionality, thus can not access any suggested features. Worst case,
+the proposed flag or command is not recognized by the old dfx.
+
+Migration on the other hand to future versions can be a concern due to
+the dfx cache. This implies that it is the responsibility of the
+program to ensure that if a past version is run over a recent
+structure, the program can decide to use the existing file structure,
+principal or credential, or exit with appropriate error and
+instruction on how to upgrade the program and project.
+
+Under no circumstances, should we automatically migrate a particular
+file or identity hierarchy, as the migration may be run by an outdated
+version of the program.
+
+
+== Rollback Plan
+////
+:optional:
+
+How do you plan to rollback the change if a major issue is found?
+////
+
+We preserve the default profile already provided, that supports a single private key PEM encoded.
+
+
+== Maintenance and Evolution Plan
+////
+:required:
+
+How do you plan to maintain this feature for the next years? Can the
+APIs be cleanly evolved? Can Breaking Changes in the future be avoided?
+
+If this is a package, how do we plan to publish and deploy it? This includes
+version numbering.
+////
+
+Every persisted data structure proposed includes a version by
+construction. The proposed Identity hierarchy comprises three data
+types: i) metadata ii) principal to access files mapping data iii)
+access files, that provide a way to sign with a particular key. The
+first two are version dependent. We should ensure a version
+compatibility check is performed for each
+
+
+
+== Work Breakdown
+////
+:required:
+
+Description of the various phases and milestones, and approximate time
+estimates. This is supposed to be a bullet point list, and will likely
+result in one task per bullet.
+////
+
+We split the feature long-term life into 3 stages, that may interleave.
+
+1. Stage 1: Basic support of current functionality: single principal per key
+2. Stage X: Feature is deemed secure in both aforementioned models
+3. Stage 2: Support of new principal computation, multiple principals per key, revocation and other future identity related features
+
+
+
+We further split short term work in a series of steps. Some of them can be concurrently polished.
+
+State 1:
+
+1. Rewrite current default profile such that it adheres to suggested structure
+2. Ensure a file is ignored if parsing or version check fails
+3. Provide a new command principal to add a new principal
+4. Provide a new command principal to set a principal as default for a project
+5. Provide a new command principal to remove a principal
+6. Introduce encrypted access files
+
+Stage X
+
+1. Setup access rights of local and global files and directories properly
+2. Provide simple agent to assist with user access
+3. Turn encrypted access files as the default option at this point
