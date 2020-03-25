@@ -12,6 +12,7 @@ import { BinaryBlob } from './types';
  */
 export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
   __canisterId(): string;
+  __actorInterface(): Record<string, IDL.FuncClass>;
   __getAsset(path: string): Promise<Uint8Array>;
   __install(
     fields: {
@@ -139,6 +140,12 @@ export function makeActorFactory(
       __canisterId() {
         return cid.toHex();
       },
+      __actorInterface() {
+        return actorInterface._fields.reduce(
+          (obj, entry) => ({ ...obj, [entry[0]]: entry[1] }),
+          {},
+        );
+      },
       async __getAsset(path: string) {
         const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
@@ -191,9 +198,6 @@ export function makeActorFactory(
     } as Actor;
 
     for (const [methodName, func] of actorInterface._fields) {
-      actor[methodName + '_type'] = async () => {
-        return func;
-      };
       actor[methodName] = async (...args: any[]) => {
         const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
