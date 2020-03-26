@@ -109,8 +109,7 @@ async function _main() {
       const canister = window.icHttpAgent.makeActorFactory(candid.default)({ canisterId });
       // @ts-ignore: Could not find a declaration file for module
       const render: any = await import('./candid/candid.js');
-      const actor = candid.default({ IDL });
-      render.render(canisterId, actor, canister);
+      render.render(canisterId, canister);
     } else {
       // Load index.js from the canister and execute it.
       await _loadJs(canisterId, 'index.js', async () => {
