@@ -1,4 +1,5 @@
 use crate::agent::agent_error::AgentError;
+use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 pub trait WaiterTrait {
@@ -25,6 +26,11 @@ impl Waiter {
     }
     pub fn throttle(throttle: Duration) -> Self {
         Self::from(Box::new(ThrottleWaiter::new(throttle)))
+    }
+    pub fn exponential_backoff(initial: Duration, delta: Duration, multiplier: f32) -> Self {
+        Self::from(Box::new(ExponentialBackoffWaiter::new(
+            initial, delta, multiplier,
+        )))
     }
     pub fn builder() -> WaiterBuilder {
         WaiterBuilder { inner: None }
@@ -57,12 +63,15 @@ impl WaiterBuilder {
     pub fn throttle(self, throttle: Duration) -> Self {
         self.with(Waiter::throttle(throttle))
     }
+    pub fn exponential_backoff(self, initial: Duration, delta: Duration, multiplier: f32) -> Self {
+        self.with(Waiter::exponential_backoff(initial, delta, multiplier))
+    }
     pub fn build(mut self) -> Waiter {
         self.inner.take().unwrap_or_else(Waiter::instant)
     }
 }
 
-pub struct ComposeWaiter {
+struct ComposeWaiter {
     a: Waiter,
     b: Waiter,
 }
@@ -83,14 +92,14 @@ impl WaiterTrait for ComposeWaiter {
     }
 }
 
-pub struct InstantWaiter {}
+struct InstantWaiter {}
 impl WaiterTrait for InstantWaiter {
     fn wait(&self) -> Result<(), AgentError> {
         Ok(())
     }
 }
 
-pub struct TimeoutWaiter {
+struct TimeoutWaiter {
     timeout: Duration,
     start: Instant,
 }
@@ -117,7 +126,7 @@ impl WaiterTrait for TimeoutWaiter {
     }
 }
 
-pub struct ThrottleWaiter {
+struct ThrottleWaiter {
     throttle: Duration,
 }
 
@@ -130,6 +139,41 @@ impl ThrottleWaiter {
 impl WaiterTrait for ThrottleWaiter {
     fn wait(&self) -> Result<(), AgentError> {
         std::thread::sleep(self.throttle);
+
+        Ok(())
+    }
+}
+
+struct ExponentialBackoffWaiter {
+    next: RefCell<Duration>,
+    initial: Duration,
+    delta: Duration,
+    multiplier: f32,
+}
+
+impl ExponentialBackoffWaiter {
+    pub fn new(initial: Duration, delta: Duration, multiplier: f32) -> Self {
+        ExponentialBackoffWaiter {
+            next: RefCell::new(initial),
+            initial,
+            delta,
+            multiplier,
+        }
+    }
+}
+
+impl WaiterTrait for ExponentialBackoffWaiter {
+    fn start(&mut self) {
+        self.next = RefCell::new(self.initial);
+    }
+
+    fn wait(&self) -> Result<(), AgentError> {
+        let current = *self.next.borrow();
+        // Find the next throttle.
+        self.next
+            .replace(current.mul_f32(self.multiplier) + self.delta);
+
+        std::thread::sleep(current);
 
         Ok(())
     }

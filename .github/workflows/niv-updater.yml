@@ -11,17 +11,18 @@ on:
     types: niv-updater-nudge
   schedule:
     # * is a special character in YAML so you have to quote this string
-    # Run every 20min, as we like it that way (but it should be hourly)
-    - cron:  '*/20 * * * *'
+    - cron:  '0 16 * * *'
 jobs:
   niv-updater:
     name: 'Check for updates'
     runs-on: ubuntu-latest
     steps:
       - name: niv-updater-action
-        uses: knl/niv-updater-action@v4
+        # TODO: move to v6 when @knl has had time to release.
+        uses: knl/niv-updater-action@master
         with:
-          whitelist: 'common,advisory-db,napalm' 
+          whitelist: 'common,advisory-db,napalm'
+          title_prefix: 'build: '
           labels: |
             automerge-squash
         env:
