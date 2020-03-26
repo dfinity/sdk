@@ -1,4 +1,5 @@
-import * as UI from './idl-ui';
+import * as UI from './candid-ui';
+import './candid.css';
 
 export function render(id, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
