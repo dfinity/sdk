@@ -2,14 +2,14 @@ import * as UI from './wired';
 import { WiredCard, WiredButton } from 'wired-elements';
 import './wired.css';
 
-export function render(id, actor, canister) {
+export function render(id, canister) {
   const font = document.createElement('link');
   font.href = 'https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&display=swap';
   font.rel = 'stylesheet';
   document.head.appendChild(font);
-  
+
   document.getElementById('title').innerText = `Service ${id}`;
-  for (const [name, func] of actor._fields) {
+  for (const [name, func] of Object.entries(canister.__actorInterface())) {
     renderMethod(name, func, canister[name]);
   }
   const console = document.createElement("wired-card");
