@@ -6,5 +6,7 @@ export * from './http_agent_transforms';
 export * from './http_agent_types';
 export * from './types';
 
+import * as UICore from './candid-core';
+import * as UI from './candid-ui';
 import * as IDL from './idl';
-export { IDL };
+export { IDL, UICore, UI };
