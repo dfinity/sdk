@@ -29,10 +29,6 @@ impl Signer for DummyIdentity {
         // the request id. Trying to figure out if the correct
         // behaviour changed and where the deviation happens.
 
-        // let mut sender = vec![0; 32];
-        // sender.push(0x02);
-        // let sender = Blob::from(sender);
-        // let request_with_sender = MessageWithSender { request, sender };
         let request_with_sender = request;
         let request_id = to_request_id(&request_with_sender).map_err(AgentError::from)?;
 
