@@ -76,10 +76,13 @@ in
 
       do_not_cache="max-age=0,no-cache"
 
-      # TODO: I don't like not caching manifest.json and install.sh.
-      # Consider configuring the S3 bucket as a website and
-      # turning install.sh into an uncached (or shortly cached) redirect to a
-      # cached versioned install.sh using the --website-redirect option.
+      # TODO: publish the manifest.json and install.sh to content
+      # addressable paths which can be cached for a long time. Then publish
+      # uncached --website-redirects to redirect sdk/manifest.json and
+      # sdk/install.sh to their content addressable alternatives. This way the latest
+      # manifest.json and install.sh will be available in the CDN and won't have
+      # to be fetched from the origin bucket.
+      # See: https://dfinity.atlassian.net/browse/INF-1145
 
       s3cp "${packages_x86_64-linux.install-sh-release}" "manifest.json" "sdk" "application/x-sh" "$do_not_cache"
       s3cp "${packages_x86_64-linux.install-sh-release}" "install.sh"    "sdk" "application/x-sh" "$do_not_cache"
