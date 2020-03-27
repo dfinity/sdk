@@ -8,6 +8,7 @@ use ic_http_agent::AgentError;
 use slog;
 use std::path::PathBuf;
 
+mod actors;
 mod commands;
 mod config;
 mod lib;

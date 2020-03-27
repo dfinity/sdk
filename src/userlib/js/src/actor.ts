@@ -11,6 +11,7 @@ import { BinaryBlob } from './types';
  * return a promise. These functions are derived from the IDL definition.
  */
 export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
+  __actorInterface(): Record<string, IDL.FuncClass>;
   __canisterId(): string;
   __getAsset(path: string): Promise<Uint8Array>;
   __install(
@@ -136,6 +137,12 @@ export function makeActorFactory(
     } as Required<ActorConfig>;
     const cid = typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId;
     const actor: Actor = {
+      __actorInterface() {
+        return actorInterface._fields.reduce(
+          (obj, entry) => ({ ...obj, [entry[0]]: entry[1] }),
+          {},
+        );
+      },
       __canisterId() {
         return cid.toHex();
       },
