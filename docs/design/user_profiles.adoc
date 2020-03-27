@@ -1,10 +1,8 @@
 = User Principal Profiles Design Doc
-:draft:
-:toc:
+:toc2:
 
 // Author field:
 Eftychios Theodorakis <eftychis@dfinity.org>
-
 
 v0.1, 2020-03-24
 
@@ -339,6 +337,14 @@ In summary:
 * <cache>/identity/metadata.json
 - Versioning information
 
+
+===== Advantages:
+
+Above approach ensures we do not have to invent our own data format or
+concern ourselves with compression or encrypting fields individually
+with different keys. It allows a user to always access relatively
+easily access and backup sensitive information, improving robustness
+in case of migration failure, bug or write failure.
 
 
 ===== Fault Tolerance
