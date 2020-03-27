@@ -1,10 +1,12 @@
-= FeatureTemplate Design Doc
+= User Principal Profiles Design Doc
+:draft:
+:toc:
+
 // Author field:
 Eftychios Theodorakis <eftychis@dfinity.org>
 
+
 v0.1, 2020-03-24
-:draft:
-:toc:
 
 == Objective
 ////
@@ -49,7 +51,7 @@ This is a good place for requirements and constraints.
 
 === Definitions
 
-. Identity:
+* Identity:
 
 An identity is a construct that denotes the set of claims of an entity
 about itself. Identification is the procedure whereby an entity
@@ -57,28 +59,29 @@ claims a certain identity, while verification is the procedure whereby
 that claim is checked. Authentication is the assertion of an entity’s
 claim to an identity.
 
-. Role:
+* Role:
 
-A role represents the set of actions an entity equipped with that role can exercise.
+A role represents the set of actions an entity equipped with that role
+can exercise.
 
-. Principal:
+* Principal:
 
 A principal describes the security context of an identity, namely any
 identity that can be authenticated along with a specific role. In the
 case of the Internet Computer this maps currently to the identities
 that can be authenticated by a canister.
 
-. Identifier
+* Identifier
 
 An identifier is a sequence of bytes/string utilized as a name for a
 principal. That allows a principal to be referenced.
 
-. User:
+* User:
 
 A user is an external party that interacts with the IC replica via dfx
 (program).
 
-. Game:
+* Game:
 
 We use the following definition of a security game is a series of
 actions taken by two players, an adversary and the system, in some
@@ -86,16 +89,16 @@ prescribed order and a defined winning condition for the
 adversary. Our goal is to ensure that the adversary loses with
 overwhelming probability to some parameter -- usually a key length.
 
-. Signing Provider
+* Signing Provider
 
 Provides access to signing functionality. Can be a key for instance.
 
-. Access Files
+* Access Files
 
 Files pertaining information about a signing provider.
 
 
-. Identity Hierarchy:
+* Identity Hierarchy:
 
 The representation of principals and access to related signing
 providers: private keys, hardware management keys, gpg key handles,
@@ -131,17 +134,18 @@ consider.
 
 *  AWS CLI
 
-AWS is focused on keeping credentials, as its use case is [AWS CLI
-Documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-where).
-AWS focuses on spawning production services all under a particular
-role, at a relatively trusted system, and utilizes session or
-ephemeral keys, thus usually making use of environment variables
-directly. Furthermore, AWS CLI lacks the concept of projects. As a
-result the cli stores all credentials locally in
+AWS is focused on keeping credentials, as its use case is
+link:https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-where[AWS
+CLI Documentation].  AWS focuses on spawning production services all
+under a particular role, at a relatively trusted system, and utilizes
+session or ephemeral keys, thus usually making use of environment
+variables directly. Furthermore, AWS CLI lacks the concept of
+projects. As a result the cli stores all credentials locally in
 ``````~/.aws/credentials`` separate from the user implementation. AWS
 provides the notion of named
-[profiles](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html).
-Furthermore, it provides a series of authentication strategies beyond credentials.
+link:https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html[profiles].
+Furthermore, it provides a series of authentication strategies beyond
+credentials.
 
 * Google cloud services CLI
 
@@ -164,7 +168,7 @@ the fingerprint of the respective key.
 To provide convenient usage it provides `gpg-agent`, which stores
 decrypted keys in memory for the duration of its session. For more
 information see gnupg
-[configuration](https://www.gnupg.org/documentation/manuals/gnupg/GPG-Configuration.html).
+link:https://www.gnupg.org/documentation/manuals/gnupg/GPG-Configuration.html[configuration].
 
 *  SSH
 
@@ -277,7 +281,7 @@ is``<cache>/identity/metadata.json``. It represents only versioning
 information and any other metadata, future versions elect to add.
 
 
- For each principal ``<principal profile identifier >` we assign the
+For each principal ``<principal profile identifier >` we assign the
 following file ``<cache>/identity/<principal identifier
 alias>/principal.json``. This assumes that user printed principal
 identifiers are valid names in the system.
@@ -312,15 +316,15 @@ as recognized by an IC replica are not simply project specific but
 canister installation specific. For that reason we mention above
 `<principal profile identifier >`. We have several choices:
 
-1. We support principals with current identifier and preserve the
+. We support principals with current identifier and preserve the
 identifier post the suggested alterations to the way principal
 self-authenticating identifiers shall be computed.
-2. We support now or in the near future principals with their
+. We support now or in the near future principals with their
 identifiers deviating per installation possibly. We expose a common
 identifier to the user to handle the principal, a profile for that
 principal. That is the user picks the identifier to be used by dfx for
 the principal.
-3. We support principals with current identifier and proceed to a
+. We support principals with current identifier and proceed to a
 breaking change introducing a profile identifier as in option 2
 
 In summary:
@@ -361,7 +365,7 @@ principal identifiers will be connected to canister identifier.
 
 Thus, in each project, we may place optionally the following file
 
-. .dfx/identity.json
+* .dfx/identity.json
 
 [source,json]
 ----
@@ -407,11 +411,10 @@ instructions in a controller role.
 
 ====  Agent
 
-To ensure access to encrypted files we spawn an agent process.
-
-There are two paths. One appears to be using the
-[gpg-agent](https://linux.die.net/man/1/gpg-agent). Another path is to
-simply spawn our own agent and provide a way to reconnect via local
+To ensure access to encrypted files we spawn an agent process. There
+are two paths. One appears to be using the
+link:https://linux.die.net/man/1/gpg-agent[gpg-agent]. Another path is
+to simply spawn our own agent and provide a way to reconnect via local
 socket.
 
 One consideration for running our dedicated agent is affecting
@@ -427,13 +430,13 @@ To expose the above functionality, we add a ``principal`` main
 command, along with related subcommands. These expose only the current
 provided functionality, yet can be easily extended.
 
-```principal` -> ```new` (default operation)
-```principal` -> ```new` -> [key type] -> [--with (file/access information)]
-```principal` -> ```new` -> ```yubikey`
-```principal` -> ```key` -> ```show` [principal identifier(s)]
-```principal` -> ```remove`[principal identifier(s)]
-```principal` -> ```list`
-```principal` -> ```show` [principal identifier]
+ `principal` -> `new` (default operation)
+ `principal` -> `new` -> [key type] -> [ --with (file/access information) ]
+ `principal` -> `new` -> `yubikey`
+ `principal` -> `key` -> `show` [principal identifier(s)]
+ `principal` -> `remove`[principal identifier(s)]
+ `principal` -> `list`
+ `principal` -> `show` [principal identifier]
 
 Above [key type] can be [pem-key] or [yubikey]. This can be extended
 later to [gpg] or any other provider of signing functionality. Note
@@ -464,27 +467,6 @@ tty passphrase prompt:
 
 === Public API
 
-////
-:optional: Required if there is any public API changes
-
-////
-List any new or current API changes. List traits, methods, arguments and any
-types. A good way is to paste an example of the API in the language it will be
-implemented, for example (with Rust):
-////
-
-[source,rust]
-----
-/// Confabulate the splines using reverse polarity. Can return an error if
-/// the space is asynchronously stochastic.
-pub fn confabulate(spline: &mut [&Spline], polarity: bool) -> Result<(), Error> {}
-----
-
-////
-It's important to avoid implementations here and speak in general terms.
-////
-
-
 Current feature discusses persisted structures and their management,
 thus requires no Public Spec API changes.
 
@@ -504,7 +486,6 @@ There is no related work outside SDK. User profiles are supported by the identit
 
 
 === Publishing Plan
-
 ////
 :optional: Required if there are new packages.
 
@@ -515,7 +496,6 @@ Include any changes to current released packages.
 Packages affected by this change are dfx and the identity manager.
 
 == Breaking Changes
-
 ////
 :optional:
 
@@ -525,7 +505,6 @@ Does this feature create or require breaking changes?
 None
 
 === Deprecation
-
 ////
 :optional:
 
@@ -535,7 +514,6 @@ Does this feature deprecates any existing APIs?
 N/A.
 
 == Documentation
-
 ////
 :required:
 
@@ -647,7 +625,7 @@ We split the feature long-term life into 3 stages, that may interleave.
 
 We further split short term work in a series of steps. Some of them can be concurrently polished.
 
-State 1:
+* State 1:
 
 1. Rewrite current default profile such that it adheres to suggested structure
 2. Ensure a file is ignored if parsing or version check fails
@@ -656,8 +634,11 @@ State 1:
 5. Provide a new command principal to remove a principal
 6. Introduce encrypted access files
 
-Stage X
+* Stage X
 
 1. Setup access rights of local and global files and directories properly
 2. Provide simple agent to assist with user access
 3. Turn encrypted access files as the default option at this point
+
+* Stage 2
+Dependant on future changes.
