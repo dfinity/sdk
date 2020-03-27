@@ -31,6 +31,24 @@ let
       --no-guess-mime-type --content-type "$contentType" \
       --no-progress
   '';
+
+  slack = pkgs.lib.writeCheckedShellScriptBin "slack" [] ''
+    set -eu
+    PATH="${pkgs.lib.makeBinPath [ pkgs.jq pkgs.curl ]}"
+    slack_channel_webhook="$1"
+    msg="$(</dev/stdin)"
+    echo {} | jq --arg msg "$msg" '.blocks=[
+      {
+        "type" : "section",
+        "text" : {
+          "type" : "mrkdwn",
+          "text" : $msg
+        }
+      }
+    ]' | curl -X POST --data @- "$slack_channel_webhook" \
+           --header "Content-Type: application/json" --silent --show-error
+  '';
+
   packagesFor = wantedSystem:
     if system == wantedSystem
     then packages
@@ -53,7 +71,7 @@ in
   dfx = pkgs.lib.linuxOnly (
     pkgs.lib.writeCheckedShellScriptBin "activate" [] ''
       set -eu
-      PATH="${pkgs.lib.makeBinPath [ s3cp pkgs.jq pkgs.curl pkgs.coreutils ]}"
+      PATH="${pkgs.lib.makeBinPath [ s3cp slack ]}"
 
       v="${pkgs.releaseVersion}"
       cache_long="max-age=31536000" # 1 year
@@ -64,23 +82,12 @@ in
       s3cp "${packages_x86_64-linux.dfx-release}" "$path" "$dir/x86_64-linux" "application/gzip" "$cache_long"
       s3cp "${packages_x86_64-darwin.dfx-release}" "$path" "$dir/x86_64-darwin" "application/gzip" "$cache_long"
 
-      msg=$(cat <<EOI
+      slack "$SLACK_CHANNEL_BUILD_NOTIFICATIONS_WEBHOOK" <<EOI
       *DFX-$v* has been published to DFINITY's CDN :champagne:!
       - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-linux/$path
       - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-darwin/$path
       Install the SDK by following the instructions at: https://sdk.dfinity.org/docs/download.html.
       EOI
-      )
-      echo {} | jq --arg msg "$msg" '.blocks=[
-        {
-          "type" : "section",
-          "text" : {
-            "type" : "mrkdwn",
-            "text" : $msg
-          }
-        }
-      ]' | curl -X POST --data @- "$SLACK_CHANNEL_BUILD_NOTIFICATIONS_WEBHOOK" \
-             --header "Content-Type: application/json" --silent --show-error
     ''
   );
   install-sh = pkgs.lib.linuxOnly (
