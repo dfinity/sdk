@@ -440,6 +440,7 @@ provided functionality, yet can be easily extended.
  `principal` -> `new` -> [key type] -> [ --with (file/access information) ]
  `principal` -> `new` -> `yubikey`
  `principal` -> `key` -> `show` [principal identifier(s)]
+ `principal` -> `set` -> [principal identifier(s)]
  `principal` -> `remove`[principal identifier(s)]
  `principal` -> `list`
  `principal` -> `show` [principal identifier]
