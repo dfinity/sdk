@@ -19,8 +19,14 @@ let
   s3cp = pkgs.lib.writeCheckedShellScriptBin "s3cp" [] ''
     set -eu
     PATH="${pkgs.lib.makeBinPath [ pkgs.awscli ]}"
-    pkg="$1"; file="$2"; dstDir="$3"; contentType="$4"; cacheControl="$5"
-    aws s3 cp "$pkg/$file" "s3://$DFINITY_DOWNLOAD_BUCKET/$dstDir/$file" \
+    pkg="$1"; path="$2"; dstDir="$3"; contentType="$4"; cacheControl="$5"
+    src="$pkg/$path"
+    dst=""s3://$DFINITY_DOWNLOAD_BUCKET/$dstDir/$path""
+    if [ -d "$src" ]; then
+      echo "Can't copy $src to $dst because it's a directory. Please specify a file instead." 1>&2; exit 1;
+    fi
+    echo "Uploading $src to $dst (--cache-control $cacheControl, --content-type $contentType)..."
+    aws s3 cp "$src" "$dst" \
       --cache-control "$cacheControl" \
       --no-guess-mime-type --content-type "$contentType" \
       --no-progress
@@ -52,16 +58,16 @@ in
       v="${pkgs.releaseVersion}"
       cache_long="max-age=31536000" # 1 year
 
-      file="dfx-$v.tar.gz"
+      path="dfx-$v.tar.gz"
       dir="sdk/dfx/$v"
 
-      s3cp "${packages_x86_64-linux.dfx-release}" "$file" "$dir/x86_64-linux" "application/gzip" "$cache_long"
-      s3cp "${packages_x86_64-darwin.dfx-release}" "$file" "$dir/x86_64-darwin" "application/gzip" "$cache_long"
+      s3cp "${packages_x86_64-linux.dfx-release}" "$path" "$dir/x86_64-linux" "application/gzip" "$cache_long"
+      s3cp "${packages_x86_64-darwin.dfx-release}" "$path" "$dir/x86_64-darwin" "application/gzip" "$cache_long"
 
       msg=$(cat <<EOI
       DFX-$v has been published to DFINITY's CDN at:
-      * https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-linux/$file
-      * https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-darwin/$file
+      * https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-linux/$path
+      * https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-darwin/$path
       Install the SDK by following the instructions on: https://sdk.dfinity.org/docs/download.html.
       EOI
       )
