@@ -35,6 +35,7 @@ let
       # already evaluated jobsets for each system are available
       # to the jobsets themselves. This way we can speed up
       # evaluation on both CI and in nix-shells.
+      # See: https://dfinity.atlassian.net/browse/INF-1146
       import ./. {
         system = wantedSystem;
         inherit crossSystem config overlays src RustSec-advisory-db;
