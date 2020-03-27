@@ -15,6 +15,7 @@ if !doRelease then {} else {
 
   # TODO: remove these jobs when the `publish.x86_64-linux` job below
   # is working successfully and the CloudFront CDN is online.
+  # See: https://dfinity.atlassian.net/browse/INF-1143
   dfx-release = {
     x86_64-linux = packages_x86_64-linux.dfx-release;
     x86_64-darwin = packages_x86_64-darwin.dfx-release;
