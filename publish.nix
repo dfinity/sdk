@@ -53,7 +53,7 @@ in
   dfx = pkgs.lib.linuxOnly (
     pkgs.lib.writeCheckedShellScriptBin "activate" [] ''
       set -eu
-      PATH="${pkgs.lib.makeBinPath [ s3cp pkgs.jo pkgs.curl pkgs.coreutils ]}"
+      PATH="${pkgs.lib.makeBinPath [ s3cp pkgs.jq pkgs.curl pkgs.coreutils ]}"
 
       v="${pkgs.releaseVersion}"
       cache_long="max-age=31536000" # 1 year
@@ -65,15 +65,22 @@ in
       s3cp "${packages_x86_64-darwin.dfx-release}" "$path" "$dir/x86_64-darwin" "application/gzip" "$cache_long"
 
       msg=$(cat <<EOI
-      DFX-$v has been published to DFINITY's CDN at:
-      * https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-linux/$path
-      * https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-darwin/$path
-      Install the SDK by following the instructions on: https://sdk.dfinity.org/docs/download.html.
+      *DFX-$v* has been published to DFINITY's CDN :champagne:!
+      - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-linux/$path
+      - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-darwin/$path
+      Install the SDK by following the instructions at: https://sdk.dfinity.org/docs/download.html.
       EOI
       )
-      jo "text=$msg" \
-        | curl -X POST "$SLACK_CHANNEL_BUILD_NOTIFICATIONS_WEBHOOK" \
-            --silent --show-error --header "Content-Type: application/json" --data @-
+      echo {} | jq --arg msg "$msg" '.blocks=[
+        {
+          "type" : "section",
+          "text" : {
+            "type" : "mrkdwn",
+            "text" : $msg
+          }
+        }
+      ]' | curl -X POST --data @- "$SLACK_CHANNEL_BUILD_NOTIFICATIONS_WEBHOOK" \
+             --header "Content-Type: application/json" --silent --show-error
     ''
   );
   install-sh = pkgs.lib.linuxOnly (
