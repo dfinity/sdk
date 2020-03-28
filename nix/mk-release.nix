@@ -1,4 +1,11 @@
-{ stdenv, lib, gzip, jo, patchelf, isMaster ? false }:
+{ stdenv
+, lib
+, gzip
+, jo
+, patchelf
+  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
+, isMaster ? false
+}:
 rname: version: from: what:
 stdenv.mkDerivation {
   name = "${rname}-release";

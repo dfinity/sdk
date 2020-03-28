@@ -5,16 +5,7 @@
 # This script will be executed by DFINITY's Continuous Deployment
 # system. That system will also set the correct AWS credentials and the
 # DFINITY_DOWNLOAD_BUCKET environment variable.
-{ system ? builtins.currentSystem
-, crossSystem ? null
-, config ? {}
-, overlays ? []
-, src ? null
-, releaseVersion ? "latest"
-, RustSec-advisory-db ? null
-, pkgs ? import ./nix { inherit system crossSystem config overlays releaseVersion RustSec-advisory-db; }
-, packages ? import ./. { inherit system crossSystem config overlays releaseVersion RustSec-advisory-db pkgs; }
-}:
+{ pkgs, dfx-release, install-sh-release }:
 let
   s3cp = pkgs.lib.writeCheckedShellScriptBin "s3cp" [] ''
     set -eu
@@ -48,24 +39,6 @@ let
     ]' | curl -X POST --data @- "$slack_channel_webhook" \
            --header "Content-Type: application/json" --silent --show-error
   '';
-
-  packagesFor = wantedSystem:
-    if system == wantedSystem
-    then packages
-    else
-      # TODO: ci/ci.nix already evaluates ./. for all supported
-      # systems so the following causes an unnecessary extra
-      # evaluation. Let's refactor ci/ci.nix such that the
-      # already evaluated jobsets for each system are available
-      # to the jobsets themselves. This way we can speed up
-      # evaluation on both CI and in nix-shells.
-      # See: https://dfinity.atlassian.net/browse/INF-1146
-      import ./. {
-        system = wantedSystem;
-        inherit crossSystem config overlays src RustSec-advisory-db;
-      };
-  packages_x86_64-linux = packagesFor "x86_64-linux";
-  packages_x86_64-darwin = packagesFor "x86_64-darwin";
 in
 {
   dfx = pkgs.lib.linuxOnly (
@@ -79,8 +52,8 @@ in
       path="dfx-$v.tar.gz"
       dir="sdk/dfx/$v"
 
-      s3cp "${packages_x86_64-linux.dfx-release}" "$path" "$dir/x86_64-linux" "application/gzip" "$cache_long"
-      s3cp "${packages_x86_64-darwin.dfx-release}" "$path" "$dir/x86_64-darwin" "application/gzip" "$cache_long"
+      s3cp "${dfx-release.x86_64-linux}" "$path" "$dir/x86_64-linux" "application/gzip" "$cache_long"
+      s3cp "${dfx-release.x86_64-darwin}" "$path" "$dir/x86_64-darwin" "application/gzip" "$cache_long"
 
       slack "$SLACK_CHANNEL_BUILD_NOTIFICATIONS_WEBHOOK" <<EOI
       *DFX-$v* has been published to DFINITY's CDN :champagne:!
@@ -105,8 +78,9 @@ in
       # to be fetched from the origin bucket.
       # See: https://dfinity.atlassian.net/browse/INF-1145
 
-      s3cp "${packages_x86_64-linux.install-sh-release}" "manifest.json" "sdk" "application/x-sh" "$do_not_cache"
-      s3cp "${packages_x86_64-linux.install-sh-release}" "install.sh"    "sdk" "application/x-sh" "$do_not_cache"
+      pkg="${install-sh-release.x86_64-linux}"
+      s3cp "$pkg" "manifest.json" "sdk" "application/x-sh" "$do_not_cache"
+      s3cp "$pkg" "install.sh" "sdk" "application/x-sh" "$do_not_cache"
     ''
   );
 }

@@ -1,10 +1,9 @@
 # Returns the nixpkgs set overridden and extended with DFINITY specific
 # packages.
 { system ? builtins.currentSystem
-, crossSystem ? null
-, config ? {}
-, overlays ? []
 , releaseVersion ? "latest"
+  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
+, isMaster ? false
 , RustSec-advisory-db ? null
 }:
 let
@@ -31,18 +30,17 @@ let
   };
 
   pkgs = import commonSrc {
-    inherit system crossSystem config;
+    inherit system;
     overlays = [
       (
         self: super:
           let
             nixFmt = self.lib.nixFmt { root = ../.; };
-            isMaster = super.isMaster or false;
           in
             {
               sources = super.sources // sources;
 
-              inherit releaseVersion isMaster;
+              inherit releaseVersion;
 
               # The RustSec-advisory-db used by cargo-audit.nix.
               # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
@@ -64,7 +62,7 @@ let
               lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix { inherit isMaster; }; };
             }
       )
-    ] ++ overlays;
+    ];
   };
 in
 pkgs
