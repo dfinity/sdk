@@ -8,7 +8,7 @@ let
   versionMatches = builtins.match "([0-9]+\.[0-9]+\.[0-9]+)" src.gitTag;
   releaseVersion = if versionMatches == null then "latest" else builtins.head versionMatches;
 
-  ci = import ./ci.nix { inherit src; };
+  ci = import ./ci.nix { inherit src releaseVersion; };
 in
 if !doRelease then {} else {
   # TODO: remove these jobs when the `publish.dfx` job below

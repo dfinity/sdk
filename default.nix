@@ -5,7 +5,7 @@
 , isMaster ? false
 , RustSec-advisory-db ? null
 , pkgs ? import ./nix { inherit system releaseVersion RustSec-advisory-db; }
-, jobset ? import ./ci/ci.nix { inherit system src RustSec-advisory-db pkgs isMaster; }
+, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs isMaster src; }
 }:
 rec {
   dfx = import ./dfx.nix { inherit pkgs userlib-js; };
