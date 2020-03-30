@@ -1,6 +1,8 @@
 { pkgs ? import ../nix { inherit system; }
 , system ? builtins.currentSystem
 , src ? null
+  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
+, isMaster ? false
 }:
 
 let
@@ -42,7 +44,7 @@ rec {
     in
       pkgs.runCommandNoCC "install-sh-lint" {
         inherit version public;
-        inherit (pkgs) isMaster;
+        inherit isMaster;
         buildInputs = [ install-sh pkgs.shfmt pkgs.shellcheck ];
         preferLocalBuild = true;
         allowSubstitutes = false;
@@ -83,7 +85,7 @@ rec {
     pkgs.lib.linuxOnly (
       pkgs.runCommandNoCC "install-sh-release" {
         inherit version;
-        inherit (pkgs) isMaster;
+        inherit isMaster;
 
         # `revision` will be printed by `install.sh` as follows:
         #

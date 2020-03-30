@@ -1,10 +1,9 @@
 # Returns the nixpkgs set overridden and extended with DFINITY specific
 # packages.
 { system ? builtins.currentSystem
-, crossSystem ? null
-, config ? {}
-, overlays ? []
 , releaseVersion ? "latest"
+  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
+, isMaster ? false
 , RustSec-advisory-db ? null
 }:
 let
@@ -31,18 +30,17 @@ let
   };
 
   pkgs = import commonSrc {
-    inherit system crossSystem config;
+    inherit system;
     overlays = [
       (
         self: super:
           let
             nixFmt = self.lib.nixFmt { root = ../.; };
-            isMaster = super.isMaster or false;
           in
             {
               sources = super.sources // sources;
 
-              inherit releaseVersion isMaster;
+              inherit releaseVersion;
 
               # The RustSec-advisory-db used by cargo-audit.nix.
               # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
@@ -61,10 +59,27 @@ let
               inherit (nixFmt) nix-fmt;
               nix-fmt-check = nixFmt.check;
 
-              lib = super.lib // { mkRelease = super.callPackage ./mk-release.nix { inherit isMaster; }; };
+              lib = super.lib // {
+                mk-jobset = import ./mk-jobset.nix self;
+
+                mkRelease = super.callPackage ./mk-release.nix { inherit isMaster; };
+              };
+
+              # An attribute set mapping every supported system to a nixpkgs evaluated for
+              # that system. Special care is taken not to reevaluate nixpkgs for the current
+              # system because we already did that in self.
+              pkgsForSystem = super.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" ] (
+                supportedSystem:
+                  if supportedSystem == system
+                  then self
+                  else import ./. {
+                    inherit releaseVersion isMaster RustSec-advisory-db;
+                    system = supportedSystem;
+                  }
+              );
             }
       )
-    ] ++ overlays;
+    ];
   };
 in
 pkgs
