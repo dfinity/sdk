@@ -26,9 +26,10 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "ref": "master",
+        "branch": "basvandijk/refactor-and-optimize-mk-jobset",
+        "ref": "basvandijk/refactor-and-optimize-mk-jobset",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "c022ff9f16ed0b9e3eb4ed97f26b493de3858df7",
+        "rev": "ed0b80ce1f370ead2f67f9827bb3ab5cc38655aa",
         "type": "git"
     },
     "dfinity": {

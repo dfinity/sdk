@@ -53,23 +53,6 @@ let
 
               inherit (nixFmt) nix-fmt;
               nix-fmt-check = nixFmt.check;
-
-              lib = super.lib // {
-                mk-jobset = import ./mk-jobset.nix self;
-              };
-
-              # An attribute set mapping every supported system to a nixpkgs evaluated for
-              # that system. Special care is taken not to reevaluate nixpkgs for the current
-              # system because we already did that in self.
-              pkgsForSystem = super.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" ] (
-                supportedSystem:
-                  if supportedSystem == system
-                  then self
-                  else import ./. {
-                    inherit RustSec-advisory-db;
-                    system = supportedSystem;
-                  }
-              );
             }
       )
     ];
