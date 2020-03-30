@@ -1,3 +1,4 @@
+pkgs:
 # This function returns a Hydra jobset like for example:
 #
 #   {
@@ -39,22 +40,8 @@
   # This should only be overridden in debugging scenarios.
 , system ? pkgs.system
 
-  # The nixpkgs set used to implement this function.
-, pkgs
-
   # The git revision used in the `all-jobs` job.
 , rev
-
-  # Path to the Nix expression defining the nixpkgs set.
-  #
-  # It's recommended to standardize this to `../nix`.
-  #
-  # Note that nixpkgs will be called with the following arguments:
-  #
-  #   pkgsArgs // { inherit system; }
-  #
-  # for every supported `system`.
-, pkgsPath
 
   # Path to the jobset specification.
   #
@@ -63,9 +50,9 @@
   # Note that the jobset specification will be called with the following
   # arguments:
   #
-  #   jobsArgs // {
+  #   jobsetSpecificationArgs // {
   #     inherit system;
-  #     pkgs = pkgsForSystem."${system}";
+  #     pkgs = pkgs.pkgsForSystem."${system}";
   #
   #     # We pass the final jobset such that jobs (like `publish.*` in the `sdk`
   #     # repo) can select pre-evaluated jobs (like `dfx-release.x86_64-linux`)
@@ -76,35 +63,19 @@
   # for every supported `system`.
 , jobsetSpecificationPath
 
-  # Extra arguments to the `pkgsPath` function.
-, pkgsArgs ? {}
-
   # Extra arguments to the `jobsetSpecificationPath` function.
-, jobsArgs ? {}
+, jobsetSpecificationArgs ? {}
 }:
 let
-  # This functions creates a nixpkgs set for the given system.
-  pkgsFor = system: import pkgsPath (pkgsArgs // { inherit system; });
-
   lib = pkgs.lib;
-
-  # An attribute set mapping every supported system to a nixpkgs evaluated for
-  # that system. Special care is taken not to reevaluate nixpkgs for the current
-  # system because we already did that in pkgs.
-  pkgsForSystem = lib.genAttrs supportedSystems (
-    supportedSystem:
-      if supportedSystem == system
-      then pkgs
-      else pkgsFor supportedSystem
-  );
 
   # An attribute set mapping every supported system to an attribute set of jobs
   # (as defined by `jobsetSpecificationPath`) evaluated for that system.
   jobsForSystem = lib.genAttrs supportedSystems (
     system: import jobsetSpecificationPath (
-      jobsArgs // {
+      jobsetSpecificationArgs // {
         inherit system;
-        pkgs = pkgsForSystem."${system}";
+        pkgs = pkgs.pkgsForSystem."${system}";
 
         # We pass the final jobset such that jobs (like `publish.*` in the `sdk`
         # repo) can select pre-evaluated jobs (like `dfx-release.x86_64-linux`)
