@@ -1,5 +1,6 @@
-import { CanisterId, IDL } from '@internet-computer/userlib';
 import BigNumber from 'bignumber.js';
+import { CanisterId } from '../canisterId';
+import * as IDL from '../idl';
 import * as UI from './candid-core';
 
 // tslint:disable:max-classes-per-file
@@ -9,19 +10,19 @@ const InputConfig: UI.UIConfig = { parse: parsePrimitive };
 const FormConfig: UI.FormConfig = { render: renderInput, container: 'div' };
 
 const inputBox = (t: IDL.Type, config: Partial<UI.UIConfig>) => {
-  return new UI.InputBox(t, {...InputConfig, ...config});
+  return new UI.InputBox(t, { ...InputConfig, ...config });
 };
 const recordForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
-  return new UI.RecordForm(fields, {...FormConfig, ...config});
+  return new UI.RecordForm(fields, { ...FormConfig, ...config });
 };
 const variantForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
-  return new UI.VariantForm(fields, {...FormConfig, ...config});
+  return new UI.VariantForm(fields, { ...FormConfig, ...config });
 };
 const optForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
-  return new UI.OptionForm(ty, {...FormConfig, ...config});
+  return new UI.OptionForm(ty, { ...FormConfig, ...config });
 };
 const vecForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
-  return new UI.VecForm(ty, {...FormConfig, ...config});
+  return new UI.VecForm(ty, { ...FormConfig, ...config });
 };
 
 class Render extends IDL.Visitor<null, InputBox> {
@@ -121,7 +122,9 @@ class Random extends IDL.Visitor<string, any> {
     return Math.random() < 0.5;
   }
   public visitText(t: IDL.TextClass, v: string): string {
-    return Math.random().toString(36).substring(6);
+    return Math.random()
+      .toString(36)
+      .substring(6);
   }
   public visitInt(t: IDL.IntClass, v: string): BigNumber {
     return new BigNumber(this.generateNumber(true));
@@ -138,10 +141,10 @@ class Random extends IDL.Visitor<string, any> {
   private generateNumber(signed: boolean): number {
     const num = Math.floor(Math.random() * 100);
     if (signed && Math.random() < 0.5) {
-        return -num;
-      } else {
-        return num;
-      }
+      return -num;
+    } else {
+      return num;
+    }
   }
 }
 
@@ -156,4 +159,3 @@ function parsePrimitive(t: IDL.Type, config: UI.ParseConfig, d: string) {
     return t.accept(new Parse(), d);
   }
 }
-

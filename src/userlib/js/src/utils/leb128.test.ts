@@ -22,12 +22,8 @@ test('leb', () => {
   expect(lebEncode(new BigNumber('1234567890abcdef1234567890abcdef', 16)).toString('hex')).toBe(
     'ef9baf8589cf959a92deb7de8a929eabb424',
   );
-  expect(
-    lebEncode(new BigNumber('2000000')).toString('hex'),
-  ).toBe('80897a');
-  expect(
-    lebEncode(new BigNumber('60000000000000000')).toString('hex'),
-  ).toBe('808098f4e9b5ca6a');
+  expect(lebEncode(new BigNumber('2000000')).toString('hex')).toBe('80897a');
+  expect(lebEncode(new BigNumber('60000000000000000')).toString('hex')).toBe('808098f4e9b5ca6a');
 
   expect(lebDecode(new Pipe(Buffer.from([0]))).toNumber()).toBe(0);
   expect(lebDecode(new Pipe(Buffer.from([1]))).toNumber()).toBe(1);
@@ -47,12 +43,8 @@ test('sleb', () => {
   expect(
     slebEncode(new BigNumber('1234567890abcdef1234567890abcdef', 16).negated()).toString('hex'),
   ).toBe('91e4d0faf6b0eae5eda1c8a1f5ede1d4cb5b');
-  expect(
-    slebEncode(new BigNumber('2000000')).toString('hex'),
-  ).toBe('8089fa00');
-  expect(
-    slebEncode(new BigNumber('60000000000000000')).toString('hex'),
-  ).toBe('808098f4e9b5caea00');
+  expect(slebEncode(new BigNumber('2000000')).toString('hex')).toBe('8089fa00');
+  expect(slebEncode(new BigNumber('60000000000000000')).toString('hex')).toBe('808098f4e9b5caea00');
 
   expect(slebDecode(new Pipe(Buffer.from([0x7f]))).toNumber()).toBe(-1);
   expect(slebDecode(new Pipe(Buffer.from([0xc0, 0xbb, 0x78]))).toNumber()).toBe(-123456);
@@ -60,9 +52,9 @@ test('sleb', () => {
   expect(
     slebDecode(new Pipe(Buffer.from('91e4d0faf6b0eae5eda1c8a1f5ede1d4cb5b', 'hex'))).toString(16),
   ).toBe('-1234567890abcdef1234567890abcdef');
-  expect(
-    slebDecode(new Pipe(Buffer.from('808098f4e9b5caea00', 'hex'))).toString(),
-  ).toBe('60000000000000000');
+  expect(slebDecode(new Pipe(Buffer.from('808098f4e9b5caea00', 'hex'))).toString()).toBe(
+    '60000000000000000',
+  );
 });
 
 test('IntLE', () => {
