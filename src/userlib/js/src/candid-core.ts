@@ -14,7 +14,8 @@ export interface UIConfig {
 export interface FormConfig {
   open?: HTMLElement;
   event?: string;
-  container: string;
+  labelMap?: Record<string, string>;
+  container?: HTMLElement;
   render(t: IDL.Type): InputBox;
 }
 
@@ -97,17 +98,12 @@ export abstract class InputForm {
   public abstract parse(config: ParseConfig): any;
   public abstract generateForm(): any;
   public renderForm(dom: HTMLElement): void {
-    if (this.form.length === 0) {
-      return;
+    if (this.ui.container) {
+      this.form.forEach(e => e.render(this.ui.container!));
+      dom.appendChild(this.ui.container);
+    } else {
+      this.form.forEach(e => e.render(dom));
     }
-    if (!(this instanceof VecForm) && this.form.length === 1) {
-      this.form[0].render(dom);
-      return;
-    }
-    const form = document.createElement(this.ui.container);
-    form.classList.add('popup-form');
-    this.form.forEach(e => e.render(form));
-    dom.appendChild(form);
   }
   public render(dom: HTMLElement): void {
     if (this.ui.open && this.ui.event) {
@@ -139,7 +135,11 @@ export class RecordForm extends InputForm {
   public generateForm(): void {
     this.form = this.fields.map(([key, type]) => {
       const input = this.ui.render(type);
-      input.label = key + ' ';
+      if (this.ui.labelMap && this.ui.labelMap.hasOwnProperty(key)) {
+        input.label = this.ui.labelMap[key] + ' ';
+      } else {
+        input.label = key + ' ';
+      }
       return input;
     });
   }

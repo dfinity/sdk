@@ -105,17 +105,20 @@ export abstract class Visitor<D, R> {
   public visitText(t: TextClass, data: D): R {
     return this.visitPrimitive(t, data);
   }
-  public visitInt(t: IntClass, data: D): R {
+  public visitNumber<T>(t: PrimitiveType<T>, data: D): R {
     return this.visitPrimitive(t, data);
+  }
+  public visitInt(t: IntClass, data: D): R {
+    return this.visitNumber(t, data);
   }
   public visitNat(t: NatClass, data: D): R {
-    return this.visitPrimitive(t, data);
+    return this.visitNumber(t, data);
   }
   public visitFixedInt(t: FixedIntClass, data: D): R {
-    return this.visitPrimitive(t, data);
+    return this.visitNumber(t, data);
   }
   public visitFixedNat(t: FixedNatClass, data: D): R {
-    return this.visitPrimitive(t, data);
+    return this.visitNumber(t, data);
   }
   public visitPrincipal(t: PrincipalClass, data: D): R {
     return this.visitPrimitive(t, data);

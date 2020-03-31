@@ -1,30 +1,31 @@
-import { CanisterId, IDL } from '@internet-computer/userlib';
 import BigNumber from 'bignumber.js';
 import * as UI from './candid-core';
+import { CanisterId } from './canisterId';
+import * as IDL from './idl';
 
 // tslint:disable:max-classes-per-file
 type InputBox = UI.InputBox;
 
 const InputConfig: UI.UIConfig = { parse: parsePrimitive };
-const FormConfig: UI.FormConfig = { render: renderInput, container: 'div' };
+const FormConfig: UI.FormConfig = { render: renderInput };
 
-const inputBox = (t: IDL.Type, config: Partial<UI.UIConfig>) => {
-  return new UI.InputBox(t, {...InputConfig, ...config});
+export const inputBox = (t: IDL.Type, config: Partial<UI.UIConfig>) => {
+  return new UI.InputBox(t, { ...InputConfig, ...config });
 };
-const recordForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
-  return new UI.RecordForm(fields, {...FormConfig, ...config});
+export const recordForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
+  return new UI.RecordForm(fields, { ...FormConfig, ...config });
 };
-const variantForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
-  return new UI.VariantForm(fields, {...FormConfig, ...config});
+export const variantForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
+  return new UI.VariantForm(fields, { ...FormConfig, ...config });
 };
-const optForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
-  return new UI.OptionForm(ty, {...FormConfig, ...config});
+export const optForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
+  return new UI.OptionForm(ty, { ...FormConfig, ...config });
 };
-const vecForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
-  return new UI.VecForm(ty, {...FormConfig, ...config});
+export const vecForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
+  return new UI.VecForm(ty, { ...FormConfig, ...config });
 };
 
-class Render extends IDL.Visitor<null, InputBox> {
+export class Render extends IDL.Visitor<null, InputBox> {
   public visitType<T>(t: IDL.Type<T>, d: null): InputBox {
     const input = document.createElement('input');
     input.classList.add('argument');
@@ -35,7 +36,13 @@ class Render extends IDL.Visitor<null, InputBox> {
     return inputBox(t, {});
   }
   public visitRecord(t: IDL.RecordClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
-    const form = recordForm(fields, {});
+    let config = {};
+    if (fields.length > 1) {
+      const container = document.createElement('div');
+      container.classList.add('popup-form');
+      config = { container };
+    }
+    const form = recordForm(fields, config);
     return inputBox(t, { form });
   }
   public visitVariant(t: IDL.VariantClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
@@ -47,7 +54,8 @@ class Render extends IDL.Visitor<null, InputBox> {
     }
     select.selectedIndex = -1;
     select.classList.add('open');
-    const form = variantForm(fields, { open: select, event: 'change' });
+    const config: Partial<UI.FormConfig> = { open: select, event: 'change' };
+    const form = variantForm(fields, config);
     return inputBox(t, { form });
   }
   public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: null): InputBox {
@@ -65,7 +73,9 @@ class Render extends IDL.Visitor<null, InputBox> {
     len.style.width = '3em';
     len.placeholder = 'len';
     len.classList.add('open');
-    const form = vecForm(ty, { open: len, event: 'change' });
+    const container = document.createElement('div');
+    container.classList.add('popup-form');
+    const form = vecForm(ty, { open: len, event: 'change', container });
     return inputBox(t, { form });
   }
   public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): InputBox {
@@ -89,16 +99,7 @@ class Parse extends IDL.Visitor<string, any> {
   public visitText(t: IDL.TextClass, v: string): string {
     return v;
   }
-  public visitInt(t: IDL.IntClass, v: string): BigNumber {
-    return new BigNumber(v);
-  }
-  public visitNat(t: IDL.NatClass, v: string): BigNumber {
-    return new BigNumber(v);
-  }
-  public visitFixedInt(t: IDL.FixedIntClass, v: string): BigNumber {
-    return new BigNumber(v);
-  }
-  public visitFixedNat(t: IDL.FixedNatClass, v: string): BigNumber {
+  public visitNumber(t: IDL.PrimitiveType, v: string): BigNumber {
     return new BigNumber(v);
   }
   public visitPrincipal(t: IDL.PrincipalClass, v: string): CanisterId {
@@ -121,7 +122,9 @@ class Random extends IDL.Visitor<string, any> {
     return Math.random() < 0.5;
   }
   public visitText(t: IDL.TextClass, v: string): string {
-    return Math.random().toString(36).substring(6);
+    return Math.random()
+      .toString(36)
+      .substring(6);
   }
   public visitInt(t: IDL.IntClass, v: string): BigNumber {
     return new BigNumber(this.generateNumber(true));
@@ -138,10 +141,10 @@ class Random extends IDL.Visitor<string, any> {
   private generateNumber(signed: boolean): number {
     const num = Math.floor(Math.random() * 100);
     if (signed && Math.random() < 0.5) {
-        return -num;
-      } else {
-        return num;
-      }
+      return -num;
+    } else {
+      return num;
+    }
   }
 }
 
@@ -156,4 +159,3 @@ function parsePrimitive(t: IDL.Type, config: UI.ParseConfig, d: string) {
     return t.accept(new Parse(), d);
   }
 }
-
