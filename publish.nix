@@ -12,7 +12,7 @@ let
     PATH="${pkgs.lib.makeBinPath [ pkgs.awscli ]}"
     pkg="$1"; path="$2"; dstDir="$3"; contentType="$4"; cacheControl="$5"
     src="$pkg/$path"
-    dst=""s3://$DFINITY_DOWNLOAD_BUCKET/$dstDir/$path""
+    dst="s3://$DFINITY_DOWNLOAD_BUCKET/$dstDir/$path"
     if [ -d "$src" ]; then
       echo "Can't copy $src to $dst because it's a directory. Please specify a file instead." 1>&2; exit 1;
     fi
