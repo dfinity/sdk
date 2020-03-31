@@ -1,6 +1,6 @@
 use ic_agent::Principal;
 use ic_identity_manager::crypto_error::Result;
-use ic_identity_manager::Identity;
+use ic_identity_manager::identity::Identity;
 use ring::signature::{self, KeyPair};
 use std::env::current_dir;
 use std::fs;
