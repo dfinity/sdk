@@ -18,9 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: niv-updater-action
-        uses: knl/niv-updater-action@v5
+        # TODO: move to v6 when @knl has had time to release.
+        uses: knl/niv-updater-action@master
         with:
           whitelist: 'common,advisory-db,napalm'
+          title_prefix: 'build: '
           labels: |
             automerge-squash
         env:

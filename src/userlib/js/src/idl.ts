@@ -351,7 +351,7 @@ export class IntClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
-    return (x instanceof BigNumber && x.isInteger()) || Number.isInteger(x);
+    return (x && x._isBigNumber && x.isInteger()) || Number.isInteger(x);
   }
 
   public encodeValue(x: BigNumber | number) {
@@ -387,8 +387,7 @@ export class NatClass extends PrimitiveType<BigNumber> {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
     return (
-      (x instanceof BigNumber && x.isInteger() && !x.isNegative()) ||
-      (Number.isInteger(x) && x >= 0)
+      (x && x._isBigNumber && x.isInteger() && !x.isNegative()) || (Number.isInteger(x) && x >= 0)
     );
   }
 
@@ -428,7 +427,7 @@ export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   public covariant(x: any): x is BigNumber {
     const min = new BigNumber(2).pow(this._bits - 1).negated();
     const max = new BigNumber(2).pow(this._bits - 1).minus(1);
-    if (x instanceof BigNumber && x.isInteger()) {
+    if (x && x._isBigNumber && x.isInteger()) {
       return x.gte(min) && x.lte(max);
     } else if (Number.isInteger(x)) {
       const v = new BigNumber(x);
@@ -479,7 +478,7 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
 
   public covariant(x: any): x is BigNumber {
     const max = new BigNumber(2).pow(this._bits);
-    if (x instanceof BigNumber && x.isInteger() && !x.isNegative()) {
+    if (x && x._isBigNumber && x.isInteger() && !x.isNegative()) {
       return x.lt(max);
     } else if (Number.isInteger(x) && x >= 0) {
       const v = new BigNumber(x);
@@ -907,7 +906,7 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
   }
 
   public covariant(x: any): x is CanisterId {
-    return x instanceof CanisterId;
+    return x && x._isCanisterId;
   }
 
   public encodeValue(x: CanisterId): Buffer {
@@ -949,7 +948,7 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
   }
   public covariant(x: any): x is [CanisterId, string] {
     return (
-      Array.isArray(x) && x.length === 2 && x[0] instanceof CanisterId && typeof x[1] === 'string'
+      Array.isArray(x) && x.length === 2 && x[0] && x[0]._isCanisterId && typeof x[1] === 'string'
     );
   }
 
@@ -1030,7 +1029,7 @@ export class ServiceClass extends ConstructType<CanisterId> {
     return v.visitService(this, d);
   }
   public covariant(x: any): x is CanisterId {
-    return x instanceof CanisterId;
+    return x && x._isCanisterId;
   }
 
   public encodeValue(x: CanisterId): Buffer {

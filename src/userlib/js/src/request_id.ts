@@ -27,10 +27,8 @@ async function hashValue(value: unknown): Promise<Buffer> {
   } else if (typeof value === 'number') {
     return hash(lebEncode(value) as BinaryBlob);
   } else if (value instanceof CanisterId) {
-    // HTTP handler expects canister_id to be an u64 & hashed in this way.
-    // work-around for endianness problem until we switch to blobs
     return hash(blobFromHex(value.toHex()));
-  } else if (value instanceof Buffer) {
+  } else if (Buffer.isBuffer(value)) {
     return hash(new Uint8Array(value) as BinaryBlob);
   } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
     return hash(new Uint8Array(value) as BinaryBlob);

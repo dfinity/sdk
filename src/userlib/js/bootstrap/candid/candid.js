@@ -1,8 +1,9 @@
-import * as UI from './idl-ui';
+import * as UI from './candid-ui';
+import './candid.css';
 
-export function render(id, actor, canister) {
+export function render(id, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
-  for (const [name, func] of actor._fields) {
+  for (const [name, func] of Object.entries(canister.__actorInterface())) {
     renderMethod(name, func, canister[name]);
   }
   const console = document.createElement("div");

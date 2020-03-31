@@ -16,12 +16,13 @@ pub struct Proxy {
 
 /// Provide basic information to the proxy about the API port, the
 /// address and the serve directory.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct ProxyConfig {
     pub client_api_port: u16,
     pub bind: SocketAddr,
     pub serve_dir: PathBuf,
     pub providers: Vec<url::Url>,
+    pub logger: slog::Logger,
 }
 
 #[derive(Clone, Debug)]
@@ -91,6 +92,7 @@ impl Proxy {
         eprintln!("client address: {:?}", ic_client_bind_addr);
 
         run_webserver(
+            self.config.logger.clone(),
             self.config.bind,
             providers,
             self.config.serve_dir.clone(),
