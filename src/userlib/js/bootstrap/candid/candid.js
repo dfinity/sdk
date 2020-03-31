@@ -1,4 +1,4 @@
-import * as UI from './candid-ui';
+import { UI } from '@internet-computer/userlib';
 import './candid.css';
 
 export function render(id, canister) {

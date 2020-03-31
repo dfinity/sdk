@@ -62,8 +62,7 @@ export function slebEncode(value: BigNumber | number): Buffer {
   while (true) {
     const i = getLowerBytes(value);
     value = value.idiv(0x80);
-    if ((isNeg && value.eq(0) && (i & 0x40) !== 0) ||
-        (!isNeg && value.eq(0) && (i & 0x40) === 0)) {
+    if ((isNeg && value.eq(0) && (i & 0x40) !== 0) || (!isNeg && value.eq(0) && (i & 0x40) === 0)) {
       pipe.write([i]);
       break;
     } else {

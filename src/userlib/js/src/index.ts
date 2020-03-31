@@ -6,7 +6,11 @@ export * from './http_agent_transforms';
 export * from './http_agent_types';
 export * from './types';
 
-import * as UICore from './candid-core';
-import * as UI from './candid-ui';
 import * as IDL from './idl';
-export { IDL, UICore, UI };
+export { IDL };
+
+// TODO The following modules will be a separate library for Candid
+import * as UICore from './candid/candid-core';
+import * as UI from './candid/candid-ui';
+export { UICore, UI };
+

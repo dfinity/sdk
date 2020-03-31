@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
+import { CanisterId } from '../canisterId';
+import * as IDL from '../idl';
 import * as UI from './candid-core';
-import { CanisterId } from './canisterId';
-import * as IDL from './idl';
 
 // tslint:disable:max-classes-per-file
 type InputBox = UI.InputBox;

@@ -43,14 +43,11 @@ pkgs:
   # The git revision used in the `all-jobs` job.
 , rev
 
-  # Path to the jobset specification.
+  # Function to create the jobset specification.
   #
-  # It's recommended to standardize this to `../.`.
+  # Note that this function will be called with the following argument:
   #
-  # Note that the jobset specification will be called with the following
-  # arguments:
-  #
-  #   jobsetSpecificationArgs // {
+  #   {
   #     inherit system;
   #     pkgs = pkgs.pkgsForSystem."${system}";
   #
@@ -61,10 +58,7 @@ pkgs:
   #   }
   #
   # for every supported `system`.
-, jobsetSpecificationPath
-
-  # Extra arguments to the `jobsetSpecificationPath` function.
-, jobsetSpecificationArgs ? {}
+, mkJobsetSpec
 }:
 let
   lib = pkgs.lib;
@@ -72,17 +66,15 @@ let
   # An attribute set mapping every supported system to an attribute set of jobs
   # (as defined by `jobsetSpecificationPath`) evaluated for that system.
   jobsForSystem = lib.genAttrs supportedSystems (
-    system: import jobsetSpecificationPath (
-      jobsetSpecificationArgs // {
-        inherit system;
-        pkgs = pkgs.pkgsForSystem."${system}";
+    system: mkJobsetSpec {
+      inherit system;
+      pkgs = pkgs.pkgsForSystem."${system}";
 
-        # We pass the final jobset such that jobs (like `publish.*` in the `sdk`
-        # repo) can select pre-evaluated jobs (like `dfx-release.x86_64-linux`)
-        # for a specific system without requiring them to do any re-evaluation.
-        inherit jobset;
-      }
-    )
+      # We pass the final jobset such that jobs (like `publish.*` in the `sdk`
+      # repo) can select pre-evaluated jobs (like `dfx-release.x86_64-linux`)
+      # for a specific system without requiring them to do any re-evaluation.
+      inherit jobset;
+    }
   );
 
   # The final Hydra jobset defined as an attribute set as specified by the
