@@ -16,6 +16,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("message-gas-limit")
                 .help(UserMessage::ReplicaMessageGasLimit.to_str())
+                .hidden(true)
                 .long("message-gas-limit")
                 .takes_value(true),
         )
@@ -28,6 +29,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("round-gas-limit")
                 .help(UserMessage::ReplicaRoundGasLimit.to_str())
+                .hidden(true)
                 .long("round-gas-limit")
                 .takes_value(true),
         )
