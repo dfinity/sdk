@@ -14,6 +14,7 @@
 pkgs.lib.mk-jobset {
   inherit supportedSystems;
   inherit (src) rev;
-  jobsetSpecificationPath = ../.;
-  jobsetSpecificationArgs = { inherit RustSec-advisory-db releaseVersion isMaster src; };
+  mkJobsetSpec = { system, pkgs, jobset }: import ../. {
+    inherit system pkgs jobset RustSec-advisory-db releaseVersion isMaster src;
+  };
 }
