@@ -4,7 +4,7 @@
   # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
 , isMaster ? false
 , RustSec-advisory-db ? null
-, pkgs ? import ./nix { inherit system releaseVersion RustSec-advisory-db; }
+, pkgs ? import ./nix { inherit system RustSec-advisory-db; }
 , jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs isMaster src; }
 }:
 rec {
@@ -19,7 +19,7 @@ rec {
 
   inherit (pkgs) nix-fmt nix-fmt-check;
 
-  public = import ./public { inherit pkgs src isMaster; };
+  public = import ./public { inherit pkgs src releaseVersion isMaster; };
   inherit (public) install-sh-release install-sh;
 
   # This is to make sure CI evaluates shell derivations, builds their
@@ -31,14 +31,14 @@ rec {
     rust-workspace = dfx.shell;
   };
 
-  dfx-release = pkgs.lib.mkRelease "dfx" pkgs.releaseVersion dfx.standalone "dfx";
+  dfx-release = pkgs.lib.mkRelease "dfx" releaseVersion dfx.standalone "dfx";
 
   licenses = {
     dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
   };
 
   publish = import ./publish.nix {
-    inherit pkgs;
+    inherit pkgs releaseVersion;
     inherit (jobset) dfx-release install-sh-release;
   };
 }

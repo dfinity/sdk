@@ -9,7 +9,7 @@
   # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
 , isMaster ? true
 
-, pkgs ? import ../nix { inherit system releaseVersion isMaster RustSec-advisory-db; }
+, pkgs ? import ../nix { inherit system isMaster RustSec-advisory-db; }
 }:
 pkgs.lib.mk-jobset {
   inherit supportedSystems;

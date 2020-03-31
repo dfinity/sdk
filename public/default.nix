@@ -1,13 +1,14 @@
 { pkgs ? import ../nix { inherit system; }
 , system ? builtins.currentSystem
 , src ? null
+, releaseVersion ? "latest"
   # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
 , isMaster ? false
 }:
 
 let
   public = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../. "public");
-  version = pkgs.releaseVersion;
+  version = releaseVersion;
   gitDir = pkgs.lib.gitDir ../.;
 in
 

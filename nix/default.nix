@@ -1,7 +1,6 @@
 # Returns the nixpkgs set overridden and extended with DFINITY specific
 # packages.
 { system ? builtins.currentSystem
-, releaseVersion ? "latest"
   # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
 , isMaster ? false
 , RustSec-advisory-db ? null
@@ -40,8 +39,6 @@ let
             {
               sources = super.sources // sources;
 
-              inherit releaseVersion;
-
               # The RustSec-advisory-db used by cargo-audit.nix.
               # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
               # back on the one defined in sources.json.
@@ -73,7 +70,7 @@ let
                   if supportedSystem == system
                   then self
                   else import ./. {
-                    inherit releaseVersion isMaster RustSec-advisory-db;
+                    inherit isMaster RustSec-advisory-db;
                     system = supportedSystem;
                   }
               );

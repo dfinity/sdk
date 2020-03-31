@@ -5,7 +5,7 @@
 # This script will be executed by DFINITY's Continuous Deployment
 # system. That system will also set the correct AWS credentials and the
 # DFINITY_DOWNLOAD_BUCKET environment variable.
-{ pkgs, dfx-release, install-sh-release }:
+{ pkgs, releaseVersion, dfx-release, install-sh-release }:
 let
   s3cp = pkgs.lib.writeCheckedShellScriptBin "s3cp" [] ''
     set -eu
@@ -46,7 +46,7 @@ in
       set -eu
       PATH="${pkgs.lib.makeBinPath [ s3cp slack ]}"
 
-      v="${pkgs.releaseVersion}"
+      v="${releaseVersion}"
       cache_long="max-age=31536000" # 1 year
 
       path="dfx-$v.tar.gz"
