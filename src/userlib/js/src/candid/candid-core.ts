@@ -111,11 +111,13 @@ export abstract class InputForm {
       dom.appendChild(this.ui.open);
       const form = this;
       form.ui.open!.addEventListener(form.ui.event!, () => {
-        while (dom.lastElementChild) {
-          if (dom.lastElementChild !== form.ui.open) {
-            dom.removeChild(dom.lastElementChild);
-          } else {
-            break;
+        // Remove old form
+        if (form.ui.container) {
+          form.ui.container.innerHTML = '';
+        } else {
+          const oldContainer = form.ui.open!.nextElementSibling;
+          if (oldContainer) {
+            oldContainer.parentNode!.removeChild(oldContainer);
           }
         }
         // Render form
