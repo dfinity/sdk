@@ -34,6 +34,12 @@ const bootstrapConfig = {
       }),
     ],
   },
+  module: {
+    rules: [{
+      test: /\.css$/,
+      use: ['style-loader', 'css-loader']
+    }]
+  },  
   plugins: [
     new HtmlWebpackPlugin({
       template: 'bootstrap/index.html',
