@@ -31,7 +31,7 @@ to enable signing of requests.
 ////
 
 
-- [ ] SDK: Hans, Stanley
+- [ ] SDK: Hans, Stanley, Bjoern
 
 
 == Background
@@ -52,10 +52,12 @@ This is a good place for requirements and constraints.
 * Identity:
 
 An identity is a construct that denotes the set of claims of an entity
-about itself. Identification is the procedure whereby an entity
-claims a certain identity, while verification is the procedure whereby
-that claim is checked. Authentication is the assertion of an entity’s
-claim to an identity.
+about itself. An entity is anything issuing requests directly or
+indirectly to the Internet Computer (IC). Identification is the
+procedure whereby an entity claims a certain identity, while
+verification is the procedure whereby that claim is
+checked. Authentication is the assertion of an entity’s claim to an
+identity.
 
 * Role:
 
@@ -77,7 +79,7 @@ principal. That allows a principal to be referenced.
 * User:
 
 A user is an external party that interacts with the IC replica via dfx
-(program).
+(program). A user can be a person, a script, Continuous Integration.
 
 * Game:
 
@@ -93,7 +95,7 @@ Provides access to signing functionality. Can be a key for instance.
 
 * Access Files
 
-Files pertaining information about a signing provider.
+Files pertaining information about accessing and using a signing provider.
 
 
 * Identity Hierarchy:
@@ -139,7 +141,7 @@ under a particular role, at a relatively trusted system, and utilizes
 session or ephemeral keys, thus usually making use of environment
 variables directly. Furthermore, AWS CLI lacks the concept of
 projects. As a result the cli stores all credentials locally in
-``````~/.aws/credentials`` separate from the user implementation. AWS
+`~/.aws/credentials` separate from the user implementation. AWS
 provides the notion of named
 link:https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html[profiles].
 Furthermore, it provides a series of authentication strategies beyond
@@ -153,13 +155,13 @@ application.
 *  GPG
 
 Data of GPG are kept usually under `~/.gnupg` In general it uses its
-own file extensions and data format and organization. (Specifally, two
+own file extensions and data format and organization. (Specifically, two
 are used gpg and kbx.) GPG encrypts all private key files (and
 compress them). Also keeps track of a trust database with key
 relations for validation. It also keeps track of a randomness pool and
 lock files.
 
-Keys are concentrated into keyrings (secret and public). Revocation
+Keys are concentrated into key-rings (secret and public). Revocation
 certificates are kept individually however. Filenames in that case use
 the fingerprint of the respective key.
 
@@ -186,7 +188,7 @@ being accessed for ssh sessions.
 Describe what
 ////
 
-User seamlessly switches between user profiles. A user is informed on
+User seamlessly switches between principals. A user is informed on
 the principal they are issuing a request under. They are able to alter
 principals, add new ones and remove existing ones, assign access to
 new signing keys.
@@ -217,22 +219,32 @@ access to the key points related to the desired principal.
  actual user, superuser or root access. The adversary can thus not
  access the identity hierarchy files.
 
+The adversary wins the security game by gaining access to any secrets
+utilized by the signing providers or by issuing signed requests to the
+IC under any of the principals of the local identity.
+
 ===== Adversary user system access
 
 The adversary has access to the system in the role of the user or an
 administrator that can run programs with the same capabilities as the
 user and access the identity hierarchy. Absent the user providing the
-passphrase the adversary does not have access to all signing
+pass-phrase the adversary does not have access to all signing
 facilities and can not issue requests. However, the adversary learns
 about principals and relations with signing functionality.
 
+The adversary wins the security game by issuing signed requests to the
+IC under any of the principals of the local identity. The security
+parameter depends on the passphrase used to encrypt the access files.
+
+Note that in this model we assume that access files are encrypted --
+the default.
 
 ==== Path
 
 File permissions need to be set to allow only user (or root/superuser)
 access. Files containing secret information, such as access files
 described below, should be encrypted by default. User input containing
-passphrases should use a proper prompt (see existing crates).
+pass-phrases should use a proper prompt (see existing crates).
 
 
 
@@ -268,20 +280,24 @@ for during implementation.
 Keep in mind that you might not be the person implementing the design.
 ////
 
-Below we represent a principal by a profile identifier -- `<principal
-profile identifier >`.
+Below we represent a principal by a (principal) profile identifier --
+`<principal profile identifier >`. Principal identifiers from an
+execution's perspective are to be canister installation
+specific. However, we want a user to be able to locally refer to a
+user principal across projects. Thus, for each principal we use a
+local system identifier, a profile.
 
 ==== Global Profiles Structure
 
 The identity hierarchy is represented by a series of files under
-``<cache>/identity/``. At the root of ``<cache>/identity/`` there
-is``<cache>/identity/metadata.json``. It represents only versioning
-information and any other metadata, future versions elect to add.
+`<cache>/identity/`. At the root of `<cache>/identity/` there
+is `<cache>/identity/metadata.json`. It represents only versioning
+information and any other meta-data, future versions elect to add.
 
 
-For each principal ``<principal profile identifier >` we assign the
-following file ``<cache>/identity/<principal identifier
-alias>/principal.json``. This assumes that user printed principal
+For each principal `<principal profile identifier >` we assign the
+following file `<cache>/identity/<principal identifier
+alias>/principal.json`. This assumes that user printed principal
 identifiers are valid names in the system.
 
 [source,json]
@@ -303,15 +319,15 @@ identifiers are valid names in the system.
 }
 ----
 
-Later in the future these can easily be augmented with extra fields.
+In the future, these can easily be augmented with extra fields.
 
 
 ===== Note on Principals -- Principal Profiles
 
-Recall that in the future principal identifiers will be connected to
+Recall that in the future principal identifiers will be connected to the
 canister identifier. This poses a complexity as principal identifiers
 as recognized by an IC replica are not simply project specific but
-canister installation specific. For that reason we mention above
+canister installation specific. To decouple the identifiersFor that reason we mention above
 `<principal profile identifier >`. We have several choices:
 
 . We support principals with current identifier and preserve the
@@ -340,7 +356,7 @@ In summary:
 
 ===== Advantages:
 
-Above approach ensures we do not have to invent our own data format or
+The above approach ensures we do not have to invent our own data format or
 concern ourselves with compression or encrypting fields individually
 with different keys. It allows a user to always access relatively
 easily access and backup sensitive information, improving robustness
@@ -364,9 +380,9 @@ Locally each project should persist the principal that should be used
 on particular operations. Example of different operations that might
 reach for different profiles.
 
-As projects should be shareable between individuals, that information
-should not lie with the project configuration or committied into
-version control (git by default). Recall also xthat in the future
+As projects should be sharable between individuals, that information
+should not lie with the project configuration or committed into
+version control (git by default). Recall also that in the future
 principal identifiers will be connected to canister identifier.
 
 Thus, in each project, we may place optionally the following file
@@ -387,7 +403,7 @@ Thus, in each project, we may place optionally the following file
 
 
 This is kept minimal. We reference the version, to aid in future
-modifications. The fiel command and canister can be set to
+modifications. The field command and canister can be set to
 default. They represent respectively the principal that should be used
 when a particular <command> request issued for the corresponding
 <canister>. The usual simple project profile will look like:
@@ -410,8 +426,8 @@ Repeated entries will lead to undefined behaviour.
 
 Each invocation of dfx should make it apparent which principal was
 used for which invocation. One could consider simply exposing if a
-principal is differnt than the defauly. However, that is error prone:
-a user can easily move a project or continue issueing update
+principal is different than the default. However, that is error prone:
+a user can easily move a project or continue issuing update
 instructions in a controller role.
 
 
@@ -427,8 +443,8 @@ One consideration for running our dedicated agent is affecting
 inadvertently a user's other activities.
 
 Note we can afford to have a not so stable agent. That is in case the
-program is unable to conenct to the agent we simply prompt the user
-for a passphrase.
+program is unable to connect to the agent we simply prompt the user
+for a pass-phrase.
 
 ==== CLI commands
 
@@ -436,21 +452,20 @@ To expose the above functionality, we add a ``principal`` main
 command, along with related subcommands. These expose only the current
 provided functionality, yet can be easily extended.
 
- `principal` -> `new` (default operation)
- `principal` -> `new` -> [key type] -> [ --with (file/access information) ]
- `principal` -> `new` -> `yubikey`
- `principal` -> `key` -> `show` [principal identifier(s)]
- `principal` -> `set` -> [principal identifier(s)]
+`principal` -> `new` [principal profile identifier] (default operation)
+`principal` -> `new` -> [principal profile identifier] [key type] [ --with (file/access information) ]
+`principal` -> `new` -> [principal profile identifier] -> `yubikey`
+ `principal` -> `key` -> `show` [principal profile identifier(s)]
+ `principal` -> `set-default` -> [principal identifier(s)]
  `principal` -> `remove`[principal identifier(s)]
  `principal` -> `list`
  `principal` -> `show` [principal identifier]
 
-Above [key type] can be [pem-key] or [yubikey]. This can be extended
+Above [key type] can be [pem-key], [pkcs12] or [yubikey]. This can be extended
 later to [gpg] or any other provider of signing functionality. Note
-that passphrase or other sensitive information are not passed via
+that pass-phrase or other sensitive information are not passed via
 flags to avoid being saved into history. They are provided
 interactively.
-
 
 
 ==== JSON vs YAML vs TOML
@@ -466,7 +481,7 @@ to YAML in the future.
 
 ==== Crates to consider
 
-tty passphrase prompt:
+tty pass-phrase prompt:
 
 * https://crates.io/crates/rpassword
 * https://crates.io/crates/ttyaskpass
@@ -527,20 +542,20 @@ N/A.
 How will this feature be documented? Which people need to be involved?
 ////
 
-Critical Stakeholders: Lisa, Alexa
-Stakeholders: Stanley, Eftychis
+Critical Stake-holders: Lisa, Alexa
+Stake-holders: Stanley, Eftychis
 Interested Parties: (feel free to add your name)
 
 This feature should be split into smaller passes and documented
-partially as we expose more user facing subfeatures. Initially, a
+partially as we expose more user facing sub-features. Initially, a
 simple note that a user can generate a new principal is necessary, and
 that this principal can be accessed in all projects that use the
 latest dfx.
 
 We should provide internal documentation as to the file structure of
 the identity profiles. It is up to the discretion of the Critical
-stakeholders to decide if that information needs to be represented. It
-is then the job of the critical stakeholders and stakeholders to
+stake holders to decide if that information needs to be represented. It
+is then the job of the critical stake-holders and stake-holders to
 produce a user-friendly version of the documentation.
 
 If we use the gpg-agent, we should provide ```advanced user`
@@ -553,12 +568,12 @@ thus we may interfere with usage of the agent.
 Features to be documented:
 
 - commands
-- file structure (to be determined by stakeholders)
+- file structure (to be determined by stake-holders)
 - agent (selectively)
 
 
 
-== Rollout / Migration
+== Roll-out / Migration
 ////
 :optional:
 
@@ -606,7 +621,7 @@ version numbering.
 
 Every persisted data structure proposed includes a version by
 construction. The proposed Identity hierarchy comprises three data
-types: i) metadata ii) principal to access files mapping data iii)
+types: i) meta-data ii) principal to access files mapping data iii)
 access files, that provide a way to sign with a particular key. The
 first two are version dependent. We should ensure a version
 compatibility check is performed for each
@@ -624,7 +639,7 @@ result in one task per bullet.
 
 We split the feature long-term life into 3 stages, that may interleave.
 
-1. Stage 1: Basic support of current functionality: single principal per key
+1. Stage 1: Basic support of current functionality: single principal per key/signing provider
 2. Stage X: Feature is deemed secure in both aforementioned models
 3. Stage 2: Support of new principal computation, multiple principals per key, revocation and other future identity related features
 
@@ -648,4 +663,4 @@ We further split short term work in a series of steps. Some of them can be concu
 3. Turn encrypted access files as the default option at this point
 
 * Stage 2
-Dependant on future changes.
+Dependent on future changes.
