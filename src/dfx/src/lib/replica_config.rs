@@ -1,9 +1,10 @@
 use crate::lib::error::{DfxError, DfxResult};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::default::Default;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HttpHandlerConfig {
     /// Instructs the HTTP handler to use the specified port
     pub use_port: Option<u16>,
@@ -15,26 +16,49 @@ pub struct HttpHandlerConfig {
     pub write_port_to: Option<PathBuf>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SchedulerConfig {
     pub exec_gas: Option<u64>,
     pub round_gas_max: Option<u64>,
 }
 
-#[derive(Debug, Serialize)]
+impl SchedulerConfig {
+    pub fn validate(self) -> DfxResult<Self> {
+        if self.exec_gas >= self.round_gas_max {
+            let message = "Round gas limit must exceed message gas limit.";
+            Err(DfxError::InvalidData(message.to_string()))
+        } else {
+            Ok(self)
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ArtifactPoolConfig {
+    pub consensus_pool_path: PathBuf,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CryptoConfig {
+    pub crypto_root: PathBuf,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct StateManagerConfig {
     pub state_root: PathBuf,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ReplicaConfig {
     pub http_handler: HttpHandlerConfig,
     pub scheduler: SchedulerConfig,
     pub state_manager: StateManagerConfig,
+    pub crypto: CryptoConfig,
+    pub artifact_pool: ArtifactPoolConfig,
 }
 
 impl ReplicaConfig {
-    pub fn new(state_root: &Path) -> Self {
+    pub fn new(state_root: PathBuf) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
@@ -45,11 +69,18 @@ impl ReplicaConfig {
                 round_gas_max: None,
             },
             state_manager: StateManagerConfig {
-                state_root: state_root.to_path_buf(),
+                state_root: state_root.join("replicated_state"),
+            },
+            crypto: CryptoConfig {
+                crypto_root: state_root.join("crypto_store"),
+            },
+            artifact_pool: ArtifactPoolConfig {
+                consensus_pool_path: state_root.join("consensus_pool"),
             },
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_port(&mut self, port: u16) -> &mut Self {
         self.http_handler.use_port = Some(port);
         self.http_handler.write_port_to = None;
@@ -59,11 +90,6 @@ impl ReplicaConfig {
     pub fn with_random_port(&mut self, write_port_to: &Path) -> &mut Self {
         self.http_handler.use_port = None;
         self.http_handler.write_port_to = Some(write_port_to.to_path_buf());
-        self
-    }
-
-    pub fn with_scheduler(&mut self, scheduler: SchedulerConfig) -> &mut Self {
-        self.scheduler = scheduler;
         self
     }
 

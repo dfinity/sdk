@@ -215,16 +215,57 @@ test('IDL encoding (bool)', () => {
 
 test('IDL encoding (principal)', () => {
   // Principal
-  test_(IDL.Principal, CanisterId.fromText('ic:CAFFEE00'), '4449444c0001680103caffee', 'principal');
+  test_(IDL.Principal, CanisterId.fromText('ic:CAFFEE59'), '4449444c0001680103caffee', 'principal');
   test_(
     IDL.Principal,
     CanisterId.fromText('ic:000000000000000107'),
     '4449444c00016801080000000000000001',
     'principal',
   );
-  expect(() => IDL.encode([IDL.Principal], ['ic:CAFFEE00'])).toThrow(/Invalid principal argument/);
+  expect(() => IDL.encode([IDL.Principal], ['ic:CAFFEE59'])).toThrow(/Invalid principal argument/);
   expect(() => IDL.decode([IDL.Principal], Buffer.from('4449444c00016803caffee', 'hex'))).toThrow(
     /Cannot decode principal/,
+  );
+});
+
+test('IDL encoding (function)', () => {
+  // Function
+  test_(
+    IDL.Func([IDL.Text], [IDL.Nat], []),
+    [CanisterId.fromText('ic:CAFFEE59'), 'foo'],
+    '4449444c016a0171017d000100010103caffee03666f6f',
+    'function',
+  );
+  test_(
+    IDL.Func([IDL.Text], [IDL.Nat], ['query']),
+    [CanisterId.fromText('ic:CAFFEE59'), 'foo'],
+    '4449444c016a0171017d01010100010103caffee03666f6f',
+    'query function',
+  );
+});
+
+test('IDL encoding (service)', () => {
+  // Service
+  test_(
+    IDL.Service({ foo: IDL.Func([IDL.Text], [IDL.Nat], []) }),
+    CanisterId.fromText('ic:CAFFEE59'),
+    '4449444c026a0171017d00690103666f6f0001010103caffee',
+    'service',
+  );
+  test_(
+    IDL.Service({ foo: IDL.Func([IDL.Text], [IDL.Nat], ['query']) }),
+    CanisterId.fromText('ic:CAFFEE59'),
+    '4449444c026a0171017d0101690103666f6f0001010103caffee',
+    'service',
+  );
+  test_(
+    IDL.Service({
+      foo: IDL.Func([IDL.Text], [IDL.Nat], []),
+      foo2: IDL.Func([IDL.Text], [IDL.Nat], []),
+    }),
+    CanisterId.fromText('ic:CAFFEE59'),
+    '4449444c026a0171017d00690203666f6f0004666f6f320001010103caffee',
+    'service',
   );
 });
 

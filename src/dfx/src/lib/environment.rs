@@ -2,12 +2,14 @@ use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::Identity;
 use crate::lib::progress_bar::ProgressBar;
 
 use ic_http_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;
 use slog::Record;
+use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -75,7 +77,7 @@ impl EnvironmentImpl {
                 .into_path(),
             Some(c) => c.get_path().parent().unwrap().join(".dfx"),
         };
-        std::fs::create_dir_all(&temp_dir)?;
+        create_dir_all(&temp_dir)?;
 
         // Figure out which version of DFX we should be running. This will use the following
         // fallback sequence:
@@ -156,9 +158,15 @@ impl Environment for EnvironmentImpl {
                     let start = config.get_config().get_defaults().get_start();
                     let address = start.get_address("localhost");
                     let port = start.get_port(8000);
+                    let dfx_root = self.get_temp_dir();
+                    let local_project_identity = dfx_root.join("identity").join("default");
+                    if create_dir_all(&local_project_identity).is_err() {
+                        return None;
+                    }
 
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
+                        signer: Box::new(Identity::new(local_project_identity)),
                         ..AgentConfig::default()
                     })
                     .ok()
@@ -195,13 +203,19 @@ pub struct AgentEnvironment<'a> {
 
 impl<'a> AgentEnvironment<'a> {
     pub fn new(backend: &'a dyn Environment, agent_url: &str) -> Self {
+        // We do not expose the path directly for now.
+        let dfx_root = backend.get_temp_dir();
+        let local_project_identity = dfx_root.join("identity").join("default");
+        // N.B. Do not assume the existence of this directory yet.
+        create_dir_all(&local_project_identity).expect("Failed to construct identity profile");
         AgentEnvironment {
             backend,
             agent: Agent::new(AgentConfig {
                 url: agent_url,
+                signer: Box::new(Identity::new(local_project_identity)),
                 ..AgentConfig::default()
             })
-            .unwrap(),
+            .expect("Failed to construct agent"),
         }
     }
 }

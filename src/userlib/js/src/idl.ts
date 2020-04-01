@@ -139,6 +139,12 @@ export abstract class Visitor<D, R> {
   public visitRec<T>(t: RecClass<T>, ty: ConstructType<T>, data: D): R {
     return this.visitConstruct(ty, data);
   }
+  public visitFunc(t: FuncClass, data: D): R {
+    return this.visitConstruct(t, data);
+  }
+  public visitService(t: ServiceClass, data: D): R {
+    return this.visitConstruct(t, data);
+  }
 }
 
 /**
@@ -345,7 +351,7 @@ export class IntClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
-    return (x instanceof BigNumber && x.isInteger()) || Number.isInteger(x);
+    return (x && x._isBigNumber && x.isInteger()) || Number.isInteger(x);
   }
 
   public encodeValue(x: BigNumber | number) {
@@ -381,8 +387,7 @@ export class NatClass extends PrimitiveType<BigNumber> {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
     return (
-      (x instanceof BigNumber && x.isInteger() && !x.isNegative()) ||
-      (Number.isInteger(x) && x >= 0)
+      (x && x._isBigNumber && x.isInteger() && !x.isNegative()) || (Number.isInteger(x) && x >= 0)
     );
   }
 
@@ -422,7 +427,7 @@ export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   public covariant(x: any): x is BigNumber {
     const min = new BigNumber(2).pow(this._bits - 1).negated();
     const max = new BigNumber(2).pow(this._bits - 1).minus(1);
-    if (x instanceof BigNumber && x.isInteger()) {
+    if (x && x._isBigNumber && x.isInteger()) {
       return x.gte(min) && x.lte(max);
     } else if (Number.isInteger(x)) {
       const v = new BigNumber(x);
@@ -473,7 +478,7 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
 
   public covariant(x: any): x is BigNumber {
     const max = new BigNumber(2).pow(this._bits);
-    if (x instanceof BigNumber && x.isInteger() && !x.isNegative()) {
+    if (x && x._isBigNumber && x.isInteger() && !x.isNegative()) {
       return x.lt(max);
     } else if (Number.isInteger(x) && x >= 0) {
       const v = new BigNumber(x);
@@ -879,6 +884,19 @@ export class RecClass<T = any> extends ConstructType<T> {
   }
 }
 
+function decodePrincipalId(b: Pipe): CanisterId {
+  const x = b.read(1).toString('hex');
+  if (x !== '01') {
+    throw new Error('Cannot decode principal');
+  }
+  const len = lebDecode(b).toNumber();
+  const hex = b
+    .read(len)
+    .toString('hex')
+    .toUpperCase();
+  return CanisterId.fromHex(hex);
+}
+
 /**
  * Represents an IDL principal reference
  */
@@ -888,7 +906,7 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
   }
 
   public covariant(x: any): x is CanisterId {
-    return x instanceof CanisterId;
+    return x && x._isCanisterId;
   }
 
   public encodeValue(x: CanisterId): Buffer {
@@ -903,17 +921,7 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
   }
 
   public decodeValue(b: Pipe): CanisterId {
-    const x = b.read(1).toString('hex');
-    if (x !== '01') {
-      throw new Error('Cannot decode principal');
-    }
-    const len = lebDecode(b).toNumber();
-    const hex = b
-      .read(len)
-      .toString('hex')
-      .toUpperCase();
-    // TODO implement checksum
-    return CanisterId.fromText('ic:' + hex + '00');
+    return decodePrincipalId(b);
   }
 
   get name() {
@@ -930,18 +938,130 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
  * @param retTypes Return types.
  * @param annotations Function annotations.
  */
-export class FuncClass {
-  constructor(
-    public argTypes: Type[] = [],
-    public retTypes: Type[] = [],
-    public annotations: string[] = [],
-  ) {}
+export class FuncClass extends ConstructType<[CanisterId, string]> {
+  constructor(public argTypes: Type[], public retTypes: Type[], public annotations: string[] = []) {
+    super();
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitFunc(this, d);
+  }
+  public covariant(x: any): x is [CanisterId, string] {
+    return (
+      Array.isArray(x) && x.length === 2 && x[0] && x[0]._isCanisterId && typeof x[1] === 'string'
+    );
+  }
+
+  public encodeValue(x: [CanisterId, string]): Buffer {
+    const hex = x[0].toHex();
+    const buf = Buffer.from(hex, 'hex');
+    const len = lebEncode(buf.length);
+    const canister = Buffer.concat([Buffer.from([1]), len, buf]);
+
+    const method = Buffer.from(x[1], 'utf8');
+    const methodLen = lebEncode(method.length);
+    return Buffer.concat([Buffer.from([1]), canister, methodLen, method]);
+  }
+
+  public _buildTypeTableImpl(T: TypeTable) {
+    this.argTypes.forEach(arg => arg.buildTypeTable(T));
+    this.retTypes.forEach(arg => arg.buildTypeTable(T));
+
+    const opCode = slebEncode(IDLTypeIds.Func);
+    const argLen = lebEncode(this.argTypes.length);
+    const args = Buffer.concat(this.argTypes.map(arg => arg.encodeType(T)));
+    const retLen = lebEncode(this.retTypes.length);
+    const rets = Buffer.concat(this.retTypes.map(arg => arg.encodeType(T)));
+    const annLen = lebEncode(this.annotations.length);
+    const anns = Buffer.concat(this.annotations.map(a => this.encodeAnnotation(a)));
+
+    T.add(this, Buffer.concat([opCode, argLen, args, retLen, rets, annLen, anns]));
+  }
+
+  public decodeValue(b: Pipe): [CanisterId, string] {
+    const x = b.read(1).toString('hex');
+    if (x !== '01') {
+      throw new Error('Cannot decode function reference');
+    }
+    const canister = decodePrincipalId(b);
+
+    const mLen = lebDecode(b).toNumber();
+    const method = b.read(mLen).toString('utf8');
+    return [canister, method];
+  }
+
+  get name() {
+    const args = this.argTypes.map(arg => arg.name).join(', ');
+    const rets = this.retTypes.map(arg => arg.name).join(', ');
+    const annon = ' ' + this.annotations.join(' ');
+    return `(${args}) -> (${rets})${annon}`;
+  }
+
+  public valueToString(x: [CanisterId, string]) {
+    return x[0].toText() + '.' + x[1];
+  }
 
   public display(): string {
     const args = this.argTypes.map(arg => arg.display()).join(', ');
     const rets = this.retTypes.map(arg => arg.display()).join(', ');
     const annon = ' ' + this.annotations.join(' ');
-    return `(${args}) &rarr; (${rets})${annon}`;
+    return `(${args}) → (${rets})${annon}`;
+  }
+
+  private encodeAnnotation(ann: string): Buffer {
+    if (ann === 'query') {
+      return Buffer.from([1]);
+    } else if (ann === 'oneway') {
+      return Buffer.from([2]);
+    } else {
+      throw new Error('Illeagal function annotation');
+    }
+  }
+}
+
+export class ServiceClass extends ConstructType<CanisterId> {
+  public readonly _fields: Array<[string, FuncClass]>;
+  constructor(fields: Record<string, FuncClass>) {
+    super();
+    this._fields = Object.entries(fields).sort((a, b) => idlLabelToId(a[0]) - idlLabelToId(b[0]));
+  }
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitService(this, d);
+  }
+  public covariant(x: any): x is CanisterId {
+    return x && x._isCanisterId;
+  }
+
+  public encodeValue(x: CanisterId): Buffer {
+    const hex = x.toHex();
+    const buf = Buffer.from(hex, 'hex');
+    const len = lebEncode(buf.length);
+    return Buffer.concat([Buffer.from([1]), len, buf]);
+  }
+
+  public _buildTypeTableImpl(T: TypeTable) {
+    this._fields.forEach(([_, func]) => func.buildTypeTable(T));
+    const opCode = slebEncode(IDLTypeIds.Service);
+    const len = lebEncode(this._fields.length);
+    const meths = this._fields.map(([label, func]) => {
+      const labelBuf = Buffer.from(label, 'utf8');
+      const labelLen = lebEncode(labelBuf.length);
+      return Buffer.concat([labelLen, labelBuf, func.encodeType(T)]);
+    });
+
+    T.add(this, Buffer.concat([opCode, len, Buffer.concat(meths)]));
+  }
+
+  public decodeValue(b: Pipe): CanisterId {
+    return decodePrincipalId(b);
+  }
+  get name() {
+    const fields = this._fields.map(([key, value]) => key + ':' + value.name);
+    return `service {${fields.join('; ')}}`;
+  }
+
+  public valueToString(x: CanisterId) {
+    return x.toText();
   }
 }
 
@@ -1021,6 +1141,26 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           }
           break;
         }
+        case IDLTypeIds.Func: {
+          for (let k = 0; k < 2; k++) {
+            let funcLength = lebDecode(pipe).toNumber();
+            while (funcLength--) {
+              slebDecode(pipe);
+            }
+          }
+          const annLen = lebDecode(pipe).toNumber();
+          pipe.read(annLen);
+          break;
+        }
+        case IDLTypeIds.Service: {
+          let servLength = lebDecode(pipe).toNumber();
+          while (servLength--) {
+            const l = lebDecode(pipe).toNumber();
+            pipe.read(l);
+            slebDecode(pipe);
+          }
+          break;
+        }
         default:
           throw new Error('Illegal op_code: ' + ty);
       }
@@ -1039,14 +1179,6 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   }
 
   return output;
-}
-
-/**
- * A wrapper over a client and an IDL
- * @param {Object} [fields] - a map of function names to IDL function signatures
- */
-export class ActorInterface {
-  constructor(public _fields: Record<string, FuncClass>) {}
 }
 
 // Export Types instances.
@@ -1091,4 +1223,8 @@ export function Rec() {
 
 export function Func(args: Type[], ret: Type[], annotations: string[] = []) {
   return new FuncClass(args, ret, annotations);
+}
+
+export function Service(t: Record<string, FuncClass>): ServiceClass {
+  return new ServiceClass(t);
 }

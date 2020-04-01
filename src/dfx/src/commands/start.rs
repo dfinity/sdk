@@ -120,7 +120,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let request_stop_echo = request_stop.clone();
     let rcv_wait_fwatcher = rcv_wait.clone();
     b.set_message("Generating IC local replica configuration.");
-    let replica_config = ReplicaConfig::new(&state_root)
+    let replica_config = ReplicaConfig::new(state_root)
         .with_random_port(&client_port_path)
         .to_toml()?;
 
@@ -155,6 +155,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let providers = Vec::new();
 
     let proxy_config = ProxyConfig {
+        logger: env.get_logger().clone(),
         client_api_port: address_and_port.port(),
         bind: address_and_port,
         serve_dir: bootstrap_dir,

@@ -11,6 +11,7 @@ import { BinaryBlob } from './types';
  * return a promise. These functions are derived from the IDL definition.
  */
 export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
+  __actorInterface(): Record<string, IDL.FuncClass>;
   __canisterId(): string;
   __getAsset(path: string): Promise<Uint8Array>;
   __install(
@@ -85,7 +86,7 @@ export type ActorConstructor = (config: ActorConfig) => Actor;
 // const reply2 = await actor(httpAgent2).greet();
 // ```
 export function makeActorFactory(
-  actorInterfaceFactory: (_: { IDL: typeof IDL }) => IDL.ActorInterface,
+  actorInterfaceFactory: (_: { IDL: typeof IDL }) => IDL.ServiceClass,
 ): ActorConstructor {
   const actorInterface = actorInterfaceFactory({ IDL });
 
@@ -136,6 +137,12 @@ export function makeActorFactory(
     } as Required<ActorConfig>;
     const cid = typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId;
     const actor: Actor = {
+      __actorInterface() {
+        return actorInterface._fields.reduce(
+          (obj, entry) => ({ ...obj, [entry[0]]: entry[1] }),
+          {},
+        );
+      },
       __canisterId() {
         return cid.toHex();
       },
@@ -190,7 +197,7 @@ export function makeActorFactory(
       },
     } as Actor;
 
-    for (const [methodName, func] of Object.entries(actorInterface._fields)) {
+    for (const [methodName, func] of actorInterface._fields) {
       actor[methodName] = async (...args: any[]) => {
         const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
