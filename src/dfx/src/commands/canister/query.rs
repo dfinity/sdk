@@ -6,7 +6,7 @@ use crate::util::{blob_from_arguments, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("query")
         .about(UserMessage::QueryCanister.to_str())
         .arg(
@@ -35,7 +35,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

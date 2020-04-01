@@ -5,7 +5,7 @@ use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use serde_json::value::Value;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("config")
         .about(UserMessage::ConfigureOptions.to_str())
         .arg(Arg::with_name("config_path").help(UserMessage::OptionName.to_str()))
@@ -20,7 +20,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     // Cannot use the `env` variable as we need a mutable copy.
     let mut config: Config = env
         .get_config()

@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer};
 use std::{collections::BTreeMap, env, fs, os::unix::fs::PermissionsExt};
 use tar::Archive;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("upgrade")
         .about("Upgrade DFX.")
         .arg(
@@ -154,7 +154,7 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     // Find OS architecture.
     let os_arch = match std::env::consts::OS {
         "linux" => "x86_64-linux",

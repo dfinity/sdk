@@ -62,7 +62,7 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
     }
 }
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("new")
         .about(UserMessage::CreateProject.to_str())
         .arg(
@@ -313,7 +313,7 @@ fn scaffold_frontend_code(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let log = env.get_logger();
     let dry_run = args.is_present(DRY_RUN);
     let project_name_path = args

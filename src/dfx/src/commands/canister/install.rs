@@ -10,7 +10,7 @@ use slog::info;
 use std::convert::TryInto;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("install")
         .about(UserMessage::InstallCanister.to_str())
         .arg(
@@ -85,7 +85,7 @@ fn compute_allocation_validator(compute_allocation: String) -> Result<(), String
     Err("Must be a percent between 0 and 100".to_string())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let log = env.get_logger();
     let config = env
         .get_config()

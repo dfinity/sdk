@@ -1,9 +1,8 @@
 use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::webserver::webserver;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{ArgMatches, Clap};
 use slog::info;
 use std::default::Default;
 use std::fs;
@@ -13,45 +12,14 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use url::{ParseError, Url};
 
-/// Constructs a sub-command to run the bootstrap server.
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("bootstrap")
-        .about(UserMessage::BootstrapCommand.to_str())
-        .arg(
-            Arg::with_name("ip")
-                .help(UserMessage::BootstrapIP.to_str())
-                .long("ip")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("port")
-                .help(UserMessage::BootstrapPort.to_str())
-                .long("port")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("providers")
-                .help(UserMessage::BootstrapProviders.to_str())
-                .long("providers")
-                .multiple(true)
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("root")
-                .help(UserMessage::BootstrapRoot.to_str())
-                .long("root")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("timeout")
-                .help(UserMessage::BootstrapTimeout.to_str())
-                .long("timeout")
-                .takes_value(true),
-        )
+#[derive(Clap)]
+pub enum Bootstrap {
+    #[clap(author = "DFINITY USA Research", name = "bootstrap", version = "0.1.0")]
+    Bootstrap(ConfigDefaultsBootstrap),
 }
 
 /// Runs the bootstrap server.
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let logger = env.get_logger();
     let config = get_config(env, args)?;
 
@@ -60,10 +28,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     webserver(
         logger.clone(),
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
-        config
-            .providers
-            .map(|vec| vec.iter().map(|uri| Url::from_str(uri).unwrap()).collect())
-            .unwrap(),
+        config.providers.iter().map(|uri| Url::from_str(uri).unwrap()).collect(),
         &config.root.unwrap(),
         sender,
     )?
@@ -88,7 +53,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
-fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ConfigDefaultsBootstrap> {
+fn get_config(env: &dyn Environment, args: &ArgMatches) -> DfxResult<ConfigDefaultsBootstrap> {
     let config = get_config_from_file(env);
     let ip = get_ip(&config, args)?;
     let port = get_port(&config, args)?;
@@ -98,7 +63,7 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ConfigD
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
-        providers: Some(providers),
+        providers: providers,
         root: Some(root),
         timeout: Some(timeout),
     })
@@ -119,7 +84,7 @@ fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsBootstrap {
 /// Gets the IP address that the bootstrap server listens on. First checks if the IP address was
 /// specified on the command-line using --ip, otherwise checks if the IP address was specified in
 /// the dfx configuration file, otherise defaults to 127.0.0.1.
-fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<IpAddr> {
+fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<IpAddr> {
     args.value_of("ip")
         .map(|ip| ip.parse())
         .unwrap_or_else(|| {
@@ -132,7 +97,7 @@ fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
 /// specified on the command-line using --port, otherwise checks if the port number was specified
 /// in the dfx configuration file, otherise defaults to 8081.
-fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<u16> {
+fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u16> {
     args.value_of("port")
         .map(|port| port.parse())
         .unwrap_or_else(|| {
@@ -147,7 +112,7 @@ fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResul
 /// dfx configuration file, otherwise defaults to http://127.0.0.1:8080/api.
 fn get_providers(
     config: &ConfigDefaultsBootstrap,
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
 ) -> DfxResult<Vec<String>> {
     args.values_of("providers")
         .map(|providers| {
@@ -157,16 +122,14 @@ fn get_providers(
         })
         .unwrap_or_else(|| {
             let default = vec!["http://127.0.0.1:8080/api".to_string()];
-            config.providers.clone().map_or(Ok(default), |providers| {
-                if providers.is_empty() {
-                    Err(ParseError::EmptyHost)
-                } else {
-                    providers
-                        .iter()
-                        .map(|provider| parse_url(provider))
-                        .collect()
-                }
-            })
+            if config.providers.is_empty() {
+                Ok(default)
+            } else {
+                config.providers.clone()
+                    .iter()
+                    .map(|provider| parse_url(provider))
+                    .collect()
+            }
         })
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid provider: {}", err)))
 }
@@ -178,7 +141,7 @@ fn get_providers(
 fn get_root(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
 ) -> DfxResult<PathBuf> {
     args.value_of("root")
         .map(|root| parse_dir(root))
@@ -205,7 +168,7 @@ fn get_root(
 /// requests to complete. First checks if the timeout was specified on the command-line using
 /// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
 /// otherise defaults to 30.
-fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<u64> {
+fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u64> {
     args.value_of("timeout")
         .map(|timeout| timeout.parse())
         .unwrap_or_else(|| {

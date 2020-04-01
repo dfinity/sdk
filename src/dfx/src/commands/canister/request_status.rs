@@ -9,7 +9,7 @@ use ic_http_agent::RequestId;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("request-status")
         .about(UserMessage::RequestCallStatus.to_str())
         .arg(
@@ -21,7 +21,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let request_id = RequestId::from_str(
         &args
             .value_of("request_id")

@@ -18,13 +18,13 @@ fn builtins() -> Vec<CliCommand> {
     ]
 }
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("cache")
         .about(UserMessage::ManageCache.to_str())
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let subcommand = args.subcommand();
 
     if let (name, Some(subcommand_args)) = subcommand {

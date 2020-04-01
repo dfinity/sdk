@@ -4,7 +4,7 @@ use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("stop").about(UserMessage::StopNode.to_str())
 }
 
@@ -35,7 +35,7 @@ fn kill_all(pid: Pid) -> DfxResult {
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {
     let pid_file_path = env.get_temp_dir().join("pid");
     if pid_file_path.exists() {
         // Read and verify it's not running. If it is just return.

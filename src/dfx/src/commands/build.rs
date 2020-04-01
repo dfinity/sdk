@@ -21,7 +21,7 @@ type AssetMap = BTreeMap<String, String>;
 type CanisterIdMap = BTreeMap<String, String>;
 type CanisterDependencyMap = BTreeMap<String, BTreeSet<String>>;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("build")
         .about(UserMessage::BuildCanister.to_str())
         .arg(
@@ -467,7 +467,7 @@ impl BuildSequence {
     }
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     // Read the config.
     let config = env
         .get_config()

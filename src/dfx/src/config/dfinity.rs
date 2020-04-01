@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use crate::lib::error::{DfxError, DfxResult};
+use clap::Clap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -20,7 +21,7 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
     port: None,
-    providers: None,
+    providers: vec![],
     root: None,
     timeout: None,
 };
@@ -46,12 +47,17 @@ pub struct ConfigCanistersCanister {
     pub frontend: Option<Value>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
+    #[clap(help = "IP address that the bootstrap server listens on. Defaults to 127.0.0.1.", takes_value = true)]
     pub ip: Option<IpAddr>,
+    #[clap(help = "Port number that the bootstrap server listens on. Defaults to 8081.", takes_value = true)]
     pub port: Option<u16>,
-    pub providers: Option<Vec<String>>,
+    #[clap(help = "List of compute provider API endpoints. Defaults to http://127.0.0.1:8080/api.", multiple = true, takes_value = true)]
+    pub providers: Vec<String>,
+    #[clap(help = "Directory containing static assets served by the bootstrap server. Defaults to $HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap.", takes_value = true)]
     pub root: Option<PathBuf>,
+    #[clap(help = "Maximum amount of time, in seconds, the bootstrap server will wait for upstream requests to complete. Defaults to 30.", takes_value = true)]
     pub timeout: Option<u64>,
 }
 
