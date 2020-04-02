@@ -48,9 +48,8 @@ export class Render extends IDL.Visitor<null, InputBox> {
   public visitVariant(t: IDL.VariantClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
     const select = document.createElement('select');
     for (const [key, type] of fields) {
-      const option = document.createElement('option');
-      option.innerText = key;
-      select.appendChild(option);
+      const option = new Option(key);
+      select.add(option);
     }
     select.selectedIndex = -1;
     select.classList.add('open');

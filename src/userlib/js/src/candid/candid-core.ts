@@ -171,7 +171,7 @@ export class VariantForm extends InputForm {
   }
   public parse(config: ParseConfig): Record<string, any> | undefined {
     const select = this.ui.open as HTMLSelectElement;
-    const selected = select.options[select.selectedIndex].text;
+    const selected = select.options[select.selectedIndex].value;
     const value = this.form[0].parse(config);
     if (value === undefined) {
       return undefined;
