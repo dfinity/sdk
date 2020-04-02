@@ -452,14 +452,17 @@ To expose the above functionality, we add a ``principal`` main
 command, along with related subcommands. These expose only the current
 provided functionality, yet can be easily extended.
 
-`principal` -> `new` [principal profile identifier] (default operation)
-`principal` -> `new` -> [principal profile identifier] [key type] [ --with (file/access information) ]
-`principal` -> `new` -> [principal profile identifier] -> `yubikey`
+
+----
+ `principal` -> `new` [principal profile identifier] (default operation)
+ `principal` -> `new` -> [principal profile identifier] [key type] [ --with (file/access information) ]
+ `principal` -> `new` -> [principal profile identifier] -> `yubikey`
  `principal` -> `key` -> `show` [principal profile identifier(s)]
  `principal` -> `set-default` -> [principal identifier(s)]
  `principal` -> `remove`[principal identifier(s)]
  `principal` -> `list`
  `principal` -> `show` [principal identifier]
+----
 
 Above [key type] can be [pem-key], [pkcs12] or [yubikey]. This can be extended
 later to [gpg] or any other provider of signing functionality. Note
