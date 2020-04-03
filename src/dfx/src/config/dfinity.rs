@@ -54,15 +54,15 @@ pub struct ConfigCanistersCanister {
 
 #[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
-    #[clap(help = UserMessage::BootstrapIP.to_str(), takes_value = true)]
+    #[clap(help = UserMessage::BootstrapIP.to_str(), long = "ip", takes_value = true)]
     pub ip: Option<IpAddr>,
-    #[clap(help = UserMessage::BootstrapPort.to_str(), takes_value = true)]
+    #[clap(help = UserMessage::BootstrapPort.to_str(), long = "port", takes_value = true)]
     pub port: Option<u16>,
-    #[clap(help = UserMessage::BootstrapProviders.to_str(), last = true, multiple = true, takes_value = true)]
-    pub providers: Vec<Url>,
-    #[clap(help = UserMessage::BootstrapRoot.to_str(), takes_value = true)]
+    #[clap(help = UserMessage::BootstrapRoot.to_str(), long = "root", takes_value = true)]
     pub root: Option<PathBuf>,
-    #[clap(help = UserMessage::BootstrapTimeout.to_str(), takes_value = true)]
+    #[clap(help = UserMessage::BootstrapProviders.to_str(), long = "providers", multiple = true, takes_value = true)]
+    pub providers: Vec<Url>,
+    #[clap(help = UserMessage::BootstrapTimeout.to_str(), long = "timeout", takes_value = true)]
     pub timeout: Option<u64>,
 }
 
