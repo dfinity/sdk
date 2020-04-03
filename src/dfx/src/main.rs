@@ -1,6 +1,6 @@
-use crate::config::{dfx_version, dfx_version_str};
-use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::commands::bootstrap;
+use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxError;
 use crate::lib::logger::{create_root_logger, LoggingMode};
@@ -26,7 +26,6 @@ const LOG_MODES: &[&str; 3] = &["file", "stderr", "tee"];
 )]
 #[derive(Clap, Clone)]
 struct Opts {
-
     /// Verbosity level.
     #[clap(long = "verbose", short = "v", parse(from_occurrences))]
     verbose: i64,
@@ -55,13 +54,11 @@ struct Opts {
 
 #[derive(Clap, Clone)]
 enum SubCommand {
-
     /// Bootstrap command.
     #[clap(about = UserMessage::BootstrapCommand.to_str(), name = "bootstrap")]
     Bootstrap(ConfigDefaultsBootstrap),
-
     // TODO: Add more subcommands.
-    // 
+    //
     // #[clap(about = UserMessage::BuildCommand.to_str(), name = "build")]
     // Build(ConfigDefaultsBuild),
     //
@@ -73,8 +70,8 @@ fn init_logger(opts: &Opts) -> slog::Logger {
     let file = PathBuf::from(opts.log_file.clone());
     let mode = match opts.log_mode.as_str() {
         "file" => LoggingMode::File(file),
-        "tee"  => LoggingMode::Tee(file),
-        _      => LoggingMode::Stderr,
+        "tee" => LoggingMode::Tee(file),
+        _ => LoggingMode::Stderr,
     };
     create_root_logger(level, mode)
 }

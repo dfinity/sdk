@@ -66,14 +66,6 @@ pub struct ConfigDefaultsBootstrap {
     pub timeout: Option<u64>,
 }
 
-
-
-
-
-
-
-
-
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {
     pub output: Option<String>,

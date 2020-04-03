@@ -44,7 +44,10 @@ pub fn exec(env: &dyn Environment, args: &ConfigDefaultsBootstrap) -> DfxResult 
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
-fn get_config(env: &dyn Environment, args: &ConfigDefaultsBootstrap) -> DfxResult<ConfigDefaultsBootstrap> {
+fn get_config(
+    env: &dyn Environment,
+    args: &ConfigDefaultsBootstrap,
+) -> DfxResult<ConfigDefaultsBootstrap> {
     let config = get_config_from_file(env);
     let ip = get_ip(&config, args)?;
     let port = get_port(&config, args)?;
@@ -76,24 +79,20 @@ fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsBootstrap {
 /// specified on the command-line using --ip, otherwise checks if the IP address was specified in
 /// the dfx configuration file, otherise defaults to 127.0.0.1.
 fn get_ip(config: &ConfigDefaultsBootstrap, args: &ConfigDefaultsBootstrap) -> DfxResult<IpAddr> {
-    args.ip
-        .map(Ok)
-        .unwrap_or_else(|| {
-            let default = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
-            Ok(config.ip.unwrap_or(default))
-        })
+    args.ip.map(Ok).unwrap_or_else(|| {
+        let default = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        Ok(config.ip.unwrap_or(default))
+    })
 }
 
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
 /// specified on the command-line using --port, otherwise checks if the port number was specified
 /// in the dfx configuration file, otherise defaults to 8081.
 fn get_port(config: &ConfigDefaultsBootstrap, args: &ConfigDefaultsBootstrap) -> DfxResult<u16> {
-    args.port
-        .map(Ok)
-        .unwrap_or_else(|| {
-            let default = 8081;
-            Ok(config.port.unwrap_or(default))
-        })
+    args.port.map(Ok).unwrap_or_else(|| {
+        let default = 8081;
+        Ok(config.port.unwrap_or(default))
+    })
 }
 
 /// Gets the list of compute provider API endpoints. First checks if the providers were specified
@@ -124,18 +123,13 @@ fn get_root(
     env: &dyn Environment,
     args: &ConfigDefaultsBootstrap,
 ) -> DfxResult<PathBuf> {
-    args.root.clone()
-        .map(Ok)
-        .unwrap_or_else(|| {
-            config
-                .root
-                .clone()
-                .map_or(
-                    env.get_cache()
-                        .get_binary_command_path("js-user-library/dist/bootstrap"),
-                    Ok,
-                )
-        })
+    args.root.clone().map(Ok).unwrap_or_else(|| {
+        config.root.clone().map_or(
+            env.get_cache()
+                .get_binary_command_path("js-user-library/dist/bootstrap"),
+            Ok,
+        )
+    })
 }
 
 /// Gets the maximum amount of time, in seconds, the bootstrap server will wait for upstream
@@ -143,10 +137,8 @@ fn get_root(
 /// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
 /// otherise defaults to 30.
 fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ConfigDefaultsBootstrap) -> DfxResult<u64> {
-    args.timeout
-        .map(Ok)
-        .unwrap_or_else(|| {
-            let default = 30;
-            Ok(config.timeout.unwrap_or(default))
-        })
+    args.timeout.map(Ok).unwrap_or_else(|| {
+        let default = 30;
+        Ok(config.timeout.unwrap_or(default))
+    })
 }
