@@ -1,10 +1,13 @@
-use crate::commands::CliCommand;
 use crate::config::{dfx_version, dfx_version_str};
+use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::commands::bootstrap;
 use crate::lib::environment::{Environment, EnvironmentImpl};
-use crate::lib::error::*;
+use crate::lib::error::DfxError;
 use crate::lib::logger::{create_root_logger, LoggingMode};
-use clap::{App, AppSettings, Arg, ArgMatches};
+use crate::lib::message::UserMessage;
+use clap::{AppSettings, Clap};
 use ic_http_agent::AgentError;
+use semver::Version;
 use slog;
 use std::path::PathBuf;
 
@@ -14,75 +17,66 @@ mod config;
 mod lib;
 mod util;
 
-fn cli(_: &impl Environment) -> App<'_> {
-    App::new("dfx")
-        .about("The DFINITY Executor.")
-        .version(dfx_version_str())
-        .global_setting(AppSettings::ColoredHelp)
-        .arg(
-            Arg::with_name("verbose")
-                .long("verbose")
-                .short("v")
-                .multiple(true),
-        )
-        .arg(
-            Arg::with_name("quiet")
-                .long("quiet")
-                .short("q")
-                .multiple(true),
-        )
-        .arg(
-            Arg::with_name("logmode")
-                .long("log")
-                .takes_value(true)
-                .possible_values(&["stderr", "tee", "file"])
-                .default_value("stderr"),
-        )
-        .arg(
-            Arg::with_name("logfile")
-                .long("log-file")
-                .long("logfile")
-                .takes_value(true),
-        )
-        .subcommands(
-            commands::builtin()
-                .into_iter()
-                .map(|x: CliCommand| x.get_subcommand().clone()),
-        )
+const LOG_MODES: &[&str; 3] = &["file", "stderr", "tee"];
+
+#[clap(
+    author = "DFINITY USA Research LLC",
+    global_setting = AppSettings::ColoredHelp,
+    version = dfx_version_str(),
+)]
+#[derive(Clap, Clone)]
+struct Opts {
+
+    /// Verbosity level.
+    #[clap(long = "verbose", short = "v", parse(from_occurrences))]
+    verbose: i64,
+
+    /// Verbosity suppression level.
+    #[clap(long = "quiet", short = "q", parse(from_occurrences))]
+    quiet: i64,
+
+    /// Log file.
+    #[clap(long = "log-file", default_value = "log.txt", takes_value = true)]
+    log_file: String,
+
+    /// Log mode.
+    #[clap(
+        long = "log-mode",
+        default_value = "stderr",
+        possible_values = LOG_MODES,
+        takes_value = true,
+    )]
+    log_mode: String,
+
+    /// Subcommand.
+    #[clap(subcommand)]
+    subcommand: SubCommand,
 }
 
-fn exec(env: &impl Environment, args: &clap::ArgMatches, cli: &App<'_>) -> DfxResult {
-    let (name, subcommand_args) = match args.subcommand() {
-        (name, Some(args)) => (name, args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            return Ok(());
-        }
+#[derive(Clap, Clone)]
+enum SubCommand {
+
+    /// Bootstrap command.
+    #[clap(about = UserMessage::BootstrapCommand.to_str(), name = "bootstrap")]
+    Bootstrap(ConfigDefaultsBootstrap),
+
+    // TODO: Add more subcommands.
+    // 
+    // #[clap(about = UserMessage::BuildCommand.to_str(), name = "build")]
+    // Build(ConfigDefaultsBuild),
+    //
+    // ...
+}
+
+fn init_logger(opts: &Opts) -> slog::Logger {
+    let level = opts.verbose - opts.quiet;
+    let file = PathBuf::from(opts.log_file.clone());
+    let mode = match opts.log_mode.as_str() {
+        "file" => LoggingMode::File(file),
+        "tee"  => LoggingMode::Tee(file),
+        _      => LoggingMode::Stderr,
     };
-
-    match commands::builtin()
-        .into_iter()
-        .find(|x| name == x.get_name())
-    {
-        Some(cmd) => cmd.execute(env, subcommand_args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            Err(DfxError::UnknownCommand(name.to_owned()))
-        }
-    }
-}
-
-fn is_warning_disabled(warning: &str) -> bool {
-    // By default, warnings are all enabled.
-    let env_warnings = std::env::var("DFX_WARNING").unwrap_or_else(|_| "".to_string());
-    env_warnings
-        .split(',')
-        .filter(|w| w.starts_with('-'))
-        .any(|w| w.chars().skip(1).collect::<String>().eq(warning))
+    create_root_logger(level, mode)
 }
 
 /// In some cases, redirect the dfx execution to the proper version.
@@ -91,10 +85,10 @@ fn is_warning_disabled(warning: &str) -> bool {
 ///
 /// Note: the right return type for communicating this would be [Option<!>], but since the
 /// never type is experimental, we just assert on the calling site.
-fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
+fn maybe_redirect_dfx(env_version: &Version) -> Option<()> {
     // Verify we're using the same version as the dfx.json, and if not just redirect the
     // call to the cache.
-    if dfx_version() != env.get_version() {
+    if dfx_version() != env_version {
         // Show a warning to the user.
         if !is_warning_disabled("version_check") {
             eprintln!(
@@ -106,12 +100,11 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
                     "We are forwarding the command line to the old version. To disable this ",
                     "warning, set the DFX_WARNING=-version_check environment variable.\n"
                 ),
-                env.get_version(),
+                env_version,
                 dfx_version()
             );
         }
-
-        match crate::config::cache::call_cached_dfx(env.get_version()) {
+        match crate::config::cache::call_cached_dfx(env_version) {
             Ok(status) => std::process::exit(status.code().unwrap_or(0)),
             Err(e) => {
                 eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
@@ -120,57 +113,31 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
             }
         };
     }
-
     None
 }
 
-/// Setup a logger with the proper configuration, based on arguments.
-/// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(matches: &ArgMatches) -> (bool, slog::Logger) {
-    // Create a logger with our argument matches.
-    let level = matches.occurrences_of("verbose") as i64 - matches.occurrences_of("quiet") as i64;
-
-    let mode = match matches.value_of("logmode") {
-        Some("tee") => LoggingMode::Tee(PathBuf::from(
-            matches.value_of("logfile").unwrap_or("log.txt"),
-        )),
-        Some("file") => LoggingMode::File(PathBuf::from(
-            matches.value_of("logfile").unwrap_or("log.txt"),
-        )),
-        _ => LoggingMode::Stderr,
-    };
-
-    // Only show the progress bar if the level is INFO or more.
-    (level >= 0, create_root_logger(level, mode))
+fn is_warning_disabled(warning: &str) -> bool {
+    std::env::var("DFX_WARNING")
+        .unwrap_or_else(|_| "".to_string())
+        .split(',')
+        .filter(|w| w.starts_with('-'))
+        .any(|w| w.chars().skip(1).collect::<String>().eq(warning))
 }
 
 fn main() {
-    let result = match EnvironmentImpl::new() {
-        Ok(env) => {
-            if maybe_redirect_dfx(&env).is_some() {
-                unreachable!();
+    let opts: Opts = Opts::parse();
+    let progress_bar = opts.verbose >= opts.quiet;
+    let logger = init_logger(&opts);
+    let result = EnvironmentImpl::new()
+        .map(|env| env.with_logger(logger).with_progress_bar(progress_bar))
+        .map(move |env| {
+            let version = env.get_version();
+            maybe_redirect_dfx(version).map_or((), |_| unreachable!());
+            match opts.subcommand {
+                SubCommand::Bootstrap(cfg) => bootstrap::exec(&env, &cfg),
+                // TODO: Add more subcommands.
             }
-
-            let matches = cli(&env).get_matches();
-
-            let (progress_bar, log) = setup_logging(&matches);
-
-            // Need to recreate the environment because we use it to get matches.
-            // TODO(hansl): resolve this double-create problem.
-            match EnvironmentImpl::new().map(|x| x.with_logger(log).with_progress_bar(progress_bar))
-            {
-                Ok(env) => {
-                    slog::trace!(
-                        env.get_logger(),
-                        "Trace mode enabled. Lots of logs coming up."
-                    );
-                    exec(&env, &matches, &(cli(&env)))
-                }
-                Err(e) => Err(e),
-            }
-        }
-        Err(e) => Err(e),
-    };
+        });
 
     if let Err(err) = result {
         match err {
@@ -212,7 +179,6 @@ fn main() {
                 eprintln!("An error occured:\n{:#?}", err);
             }
         }
-
         std::process::exit(255);
     }
 }

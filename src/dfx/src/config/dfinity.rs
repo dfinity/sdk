@@ -1,13 +1,16 @@
 #![allow(dead_code)]
 
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::UserMessage;
 use clap::Clap;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::default::Default;
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
+use url::Url;
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
@@ -18,13 +21,15 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     start: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
-    ip: None,
-    port: None,
-    providers: vec![],
-    root: None,
-    timeout: None,
-};
+lazy_static! {
+    static ref EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
+        ip: None,
+        port: None,
+        providers: vec![],
+        root: None,
+        timeout: None,
+    };
+}
 
 const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
 
@@ -49,17 +54,25 @@ pub struct ConfigCanistersCanister {
 
 #[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
-    #[clap(help = "IP address that the bootstrap server listens on. Defaults to 127.0.0.1.", takes_value = true)]
+    #[clap(help = UserMessage::BootstrapIP.to_str(), takes_value = true)]
     pub ip: Option<IpAddr>,
-    #[clap(help = "Port number that the bootstrap server listens on. Defaults to 8081.", takes_value = true)]
+    #[clap(help = UserMessage::BootstrapPort.to_str(), takes_value = true)]
     pub port: Option<u16>,
-    #[clap(help = "List of compute provider API endpoints. Defaults to http://127.0.0.1:8080/api.", multiple = true, takes_value = true)]
-    pub providers: Vec<String>,
-    #[clap(help = "Directory containing static assets served by the bootstrap server. Defaults to $HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap.", takes_value = true)]
+    #[clap(help = UserMessage::BootstrapProviders.to_str(), last = true, multiple = true, takes_value = true)]
+    pub providers: Vec<Url>,
+    #[clap(help = UserMessage::BootstrapRoot.to_str(), takes_value = true)]
     pub root: Option<PathBuf>,
-    #[clap(help = "Maximum amount of time, in seconds, the bootstrap server will wait for upstream requests to complete. Defaults to 30.", takes_value = true)]
+    #[clap(help = UserMessage::BootstrapTimeout.to_str(), takes_value = true)]
     pub timeout: Option<u64>,
 }
+
+
+
+
+
+
+
+
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {

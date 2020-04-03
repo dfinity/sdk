@@ -2,24 +2,15 @@ use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::webserver::webserver;
-use clap::{ArgMatches, Clap};
 use slog::info;
 use std::default::Default;
-use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
-use std::str::FromStr;
-use url::{ParseError, Url};
-
-#[derive(Clap)]
-pub enum Bootstrap {
-    #[clap(author = "DFINITY USA Research", name = "bootstrap", version = "0.1.0")]
-    Bootstrap(ConfigDefaultsBootstrap),
-}
+use url::Url;
 
 /// Runs the bootstrap server.
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ConfigDefaultsBootstrap) -> DfxResult {
     let logger = env.get_logger();
     let config = get_config(env, args)?;
 
@@ -28,7 +19,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     webserver(
         logger.clone(),
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
-        config.providers.iter().map(|uri| Url::from_str(uri).unwrap()).collect(),
+        config.providers.into_iter().collect(),
         &config.root.unwrap(),
         sender,
     )?
@@ -53,7 +44,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
-fn get_config(env: &dyn Environment, args: &ArgMatches) -> DfxResult<ConfigDefaultsBootstrap> {
+fn get_config(env: &dyn Environment, args: &ConfigDefaultsBootstrap) -> DfxResult<ConfigDefaultsBootstrap> {
     let config = get_config_from_file(env);
     let ip = get_ip(&config, args)?;
     let port = get_port(&config, args)?;
@@ -84,27 +75,25 @@ fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsBootstrap {
 /// Gets the IP address that the bootstrap server listens on. First checks if the IP address was
 /// specified on the command-line using --ip, otherwise checks if the IP address was specified in
 /// the dfx configuration file, otherise defaults to 127.0.0.1.
-fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<IpAddr> {
-    args.value_of("ip")
-        .map(|ip| ip.parse())
+fn get_ip(config: &ConfigDefaultsBootstrap, args: &ConfigDefaultsBootstrap) -> DfxResult<IpAddr> {
+    args.ip
+        .map(Ok)
         .unwrap_or_else(|| {
             let default = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
             Ok(config.ip.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid IP address: {}", err)))
 }
 
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
 /// specified on the command-line using --port, otherwise checks if the port number was specified
 /// in the dfx configuration file, otherise defaults to 8081.
-fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u16> {
-    args.value_of("port")
-        .map(|port| port.parse())
+fn get_port(config: &ConfigDefaultsBootstrap, args: &ConfigDefaultsBootstrap) -> DfxResult<u16> {
+    args.port
+        .map(Ok)
         .unwrap_or_else(|| {
             let default = 8081;
             Ok(config.port.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid port number: {}", err)))
 }
 
 /// Gets the list of compute provider API endpoints. First checks if the providers were specified
@@ -112,26 +101,18 @@ fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u1
 /// dfx configuration file, otherwise defaults to http://127.0.0.1:8080/api.
 fn get_providers(
     config: &ConfigDefaultsBootstrap,
-    args: &ArgMatches,
-) -> DfxResult<Vec<String>> {
-    args.values_of("providers")
-        .map(|providers| {
-            providers
-                .map(|provider| parse_url(provider))
-                .collect::<Result<_, _>>()
-        })
-        .unwrap_or_else(|| {
-            let default = vec!["http://127.0.0.1:8080/api".to_string()];
-            if config.providers.is_empty() {
-                Ok(default)
-            } else {
-                config.providers.clone()
-                    .iter()
-                    .map(|provider| parse_url(provider))
-                    .collect()
-            }
-        })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid provider: {}", err)))
+    args: &ConfigDefaultsBootstrap,
+) -> DfxResult<Vec<Url>> {
+    if args.providers.clone().is_empty() {
+        if config.providers.is_empty() {
+            let default = vec![Url::parse("http://127.0.0.1:8080/api").unwrap()];
+            Ok(default)
+        } else {
+            Ok(config.providers.clone())
+        }
+    } else {
+        Ok(args.providers.clone())
+    }
 }
 
 /// Gets the directory containing static assets served by the bootstrap server. First checks if the
@@ -141,10 +122,10 @@ fn get_providers(
 fn get_root(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
-    args: &ArgMatches,
+    args: &ConfigDefaultsBootstrap,
 ) -> DfxResult<PathBuf> {
-    args.value_of("root")
-        .map(|root| parse_dir(root))
+    args.root.clone()
+        .map(Ok)
         .unwrap_or_else(|| {
             config
                 .root
@@ -154,38 +135,18 @@ fn get_root(
                         .get_binary_command_path("js-user-library/dist/bootstrap"),
                     Ok,
                 )
-                .and_then(|root| {
-                    parse_dir(
-                        root.to_str()
-                            .expect("File path without invalid unicode characters"),
-                    )
-                })
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid directory: {:?}", err)))
 }
 
 /// Gets the maximum amount of time, in seconds, the bootstrap server will wait for upstream
 /// requests to complete. First checks if the timeout was specified on the command-line using
 /// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
 /// otherise defaults to 30.
-fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u64> {
-    args.value_of("timeout")
-        .map(|timeout| timeout.parse())
+fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ConfigDefaultsBootstrap) -> DfxResult<u64> {
+    args.timeout
+        .map(Ok)
         .unwrap_or_else(|| {
             let default = 30;
             Ok(config.timeout.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid timeout: {}", err)))
-}
-
-/// TODO (enzo): Documentation.
-fn parse_dir(dir: &str) -> DfxResult<PathBuf> {
-    fs::metadata(dir)
-        .map(|_| PathBuf::from(dir))
-        .map_err(|_| DfxError::Io(Error::new(ErrorKind::NotFound, dir)))
-}
-
-/// TODO (enzo): Documentation.
-fn parse_url(url: &str) -> Result<String, ParseError> {
-    Url::parse(url).map(|_| String::from(url))
 }
