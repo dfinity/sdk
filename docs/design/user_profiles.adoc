@@ -16,13 +16,17 @@ What are we trying to accomplish?
 Just a few sentences.
 ////
 
-We want a simple, forward and backward compatible to some extend user
-profile file hierarchy structure. A developer wants to test multi-user
-interaction, switch between testing and production principals for the
-same project, create easily dummy principals for testing and
-development purposes. Thus, we want to provide the user with multiple
-principals and relate them with signing services or key pairs directly
-to enable signing of requests.
+A developer wants to test multi-user interaction, switch between
+testing and production principals for the same project, create easily
+dummy principals for testing and development purposes. Thus, they must
+have access to multiple principals and can relate them with signing
+services or key pairs directly to enable signing of requests.
+
+
+We propose a simple, forward and backward compatible to some extent,
+user profile file hierarchy structure to provide access to
+principals across projects.
+
 
 == Approvals
 
@@ -155,7 +159,7 @@ application.
 Data of GPG are kept usually under `~/.gnupg` In general it uses its
 own file extensions and data format and organization. (Specifically, two
 are used gpg and kbx.) GPG encrypts all private key files (and
-compress them). Also keeps track of a trust database with key
+compresses them). Also keeps track of a trust database with key
 relations for validation. It also keeps track of a randomness pool and
 lock files.
 
@@ -287,10 +291,14 @@ local system identifier, a profile.
 
 ==== Global Profiles Structure
 
+By default dfx provides a user cache to store various versions of
+dfinity executables, and other data. Here we denote this directory
+with `<cache>`.
+
 The identity hierarchy is represented by a series of files under
 `<cache>/identity/`. At the root of `<cache>/identity/` there
 is `<cache>/identity/metadata.json`. It represents only versioning
-information and any other meta-data, future versions elect to add.
+information and any other meta-data that future versions elect to add.
 
 
 For each principal `<principal profile identifier >` we assign the
@@ -321,11 +329,12 @@ In the future, these can easily be augmented with extra fields.
 
 ===== Note on Principals -- Principal Profiles
 
-Recall that in the future principal identifiers will be connected to the
-canister identifier. This poses a complexity as principal identifiers
-as recognized by an IC replica are not simply project specific but
-canister installation specific. To decouple the identifiersFor that reason we mention above
-`<principal profile identifier >`. We have several choices:
+Recall that in the future principal identifiers will be connected to
+the canister identifier. This poses a complexity as principal
+identifiers as recognized by an IC replica are not simply project
+specific but canister installation specific. For that reason we
+introduced above the `<principal profile identifier >`. We have
+several choices:
 
 . We support principals with current identifier and preserve the
 identifier post the suggested alterations to the way principal
