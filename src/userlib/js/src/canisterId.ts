@@ -31,6 +31,7 @@ export class CanisterId {
     return new this(hex);
   }
 
+  public _isCanisterId = true;
   protected constructor(private _idHex: string) {}
 
   public toHex(): string {

@@ -3,16 +3,14 @@ pub(crate) mod agent_error;
 pub(crate) mod nonce;
 pub(crate) mod replica_api;
 pub(crate) mod response;
-pub(crate) mod waiter;
 
 pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
-    pub use super::replica_api::{MessageWithSender, SignedMessage};
+    pub use super::replica_api::{MessageWithSender, ReadRequest, Request, SignedMessage};
     pub use super::response::RequestStatusResponse;
     pub use super::signer::Signer;
-    pub use super::waiter::{Waiter, WaiterTrait};
     pub use super::Agent;
 }
 
@@ -21,7 +19,9 @@ mod agent_test;
 
 pub mod signer;
 
-use crate::agent::replica_api::{QueryResponseReply, ReadRequest, ReadResponse, SubmitRequest};
+use crate::agent::replica_api::{
+    QueryResponseReply, ReadRequest, ReadResponse, Request, SubmitRequest,
+};
 use crate::agent::signer::Signer;
 use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 
@@ -82,7 +82,7 @@ impl Agent {
     async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
         // We need to calculate the signature, and thus also the
         // request id initially.
-        let request: Box<SubmitRequest<'_>> = Box::new(request);
+        let request = Request::Submit(request);
         let (request_id, signed_request) = self.signer.sign(request)?;
 
         let record = serde_cbor::to_vec(&signed_request)?;
@@ -137,10 +137,10 @@ impl Agent {
             .and_then(|response| Ok(RequestStatusResponse::from(response)))
     }
 
-    pub async fn request_status_and_wait(
+    pub async fn request_status_and_wait<W: delay::Waiter>(
         &self,
         request_id: &RequestId,
-        mut waiter: Waiter,
+        mut waiter: W,
     ) -> Result<Option<Blob>, AgentError> {
         waiter.start();
 
@@ -154,16 +154,18 @@ impl Agent {
                 RequestStatusResponse::Pending => (),
             };
 
-            waiter.wait()?;
+            waiter
+                .wait()
+                .map_err(|_| AgentError::TimeoutWaitingForResponse)?;
         }
     }
 
-    pub async fn call_and_wait(
+    pub async fn call_and_wait<W: delay::Waiter>(
         &self,
         canister_id: &CanisterId,
         method_name: &str,
         arg: &Blob,
-        waiter: Waiter,
+        waiter: W,
     ) -> Result<Option<Blob>, AgentError> {
         let request_id = self.call(canister_id, method_name, arg).await?;
         self.request_status_and_wait(&request_id, waiter).await
@@ -194,12 +196,12 @@ impl Agent {
             .await
     }
 
-    pub async fn install_and_wait(
+    pub async fn install_and_wait<W: delay::Waiter>(
         &self,
         canister_id: &CanisterId,
         module: &Blob,
         arg: &Blob,
-        waiter: Waiter,
+        waiter: W,
     ) -> Result<Option<Blob>, AgentError> {
         let request_id = self.install(canister_id, module, arg).await?;
         self.request_status_and_wait(&request_id, waiter).await
@@ -238,14 +240,16 @@ impl Agent {
         }
     }
 
-    pub async fn ping(&self, mut waiter: Waiter) -> Result<(), AgentError> {
+    pub async fn ping<W: delay::Waiter>(&self, mut waiter: W) -> Result<(), AgentError> {
         waiter.start();
         loop {
             if self.ping_once().await.is_ok() {
                 break;
             }
 
-            waiter.wait()?;
+            waiter
+                .wait()
+                .map_err(|_| AgentError::TimeoutWaitingForResponse)?;
         }
         Ok(())
     }

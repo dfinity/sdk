@@ -1,17 +1,20 @@
 { supportedSystems ? [ "x86_64-linux" "x86_64-darwin" ]
-, scrubJobs ? true
-, RustSec-advisory-db ? null
-, isMaster ? true
+, system ? builtins.currentSystem
 , src ? builtins.fetchGit ../.
+, RustSec-advisory-db ? null
+
+  # The version of the release. Will be set to the right value in ./release.nix.
+, releaseVersion ? "latest"
+
+  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
+, isMaster ? true
+
+, pkgs ? import ../nix { inherit system isMaster RustSec-advisory-db; }
 }:
-let
-  pkgs = import ../nix {};
-in
-pkgs.ci ../.
-  {
-    inherit supportedSystems scrubJobs isMaster src;
-    rev = if src != null then src.rev else pkgs.lib.commitIdFromGitRepo (pkgs.lib.gitDir ../.);
-    packageSetArgs = {
-      inherit RustSec-advisory-db;
-    };
-  }
+pkgs.lib.mk-jobset {
+  inherit supportedSystems;
+  inherit (src) rev;
+  mkJobsetSpec = { system, pkgs, jobset }: import ../. {
+    inherit system pkgs jobset RustSec-advisory-db releaseVersion isMaster src;
+  };
+}

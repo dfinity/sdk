@@ -77,6 +77,9 @@ pub enum DfxError {
 
     /// String provided is not a port
     CouldNotParsePort(std::num::ParseIntError),
+
+    /// A replica did not start successfully.
+    ReplicaCouldNotBeStarted(),
 }
 
 /// The result of running a DFX command.

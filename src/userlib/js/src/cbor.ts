@@ -26,7 +26,7 @@ class CanisterIdEncoder implements CborEncoder<CanisterId> {
   }
 
   public match(value: any): boolean {
-    return value instanceof CanisterId;
+    return value && value._isCanisterId === true;
   }
 
   public encode(v: CanisterId): cbor.CborValue {
@@ -48,7 +48,7 @@ class BufferEncoder implements CborEncoder<Buffer> {
   }
 
   public match(value: any): boolean {
-    return value instanceof Buffer;
+    return Buffer.isBuffer(value);
   }
 
   public encode(v: Buffer): cbor.CborValue {

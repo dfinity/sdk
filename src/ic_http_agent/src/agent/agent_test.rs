@@ -1,6 +1,7 @@
 use crate::agent::replica_api::{QueryResponseReply, ReadResponse};
 use crate::agent::response::RequestStatusResponse;
-use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId, Waiter};
+use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId};
+use delay::Delay;
 use mockito::mock;
 use std::time::Duration;
 
@@ -182,7 +183,7 @@ fn call_rejected() -> Result<(), AgentError> {
             .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
         agent
-            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(100)))
+            .request_status_and_wait(&request_id, Delay::timeout(Duration::from_millis(100)))
             .await
     });
 
@@ -248,7 +249,7 @@ fn ping() -> Result<(), AgentError> {
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async { agent.ping(Waiter::instant()).await });
+    let result = runtime.block_on(async { agent.ping(Delay::instant()).await });
 
     read_mock.assert();
 
@@ -266,7 +267,7 @@ fn ping_okay() -> Result<(), AgentError> {
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async { agent.ping(Waiter::instant()).await });
+    let result = runtime.block_on(async { agent.ping(Delay::instant()).await });
 
     read_mock.assert();
 
@@ -293,7 +294,7 @@ fn ping_error() -> Result<(), AgentError> {
     let result = runtime.block_on(async {
         agent
             .ping(
-                Waiter::builder()
+                Delay::builder()
                     .throttle(Duration::from_millis(4))
                     .timeout(Duration::from_millis(6))
                     .build(),
