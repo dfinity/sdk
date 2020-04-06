@@ -354,7 +354,7 @@ export class IntClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
-    return (x && x._isBigNumber && x.isInteger()) || Number.isInteger(x);
+    return (BigNumber.isBigNumber(x) && x.isInteger()) || Number.isInteger(x);
   }
 
   public encodeValue(x: BigNumber | number) {
@@ -390,7 +390,8 @@ export class NatClass extends PrimitiveType<BigNumber> {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
     return (
-      (x && x._isBigNumber && x.isInteger() && !x.isNegative()) || (Number.isInteger(x) && x >= 0)
+      (BigNumber.isBigNumber(x) && x.isInteger() && !x.isNegative())
+        || (Number.isInteger(x) && x >= 0)
     );
   }
 
@@ -430,7 +431,7 @@ export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   public covariant(x: any): x is BigNumber {
     const min = new BigNumber(2).pow(this._bits - 1).negated();
     const max = new BigNumber(2).pow(this._bits - 1).minus(1);
-    if (x && x._isBigNumber && x.isInteger()) {
+    if (BigNumber.isBigNumber(x) && x.isInteger()) {
       return x.gte(min) && x.lte(max);
     } else if (Number.isInteger(x)) {
       const v = new BigNumber(x);
@@ -481,7 +482,7 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
 
   public covariant(x: any): x is BigNumber {
     const max = new BigNumber(2).pow(this._bits);
-    if (x && x._isBigNumber && x.isInteger() && !x.isNegative()) {
+    if (BigNumber.isBigNumber(x) && x.isInteger() && !x.isNegative()) {
       return x.lt(max);
     } else if (Number.isInteger(x) && x >= 0) {
       const v = new BigNumber(x);
