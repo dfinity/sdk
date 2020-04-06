@@ -28,6 +28,15 @@ user profile file hierarchy structure to provide access to
 principals across projects.
 
 
+== Contribution
+
+This design answers the following questions:
+
+* If a user creates a new principal where is it placed?
+* When a user makes a request in a particular project which principal is used by default?
+* How do we mitigate data migration?
+* How do we ensure identity related data is usable across most dfx/replica versions?
+
 == Approvals
 
 ////
