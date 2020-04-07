@@ -114,7 +114,7 @@ impl Replica {
             "Replica Configuration (TOML):\n-----\n{}-----\n", config_toml
         );
 
-        let use_port = config.http_handler.use_port;
+        let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
         let replica_path = self.config.replica_path.to_path_buf();
 
@@ -123,7 +123,7 @@ impl Replica {
         let handle = replica_start_thread(
             logger,
             config_toml,
-            use_port,
+            port,
             write_port_to,
             replica_path,
             addr,
@@ -216,7 +216,7 @@ fn wait_for_child_or_receiver(
 fn replica_start_thread(
     logger: Logger,
     config_toml: String,
-    use_port: Option<u16>,
+    port: Option<u16>,
     write_port_to: Option<PathBuf>,
     replica_path: PathBuf,
     addr: Addr<Replica>,
@@ -246,7 +246,7 @@ fn replica_start_thread(
             debug!(logger, "Starting replica...");
             let mut child = cmd.spawn().expect("Could not start replica.");
 
-            let port = use_port.unwrap_or_else(|| {
+            let port = port.unwrap_or_else(|| {
                 Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
             });
             addr.do_send(signals::ReplicaRestarted { port });
