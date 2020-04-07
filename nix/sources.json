@@ -26,9 +26,10 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "ref": "master",
+        "branch": "release-20.03",
+        "ref": "release-20.03",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "c022ff9f16ed0b9e3eb4ed97f26b493de3858df7",
+        "rev": "9154d9d2fc4b04ffa8e6642c0582bb4308ed6984",
         "type": "git"
     },
     "dfinity": {
