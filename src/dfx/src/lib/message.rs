@@ -18,6 +18,7 @@ macro_rules! user_message {
 }
 
 user_message!(
+
     // dfx bootstrap
     BootstrapCommand => "Starts the bootstrap server.",
     BootstrapIP => "IP address that the bootstrap server listens on. Defaults to 127.0.0.1.",
@@ -26,41 +27,51 @@ user_message!(
     BootstrapRoot => "Directory containing static assets served by the bootstrap server. Defaults to $HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap.",
     BootstrapTimeout => "Maximum amount of time, in seconds, the bootstrap server will wait for upstream requests to complete. Defaults to 30.",
 
+    // dfx build
+    BuildCommand => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
+    BuildOutput => "Build output directory.",
+    BuildSkipFrontend => "Skip building the frontend, only build the canisters.",
+
     // dfx cache
-    ManageCache => "Manages the dfx version cache.",
-    CacheDelete => "Delete a specific versioned cache of dfx.",
+    CacheCommand => "Manages the dfx version cache.",
+    CacheDeleteCommand => "Delete a specific versioned cache of dfx.",
+    CacheInstallCommand => "",
+    CacheVersion => "",
     CacheUnpack => "Force unpacking the cache from this dfx version.",
-    CacheList => "List installed and used version.",
-    CacheShow => "Show the path of the cache used by this version.",
+    CacheListCommand => "List installed and used version.",
+    CacheShowCommand => "Show the path of the cache used by this version.",
+
+
+
+
+
+
+
 
     // dfx canister call
-    CallCanister => "Calls a method on a deployed canister.",
+    CanisterCallCommand => "Calls a method on a deployed canister.",
     MethodName => "Specifies the method name to call on the canister.",
     AsyncResult => "Do not wait for the result of the call to be returned by polling the client. Instead return a response ID.",
     ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
     ArgumentValue => "Specifies the argument to pass to the method.",
 
     // dfx canister install
-    InstallCanister => "Installs compiled code as a canister on the client.",
+    CanisterInstallCommand => "Installs compiled code as a canister on the client.",
     InstallAll => "Install all canisters configured in dfx.json.",
     InstallCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
     InstallComputeAllocation => "Specifies the canister's compute allocation. This should be a percent in the range [0..100]",
 
     // dfx canister mod
-    ManageCanister => "Manages canisters deployed on a network client.",
+    CanisterCommand => "Manages canisters deployed on a network client.",
     CanisterClient => "Override the client to connect to. By default uses the client set in dfx configuration.",
 
     // dfx canister query
-    QueryCanister => "Sends a query request to a canister.",
+    CanisterQueryCommand => "Sends a query request to a canister.",
     UpdateCanisterArg => "Sends an update request to a canister. This is the default if the method is not a query method.",
 
     // dfx canister request_status
-    RequestCallStatus => "Requests the status of a specified call from a canister.",
+    CanisterRequestStatusCommand => "Requests the status of a specified call from a canister.",
     RequestId => "Specifies the request identifier. The request identifier is an hexadecimal string starting with 0x.",
-
-    // dfx build
-    BuildCommand => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
-    SkipFrontend => "Skip building the frontend, only build the canisters.",
 
     // dfx config
     ConfigureOptions => "Configures project options for your currently-selected project.",

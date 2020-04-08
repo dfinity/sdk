@@ -1,5 +1,5 @@
 use crate::config::cache::Cache;
-use crate::config::dfinity::{Config, Profile};
+use crate::config::dfinity::{Config, ConfigDefaultsBuild, Profile};
 use crate::config::dfx_version;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -7,7 +7,7 @@ use crate::lib::error::DfxError::BuildError;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::assets;
-use clap::{App, Arg, ArgMatches, SubCommand};
+
 use console::Style;
 use ic_http_agent::CanisterId;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
@@ -20,17 +20,6 @@ use std::process::Output;
 type AssetMap = BTreeMap<String, String>;
 type CanisterIdMap = BTreeMap<String, String>;
 type CanisterDependencyMap = BTreeMap<String, BTreeSet<String>>;
-
-pub fn construct() -> App<'static> {
-    SubCommand::with_name("build")
-        .about(UserMessage::BuildCanister.to_str())
-        .arg(
-            Arg::with_name("skip-frontend")
-                .long("skip-frontend")
-                .takes_value(false)
-                .help(UserMessage::SkipFrontend.to_str()),
-        )
-}
 
 fn get_asset_fn(assets: &AssetMap) -> String {
     // Create the if/else series.
@@ -467,7 +456,7 @@ impl BuildSequence {
     }
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ConfigDefaultsBuild) -> DfxResult {
     // Read the config.
     let config = env
         .get_config()
@@ -548,7 +537,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     }
 
     // If there is not a package.json, we don't have a frontend and can quit early.
-    if !config.get_project_root().join("package.json").exists() || args.is_present("skip-frontend")
+    if !config.get_project_root().join("package.json").exists() || args.skip_frontend.unwrap_or(false)
     {
         build_stage_bar.finish_and_clear();
         return Ok(());

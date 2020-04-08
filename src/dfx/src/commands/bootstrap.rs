@@ -18,7 +18,7 @@ pub fn exec(env: &dyn Environment, args: &ConfigDefaultsBootstrap) -> DfxResult 
     let ip = config.ip.unwrap();
     let port = config.port.unwrap();
     let address = SocketAddr::new(ip, port);
-    let providers = config.providers.into_iter().collect();
+    let providers = config.providers.unwrap().into_iter().collect();
     let root = config.root.unwrap();
     let (sender, receiver) = crossbeam::unbounded();
     webserver(logger.clone(), address, providers, &root, sender)?
@@ -47,7 +47,7 @@ fn get_config(
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
-        providers: providers,
+        providers: Some(providers),
         root: Some(root),
         timeout: Some(timeout),
     })
@@ -86,13 +86,7 @@ fn get_port(args: &ConfigDefaultsBootstrap, base: &ConfigDefaultsBootstrap) -> u
 /// dfx configuration file, otherwise defaults to http://127.0.0.1:8080/api.
 fn get_providers(args: &ConfigDefaultsBootstrap, base: &ConfigDefaultsBootstrap) -> Vec<Url> {
     let default = vec![Url::parse("http://127.0.0.1:8080/api").unwrap()];
-    if !args.providers.is_empty() {
-        args.providers.clone()
-    } else if !base.providers.is_empty() {
-        base.providers.clone()
-    } else {
-        default
-    }
+    args.providers.clone().unwrap_or(base.providers.clone().unwrap_or(default))
 }
 
 /// Gets the directory containing static assets served by the bootstrap server. First checks if the

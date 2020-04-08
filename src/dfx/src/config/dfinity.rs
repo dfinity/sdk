@@ -21,17 +21,18 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     start: None,
 };
 
-lazy_static! {
-    static ref EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
-        ip: None,
-        port: None,
-        providers: vec![],
-        root: None,
-        timeout: None,
-    };
-}
+const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
+    ip: None,
+    port: None,
+    providers: None,
+    root: None,
+    timeout: None,
+};
 
-const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
+const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
+    skip_frontend: None,
+    output: None,
+};
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
     message_gas_limit: None,
@@ -52,6 +53,17 @@ pub struct ConfigCanistersCanister {
     pub frontend: Option<Value>,
 }
 
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
     #[clap(help = UserMessage::BootstrapIP.to_str(), long = "ip", takes_value = true)]
@@ -61,15 +73,65 @@ pub struct ConfigDefaultsBootstrap {
     #[clap(help = UserMessage::BootstrapRoot.to_str(), long = "root", takes_value = true)]
     pub root: Option<PathBuf>,
     #[clap(help = UserMessage::BootstrapProviders.to_str(), long = "providers", multiple = true, takes_value = true)]
-    pub providers: Vec<Url>,
+    pub providers: Option<Vec<Url>>,
     #[clap(help = UserMessage::BootstrapTimeout.to_str(), long = "timeout", takes_value = true)]
     pub timeout: Option<u64>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {
+    #[clap(help = UserMessage::BuildOutput.to_str(), long = "output", takes_value = true)]
     pub output: Option<String>,
+    #[clap(help = UserMessage::BuildSkipFrontend.to_str(), long = "skip-frontend", takes_value = false)]
+    pub skip_frontend: Option<bool>,
 }
+
+#[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsCache {
+    #[clap(help = UserMessage::CacheVersion.to_str(), long = "version", takes_value = true)]
+    pub version: Option<String>,
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#[derive(Clap, Clone, Debug)]
+pub enum CacheCommand {
+    #[clap(about = UserMessage::CacheDeleteCommand.to_str(), name = "delete")]
+    Delete(ConfigDefaultsCache),
+    #[clap(about = UserMessage::CacheInstallCommand.to_str(), name = "install")]
+    Install,
+    #[clap(about = UserMessage::CacheListCommand.to_str(), name = "list")]
+    List,
+    #[clap(about = UserMessage::CacheShowCommand.to_str(), name = "show")]
+    Show,
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsReplica {

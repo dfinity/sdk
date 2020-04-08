@@ -1,4 +1,4 @@
-use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::config::dfinity;
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxError;
@@ -59,48 +59,56 @@ enum Command {
 
     /// Bootstrap command.
     #[clap(about = UserMessage::BootstrapCommand.to_str(), name = "bootstrap")]
-    Bootstrap(ConfigDefaultsBootstrap),
+    Bootstrap(dfinity::ConfigDefaultsBootstrap),
 
-/*
     /// Build command.
     #[clap(about = UserMessage::BuildCommand.to_str(), name = "build")]
-    Build(ConfigDefaultsBuild),
+    Build(dfinity::ConfigDefaultsBuild),
 
     /// Cache command.
     #[clap(about = UserMessage::CacheCommand.to_str(), name = "cache")]
-    Cache(ConfigDefaultsCache),
+    Cache{
+        #[clap(subcommand)]
+        command: dfinity::CacheCommand
+    },
+
+/*
 
     /// Canister command.
     #[clap(about = UserMessage::CanisterCommand.to_str(), name = "canister")]
-    Canister(ConfigDefaultsCanister),
+    Canister{
+        #[clap(subcommand)]
+        command: dfinity::CanisterCommand
+    },
 
     /// Config command.
     #[clap(about = UserMessage::ConfigCommand.to_str(), name = "config")]
-    Config(ConfigDefaultsConfig),
+    Config(dfinity::ConfigDefaultsConfig),
 
     /// IDE command.
     #[clap(about = UserMessage::IDECommand.to_str(), name = "_language-service")]
-    IDE(ConfigDefaultsIDE),
+    IDE(dfinity::ConfigDefaultsIDE),
 
     /// New command.
     #[clap(about = UserMessage::NewCommand.to_str(), name = "new")]
-    New(ConfigDefaultsNew),
+    New(dfinity::ConfigDefaultsNew),
 
     /// Replica command.
     #[clap(about = UserMessage::ReplicaCommand.to_str(), name = "replica")]
-    Replica(ConfigDefaultsReplica),
+    Replica(dfinity::ConfigDefaultsReplica),
 
     /// Start command.
     #[clap(about = UserMessage::StartCommand.to_str(), name = "start")]
-    Start(ConfigDefaultsStart),
+    Start(dfinity::ConfigDefaultsStart),
 
     /// Stop command.
     #[clap(about = UserMessage::StopCommand.to_str(), name = "stop")]
-    Stop(ConfigDefaultsStop),
+    Stop(dfinity::ConfigDefaultsStop),
 
     /// Upgrade command.
     #[clap(about = UserMessage::UpgradeCommand.to_str(), name = "upgrade")]
-    Upgrade(ConfigDefaultsUpgrade),
+    Upgrade(dfinity::ConfigDefaultsUpgrade),
+
 */
 }
 
@@ -128,18 +136,10 @@ fn main() {
             maybe_redirect_dfx(version).map_or((), |_| unreachable!());
             match opts.command {
                 Command::Bootstrap(cfg) => commands::bootstrap::exec(&env, &cfg),
-/*
                 Command::Build(cfg) => commands::build::exec(&env, &cfg),
-                Command::Cache(cfg) => commands::cache::exec(&env, &cfg),
-                Command::Canister(cfg) => commands::canister::exec(&env, &cfg),
-                Command::Config(cfg) => commands::config::exec(&env, &cfg),
-                Command::IDE(cfg) => commands::ide::exec(&env, &cfg),
-                Command::New(cfg) => commands::new::exec(&env, &cfg),
-                Command::Replica(cfg) => commands::replica::exec(&env, &cfg),
-                Command::Start(cfg) => commands::start::exec(&env, &cfg),
-                Command::Stop(cfg) => commands::stop::exec(&env, &cfg),
-                Command::Upgrade(cfg) => commands::upgrade::exec(&env, &cfg),
-*/
+                Command::Cache{command} => commands::cache::exec(&env, command),
+                Command::Canister{command} => commands::canister::exec(&env, command),
+                // TODO: Implement remaining commands...
             }
         });
 
