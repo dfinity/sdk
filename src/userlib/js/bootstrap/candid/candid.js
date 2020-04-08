@@ -74,6 +74,8 @@ function renderMethod(name, idl_func, f) {
         result = [];
       } else if (idl_func.retTypes.length === 1) {
         result = [call_result];
+      } else {
+        result = call_result;
       }
       left.innerHTML = '';
 
