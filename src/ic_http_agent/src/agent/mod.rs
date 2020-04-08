@@ -60,7 +60,9 @@ impl Agent {
     where
         A: serde::de::DeserializeOwned,
     {
-        let record = serde_cbor::to_vec(&request)?;
+        let request = Request::Query(request);
+        let (_, signed_request) = self.signer.sign(request)?;
+        let record = serde_cbor::to_vec(&signed_request)?;
         let url = self.url.join("read")?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
@@ -225,11 +227,11 @@ impl Agent {
     }
 
     pub async fn ping_once(&self) -> Result<(), AgentError> {
-        let url = self.url.join("read")?;
+        let url = self.url.join("status")?;
         let http_request = reqwest::Request::new(Method::GET, url);
         let response = self.client.execute(http_request).await?;
 
-        if response.status().as_u16() == 405 {
+        if response.status().as_u16() == 200 {
             Ok(())
         } else {
             // Verify the error is 2XX.

@@ -242,7 +242,7 @@ fn install() -> Result<(), AgentError> {
 
 #[test]
 fn ping() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/read").with_status(200).create();
+    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -260,7 +260,7 @@ fn ping() -> Result<(), AgentError> {
 
 #[test]
 fn ping_okay() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/read").with_status(405).create();
+    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -284,7 +284,7 @@ fn ping_okay() -> Result<(), AgentError> {
 fn ping_error() -> Result<(), AgentError> {
     // This mock is never asserted as we don't know (nor do we need to know) how many times
     // it is called.
-    let _read_mock = mock("GET", "/api/v1/read").with_status(500).create();
+    let _read_mock = mock("GET", "/api/v1/status").with_status(500).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
