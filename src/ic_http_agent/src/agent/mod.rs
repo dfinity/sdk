@@ -9,7 +9,7 @@ pub(crate) mod public {
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
     pub use super::replica_api::{MessageWithSender, ReadRequest, Request, SignedMessage};
-    pub use super::response::RequestStatusResponse;
+    pub use super::response::{Replied, RequestStatusResponse};
     pub use super::signer::Signer;
     pub use super::Agent;
 }
@@ -19,9 +19,7 @@ mod agent_test;
 
 pub mod signer;
 
-use crate::agent::replica_api::{
-    QueryResponseReply, ReadRequest, ReadResponse, Request, SubmitRequest,
-};
+use crate::agent::replica_api::{ReadRequest, ReadResponse, Request, SubmitRequest};
 use crate::agent::signer::Signer;
 use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 
@@ -56,7 +54,7 @@ impl Agent {
         })
     }
 
-    async fn read<A>(&self, request: ReadRequest<'_>) -> Result<ReadResponse<A>, AgentError>
+    async fn read<A>(&self, request: ReadRequest<'_>) -> Result<A, AgentError>
     where
         A: serde::de::DeserializeOwned,
     {
@@ -112,15 +110,15 @@ impl Agent {
         canister_id: &'a CanisterId,
         method_name: &'a str,
         arg: &'a Blob,
-    ) -> Result<Option<Blob>, AgentError> {
-        self.read::<QueryResponseReply>(ReadRequest::Query {
+    ) -> Result<Blob, AgentError> {
+        self.read::<ReadResponse>(ReadRequest::Query {
             canister_id,
             method_name,
             arg,
         })
         .await
         .and_then(|response| match response {
-            ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg)),
+            ReadResponse::Replied { reply } => Ok(reply.arg),
             ReadResponse::Rejected {
                 reject_code,
                 reject_message,
@@ -134,9 +132,7 @@ impl Agent {
         &self,
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
-        self.read(ReadRequest::RequestStatus { request_id })
-            .await
-            .and_then(|response| Ok(RequestStatusResponse::from(response)))
+        self.read(ReadRequest::RequestStatus { request_id }).await
     }
 
     pub async fn request_status_and_wait<W: delay::Waiter>(
@@ -148,10 +144,14 @@ impl Agent {
 
         loop {
             match self.request_status(request_id).await? {
-                RequestStatusResponse::Replied { reply } => return Ok(reply),
-                RequestStatusResponse::Rejected { code, message } => {
-                    return Err(AgentError::ClientError(code, message))
-                }
+                RequestStatusResponse::Replied { reply } => match reply {
+                    Replied::CodeCallReplied { arg } => return Ok(Some(arg)),
+                    Replied::Empty {} => return Ok(None),
+                },
+                RequestStatusResponse::Rejected {
+                    reject_code,
+                    reject_message,
+                } => return Err(AgentError::ClientError(reject_code, reject_message)),
                 RequestStatusResponse::Unknown => (),
                 RequestStatusResponse::Pending => (),
             };
