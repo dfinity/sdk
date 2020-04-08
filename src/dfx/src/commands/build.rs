@@ -31,6 +31,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let canister_pool = CanisterPool::load(env)?;
     // First build.
+    slog::info!(logger, "Building canisters IDL...");
     canister_pool.build_or_fail(BuildConfig::from_config(config.get_config()))?;
 
     // If there is not a package.json, we don't have a frontend and can quit early.
@@ -40,6 +41,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     }
 
     // Frontend build.
+    slog::info!(logger, "Building frontend...");
     let mut cmd = std::process::Command::new("npm");
     cmd.arg("run")
         .arg("build")
@@ -48,6 +50,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
     slog::debug!(logger, "Running {:?}...", cmd);
+
     let output = cmd.output()?;
     if !output.status.success() {
         return Err(DfxError::BuildError(BuildErrorKind::CompilerError(
@@ -61,6 +64,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     }
 
     // Second build with assets.
+    slog::info!(logger, "Bundling assets with canisters...");
     canister_pool.build_or_fail(BuildConfig::from_config(config.get_config()).with_assets(true))?;
 
     Ok(())

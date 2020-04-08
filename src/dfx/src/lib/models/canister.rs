@@ -4,6 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use ic_http_agent::CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
+use slog::Logger;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -40,10 +41,12 @@ impl Canister {
 /// A canister pool is a list of canisters.
 pub struct CanisterPool {
     canisters: Vec<Arc<Canister>>,
+    logger: Logger,
 }
 
 impl CanisterPool {
     pub fn load(env: &dyn Environment) -> DfxResult<Self> {
+        let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
             .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -68,6 +71,7 @@ impl CanisterPool {
 
         Ok(CanisterPool {
             canisters: canisters_map,
+            logger,
         })
     }
 
@@ -144,6 +148,7 @@ impl CanisterPool {
     pub fn build(&self, build_config: BuildConfig) -> DfxResult<Vec<DfxResult<BuildOutput>>> {
         // Write all canister IDs if needed.
         for canister in &self.canisters {
+            slog::debug!(self.logger, "  '{}'", canister.get_name());
             let canister_info = &canister.info;
 
             if canister_info.get_canister_id().is_none() {
@@ -193,13 +198,16 @@ impl CanisterPool {
                 .info
                 .get_idl_file_path()
                 .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
-            std::fs::remove_file(idl_file_path)?;
+
+            // Ignore errors (e.g. File Not Found).
+            let _ = std::fs::remove_file(idl_file_path);
         }
 
         Ok(result)
     }
 
-    /// Build all canisters, failing if any of them failed the build.
+    /// Build all canisters, failing with the first that failed the build. Will return
+    /// nothing if all succeeded.
     pub fn build_or_fail(&self, build_config: BuildConfig) -> DfxResult<()> {
         let outputs = self.build(build_config)?;
 
