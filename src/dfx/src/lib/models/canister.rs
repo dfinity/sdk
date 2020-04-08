@@ -186,6 +186,16 @@ impl CanisterPool {
             }
         }
 
+        // We don't want to simply remove the whole directory, as in the future,
+        // we may want to keep the IDL files downloaded from network.
+        for canister in &self.canisters {
+            let idl_file_path = canister
+                .info
+                .get_idl_file_path()
+                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+            std::fs::remove_file(idl_file_path)?;
+        }
+
         Ok(result)
     }
 

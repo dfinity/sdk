@@ -1,23 +1,10 @@
-// use crate::config::cache::Cache;
-// use crate::config::dfinity::{Config, Profile};
 use crate::config::dfx_version;
 use crate::lib::builders::BuildConfig;
-// use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-// use crate::lib::error::DfxError::BuildError;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister::CanisterPool;
-// use crate::util::assets;
 use clap::{App, Arg, ArgMatches, SubCommand};
-// use console::Style;
-// use ic_http_agent::CanisterId;
-// use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
-// use std::collections::{BTreeMap, BTreeSet};
-// use std::ffi::OsStr;
-// use std::io::Read;
-// use std::path::{Path, PathBuf};
-// use std::process::Output;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")

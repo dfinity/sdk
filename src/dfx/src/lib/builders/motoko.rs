@@ -142,13 +142,14 @@ impl CanisterBuilder for MotokoBuilder {
 
         let mut assets = AssetMap::new();
 
-        if config.assets {
-            // Add Candid and JS binding to assets.
-            let candid_content = base64::encode(&std::fs::read(&output_idl_path)?);
-            assets.insert("candid.did".to_owned(), candid_content);
-            let did_js_content = base64::encode(&std::fs::read(&output_did_js_path)?);
-            assets.insert("candid.js".to_owned(), did_js_content);
+        // Add Candid and JS binding to assets.
+        // We always bind those so that it's visible even if the canister doesn't have a frontend.
+        let candid_content = base64::encode(&std::fs::read(&output_idl_path)?);
+        assets.insert("candid.did".to_owned(), candid_content);
+        let did_js_content = base64::encode(&std::fs::read(&output_did_js_path)?);
+        assets.insert("candid.js".to_owned(), did_js_content);
 
+        if config.assets {
             // Add assets from the folder (the frontend dfx.json key).
             if canister_info.has_frontend() {
                 for dir_entry in std::fs::read_dir(canister_info.get_output_assets_root())? {
