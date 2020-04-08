@@ -44,7 +44,7 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Replica
         let file = env.get_temp_dir().join("config").join("port.txt");
         http_handler.write_port_to = Some(file);
     } else {
-        http_handler.use_port = Some(port);
+        http_handler.port = Some(port);
     };
     let message_gas_limit = get_message_gas_limit(&config, args)?;
     let round_gas_limit = get_round_gas_limit(&config, args)?;
