@@ -1,4 +1,4 @@
-import { UI } from '@internet-computer/userlib';
+import { IDL, UI } from '@internet-computer/userlib';
 import './candid.css';
 
 export function render(id, canister) {
@@ -40,45 +40,80 @@ function renderMethod(name, idl_func, f) {
   random.innerText = 'Lucky';
   item.appendChild(random);
 
-  const result = document.createElement("div");
-  result.className = 'result';
+  const result_div = document.createElement("div");
+  result_div.className = 'result';
   const left = document.createElement("span");
   left.className = 'left';
   const right = document.createElement("span");
   right.className = 'right';
-  result.appendChild(left);
-  result.appendChild(right);
-  item.appendChild(result);
+  result_div.appendChild(left);
+  result_div.appendChild(right);
+  item.appendChild(result_div);
 
   const list = document.getElementById("methods");
   list.append(item);
 
-  function call(args) {
+  async function call(args) {
     left.className = 'left';
     left.innerText = 'Waiting...';
     right.innerText = ''
-    result.style.display = 'block';
-    (async function () {
-      const t_before = Date.now();
-      const result = await f.apply(null, args);
-      const duration = (Date.now() - t_before)/1000;
-      var show_result = '';
-      if (idl_func.retTypes.length === 1) {
-        show_result = idl_func.retTypes[0].valueToString(result);
-      } else {
-        show_result = valuesToString(idl_func.retTypes, result);
-      }
-      show_result = encodeStr(show_result);
-      left.innerHTML = show_result;
-      right.innerText = `(${duration}s)`;
+    result_div.style.display = 'block';
 
-      const show_args = encodeStr(valuesToString(idl_func.argTypes, args));
+    const t_before = Date.now();
+    const result = await f.apply(null, args);
+    const duration = (Date.now() - t_before)/1000;
+    right.innerText = `(${duration}s)`;
+    return result;
+  }
+  
+  function callAndRender(args) {
+    (async () => {
+      const call_result = await call(args);
+      let result;
+      if (idl_func.retTypes.length === 0) {
+        result = [];
+      } else if (idl_func.retTypes.length === 1) {
+        result = [call_result];
+      }
+      left.innerHTML = '';
+
+      const containers = [];
+      const text_container = document.createElement('div');
+      containers.push(text_container);
+      left.appendChild(text_container);
+      const text = encodeStr(IDL.FuncClass.argsToString(idl_func.retTypes, result));
+      text_container.innerHTML = text;
+      const show_args = encodeStr(IDL.FuncClass.argsToString(idl_func.argTypes, args));
       log(`› ${name}${show_args}`);
-      log(show_result);
+      log(text);
+
+      const ui_container = document.createElement('div');
+      containers.push(ui_container);
+      ui_container.style.display = 'none';
+      left.appendChild(ui_container);
+      idl_func.retTypes.forEach((arg, i) => {
+        const box = UI.renderInput(arg);
+        box.render(ui_container);
+        UI.renderValue(arg, box, result[i]);
+      });
+
+      const json_container = document.createElement('div');
+      containers.push(json_container);
+      json_container.style.display = 'none';
+      left.appendChild(json_container);
+      json_container.innerText = JSON.stringify(call_result);
+
+      let i = 0;
+      left.addEventListener('click', () => {
+        containers[i].style.display = 'none';
+        i = (i + 1) % 3;
+        containers[i].style.display = 'block';
+      });
     })().catch(err => {
       left.className += ' error';
       left.innerText = err.message;
-    });    
+      throw err;
+    })
   }
   
   random.addEventListener("click", function() {
@@ -87,7 +122,7 @@ function renderMethod(name, idl_func, f) {
     if (isReject) {
       return;
     }    
-    call(args);
+    callAndRender(args);
   });
   
   button.addEventListener("click", function() {
@@ -96,12 +131,8 @@ function renderMethod(name, idl_func, f) {
     if (isReject) {
       return;
     }
-    call(args);
+    callAndRender(args);
   });
-};
-
-function zipWith(xs, ys, f) {
-  return xs.map((x, i) => f(x, ys[i]));
 }
 
 function encodeStr(str) {
@@ -115,10 +146,6 @@ function encodeStr(str) {
   return str.replace(regex, m => {
     return escapeChars[m];
   });
-}
-
-function valuesToString(types, values) {
-  return '(' + zipWith(types, values, ((t, v) => t.valueToString(v))).join(', ') + ')';
 }
 
 function log(content) {

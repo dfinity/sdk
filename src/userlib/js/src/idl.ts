@@ -943,6 +943,13 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
  * @param annotations Function annotations.
  */
 export class FuncClass extends ConstructType<[CanisterId, string]> {
+  public static argsToString(types: Type[], v: any[]) {
+    if (types.length !== v.length) {
+      throw new Error('arity mismatch');
+    }
+    return '(' + types.map((t, i) => t.valueToString(v[i])).join(', ') + ')';
+  }
+
   constructor(public argTypes: Type[], public retTypes: Type[], public annotations: string[] = []) {
     super();
   }
