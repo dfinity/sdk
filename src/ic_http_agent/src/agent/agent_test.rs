@@ -1,6 +1,7 @@
 use crate::agent::replica_api::{QueryResponseReply, ReadResponse};
-use crate::agent::response::RequestStatusResponse;
-use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId, Waiter};
+use crate::agent::response::{Replied, RequestStatusResponse};
+use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId};
+use delay::Delay;
 use mockito::mock;
 use std::time::Duration;
 
@@ -8,7 +9,7 @@ use std::time::Duration;
 fn query() -> Result<(), AgentError> {
     let blob = Blob(Vec::from("Hello World"));
     let response = ReadResponse::Replied {
-        reply: Some(QueryResponseReply { arg: blob.clone() }),
+        reply: QueryResponseReply { arg: blob.clone() },
     };
 
     let read_mock = mock("POST", "/api/v1/read")
@@ -30,7 +31,7 @@ fn query() -> Result<(), AgentError> {
 
     read_mock.assert();
 
-    assert_eq!(result?, Some(blob));
+    assert_eq!(result?, blob);
 
     Ok(())
 }
@@ -45,7 +46,7 @@ fn query_error() -> Result<(), AgentError> {
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
 
-    let result: Result<Option<Blob>, AgentError> = runtime.block_on(async {
+    let result: Result<Blob, AgentError> = runtime.block_on(async {
         agent
             .query(&CanisterId::from_bytes(&[2u8]), "greet", &Blob::empty())
             .await
@@ -60,7 +61,7 @@ fn query_error() -> Result<(), AgentError> {
 
 #[test]
 fn query_rejected() -> Result<(), AgentError> {
-    let response: ReadResponse<u8> = ReadResponse::Rejected {
+    let response: ReadResponse = ReadResponse::Rejected {
         reject_code: 1234,
         reject_message: "Rejected Message".to_string(),
     };
@@ -77,7 +78,7 @@ fn query_rejected() -> Result<(), AgentError> {
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
 
-    let result: Result<Option<Blob>, AgentError> = runtime.block_on(async {
+    let result: Result<Blob, AgentError> = runtime.block_on(async {
         agent
             .query(&CanisterId::from_bytes(&[3u8]), "greet", &Blob::empty())
             .await
@@ -100,7 +101,7 @@ fn query_rejected() -> Result<(), AgentError> {
 fn call() -> Result<(), AgentError> {
     let blob = Blob(Vec::from("Hello World"));
     let response = ReadResponse::Replied {
-        reply: Some(QueryResponseReply { arg: blob.clone() }),
+        reply: QueryResponseReply { arg: blob.clone() },
     };
 
     let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
@@ -128,7 +129,9 @@ fn call() -> Result<(), AgentError> {
 
     assert_eq!(
         result?,
-        RequestStatusResponse::Replied { reply: Some(blob) }
+        RequestStatusResponse::Replied {
+            reply: Replied::CodeCallReplied { arg: blob }
+        }
     );
 
     Ok(())
@@ -159,7 +162,7 @@ fn call_error() -> Result<(), AgentError> {
 
 #[test]
 fn call_rejected() -> Result<(), AgentError> {
-    let response: ReadResponse<u8> = ReadResponse::Rejected {
+    let response: ReadResponse = ReadResponse::Rejected {
         reject_code: 1234,
         reject_message: "Rejected Message".to_string(),
     };
@@ -182,7 +185,7 @@ fn call_rejected() -> Result<(), AgentError> {
             .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
         agent
-            .request_status_and_wait(&request_id, Waiter::timeout(Duration::from_millis(100)))
+            .request_status_and_wait(&request_id, Delay::timeout(Duration::from_millis(100)))
             .await
     });
 
@@ -207,7 +210,7 @@ fn install() -> Result<(), AgentError> {
 
     let blob = Blob(Vec::from("Hello World"));
     let response = ReadResponse::Replied {
-        reply: Some(QueryResponseReply { arg: blob.clone() }),
+        reply: QueryResponseReply { arg: blob.clone() },
     };
 
     let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
@@ -233,7 +236,9 @@ fn install() -> Result<(), AgentError> {
 
     assert_eq!(
         result?,
-        RequestStatusResponse::Replied { reply: Some(blob) }
+        RequestStatusResponse::Replied {
+            reply: Replied::CodeCallReplied { arg: blob }
+        }
     );
 
     Ok(())
@@ -241,14 +246,14 @@ fn install() -> Result<(), AgentError> {
 
 #[test]
 fn ping() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/read").with_status(200).create();
+    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async { agent.ping(Waiter::instant()).await });
+    let result = runtime.block_on(async { agent.ping(Delay::instant()).await });
 
     read_mock.assert();
 
@@ -259,14 +264,14 @@ fn ping() -> Result<(), AgentError> {
 
 #[test]
 fn ping_okay() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/read").with_status(405).create();
+    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async { agent.ping(Waiter::instant()).await });
+    let result = runtime.block_on(async { agent.ping(Delay::instant()).await });
 
     read_mock.assert();
 
@@ -283,7 +288,7 @@ fn ping_okay() -> Result<(), AgentError> {
 fn ping_error() -> Result<(), AgentError> {
     // This mock is never asserted as we don't know (nor do we need to know) how many times
     // it is called.
-    let _read_mock = mock("GET", "/api/v1/read").with_status(500).create();
+    let _read_mock = mock("GET", "/api/v1/status").with_status(500).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -293,7 +298,7 @@ fn ping_error() -> Result<(), AgentError> {
     let result = runtime.block_on(async {
         agent
             .ping(
-                Waiter::builder()
+                Delay::builder()
                     .throttle(Duration::from_millis(4))
                     .timeout(Duration::from_millis(6))
                     .build(),

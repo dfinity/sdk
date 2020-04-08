@@ -4,7 +4,7 @@ use crate::lib::replica_config::ReplicaConfig;
 
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, Running};
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use ic_http_agent::{Waiter, WaiterTrait};
+use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -84,7 +84,7 @@ impl Replica {
 
     fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
         // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Waiter::builder()
+        let mut waiter = Delay::builder()
             .throttle(Duration::from_millis(100))
             .timeout(Duration::from_secs(30))
             .build();
@@ -97,7 +97,9 @@ impl Replica {
                 }
             }
 
-            waiter.wait()?;
+            waiter
+                .wait()
+                .map_err(|_| DfxError::ReplicaCouldNotBeStarted())?;
         }
     }
 
@@ -112,7 +114,7 @@ impl Replica {
             "Replica Configuration (TOML):\n-----\n{}-----\n", config_toml
         );
 
-        let use_port = config.http_handler.use_port;
+        let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
         let replica_path = self.config.replica_path.to_path_buf();
 
@@ -121,7 +123,7 @@ impl Replica {
         let handle = replica_start_thread(
             logger,
             config_toml,
-            use_port,
+            port,
             write_port_to,
             replica_path,
             addr,
@@ -214,7 +216,7 @@ fn wait_for_child_or_receiver(
 fn replica_start_thread(
     logger: Logger,
     config_toml: String,
-    use_port: Option<u16>,
+    port: Option<u16>,
     write_port_to: Option<PathBuf>,
     replica_path: PathBuf,
     addr: Addr<Replica>,
@@ -222,9 +224,9 @@ fn replica_start_thread(
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Waiter::builder()
+        let mut waiter = Delay::builder()
             .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), Duration::from_secs(1), 1.0)
+            .exponential_backoff(Duration::from_secs(1), 1.2)
             .build();
         waiter.start();
 
@@ -244,7 +246,7 @@ fn replica_start_thread(
             debug!(logger, "Starting replica...");
             let mut child = cmd.spawn().expect("Could not start replica.");
 
-            let port = use_port.unwrap_or_else(|| {
+            let port = port.unwrap_or_else(|| {
                 Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
             });
             addr.do_send(signals::ReplicaRestarted { port });

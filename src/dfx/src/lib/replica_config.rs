@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HttpHandlerConfig {
     /// Instructs the HTTP handler to use the specified port
-    pub use_port: Option<u16>,
+    pub port: Option<u16>,
 
     /// Instructs the HTTP handler to bind to any open port and report the port
     /// to the specified file.
@@ -62,7 +62,7 @@ impl ReplicaConfig {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
-                use_port: None,
+                port: None,
             },
             scheduler: SchedulerConfig {
                 exec_gas: None,
@@ -82,13 +82,13 @@ impl ReplicaConfig {
 
     #[allow(dead_code)]
     pub fn with_port(&mut self, port: u16) -> &mut Self {
-        self.http_handler.use_port = Some(port);
+        self.http_handler.port = Some(port);
         self.http_handler.write_port_to = None;
         self
     }
 
     pub fn with_random_port(&mut self, write_port_to: &Path) -> &mut Self {
-        self.http_handler.use_port = None;
+        self.http_handler.port = None;
         self.http_handler.write_port_to = Some(write_port_to.to_path_buf());
         self
     }

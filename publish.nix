@@ -79,7 +79,7 @@ in
       # See: https://dfinity.atlassian.net/browse/INF-1145
 
       pkg="${install-sh-release.x86_64-linux}"
-      s3cp "$pkg" "manifest.json" "sdk" "application/x-sh" "$do_not_cache"
+      s3cp "$pkg" "manifest.json" "sdk" "application/json" "$do_not_cache"
       s3cp "$pkg" "install.sh" "sdk" "application/x-sh" "$do_not_cache"
     ''
   );

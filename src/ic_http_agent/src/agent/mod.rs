@@ -3,16 +3,14 @@ pub(crate) mod agent_error;
 pub(crate) mod nonce;
 pub(crate) mod replica_api;
 pub(crate) mod response;
-pub(crate) mod waiter;
 
 pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
     pub use super::replica_api::{MessageWithSender, ReadRequest, Request, SignedMessage};
-    pub use super::response::RequestStatusResponse;
+    pub use super::response::{Replied, RequestStatusResponse};
     pub use super::signer::Signer;
-    pub use super::waiter::{Waiter, WaiterTrait};
     pub use super::Agent;
 }
 
@@ -21,9 +19,7 @@ mod agent_test;
 
 pub mod signer;
 
-use crate::agent::replica_api::{
-    QueryResponseReply, ReadRequest, ReadResponse, Request, SubmitRequest,
-};
+use crate::agent::replica_api::{ReadRequest, ReadResponse, Request, SubmitRequest};
 use crate::agent::signer::Signer;
 use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 
@@ -58,11 +54,13 @@ impl Agent {
         })
     }
 
-    async fn read<A>(&self, request: ReadRequest<'_>) -> Result<ReadResponse<A>, AgentError>
+    async fn read<A>(&self, request: ReadRequest<'_>) -> Result<A, AgentError>
     where
         A: serde::de::DeserializeOwned,
     {
-        let record = serde_cbor::to_vec(&request)?;
+        let request = Request::Query(request);
+        let (_, signed_request) = self.signer.sign(request)?;
+        let record = serde_cbor::to_vec(&signed_request)?;
         let url = self.url.join("read")?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
@@ -112,15 +110,15 @@ impl Agent {
         canister_id: &'a CanisterId,
         method_name: &'a str,
         arg: &'a Blob,
-    ) -> Result<Option<Blob>, AgentError> {
-        self.read::<QueryResponseReply>(ReadRequest::Query {
+    ) -> Result<Blob, AgentError> {
+        self.read::<ReadResponse>(ReadRequest::Query {
             canister_id,
             method_name,
             arg,
         })
         .await
         .and_then(|response| match response {
-            ReadResponse::Replied { reply } => Ok(reply.map(|r| r.arg)),
+            ReadResponse::Replied { reply } => Ok(reply.arg),
             ReadResponse::Rejected {
                 reject_code,
                 reject_message,
@@ -134,38 +132,42 @@ impl Agent {
         &self,
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
-        self.read(ReadRequest::RequestStatus { request_id })
-            .await
-            .and_then(|response| Ok(RequestStatusResponse::from(response)))
+        self.read(ReadRequest::RequestStatus { request_id }).await
     }
 
-    pub async fn request_status_and_wait(
+    pub async fn request_status_and_wait<W: delay::Waiter>(
         &self,
         request_id: &RequestId,
-        mut waiter: Waiter,
+        mut waiter: W,
     ) -> Result<Option<Blob>, AgentError> {
         waiter.start();
 
         loop {
             match self.request_status(request_id).await? {
-                RequestStatusResponse::Replied { reply } => return Ok(reply),
-                RequestStatusResponse::Rejected { code, message } => {
-                    return Err(AgentError::ClientError(code, message))
-                }
+                RequestStatusResponse::Replied { reply } => match reply {
+                    Replied::CodeCallReplied { arg } => return Ok(Some(arg)),
+                    Replied::Empty {} => return Ok(None),
+                },
+                RequestStatusResponse::Rejected {
+                    reject_code,
+                    reject_message,
+                } => return Err(AgentError::ClientError(reject_code, reject_message)),
                 RequestStatusResponse::Unknown => (),
                 RequestStatusResponse::Pending => (),
             };
 
-            waiter.wait()?;
+            waiter
+                .wait()
+                .map_err(|_| AgentError::TimeoutWaitingForResponse)?;
         }
     }
 
-    pub async fn call_and_wait(
+    pub async fn call_and_wait<W: delay::Waiter>(
         &self,
         canister_id: &CanisterId,
         method_name: &str,
         arg: &Blob,
-        waiter: Waiter,
+        waiter: W,
     ) -> Result<Option<Blob>, AgentError> {
         let request_id = self.call(canister_id, method_name, arg).await?;
         self.request_status_and_wait(&request_id, waiter).await
@@ -196,12 +198,12 @@ impl Agent {
             .await
     }
 
-    pub async fn install_and_wait(
+    pub async fn install_and_wait<W: delay::Waiter>(
         &self,
         canister_id: &CanisterId,
         module: &Blob,
         arg: &Blob,
-        waiter: Waiter,
+        waiter: W,
     ) -> Result<Option<Blob>, AgentError> {
         let request_id = self.install(canister_id, module, arg).await?;
         self.request_status_and_wait(&request_id, waiter).await
@@ -225,11 +227,11 @@ impl Agent {
     }
 
     pub async fn ping_once(&self) -> Result<(), AgentError> {
-        let url = self.url.join("read")?;
+        let url = self.url.join("status")?;
         let http_request = reqwest::Request::new(Method::GET, url);
         let response = self.client.execute(http_request).await?;
 
-        if response.status().as_u16() == 405 {
+        if response.status().as_u16() == 200 {
             Ok(())
         } else {
             // Verify the error is 2XX.
@@ -240,14 +242,16 @@ impl Agent {
         }
     }
 
-    pub async fn ping(&self, mut waiter: Waiter) -> Result<(), AgentError> {
+    pub async fn ping<W: delay::Waiter>(&self, mut waiter: W) -> Result<(), AgentError> {
         waiter.start();
         loop {
             if self.ping_once().await.is_ok() {
                 break;
             }
 
-            waiter.wait()?;
+            waiter
+                .wait()
+                .map_err(|_| AgentError::TimeoutWaitingForResponse)?;
         }
         Ok(())
     }

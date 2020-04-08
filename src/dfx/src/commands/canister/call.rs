@@ -105,10 +105,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     if is_query {
-        if let Some(blob) = runtime.block_on(client.query(&canister_id, method_name, &arg_value))? {
-            print_idl_blob(&blob)
-                .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
-        }
+        let blob = runtime.block_on(client.query(&canister_id, method_name, &arg_value))?;
+        print_idl_blob(&blob)
+            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
         let request_id = runtime.block_on(client.call(&canister_id, method_name, &arg_value))?;
 

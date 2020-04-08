@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "81193d1dbab92e8f7816c3b504ad8627fdc3d430",
-        "sha256": "1van50p6bh08haiwdh1i4bmy633f5hkiqwn2xzkqa79x2v5ismka",
+        "rev": "eaa3243b3950bc0d09b4d6610b62a814471eefc9",
+        "sha256": "1l126mysjn9saxblbl10vbhvrsrqy93scyd10zi3vwj1zz0m400g",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/81193d1dbab92e8f7816c3b504ad8627fdc3d430.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/eaa3243b3950bc0d09b4d6610b62a814471eefc9.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "bats-support": {
@@ -32,9 +32,9 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "v0.5.2",
+        "ref": "v0.5.4",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "a847ecc0bb8a1893f2cfb8d26dd31d69cb019eb6",
+        "rev": "a77551d2c630c2f30d18860bfb556ce46a0e8b08",
         "type": "git"
     },
     "motoko": {
