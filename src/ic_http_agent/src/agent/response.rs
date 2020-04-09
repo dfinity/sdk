@@ -1,32 +1,25 @@
-use crate::agent::replica_api::{QueryResponseReply, ReadResponse};
 use crate::Blob;
 use serde::Deserialize;
 
-#[derive(Debug, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "status")]
+/// The response of /api/v1/read with "request_status" request type
 pub enum RequestStatusResponse {
-    Replied { reply: Option<Blob> },
-    Rejected { code: u16, message: String },
     Unknown,
     Pending,
+    Replied {
+        reply: Replied,
+    },
+    Rejected {
+        reject_code: u16,
+        reject_message: String,
+    },
 }
 
-impl From<ReadResponse<QueryResponseReply>> for RequestStatusResponse {
-    fn from(response: ReadResponse<QueryResponseReply>) -> Self {
-        match response {
-            ReadResponse::Unknown => RequestStatusResponse::Unknown,
-            ReadResponse::Pending => RequestStatusResponse::Pending,
-            ReadResponse::Rejected {
-                reject_code,
-                reject_message,
-            } => RequestStatusResponse::Rejected {
-                code: reject_code,
-                message: reject_message,
-            },
-            ReadResponse::Replied { reply } => RequestStatusResponse::Replied {
-                reply: reply.map(|r| r.arg),
-            },
-        }
-    }
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum Replied {
+    CodeCallReplied { arg: Blob },
+    Empty {},
 }

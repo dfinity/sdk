@@ -17,7 +17,7 @@ pub enum ReadRequest<'a> {
     },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub(crate) struct QueryResponseReply {
     pub arg: Blob,
@@ -26,9 +26,9 @@ pub(crate) struct QueryResponseReply {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "status")]
-pub(crate) enum ReadResponse<A> {
+pub(crate) enum ReadResponse {
     Replied {
-        reply: Option<A>,
+        reply: QueryResponseReply,
     },
     Rejected {
         reject_code: u16,
@@ -75,7 +75,7 @@ pub struct MessageWithSender<T: Serialize> {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SignedMessage<'a> {
-    #[serde(flatten)]
+    #[serde(rename = "content")]
     pub request_with_sender: Request<'a>,
     pub sender_pubkey: Blob,
     #[serde(rename = "sender_sig")]
