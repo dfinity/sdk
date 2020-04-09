@@ -22,6 +22,38 @@ let
       --no-progress
   '';
 
+  s3cpHashed = pkgs.lib.writeCheckedShellScriptBin "s3cpHashed" [] ''
+    set -eu
+    PATH="${pkgs.lib.makeBinPath [ s3cp pkgs.awscli ]}"
+
+    file="$1";
+    dir="$2";
+    name="$3";
+    contentType="$4";
+    cacheControlFile="$5"; # cache header of the content
+    cacheControlRedirect="$6" # cache header of the redirect
+
+    # Hash (SHA-256) the content and copy it to S3 under a content-addressable name.
+    # It's copied to a directory indexed by $name such that we can remove old entries later on.
+    hash="$(sha256sum "$file" | cut -d' ' -f1)"
+    dstDir="$dir/hashed/$name"
+    dst="$dstDir/$hash"
+    s3cp "$file" "$dst" "$contentType" "$cacheControlFile"
+
+    # Install a redirect from the fixed name $dir/$name to the content addressable name $dst.
+    # The redirect will use a different caching header than the content it redirects to.
+    # This enables us to for example cache the content for long but not cache the redirect
+    # such that we can always update it quickly.
+    src="s3://$DFINITY_DOWNLOAD_BUCKET/$dir/$name"
+    echo "Redirecting $src to /$dst..."
+    aws s3 cp --website-redirect "/$dst" "$src" \
+      --cache-control "$cacheControlRedirect" \
+      --no-progress
+
+    echo "Removing old versions in s3://$DFINITY_DOWNLOAD_BUCKET/$dstDir..."
+    aws s3 rm "s3://$DFINITY_DOWNLOAD_BUCKET/$dstDir" --recursive --exclude "$dst" --only-show-errors
+  '';
+
   slack = pkgs.lib.writeCheckedShellScriptBin "slack" [] ''
     set -eu
     PATH="${pkgs.lib.makeBinPath [ pkgs.jq pkgs.curl ]}"
@@ -79,20 +111,13 @@ in
   install-sh = pkgs.lib.linuxOnly (
     pkgs.lib.writeCheckedShellScriptBin "activate" [] ''
       set -eu
-      PATH="${pkgs.lib.makeBinPath [ s3cp ]}"
+      PATH="${pkgs.lib.makeBinPath [ s3cpHashed ]}"
 
+      cache_month="max-age=2419200"
       do_not_cache="max-age=0,no-cache"
 
-      # TODO: publish the manifest.json and install.sh to content
-      # addressable paths which can be cached for a long time. Then publish
-      # uncached --website-redirects to redirect sdk/manifest.json and
-      # sdk/install.sh to their content addressable alternatives. This way the latest
-      # manifest.json and install.sh will be available in the CDN and won't have
-      # to be fetched from the origin bucket.
-      # See: https://dfinity.atlassian.net/browse/INF-1145
-
-      s3cp "${./public/manifest.json}" "sdk/manifest.json" "application/json" "$do_not_cache"
-      s3cp "${install.x86_64-linux}" "sdk/install.sh" "application/x-sh" "$do_not_cache"
+      s3cpHashed "${./public/manifest.json}" "sdk" "manifest.json" "application/json" "$cache_month" "$do_not_cache"
+      s3cpHashed "${install.x86_64-linux}" "sdk" "install.sh" "application/x-sh" "$cache_month" "$do_not_cache"
     ''
   );
 }
