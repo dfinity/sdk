@@ -28,6 +28,9 @@ user profile file hierarchy structure to provide access to
 principals across projects.
 
 
+(Note that CI/Testing/Automation is out of scope.)
+
+
 == Contribution
 
 This design answers the following questions:
@@ -95,6 +98,17 @@ that can be authenticated by a canister.
 An identifier is a sequence of bytes/string utilized as a name for a
 principal. That allows a principal to be referenced.
 
+* (Principal) Profile identifier
+
+To denote principals from a user's perspective across projects and to
+decouple them from the canister representation we use the term of
+principal profile identifier, as a special identifier.
+
+- Examples: A user Bob may have administrative or developer access
+  rights, that is their role; their principal profile identifier would
+  be Bob, while for a canister X the principal identifier could be
+  0x2324303493...
+
 * User:
 
 A user is an external party that interacts with the IC replica via dfx
@@ -112,7 +126,7 @@ Files pertaining information about accessing and using a signing provider.
 
 * Identity Hierarchy:
 
-The representation of principals and access to related signing
+The file system storage representation of principals and access to related signing
 providers: private keys, hardware management keys, gpg key handles,
 via a persisted file hierarchy.
 
@@ -126,9 +140,10 @@ future allow multiple signing providers per principal)
 
 === Constraints
 
-User principal identifiers (self-authenticating ones) are [to be]
-derived and specific to the canister id. This means that principals
-need to be referenced by the user independently of the canister.
+From the canister execution's perspective, user principal identifiers
+(self-authenticating ones) are [to be] derived and specific to the
+canister id. This means that principals need to be referenced by the
+user independently of the canister.
 
 
 === Related Art
@@ -319,18 +334,16 @@ identifiers are valid names in the system.
 ----
 {
   "version": "1.*",
-  "access": [
-    {
-      "id": "awesome key one",
+  "access": {
+   "key1": {
       "type": "pem",
       "path": "<file path>"
     },
-    {
-      "id": "awesome key two",
+   "key2": {
       "type": "hw-piv-x",
       "path": "<file path>"
     }
-  ]
+  }
 }
 ----
 
@@ -391,51 +404,8 @@ modify it without endangering access to services or loss of secrets.
 
 ==== Local Project
 
-Locally each project should persist the principal that should be used
-on particular operations. Example of different operations that might
-reach for different profiles.
-
-As projects should be sharable between individuals, that information
-should not lie with the project configuration or committed into
-version control (git by default). Recall also that in the future
-principal identifiers will be connected to canister identifier.
-
-Thus, in each project, we may place optionally the following file
-
-* .dfx/identity.json
-
-[source,json]
-----
-{
-  "version": "1.*",
-  "command": [
-    {
-      "canister": "principal identifier"
-    }
-  ]
-}
-----
-
-
-This is kept minimal. We reference the version, to aid in future
-modifications. The field command and canister can be set to
-default. They represent respectively the principal that should be used
-when a particular <command> request issued for the corresponding
-<canister>. The usual simple project profile will look like:
-
-[source,json]
-----
-{
-  "version": "1.*",
-  "default": [
-    {
-      "default": "principal identifier"
-    }
-  ]
-}
-----
-
-Repeated entries will lead to undefined behaviour.
+We first focus on globally managing principals. See notes section for
+a possible path and thoughts.
 
 ==== DFX
 
@@ -463,7 +433,7 @@ for a pass-phrase.
 
 ==== CLI commands
 
-To expose the above functionality, we add a ``principal`` main
+To expose the above functionality, we add a `principal` main
 command, along with related subcommands. These expose only the current
 provided functionality, yet can be easily extended.
 
@@ -473,7 +443,6 @@ provided functionality, yet can be easily extended.
  `principal` -> `new` -> [principal profile identifier] [key type] [ --with (file/access information) ]
  `principal` -> `new` -> [principal profile identifier] -> `yubikey`
  `principal` -> `key` -> `show` [principal profile identifier(s)]
- `principal` -> `set-default` -> [principal identifier(s)]
  `principal` -> `remove`[principal identifier(s)]
  `principal` -> `list`
  `principal` -> `show` [principal identifier]
@@ -484,6 +453,11 @@ later to [gpg] or any other provider of signing functionality. Note
 that pass-phrase or other sensitive information are not passed via
 flags to avoid being saved into history. They are provided
 interactively.
+
+We add on each canister command a `--principal` parameter. If the user
+does not point a principal, we use the default principal, which we
+generate if necessary.
+
 
 
 ==== JSON vs YAML vs TOML
@@ -576,7 +550,7 @@ stake holders to decide if that information needs to be represented. It
 is then the job of the critical stake-holders and stake-holders to
 produce a user-friendly version of the documentation.
 
-If we use the gpg-agent, we should provide ```advanced user`
+If we use the gpg-agent, we should provide `advanced user`
 documentation, explaining the options under which we use the
 agent. Only a single instance of the agent per session may exist and
 thus we may interfere with usage of the agent.
@@ -586,7 +560,7 @@ thus we may interfere with usage of the agent.
 Features to be documented:
 
 - commands
-- file structure (to be determined by stake-holders)
+- file structure (to be determined by stake-holders -- probably optional)
 - agent (selectively)
 
 
@@ -655,15 +629,20 @@ estimates. This is supposed to be a bullet point list, and will likely
 result in one task per bullet.
 ////
 
+=== Outline
+
 We split the feature long-term life into 3 stages, that may interleave.
 
 1. Stage 1: Basic support of current functionality: single principal per key/signing provider
-2. Stage X: Feature is deemed secure in both aforementioned models
-3. Stage 2: Support of new principal computation, multiple principals per key, revocation and other future identity related features
+2. Stage 2: Feature is deemed secure in both aforementioned models
+3. Future Work: Support of new principal computation, multiple
+principals per key, revocation and other future identity related
+features.
 
+=== Step by step
 
-
-We further split short term work in a series of steps. Some of them can be concurrently polished.
+We further split short term work in a series of steps. Some of them
+can be concurrently polished.
 
 * State 1:
 
@@ -680,5 +659,62 @@ We further split short term work in a series of steps. Some of them can be concu
 2. Provide simple agent to assist with user access
 3. Turn encrypted access files as the default option at this point
 
-* Stage 2
-Dependent on future changes.
+
+== Appendix
+
+=== Notes for future consideration
+
+==== Local Project Principal
+
+Locally each project should persist the principal that should be used
+on particular operations. Example of different operations that might
+reach for different profiles.
+
+As projects should be sharable between individuals, that information
+should not lie with the project configuration or committed into
+version control (git by default). Recall also that in the future
+principal identifiers will be connected to canister identifier.
+
+Thus, in each project, we may place optionally the following file
+
+* .dfx/identity.json
+
+[source,json]
+----
+{
+  "version": "1.*",
+  "command": [
+    {
+      "canister": "principal identifier"
+    }
+  ]
+}
+----
+
+
+This is kept minimal. We reference the version, to aid in future
+modifications. The field command and canister can be set to
+default. They represent respectively the principal that should be used
+when a particular <command> request issued for the corresponding
+<canister>. The usual simple project profile will look like:
+
+[source,json]
+----
+{
+  "version": "1.*",
+  "default": [
+    {
+      "default": "principal identifier"
+    }
+  ]
+}
+----
+
+Repeated entries will lead to undefined behaviour.
+
+
+==== CLI Amendment
+
+We amend the CLI with the following command.
+
+  `principal` -> `set-default` -> [principal identifier(s)]
