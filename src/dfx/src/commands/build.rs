@@ -31,7 +31,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let canister_pool = CanisterPool::load(env)?;
     // First build.
-    slog::info!(logger, "Building canisters IDL...");
+    slog::info!(logger, "Building canisters...");
     canister_pool.build_or_fail(BuildConfig::from_config(config.get_config()))?;
 
     // If there is not a package.json, we don't have a frontend and can quit early.
