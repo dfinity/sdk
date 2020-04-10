@@ -37,7 +37,7 @@ test('call', async () => {
     fetch: mockFetch,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonce));
-  httpAgent.addTransform(makeAuthTransform(keyPair));
+  httpAgent.setAuthTransform(makeAuthTransform(keyPair));
 
   const methodName = 'greet';
   const arg = Buffer.from([]) as BinaryBlob;
@@ -117,7 +117,7 @@ test('requestStatus', async () => {
     fetch: mockFetch,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonce));
-  httpAgent.addTransform(makeAuthTransform(keyPair, () => () => Buffer.from([0]) as SenderSig));
+  httpAgent.setAuthTransform(makeAuthTransform(keyPair, () => () => Buffer.from([0]) as SenderSig));
 
   const requestId = await requestIdOf({
     request_type: SubmitRequestType.Call,

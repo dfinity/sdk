@@ -56,7 +56,8 @@ export const requestIdOf = async (request: Record<string, any>): Promise<Request
   // calculating the request ID. This is by design, since requests are expected
   // to have more than just the common fields. As a result, we need to explictly
   // ignore the authentication fields.
-  const { sender_pubkey, sender_sig, ...fields } = request;
+  const { sender_pubkey, sender_sig, content } = request;
+  const { ...fields } = content;
 
   const hashed: Array<Promise<[BinaryBlob, BinaryBlob]>> = Object.entries(fields).map(
     async ([key, value]: [string, unknown]) => {

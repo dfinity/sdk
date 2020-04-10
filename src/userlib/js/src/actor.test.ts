@@ -93,7 +93,7 @@ test('makeActor', async () => {
     fetch: mockFetch,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonces[nonceCount++]));
-  httpAgent.addTransform(
+  httpAgent.setAuthTransform(
     makeAuthTransform(
       {
         publicKey: senderPubKey,
