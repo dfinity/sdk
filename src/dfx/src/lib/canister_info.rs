@@ -4,6 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use ic_http_agent::{Blob, CanisterId};
 use rand::{thread_rng, RngCore};
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -26,6 +27,7 @@ pub struct CanisterInfo {
     canister_id_path: PathBuf,
 
     has_frontend: bool,
+    metadata: BTreeMap<String, serde_json::Value>,
 }
 
 impl CanisterInfo {
@@ -52,6 +54,7 @@ impl CanisterInfo {
         })?)
         .expect("Could not convert Main field to a path.");
 
+        let metadata = canister_config.metadata.clone();
         let has_frontend = canister_config.frontend.is_some();
 
         let input_path = workspace_root.join(&main_path);
@@ -86,6 +89,7 @@ impl CanisterInfo {
             canister_id_path,
 
             has_frontend,
+            metadata,
         })
     }
 
@@ -139,6 +143,10 @@ impl CanisterInfo {
         self.canister_id.replace(canister_id.clone());
 
         canister_id
+    }
+
+    pub fn get_metadata(&self) -> &BTreeMap<String, serde_json::Value> {
+        &self.metadata
     }
 
     pub fn has_frontend(&self) -> bool {
