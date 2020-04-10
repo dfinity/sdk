@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer/';
 import { sign as naclSign } from 'tweetnacl';
-import { HttpAgentRequest, HttpAgentRequestTransformFn } from './http_agent_types';
+import { AuthHttpAgentRequestTransformFn, HttpAgentRequest, SignedHttpAgentRequest} from './http_agent_types';
 import { RequestId, requestIdOf } from './request_id';
 import { BinaryBlob } from './types';
 
@@ -55,19 +55,20 @@ export type SigningConstructedFn = (
 export function makeAuthTransform(
   keyPair: KeyPair,
   senderSigFn: SigningConstructedFn = sign,
-): HttpAgentRequestTransformFn {
+): AuthHttpAgentRequestTransformFn {
   const { publicKey, secretKey } = keyPair;
   const signFn = senderSigFn(secretKey);
 
   const fn = async (r: HttpAgentRequest) => {
-    const requestId = await requestIdOf(r.body);
-    r.body.sender_pubkey = publicKey;
-    r.body.sender_sig = signFn(requestId);
+    const {body, ...fields } = r;
+    const requestId = await requestIdOf(body);
+    return { ...fields,
+    body: {
+        content: body,
+        sender_pubkey: publicKey,
+        sender_sig: signFn(requestId),
+    } } as SignedHttpAgentRequest;
   };
-
-  // Set priority low so other transforms run first. Signing should be done on
-  // the last request transformed.
-  fn.priority = -100;
 
   return fn;
 }
