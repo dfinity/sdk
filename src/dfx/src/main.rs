@@ -4,13 +4,13 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxError;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 use crate::lib::message::UserMessage;
+
 use clap::{AppSettings, Clap};
 use ic_http_agent::AgentError;
 use semver::Version;
 use slog;
 use std::path::PathBuf;
 
-mod actors;
 mod commands;
 mod config;
 mod lib;
@@ -138,7 +138,7 @@ fn main() {
                 Command::Bootstrap(cfg) => commands::bootstrap::exec(&env, &cfg),
                 Command::Build(cfg) => commands::build::exec(&env, &cfg),
                 Command::Cache{command} => commands::cache::exec(&env, command),
-                Command::Canister{command} => commands::canister::exec(&env, command),
+                //Command::Canister{command} => commands::canister::exec(&env, command),
                 // TODO: Implement remaining commands...
             }
         });

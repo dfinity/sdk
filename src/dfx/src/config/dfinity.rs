@@ -87,7 +87,7 @@ pub struct ConfigDefaultsBuild {
 }
 
 #[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
-pub struct ConfigDefaultsCache {
+pub struct ConfigDefaultsCacheDelete {
     #[clap(help = UserMessage::CacheVersion.to_str(), long = "version", takes_value = true)]
     pub version: Option<String>,
 }
@@ -110,7 +110,7 @@ pub struct ConfigDefaultsCache {
 #[derive(Clap, Clone, Debug)]
 pub enum CacheCommand {
     #[clap(about = UserMessage::CacheDeleteCommand.to_str(), name = "delete")]
-    Delete(ConfigDefaultsCache),
+    Delete(ConfigDefaultsCacheDelete),
     #[clap(about = UserMessage::CacheInstallCommand.to_str(), name = "install")]
     Install,
     #[clap(about = UserMessage::CacheListCommand.to_str(), name = "list")]
