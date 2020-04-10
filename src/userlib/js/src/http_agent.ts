@@ -136,7 +136,6 @@ export class HttpAgent {
       },
       endpoint: Endpoint.Read,
       body: request,
-
     })) as HttpAgentReadRequest;
 
     const body = cbor.encode(transformedRequest.body);
@@ -218,7 +217,7 @@ export class HttpAgent {
 
   protected _transform(
     request: HttpAgentRequest,
-  ): Promise<HttpAgentRequest|SignedHttpAgentRequest> {
+  ): Promise<HttpAgentRequest | SignedHttpAgentRequest> {
     let p = Promise.resolve(request);
 
     for (const fn of this._pipeline) {

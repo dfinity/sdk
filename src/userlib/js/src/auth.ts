@@ -1,6 +1,10 @@
 import { Buffer } from 'buffer/';
 import { sign as naclSign } from 'tweetnacl';
-import { AuthHttpAgentRequestTransformFn, HttpAgentRequest, SignedHttpAgentRequest} from './http_agent_types';
+import {
+  AuthHttpAgentRequestTransformFn,
+  HttpAgentRequest,
+  SignedHttpAgentRequest,
+} from './http_agent_types';
 import { RequestId, requestIdOf } from './request_id';
 import { BinaryBlob } from './types';
 
@@ -60,14 +64,16 @@ export function makeAuthTransform(
   const signFn = senderSigFn(secretKey);
 
   const fn = async (r: HttpAgentRequest) => {
-    const {body, ...fields } = r;
+    const { body, ...fields } = r;
     const requestId = await requestIdOf(body);
-    return { ...fields,
-    body: {
+    return {
+      ...fields,
+      body: {
         content: body,
         sender_pubkey: publicKey,
         sender_sig: signFn(requestId),
-    } } as SignedHttpAgentRequest;
+      },
+    } as SignedHttpAgentRequest;
   };
 
   return fn;
