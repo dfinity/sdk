@@ -69,6 +69,9 @@ pub enum DfxError {
     /// Configuration is invalid.
     CouldNotSerializeConfiguration(serde_json::error::Error),
 
+    /// Generic IDL error.
+    CouldNotSerializeIdlFile(serde_idl::error::Error),
+
     /// Client TOML Serialization error.
     CouldNotSerializeClientConfiguration(toml::ser::Error),
 
@@ -80,6 +83,9 @@ pub enum DfxError {
 
     /// A replica did not start successfully.
     ReplicaCouldNotBeStarted(),
+
+    /// A canister in the dfx.json did not have a supported builder.
+    CouldNotFindBuilderForCanister(String),
 }
 
 /// The result of running a DFX command.
@@ -112,6 +118,12 @@ impl From<std::io::Error> for DfxError {
 impl From<serde_json::error::Error> for DfxError {
     fn from(err: serde_json::error::Error) -> DfxError {
         DfxError::CouldNotSerializeConfiguration(err)
+    }
+}
+
+impl From<serde_idl::error::Error> for DfxError {
+    fn from(err: serde_idl::error::Error) -> Self {
+        DfxError::CouldNotSerializeIdlFile(err)
     }
 }
 

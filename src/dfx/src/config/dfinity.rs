@@ -44,6 +44,9 @@ const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
 pub struct ConfigCanistersCanister {
     pub main: Option<String>,
     pub frontend: Option<Value>,
+
+    #[serde(flatten)]
+    pub metadata: BTreeMap<String, Value>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -75,7 +78,7 @@ pub struct ConfigDefaultsStart {
     pub serve_root: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum Profile {
     // debug is for development only
     Debug,
@@ -229,14 +232,18 @@ impl Config {
         ))
     }
 
-    pub fn from_file(working_dir: &PathBuf) -> std::io::Result<Config> {
-        let path = Config::resolve_config_path(working_dir)?;
+    pub fn from_file(path: &Path) -> std::io::Result<Config> {
         let content = std::fs::read(&path)?;
-        Config::from_slice(path, &content)
+        Config::from_slice(path.to_path_buf(), &content)
+    }
+
+    pub fn from_dir(working_dir: &Path) -> std::io::Result<Config> {
+        let path = Config::resolve_config_path(working_dir)?;
+        Config::from_file(&path)
     }
 
     pub fn from_current_dir() -> std::io::Result<Config> {
-        Config::from_file(&std::env::current_dir()?)
+        Config::from_dir(&std::env::current_dir()?)
     }
 
     fn from_slice(path: PathBuf, content: &[u8]) -> std::io::Result<Config> {
