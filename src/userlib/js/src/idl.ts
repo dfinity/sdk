@@ -390,8 +390,8 @@ export class NatClass extends PrimitiveType<BigNumber> {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
     return (
-      (BigNumber.isBigNumber(x) && x.isInteger() && !x.isNegative())
-        || (Number.isInteger(x) && x >= 0)
+      (BigNumber.isBigNumber(x) && x.isInteger() && !x.isNegative()) ||
+      (Number.isInteger(x) && x >= 0)
     );
   }
 
