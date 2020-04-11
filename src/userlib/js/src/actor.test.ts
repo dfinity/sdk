@@ -76,16 +76,18 @@ test('makeActor', async () => {
   ];
 
   const expectedCallRequest = {
-    request_type: SubmitRequestType.Call,
-    canister_id: canisterId,
-    method_name: methodName,
-    arg,
-    nonce: nonces[0],
+    content: {
+      request_type: SubmitRequestType.Call,
+      canister_id: canisterId,
+      method_name: methodName,
+      arg,
+      nonce: nonces[0],
+    },
     sender_pubkey: senderPubKey,
     sender_sig: senderSig,
   };
 
-  const expectedCallRequestId = await requestIdOf(expectedCallRequest);
+  const expectedCallRequestId = await requestIdOf(expectedCallRequest.content);
 
   let nonceCount = 0;
 
@@ -93,7 +95,7 @@ test('makeActor', async () => {
     fetch: mockFetch,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonces[nonceCount++]));
-  httpAgent.addTransform(
+  httpAgent.setAuthTransform(
     makeAuthTransform(
       {
         publicKey: senderPubKey,
@@ -109,6 +111,7 @@ test('makeActor', async () => {
   expect(reply).toEqual(IDL.decode([IDL.Text], expectedReplyArg)[0]);
 
   const { calls, results } = mockFetch.mock;
+
   expect(calls.length).toBe(4);
   expect(calls[0]).toEqual([
     '/api/v1/submit',
@@ -129,9 +132,11 @@ test('makeActor', async () => {
         'Content-Type': 'application/cbor',
       },
       body: cbor.encode({
-        request_type: 'request_status',
-        request_id: expectedCallRequestId,
-        nonce: nonces[1],
+        content: {
+          request_type: 'request_status',
+          request_id: expectedCallRequestId,
+          nonce: nonces[1],
+        },
         sender_pubkey: senderPubKey,
         sender_sig: senderSig,
       }),
@@ -145,9 +150,11 @@ test('makeActor', async () => {
       'Content-Type': 'application/cbor',
     },
     body: cbor.encode({
-      request_type: 'request_status',
-      request_id: expectedCallRequestId,
-      nonce: nonces[2],
+      content: {
+        request_type: 'request_status',
+        request_id: expectedCallRequestId,
+        nonce: nonces[2],
+      },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
     }),
@@ -160,9 +167,11 @@ test('makeActor', async () => {
       'Content-Type': 'application/cbor',
     },
     body: cbor.encode({
-      request_type: 'request_status',
-      request_id: expectedCallRequestId,
-      nonce: nonces[3],
+      content: {
+        request_type: 'request_status',
+        request_id: expectedCallRequestId,
+        nonce: nonces[3],
+      },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
     }),

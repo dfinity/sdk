@@ -50,15 +50,7 @@ const concat = (bs: BinaryBlob[]): BinaryBlob => {
 };
 
 export const requestIdOf = async (request: Record<string, any>): Promise<RequestId> => {
-  // While the type signature of this function ensures the fields we care about
-  // are present, it does not prevent additional fields from being provided,
-  // including the fields used for authentication that we must omit when
-  // calculating the request ID. This is by design, since requests are expected
-  // to have more than just the common fields. As a result, we need to explictly
-  // ignore the authentication fields.
-  const { sender_pubkey, sender_sig, ...fields } = request;
-
-  const hashed: Array<Promise<[BinaryBlob, BinaryBlob]>> = Object.entries(fields).map(
+  const hashed: Array<Promise<[BinaryBlob, BinaryBlob]>> = Object.entries(request).map(
     async ([key, value]: [string, unknown]) => {
       const hashedKey = await hashString(key);
       const hashedValue = await hashValue(value);

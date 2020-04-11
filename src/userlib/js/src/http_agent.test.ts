@@ -9,6 +9,7 @@ import {
   ReadRequestType,
   RequestStatusResponseReplied,
   RequestStatusResponseStatus,
+  Signed,
   SubmitRequestType,
 } from './http_agent_types';
 import { requestIdOf } from './request_id';
@@ -37,7 +38,7 @@ test('call', async () => {
     fetch: mockFetch,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonce));
-  httpAgent.addTransform(makeAuthTransform(keyPair));
+  httpAgent.setAuthTransform(makeAuthTransform(keyPair));
 
   const methodName = 'greet';
   const arg = Buffer.from([]) as BinaryBlob;
@@ -62,13 +63,13 @@ test('call', async () => {
   // Just sanity checking our life.
   expect(verify(mockPartialsRequestId, senderSig, keyPair.publicKey)).toBe(true);
 
-  const expectedRequest: CallRequest = {
-    ...mockPartialRequest,
+  const expectedRequest: Signed<CallRequest> = {
+    content: mockPartialRequest,
     sender_pubkey: keyPair.publicKey,
     sender_sig: senderSig,
-  } as CallRequest;
+  } as Signed<CallRequest>;
 
-  const expectedRequestId = await requestIdOf(expectedRequest);
+  const expectedRequestId = await requestIdOf(expectedRequest.content);
   expect(expectedRequestId).toEqual(mockPartialsRequestId);
 
   const { calls, results } = mockFetch.mock;
@@ -117,7 +118,7 @@ test('requestStatus', async () => {
     fetch: mockFetch,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonce));
-  httpAgent.addTransform(makeAuthTransform(keyPair, () => () => Buffer.from([0]) as SenderSig));
+  httpAgent.setAuthTransform(makeAuthTransform(keyPair, () => () => Buffer.from([0]) as SenderSig));
 
   const requestId = await requestIdOf({
     request_type: SubmitRequestType.Call,
@@ -132,9 +133,11 @@ test('requestStatus', async () => {
   });
 
   const expectedRequest = {
-    request_type: ReadRequestType.RequestStatus,
-    request_id: requestId,
-    nonce,
+    content: {
+      request_type: ReadRequestType.RequestStatus,
+      request_id: requestId,
+      nonce,
+    },
     sender_pubkey: senderPubKey,
     sender_sig: Buffer.from([0]) as SenderSig,
   };
