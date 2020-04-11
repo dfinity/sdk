@@ -1,8 +1,8 @@
 pub mod bootstrap;
 pub mod build;
 pub mod cache;
+pub mod canister;
 /*
-mod canister;
 mod config;
 mod language_service;
 mod new;

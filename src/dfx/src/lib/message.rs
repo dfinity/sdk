@@ -35,25 +35,21 @@ user_message!(
     // dfx cache
     CacheCommand => "Manages the dfx version cache.",
     CacheDeleteCommand => "Delete a specific versioned cache of dfx.",
+    CacheDeleteVersion => "",
     CacheInstallCommand => "",
-    CacheVersion => "",
     CacheUnpack => "Force unpacking the cache from this dfx version.",
     CacheListCommand => "List installed and used version.",
     CacheShowCommand => "Show the path of the cache used by this version.",
 
-
-
-
-
-
-
-
     // dfx canister call
     CanisterCallCommand => "Calls a method on a deployed canister.",
-    MethodName => "Specifies the method name to call on the canister.",
-    AsyncResult => "Do not wait for the result of the call to be returned by polling the client. Instead return a response ID.",
-    ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
-    ArgumentValue => "Specifies the argument to pass to the method.",
+    CanisterCallArgument => "Specifies the argument to pass to the method.",
+    CanisterCallType => "Specifies the data type for the argument when making the call using an argument.",
+    CanisterCallAsync => "Do not wait for the result of the call to be returned by polling the client. Instead return a response ID.",
+    CanisterCallMethod => "Specifies the method name to call on the canister.",
+    CanisterCallName => "",
+    CanisterCallQuery => "",
+    CanisterCallUpdate => "",
 
     // dfx canister install
     CanisterInstallCommand => "Installs compiled code as a canister on the client.",

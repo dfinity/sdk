@@ -8,8 +8,9 @@ use crate::lib::message::UserMessage;
 use clap::{AppSettings, Clap};
 use ic_http_agent::AgentError;
 use semver::Version;
-use slog;
+use slog::{Logger, error, info};
 use std::path::PathBuf;
+use url::Url;
 
 mod commands;
 mod config;
@@ -25,7 +26,7 @@ const LOG_MODES: &[&str; 3] = &["file", "stderr", "tee"];
     version = dfx_version_str(),
 )]
 #[derive(Clap, Clone, Debug)]
-struct Opts {
+struct Args {
 
     /// Verbosity level.
     #[clap(long = "verbose", short = "v", parse(from_occurrences))]
@@ -67,20 +68,13 @@ enum Command {
 
     /// Cache command.
     #[clap(about = UserMessage::CacheCommand.to_str(), name = "cache")]
-    Cache{
-        #[clap(subcommand)]
-        command: dfinity::CacheCommand
-    },
-
-/*
+    Cache(dfinity::ConfigDefaultsCache),
 
     /// Canister command.
     #[clap(about = UserMessage::CanisterCommand.to_str(), name = "canister")]
-    Canister{
-        #[clap(subcommand)]
-        command: dfinity::CanisterCommand
-    },
+    Canister(dfinity::ConfigDefaultsCanister),
 
+/*
     /// Config command.
     #[clap(about = UserMessage::ConfigCommand.to_str(), name = "config")]
     Config(dfinity::ConfigDefaultsConfig),
@@ -113,78 +107,87 @@ enum Command {
 }
 
 /// Initialize a logger.
-fn init_logger(opts: &Opts) -> slog::Logger {
-    let level = opts.verbose - opts.quiet;
-    let file = PathBuf::from(opts.log_file.clone());
-    let mode = match opts.log_mode.as_str() {
+fn init_logger(args: &Args) -> Logger {
+    let level = args.verbose - args.quiet;
+    let file = PathBuf::from(args.log_file.clone());
+    let mode = match args.log_mode.as_str() {
         "file" => LoggingMode::File(file),
         "tee" => LoggingMode::Tee(file),
         _ => LoggingMode::Stderr,
+        // TODO: Add support for stdout.
     };
     create_root_logger(level, mode)
 }
 
 /// Run a DFX command.
 fn main() {
-    let opts: Opts = Opts::parse();
-    let progress_bar = opts.verbose >= opts.quiet;
-    let logger = init_logger(&opts);
-    let result = EnvironmentImpl::new()
+    // Parse command-line arguments.
+    let args = Args::parse();
+    // Configure execution environment.
+    let progress_bar = args.verbose >= args.quiet;
+    let logger = init_logger(&args);
+    EnvironmentImpl::new()
         .map(|env| env.with_logger(logger).with_progress_bar(progress_bar))
         .map(move |env| {
+            // Configure execution redirect if necessary.
             let version = env.get_version();
             maybe_redirect_dfx(version).map_or((), |_| unreachable!());
-            match opts.command {
+            // Execute command.
+            let result = match args.command {
                 Command::Bootstrap(cfg) => commands::bootstrap::exec(&env, &cfg),
                 Command::Build(cfg) => commands::build::exec(&env, &cfg),
-                Command::Cache{command} => commands::cache::exec(&env, command),
-                //Command::Canister{command} => commands::canister::exec(&env, command),
-                // TODO: Implement remaining commands...
+                Command::Cache(cfg) => commands::cache::exec(&env, cfg),
+                Command::Canister(cfg) => commands::canister::exec(&env, cfg),
+                // TODO: Implement remaining commands.
+            };
+            // Check if an error occurred.
+            if let Err(err) = result {
+                notify_err(err);
+                std::process::exit(255)
             }
         });
+}
 
-    // Check if an error occurred.
-    if let Err(err) = result {
-        match err {
-            DfxError::BuildError(err) => {
-                eprintln!("Build failed. Reason:");
-                eprintln!("  {}", err);
-            }
-            DfxError::IdeError(msg) => {
-                eprintln!("The Motoko Language Server returned an error:\n{}", msg);
-            }
-            DfxError::UnknownCommand(command) => {
-                eprintln!("Unknown command: {}", command);
-            }
-            DfxError::ProjectExists => {
-                eprintln!("Cannot create a new project because the directory already exists.");
-            }
-            DfxError::CommandMustBeRunInAProject => {
-                eprintln!("Command must be run in a project directory (with a dfx.json file).");
-            }
-            DfxError::AgentError(AgentError::ClientError(code, message)) => {
-                eprintln!("Client error (code {}): {}", code, message);
-            }
-            DfxError::Unknown(err) => {
-                eprintln!("Unknown error: {}", err);
-            }
-            DfxError::ConfigPathDoesNotExist(config_path) => {
-                eprintln!("Config path does not exist: {}", config_path);
-            }
-            DfxError::InvalidArgument(e) => {
-                eprintln!("Invalid argument: {}", e);
-            }
-            DfxError::InvalidData(e) => {
-                eprintln!("Invalid data: {}", e);
-            }
-            DfxError::LanguageServerFromATerminal => {
-                eprintln!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.");
-            }
-            err => {
-                eprintln!("An error occured:\n{:#?}", err);
-            }
+/// Notify the user that an error occurred.
+fn notify_err(err: DfxError) {
+    match err {
+        DfxError::BuildError(err) => {
+            eprintln!("Build failed. Reason:");
+            eprintln!("  {}", err);
         }
-        std::process::exit(255);
+        DfxError::IdeError(msg) => {
+            eprintln!("The Motoko Language Server returned an error:\n{}", msg);
+        }
+        DfxError::UnknownCommand(command) => {
+            eprintln!("Unknown command: {}", command);
+        }
+        DfxError::ProjectExists => {
+            eprintln!("Cannot create a new project because the directory already exists.");
+        }
+        DfxError::CommandMustBeRunInAProject => {
+            eprintln!("Command must be run in a project directory (with a dfx.json file).");
+        }
+        DfxError::AgentError(AgentError::ClientError(code, message)) => {
+            eprintln!("Client error (code {}): {}", code, message);
+        }
+        DfxError::Unknown(err) => {
+            eprintln!("Unknown error: {}", err);
+        }
+        DfxError::ConfigPathDoesNotExist(config_path) => {
+            eprintln!("Config path does not exist: {}", config_path);
+        }
+        DfxError::InvalidArgument(e) => {
+            eprintln!("Invalid argument: {}", e);
+        }
+        DfxError::InvalidData(e) => {
+            eprintln!("Invalid data: {}", e);
+        }
+        DfxError::LanguageServerFromATerminal => {
+            eprintln!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.");
+        }
+        err => {
+            eprintln!("An error occured:\n{:#?}", err);
+        }
     }
 }
 

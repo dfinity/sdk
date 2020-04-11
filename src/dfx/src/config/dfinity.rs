@@ -59,6 +59,16 @@ pub struct ConfigCanistersCanister {
 
 
 
+const ARG_TYPES: &[&str; 4] = &["string", "number", "idl", "raw"];
+
+
+
+
+
+
+
+
+
 
 
 
@@ -72,7 +82,7 @@ pub struct ConfigDefaultsBootstrap {
     pub port: Option<u16>,
     #[clap(help = UserMessage::BootstrapRoot.to_str(), long = "root", takes_value = true)]
     pub root: Option<PathBuf>,
-    #[clap(help = UserMessage::BootstrapProviders.to_str(), long = "providers", multiple = true, takes_value = true)]
+    #[clap(help = UserMessage::BootstrapProviders.to_str(), long = "providers", takes_value = true, multiple = true)]
     pub providers: Option<Vec<Url>>,
     #[clap(help = UserMessage::BootstrapTimeout.to_str(), long = "timeout", takes_value = true)]
     pub timeout: Option<u64>,
@@ -86,28 +96,57 @@ pub struct ConfigDefaultsBuild {
     pub skip_frontend: Option<bool>,
 }
 
+#[derive(Clap, Clone, Debug, Serialize, Deserialize)]
+pub struct ConfigDefaultsCache {
+    #[clap(subcommand)]
+    pub command: CacheCommand
+}
+
 #[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsCacheDelete {
-    #[clap(help = UserMessage::CacheVersion.to_str(), long = "version", takes_value = true)]
+    #[clap(help = UserMessage::CacheDeleteVersion.to_str(), long = "version", takes_value = true)]
     pub version: Option<String>,
 }
 
+#[derive(Clap, Clone, Debug, Serialize, Deserialize)]
+pub struct ConfigDefaultsCanister {
+    #[clap(help = UserMessage::CanisterClient.to_str(), long = "client", takes_value = true)]
+    pub client: Option<Url>,
+    #[clap(subcommand)]
+    pub command: CanisterCommand
+}
 
+#[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsCanisterCall {
+    #[clap(help = UserMessage::CanisterCallAsync.to_str(), long = "async", takes_value = false)]
+    pub _async: Option<bool>,
+    #[clap(help = UserMessage::CanisterCallQuery.to_str(), long = "query", takes_value = false, conflicts_with_all = &["async", "update"])]
+    pub query: Option<bool>,
+    #[clap(help = UserMessage::CanisterCallType.to_str(), long = "type", takes_value = false, possible_values = &["idl", "number", "raw", "string"])]
+    pub _type: Option<String>,
+    #[clap(help = UserMessage::CanisterCallUpdate.to_str(), long = "update", takes_value = false, conflicts_with_all = &["async", "query"])]
+    pub update: Option<bool>,
+    #[clap(help = UserMessage::CanisterCallName.to_str())]
+    pub canister_name: Option<String>,
+    #[clap(help = UserMessage::CanisterCallMethod.to_str())]
+    pub method_name: Option<String>,
+    #[clap(help = UserMessage::CanisterCallArgument.to_str())]
+    pub argument: Option<String>,
+}
 
+#[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsCanisterInstall {
+}
 
+#[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsCanisterQuery {
+}
 
+#[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsCanisterRequestStatus {
+}
 
-
-
-
-
-
-
-
-
-
-
-#[derive(Clap, Clone, Debug)]
+#[derive(Clap, Clone, Debug, Serialize, Deserialize)]
 pub enum CacheCommand {
     #[clap(about = UserMessage::CacheDeleteCommand.to_str(), name = "delete")]
     Delete(ConfigDefaultsCacheDelete),
@@ -118,6 +157,21 @@ pub enum CacheCommand {
     #[clap(about = UserMessage::CacheShowCommand.to_str(), name = "show")]
     Show,
 }
+
+#[derive(Clap, Clone, Debug, Serialize, Deserialize)]
+pub enum CanisterCommand {
+    #[clap(about = UserMessage::CanisterCallCommand.to_str(), name = "call")]
+    Call(ConfigDefaultsCanisterCall),
+    #[clap(about = UserMessage::CanisterInstallCommand.to_str(), name = "install")]
+    Install(ConfigDefaultsCanisterInstall),
+    #[clap(about = UserMessage::CanisterQueryCommand.to_str(), name = "query")]
+    Query(ConfigDefaultsCanisterQuery),
+    #[clap(about = UserMessage::CanisterRequestStatusCommand.to_str(), name = "request-status")]
+    RequestStatus(ConfigDefaultsCanisterRequestStatus),
+}
+
+
+
 
 
 

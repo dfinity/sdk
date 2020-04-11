@@ -1,90 +1,43 @@
+use crate::config::dfinity::ConfigDefaultsCanisterCall;
 use crate::commands::canister::create_waiter;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::{blob_from_arguments, load_idl_file, print_idl_blob};
-use clap::{App, Arg, ArgMatches, SubCommand};
+
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static> {
-    SubCommand::with_name("call")
-        .about(UserMessage::CallCanister.to_str())
-        .arg(
-            Arg::with_name("canister_name")
-                .takes_value(true)
-                .help(UserMessage::CanisterName.to_str())
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("method_name")
-                .help(UserMessage::MethodName.to_str())
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("async")
-                .help(UserMessage::AsyncResult.to_str())
-                .long("async")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("query")
-                .help(UserMessage::QueryCanister.to_str())
-                .long("query")
-                .conflicts_with("async")
-                .conflicts_with("update")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("update")
-                .help(UserMessage::UpdateCanisterArg.to_str())
-                .long("update")
-                .conflicts_with("async")
-                .conflicts_with("query")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("type")
-                .help(UserMessage::ArgumentType.to_str())
-                .long("type")
-                .takes_value(true)
-                .requires("argument")
-                .possible_values(&["string", "number", "idl", "raw"]),
-        )
-        .arg(
-            Arg::with_name("argument")
-                .help(UserMessage::ArgumentValue.to_str())
-                .takes_value(true),
-        )
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ConfigDefaultsCanisterCall) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let canister_name = args.value_of("canister_name").unwrap();
+    let canister_name = args.canister_name.as_ref().map(|v| v.as_str()).unwrap_or("default");
     let canister_info = CanisterInfo::load(&config, canister_name)?;
     // Read the config.
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
-    let method_name = args
-        .value_of("method_name")
-        .ok_or_else(|| DfxError::InvalidArgument("method_name".to_string()))?;
-    let arguments: Option<&str> = args.value_of("argument");
-    let arg_type: Option<&str> = args.value_of("type");
+    let method_name = args.method_name.as_ref().map(|v| v.as_str()).unwrap_or("main");
+
+    let arguments: Option<&str> = args.argument.as_ref().map(|v| v.as_str());
+    let arg_type: Option<&str> = args._type.as_ref().map(|v| v.as_str());
+
+    let is_async_flag = args._async.unwrap_or(false);
+    let is_query_flag = args.query.unwrap_or(false);
+    let is_update_flag = args.update.unwrap_or(false);
 
     let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
-    let is_query = if args.is_present("async") {
+    let is_query = if is_async_flag {
         false
     } else {
         let is_query_method =
             idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
         match is_query_method {
-            Some(true) => !args.is_present("update"),
+            Some(true) => !is_update_flag,
             Some(false) => {
-                if args.is_present("query") {
+                if is_query_flag {
                     return Err(DfxError::InvalidMethodCall(format!(
                         "{} is not a query method",
                         method_name
@@ -93,7 +46,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
                     false
                 }
             }
-            None => args.is_present("query"),
+            None => is_query_flag,
         }
     };
 
@@ -109,7 +62,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
             print_idl_blob(&blob)
                 .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
         }
-    } else if args.is_present("async") {
+    } else if is_async_flag {
         let request_id = runtime.block_on(client.call(&canister_id, method_name, &arg_value))?;
 
         eprint!("Request ID: ");
