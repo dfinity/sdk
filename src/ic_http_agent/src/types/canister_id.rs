@@ -12,7 +12,7 @@ const CANISTER_ID_TEXT_PREFIX: &str = "ic:";
 /// This type is described as a Blob in the public spec, but used as an integer in most
 /// code samples (including this library). For now, we newtype it to abstract its usage
 /// from a number, and will change its internal type when time comes.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
 pub struct CanisterId(Blob);
 
 #[derive(Clone, Debug)]
