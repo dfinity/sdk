@@ -32,7 +32,7 @@ fn builtins() -> Vec<CliCommand> {
 
 pub fn construct() -> App<'static> {
     App::new("canister")
-        .about(UserMessage::ManageCanister.to_str())
+        .about(UserMessage::CanisterCommand.to_str())
         .arg(
             Arg::with_name("client")
                 .help(UserMessage::CanisterClient.to_str())

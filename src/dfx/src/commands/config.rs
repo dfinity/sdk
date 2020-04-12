@@ -7,7 +7,7 @@ use serde_json::value::Value;
 
 pub fn construct() -> App<'static> {
     App::new("config")
-        .about(UserMessage::ConfigureOptions.to_str())
+        .about(UserMessage::ConfigCommand.to_str())
         .arg(Arg::with_name("config_path").help(UserMessage::OptionName.to_str()))
         .arg(Arg::with_name("value").help(UserMessage::OptionValue.to_str()))
         .arg(

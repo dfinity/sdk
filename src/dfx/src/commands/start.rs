@@ -26,7 +26,7 @@ use tokio::runtime::Runtime;
 /// locally. See `exec` for further information.
 pub fn construct() -> App<'static> {
     App::new("start")
-        .about(UserMessage::StartNode.to_str())
+        .about(UserMessage::StartCommand.to_str())
         .arg(
             Arg::with_name("host")
                 .help(UserMessage::NodeAddress.to_str())

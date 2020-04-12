@@ -12,7 +12,7 @@ use std::default::Default;
 /// Constructs a sub-command to run the Internet Computer replica.
 pub fn construct() -> App<'static> {
     App::new("replica")
-        .about(UserMessage::Replica.to_str())
+        .about(UserMessage::ReplicaCommand.to_str())
         .arg(
             Arg::with_name("message-gas-limit")
                 .help(UserMessage::ReplicaMessageGasLimit.to_str())

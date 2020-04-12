@@ -1,12 +1,16 @@
 #![allow(dead_code)]
 
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::message::UserMessage;
+
+use clap::Clap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::default::Default;
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
+use url::Url;
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
@@ -49,12 +53,17 @@ pub struct ConfigCanistersCanister {
     pub metadata: BTreeMap<String, Value>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clap, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
+    #[clap(help = UserMessage::BootstrapIP.to_str(), long = "ip", takes_value = true)]
     pub ip: Option<IpAddr>,
+    #[clap(help = UserMessage::BootstrapPort.to_str(), long = "port", takes_value = true)]
     pub port: Option<u16>,
-    pub providers: Option<Vec<String>>,
+    #[clap(help = UserMessage::BootstrapRoot.to_str(), long = "root", takes_value = true)]
     pub root: Option<PathBuf>,
+    #[clap(help = UserMessage::BootstrapProviders.to_str(), long = "providers", takes_value = true, multiple = true)]
+    pub providers: Option<Vec<Url>>,
+    #[clap(help = UserMessage::BootstrapTimeout.to_str(), long = "timeout", takes_value = true)]
     pub timeout: Option<u64>,
 }
 

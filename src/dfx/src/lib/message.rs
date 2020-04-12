@@ -18,6 +18,7 @@ macro_rules! user_message {
 }
 
 user_message!(
+
     // dfx bootstrap
     BootstrapCommand => "Starts the bootstrap server.",
     BootstrapIP => "IP address that the bootstrap server listens on. Defaults to 127.0.0.1.",
@@ -27,7 +28,7 @@ user_message!(
     BootstrapTimeout => "Maximum amount of time, in seconds, the bootstrap server will wait for upstream requests to complete. Defaults to 30.",
 
     // dfx cache
-    ManageCache => "Manages the dfx version cache.",
+    CacheCommand => "Manages the dfx version cache.",
     CacheDelete => "Delete a specific versioned cache of dfx.",
     CacheUnpack => "Force unpacking the cache from this dfx version.",
     CacheList => "List installed and used version.",
@@ -47,7 +48,7 @@ user_message!(
     InstallComputeAllocation => "Specifies the canister's compute allocation. This should be a percent in the range [0..100]",
 
     // dfx canister mod
-    ManageCanister => "Manages canisters deployed on a network client.",
+    CanisterCommand => "Manages canisters deployed on a network client.",
     CanisterClient => "Override the client to connect to. By default uses the client set in dfx configuration.",
 
     // dfx canister query
@@ -59,30 +60,30 @@ user_message!(
     RequestId => "Specifies the request identifier. The request identifier is an hexadecimal string starting with 0x.",
 
     // dfx build
-    BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
+    BuildCommand => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     SkipFrontend => "Skip building the frontend, only build the canisters.",
 
     // dfx config
-    ConfigureOptions => "Configures project options for your currently-selected project.",
+    ConfigCommand => "Configures project options for your currently-selected project.",
     OptionName => "Specifies the name of the configuration option to set or read. Use the period delineated path to specify the option to set or read. If this is not mentioned, outputs the whole configuration.",
     OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
 
     // dfx new
-    CreateProject => "Creates a new project.",
+    NewCommand => "Creates a new project.",
     ProjectName => "Specifies the name of the project to create.",
     DryRun => "Provides a preview the directories and files to be created without adding them to the file system.",
     NewFrontend => "Install the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.",
 
     // dfx replica
-    Replica => "Start a local replica.",
+    ReplicaCommand => "Start a local replica.",
     ReplicaMessageGasLimit => "Maximum amount of gas a single message can consume.",
     ReplicaPort => "The port the local replica should listen to.",
     ReplicaRoundGasLimit => "Maximum amount of gas a single round can consume.",
 
     // dfx start
     CleanState => "Cleans state of current project.",
-    StartNode => "Starts the local replica and a web server for the current project.",
+    StartCommand => "Starts the local replica and a web server for the current project.",
     NodeAddress => "Specifies the host name and port number to bind the frontend to.",
     StartBackground => "Exits the dfx leaving the client running. Will wait until the client replies before exiting.",
 
@@ -90,10 +91,14 @@ user_message!(
     CanisterName => "Specifies the canister name. If you don't specify this argument, all canisters are processed.",
 
     // dfx stop
-    StopNode => "Stops the local network client.",
+    StopCommand => "Stops the local network client.",
+
     // dfx ide
-    StartLanguageService => "Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the end-user.",
+    IDECommand => "Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the end-user.",
     ForceTTY => "Forces the language server to start even when run from a terminal",
+
+    // dfx upgrade
+    UpgradeCommand => "Upgrade DFX.",
 );
 
 impl fmt::Display for UserMessage {

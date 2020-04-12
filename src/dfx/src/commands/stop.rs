@@ -5,7 +5,7 @@ use clap::{App, ArgMatches};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
 pub fn construct() -> App<'static> {
-    App::new("stop").about(UserMessage::StopNode.to_str())
+    App::new("stop").about(UserMessage::StopCommand.to_str())
 }
 
 fn list_all_descendants(pid: Pid) -> Vec<Pid> {

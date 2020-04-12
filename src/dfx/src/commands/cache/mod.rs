@@ -20,7 +20,7 @@ fn builtins() -> Vec<CliCommand> {
 
 pub fn construct() -> App<'static> {
     App::new("cache")
-        .about(UserMessage::ManageCache.to_str())
+        .about(UserMessage::CacheCommand.to_str())
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 

@@ -1,11 +1,12 @@
-use crate::commands::CliCommand;
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
-use crate::lib::error::*;
+use crate::lib::error::DfxError;
 use crate::lib::logger::{create_root_logger, LoggingMode};
-use clap::{App, AppSettings, Arg, ArgMatches};
+
+use clap::{AppSettings, Clap};
 use ic_http_agent::AgentError;
-use slog;
+use semver::Version;
+use slog::Logger;
 use std::path::PathBuf;
 
 mod actors;
@@ -14,75 +15,113 @@ mod config;
 mod lib;
 mod util;
 
-fn cli(_: &impl Environment) -> App<'_> {
-    App::new("dfx")
-        .about("The DFINITY Executor.")
-        .version(dfx_version_str())
-        .global_setting(AppSettings::ColoredHelp)
-        .arg(
-            Arg::with_name("verbose")
-                .long("verbose")
-                .short('v')
-                .multiple(true),
-        )
-        .arg(
-            Arg::with_name("quiet")
-                .long("quiet")
-                .short('q')
-                .multiple(true),
-        )
-        .arg(
-            Arg::with_name("logmode")
-                .long("log")
-                .takes_value(true)
-                .possible_values(&["stderr", "tee", "file"])
-                .default_value("stderr"),
-        )
-        .arg(
-            Arg::with_name("logfile")
-                .long("log-file")
-                .long("logfile")
-                .takes_value(true),
-        )
-        .subcommands(
-            commands::builtin()
-                .into_iter()
-                .map(|x: CliCommand| x.get_subcommand().clone()),
-        )
+const LOG_MODES: &[&str; 3] = &["file", "stderr", "tee"];
+
+/// Command-line arguments.
+#[clap(
+    author = "DFINITY USA Research LLC",
+    global_setting = AppSettings::ColoredHelp,
+    version = dfx_version_str(),
+)]
+#[derive(Clap, Clone, Debug)]
+struct Args {
+    /// Verbosity level.
+    #[clap(long = "verbose", short = "v", parse(from_occurrences))]
+    verbose: i64,
+
+    /// Verbosity suppression level.
+    #[clap(long = "quiet", short = "q", parse(from_occurrences))]
+    quiet: i64,
+
+    /// Log file.
+    #[clap(long = "log-file", default_value = "log.txt", takes_value = true)]
+    log_file: String,
+
+    /// Log mode.
+    #[clap(
+        long = "log-mode",
+        default_value = "stderr",
+        possible_values = LOG_MODES,
+        takes_value = true,
+    )]
+    log_mode: String,
+
+    /// Command.
+    #[clap(subcommand)]
+    command: commands::Command,
 }
 
-fn exec(env: &impl Environment, args: &clap::ArgMatches, cli: &mut App<'_>) -> DfxResult {
-    let (name, subcommand_args) = match args.subcommand() {
-        (name, Some(args)) => (name, args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            return Ok(());
-        }
+/// Initialize a logger.
+fn init_logger(args: &Args) -> Logger {
+    let level = args.verbose - args.quiet;
+    let file = PathBuf::from(args.log_file.clone());
+    let mode = match args.log_mode.as_str() {
+        "file" => LoggingMode::File(file),
+        "tee" => LoggingMode::Tee(file),
+        _ => LoggingMode::Stderr,
+        // TODO: Why not add support for stdout?
     };
+    create_root_logger(level, mode)
+}
 
-    match commands::builtin()
-        .into_iter()
-        .find(|x| name == x.get_name())
-    {
-        Some(cmd) => cmd.execute(env, subcommand_args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            Err(DfxError::UnknownCommand(name.to_owned()))
-        }
+/// Run a DFX command.
+fn main() {
+    let args = Args::parse();
+    let progress_bar = args.verbose >= args.quiet;
+    let logger = init_logger(&args);
+    let result = EnvironmentImpl::new()
+        .map(|env| env.with_logger(logger).with_progress_bar(progress_bar))
+        .map(move |env| {
+            maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+            commands::exec(&env, args.command)
+        });
+    if let Err(err) = result {
+        notify_err(err);
+        std::process::exit(255)
     }
 }
 
-fn is_warning_disabled(warning: &str) -> bool {
-    // By default, warnings are all enabled.
-    let env_warnings = std::env::var("DFX_WARNING").unwrap_or_else(|_| "".to_string());
-    env_warnings
-        .split(',')
-        .filter(|w| w.starts_with('-'))
-        .any(|w| w.chars().skip(1).collect::<String>().eq(warning))
+/// Notify the user that an error occurred.
+fn notify_err(err: DfxError) {
+    match err {
+        DfxError::BuildError(err) => {
+            eprintln!("Build failed. Reason:");
+            eprintln!("  {}", err);
+        }
+        DfxError::IdeError(msg) => {
+            eprintln!("The Motoko Language Server returned an error:\n{}", msg);
+        }
+        DfxError::UnknownCommand(command) => {
+            eprintln!("Unknown command: {}", command);
+        }
+        DfxError::ProjectExists => {
+            eprintln!("Cannot create a new project because the directory already exists.");
+        }
+        DfxError::CommandMustBeRunInAProject => {
+            eprintln!("Command must be run in a project directory (with a dfx.json file).");
+        }
+        DfxError::AgentError(AgentError::ClientError(code, message)) => {
+            eprintln!("Client error (code {}): {}", code, message);
+        }
+        DfxError::Unknown(err) => {
+            eprintln!("Unknown error: {}", err);
+        }
+        DfxError::ConfigPathDoesNotExist(config_path) => {
+            eprintln!("Config path does not exist: {}", config_path);
+        }
+        DfxError::InvalidArgument(e) => {
+            eprintln!("Invalid argument: {}", e);
+        }
+        DfxError::InvalidData(e) => {
+            eprintln!("Invalid data: {}", e);
+        }
+        DfxError::LanguageServerFromATerminal => {
+            eprintln!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.");
+        }
+        err => {
+            eprintln!("An error occured:\n{:#?}", err);
+        }
+    }
 }
 
 /// In some cases, redirect the dfx execution to the proper version.
@@ -91,10 +130,10 @@ fn is_warning_disabled(warning: &str) -> bool {
 ///
 /// Note: the right return type for communicating this would be [Option<!>], but since the
 /// never type is experimental, we just assert on the calling site.
-fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
+fn maybe_redirect_dfx(env_version: &Version) -> Option<()> {
     // Verify we're using the same version as the dfx.json, and if not just redirect the
     // call to the cache.
-    if dfx_version() != env.get_version() {
+    if dfx_version() != env_version {
         // Show a warning to the user.
         if !is_warning_disabled("version_check") {
             eprintln!(
@@ -106,12 +145,11 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
                     "We are forwarding the command line to the old version. To disable this ",
                     "warning, set the DFX_WARNING=-version_check environment variable.\n"
                 ),
-                env.get_version(),
+                env_version,
                 dfx_version()
             );
         }
-
-        match crate::config::cache::call_cached_dfx(env.get_version()) {
+        match crate::config::cache::call_cached_dfx(env_version) {
             Ok(status) => std::process::exit(status.code().unwrap_or(0)),
             Err(e) => {
                 eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
@@ -120,99 +158,13 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
             }
         };
     }
-
     None
 }
 
-/// Setup a logger with the proper configuration, based on arguments.
-/// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(matches: &ArgMatches) -> (bool, slog::Logger) {
-    // Create a logger with our argument matches.
-    let level = matches.occurrences_of("verbose") as i64 - matches.occurrences_of("quiet") as i64;
-
-    let mode = match matches.value_of("logmode") {
-        Some("tee") => LoggingMode::Tee(PathBuf::from(
-            matches.value_of("logfile").unwrap_or("log.txt"),
-        )),
-        Some("file") => LoggingMode::File(PathBuf::from(
-            matches.value_of("logfile").unwrap_or("log.txt"),
-        )),
-        _ => LoggingMode::Stderr,
-    };
-
-    // Only show the progress bar if the level is INFO or more.
-    (level >= 0, create_root_logger(level, mode))
-}
-
-fn main() {
-    let result = match EnvironmentImpl::new() {
-        Ok(env) => {
-            if maybe_redirect_dfx(&env).is_some() {
-                unreachable!();
-            }
-
-            let matches = cli(&env).get_matches();
-
-            let (progress_bar, log) = setup_logging(&matches);
-
-            // Need to recreate the environment because we use it to get matches.
-            // TODO(hansl): resolve this double-create problem.
-            match EnvironmentImpl::new().map(|x| x.with_logger(log).with_progress_bar(progress_bar))
-            {
-                Ok(env) => {
-                    slog::trace!(
-                        env.get_logger(),
-                        "Trace mode enabled. Lots of logs coming up."
-                    );
-                    exec(&env, &matches, &mut cli(&env))
-                }
-                Err(e) => Err(e),
-            }
-        }
-        Err(e) => Err(e),
-    };
-
-    if let Err(err) = result {
-        match err {
-            DfxError::BuildError(err) => {
-                eprintln!("Build failed. Reason:");
-                eprintln!("  {}", err);
-            }
-            DfxError::IdeError(msg) => {
-                eprintln!("The Motoko Language Server returned an error:\n{}", msg);
-            }
-            DfxError::UnknownCommand(command) => {
-                eprintln!("Unknown command: {}", command);
-            }
-            DfxError::ProjectExists => {
-                eprintln!("Cannot create a new project because the directory already exists.");
-            }
-            DfxError::CommandMustBeRunInAProject => {
-                eprintln!("Command must be run in a project directory (with a dfx.json file).");
-            }
-            DfxError::AgentError(AgentError::ClientError(code, message)) => {
-                eprintln!("Client error (code {}): {}", code, message);
-            }
-            DfxError::Unknown(err) => {
-                eprintln!("Unknown error: {}", err);
-            }
-            DfxError::ConfigPathDoesNotExist(config_path) => {
-                eprintln!("Config path does not exist: {}", config_path);
-            }
-            DfxError::InvalidArgument(e) => {
-                eprintln!("Invalid argument: {}", e);
-            }
-            DfxError::InvalidData(e) => {
-                eprintln!("Invalid data: {}", e);
-            }
-            DfxError::LanguageServerFromATerminal => {
-                eprintln!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.");
-            }
-            err => {
-                eprintln!("An error occured:\n{:#?}", err);
-            }
-        }
-
-        std::process::exit(255);
-    }
+fn is_warning_disabled(warning: &str) -> bool {
+    std::env::var("DFX_WARNING")
+        .unwrap_or_else(|_| "".to_string())
+        .split(',')
+        .filter(|w| w.starts_with('-'))
+        .any(|w| w.chars().skip(1).collect::<String>().eq(warning))
 }

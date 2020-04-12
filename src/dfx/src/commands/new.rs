@@ -64,7 +64,7 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
 
 pub fn construct() -> App<'static> {
     App::new("new")
-        .about(UserMessage::CreateProject.to_str())
+        .about(UserMessage::NewCommand.to_str())
         .arg(
             Arg::with_name(PROJECT_NAME)
                 .help(UserMessage::ProjectName.to_str())

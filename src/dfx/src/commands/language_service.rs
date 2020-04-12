@@ -12,7 +12,7 @@ const FORCE_TTY: &str = "force-tty";
 pub fn construct() -> App<'static> {
     App::new("_language-service")
         .setting(AppSettings::Hidden) // Hide it from help menus as it shouldn't be used by users.
-        .about(UserMessage::StartLanguageService.to_str())
+        .about(UserMessage::IDECommand.to_str())
         .arg(Arg::with_name(CANISTER_ARG).help(UserMessage::CanisterName.to_str()))
         .arg(
             Arg::with_name(FORCE_TTY)

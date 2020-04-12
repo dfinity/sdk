@@ -8,7 +8,7 @@ use clap::{App, Arg, ArgMatches};
 
 pub fn construct() -> App<'static> {
     App::new("build")
-        .about(UserMessage::BuildCanister.to_str())
+        .about(UserMessage::BuildCommand.to_str())
         .arg(
             Arg::with_name("skip-frontend")
                 .long("skip-frontend")
