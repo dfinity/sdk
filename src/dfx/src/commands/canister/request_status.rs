@@ -4,13 +4,13 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use ic_http_agent::RequestId;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("request-status")
+pub fn construct() -> App<'static> {
+    App::new("request-status")
         .about(UserMessage::RequestCallStatus.to_str())
         .arg(
             Arg::with_name("request_id")
@@ -21,7 +21,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let request_id = RequestId::from_str(
         &args
             .value_of("request_id")

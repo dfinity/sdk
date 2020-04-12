@@ -3,11 +3,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::{blob_from_arguments, print_idl_blob};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("query")
+pub fn construct() -> App<'static> {
+    App::new("query")
         .about(UserMessage::QueryCanister.to_str())
         .arg(
             Arg::with_name("canister_name")
@@ -35,7 +35,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

@@ -2,7 +2,7 @@ use crate::commands::CliCommand;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use delay::Delay;
 use std::time::Duration;
 
@@ -30,8 +30,8 @@ fn builtins() -> Vec<CliCommand> {
     ]
 }
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("canister")
+pub fn construct() -> App<'static> {
+    App::new("canister")
         .about(UserMessage::ManageCanister.to_str())
         .arg(
             Arg::with_name("client")
@@ -47,7 +47,7 @@ pub fn construct() -> App<'static, 'static> {
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let subcommand = args.subcommand();
 
     // Need storage for ClientEnvironment ownership.

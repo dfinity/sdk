@@ -3,14 +3,14 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use atty;
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches};
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
 const FORCE_TTY: &str = "force-tty";
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("_language-service")
+pub fn construct() -> App<'static> {
+    App::new("_language-service")
         .setting(AppSettings::Hidden) // Hide it from help menus as it shouldn't be used by users.
         .about(UserMessage::StartLanguageService.to_str())
         .arg(Arg::with_name(CANISTER_ARG).help(UserMessage::CanisterName.to_str()))
@@ -24,7 +24,7 @@ pub fn construct() -> App<'static, 'static> {
 
 // Don't read anything from stdin or output anything to stdout while this function is being
 // executed or LSP will become very unhappy
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let force_tty = args.is_present(FORCE_TTY);
     // Are we being run from a terminal? That's most likely not what we want
     if atty::is(atty::Stream::Stdout) && !force_tty {
@@ -37,7 +37,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     }
 }
 
-fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<String, DfxError> {
+fn get_main_path(config: &ConfigInterface, args: &ArgMatches) -> Result<String, DfxError> {
     // TODO try and point at the actual dfx.json path
     let dfx_json = CONFIG_FILE_NAME;
 

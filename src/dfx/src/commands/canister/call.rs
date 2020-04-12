@@ -4,11 +4,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::{blob_from_arguments, load_idl_file, print_idl_blob};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("call")
+pub fn construct() -> App<'static> {
+    App::new("call")
         .about(UserMessage::CallCanister.to_str())
         .arg(
             Arg::with_name("canister_name")
@@ -58,7 +58,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

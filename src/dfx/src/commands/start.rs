@@ -7,7 +7,7 @@ use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use futures::future::Future;
@@ -24,8 +24,8 @@ use tokio::runtime::Runtime;
 
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("start")
+pub fn construct() -> App<'static> {
+    App::new("start")
         .about(UserMessage::StartNode.to_str())
         .arg(
             Arg::with_name("host")
@@ -64,7 +64,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -264,7 +264,7 @@ fn send_background() -> DfxResult<()> {
     Ok(())
 }
 
-fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String, SocketAddr)> {
+fn frontend_address(args: &ArgMatches, config: &Config) -> DfxResult<(String, SocketAddr)> {
     let address_and_port = args
         .value_of("host")
         .and_then(|host| Option::from(host.parse()))

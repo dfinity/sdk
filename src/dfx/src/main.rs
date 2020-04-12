@@ -14,7 +14,7 @@ mod config;
 mod lib;
 mod util;
 
-fn cli(_: &impl Environment) -> App<'_, '_> {
+fn cli(_: &impl Environment) -> App<'_> {
     App::new("dfx")
         .about("The DFINITY Executor.")
         .version(dfx_version_str())
@@ -22,13 +22,13 @@ fn cli(_: &impl Environment) -> App<'_, '_> {
         .arg(
             Arg::with_name("verbose")
                 .long("verbose")
-                .short("v")
+                .short('v')
                 .multiple(true),
         )
         .arg(
             Arg::with_name("quiet")
                 .long("quiet")
-                .short("q")
+                .short('q')
                 .multiple(true),
         )
         .arg(
@@ -51,7 +51,7 @@ fn cli(_: &impl Environment) -> App<'_, '_> {
         )
 }
 
-fn exec(env: &impl Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) -> DfxResult {
+fn exec(env: &impl Environment, args: &clap::ArgMatches, cli: &mut App<'_>) -> DfxResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
@@ -126,7 +126,7 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(matches: &ArgMatches<'_>) -> (bool, slog::Logger) {
+fn setup_logging(matches: &ArgMatches) -> (bool, slog::Logger) {
     // Create a logger with our argument matches.
     let level = matches.occurrences_of("verbose") as i64 - matches.occurrences_of("quiet") as i64;
 
@@ -164,7 +164,7 @@ fn main() {
                         env.get_logger(),
                         "Trace mode enabled. Lots of logs coming up."
                     );
-                    exec(&env, &matches, &(cli(&env)))
+                    exec(&env, &matches, &mut cli(&env))
                 }
                 Err(e) => Err(e),
             }

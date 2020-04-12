@@ -2,7 +2,7 @@ use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches};
 
 mod delete;
 mod install;
@@ -18,13 +18,13 @@ fn builtins() -> Vec<CliCommand> {
     ]
 }
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("cache")
+pub fn construct() -> App<'static> {
+    App::new("cache")
         .about(UserMessage::ManageCache.to_str())
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let subcommand = args.subcommand();
 
     if let (name, Some(subcommand_args)) = subcommand {

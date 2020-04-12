@@ -4,7 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::assets;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use console::{style, Style};
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
@@ -62,8 +62,8 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
     }
 }
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("new")
+pub fn construct() -> App<'static> {
+    App::new("new")
         .about(UserMessage::CreateProject.to_str())
         .arg(
             Arg::with_name(PROJECT_NAME)
@@ -313,7 +313,7 @@ fn scaffold_frontend_code(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let log = env.get_logger();
     let dry_run = args.is_present(DRY_RUN);
     let project_name_path = args

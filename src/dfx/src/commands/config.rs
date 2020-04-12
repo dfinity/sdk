@@ -2,11 +2,11 @@ use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use serde_json::value::Value;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("config")
+pub fn construct() -> App<'static> {
+    App::new("config")
         .about(UserMessage::ConfigureOptions.to_str())
         .arg(Arg::with_name("config_path").help(UserMessage::OptionName.to_str()))
         .arg(Arg::with_name("value").help(UserMessage::OptionValue.to_str()))
@@ -20,7 +20,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     // Cannot use the `env` variable as we need a mutable copy.
     let mut config: Config = env
         .get_config()

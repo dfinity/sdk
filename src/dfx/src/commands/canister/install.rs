@@ -4,14 +4,14 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use ic_http_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};
 use slog::info;
 use std::convert::TryInto;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("install")
+pub fn construct() -> App<'static> {
+    App::new("install")
         .about(UserMessage::InstallCanister.to_str())
         .arg(
             Arg::with_name("canister_name")
@@ -37,7 +37,7 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("compute-allocation")
                 .help(UserMessage::InstallComputeAllocation.to_str())
                 .long("compute-allocation")
-                .short("c")
+                .short('c')
                 .takes_value(true)
                 .default_value("0")
                 .validator(compute_allocation_validator),
@@ -85,7 +85,7 @@ fn compute_allocation_validator(compute_allocation: String) -> Result<(), String
     Err("Must be a percent between 0 and 100".to_string())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let log = env.get_logger();
     let config = env
         .get_config()

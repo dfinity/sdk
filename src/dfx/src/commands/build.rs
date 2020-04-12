@@ -4,10 +4,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister::CanisterPool;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("build")
+pub fn construct() -> App<'static> {
+    App::new("build")
         .about(UserMessage::BuildCanister.to_str())
         .arg(
             Arg::with_name("skip-frontend")
@@ -17,7 +17,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let logger = env.get_logger();
 
     // Read the config.
