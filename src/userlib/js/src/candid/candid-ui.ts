@@ -7,25 +7,25 @@ import * as UI from './candid-core';
 type InputBox = UI.InputBox;
 
 const InputConfig: UI.UIConfig = { parse: parsePrimitive };
-const FormConfig: UI.FormConfig = { render: renderInput, container: 'div' };
+const FormConfig: UI.FormConfig = { render: renderInput };
 
-const inputBox = (t: IDL.Type, config: Partial<UI.UIConfig>) => {
+export const inputBox = (t: IDL.Type, config: Partial<UI.UIConfig>) => {
   return new UI.InputBox(t, { ...InputConfig, ...config });
 };
-const recordForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
+export const recordForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
   return new UI.RecordForm(fields, { ...FormConfig, ...config });
 };
-const variantForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
+export const variantForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
   return new UI.VariantForm(fields, { ...FormConfig, ...config });
 };
-const optForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
+export const optForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
   return new UI.OptionForm(ty, { ...FormConfig, ...config });
 };
-const vecForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
+export const vecForm = (ty: IDL.Type, config: Partial<UI.FormConfig>) => {
   return new UI.VecForm(ty, { ...FormConfig, ...config });
 };
 
-class Render extends IDL.Visitor<null, InputBox> {
+export class Render extends IDL.Visitor<null, InputBox> {
   public visitType<T>(t: IDL.Type<T>, d: null): InputBox {
     const input = document.createElement('input');
     input.classList.add('argument');
@@ -36,19 +36,25 @@ class Render extends IDL.Visitor<null, InputBox> {
     return inputBox(t, {});
   }
   public visitRecord(t: IDL.RecordClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
-    const form = recordForm(fields, {});
+    let config = {};
+    if (fields.length > 1) {
+      const container = document.createElement('div');
+      container.classList.add('popup-form');
+      config = { container };
+    }
+    const form = recordForm(fields, config);
     return inputBox(t, { form });
   }
   public visitVariant(t: IDL.VariantClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
     const select = document.createElement('select');
     for (const [key, type] of fields) {
-      const option = document.createElement('option');
-      option.innerText = key;
-      select.appendChild(option);
+      const option = new Option(key);
+      select.add(option);
     }
     select.selectedIndex = -1;
     select.classList.add('open');
-    const form = variantForm(fields, { open: select, event: 'change' });
+    const config: Partial<UI.FormConfig> = { open: select, event: 'change' };
+    const form = variantForm(fields, config);
     return inputBox(t, { form });
   }
   public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: null): InputBox {
@@ -66,7 +72,9 @@ class Render extends IDL.Visitor<null, InputBox> {
     len.style.width = '3em';
     len.placeholder = 'len';
     len.classList.add('open');
-    const form = vecForm(ty, { open: len, event: 'change' });
+    const container = document.createElement('div');
+    container.classList.add('popup-form');
+    const form = vecForm(ty, { open: len, event: 'change', container });
     return inputBox(t, { form });
   }
   public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: null): InputBox {
@@ -90,16 +98,7 @@ class Parse extends IDL.Visitor<string, any> {
   public visitText(t: IDL.TextClass, v: string): string {
     return v;
   }
-  public visitInt(t: IDL.IntClass, v: string): BigNumber {
-    return new BigNumber(v);
-  }
-  public visitNat(t: IDL.NatClass, v: string): BigNumber {
-    return new BigNumber(v);
-  }
-  public visitFixedInt(t: IDL.FixedIntClass, v: string): BigNumber {
-    return new BigNumber(v);
-  }
-  public visitFixedNat(t: IDL.FixedNatClass, v: string): BigNumber {
+  public visitNumber(t: IDL.PrimitiveType, v: string): BigNumber {
     return new BigNumber(v);
   }
   public visitPrincipal(t: IDL.PrincipalClass, v: string): CanisterId {
@@ -148,14 +147,75 @@ class Random extends IDL.Visitor<string, any> {
   }
 }
 
-export function renderInput(t: IDL.Type): InputBox {
-  return t.accept(new Render(), null);
-}
-
 function parsePrimitive(t: IDL.Type, config: UI.ParseConfig, d: string) {
   if (config.random && d === '') {
     return t.accept(new Random(), d);
   } else {
     return t.accept(new Parse(), d);
+  }
+}
+
+export function renderInput(t: IDL.Type): InputBox {
+  return t.accept(new Render(), null);
+}
+
+interface ValueConfig {
+  input: InputBox;
+  value: any;
+}
+
+export function renderValue(t: IDL.Type, input: InputBox, value: any) {
+  return t.accept(new RenderValue(), { input, value });
+}
+
+class RenderValue extends IDL.Visitor<ValueConfig, void> {
+  public visitType<T>(t: IDL.Type<T>, d: ValueConfig) {
+    (d.input.ui.input as HTMLInputElement).value = t.valueToString(d.value);
+  }
+  public visitNull(t: IDL.NullClass, d: ValueConfig) {}
+  public visitText(t: IDL.TextClass, d: ValueConfig) {
+    (d.input.ui.input as HTMLInputElement).value = d.value;
+  }
+  public visitRec<T>(t: IDL.RecClass<T>, ty: IDL.ConstructType<T>, d: ValueConfig) {
+    renderValue(ty, d.input, d.value);
+  }
+  public visitOpt<T>(t: IDL.OptClass<T>, ty: IDL.Type<T>, d: ValueConfig) {
+    if (d.value.length === 0) {
+      return;
+    } else {
+      const form = d.input.ui.form!;
+      const open = form.ui.open as HTMLInputElement;
+      open.checked = true;
+      open.dispatchEvent(new Event(form.ui.event!));
+      renderValue(ty, form.form[0], d.value[0]);
+    }
+  }
+  public visitRecord(t: IDL.RecordClass, fields: Array<[string, IDL.Type]>, d: ValueConfig) {
+    const form = d.input.ui.form!;
+    fields.forEach(([key, type], i) => {
+      renderValue(type, form.form[i], d.value[key]);
+    });
+  }
+  public visitVariant(t: IDL.VariantClass, fields: Array<[string, IDL.Type]>, d: ValueConfig) {
+    const form = d.input.ui.form!;
+    const selected = Object.entries(d.value)[0];
+    fields.forEach(([key, type], i) => {
+      if (key === selected[0]) {
+        const open = form.ui.open as HTMLSelectElement;
+        open.selectedIndex = i;
+        open.dispatchEvent(new Event(form.ui.event!));
+        renderValue(type, form.form[0], selected[1]);
+      }
+    });
+  }
+  public visitVec<T>(t: IDL.VecClass<T>, ty: IDL.Type<T>, d: ValueConfig) {
+    const form = d.input.ui.form!;
+    const len = d.value.length;
+    const open = form.ui.open as HTMLInputElement;
+    open.value = len;
+    open.dispatchEvent(new Event(form.ui.event!));
+    d.value.forEach((v: T, i: number) => {
+      renderValue(ty, form.form[i], v);
+    });
   }
 }
