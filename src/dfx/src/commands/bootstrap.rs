@@ -145,10 +145,7 @@ fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u1
 /// Gets the list of compute provider API endpoints. First checks if the providers were specified
 /// on the command-line using --providers, otherwise checks if the providers were specified in the
 /// dfx configuration file, otherwise defaults to http://127.0.0.1:8080/api.
-fn get_providers(
-    config: &ConfigDefaultsBootstrap,
-    args: &ArgMatches,
-) -> DfxResult<Vec<String>> {
+fn get_providers(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<Vec<String>> {
     args.values_of("providers")
         .map(|providers| {
             providers
