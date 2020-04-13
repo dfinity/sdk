@@ -50,9 +50,9 @@ export interface HttpAgentRequestTransformFn {
   priority?: number;
 }
 
-export type AuthHttpAgentRequestTransformFn =
-  (args: HttpAgentRequest) => Promise<SignedHttpAgentRequest>;
-
+export type AuthHttpAgentRequestTransformFn = (
+  args: HttpAgentRequest,
+) => Promise<SignedHttpAgentRequest>;
 
 export interface QueryFields {
   methodName: string;
