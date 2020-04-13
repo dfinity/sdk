@@ -4,6 +4,7 @@ import * as actor from './actor';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
 import {
+  AuthHttpAgentRequestTransformFn,
   Endpoint,
   HttpAgentReadRequest,
   HttpAgentRequest,
@@ -17,13 +18,14 @@ import {
   ReadResponse,
   RequestStatusResponse,
   ResponseStatusFields,
+  SignedHttpAgentRequest,
   SubmitRequest,
   SubmitRequestType,
   SubmitResponse,
 } from './http_agent_types';
 import * as IDL from './idl';
 import { requestIdOf } from './request_id';
-import { BinaryBlob, blobFromHex } from './types';
+import { BinaryBlob, blobFromHex, blobFromUint8Array } from './types';
 
 const API_VERSION = 'v1';
 
@@ -67,12 +69,14 @@ function getDefaultFetch() {
 // allowing extensions.
 export class HttpAgent {
   private readonly _pipeline: HttpAgentRequestTransformFn[] = [];
+  private _authTransform: AuthHttpAgentRequestTransformFn | null = null;
   private readonly _fetch: typeof fetch;
   private readonly _host: string = '';
 
   constructor(options: HttpAgentOptions = {}) {
     if (options.parent) {
       this._pipeline = [...options.parent._pipeline];
+      this._authTransform = options.parent._authTransform;
     }
     this._fetch = options.fetch || getDefaultFetch() || fetch.bind(global);
     if (options.host) {
@@ -88,6 +92,10 @@ export class HttpAgent {
     // Keep the pipeline sorted at all time, by priotity.
     const i = this._pipeline.findIndex(x => (x.priority || 0) < priority);
     this._pipeline.splice(i >= 0 ? i : this._pipeline.length, 0, Object.assign(fn, { priority }));
+  }
+
+  public setAuthTransform(fn: AuthHttpAgentRequestTransformFn) {
+    this._authTransform = fn;
   }
 
   public async submit(submit: SubmitRequest): Promise<SubmitResponse> {
@@ -207,13 +215,19 @@ export class HttpAgent {
     return actor.makeActorFactory;
   }
 
-  protected _transform(request: HttpAgentRequest): Promise<HttpAgentRequest> {
+  protected _transform(
+    request: HttpAgentRequest,
+  ): Promise<HttpAgentRequest | SignedHttpAgentRequest> {
     let p = Promise.resolve(request);
 
     for (const fn of this._pipeline) {
       p = p.then(r => fn(r).then(r2 => r2 || r));
     }
 
-    return p;
+    if (this._authTransform != null) {
+      return p.then(this._authTransform);
+    } else {
+      return p;
+    }
   }
 }

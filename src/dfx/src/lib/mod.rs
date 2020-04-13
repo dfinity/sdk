@@ -1,9 +1,11 @@
+pub mod builders;
 pub mod canister_info;
 pub mod environment;
 pub mod error;
 pub mod identity;
 pub mod logger;
 pub mod message;
+pub mod models;
 pub mod progress_bar;
 pub mod proxy;
 pub mod proxy_process;

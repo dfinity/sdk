@@ -87,7 +87,7 @@ if (host) {
 
 const agent = new HttpAgent({ host });
 agent.addTransform(makeNonceTransform());
-agent.addTransform(makeAuthTransform(keyPair));
+agent.setAuthTransform(makeAuthTransform(keyPair));
 
 window.icHttpAgent = agent;
 window.ic = { httpAgent: agent };

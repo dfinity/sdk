@@ -70,12 +70,6 @@ test('requestIdOf', async () => {
     // D   I   D   L   \x00  \253  *
     // 68  73  68  76  0     253   42
     arg: Buffer.from([68, 73, 68, 76, 0, 253, 42]) as BinaryBlob,
-
-    // These fields are not included in the example provided in the spec but we
-    // provide them here to verify that they do not affect the request ID:
-    // "Remove the fields that are only used for authentication"
-    sender_pubkey: Buffer.alloc(32, 0) as SenderPubKey,
-    sender_sig: Buffer.alloc(64, 0) as SenderSig,
   };
 
   const requestId = await requestIdOf(request);
