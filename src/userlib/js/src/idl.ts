@@ -21,6 +21,7 @@ const enum IDLTypeIds {
   Bool = -2,
   Nat = -3,
   Int = -4,
+  Float64 = -14,
   Text = -15,
   Empty = -17,
   Opt = -18,
@@ -113,6 +114,9 @@ export abstract class Visitor<D, R> {
   }
   public visitNat(t: NatClass, data: D): R {
     return this.visitNumber(t, data);
+  }
+  public visitFloat(t: FloatClass, data: D): R {
+    return this.visitPrimitive(t, data);
   }
   public visitFixedInt(t: FixedIntClass, data: D): R {
     return this.visitNumber(t, data);
@@ -413,6 +417,42 @@ export class NatClass extends PrimitiveType<BigNumber> {
 
   public valueToString(x: BigNumber) {
     return x.toFixed();
+  }
+}
+
+/**
+ * Represents an IDL Float
+ */
+export class FloatClass extends PrimitiveType<number> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitFloat(this, d);
+  }
+
+  public covariant(x: any): x is number {
+    return typeof x === 'number' || x instanceof Number;
+  }
+
+  public encodeValue(x: number) {
+    const buf = Buffer.allocUnsafe(8);
+    buf.writeDoubleLE(x, 0);
+    return buf;
+  }
+
+  public encodeType() {
+    return slebEncode(IDLTypeIds.Float64);
+  }
+
+  public decodeValue(b: Pipe) {
+    const x = b.read(8);
+    return x.readDoubleLE(0);
+  }
+
+  get name() {
+    return 'float64';
+  }
+
+  public valueToString(x: number) {
+    return x.toString();
   }
 }
 
@@ -1199,6 +1239,8 @@ export const Null = new NullClass();
 export const Text = new TextClass();
 export const Int = new IntClass();
 export const Nat = new NatClass();
+
+export const Float64 = new FloatClass();
 
 export const Int8 = new FixedIntClass(8);
 export const Int16 = new FixedIntClass(16);
