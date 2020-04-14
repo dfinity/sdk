@@ -1,26 +1,11 @@
-{ stdenv
-, lib
-, gzip
-, jo
-, patchelf
-}:
+{ runCommandNoCC }:
 rname: version: from: what:
-stdenv.mkDerivation {
-  name = "${rname}-release";
-  inherit version;
-  phases = [ "buildPhase" ];
-  buildInputs = [ gzip jo patchelf ];
+runCommandNoCC "${rname}-${version}.tar.gz" {
+  inherit from what;
   allowedRequisites = [];
-  buildPhase = ''
-    # Building the artifacts
-    mkdir -p $out
-    # we embed the system into the name of the archive
-    the_release="${rname}-$version.tar.gz"
-    # Assemble the fully standalone archive
-    collection=$(mktemp -d)
-    cp ${from}/bin/${what} $collection/${what}
-    chmod 0755 $collection/${what}
-
-    tar -cvzf "$out/$the_release" -C $collection/ .
-  '';
-}
+} ''
+  collection=$(mktemp -d)
+  cp $from/bin/$what $collection/$what
+  chmod 0755 $collection/$what
+  tar -czf "$out" -C $collection/ .
+''

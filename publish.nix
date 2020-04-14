@@ -51,8 +51,8 @@ in
       file="dfx-$v.tar.gz"
       dir="sdk/dfx/$v"
 
-      s3cp "${dfx-release.x86_64-linux}/$file" "$dir/x86_64-linux/$file" "application/gzip" "$cache_long"
-      s3cp "${dfx-release.x86_64-darwin}/$file" "$dir/x86_64-darwin/$file" "application/gzip" "$cache_long"
+      s3cp "${dfx-release.x86_64-linux}" "$dir/x86_64-linux/$file" "application/gzip" "$cache_long"
+      s3cp "${dfx-release.x86_64-darwin}" "$dir/x86_64-darwin/$file" "application/gzip" "$cache_long"
 
       slack "$SLACK_CHANNEL_BUILD_NOTIFICATIONS_WEBHOOK" <<EOI
       *DFX-$v* has been published to DFINITY's CDN :champagne:!
