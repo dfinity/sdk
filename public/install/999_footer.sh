@@ -27,7 +27,7 @@ get_tag_from_manifest_json() {
 
 get_manifest_version() {
     local _version
-    _version="$(downloader ${DFX_MANIFEST_JSON_URL} - | get_tag_from_manifest_json latest)" || return 2
+    _version="$(downloader "${DFX_MANIFEST_JSON_URL}" - | get_tag_from_manifest_json latest)" || return 2
 
     printf %s "${_version}"
 }
@@ -36,8 +36,8 @@ validate_install_dir() {
     local dir="${1%/}"
 
     # We test it's a directory and writeable.
-    ! [ -d $dir ] && return 1
-    ! [ -w $dir ] && return 2
+    ! [ -d "$dir" ] && return 1
+    ! [ -w "$dir" ] && return 2
 
     # We also test it's in the $PATH of the user.
     case ":$PATH:" in
