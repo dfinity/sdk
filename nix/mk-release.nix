@@ -3,8 +3,6 @@
 , gzip
 , jo
 , patchelf
-  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
-, isMaster ? false
 }:
 rname: version: from: what:
 stdenv.mkDerivation {
@@ -13,7 +11,6 @@ stdenv.mkDerivation {
   phases = [ "buildPhase" ];
   buildInputs = [ gzip jo patchelf ];
   allowedRequisites = [];
-  inherit isMaster;
   buildPhase = ''
     # Building the artifacts
     mkdir -p $out

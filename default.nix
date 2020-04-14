@@ -1,11 +1,9 @@
 { system ? builtins.currentSystem
 , src ? null
 , releaseVersion ? "latest"
-  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
-, isMaster ? false
 , RustSec-advisory-db ? null
 , pkgs ? import ./nix { inherit system RustSec-advisory-db; }
-, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs isMaster src; }
+, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
 }:
 rec {
   dfx = import ./dfx.nix { inherit pkgs userlib-js; };
@@ -19,7 +17,7 @@ rec {
 
   inherit (pkgs) nix-fmt nix-fmt-check;
 
-  public = import ./public { inherit pkgs src releaseVersion isMaster; };
+  public = import ./public { inherit pkgs src releaseVersion; };
   inherit (public) install-sh-release install-sh;
 
   # This is to make sure CI evaluates shell derivations, builds their
