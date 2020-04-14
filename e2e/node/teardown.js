@@ -1,4 +1,4 @@
-module.exports = function(config, a, b, c) {
+module.exports = function() {
   // Sending SIGINT here since the Replica process isn't actually the replica
   // but `dfx replica`, which should be interupted to clean up properly.
   // (ie. if directly killed it will keep the replica process running in
