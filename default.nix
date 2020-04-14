@@ -28,14 +28,13 @@ rec {
     rust-workspace = dfx.shell;
   };
 
-  dfx-release = pkgs.lib.mkRelease "dfx" releaseVersion dfx.standalone "dfx";
-
   licenses = {
     dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
   };
 
   publish = import ./publish.nix {
     inherit pkgs releaseVersion;
-    inherit (jobset) dfx-release install;
+    inherit (jobset) install;
+    dfx = jobset.dfx.standalone;
   };
 }
