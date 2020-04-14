@@ -107,37 +107,6 @@ rec {
         # we stamp the file with the revision
         substitute "${install-sh}/install.sh" $out/install.sh \
           --subst-var revision
-
-        # Creating the manifest
-        # We name it "_manifest.json" as opposed to "manifest.json" because we
-        # also export a "manifest.json" (which has nothing to do with the
-        # release)
-        hydra_manifest_file=$out/_manifest.json
-
-        sha256hashinstall=($(sha256sum "$out/install.sh")) # using this to autosplit on space
-        sha1hashinstall=($(sha1sum "$out/install.sh")) # using this to autosplit on space
-
-        sha256manifest=($(sha256sum "$version_manifest_file")) # using this to autosplit on space
-        sha1manifest=($(sha1sum "$version_manifest_file")) # using this to autosplit on space
-
-        jo -pa \
-          $(jo package="public" \
-              version="$version" \
-              name="installer" \
-              file="$out/install.sh" \
-              sha256hash="$sha256hashinstall" \
-              sha1hash="$sha1hashinstall") \
-          $(jo package="public" \
-              version="$version" \
-              name="manifest.json" \
-              file="$version_manifest_file" \
-              sha256hash="$sha256manifest" \
-              sha1hash="$sha1manifest") >$hydra_manifest_file
-
-        # Marking the manifest for publishing
-        mkdir -p $out/nix-support
-        echo "upload manifest $hydra_manifest_file" >> \
-          $out/nix-support/hydra-build-products
       ''
     );
 }
