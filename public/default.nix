@@ -46,5 +46,6 @@ pkgs.lib.linuxOnly (
   } ''
     # we stamp the file with the revision
     substitute $install $out --subst-var revision
+    chmod +x $out
   ''
 )
