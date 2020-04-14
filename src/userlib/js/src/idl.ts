@@ -21,6 +21,7 @@ const enum IDLTypeIds {
   Bool = -2,
   Nat = -3,
   Int = -4,
+  Float64 = -14,
   Text = -15,
   Empty = -17,
   Opt = -18,
@@ -105,17 +106,23 @@ export abstract class Visitor<D, R> {
   public visitText(t: TextClass, data: D): R {
     return this.visitPrimitive(t, data);
   }
-  public visitInt(t: IntClass, data: D): R {
+  public visitNumber<T>(t: PrimitiveType<T>, data: D): R {
     return this.visitPrimitive(t, data);
   }
+  public visitInt(t: IntClass, data: D): R {
+    return this.visitNumber(t, data);
+  }
   public visitNat(t: NatClass, data: D): R {
+    return this.visitNumber(t, data);
+  }
+  public visitFloat(t: FloatClass, data: D): R {
     return this.visitPrimitive(t, data);
   }
   public visitFixedInt(t: FixedIntClass, data: D): R {
-    return this.visitPrimitive(t, data);
+    return this.visitNumber(t, data);
   }
   public visitFixedNat(t: FixedNatClass, data: D): R {
-    return this.visitPrimitive(t, data);
+    return this.visitNumber(t, data);
   }
   public visitPrincipal(t: PrincipalClass, data: D): R {
     return this.visitPrimitive(t, data);
@@ -351,7 +358,7 @@ export class IntClass extends PrimitiveType<BigNumber> {
   public covariant(x: any): x is BigNumber {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
-    return (x && x._isBigNumber && x.isInteger()) || Number.isInteger(x);
+    return (BigNumber.isBigNumber(x) && x.isInteger()) || Number.isInteger(x);
   }
 
   public encodeValue(x: BigNumber | number) {
@@ -387,7 +394,8 @@ export class NatClass extends PrimitiveType<BigNumber> {
     // We allow encoding of JavaScript plain numbers.
     // But we will always decode to BigNumber.
     return (
-      (x && x._isBigNumber && x.isInteger() && !x.isNegative()) || (Number.isInteger(x) && x >= 0)
+      (BigNumber.isBigNumber(x) && x.isInteger() && !x.isNegative()) ||
+      (Number.isInteger(x) && x >= 0)
     );
   }
 
@@ -413,6 +421,42 @@ export class NatClass extends PrimitiveType<BigNumber> {
 }
 
 /**
+ * Represents an IDL Float
+ */
+export class FloatClass extends PrimitiveType<number> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitFloat(this, d);
+  }
+
+  public covariant(x: any): x is number {
+    return typeof x === 'number' || x instanceof Number;
+  }
+
+  public encodeValue(x: number) {
+    const buf = Buffer.allocUnsafe(8);
+    buf.writeDoubleLE(x, 0);
+    return buf;
+  }
+
+  public encodeType() {
+    return slebEncode(IDLTypeIds.Float64);
+  }
+
+  public decodeValue(b: Pipe) {
+    const x = b.read(8);
+    return x.readDoubleLE(0);
+  }
+
+  get name() {
+    return 'float64';
+  }
+
+  public valueToString(x: number) {
+    return x.toString();
+  }
+}
+
+/**
  * Represents an IDL fixed-width Int(n)
  */
 export class FixedIntClass extends PrimitiveType<BigNumber | number> {
@@ -427,7 +471,7 @@ export class FixedIntClass extends PrimitiveType<BigNumber | number> {
   public covariant(x: any): x is BigNumber {
     const min = new BigNumber(2).pow(this._bits - 1).negated();
     const max = new BigNumber(2).pow(this._bits - 1).minus(1);
-    if (x && x._isBigNumber && x.isInteger()) {
+    if (BigNumber.isBigNumber(x) && x.isInteger()) {
       return x.gte(min) && x.lte(max);
     } else if (Number.isInteger(x)) {
       const v = new BigNumber(x);
@@ -478,7 +522,7 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
 
   public covariant(x: any): x is BigNumber {
     const max = new BigNumber(2).pow(this._bits);
-    if (x && x._isBigNumber && x.isInteger() && !x.isNegative()) {
+    if (BigNumber.isBigNumber(x) && x.isInteger() && !x.isNegative()) {
       return x.lt(max);
     } else if (Number.isInteger(x) && x >= 0) {
       const v = new BigNumber(x);
@@ -939,6 +983,13 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
  * @param annotations Function annotations.
  */
 export class FuncClass extends ConstructType<[CanisterId, string]> {
+  public static argsToString(types: Type[], v: any[]) {
+    if (types.length !== v.length) {
+      throw new Error('arity mismatch');
+    }
+    return '(' + types.map((t, i) => t.valueToString(v[i])).join(', ') + ')';
+  }
+
   constructor(public argTypes: Type[], public retTypes: Type[], public annotations: string[] = []) {
     super();
   }
@@ -1188,6 +1239,8 @@ export const Null = new NullClass();
 export const Text = new TextClass();
 export const Int = new IntClass();
 export const Nat = new NatClass();
+
+export const Float64 = new FloatClass();
 
 export const Int8 = new FixedIntClass(8);
 export const Int16 = new FixedIntClass(16);

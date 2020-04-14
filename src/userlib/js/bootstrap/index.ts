@@ -87,7 +87,7 @@ if (host) {
 
 const agent = new HttpAgent({ host });
 agent.addTransform(makeNonceTransform());
-agent.addTransform(makeAuthTransform(keyPair));
+agent.setAuthTransform(makeAuthTransform(keyPair));
 
 window.icHttpAgent = agent;
 window.ic = { httpAgent: agent };
@@ -126,4 +126,5 @@ _main().catch(err => {
   pre.innerHTML = err.stack;
   div.appendChild(pre);
   document.body.replaceChild(div, document.body.getElementsByTagName('app').item(0)!);
+  throw err;
 });
