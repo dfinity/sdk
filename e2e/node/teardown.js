@@ -5,9 +5,8 @@ module.exports = function() {
   // the background).
   global.replicaProcess.kill('SIGTERM');
 
-  // Just process.exit() after a second if nothing else. If we're here,
-  // the tests succeeded anyway.
-  return new Promise(resolve => setTimeout(resolve, 1000)).then(() => {
-    process.exit(0);
-  });
+  // Give the replica a second to gather its things and quit.
+  // We unfortunately cannot exit our own process here because we don't know
+  // the status of the tests (fail/success).
+  return new Promise(resolve => setTimeout(resolve, 1000));
 };

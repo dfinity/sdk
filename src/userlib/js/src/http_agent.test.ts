@@ -157,7 +157,7 @@ test('requestStatus', async () => {
   } = mockResponse;
 
   expect(responseRest).toEqual(mockResponseRest);
-  expect(responseArg.equals(mockResponseArg)).toBe(true);
+  expect(responseArg?.equals(mockResponseArg)).toBe(true);
 
   expect(calls[0]).toEqual([
     '/api/v1/read',
