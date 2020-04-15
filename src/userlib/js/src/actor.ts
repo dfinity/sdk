@@ -102,7 +102,7 @@ export function makeActorFactory(
       case RequestStatusResponseStatus.Replied: {
         if (status.reply.arg !== undefined) {
           return decodeReturnValue(returnType, status.reply.arg);
-        } else if (returnType.length == 0) {
+        } else if (returnType.length === 0) {
           return undefined;
         } else {
           throw new Error(`Call was returned undefined, but type [${returnType.join(',')}].`);
