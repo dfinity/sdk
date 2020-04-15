@@ -7,6 +7,6 @@ import {
 
 const agent = new HttpAgent({ host: 'http://localhost:8080' });
 agent.addTransform(makeNonceTransform());
-agent.addTransform(makeAuthTransform(generateKeyPair()));
+agent.setAuthTransform(makeAuthTransform(generateKeyPair()));
 
 export default agent;
