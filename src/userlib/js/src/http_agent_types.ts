@@ -146,7 +146,7 @@ export interface RequestStatusResponsePending {
 
 export interface RequestStatusResponseReplied {
   status: RequestStatusResponseStatus.Replied;
-  reply: { arg: BinaryBlob };
+  reply: { arg?: BinaryBlob };
 }
 
 export interface RequestStatusResponseRejected {
