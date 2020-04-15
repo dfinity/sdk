@@ -25,6 +25,12 @@
         "url": "https://github.com/ztombol/bats-support/archive/24a72e14349690bcbf7c151b9d2d1cdd32d36eb1.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "clap": {
+        "ref": "master",
+        "repo": "https://github.com/clap-rs/clap",
+        "rev": "7788268d3768810e91a911da0916db0e15105cf0",
+        "type": "git"
+    },
     "common": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
