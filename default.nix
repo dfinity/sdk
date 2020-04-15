@@ -1,5 +1,5 @@
 { system ? builtins.currentSystem
-, src ? null
+, src ? builtins.fetchGit ./.
 , releaseVersion ? "latest"
 , RustSec-advisory-db ? null
 , pkgs ? import ./nix { inherit system RustSec-advisory-db; }
@@ -17,8 +17,7 @@ rec {
 
   inherit (pkgs) nix-fmt nix-fmt-check;
 
-  public = import ./public { inherit pkgs src releaseVersion; };
-  inherit (public) install-sh-release install-sh;
+  install = import ./public { inherit pkgs src; };
 
   # This is to make sure CI evaluates shell derivations, builds their
   # dependencies and populates the hydra cache with them. We also use this in
@@ -37,6 +36,6 @@ rec {
 
   publish = import ./publish.nix {
     inherit pkgs releaseVersion;
-    inherit (jobset) dfx-release install-sh-release;
+    inherit (jobset) dfx-release install;
   };
 }

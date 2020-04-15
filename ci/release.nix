@@ -11,10 +11,5 @@ let
   ci = import ./ci.nix { inherit src releaseVersion; };
 in
 if !doRelease then {} else {
-  # TODO: remove these jobs when the `publish.dfx` job below
-  # is working successfully and the CloudFront CDN is online.
-  # See: https://dfinity.atlassian.net/browse/INF-1143
-  inherit (ci) dfx-release install-sh-release;
-
   publish.dfx.x86_64-linux = ci.publish.dfx.x86_64-linux;
 }
