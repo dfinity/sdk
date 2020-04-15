@@ -56,8 +56,6 @@ let
 
               lib = super.lib // {
                 mk-jobset = import ./mk-jobset.nix self;
-
-                mkRelease = super.callPackage ./mk-release.nix {};
               };
 
               # An attribute set mapping every supported system to a nixpkgs evaluated for
