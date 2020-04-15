@@ -51,13 +51,15 @@ function getDefaultHttpAgent() {
 // produces an array. Ensure that functions with single or zero return
 // values behave as expected.
 function decodeReturnValue(types: IDL.Type[], msg: BinaryBlob) {
-  const returnValues = IDL.decode(types, Buffer.from(msg));
-  if (returnValues.length === 0) {
+  if (types.length === 0) {
     return undefined;
-  } else if (returnValues.length === 1) {
-    return returnValues[0];
-  } else {
-    return returnValues;
+  }
+
+  const returnValues = IDL.decode(types, Buffer.from(msg));
+  switch (returnValues.length) {
+    case 0: return undefined;
+    case 1: return returnValues[0];
+    default: return returnValues;
   }
 }
 
