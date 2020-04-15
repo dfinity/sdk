@@ -18,7 +18,7 @@ type CounterActor = Actor & {
   write(n: number): Promise<void>,
 };
 
-const factory = httpAgent.makeActorFactory(({ IDL }) => new IDL.Service({
+const factory = httpAgent.makeActorFactory(({ IDL }) => IDL.Service({
   'read': IDL.Func([], [IDL.Nat], ['query']),
   'inc_read': IDL.Func([], [IDL.Nat], []),
   'inc': IDL.Func([], [], []),
