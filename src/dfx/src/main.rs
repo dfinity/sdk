@@ -7,6 +7,7 @@ use clap::{AppSettings, Clap};
 use ic_http_agent::AgentError;
 use semver::Version;
 use slog::Logger;
+use std::convert::identity;
 use std::path::PathBuf;
 
 mod actors;
@@ -74,15 +75,15 @@ fn main() {
         .map(move |env| {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
             commands::exec(&env, args.command)
-        });
+        }).and_then(identity);
     if let Err(err) = result {
-        notify_err(err);
+        notify(err);
         std::process::exit(255)
     }
 }
 
 /// Notify the user that an error occurred.
-fn notify_err(err: DfxError) {
+fn notify(err: DfxError) {
     match err {
         DfxError::BuildError(err) => {
             eprintln!("Build failed. Reason:");
