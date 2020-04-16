@@ -12,9 +12,11 @@ pkgs.napalm.buildPackage src {
   outputs = [ "out" "lib" ];
 
   buildInputs = [
+    # Required by node-gyp
     pkgs.python3
   ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin
-         pkgs.darwin.apple_sdk.frameworks.CoreServices;
+    # Required by fsevents
+    pkgs.darwin.apple_sdk.frameworks.CoreServices;
 
   # ci script now does everything CI should do. Bundle is needed because it's the output
   # of the nix derivation.
