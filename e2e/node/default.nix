@@ -9,7 +9,11 @@ let
     coreutils
     dfx.standalone
     nodejs-12_x
-  ];
+    # Required by node-gyp
+    pkgs.python3
+  ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin
+    # Required by fsevents
+    pkgs.darwin.apple_sdk.frameworks.CoreServices;
 in
 
 pkgs.napalm.buildPackage e2e {
