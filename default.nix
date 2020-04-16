@@ -1,11 +1,9 @@
 { system ? builtins.currentSystem
-, src ? null
+, src ? builtins.fetchGit ./.
 , releaseVersion ? "latest"
-  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
-, isMaster ? false
 , RustSec-advisory-db ? null
 , pkgs ? import ./nix { inherit system RustSec-advisory-db; }
-, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs isMaster src; }
+, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
 }:
 rec {
   dfx = import ./dfx.nix { inherit pkgs userlib-js; };
@@ -19,8 +17,7 @@ rec {
 
   inherit (pkgs) nix-fmt nix-fmt-check;
 
-  public = import ./public { inherit pkgs src releaseVersion isMaster; };
-  inherit (public) install-sh-release install-sh;
+  install = import ./public { inherit pkgs src; };
 
   # This is to make sure CI evaluates shell derivations, builds their
   # dependencies and populates the hydra cache with them. We also use this in
@@ -31,14 +28,13 @@ rec {
     rust-workspace = dfx.shell;
   };
 
-  dfx-release = pkgs.lib.mkRelease "dfx" releaseVersion dfx.standalone "dfx";
-
   licenses = {
     dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
   };
 
   publish = import ./publish.nix {
     inherit pkgs releaseVersion;
-    inherit (jobset) dfx-release install-sh-release;
+    inherit (jobset) install;
+    dfx = jobset.dfx.standalone;
   };
 }

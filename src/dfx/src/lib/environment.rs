@@ -11,15 +11,15 @@ use semver::Version;
 use slog::Record;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[cfg(test)]
 use mockall::automock;
 
 #[cfg_attr(test, automock)]
 pub trait Environment {
-    fn get_cache(&self) -> Rc<dyn Cache>;
-    fn get_config(&self) -> Option<Rc<Config>>;
+    fn get_cache(&self) -> Arc<dyn Cache>;
+    fn get_config(&self) -> Option<Arc<Config>>;
 
     fn is_in_project(&self) -> bool;
     /// Return a temporary directory for configuration if none exists
@@ -47,11 +47,11 @@ pub trait Environment {
 }
 
 pub struct EnvironmentImpl {
-    config: Option<Rc<Config>>,
+    config: Option<Arc<Config>>,
     temp_dir: PathBuf,
 
     agent: Lazy<Option<Agent>>,
-    cache: Rc<dyn Cache>,
+    cache: Arc<dyn Cache>,
 
     version: Version,
 
@@ -105,8 +105,8 @@ impl EnvironmentImpl {
         };
 
         Ok(EnvironmentImpl {
-            cache: Rc::new(DiskBasedCache::with_version(&version)),
-            config: config.map(Rc::new),
+            cache: Arc::new(DiskBasedCache::with_version(&version)),
+            config: config.map(Arc::new),
             temp_dir,
             agent: Lazy::new(),
             version: version.clone(),
@@ -127,12 +127,12 @@ impl EnvironmentImpl {
 }
 
 impl Environment for EnvironmentImpl {
-    fn get_cache(&self) -> Rc<dyn Cache> {
-        Rc::clone(&self.cache)
+    fn get_cache(&self) -> Arc<dyn Cache> {
+        Arc::clone(&self.cache)
     }
 
-    fn get_config(&self) -> Option<Rc<Config>> {
-        self.config.as_ref().map(|x| Rc::clone(x))
+    fn get_config(&self) -> Option<Arc<Config>> {
+        self.config.as_ref().map(|x| Arc::clone(x))
     }
 
     fn is_in_project(&self) -> bool {
@@ -221,11 +221,11 @@ impl<'a> AgentEnvironment<'a> {
 }
 
 impl<'a> Environment for AgentEnvironment<'a> {
-    fn get_cache(&self) -> Rc<dyn Cache> {
+    fn get_cache(&self) -> Arc<dyn Cache> {
         self.backend.get_cache()
     }
 
-    fn get_config(&self) -> Option<Rc<Config>> {
+    fn get_config(&self) -> Option<Arc<Config>> {
         self.backend.get_config()
     }
 

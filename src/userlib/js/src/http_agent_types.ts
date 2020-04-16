@@ -27,10 +27,32 @@ export interface HttpAgentReadRequest extends HttpAgentBaseRequest {
   body: ReadRequest;
 }
 
+export type SignedHttpAgentRequest = SignedHttpAgentReadRequest | SignedHttpAgentSubmitRequest;
+
+export interface SignedHttpAgentSubmitRequest extends HttpAgentBaseRequest {
+  readonly endpoint: Endpoint.Submit;
+  body: Signed<SubmitRequest>;
+}
+
+export interface SignedHttpAgentReadRequest extends HttpAgentBaseRequest {
+  readonly endpoint: Endpoint.Read;
+  body: Signed<ReadRequest>;
+}
+
+export interface Signed<T> {
+  content: T;
+  sender_pubkey: BinaryBlob;
+  sender_sig: BinaryBlob;
+}
+
 export interface HttpAgentRequestTransformFn {
   (args: HttpAgentRequest): Promise<HttpAgentRequest | undefined | void>;
   priority?: number;
 }
+
+export type AuthHttpAgentRequestTransformFn = (
+  args: HttpAgentRequest,
+) => Promise<SignedHttpAgentRequest>;
 
 export interface QueryFields {
   methodName: string;
@@ -124,7 +146,7 @@ export interface RequestStatusResponsePending {
 
 export interface RequestStatusResponseReplied {
   status: RequestStatusResponseStatus.Replied;
-  reply: { arg: BinaryBlob };
+  reply: { arg?: BinaryBlob };
 }
 
 export interface RequestStatusResponseRejected {
