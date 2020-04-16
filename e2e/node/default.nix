@@ -6,13 +6,7 @@
 pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.)) {
   root = ./.;
   name = "node-e2e-tests";
-  buildInputs = [
-    dfx.standalone
-    # Required by node-gyp
-    pkgs.python3
-  ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin
-    # Required by fsevents
-    pkgs.darwin.apple_sdk.frameworks.CoreServices;
+  buildInputs = [ dfx.standalone userlib-js ];
 
   npmCommands = [
     "npm install"
