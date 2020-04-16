@@ -3,24 +3,16 @@
 , dfx ? import ../../dfx.nix { inherit pkgs; }
 , userlib-js ? import ../../src/userlib/js { inherit pkgs; }
 }:
-let
-  e2e = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.);
-  inputs = with pkgs; [
-    coreutils
+pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.)) {
+  root = ./.;
+  name = "node-e2e-tests";
+  buildInputs = [
     dfx.standalone
-    nodejs-12_x
     # Required by node-gyp
     pkgs.python3
   ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin
     # Required by fsevents
     pkgs.darwin.apple_sdk.frameworks.CoreServices;
-in
-
-pkgs.napalm.buildPackage e2e {
-  root = ./.;
-  name = "node-e2e-tests";
-  buildInputs = inputs;
-  PATH = pkgs.lib.makeSearchPath "bin" inputs;
 
   npmCommands = [
     "npm install"
