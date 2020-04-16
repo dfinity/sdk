@@ -53,9 +53,12 @@ function getDefaultHttpAgent() {
 function decodeReturnValue(types: IDL.Type[], msg: BinaryBlob) {
   const returnValues = IDL.decode(types, Buffer.from(msg));
   switch (returnValues.length) {
-    case 0: return undefined;
-    case 1: return returnValues[0];
-    default: return returnValues;
+    case 0:
+      return undefined;
+    case 1:
+      return returnValues[0];
+    default:
+      return returnValues;
   }
 }
 
