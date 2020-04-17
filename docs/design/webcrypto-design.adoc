@@ -1,0 +1,254 @@
+= FeatureTemplate Design Doc
+// Author field:
+Eftychis <eftychis@dfinity.org>
+v0.1, 2020-04-15
+:draft:
+:toc:
+
+== Overview
+
+The user manages multiple user keys on the browser while mitigating
+the attack surface area. In the end, a user should be able to utilize
+multiple browsers to authenticate against a canister.
+
+== Contributions
+
+We answer the following questions here:
+
+. What is our security model?
+. Acknowledging that browser storage lacks the persistent trait and backup, how does a user recover their keys?
+. What is our browser support story?
+
+Questions raised:
+
+. What is our UX/UI for authenticating on a new browser?
+. Do we want to support multiple users/individuals/profiles on a browser?
+
+Starting to clarify, but contingent on other points
+. Our browser security model
+. Do we need key derivation
+
+=== Problem Statement
+
+We want to minimize the risk of key leakage (partial or total) when
+one uses the browser to issue requests to the Internet Computer via
+the Userlibrary.
+
+=== Requirements
+
+
+=== Related Art
+
+* WebCrypto API Spec
+
+Specifies an interface for secure implementation of limited and simple
+cryptographic operations. The correctness and security of the
+implementation is the responsibility of each browser. Chromium and
+Firefox support the spec, with Safari, Edge and IE trailing. Note that
+the performance of each operation is also not specified.
+
+https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API
+
+=== Browser Compatibility
+
+
+* Edge
+
+https://en.wikipedia.org/w/index.php?title=Microsoft_Edge&action=edit&section=8
+
+== Expected User/Developer Experience
+
+Behavior as a first step remains the same. Local Storage contains only
+a public key in JSON Web Key form (JWK). In the second phase a user is
+prompted to authorize their public key.
+
+
+== Detailed Design
+
+
+=== Key derivation
+
+
+=== Considered Solutions
+
+
+1. Authorization
+2. Key generation and persistence
+
+=== Recommended Solution
+
+
+
+Note, however, that we entrust the correctness and security of the
+implementation to the browser that realizes the WebCrypto API
+specification. We consider this an acceptable choice given the status
+quo in the browser scene.
+
+* Algorithm
+
+on Userlib load:
+
+. Check browser version:
+.. If Edge (>=79 ) // The browser is Chromium based
+.. || Chrome
+.. || Firefox
+.. || IE () // Not sure oldest version supported here
+.. || Safari
+.. continue
+.. else
+.. Warn "WebCrypto API possibly not supported"
+ // The problem here is that even if the browser supports it we can not
+ // say anything about the implementation or its performance.
+
+on makeAuthTransform: // modified to provide canister id
+
+. Open connection to IndexedDB
+. Check if browser supports generateKey, sign and importKey for ECDSA P256
+. If not fallback with a warning message to tweetnacl (key now stored in indexeddb)
+. search for a key for the particular canister id // and user id if we decide to have multiple user support
+.. create key if none found (as exportable) // This seems an inefficiency of IndexedDB and browser mentality -- there is no way to backup IndexedDB
+.. provide User with key pair encoded as a recovery key phrase // This needs to be in the origin of the Userlibrary; we need to ensure the adversary does not have access to it
+(use a library)
+.. import key as non exportable and store it in IndexedDB
+.. load key // a bit paranoid here, but IndexedDB is asynchronous; we need to at least check the key has been stored
+. sign request
+
+
+
+
+
+
+=== User Profiles
+
+Is this something we desire? Do we expect more than a single user to
+access a browser. Right now a user would have to erase their history
+and ensure the IndexedDB is erase to achieve this result.
+
+
+
+
+=== Public API
+
+
+
+
+
+=== User Interaction & Authorization
+
+
+
+
+
+
+=== Prototype
+////
+:optional:
+
+If a proof of concept is available, include a link to the files here (even if
+it's in the same PR).
+////
+
+
+Coming Up.
+
+=== Security Considerations
+
+This is a preliminary security model for the browser. We assume user
+library acts honestly; the adversary can not corrupt it. Requests and
+scripts can be run across origins.
+
+
+=== Persistence Considerations
+
+One major consideration of using the WebCrypto API, and any system
+that ensures javascript in the same origin can not parse the secret
+key, is persistence and restoration of the value. The WebCrypto API
+supports an importKey operation, usually using JWK.
+
+IndexedDB is the suggested means of "persisting" values.
+
+
+=== Performance Considerations
+
+One key consideration is that WebCrypto is an API specification, that
+is supported by the latest versions of browsers. However, the
+specification inherently does not specify performance
+characteristics. In this design we only consider signing interfaces
+and latest major browser releases.
+
+== Breaking Changes
+
+N/A
+
+=== Deprecation
+
+The current auth API of the userlibrary will be modified to be
+asynchronous in nature.
+
+== Documentation
+
+Documentations is necessary when the whole authentication flow for
+browsers is complete.
+
+== Lifecycle
+
+=== Integration Plan
+////
+:optional: Required if there are interactions with other tools.
+
+How will this feature interact with other tools? Is there any changes outside
+of the SDK that are required to make this feature work? Does this feature
+have integration with `dfx`?
+////
+
+N/A for now
+
+In the future, we might want to enable similar operations in dfx.
+
+=== Publishing Plan
+
+N/A
+
+=== Rollout / Migration
+
+N/A
+
+=== Rollback Plan
+
+As initially we introduce no user facing changes, nothing changes from
+a user's perspective until a user interface for authorization and key
+loading is introduced. We can rollback to previous version with little
+issue. Keys are currently thought disposable. As we will be using a
+different storage layer falling back to old code will simply assume a
+key was never generated.
+
+
+
+=== Maintenance Plan
+////
+:required:
+
+How do you plan to maintain this feature for the next years? Can the
+APIs be cleanly evolved? Can Breaking Changes in the future be avoided?
+
+If this is a service, what is the update and monitoring strategy?
+
+If this is a package, how do we plan to publish and deploy it? This includes
+version numbering.
+////
+
+== Work Breakdown
+////
+:required:
+
+Description of the various phases and milestones. This is supposed to be a
+bullet point list of high level stories and tasks. It is not meant to be a
+1:1 ratio of PRs.
+////
+
+. Use IndexedDB for keys & switch keys to use JWK format
+. Add check for WebCrypto API support and warnings (can't be tested with current setup reliably)
+. Add WebCrypto API in makeAuthTransform
+. Design and facilitate a UX/UI for key authorization
+. Figure out a way to test (contingent on testing framework at the time)
+. Implement the decided solution for key authorization
