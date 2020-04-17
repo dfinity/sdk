@@ -11,10 +11,11 @@ pkgs.napalm.buildPackage src {
 
   outputs = [ "out" "lib" ];
 
-  buildInputs = [
+  propagatedNativeBuildInputs = [
     # Required by node-gyp
     pkgs.python3
-  ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin
+  ];
+  propagatedBuildInputs = pkgs.lib.optional pkgs.stdenv.isDarwin
     # Required by fsevents
     pkgs.darwin.apple_sdk.frameworks.CoreServices;
 
