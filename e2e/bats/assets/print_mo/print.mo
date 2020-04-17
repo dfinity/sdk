@@ -1,4 +1,4 @@
-import Debug "mo:stdlib/debug";
+import Debug "mo:stdlib/Debug";
 
 actor HelloActor {
   public func hello() : async () {
