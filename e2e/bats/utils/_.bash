@@ -31,15 +31,30 @@ dfx_new() {
 
 # Start the client in the background.
 dfx_start() {
-    # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
-    # wait for it to close. Because `dfx start` leaves child processes running, we need
-    # to close this pipe, otherwise Bats will wait indefinitely.
-    dfx start --background "$@" 3>&-
-    local project_dir=${pwd}
-    local dfx_config_root=.dfx/client-configuration
-    printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-    test -f ${dfx_config_root}/client-1.port
-    local port=$(cat ${dfx_config_root}/client-1.port)
+    if [ "$USE_IC_REF" ]
+    then
+        ic-ref --pick-port --write-port-to port 3>&- &
+        echo $! > ic-ref.pid
+
+        sleep 5
+
+        test -f port
+        local port=$(cat port)
+
+        dfx bootstrap --port 8000 --providers http://127.0.0.1:${port}/api &
+        echo $! > dfx-bootstrap.pid
+    else
+        # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
+        # wait for it to close. Because `dfx start` leaves child processes running, we need
+        # to close this pipe, otherwise Bats will wait indefinitely.
+        dfx start --background "$@" 3>&-
+        local project_dir=${pwd}
+        local dfx_config_root=.dfx/client-configuration
+        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+        test -f ${dfx_config_root}/client-1.port
+        local port=$(cat ${dfx_config_root}/client-1.port)
+    fi
+
     printf "Client Configured Port: %s\n" "${port}"
 
     timeout 5 sh -c \
@@ -49,8 +64,21 @@ dfx_start() {
 
 # Stop the client and verify it is very very stopped.
 dfx_stop() {
-    dfx stop
+    if [ "$USE_IC_REF" ]
+    then
+        test -f ic-ref.pid
+        printf "Killing ic-ref at pid: %u\n" "$(cat ic-ref.pid)"
+        kill $(cat ic-ref.pid)
+        rm -f ic-ref.pid
 
-    # Verify that processes are killed.
-    ! ( ps | grep " [d]fx start" )
+        test -f dfx-bootstrap.pid
+        printf "Killing dfx bootstrap at pid: %u\n" "$(cat dfx-bootstrap.pid)"
+        kill $(cat dfx-bootstrap.pid)
+        rm -f dfx-bootstrap.pid
+    else
+        dfx stop
+
+        # Verify that processes are killed.
+        ! ( ps | grep " [d]fx start" )
+    fi
 }

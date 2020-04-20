@@ -37,6 +37,13 @@
         "rev": "a77551d2c630c2f30d18860bfb556ce46a0e8b08",
         "type": "git"
     },
+    "ic-ref": {
+        "branch": "legacy2",
+        "ref": "legacy2",
+        "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
+        "rev": "6d8a3f28bdc6969754b354e56fb9caf280d6f887",
+        "type": "git"
+    },
     "motoko": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
