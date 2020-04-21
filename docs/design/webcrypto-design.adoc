@@ -1,4 +1,4 @@
-= FeatureTemplate Design Doc
+= Browser Design Doc
 // Author field:
 Eftychis <eftychis@dfinity.org>
 v0.1, 2020-04-15
@@ -49,12 +49,35 @@ the performance of each operation is also not specified.
 
 https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API
 
+* JSON Web Key (JWK)
+
+https://tools.ietf.org/html/rfc7517
+ Example
+{
+    "keys": [
+        {
+            "kty": "EC",
+            "d": "UcfnEr0vwuK5iptuX6LE6OAc9amRiNPVMOpWVl7v6rk",
+            "use": "sig",
+            "crv": "P-256",
+            "x": "1SPWydvsUp70xHJGOOJ8Y5w6uhoEPP_nnRnQorGHdbw",
+            "y": "Wf1lIoSwfNBAxvqEDm8GtCh2Tb480ktXp0R8EyEwd4U",
+            "alg": "ES256"
+        }
+    ]
+}
+
+
 === Browser Compatibility
 
 
 * Edge
 
 https://en.wikipedia.org/w/index.php?title=Microsoft_Edge&action=edit&section=8
+
+
+
+
 
 == Expected User/Developer Experience
 
@@ -149,7 +172,34 @@ it's in the same PR).
 ////
 
 
-Coming Up.
+Code:
+
+* Check
+
+[source,javascript]
+----
+if (!window.crypto || !window.crypto.subtle) { alert("Browser does not support a secure framework."); }
+----
+
+* Generate Key
+
+
+[source,javascript]
+----
+const getPublicKey3 = async () => {
+
+ const options = { name: 'ECDSA', namedCurve: "P-256", };
+const keys = await window.crypto.subtle.generateKey( options, false, 
+ ['sign', 'verify'], );
+// Store keys in Indexdb
+
+ const publicKey = await window.crypto.subtle.exportKey('jwk', keys.publicKey);
+ let body = window.btoa(String.fromCharCode(...new Uint8Array(publicKey)));
+ body = body.match(/.{1,64}/g).join('\n');
+ return `-----BEGIN PUBLIC KEY-----\n${keys.publicKey}\n-----END PUBLIC KEY-----`;
+};
+----
+
 
 === Security Considerations
 
