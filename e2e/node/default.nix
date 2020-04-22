@@ -20,7 +20,7 @@ pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./
         set -eo pipefail
 
         agent_node_modules="node_modules/@dfinity/agent"
-        mkdir -p $agent
+        mkdir -p $agent_node_modules
 
         tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $agent_node_modules/
         cp -R ${agent-js.lib}/node_modules .
