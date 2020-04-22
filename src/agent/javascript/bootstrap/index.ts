@@ -5,7 +5,7 @@ import {
   makeAuthTransform,
   makeKeyPair,
   makeNonceTransform,
-} from '@internet-computer/userlib';
+} from '@dfinity/agent';
 
 interface WindowWithInternetComputer extends Window {
   icHttpAgent: HttpAgent;

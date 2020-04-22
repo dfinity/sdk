@@ -7,7 +7,7 @@ let
 in
 pkgs.napalm.buildPackage src {
   root = ./.;
-  name = "dfinity-sdk-userlib-js";
+  name = "dfinity-sdk-agent-js";
 
   outputs = [ "out" "lib" ];
 

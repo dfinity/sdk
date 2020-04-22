@@ -3,7 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use ic_http_agent::CanisterId;
+use ic_agent::CanisterId;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
