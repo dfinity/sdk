@@ -75,7 +75,7 @@ let
                   mkdir $out/stdlib && cp -R ${pkgs.motoko.stdlib}/. $out/stdlib
 
                   mkdir $out/js-user-library
-                  tar xvzf ${agent-js.out}/internet-computer-*.tgz --strip-component 1 --directory $out/js-user-library
+                  tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $out/js-user-library
                   cp -R ${agent-js.lib}/node_modules $out/js-user-library
                 '';
               }

@@ -22,7 +22,7 @@ pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./
         agent_node_modules="node_modules/@dfinity/agent"
         mkdir -p $agent
 
-        tar xvzf ${agent-js.out}/internet-computer-*.tgz --strip-component 1 --directory $agent_node_modules/
+        tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $agent_node_modules/
         cp -R ${agent-js.lib}/node_modules .
       ''
     )

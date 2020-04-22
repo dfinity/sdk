@@ -31,7 +31,7 @@ pkgs.napalm.buildPackage src {
     npm pack
     mkdir -p $out
 
-    cp internet-computer-*.tgz $out
+    cp dfinity-*.tgz $out
 
     # Copy node_modules to be reused elsewhere.
     mkdir -p $lib
