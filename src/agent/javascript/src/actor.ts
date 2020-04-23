@@ -52,12 +52,13 @@ function getDefaultHttpAgent() {
 // values behave as expected.
 function decodeReturnValue(types: IDL.Type[], msg: BinaryBlob) {
   const returnValues = IDL.decode(types, Buffer.from(msg));
-  if (returnValues.length === 0) {
-    return undefined;
-  } else if (returnValues.length === 1) {
-    return returnValues[0];
-  } else {
-    return returnValues;
+  switch (returnValues.length) {
+    case 0:
+      return undefined;
+    case 1:
+      return returnValues[0];
+    default:
+      return returnValues;
   }
 }
 
@@ -102,7 +103,13 @@ export function makeActorFactory(
 
     switch (status.status) {
       case RequestStatusResponseStatus.Replied: {
-        return decodeReturnValue(returnType, status.reply.arg);
+        if (status.reply.arg !== undefined) {
+          return decodeReturnValue(returnType, status.reply.arg);
+        } else if (returnType.length === 0) {
+          return undefined;
+        } else {
+          throw new Error(`Call was returned undefined, but type [${returnType.join(',')}].`);
+        }
       }
 
       case RequestStatusResponseStatus.Unknown:

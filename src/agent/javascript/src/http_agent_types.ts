@@ -50,9 +50,9 @@ export interface HttpAgentRequestTransformFn {
   priority?: number;
 }
 
-export type AuthHttpAgentRequestTransformFn =
-  (args: HttpAgentRequest) => Promise<SignedHttpAgentRequest>;
-
+export type AuthHttpAgentRequestTransformFn = (
+  args: HttpAgentRequest,
+) => Promise<SignedHttpAgentRequest>;
 
 export interface QueryFields {
   methodName: string;
@@ -146,7 +146,7 @@ export interface RequestStatusResponsePending {
 
 export interface RequestStatusResponseReplied {
   status: RequestStatusResponseStatus.Replied;
-  reply: { arg: BinaryBlob };
+  reply: { arg?: BinaryBlob };
 }
 
 export interface RequestStatusResponseRejected {

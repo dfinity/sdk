@@ -2,7 +2,7 @@ use crate::lib::builders::{BuildConfig, BuildOutput, BuilderPool, CanisterBuilde
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
-use ic_http_agent::CanisterId;
+use ic_agent::CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use slog::Logger;
 use std::collections::BTreeMap;

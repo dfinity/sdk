@@ -1,6 +1,6 @@
 # JavaScript User Library
 
-Package: `@internet-computer/userlib`
+Package: `@dfinity/agent`
 
 ## API
 

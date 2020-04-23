@@ -86,6 +86,21 @@ test('IDL encoding (nat)', () => {
   expect(() => IDL.encode([IDL.Nat], [-1])).toThrow(/Invalid nat argument/);
 });
 
+test('IDL encoding (float64)', () => {
+  // Float64
+  test_(IDL.Float64, 3, '4449444c0001720000000000000840', 'Float');
+  test_(IDL.Float64, 6, '4449444c0001720000000000001840', 'Float');
+  test_(IDL.Float64, 0.5, '4449444c000172000000000000e03f', 'Float');
+  test_(IDL.Float64, Number.NaN, '4449444c000172010000000000f07f', 'NaN');
+  test_(IDL.Float64, Number.POSITIVE_INFINITY, '4449444c000172000000000000f07f', '+infinity');
+  test_(IDL.Float64, Number.NEGATIVE_INFINITY, '4449444c000172000000000000f0ff', '-infinity');
+  test_(IDL.Float64, Number.EPSILON, '4449444c000172000000000000b03c', 'eps');
+  test_(IDL.Float64, Number.MIN_VALUE, '4449444c0001720100000000000000', 'min_value');
+  test_(IDL.Float64, Number.MAX_VALUE, '4449444c000172ffffffffffffef7f', 'max_value');
+  test_(IDL.Float64, Number.MIN_SAFE_INTEGER, '4449444c000172ffffffffffff3fc3', 'min_safe_integer');
+  test_(IDL.Float64, Number.MAX_SAFE_INTEGER, '4449444c000172ffffffffffff3f43', 'max_safe_integer');
+});
+
 test('IDL encoding (fixed-width number)', () => {
   // Fixed-width number
   test_(IDL.Int8, 0, '4449444c00017700', 'Int8');

@@ -1,37 +1,34 @@
 { system ? builtins.currentSystem
-, src ? null
+, src ? builtins.fetchGit ./.
 , releaseVersion ? "latest"
-  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
-, isMaster ? false
 , RustSec-advisory-db ? null
 , pkgs ? import ./nix { inherit system RustSec-advisory-db; }
-, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs isMaster src; }
+, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
 }:
 rec {
-  dfx = import ./dfx.nix { inherit pkgs userlib-js; };
+  dfx = import ./dfx.nix { inherit pkgs agent-js; };
 
   e2e-tests = import ./e2e/bats { inherit pkgs dfx; };
+  e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
   node-e2e-tests = import ./e2e/node { inherit pkgs dfx; };
 
-  userlib-js = import ./src/userlib/js { inherit pkgs; };
+  # Agents in varous languages
+  agent-js = import ./src/agent/javascript { inherit pkgs; };
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
   inherit (pkgs) nix-fmt nix-fmt-check;
 
-  public = import ./public { inherit pkgs src releaseVersion isMaster; };
-  inherit (public) install-sh-release install-sh;
+  install = import ./public { inherit pkgs src; };
 
   # This is to make sure CI evaluates shell derivations, builds their
   # dependencies and populates the hydra cache with them. We also use this in
   # `shell.nix` in the root to provide an environment which is the composition
   # of all the shells here.
   shells = {
-    js-user-library = import ./src/userlib/js/shell.nix { inherit pkgs userlib-js; };
+    js-user-library = import ./src/agent/javascript/shell.nix { inherit pkgs agent-js; };
     rust-workspace = dfx.shell;
   };
-
-  dfx-release = pkgs.lib.mkRelease "dfx" releaseVersion dfx.standalone "dfx";
 
   licenses = {
     dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
@@ -39,6 +36,7 @@ rec {
 
   publish = import ./publish.nix {
     inherit pkgs releaseVersion;
-    inherit (jobset) dfx-release install-sh-release;
+    inherit (jobset) install;
+    dfx = jobset.dfx.standalone;
   };
 }

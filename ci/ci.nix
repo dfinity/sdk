@@ -6,15 +6,12 @@
   # The version of the release. Will be set to the right value in ./release.nix.
 , releaseVersion ? "latest"
 
-  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
-, isMaster ? true
-
-, pkgs ? import ../nix { inherit system isMaster RustSec-advisory-db; }
+, pkgs ? import ../nix { inherit system RustSec-advisory-db; }
 }:
 pkgs.lib.mk-jobset {
   inherit supportedSystems;
   inherit (src) rev;
   mkJobsetSpec = { system, pkgs, jobset }: import ../. {
-    inherit system pkgs jobset RustSec-advisory-db releaseVersion isMaster src;
+    inherit system pkgs jobset RustSec-advisory-db releaseVersion src;
   };
 }

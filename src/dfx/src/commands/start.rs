@@ -11,7 +11,7 @@ use clap::{App, Arg, ArgMatches};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use futures::future::Future;
-use ic_http_agent::{Agent, AgentConfig};
+use ic_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::fs;
 use std::io::{Error, ErrorKind};

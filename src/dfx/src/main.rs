@@ -4,7 +4,7 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::*;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 use clap::{App, AppSettings, Arg, ArgMatches};
-use ic_http_agent::AgentError;
+use ic_agent::AgentError;
 use slog;
 use std::path::PathBuf;
 

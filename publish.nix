@@ -5,19 +5,18 @@
 # This script will be executed by DFINITY's Continuous Deployment
 # system. That system will also set the correct AWS credentials and the
 # DFINITY_DOWNLOAD_BUCKET environment variable.
-{ pkgs, releaseVersion, dfx-release, install-sh-release }:
+{ pkgs, releaseVersion, dfx, install }:
 let
   s3cp = pkgs.lib.writeCheckedShellScriptBin "s3cp" [] ''
     set -eu
     PATH="${pkgs.lib.makeBinPath [ pkgs.awscli ]}"
-    pkg="$1"; path="$2"; dstDir="$3"; contentType="$4"; cacheControl="$5"
-    src="$pkg/$path"
-    dst="s3://$DFINITY_DOWNLOAD_BUCKET/$dstDir/$path"
+    src="$1"; dst="$2"; contentType="$3"; cacheControl="$4"
+    dstUrl="s3://$DFINITY_DOWNLOAD_BUCKET/$dst"
     if [ -d "$src" ]; then
-      echo "Can't copy $src to $dst because it's a directory. Please specify a file instead." 1>&2; exit 1;
+      echo "Can't copy $src to $dstUrl because it's a directory. Please specify a file instead." 1>&2; exit 1;
     fi
-    echo "Uploading $src to $dst (--cache-control $cacheControl, --content-type $contentType)..."
-    aws s3 cp "$src" "$dst" \
+    echo "Uploading $src to $dstUrl (--cache-control $cacheControl, --content-type $contentType)..."
+    aws s3 cp "$src" "$dstUrl" \
       --cache-control "$cacheControl" \
       --no-guess-mime-type --content-type "$contentType" \
       --no-progress
@@ -39,6 +38,20 @@ let
     ]' | curl -X POST --data @- "$slack_channel_webhook" \
            --header "Content-Type: application/json" --silent --show-error
   '';
+
+  v = releaseVersion;
+
+  mkDfxTarball = dfx:
+    pkgs.runCommandNoCC "dfx-${v}.tar.gz" {
+      inherit dfx;
+      allowedRequisites = [];
+    } ''
+      tmp=$(mktemp -d)
+      cp $dfx/bin/dfx $tmp/dfx
+      chmod 0755 $tmp/dfx
+      tar -czf "$out" -C $tmp/ .
+    '';
+
 in
 {
   dfx = pkgs.lib.linuxOnly (
@@ -46,19 +59,19 @@ in
       set -eu
       PATH="${pkgs.lib.makeBinPath [ s3cp slack ]}"
 
-      v="${releaseVersion}"
+      v="${v}"
       cache_long="max-age=31536000" # 1 year
 
-      path="dfx-$v.tar.gz"
+      file="dfx-$v.tar.gz"
       dir="sdk/dfx/$v"
 
-      s3cp "${dfx-release.x86_64-linux}" "$path" "$dir/x86_64-linux" "application/gzip" "$cache_long"
-      s3cp "${dfx-release.x86_64-darwin}" "$path" "$dir/x86_64-darwin" "application/gzip" "$cache_long"
+      s3cp "${mkDfxTarball dfx.x86_64-linux}" "$dir/x86_64-linux/$file" "application/gzip" "$cache_long"
+      s3cp "${mkDfxTarball dfx.x86_64-darwin}" "$dir/x86_64-darwin/$file" "application/gzip" "$cache_long"
 
       slack "$SLACK_CHANNEL_BUILD_NOTIFICATIONS_WEBHOOK" <<EOI
       *DFX-$v* has been published to DFINITY's CDN :champagne:!
-      - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-linux/$path
-      - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-darwin/$path
+      - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-linux/$file
+      - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-darwin/$file
       Install the SDK by following the instructions at: https://sdk.dfinity.org/docs/download.html.
       EOI
     ''
@@ -78,9 +91,8 @@ in
       # to be fetched from the origin bucket.
       # See: https://dfinity.atlassian.net/browse/INF-1145
 
-      pkg="${install-sh-release.x86_64-linux}"
-      s3cp "$pkg" "manifest.json" "sdk" "application/json" "$do_not_cache"
-      s3cp "$pkg" "install.sh" "sdk" "application/x-sh" "$do_not_cache"
+      s3cp "${./public/manifest.json}" "sdk/manifest.json" "application/json" "$do_not_cache"
+      s3cp "${install.x86_64-linux}" "sdk/install.sh" "application/x-sh" "$do_not_cache"
     ''
   );
 }

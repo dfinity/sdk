@@ -5,7 +5,7 @@ import {
   makeAuthTransform,
   makeKeyPair,
   makeNonceTransform,
-} from '@internet-computer/userlib';
+} from '@dfinity/agent';
 
 interface WindowWithInternetComputer extends Window {
   icHttpAgent: HttpAgent;
@@ -126,4 +126,5 @@ _main().catch(err => {
   pre.innerHTML = err.stack;
   div.appendChild(pre);
   document.body.replaceChild(div, document.body.getElementsByTagName('app').item(0)!);
+  throw err;
 });

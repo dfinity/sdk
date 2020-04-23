@@ -4,14 +4,14 @@
 
 These tests are composed of two parts;
 
-1. a Nix script that installs the Userlib in the execution location, as if it was an NPM
-   package. This is done by building the NPM Package, and the JS Userlib derivation outputting
+1. a Nix script that installs the Agent in the execution location, as if it was an NPM
+   package. This is done by building the NPM Package, and the JS Agent derivation outputting
    2 outputs; the NPM package itself (in a packed format), and its node_modules which are
    then copied in the execution folder for these tests.
 2. a Jest framework in TypeScript that runs and validate the tests.
 
 The result is you build your tests as you would with Jest. You can import the JavaScript
-userlib by using `import * as userlib from '@internet-computer/userlib'` which is as
+agent by using `import * as agent from '@dfinity/agent'` which is as
 close as it can be to the real world.
 
 == Starting / Stopping the Replica

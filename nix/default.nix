@@ -1,8 +1,6 @@
 # Returns the nixpkgs set overridden and extended with DFINITY specific
 # packages.
 { system ? builtins.currentSystem
-  # TODO: Remove isMaster once switched to new CD system (https://dfinity.atlassian.net/browse/INF-1149)
-, isMaster ? false
 , RustSec-advisory-db ? null
 }:
 let
@@ -47,19 +45,18 @@ let
                 then RustSec-advisory-db
                 else self.sources.advisory-db;
 
-              motoko = import self.sources.motoko { system = self.system; };
+              motoko = import self.sources.motoko { inherit (self) system; };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {
                 pkgs = self // { nodejs = self.nodejs-12_x; };
               };
+              ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref;
 
               inherit (nixFmt) nix-fmt;
               nix-fmt-check = nixFmt.check;
 
               lib = super.lib // {
                 mk-jobset = import ./mk-jobset.nix self;
-
-                mkRelease = super.callPackage ./mk-release.nix { inherit isMaster; };
               };
 
               # An attribute set mapping every supported system to a nixpkgs evaluated for
@@ -70,7 +67,7 @@ let
                   if supportedSystem == system
                   then self
                   else import ./. {
-                    inherit isMaster RustSec-advisory-db;
+                    inherit RustSec-advisory-db;
                     system = supportedSystem;
                   }
               );

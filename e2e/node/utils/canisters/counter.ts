@@ -1,4 +1,4 @@
-import { Actor, CanisterId, blobFromUint8Array } from '@internet-computer/userlib';
+import { Actor, CanisterId, blobFromUint8Array } from '@dfinity/agent';
 import httpAgent from '../agent';
 import * as path from 'path';
 import { readFileSync } from 'fs';
@@ -18,14 +18,14 @@ type CounterActor = Actor & {
   write(n: number): Promise<void>,
 };
 
-const factory = httpAgent.makeActorFactory(({ IDL }) => new IDL.ActorInterface({
+const factory = httpAgent.makeActorFactory(({ IDL }) => IDL.Service({
   'read': IDL.Func([], [IDL.Nat], ['query']),
   'inc_read': IDL.Func([], [IDL.Nat], []),
   'inc': IDL.Func([], [], []),
   'write': IDL.Func([IDL.Nat], [], []),
 }));
 
-// TODO(hansl): Add a type to create an Actor interface from a IDL.ActorInterface definition.
+// TODO(hansl): Add a type to create an Actor interface from a IDL.Service definition.
 export default function(): Promise<CounterActor> {
   if (!actor) {
     actor = Promise.resolve(factory({

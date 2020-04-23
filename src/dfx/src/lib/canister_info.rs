@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use crate::config::dfinity::Config;
 use crate::lib::error::{DfxError, DfxResult};
-use ic_http_agent::{Blob, CanisterId};
+use ic_agent::{Blob, CanisterId};
 use rand::{thread_rng, RngCore};
 use std::cell::RefCell;
 use std::collections::BTreeMap;

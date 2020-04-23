@@ -4,8 +4,8 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
-use clap::{App, Arg, ArgMatches};
-use ic_http_agent::RequestId;
+use clap::{App, Arg, ArgMatches, SubCommand};
+use ic_agent::RequestId;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 

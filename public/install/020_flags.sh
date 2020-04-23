@@ -12,19 +12,20 @@ DFX_BOOL_FLAGS=""
 #   $2 - A description of the flag. This is not currently used but will be when we have enough
 #        flags to implement help.
 define_flag_BOOL() {
-    local VARNAME="flag_$(echo $1 | tr /a-z/ /A-Z)"
-    eval $VARNAME="\${$VARNAME:-}"
+    local VARNAME
+    VARNAME="flag_$(echo "$1" | tr /a-z/ /A-Z)"
+    eval "$VARNAME=\${$VARNAME:-}"
     DFX_BOOL_FLAGS="${DFX_BOOL_FLAGS}--${1} $VARNAME $2"
 }
 
 # Get the flag name of a line in the flag description.
 get_flag_name() {
-    echo $1
+    echo "$1"
 }
 
 # Get the variable name of a line in the flag description.
 get_var_name() {
-    echo $2
+    echo "$2"
 }
 
 # Read all the command line flags and set the flag_XXXX environment variables.
@@ -35,6 +36,8 @@ get_var_name() {
 #   Environment variables are set according to flags defined and flags.
 read_flags() {
     # Set values from command line.
+    # shellcheck disable=SC2199
+    # https://github.com/koalaman/shellcheck/wiki/SC2199
     while [[ "$@" ]]; do
         local ARG=$1
         shift
@@ -45,11 +48,11 @@ read_flags() {
             [ "$line" ] || break
 
             IFS="$OLD_IFS"
-            FLAG=$(get_flag_name $line)
-            VARNAME=$(get_var_name $line)
+            FLAG="$(get_flag_name "$line")"
+            VARNAME="$(get_var_name "$line")"
 
             if [ "$ARG" == "$FLAG" ]; then
-                eval $VARNAME="1"
+                eval "$VARNAME=1"
             fi
         done
     done
