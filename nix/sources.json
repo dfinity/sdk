@@ -27,7 +27,7 @@
     },
     "clap": {
         "ref": "master",
-        "repo": "https://github.com/clap-rs/clap",
+        "repo": "ssh://git@github.com/dfinity-lab/clap",
         "rev": "7788268d3768810e91a911da0916db0e15105cf0",
         "type": "git"
     },
