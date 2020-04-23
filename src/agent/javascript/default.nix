@@ -7,7 +7,7 @@ let
 in
 pkgs.napalm.buildPackage src {
   root = ./.;
-  name = "dfinity-sdk-userlib-js";
+  name = "dfinity-sdk-agent-js";
 
   outputs = [ "out" "lib" ];
 
@@ -31,7 +31,7 @@ pkgs.napalm.buildPackage src {
     npm pack
     mkdir -p $out
 
-    cp internet-computer-*.tgz $out
+    cp dfinity-*.tgz $out
 
     # Copy node_modules to be reused elsewhere.
     mkdir -p $lib

@@ -1,4 +1,4 @@
-import { IDL, UI } from '@internet-computer/userlib';
+import { IDL, UI } from '@dfinity/agent';
 import './candid.css';
 
 export function render(id, canister) {
@@ -32,7 +32,7 @@ function renderMethod(name, idl_func, f) {
     button.innerText = 'Query';
   } else {
     button.innerText = 'Call';
-  }  
+  }
   item.appendChild(button);
 
   const random = document.createElement("button");
@@ -65,7 +65,7 @@ function renderMethod(name, idl_func, f) {
     right.innerText = `(${duration}s)`;
     return result;
   }
-  
+
   function callAndRender(args) {
     (async () => {
       const call_result = await call(args);
@@ -117,16 +117,16 @@ function renderMethod(name, idl_func, f) {
       throw err;
     })
   }
-  
+
   random.addEventListener("click", function() {
     const args = inputs.map(arg => arg.parse({ random: true }));
     const isReject = inputs.some(arg => arg.isRejected());
     if (isReject) {
       return;
-    }    
+    }
     callAndRender(args);
   });
-  
+
   button.addEventListener("click", function() {
     const args = inputs.map(arg => arg.parse());
     const isReject = inputs.some(arg => arg.isRejected());

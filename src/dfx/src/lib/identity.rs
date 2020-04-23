@@ -1,7 +1,7 @@
-use ic_http_agent::to_request_id;
-use ic_http_agent::AgentError;
-use ic_http_agent::Signer;
-use ic_http_agent::{Blob, Request, RequestId, SignedMessage};
+use ic_agent::to_request_id;
+use ic_agent::AgentError;
+use ic_agent::Signer;
+use ic_agent::{Blob, Request, RequestId, SignedMessage};
 use std::path::PathBuf;
 
 pub struct Identity(ic_identity_manager::Identity);
@@ -39,7 +39,7 @@ impl Signer for Identity {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ic_http_agent::{Blob, CanisterId, ReadRequest};
+    use ic_agent::{Blob, CanisterId, ReadRequest};
     use proptest::prelude::*;
     use tempfile::tempdir;
 

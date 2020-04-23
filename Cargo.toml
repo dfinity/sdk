@@ -3,7 +3,7 @@ members = [
     "src/dfx",
     "src/dfx_derive",
     "src/dfx_info",
-    "src/ic_http_agent",
+    "src/agent/rust",
     "src/ic_identity_manager",
     "src/serde_idl",
 ]

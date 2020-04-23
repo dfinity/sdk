@@ -6,13 +6,14 @@
 , jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
 }:
 rec {
-  dfx = import ./dfx.nix { inherit pkgs userlib-js; };
+  dfx = import ./dfx.nix { inherit pkgs agent-js; };
 
   e2e-tests = import ./e2e/bats { inherit pkgs dfx; };
   e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
   node-e2e-tests = import ./e2e/node { inherit pkgs dfx; };
 
-  userlib-js = import ./src/userlib/js { inherit pkgs; };
+  # Agents in varous languages
+  agent-js = import ./src/agent/javascript { inherit pkgs; };
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
@@ -25,7 +26,7 @@ rec {
   # `shell.nix` in the root to provide an environment which is the composition
   # of all the shells here.
   shells = {
-    js-user-library = import ./src/userlib/js/shell.nix { inherit pkgs userlib-js; };
+    js-user-library = import ./src/agent/javascript/shell.nix { inherit pkgs agent-js; };
     rust-workspace = dfx.shell;
   };
 

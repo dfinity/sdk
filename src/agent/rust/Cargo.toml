@@ -1,5 +1,5 @@
 [package]
-name = "ic-http-agent"
+name = "ic-agent"
 version = "0.1.0"
 authors = ["Hans Larsen <hans.larsen@dfinity.org>"]
 edition = "2018"

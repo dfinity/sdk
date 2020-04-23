@@ -8,7 +8,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util::assets;
-use ic_http_agent::CanisterId;
+use ic_agent::CanisterId;
 // use serde_idl::IDLProg;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;

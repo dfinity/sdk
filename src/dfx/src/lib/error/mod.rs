@@ -1,4 +1,4 @@
-use ic_http_agent::AgentError;
+use ic_agent::AgentError;
 
 mod build;
 mod cache;
