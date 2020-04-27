@@ -1,39 +1,29 @@
 { pkgs ? import ../../nix { inherit system; }
 , system ? builtins.currentSystem
 , dfx ? import ../../dfx.nix { inherit pkgs; }
-, userlib-js ? import ../../src/userlib/js { inherit pkgs; }
+, agent-js ? import ../../src/agent/javascript { inherit pkgs; }
 }:
-let
-  e2e = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.);
-  inputs = with pkgs; [
-    coreutils
-    dfx.standalone
-    nodejs-12_x
-  ];
-in
-
-pkgs.napalm.buildPackage e2e {
+pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.)) {
   root = ./.;
   name = "node-e2e-tests";
-  buildInputs = inputs;
-  PATH = pkgs.lib.makeSearchPath "bin" inputs;
+  buildInputs = [ dfx.standalone agent-js ];
 
   npmCommands = [
     "npm install"
 
-    # Monkey-patch the userlib source into our install dir. napalm is unable
+    # Monkey-patch the agent source into our install dir. napalm is unable
     # to include dependencies from package-locks in places other than the
     # build root.
     (
-      pkgs.writeScript "include-userlib.sh" ''
+      pkgs.writeScript "include-agent.sh" ''
         #!${pkgs.stdenv.shell}
         set -eo pipefail
 
-        userlib="node_modules/@internet-computer/userlib"
-        mkdir -p $userlib
+        agent_node_modules="node_modules/@dfinity/agent"
+        mkdir -p $agent_node_modules
 
-        tar xvzf ${userlib-js.out}/internet-computer-*.tgz --strip-component 1 --directory $userlib/
-        cp -R ${userlib-js.lib}/node_modules .
+        tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $agent_node_modules/
+        cp -R ${agent-js.lib}/node_modules .
       ''
     )
     "npm run ci"

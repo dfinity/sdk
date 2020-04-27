@@ -3,7 +3,7 @@ import {
   generateKeyPair,
   makeAuthTransform,
   makeNonceTransform,
-} from '@internet-computer/userlib';
+} from '@dfinity/agent';
 
 const agent = new HttpAgent({ host: 'http://localhost:8080' });
 agent.addTransform(makeNonceTransform());

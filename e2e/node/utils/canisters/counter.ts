@@ -1,4 +1,4 @@
-import { Actor, CanisterId, blobFromUint8Array } from '@internet-computer/userlib';
+import { Actor, CanisterId, blobFromUint8Array } from '@dfinity/agent';
 import httpAgent from '../agent';
 import * as path from 'path';
 import { readFileSync } from 'fs';

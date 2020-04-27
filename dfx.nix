@@ -8,7 +8,7 @@
 
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
-, userlib-js ? import ./src/userlib/js { inherit pkgs; }
+, agent-js ? import ./src/agent/javascript { inherit pkgs; }
 }:
 let
   lib = pkgs.lib;
@@ -25,8 +25,8 @@ let
       "^.cargo/config$"
     ];
     cargoTestCommands = _: [
-      ''cargo $cargo_options test $cargo_test_options --workspace --exclude ic-http-agent''
-      ''RUST_TEST_THREADS=1 cargo $cargo_options test $cargo_test_options -p ic-http-agent''
+      ''cargo $cargo_options test $cargo_test_options --workspace --exclude ic-agent''
+      ''RUST_TEST_THREADS=1 cargo $cargo_options test $cargo_test_options -p ic-agent''
     ];
     static = pkgs.stdenv.isLinux;
   };
@@ -75,8 +75,8 @@ let
                   mkdir $out/stdlib && cp -R ${pkgs.motoko.stdlib}/. $out/stdlib
 
                   mkdir $out/js-user-library
-                  tar xvzf ${userlib-js.out}/internet-computer-*.tgz --strip-component 1 --directory $out/js-user-library
-                  cp -R ${userlib-js.lib}/node_modules $out/js-user-library
+                  tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $out/js-user-library
+                  cp -R ${agent-js.lib}/node_modules $out/js-user-library
                 '';
               }
             )

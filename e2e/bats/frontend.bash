@@ -23,6 +23,8 @@ teardown() {
 }
 
 @test "dfx start serves a frontend on a port" {
+    [ "$USE_IC_REF" ] && skip "dfx start cannot serve frontent when using ic-ref"
+
     dfx build --skip-frontend
     dfx_start --host 127.0.0.1:12345
 

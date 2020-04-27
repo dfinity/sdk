@@ -29,7 +29,7 @@ erased-serde = "0.3.10"
 flate2 = "1.0.11"
 futures = "0.1.28"
 hex = "0.3.2"
-ic-http-agent = { path = "../ic_http_agent" }
+ic-agent = { path = "../agent/rust" }
 ic-identity-manager = { path = "../ic_identity_manager" }
 indicatif = "0.13.0"
 lazy-init = "0.3.0"
