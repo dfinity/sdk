@@ -15,7 +15,6 @@ multiple browsers to authenticate against a canister.
 
 We answer the following questions here:
 
-. What is our security model?
 . Acknowledging that browser storage lacks the persistent trait and backup, how does a user recover their keys?
 . What is our browser support story?
 
@@ -25,8 +24,10 @@ Questions raised:
 . Do we want to support multiple users/individuals/profiles on a browser?
 
 Starting to clarify, but contingent on other points
+
 . Our browser security model
 . Do we need key derivation
+. Synchronization Means
 
 === Problem Statement
 
@@ -54,17 +55,17 @@ https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API
 https://tools.ietf.org/html/rfc7517
  Example
 {
-    "keys": [
-        {
-            "kty": "EC",
-            "d": "UcfnEr0vwuK5iptuX6LE6OAc9amRiNPVMOpWVl7v6rk",
-            "use": "sig",
-            "crv": "P-256",
-            "x": "1SPWydvsUp70xHJGOOJ8Y5w6uhoEPP_nnRnQorGHdbw",
-            "y": "Wf1lIoSwfNBAxvqEDm8GtCh2Tb480ktXp0R8EyEwd4U",
-            "alg": "ES256"
-        }
-    ]
+   "keys": [
+        {
+            "kty": "EC",
+            "d": "UcfnEr0vwuK5iptuX6LE6OAc9amRiNPVMOpWVl7v6rk",
+            "use": "sig",
+            "crv": "P-256",
+            "x": "1SPWydvsUp70xHJGOOJ8Y5w6uhoEPP_nnRnQorGHdbw",
+            "y": "Wf1lIoSwfNBAxvqEDm8GtCh2Tb480ktXp0R8EyEwd4U",
+            "alg": "ES256"
+        }
+    ]
 }
 
 
@@ -74,9 +75,6 @@ https://tools.ietf.org/html/rfc7517
 * Edge
 
 https://en.wikipedia.org/w/index.php?title=Microsoft_Edge&action=edit&section=8
-
-
-
 
 
 == Expected User/Developer Experience
@@ -91,6 +89,11 @@ prompted to authorize their public key.
 
 === Key derivation
 
+One approach is to utilize a main key for each device; then generate a
+new key per canister. When we authorize a new device we provide a
+certificate for the new device, and each key on the new device is
+derived. However, this does not offer us any advantages related to
+revocation or handling.
 
 === Considered Solutions
 
@@ -138,30 +141,79 @@ on makeAuthTransform: // modified to provide canister id
 
 
 
-
-
-
 === User Profiles
 
 Is this something we desire? Do we expect more than a single user to
-access a browser. Right now a user would have to erase their history
-and ensure the IndexedDB is erase to achieve this result.
-
-
-
+access a browser? Right now a user would have to erase their history
+and ensure the IndexedDB is erased to achieve this result.
 
 === Public API
 
 
-
-
-
 === User Interaction & Authorization
 
+Consider two devices "Alice" and "Bob". User wishes to access
+canisters on both devices assuming the same corresponding
+principals. Each agent on each device must:
 
+. Know the canisters shared
+. Principals to assume per canister
+. Have a key to claim that principal
 
+One approach would be for the user to utilize a third party service
+that provides secure key synchronization across devices. This is
+however not always an option -- for instance on mobile. (Although
+there seems to be some support by Apple post iOS 8.)
 
+==== Authorization Mechanism
 
+The underlying authorization of a new key necessitates issuing a
+certificate to Bob. When accessing a new canister Bob shall use that
+certificate to authorize the corresponding key.
+
+The certificate has the following structure:
+
+[source,rust]
+----
+  Certificate {
+    alice_public_key: IssuerPublicKey,
+    bob_public_key: AuthorizedPublicKey,
+    expiration_utc_time: TimeAndDate,
+    can_authorize(True): bool,
+    alice_signature: Signature,
+  }
+----
+
+Thus, an add_key initial request to a canister must include:
+
+. Certificate issued to Bob by Alice
+. Certificate by Bob's root key for the generated canister key
+
+==== UX above Authorization
+
+In this section we briefly discuss about how to exchange certificate
+signing requests and certificates themselves between the two devices.
+
+We break down the process as follows:
+
+. Both devices need to exchange public keys in a trusted manner
+. One (or both) devices need to exchange generated certificates.
+
+For the latter step we can use a public-key encryption scheme to share the resulting certificate(s). We can achieve this with one of the following approaches:
+
+. Over Bluetooth with prompt on both devices and challenge requiring user input
+. Alice providing a QR code (or a uri) that is scanned by Bob; then
+Bob provides a similar URI. User input is provided to verify
+authorization. (An extra scan is necessary if we require both devices
+to be authorized by the other.)
+
+==== Synchronization Mechanism
+
+We can use a canister in the internet computer at the expense of
+making user interactions extremely easier to access by the public, or
+provide access to a third party service (such as by Google, Apple,
+Dropbox) that will act as a provider also. We do not address this
+point here explicitly.
 
 === Prototype
 ////
