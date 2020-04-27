@@ -38,10 +38,10 @@
         "type": "git"
     },
     "ic-ref": {
-        "branch": "legacy3",
-        "ref": "legacy3",
+        "branch": "release-0.2",
+        "ref": "0.2.8",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "6331356b20183bb9eda5589959ee18bf66becc06",
+        "rev": "614efff0200b93f6d034b1df46d39eb33ed44479",
         "type": "git"
     },
     "motoko": {
