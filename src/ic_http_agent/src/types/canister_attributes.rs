@@ -46,14 +46,52 @@ impl std::convert::TryFrom<u8> for ComputeAllocation {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum MemoryAllocationError {
+    ValueOutOfRange,
+}
+
+impl std::fmt::Display for MemoryAllocationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            MemoryAllocationError::ValueOutOfRange => {
+                f.write_str("Must be a number between 0 and 2^48.")
+            }
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct MemoryAllocation(pub(crate) u64);
+
+impl std::convert::From<MemoryAllocation> for u64 {
+    fn from(memory_allocation: MemoryAllocation) -> Self {
+        memory_allocation.0
+    }
+}
+
+impl std::convert::TryFrom<u64> for MemoryAllocation {
+    type Error = MemoryAllocationError;
+
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        if value > (1 << 48) {
+            Err(MemoryAllocationError::ValueOutOfRange)
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+
 pub struct CanisterAttributes {
     pub compute_allocation: ComputeAllocation,
+    pub memory_allocation: MemoryAllocation,
 }
 
 impl Default for CanisterAttributes {
     fn default() -> Self {
         CanisterAttributes {
             compute_allocation: ComputeAllocation(0),
+            memory_allocation: MemoryAllocation(8 * 1024 * 1024 * 1024),
         }
     }
 }

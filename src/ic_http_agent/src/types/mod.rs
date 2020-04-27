@@ -9,7 +9,10 @@ pub(crate) mod public {
     use super::*;
 
     pub use blob::Blob;
-    pub use canister_attributes::{CanisterAttributes, ComputeAllocation, ComputeAllocationError};
+    pub use canister_attributes::{
+        CanisterAttributes, ComputeAllocation, ComputeAllocationError, MemoryAllocation,
+        MemoryAllocationError,
+    };
     pub use canister_id::{CanisterId, TextualCanisterIdError};
     pub use principal::Principal;
     pub use request_id::{to_request_id, RequestId};
