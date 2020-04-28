@@ -1,4 +1,4 @@
-use ic_http_agent::Principal;
+use ic_agent::Principal;
 use ic_identity_manager::crypto_error::Result;
 use ic_identity_manager::Identity;
 use ring::signature::{self, KeyPair};

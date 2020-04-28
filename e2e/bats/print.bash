@@ -14,6 +14,8 @@ teardown() {
 }
 
 @test "print_mo" {
+    [ "$USE_IC_REF" ] && skip "printing from mo not specified"
+
     install_asset print_mo
     dfx_start 2>stderr.txt
     dfx build

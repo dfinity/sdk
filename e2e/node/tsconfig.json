@@ -13,7 +13,7 @@
     "strict": true,
     "baseUrl": "./",
     "paths": {
-      "@internet-computer/userlib": ["src"]
+      "@dfinity/agent": ["src"]
     },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true

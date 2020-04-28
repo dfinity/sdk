@@ -14,7 +14,7 @@ const bootstrapConfig = {
   },
   resolve: {
     alias: {
-      '@internet-computer/userlib': path.resolve('src'),
+      '@dfinity/agent': path.resolve('src'),
     },
   },
   devtool: "none",
@@ -39,7 +39,7 @@ const bootstrapConfig = {
       test: /\.css$/,
       use: ['style-loader', 'css-loader']
     }]
-  },  
+  },
   plugins: [
     new HtmlWebpackPlugin({
       template: 'bootstrap/index.html',

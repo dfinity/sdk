@@ -2,7 +2,7 @@ use crate::lib::builders::{BuildConfig, BuildOutput, BuilderPool, CanisterBuilde
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
-use ic_http_agent::CanisterId;
+use ic_agent::CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use slog::Logger;
 use std::collections::BTreeMap;
@@ -102,6 +102,42 @@ impl CanisterPool {
         None
     }
 
+    pub fn generate_canister_id(&self, force: bool) -> DfxResult {
+        // Write all canister IDs if needed.
+        for canister in &self.canisters {
+            let canister_info = &canister.info;
+
+            let canister_id = if force {
+                None
+            } else {
+                canister_info.get_canister_id()
+            };
+            let canister_id = match canister_id {
+                Some(cid) => cid,
+                None => {
+                    std::fs::create_dir_all(
+                        canister_info
+                            .get_canister_id_path()
+                            .parent()
+                            .expect("Cannot use root."),
+                    )?;
+                    let cid = canister_info.generate_canister_id()?;
+                    std::fs::write(
+                        canister_info.get_canister_id_path(),
+                        cid.clone().into_blob().0,
+                    )
+                    .map_err(DfxError::from)?;
+
+                    cid
+                }
+            };
+
+            slog::debug!(self.logger, "  {} => {}", canister.get_name(), canister_id);
+        }
+
+        Ok(())
+    }
+
     fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
@@ -146,24 +182,8 @@ impl CanisterPool {
 
     /// Build all canisters, returning a vector of results of each builds.
     pub fn build(&self, build_config: BuildConfig) -> DfxResult<Vec<DfxResult<BuildOutput>>> {
-        // Write all canister IDs if needed.
-        for canister in &self.canisters {
-            slog::debug!(self.logger, "  '{}'", canister.get_name());
-            let canister_info = &canister.info;
-
-            if canister_info.get_canister_id().is_none() {
-                std::fs::create_dir_all(
-                    canister_info
-                        .get_canister_id_path()
-                        .parent()
-                        .expect("Cannot use root."),
-                )?;
-                std::fs::write(
-                    canister_info.get_canister_id_path(),
-                    canister_info.generate_canister_id()?.into_blob().0,
-                )
-                .map_err(DfxError::from)?;
-            }
+        if build_config.generate_id {
+            self.generate_canister_id(true)?;
         }
 
         let graph = self.build_dependencies_graph()?;

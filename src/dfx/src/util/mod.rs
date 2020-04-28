@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use ic_http_agent::Blob;
+use ic_agent::Blob;
 use serde_idl::{Encode, IDLArgs, IDLProg, EMPTY_DIDL};
 
 pub mod assets;

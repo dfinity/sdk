@@ -5,7 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
 use crate::lib::progress_bar::ProgressBar;
 
-use ic_http_agent::{Agent, AgentConfig};
+use ic_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;
 use slog::Record;

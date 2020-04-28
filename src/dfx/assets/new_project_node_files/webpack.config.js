@@ -13,15 +13,7 @@ const aliases = Object.entries(dfxJson.canisters).reduce((acc, [name,value]) => 
     ["ic:canisters/" + name]: path.join(outputRoot, filename + ".js"),
     ["ic:idl/" + name]: path.join(outputRoot, filename + ".did.js"),
   };
-}, {
-  // This will later point to the userlib from npm, when we publish the userlib.
-  "ic:userlib": path.join(
-    process.env["HOME"],
-    ".cache/dfinity/versions",
-    dfxJson.dfx || process.env["DFX_VERSION"],
-    "js-user-library/",
-  ),
-});
+}, {});
 
 /**
  * Generate a webpack configuration for a canister.

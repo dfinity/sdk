@@ -5,9 +5,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_http_agent::{
-    Agent, Blob, CanisterAttributes, ComputeAllocation, MemoryAllocation, RequestId,
-};
+use ic_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, MemoryAllocation, RequestId};
 use slog::info;
 use std::convert::{TryFrom, TryInto};
 use tokio::runtime::Runtime;

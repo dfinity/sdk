@@ -3,7 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use ic_http_agent::CanisterId;
+use ic_agent::CanisterId;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -58,6 +58,7 @@ pub trait CanisterBuilder {
 pub struct BuildConfig {
     profile: Profile,
     assets: bool,
+    pub generate_id: bool,
     metadata: BTreeMap<String, serde_json::Value>,
 }
 
@@ -66,12 +67,20 @@ impl BuildConfig {
         BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),
             assets: false,
+            generate_id: false,
             metadata: BTreeMap::new(),
         }
     }
 
     pub fn with_assets(self, assets: bool) -> Self {
         Self { assets, ..self }
+    }
+
+    pub fn with_generate_id(self, generate_id: bool) -> Self {
+        Self {
+            generate_id,
+            ..self
+        }
     }
 }
 

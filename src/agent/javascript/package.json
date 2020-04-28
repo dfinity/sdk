@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@internet-computer/userlib",
+  "name": "@dfinity/agent",
   "version": "0.5.0",
   "main": "src/index.js",
   "scripts": {

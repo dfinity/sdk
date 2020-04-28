@@ -58,3 +58,10 @@ teardown() {
     assert_command_fail dfx build
     assert_match 'import error, canister alias "random" not defined'
 }
+
+@test "build generates IDs every rebuild" {
+  assert_command dfx build
+  cp canisters/e2e_project/_canister.id previous_cid
+  assert_command dfx build
+  assert_command_fail diff canisters/e2e_project/_canister.id previous_cid
+}
