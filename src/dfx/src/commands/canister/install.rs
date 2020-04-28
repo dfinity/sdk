@@ -92,13 +92,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
-    let compute_allocation = match args.value_of("compute-allocation") {
-        Some(compute_allocation_arg) => Some(
-            ComputeAllocation::try_from(compute_allocation_arg.parse::<u64>().unwrap())
-                .expect("Compute Allocation must be a percentage."),
-        ),
-        None => None,
-    };
+    let compute_allocation = args.value_of("compute-allocation").map(|arg| {
+        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+            .expect("Compute Allocation must be a percentage.")
+    });
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
