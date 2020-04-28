@@ -100,7 +100,7 @@ fn compute_allocation_validator(compute_allocation: String) -> Result<(), String
 fn memory_allocation_validator(memory_allocation: String) -> Result<(), String> {
     match MemoryAllocation::try_from(memory_allocation) {
         Ok(_) => Ok(()),
-        Err(err) => Err(format!("{}", err))
+        Err(err) => Err(format!("{}", err)),
     }
 }
 
@@ -123,7 +123,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let memory_allocation = match args.value_of("memory-allocation") {
         Some(mem_alloc_arg) => Some(
             MemoryAllocation::try_from(mem_alloc_arg.to_string())
-            .expect("Memory Allocation must be a number between 0 and 2^48")
+                .expect("Memory Allocation must be a number between 0 and 2^48"),
         ),
         None => None,
     };
