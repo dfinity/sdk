@@ -7,7 +7,7 @@ use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};
 use slog::info;
-use std::convert::TryInto;
+use std::convert::TryFrom;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -39,7 +39,6 @@ pub fn construct() -> App<'static, 'static> {
                 .long("compute-allocation")
                 .short("c")
                 .takes_value(true)
-                .default_value("0")
                 .validator(compute_allocation_validator),
         )
 }
@@ -48,7 +47,7 @@ async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
     canister_info: &CanisterInfo,
-    compute_allocation: ComputeAllocation,
+    compute_allocation: Option<ComputeAllocation>,
 ) -> DfxResult<RequestId> {
     let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
@@ -93,13 +92,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
-    let compute_allocation: ComputeAllocation = args
-        .value_of("compute-allocation")
-        .unwrap_or("0")
-        .parse::<u64>()
-        .unwrap()
-        .try_into()
-        .expect("Compute Allocation must be a percentage.");
+    let compute_allocation = match args.value_of("compute-allocation") {
+        Some(compute_allocation_arg) => Some(
+            ComputeAllocation::try_from(compute_allocation_arg.parse::<u64>().unwrap())
+                .expect("Compute Allocation must be a percentage."),
+        ),
+        None => None,
+    };
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
