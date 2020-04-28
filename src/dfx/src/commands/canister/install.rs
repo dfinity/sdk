@@ -120,13 +120,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .try_into()
         .expect("Compute Allocation must be a percentage.");
 
-    let memory_allocation = match args.value_of("memory-allocation") {
-        Some(mem_alloc_arg) => Some(
-            MemoryAllocation::try_from(mem_alloc_arg.to_string())
-                .expect("Memory Allocation must be a number between 0 and 2^48"),
-        ),
-        None => None,
-    };
+    let memory_allocation = args.value_of("memory-allocation").map(|arg| {
+        MemoryAllocation::try_from(arg.to_string())
+            .expect("Memory Allocation must be a number between 0 and 2^48")
+    });
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
