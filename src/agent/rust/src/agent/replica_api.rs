@@ -1,42 +1,9 @@
 use crate::{Blob, CanisterId, RequestId};
 use serde::{Deserialize, Serialize};
 
-// pub type Principal = Vec<u8>;
-// pub type Pubkey = Vec<u8>;
-// pub type Signature = Vec<u8>;
-//
-// #[derive(Debug, Clone)]
-// pub struct SenderSignature {
-//     sender_pubkey: Pubkey,
-//     sender_sig: Signature,
-// }
-//
-// #[derive(Debug, Clone)]
-// pub struct Envelope<T: Serialize> {
-//     content: T,
-//     signatures: Vec<SenderSignature>,
-// }
-//
-// pub type AsyncRequest = Envelope<AsyncContent>;
-//
-// #[derive(Debug, Clone, Serialize)]
-// #[serde(tag = "request_type", rename_all = "snake_case")]
-// pub enum AsyncContent {
-//     CreateCanister {
-//         nonce: Vec<u8>,
-//         sender: Principal,
-//
-//         #[serde(skip_serializing_if = "Option::is_none")]
-//         desired_id: Option<Principal>,
-//     },
-//     InstallCode {
-//         nonce: Vec<u8>,
-//         sender: Principal,
-//         canister_id: Principal,
-//         module: Vec<u8>,
-//         arg: Vec<u8>,
-//     },
-// }
+pub type Principal = Blob;
+pub type Pubkey = Blob;
+pub type Signature = Blob;
 
 /// Request payloads for the /api/v1/read endpoint.
 /// This never needs to be deserialized.
@@ -84,6 +51,7 @@ pub enum SubmitRequest<'a> {
         module: &'a Blob,
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
+        sender: Principal,
         compute_allocation: u8,
     },
     Call {
@@ -102,19 +70,25 @@ pub enum Request<'a> {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(flatten)]
 pub struct MessageWithSender<T: Serialize> {
-    #[serde(flatten)]
-    pub request: T,
-    pub sender: Blob,
+    pub content: T,
+    pub sender: Prin,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(flatten)]
+pub struct SenderSignature {
+    pub sender_pubkey: Pubkey,
+    pub sender_sig: Signature,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SignedMessage<'a> {
-    #[serde(rename = "content")]
-    pub request_with_sender: Request<'a>,
-    pub sender_pubkey: Blob,
-    #[serde(rename = "sender_sig")]
-    pub signature: Blob,
+    #[serde(flatten)]
+    pub content: {
+    Request
+}<'a>,
+    pub signatures: Vec<SenderSignature>,
 }

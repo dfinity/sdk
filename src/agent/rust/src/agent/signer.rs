@@ -1,7 +1,7 @@
 use crate::agent::agent_error::AgentError;
 use crate::agent::replica_api::{Request, SignedMessage};
 use crate::types::request_id::to_request_id;
-use crate::{Blob, RequestId};
+use crate::{Blob, MessageWithSender, RequestId};
 
 /// A Signer amends the request with the [Signature] fields, computing
 /// the request id in the process.
@@ -22,21 +22,18 @@ pub trait Signer: Sync {
 pub struct DummyIdentity {}
 
 impl Signer for DummyIdentity {
-    fn sign<'a>(&self, request: Request<'a>) -> Result<(RequestId, SignedMessage<'a>), AgentError> {
-        // Bug(eftychis): Note normally the behavior here is to add a
-        // sender field that contributes to the request id. Right now
-        // there seems to be an issue with the behavior of sender in
-        // the request id. Trying to figure out if the correct
-        // behaviour changed and where the deviation happens.
-
-        let request_with_sender = request;
+    fn sign<'a>(&self, content: Request<'a>) -> Result<(RequestId, SignedMessage<'a>), AgentError> {
+        let request_with_sender = MessageWithSender {
+            content,
+            sender: Blob::from(vec![1; 32]),
+        };
         let request_id = to_request_id(&request_with_sender).map_err(AgentError::from)?;
 
         let signature = Blob::from(vec![1; 32]);
         let sender_pubkey = Blob::from(vec![2; 32]);
         let signed_request = SignedMessage {
             request_with_sender,
-            signature,
+            sender_sig: signature,
             sender_pubkey,
         };
         Ok((request_id, signed_request))

@@ -26,6 +26,7 @@ use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 use public::*;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Method, Response};
+use serde::Serialize;
 
 pub struct Agent {
     url: reqwest::Url,
@@ -52,8 +53,21 @@ impl Agent {
         })
     }
 
-    async fn execute(&self, request: reqwest::Request) -> Result<Response, AgentError> {
-        let response = self.client.execute(request).await?;
+    async fn execute<B>(&self, url: reqwest::Url, body: B) -> Result<Response, AgentError>
+    where
+        B: Serialize,
+    {
+        let mut record = Vec::new();
+        let mut serializer = serde_cbor::Serializer::new(&mut record);
+        serializer.self_describe()?;
+        body.serialize(&mut serializer)?;
+
+        let mut http_request = reqwest::Request::new(Method::POST, url);
+        http_request
+            .body_mut()
+            .get_or_insert(reqwest::Body::from(record));
+
+        let response = self.client.execute(http_request).await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             Err(AgentError::ServerError {
@@ -77,15 +91,9 @@ impl Agent {
     {
         let request = Request::Query(request);
         let (_, signed_request) = self.signer.sign(request)?;
-        let record = serde_cbor::to_vec(&signed_request)?;
-        let url = self.url.join("read")?;
 
-        let mut http_request = reqwest::Request::new(Method::POST, url);
-        http_request
-            .body_mut()
-            .get_or_insert(reqwest::Body::from(record));
+        let response = self.execute(self.url.join("read")?, signed_request).await?;
 
-        let response = self.execute(http_request).await?;
         let bytes = response.bytes().await?;
         serde_cbor::from_slice(&bytes).map_err(AgentError::from)
     }
@@ -96,20 +104,10 @@ impl Agent {
         let request = Request::Submit(request);
         let (request_id, signed_request) = self.signer.sign(request)?;
 
-        let mut record = Vec::new();
-        let mut serializer = serde_cbor::Serializer::new(&mut record);
-        serializer.self_describe();
-        serde::ser::Serializer::serialize(&signed_request, &mut serializer)?;
-
-        let url = self.url.join("submit")?;
-
-        let mut http_request = reqwest::Request::new(Method::POST, url);
-        http_request
-            .body_mut()
-            .get_or_insert(reqwest::Body::from(record));
-
         // Clippy doesn't like when return values are not used.
-        let _ = self.execute(http_request).await?;
+        let _ = self
+            .execute(self.url.join("submit")?, signed_request)
+            .await?;
         Ok(request_id)
     }
 

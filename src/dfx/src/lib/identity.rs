@@ -29,7 +29,7 @@ impl Signer for Identity {
         let sender_pubkey = Blob::from(signature_tuple.public_key);
         let signed_request = SignedMessage {
             request_with_sender: request,
-            signature,
+            sender_sig: signature,
             sender_pubkey,
         };
         Ok((request_id, signed_request))
