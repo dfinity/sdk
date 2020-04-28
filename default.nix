@@ -9,7 +9,7 @@ rec {
   dfx = import ./dfx.nix { inherit pkgs agent-js; };
 
   e2e-tests = import ./e2e/bats { inherit pkgs dfx; };
-  e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
+  e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; name = "e2e-tests-ic-ref"; };
   node-e2e-tests = import ./e2e/node { inherit pkgs dfx; };
 
   # Agents in varous languages

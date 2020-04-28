@@ -1,6 +1,43 @@
 use crate::{Blob, CanisterId, RequestId};
 use serde::{Deserialize, Serialize};
 
+// pub type Principal = Vec<u8>;
+// pub type Pubkey = Vec<u8>;
+// pub type Signature = Vec<u8>;
+//
+// #[derive(Debug, Clone)]
+// pub struct SenderSignature {
+//     sender_pubkey: Pubkey,
+//     sender_sig: Signature,
+// }
+//
+// #[derive(Debug, Clone)]
+// pub struct Envelope<T: Serialize> {
+//     content: T,
+//     signatures: Vec<SenderSignature>,
+// }
+//
+// pub type AsyncRequest = Envelope<AsyncContent>;
+//
+// #[derive(Debug, Clone, Serialize)]
+// #[serde(tag = "request_type", rename_all = "snake_case")]
+// pub enum AsyncContent {
+//     CreateCanister {
+//         nonce: Vec<u8>,
+//         sender: Principal,
+//
+//         #[serde(skip_serializing_if = "Option::is_none")]
+//         desired_id: Option<Principal>,
+//     },
+//     InstallCode {
+//         nonce: Vec<u8>,
+//         sender: Principal,
+//         canister_id: Principal,
+//         module: Vec<u8>,
+//         arg: Vec<u8>,
+//     },
+// }
+
 /// Request payloads for the /api/v1/read endpoint.
 /// This never needs to be deserialized.
 #[derive(Debug, Clone, Serialize)]

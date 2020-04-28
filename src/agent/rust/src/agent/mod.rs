@@ -25,7 +25,7 @@ use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 
 use public::*;
 use reqwest::header::HeaderMap;
-use reqwest::{Client, Method};
+use reqwest::{Client, Method, Response};
 
 pub struct Agent {
     url: reqwest::Url,
@@ -45,13 +45,30 @@ impl Agent {
         let url = config.url;
 
         Ok(Agent {
-            url: reqwest::Url::parse(url)
-                .and_then(|url| url.join("api/v1/"))
-                .map_err(|_| AgentError::InvalidClientUrl(String::from(url)))?,
+            url: reqwest::Url::parse(url).and_then(|url| url.join("api/v1/"))?,
             client: Client::builder().default_headers(default_headers).build()?,
             nonce_factory: config.nonce_factory,
             signer: config.signer,
         })
+    }
+
+    async fn execute(&self, request: reqwest::Request) -> Result<Response, AgentError> {
+        let response = self.client.execute(request).await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            Err(AgentError::ServerError {
+                status: response.status().into(),
+                content_type: response
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok())
+                    .unwrap_or("<unknown>")
+                    .to_string(),
+                content: response.text().await?.to_string(),
+            })
+        } else {
+            Ok(response)
+        }
     }
 
     async fn read<A>(&self, request: ReadRequest<'_>) -> Result<A, AgentError>
@@ -68,15 +85,9 @@ impl Agent {
             .body_mut()
             .get_or_insert(reqwest::Body::from(record));
 
-        let bytes = self
-            .client
-            .execute(http_request)
-            .await?
-            .error_for_status()?
-            .bytes()
-            .await?;
-
-        serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)
+        let response = self.execute(http_request).await?;
+        let bytes = response.bytes().await?;
+        serde_cbor::from_slice(&bytes).map_err(AgentError::from)
     }
 
     async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
@@ -85,7 +96,11 @@ impl Agent {
         let request = Request::Submit(request);
         let (request_id, signed_request) = self.signer.sign(request)?;
 
-        let record = serde_cbor::to_vec(&signed_request)?;
+        let mut record = Vec::new();
+        let mut serializer = serde_cbor::Serializer::new(&mut record);
+        serializer.self_describe();
+        serde::ser::Serializer::serialize(&signed_request, &mut serializer)?;
+
         let url = self.url.join("submit")?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
@@ -94,12 +109,7 @@ impl Agent {
             .get_or_insert(reqwest::Body::from(record));
 
         // Clippy doesn't like when return values are not used.
-        let _ = self
-            .client
-            .execute(http_request)
-            .await?
-            .error_for_status()?;
-
+        let _ = self.execute(http_request).await?;
         Ok(request_id)
     }
 

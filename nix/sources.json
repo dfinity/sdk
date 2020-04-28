@@ -1,4 +1,5 @@
 {
+
     "advisory-db": {
         "branch": "master",
         "builtin": false,
