@@ -48,21 +48,31 @@ impl std::convert::TryFrom<u8> for ComputeAllocation {
 
 #[derive(Clone, Debug)]
 pub enum MemoryAllocationError {
-    ValueOutOfRange,
+    ValueOutOfRange(u64),
+    NotANumber(String),
+    InvalidUnit(String),
 }
 
 impl std::fmt::Display for MemoryAllocationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            MemoryAllocationError::ValueOutOfRange => {
-                f.write_str("Must be a number between 0 and 2^48.")
+            MemoryAllocationError::ValueOutOfRange(num) => {
+                write!(f, "Must be a number between 0 and 2^48. Got {}", num)
             }
+            MemoryAllocationError::NotANumber(input) => {
+                write!(f, "Expecting a number for memory allocation, got {}", input)
+            }
+            MemoryAllocationError::InvalidUnit(unit) => write!(
+                f,
+                "Invalid unit for memory allocation {}. Expected one of <KB|MB|GB>.",
+                unit
+            ),
         }
     }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct MemoryAllocation(pub(crate) u64);
+pub struct MemoryAllocation(u64);
 
 impl std::convert::From<MemoryAllocation> for u64 {
     fn from(memory_allocation: MemoryAllocation) -> Self {
@@ -75,23 +85,47 @@ impl std::convert::TryFrom<u64> for MemoryAllocation {
 
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         if value > (1 << 48) {
-            Err(MemoryAllocationError::ValueOutOfRange)
+            Err(MemoryAllocationError::ValueOutOfRange(value))
         } else {
             Ok(Self(value))
         }
     }
 }
 
+impl std::convert::TryFrom<String> for MemoryAllocation {
+    type Error = MemoryAllocationError;
+
+    fn try_from(memory_allocation: String) -> Result<Self, Self::Error> {
+        let split_point = memory_allocation.find(|c: char| !c.is_numeric());
+        let memory_allocation = memory_allocation.trim();
+        let (raw_num, unit) = split_point.map_or_else(
+            || (memory_allocation, ""),
+            |p| memory_allocation.split_at(p),
+        );
+        let raw_num = raw_num
+            .parse::<u64>()
+            .map_err(|_| MemoryAllocationError::NotANumber(raw_num.to_string()))?;
+        let unit = unit.trim();
+        let num = match unit {
+            "KB" => raw_num * 1024,
+            "MB" => raw_num * 1024 * 1024,
+            "GB" => raw_num * 1024 * 1024 * 1024,
+            _ => return Err(MemoryAllocationError::InvalidUnit(unit.to_string())),
+        };
+        MemoryAllocation::try_from(num)
+    }
+}
+
 pub struct CanisterAttributes {
     pub compute_allocation: ComputeAllocation,
-    pub memory_allocation: MemoryAllocation,
+    pub memory_allocation: Option<MemoryAllocation>,
 }
 
 impl Default for CanisterAttributes {
     fn default() -> Self {
         CanisterAttributes {
             compute_allocation: ComputeAllocation(0),
-            memory_allocation: MemoryAllocation(8 * 1024 * 1024 * 1024),
+            memory_allocation: None,
         }
     }
 }

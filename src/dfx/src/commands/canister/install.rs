@@ -48,7 +48,6 @@ pub fn construct() -> App<'static, 'static> {
                 .long("memory-allocation")
                 .short("m")
                 .takes_value(true)
-                .default_value("8GB")
                 .validator(memory_allocation_validator),
         )
 }
@@ -58,7 +57,7 @@ async fn install_canister(
     agent: &Agent,
     canister_info: &CanisterInfo,
     compute_allocation: ComputeAllocation,
-    memory_allocation: MemoryAllocation,
+    memory_allocation: Option<MemoryAllocation>,
 ) -> DfxResult<RequestId> {
     let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
@@ -98,32 +97,10 @@ fn compute_allocation_validator(compute_allocation: String) -> Result<(), String
     Err("Must be a percent between 0 and 100".to_string())
 }
 
-fn parse_memory_allocation(memory_allocation: String) -> Result<u64, String> {
-    let split_point = memory_allocation.find(|c: char| !c.is_numeric());
-    let memory_allocation = memory_allocation.trim();
-    let (raw_num, unit) = split_point.map_or_else(
-        || (memory_allocation, ""),
-        |p| memory_allocation.split_at(p),
-    );
-    let raw_num = raw_num
-        .parse::<u64>()
-        .map_err(|_| format!("Could not parse number: {}", raw_num))?;
-    let unit = unit.trim();
-    match unit {
-        "KB" => Ok(raw_num * 1024),
-        "MB" => Ok(raw_num * 1024 * 1024),
-        "GB" => Ok(raw_num * 1024 * 1024 * 1024),
-        _ => return Err(format!("Invalid unit for memory allocation, {}. Expected one of <KB|MB|GB>", unit)),
-    }
-}
-
 fn memory_allocation_validator(memory_allocation: String) -> Result<(), String> {
-    let num = parse_memory_allocation(memory_allocation)?;
-
-    if num <= (1 << 48) {
-        Ok(())
-    } else {
-        Err("Must be a number of bytes between 0 and 2^48".to_string())
+    match MemoryAllocation::try_from(memory_allocation) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(format!("{}", err))
     }
 }
 
@@ -143,15 +120,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .try_into()
         .expect("Compute Allocation must be a percentage.");
 
-    let memory_allocation = MemoryAllocation::try_from(
-        parse_memory_allocation(
-            args.value_of("memory-allocation")
-                .unwrap_or("8GB")
-                .to_string(),
-        )
-        .unwrap(),
-    )
-    .expect("Memory Allocation must be a number between 0 and 2^48");
+    let memory_allocation = match args.value_of("memory-allocation") {
+        Some(mem_alloc_arg) => Some(
+            MemoryAllocation::try_from(mem_alloc_arg.to_string())
+            .expect("Memory Allocation must be a number between 0 and 2^48")
+        ),
+        None => None,
+    };
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 

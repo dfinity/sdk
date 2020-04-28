@@ -222,7 +222,7 @@ impl Agent {
             arg,
             nonce: &self.nonce_factory.generate(),
             compute_allocation: attributes.compute_allocation.0,
-            memory_allocation: attributes.memory_allocation.0,
+            memory_allocation: attributes.memory_allocation.map(|x| x.into()),
         })
         .await
     }

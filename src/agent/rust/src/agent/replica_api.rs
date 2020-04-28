@@ -48,7 +48,8 @@ pub enum SubmitRequest<'a> {
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
         compute_allocation: u8,
-        memory_allocation: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        memory_allocation: Option<u64>,
     },
     Call {
         canister_id: &'a CanisterId,
