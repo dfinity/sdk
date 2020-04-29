@@ -1,10 +1,6 @@
 use crate::{Blob, CanisterId, RequestId};
 use serde::{Deserialize, Serialize};
 
-pub type Principal = Blob;
-pub type Pubkey = Blob;
-pub type Signature = Blob;
-
 /// Request payloads for the /api/v1/read endpoint.
 /// This never needs to be deserialized.
 #[derive(Debug, Clone, Serialize)]
@@ -51,7 +47,6 @@ pub enum SubmitRequest<'a> {
         module: &'a Blob,
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
-        sender: Principal,
         compute_allocation: u8,
     },
     Call {
@@ -70,25 +65,19 @@ pub enum Request<'a> {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(flatten)]
+#[serde(rename_all = "snake_case")]
 pub struct MessageWithSender<T: Serialize> {
-    pub content: T,
-    pub sender: Prin,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(flatten)]
-pub struct SenderSignature {
-    pub sender_pubkey: Pubkey,
-    pub sender_sig: Signature,
+    #[serde(flatten)]
+    pub request: T,
+    pub sender: Blob,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SignedMessage<'a> {
-    #[serde(flatten)]
-    pub content: {
-    Request
-}<'a>,
-    pub signatures: Vec<SenderSignature>,
+    #[serde(rename = "content")]
+    pub request_with_sender: Request<'a>,
+    pub sender_pubkey: Blob,
+    #[serde(rename = "sender_sig")]
+    pub signature: Blob,
 }
