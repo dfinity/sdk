@@ -84,7 +84,7 @@ make sure the installer actually downloads and installs the new DFX release the
 
 3. This
    https://hydra.dfinity.systems/job/dfinity-ci-build/sdk/publish.install-sh.x86_64-linux[job]
-   is build on the `sdk` jobset which tracks the `master` branch.
+   is built on the `sdk` jobset which tracks the `master` branch.
 
 4. `deployer.dfinity.systems` is configured with the
    https://github.com/dfinity-lab/infra/blob/1fe63e06135be206d064a74461f739c4fafec3c7/services/nix/publish-sdk-release.nix#L48:L56[`publish-sdk-install-sh`]
