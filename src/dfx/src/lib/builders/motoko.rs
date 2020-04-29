@@ -273,7 +273,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
     let mut cmd = cache.get_binary_command("moc")?;
 
     let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
-    let stdlib_path = cache.get_binary_command_path("stdlib")?;
+    let stdlib_path = cache.get_binary_command_path("base")?;
     let input_path = if params.inject_code {
         let input_path = params.input;
         let mut content = std::fs::read_to_string(input_path)?;
@@ -301,7 +301,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
         .env("MOC_RTS", mo_rts_path.as_path())
         // TODO Move packages flags into params.to_args once dfx supports custom packages
         .arg("--package")
-        .arg("stdlib")
+        .arg("base")
         .arg(&stdlib_path.as_path());
     run_command(cmd, params.verbose, params.surpress_warning)?;
 
