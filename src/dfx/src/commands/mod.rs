@@ -9,6 +9,7 @@ mod canister;
 mod config;
 mod language_service;
 mod new;
+mod principal;
 mod replica;
 mod start;
 mod stop;
@@ -48,6 +49,7 @@ pub fn builtin() -> Vec<CliCommand> {
         CliCommand::new(config::construct(), config::exec),
         CliCommand::new(language_service::construct(), language_service::exec),
         CliCommand::new(new::construct(), new::exec),
+        CliCommand::new(principal::construct(), principal::exec),
         CliCommand::new(replica::construct(), replica::exec),
         CliCommand::new(start::construct(), start::exec),
         CliCommand::new(stop::construct(), stop::exec),

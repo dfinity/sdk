@@ -18,6 +18,15 @@ pub enum Error {
     PemError(pem::PemError),
     /// Failed to access file.
     IOError(std::io::Error),
+    /// Parsed unexpected key.
+    ParsedKeyError(ParsedKeyError),
+}
+
+/// Parsed private and public key inconsistencies.
+#[derive(Debug)]
+pub enum ParsedKeyError {
+    PrivateKeyPlaintext,
+    PrivateKeyEncrypted,
 }
 
 impl From<ring::error::Unspecified> for Error {

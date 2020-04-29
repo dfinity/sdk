@@ -28,9 +28,9 @@
 //! over a corresponding canister. Each canister has one or more
 //! controllers.
 
-use crate::basic::BasicProvider;
 use crate::crypto_error::Error;
 use crate::crypto_error::Result;
+use crate::provider::BasicProvider;
 use crate::types::Signature;
 
 use std::path::PathBuf;
@@ -42,15 +42,13 @@ use std::path::PathBuf;
 /// principals or credential services, each combination represented by
 /// a provider.
 pub struct Identity {
-    // TODO(eftychis): This changes into a precendence map. Note that
-    // principals are not going to be tied with credentials. We keep
-    // it simple, simply picking the first provider.
     inner: BasicProvider,
 }
 
 impl Identity {
-    /// Return a corresponding provided a profile path.  We pass a simple
-    /// configuration for now, but this might change in the future.
+    /// Return a corresponding provided a profile path. We pass a
+    /// simple configuration for now, but this might change in the
+    /// future.
     pub fn new(path: PathBuf) -> Result<Self> {
         let basic_provider = BasicProvider::new(path)?;
         Ok(Self {

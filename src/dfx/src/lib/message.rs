@@ -68,6 +68,10 @@ user_message!(
     OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
 
+    // dfx principal
+    Principal => "Manages anything related to the user identity and principals.",
+    PrincipalNew => "Constructs a new principal",
+
     // dfx new
     CreateProject => "Creates a new project.",
     ProjectName => "Specifies the name of the project to create.",

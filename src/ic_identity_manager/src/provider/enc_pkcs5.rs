@@ -1,15 +1,14 @@
 //! Provides a basic example provider that utilizes unencrypted PEM
 //! files. This is provided as a basic stepping stone to provide
-//! further functionality. Note that working with unencrypted PEM is
-//! not the best idea.
+//! further functionality.
 //!
-//! However, there are two options: i) prompt the user per call, as
-//! the agent is "stateless" or ii) provide long-running service
-//! providers -- such as PGP, ssh-agent.
-use crate::crypto_error::{Error, Result};
+//! We do not use PKCS#5 as it is outdated. We instead encrypt data at
+//! rest using ChaCha20.
+use crate::crypto_error::{Error, ParsedKeyError, Result};
+use crate::encryption::{decrypt, derive_key, encrypt};
 use crate::types::Signature;
 
-use ic_agent::Principal;
+use ic_http_agent::Principal;
 use pem::{encode, Pem};
 use ring::signature::Ed25519KeyPair;
 use ring::{
@@ -21,39 +20,38 @@ use std::path::{Path, PathBuf};
 
 // This module should not be re-exported. We want to ensure
 // construction and handling of keys is done only here.
-use self::private::BasicProviderReady;
+use self::private::EncryptedKeyProviderReady;
 
 #[derive(Clone)]
-pub struct BasicProvider {
+pub struct EncryptedKeyProvider {
     path: PathBuf,
+    passphrase: String,
 }
 
-impl BasicProvider {
-    pub fn new(path: PathBuf) -> Result<Self> {
+impl EncryptedKeyProvider {
+    pub fn new(path: PathBuf, passphrase: String) -> Result<Self> {
         if !path.is_dir() {
             return Err(Error::ProviderFailedToInitialize);
         }
-        Ok(Self { path })
+        Ok(Self { path, passphrase })
     }
 }
 
-fn generate(profile_path: &impl AsRef<Path>) -> Result<PathBuf> {
+fn generate(profile_path: &impl AsRef<Path>, passphrase: &[u8]) -> Result<PathBuf> {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
-    // We create a temporary file that gets overwritten every time
-    // we create a new provider for now.
+    let key = derive_key(passphrase, &[0u8])?;
+    let pkcs8_bytes = encrypt(&(*pkcs8_bytes.as_ref()), key.as_ref())?;
     let pem_file = profile_path.as_ref().join("creds.pem");
-    fs::write(&pem_file, encode_pem_private_key(&(*pkcs8_bytes.as_ref())))?;
+    let contents = encode_pem_private_key(&pkcs8_bytes);
+    fs::write(&pem_file, contents)?;
 
-    assert_eq!(
-        pem::parse(fs::read(&pem_file)?)?.contents,
-        pkcs8_bytes.as_ref()
-    );
+    assert_eq!(pem::parse(fs::read(&pem_file)?)?.contents, pkcs8_bytes);
     Ok(pem_file)
 }
 
-impl BasicProvider {
-    pub fn provide(&self) -> Result<BasicProviderReady> {
+impl EncryptedKeyProvider {
+    pub fn provide(&self) -> Result<EncryptedKeyProviderReady> {
         let mut dir = fs::read_dir(&self.path)?;
         let name: std::ffi::OsString = "creds.pem".to_owned().into();
         let pem_file = if dir.any(|n| match n {
@@ -62,13 +60,21 @@ impl BasicProvider {
         }) {
             self.path.join("creds.pem")
         } else {
-            generate(&self.path)?
+            generate(&self.path, self.passphrase.as_bytes())?
         };
 
-        let pkcs8_bytes = pem::parse(fs::read(pem_file)?)?.contents;
+        let pem_value = pem::parse(fs::read(pem_file)?)?;
+        if "ENCRYPTED PRIVATE KEY" != pem_value.tag {
+            return Err(Error::ParsedKeyError(ParsedKeyError::PrivateKeyPlaintext));
+        }
+
+        let pkcs8_bytes = pem_value.contents;
+        let key = derive_key(&self.passphrase.as_bytes(), &[0u8])?;
+        let pkcs8_bytes = decrypt(&pkcs8_bytes, &key)?;
+
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
 
-        Ok(BasicProviderReady { key_pair })
+        Ok(EncryptedKeyProviderReady { key_pair })
     }
 }
 
@@ -82,11 +88,11 @@ mod private {
     /// We enforce a state transition, reading the key as necessary, only
     /// to sign. TODO(eftychis): We should erase pin and erase the key
     /// from memory afterwards.
-    pub struct BasicProviderReady {
+    pub struct EncryptedKeyProviderReady {
         pub key_pair: Ed25519KeyPair,
     }
 
-    impl BasicProviderReady {
+    impl EncryptedKeyProviderReady {
         pub fn sign(&self, msg: &[u8]) -> Result<Signature> {
             let signature = self.key_pair.sign(msg);
             // At this point we shall validate the signature in this first
@@ -110,7 +116,7 @@ mod private {
 
 fn encode_pem_private_key(key: &[u8]) -> String {
     let pem = Pem {
-        tag: "PRIVATE KEY".to_owned(),
+        tag: "ENCRYPTED PRIVATE KEY".to_owned(),
         contents: key.to_vec(),
     };
     encode(&pem)
