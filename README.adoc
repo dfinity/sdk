@@ -29,3 +29,65 @@ dfx help
 == Contributing to the DFINITY SDK
 
 See our contributing guidelines link:.github/CONTRIBUTING.adoc[here].
+
+== Release Process
+
+The SDK is released in two steps:
+
+1. Publishing a new DFX release.
+
+2. Publishing a new `manifest.json` and `install.sh` to instruct the installer
+   to actually download and install the new DFX release.
+
+=== Publising DFX
+
+1. The release manager makes sure the `sdk` `stable` branch points to the revision
+   that should be released and that the revision is tagged with a version (like
+   `0.5.6`).
+
+2. The
+   https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release#tabs-configuration[`sdk-release`]
+   jobset on Hydra tracks the `stable` branch and starts evaluating shortly
+   after `stable` advances.
+
+3. As you can see it only has the single job `publish.dfx.x86_64-linux` which is
+   defined https://github.com/dfinity-lab/sdk/blob/stable/ci/release.nix[here]
+   in terms of the
+   https://github.com/dfinity-lab/sdk/blob/stable/publish.nix[`dfx`] job. Note
+   that the `publish.dfx.x86_64-linux` job only exists when the revision has a
+   proper version tag. This prevents publishing of untagged revisions.
+
+4. Our CD system running at `deployer.dfinity.systems` is configured with the
+   https://github.com/dfinity-lab/infra/blob/1fe63e06135be206d064a74461f739c4fafec3c7/services/nix/publish-sdk-release.nix#L39:L47[`publish-sdk-dfx-release`]
+   job. It will monitor the aforementioned `publish.dfx.x86_64-linux` job for
+   new builds, whenever there's a new build it will download the output (the CD
+   script) and execute it.
+
+5. As you can see the script also sends a message to the `#build-notifications`
+   Slack channel so you can see when and if the SDK has been published.
+
+=== Publishing `manifest.json` and `install.sh`
+
+After the DFX has been released it's available for download but the install
+script at https://sdk.dfinity.org/install.sh won't immediately install it. To
+make sure the installer actually downloads and installs the new DFX release the
+`manifest.json` file at https://sdk.dfinity.org/manifest.json has to set its
+`tags.latest` field to the new version. The following explains how to do that.
+
+1. Edit the `public/manifest.json` file such that it points to the new DFX
+   version and make sure this is merged in `master`.
+
+2. Similarly to releasing the DFX there's a
+   https://github.com/dfinity-lab/sdk/blob/stable/publish.nix[`install-sh`] job
+   that builds a CD script for publishing the `manifest.json` and `install.sh`
+   to our CDN.
+
+3. This
+   https://hydra.dfinity.systems/job/dfinity-ci-build/sdk/publish.install-sh.x86_64-linux[job]
+   is build on the `sdk` jobset which tracks the `master` branch.
+
+4. `deployer.dfinity.systems` is configured with the
+   https://github.com/dfinity-lab/infra/blob/1fe63e06135be206d064a74461f739c4fafec3c7/services/nix/publish-sdk-release.nix#L48:L56[`publish-sdk-install-sh`]
+   job which will monitor the aforementioned `publish.install-sh.x86_64-linux`
+   job for new builds, whenever there's a new build it will download the output
+   (the CD script) and execute it.
