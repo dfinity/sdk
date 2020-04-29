@@ -47,13 +47,13 @@ impl std::convert::TryFrom<u8> for ComputeAllocation {
 }
 
 pub struct CanisterAttributes {
-    pub compute_allocation: ComputeAllocation,
+    pub compute_allocation: Option<ComputeAllocation>,
 }
 
 impl Default for CanisterAttributes {
     fn default() -> Self {
         CanisterAttributes {
-            compute_allocation: ComputeAllocation(0),
+            compute_allocation: None,
         }
     }
 }
