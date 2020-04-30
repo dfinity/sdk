@@ -356,14 +356,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .to_str()
         .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
 
-    let js_agent_version = if current_version.is_prerelease() {
-        env.get_cache()
-            .get_binary_command_path("js-user-library")?
-            .to_string_lossy()
-            .to_string()
-    } else {
-        version_str.clone()
-    };
+    let js_agent_version = env
+        .get_cache()
+        .get_binary_command_path("js-user-library")?
+        .to_string_lossy()
+        .to_string();
 
     let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
