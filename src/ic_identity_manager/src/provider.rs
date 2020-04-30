@@ -5,8 +5,6 @@
 // use crate::crypto_error::Result;
 // use crate::types::Signature;
 
-// use ic_http_agent::Principal;
-
 // /// A provider corresponds to a combination of principal and
 // /// credentials. It provides an IdentityWallet to allow
 // /// a user to authenticate with a particular principal and service

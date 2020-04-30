@@ -1,7 +1,5 @@
 use crate::crypto_error::{Error, Result};
-// use crate::types::Signature;
 
-// use ic_http_agent::Principal;
 // use pem::{encode, Pem};
 use ring::aead::CHACHA20_POLY1305;
 use ring::aead::{Aad, BoundKey, UnboundKey};

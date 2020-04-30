@@ -8,7 +8,7 @@ use crate::crypto_error::{Error, ParsedKeyError, Result};
 use crate::encryption::{decrypt, derive_key, encrypt};
 use crate::types::Signature;
 
-use ic_http_agent::Principal;
+use ic_agent::Principal;
 use pem::{encode, Pem};
 use ring::signature::Ed25519KeyPair;
 use ring::{
