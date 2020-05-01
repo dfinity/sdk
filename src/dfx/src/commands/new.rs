@@ -356,9 +356,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .to_str()
         .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
 
+    let js_agent_version = env
+        .get_cache()
+        .get_binary_command_path("js-user-library")?
+        .to_string_lossy()
+        .to_string();
+
     let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
         ("dfx_version".to_string(), version_str.clone()),
+        ("js_agent_version".to_string(), js_agent_version),
         ("dot".to_string(), ".".to_string()),
     ]
     .iter()
