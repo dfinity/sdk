@@ -28,11 +28,7 @@ let
       ''cargo $cargo_options test $cargo_test_options --workspace --exclude ic-agent''
       ''RUST_TEST_THREADS=1 cargo $cargo_options test $cargo_test_options -p ic-agent''
     ];
-    override = oldAttrs: {
-      # ps is needed in the wabt build. otherwise it passes a bad command line to clang,
-      # causing a linker error
-      extraBuildInputs = lib.optional pkgs.stdenv.isDarwin pkgs.ps;
-    };
+    static = pkgs.stdenv.isLinux;
   };
 
   # add extra executables used when linting
