@@ -8,25 +8,26 @@ pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
-    pub use super::replica_api::{MessageWithSender, ReadRequest, Request, SignedMessage};
     pub use super::response::{Replied, RequestStatusResponse};
-    pub use super::signer::Signer;
     pub use super::Agent;
+    pub use super::Signature;
 }
 
 #[cfg(test)]
 mod agent_test;
 
-pub mod signer;
-
-use crate::agent::replica_api::{ReadRequest, ReadResponse, Request, SubmitRequest};
-use crate::agent::signer::Signer;
-use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
+use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, RequestId, Signer};
 
 use public::*;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Method, Response};
 use serde::Serialize;
+
+/// A signature for a request.
+pub struct Signature {
+    pub public_key: Blob,
+    pub signature: Blob,
+}
 
 pub struct Agent {
     url: reqwest::Url,
@@ -85,29 +86,44 @@ impl Agent {
         }
     }
 
-    async fn read<A>(&self, request: ReadRequest<'_>) -> Result<A, AgentError>
+    async fn read<A>(&self, request: replica_api::SyncContent) -> Result<A, AgentError>
     where
         A: serde::de::DeserializeOwned,
     {
-        let request = Request::Query(request);
-        let (_, signed_request) = self.signer.sign(request)?;
+        let request_id = to_request_id(&request)?;
+        let signature = self.signer.sign(&request_id)?;
 
-        let response = self.execute(self.url.join("read")?, signed_request).await?;
+        let request = replica_api::SyncRequest {
+            signatures: vec![replica_api::Signatures0 {
+                sender_pubkey: signature.public_key.as_slice().to_vec(),
+                sender_sig: signature.signature.as_slice().to_vec(),
+            }],
+            content: request,
+        };
+
+        let response = self.execute(self.url.join("read")?, request).await?;
 
         let bytes = response.bytes().await?;
         serde_cbor::from_slice(&bytes).map_err(AgentError::from)
     }
 
-    async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
+    async fn submit(&self, request: replica_api::AsyncContent) -> Result<RequestId, AgentError> {
+        let request_id = to_request_id(&request)?;
+        let signature = self.signer.sign(&request_id)?;
+
         // We need to calculate the signature, and thus also the
         // request id initially.
-        let request = Request::Submit(request);
-        let (request_id, signed_request) = self.signer.sign(request)?;
+        let request = replica_api::AsyncRequest {
+            signatures: vec![replica_api::Signatures0 {
+                sender_pubkey: signature.public_key.as_slice().to_vec(),
+                sender_sig: signature.signature.as_slice().to_vec(),
+            }],
+            content: request,
+        };
 
-        // Clippy doesn't like when return values are not used.
-        let _ = self
-            .execute(self.url.join("submit")?, signed_request)
-            .await?;
+        // Clippy doesn't like when return values are not used. We use the error part of the
+        // Result.
+        let _ = self.execute(self.url.join("submit")?, request).await?;
         Ok(request_id)
     }
 
@@ -119,20 +135,19 @@ impl Agent {
         method_name: &'a str,
         arg: &'a Blob,
     ) -> Result<Blob, AgentError> {
-        self.read::<ReadResponse>(ReadRequest::Query {
-            canister_id,
-            method_name,
-            arg,
+        self.read::<replica_api::QueryResponse>(replica_api::SyncContent::QueryRequest {
+            sender: self.signer.sender().as_ref().to_vec(),
+            canister_id: canister_id.as_bytes().to_vec(),
+            method_name: method_name.to_string(),
+            arg: arg.clone().as_slice().to_vec(),
         })
         .await
         .and_then(|response| match response {
-            ReadResponse::Replied { reply } => Ok(reply.arg),
-            ReadResponse::Rejected {
+            replica_api::QueryResponse::Replied { reply } => Ok(Blob::from(reply.arg)),
+            replica_api::QueryResponse::Rejected {
                 reject_code,
                 reject_message,
             } => Err(AgentError::ClientError(reject_code, reject_message)),
-            ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
-            ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
         })
     }
 
@@ -140,28 +155,61 @@ impl Agent {
         &self,
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
-        self.read(ReadRequest::RequestStatus { request_id }).await
+        self.read(replica_api::SyncContent::RequestStatusRequest {
+            request_id: request_id.to_vec(),
+        })
+        .await
+        .map(|response| match response {
+            replica_api::RequestStatusResponse::Replied { reply } => {
+                let reply = match reply {
+                    replica_api::RequestStatusResponseReplied::CallReply(reply) => {
+                        Replied::CallReplied(Blob::from(&reply.arg))
+                    }
+                    replica_api::RequestStatusResponseReplied::InstallCodeReply(_) => {
+                        Replied::InstallCodeReplied
+                    }
+                    replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
+                        Replied::CreateCanisterReply(CanisterId::from_bytes(reply.canister_id))
+                    }
+                };
+
+                RequestStatusResponse::Replied { reply }
+            }
+            replica_api::RequestStatusResponse::Unknown {} => RequestStatusResponse::Unknown,
+            replica_api::RequestStatusResponse::Received {} => RequestStatusResponse::Pending,
+            replica_api::RequestStatusResponse::Processing {} => RequestStatusResponse::Pending,
+            replica_api::RequestStatusResponse::Rejected {
+                reject_code,
+                reject_message,
+            } => RequestStatusResponse::Rejected {
+                reject_code,
+                reject_message,
+            },
+        })
     }
 
+    /// Request a status and return the response, but wait if the response is Unknown or
+    /// Pending, and will return a [AgentError::ClientError] if the call is rejected. If
+    /// the request is Replied, it will unpack the reply and return it.
+    ///
+    /// This is the same result as [request_status], with the exception that it is guaranteed to
+    /// only return [RequestStatusReponse::Replied] or and Err(AgentError).
     pub async fn request_status_and_wait<W: delay::Waiter>(
         &self,
         request_id: &RequestId,
         mut waiter: W,
-    ) -> Result<Option<Blob>, AgentError> {
+    ) -> Result<Replied, AgentError> {
         waiter.start();
 
         loop {
             match self.request_status(request_id).await? {
-                RequestStatusResponse::Replied { reply } => match reply {
-                    Replied::CodeCallReplied { arg } => return Ok(Some(arg)),
-                    Replied::Empty {} => return Ok(None),
-                },
+                RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
                     reject_code,
                     reject_message,
                 } => return Err(AgentError::ClientError(reject_code, reject_message)),
-                RequestStatusResponse::Unknown => (),
-                RequestStatusResponse::Pending => (),
+                RequestStatusResponse::Unknown {} => (),
+                RequestStatusResponse::Pending {} => (),
             };
 
             waiter
@@ -176,9 +224,12 @@ impl Agent {
         method_name: &str,
         arg: &Blob,
         waiter: W,
-    ) -> Result<Option<Blob>, AgentError> {
+    ) -> Result<Blob, AgentError> {
         let request_id = self.call(canister_id, method_name, arg).await?;
-        self.request_status_and_wait(&request_id, waiter).await
+        match self.request_status_and_wait(&request_id, waiter).await? {
+            Replied::CallReplied(arg) => Ok(arg),
+            reply => Err(AgentError::UnexpectedReply(reply)),
+        }
     }
 
     pub async fn call(
@@ -187,11 +238,12 @@ impl Agent {
         method_name: &str,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
-        self.submit(SubmitRequest::Call {
-            canister_id,
-            method_name,
-            arg,
-            nonce: &self.nonce_factory.generate(),
+        self.submit(replica_api::AsyncContent::CallRequest {
+            canister_id: canister_id.as_bytes().to_vec(),
+            method_name: method_name.into(),
+            arg: arg.as_slice().to_vec(),
+            nonce: self.nonce_factory.generate().map(|b| b.as_slice().to_vec()),
+            sender: self.signer.sender().as_ref().to_vec(),
         })
         .await
     }
@@ -212,9 +264,12 @@ impl Agent {
         module: &Blob,
         arg: &Blob,
         waiter: W,
-    ) -> Result<Option<Blob>, AgentError> {
+    ) -> Result<(), AgentError> {
         let request_id = self.install(canister_id, module, arg).await?;
-        self.request_status_and_wait(&request_id, waiter).await
+        match self.request_status_and_wait(&request_id, waiter).await? {
+            Replied::InstallCodeReplied => Ok(()),
+            reply => Err(AgentError::UnexpectedReply(reply)),
+        }
     }
 
     pub async fn install_with_attrs(
@@ -224,12 +279,15 @@ impl Agent {
         arg: &Blob,
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
-        self.submit(SubmitRequest::InstallCode {
-            canister_id,
-            module,
-            arg,
-            nonce: &self.nonce_factory.generate(),
-            compute_allocation: attributes.compute_allocation.0,
+        self.submit(replica_api::AsyncContent::InstallCodeRequest {
+            canister_id: canister_id.as_bytes().to_vec(),
+            module: module.as_slice().to_vec(),
+            arg: arg.as_slice().to_vec(),
+            nonce: self.nonce_factory.generate().map(|b| b.as_slice().to_vec()),
+            compute_allocation: Some(attributes.compute_allocation.0),
+            memory_allocation: None,
+            sender: vec![],
+            mode: None,
         })
         .await
     }

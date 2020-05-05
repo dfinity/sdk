@@ -48,6 +48,15 @@ impl AsRef<[u8]> for PrincipalInner {
     }
 }
 
+impl From<&[u8]> for Principal {
+    fn from(value: &[u8]) -> Self {
+        match value[value.len() - 1] {
+            0x02 => Self(PrincipalInner::SelfAuthenticating(value.to_vec())),
+            x => panic!("Invalid Principal type: {}", x),
+        }
+    }
+}
+
 impl Serialize for Principal {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self.0.clone() {

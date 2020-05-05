@@ -5,7 +5,7 @@ use crate::lib::message::UserMessage;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::RequestId;
+use ic_agent::{Replied, RequestId};
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
@@ -34,7 +34,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    if let Some(blob) = runtime
+    if let Replied::CallReplied(blob) = runtime
         .block_on(agent.request_status_and_wait(&request_id, create_waiter()))
         .map_err(DfxError::from)?
     {

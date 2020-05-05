@@ -1,5 +1,5 @@
-use crate::agent::signer::{DummyIdentity, Signer};
 use crate::NonceFactory;
+use crate::{DummyIdentity, Signer};
 
 pub struct AgentConfig<'a> {
     pub url: &'a str,

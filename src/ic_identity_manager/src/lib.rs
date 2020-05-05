@@ -22,6 +22,7 @@ use crate::basic::BasicSigner;
 use crate::crypto_error::Error;
 use crate::crypto_error::Result;
 use crate::types::Signature;
+use ic_agent::Principal;
 
 use std::path::PathBuf;
 
@@ -42,6 +43,11 @@ impl Identity {
             inner: basic_provider,
         })
     }
+
+    pub fn sender(&self) -> Principal {
+        self.inner.provide().unwrap().principal()
+    }
+
     /// Sign the provided message assuming a certain principal.
     pub fn sign(&self, msg: &[u8]) -> Result<Signature> {
         let identity = self

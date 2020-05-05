@@ -1,10 +1,9 @@
-use crate::Blob;
-use serde::Deserialize;
+//! Types for the Public API part of the Agent. This should be exposed and returned from methods
+//! on the agent. These are not serializable because they're not meant to be sent over the wire.
+use crate::{Blob, CanisterId};
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-#[serde(tag = "status")]
-/// The response of /api/v1/read with "request_status" request type
+/// The response of /api/v1/read with "request_status" request type.
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum RequestStatusResponse {
     Unknown,
     Pending,
@@ -12,14 +11,14 @@ pub enum RequestStatusResponse {
         reply: Replied,
     },
     Rejected {
-        reject_code: u16,
+        reject_code: u64,
         reject_message: String,
     },
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Replied {
-    CodeCallReplied { arg: Blob },
-    Empty {},
+    CallReplied(Blob),
+    CreateCanisterReply(CanisterId),
+    InstallCodeReplied,
 }
