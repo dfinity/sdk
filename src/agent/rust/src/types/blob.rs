@@ -40,6 +40,18 @@ impl<T: AsRef<[u8]>> From<T> for Blob {
     }
 }
 
+impl Into<crate::agent::replica_api::Bytes> for Blob {
+    fn into(self) -> crate::agent::replica_api::Bytes {
+        crate::agent::replica_api::Bytes::from(self.0)
+    }
+}
+
+impl From<crate::agent::replica_api::Bytes> for Blob {
+    fn from(bytes: crate::agent::replica_api::Bytes) -> Self {
+        Self(bytes.0)
+    }
+}
+
 /// Serialize into a u64 for now.
 impl Serialize for Blob {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

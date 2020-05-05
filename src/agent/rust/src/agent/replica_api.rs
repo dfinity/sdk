@@ -1,10 +1,48 @@
 //! This file is generated from requests.cddl.
 #![allow(dead_code)]
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-pub type Principal = Vec<u8>;
-pub type Pubkey = Vec<u8>;
-pub type Signature = Vec<u8>;
+#[derive(Debug, Clone)]
+pub struct Bytes(pub Vec<u8>);
+impl<'a> Deserialize<'a> for Bytes {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'a>>::Error>
+    where
+        D: Deserializer<'a>,
+    {
+        struct BytesVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for BytesVisitor {
+            type Value = Bytes;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("a byte string (bytes)")
+            }
+
+            fn visit_bytes<E: serde::de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+                Ok(Bytes(value.to_vec()))
+            }
+        }
+
+        deserializer.deserialize_bytes(BytesVisitor)
+    }
+}
+impl Serialize for Bytes {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(self.0.as_slice())
+    }
+}
+impl<T: AsRef<[u8]>> From<T> for Bytes {
+    fn from(bytes: T) -> Self {
+        Self(bytes.as_ref().to_vec())
+    }
+}
+
+pub type Principal = Bytes;
+pub type Pubkey = Bytes;
+pub type Signature = Bytes;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Signatures0 {
@@ -13,9 +51,13 @@ pub struct Signatures0 {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Envelope<T: Serialize> {
-    pub signatures: Vec<Signatures0>,
-    pub content: T,
+#[serde(untagged)]
+pub enum Envelope<T: Serialize> {
+    Envelope {
+        sender_pubkey: Pubkey,
+        sender_sig: Signature,
+        content: T,
+    },
 }
 
 pub type AsyncRequest = Envelope<AsyncContent>;
@@ -35,17 +77,20 @@ pub enum InstallCodeRequestMode {
 pub enum AsyncContent {
     #[serde(rename = "create_canister")]
     CreateCanisterRequest {
-        nonce: Option<Vec<u8>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        nonce: Option<Bytes>,
         sender: Principal,
-        desired_id: Principal,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        desired_id: Option<Principal>,
     },
     #[serde(rename = "install_code")]
     InstallCodeRequest {
-        nonce: Option<Vec<u8>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        nonce: Option<Bytes>,
         sender: Principal,
         canister_id: Principal,
-        module: Vec<u8>,
-        arg: Vec<u8>,
+        module: Bytes,
+        arg: Bytes,
         #[serde(skip_serializing_if = "Option::is_none")]
         compute_allocation: Option<u8>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -55,18 +100,20 @@ pub enum AsyncContent {
     },
     #[serde(rename = "set_controller")]
     SetControllerRequest {
-        nonce: Option<Vec<u8>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        nonce: Option<Bytes>,
         sender: Principal,
         canister_id: Principal,
         controller: Principal,
     },
     #[serde(rename = "call")]
     CallRequest {
-        nonce: Option<Vec<u8>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        nonce: Option<Bytes>,
         sender: Principal,
         canister_id: Principal,
         method_name: String,
-        arg: Vec<u8>,
+        arg: Bytes,
     },
 }
 
@@ -76,13 +123,13 @@ pub type SyncRequest = Envelope<SyncContent>;
 #[serde(tag = "request_type")]
 pub enum SyncContent {
     #[serde(rename = "request_status")]
-    RequestStatusRequest { request_id: Vec<u8> },
+    RequestStatusRequest { request_id: Bytes },
     #[serde(rename = "query")]
     QueryRequest {
         sender: Principal,
         canister_id: Principal,
         method_name: String,
-        arg: Vec<u8>,
+        arg: Bytes,
     },
 }
 
@@ -130,7 +177,7 @@ pub struct InstallCodeReply {}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CallReply {
-    pub arg: Vec<u8>,
+    pub arg: Bytes,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

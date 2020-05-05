@@ -19,7 +19,7 @@ pub enum AgentError {
     ClientError(u64, String),
     ServerError {
         status: u16,
-        content_type: String,
+        content_type: Option<String>,
         content: String,
     },
 

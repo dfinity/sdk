@@ -10,7 +10,7 @@ fn query() -> Result<(), AgentError> {
     let blob = Blob(Vec::from("Hello World"));
     let response = replica_api::QueryResponse::Replied {
         reply: replica_api::CallReply {
-            arg: blob.clone().as_slice().to_vec(),
+            arg: blob.clone().into(),
         },
     };
 
@@ -104,7 +104,7 @@ fn call() -> Result<(), AgentError> {
     let blob = Blob(Vec::from("Hello World"));
     let response = replica_api::RequestStatusResponse::Replied {
         reply: replica_api::RequestStatusResponseReplied::CallReply(replica_api::CallReply {
-            arg: blob.clone().as_slice().to_vec(),
+            arg: blob.clone().into(),
         }),
     };
 

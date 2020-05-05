@@ -54,7 +54,11 @@ impl Agent {
         })
     }
 
-    async fn execute<B>(&self, url: reqwest::Url, body: B) -> Result<Response, AgentError>
+    async fn execute<B: std::fmt::Debug>(
+        &self,
+        url: reqwest::Url,
+        body: B,
+    ) -> Result<Response, AgentError>
     where
         B: Serialize,
     {
@@ -77,11 +81,11 @@ impl Agent {
                     .headers()
                     .get(reqwest::header::CONTENT_TYPE)
                     .and_then(|value| value.to_str().ok())
-                    .unwrap_or("<unknown>")
-                    .to_string(),
+                    .map(|x| x.to_string()),
                 content: response.text().await?.to_string(),
             })
         } else {
+            eprintln!("response: {:?}", response);
             Ok(response)
         }
     }
@@ -93,11 +97,9 @@ impl Agent {
         let request_id = to_request_id(&request)?;
         let signature = self.signer.sign(&request_id)?;
 
-        let request = replica_api::SyncRequest {
-            signatures: vec![replica_api::Signatures0 {
-                sender_pubkey: signature.public_key.as_slice().to_vec(),
-                sender_sig: signature.signature.as_slice().to_vec(),
-            }],
+        let request = replica_api::SyncRequest::Envelope {
+            sender_pubkey: signature.public_key.into(),
+            sender_sig: signature.signature.into(),
             content: request,
         };
 
@@ -113,11 +115,9 @@ impl Agent {
 
         // We need to calculate the signature, and thus also the
         // request id initially.
-        let request = replica_api::AsyncRequest {
-            signatures: vec![replica_api::Signatures0 {
-                sender_pubkey: signature.public_key.as_slice().to_vec(),
-                sender_sig: signature.signature.as_slice().to_vec(),
-            }],
+        let request = replica_api::AsyncRequest::Envelope {
+            sender_pubkey: signature.public_key.into(),
+            sender_sig: signature.signature.into(),
             content: request,
         };
 
@@ -136,10 +136,10 @@ impl Agent {
         arg: &'a Blob,
     ) -> Result<Blob, AgentError> {
         self.read::<replica_api::QueryResponse>(replica_api::SyncContent::QueryRequest {
-            sender: self.signer.sender().as_ref().to_vec(),
-            canister_id: canister_id.as_bytes().to_vec(),
+            sender: self.signer.sender().into(),
+            canister_id: canister_id.as_bytes().into(),
             method_name: method_name.to_string(),
-            arg: arg.clone().as_slice().to_vec(),
+            arg: arg.clone().into(),
         })
         .await
         .and_then(|response| match response {
@@ -156,20 +156,20 @@ impl Agent {
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
         self.read(replica_api::SyncContent::RequestStatusRequest {
-            request_id: request_id.to_vec(),
+            request_id: request_id.as_slice().into(),
         })
         .await
         .map(|response| match response {
             replica_api::RequestStatusResponse::Replied { reply } => {
                 let reply = match reply {
                     replica_api::RequestStatusResponseReplied::CallReply(reply) => {
-                        Replied::CallReplied(Blob::from(&reply.arg))
+                        Replied::CallReplied(Blob::from(reply.arg))
                     }
                     replica_api::RequestStatusResponseReplied::InstallCodeReply(_) => {
                         Replied::InstallCodeReplied
                     }
                     replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
-                        Replied::CreateCanisterReply(CanisterId::from_bytes(reply.canister_id))
+                        Replied::CreateCanisterReply(CanisterId::from_bytes(&reply.canister_id.0))
                     }
                 };
 
@@ -239,13 +239,40 @@ impl Agent {
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
         self.submit(replica_api::AsyncContent::CallRequest {
-            canister_id: canister_id.as_bytes().to_vec(),
+            canister_id: canister_id.as_bytes().into(),
             method_name: method_name.into(),
-            arg: arg.as_slice().to_vec(),
-            nonce: self.nonce_factory.generate().map(|b| b.as_slice().to_vec()),
-            sender: self.signer.sender().as_ref().to_vec(),
+            arg: arg.clone().into(),
+            nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
+            sender: self.signer.sender().into(),
         })
         .await
+    }
+
+    pub async fn create_canister(&self) -> Result<RequestId, AgentError> {
+        self.create_canister_with_desired_id(None).await
+    }
+
+    pub async fn create_canister_with_desired_id(
+        &self,
+        desired_id: Option<CanisterId>,
+    ) -> Result<RequestId, AgentError> {
+        self.submit(replica_api::AsyncContent::CreateCanisterRequest {
+            sender: self.signer.sender().into(),
+            nonce: self.nonce_factory.generate().map(|b| b.into()),
+            desired_id: desired_id.map(|id| id.as_bytes().into()),
+        })
+        .await
+    }
+
+    pub async fn create_canister_and_wait<W: delay::Waiter>(
+        &self,
+        waiter: W,
+    ) -> Result<CanisterId, AgentError> {
+        let request_id = self.create_canister().await?;
+        match self.request_status_and_wait(&request_id, waiter).await? {
+            Replied::CreateCanisterReply(id) => Ok(id),
+            reply => Err(AgentError::UnexpectedReply(reply)),
+        }
     }
 
     pub async fn install(
@@ -280,13 +307,13 @@ impl Agent {
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
         self.submit(replica_api::AsyncContent::InstallCodeRequest {
-            canister_id: canister_id.as_bytes().to_vec(),
-            module: module.as_slice().to_vec(),
-            arg: arg.as_slice().to_vec(),
-            nonce: self.nonce_factory.generate().map(|b| b.as_slice().to_vec()),
+            canister_id: canister_id.as_bytes().into(),
+            module: module.clone().into(),
+            arg: arg.clone().into(),
+            nonce: self.nonce_factory.generate().map(|b| b.into()),
             compute_allocation: Some(attributes.compute_allocation.0),
             memory_allocation: None,
-            sender: vec![],
+            sender: self.signer.sender().into(),
             mode: None,
         })
         .await
