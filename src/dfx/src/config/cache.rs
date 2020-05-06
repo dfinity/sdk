@@ -67,14 +67,15 @@ impl Cache for DiskBasedCache {
     }
 }
 
-/// Provides a profile for the user.
+/// Provides a profile for the user. This is located outside the
+/// ephemeral cache as the data here need to be persisted and strictly
+/// a user expects to clear the .cache directory with minimal
+/// consequences.
 pub fn get_profile_path() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
         .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
 
-    let p = PathBuf::from(home)
-        .join(".dfinity-identities")
-        .join("profile");
+    let p = PathBuf::from(home).join(".dfinity").join("identity");
 
     if !p.exists() {
         if let Err(e) = std::fs::create_dir_all(&p) {

@@ -159,13 +159,13 @@ impl Environment for EnvironmentImpl {
                     let address = start.get_address("localhost");
                     let port = start.get_port(8000);
                     // This is the default to keep it simple.
-                    let local_project_identity = match get_profile_path() {
+                    let identity = match get_profile_path() {
                         Ok(p) => p,
                         Err(_) => return None,
                     };
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
-                        signer: Box::new(Identity::new(local_project_identity)),
+                        signer: Box::new(Identity::new(identity)),
                         ..AgentConfig::default()
                     })
                     .ok()
@@ -202,12 +202,12 @@ pub struct AgentEnvironment<'a> {
 
 impl<'a> AgentEnvironment<'a> {
     pub fn new(backend: &'a dyn Environment, agent_url: &str) -> Self {
-        let local_project_identity = get_profile_path().expect("Failed to access profile");
+        let identity = get_profile_path().expect("Failed to access profile");
         AgentEnvironment {
             backend,
             agent: Agent::new(AgentConfig {
                 url: agent_url,
-                signer: Box::new(Identity::new(local_project_identity)),
+                signer: Box::new(Identity::new(identity)),
                 ..AgentConfig::default()
             })
             .expect("Failed to construct agent"),
