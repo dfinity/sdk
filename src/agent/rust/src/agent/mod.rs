@@ -8,7 +8,7 @@ pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
-    pub use super::replica_api::{MessageWithSender, ReadRequest, Request, SignedMessage};
+    pub use super::replica_api::{Mode, MessageWithSender, ReadRequest, Request, SignedMessage};
     pub use super::response::{Replied, RequestStatusResponse};
     pub use super::signer::Signer;
     pub use super::Agent;
@@ -19,7 +19,7 @@ mod agent_test;
 
 pub mod signer;
 
-use crate::agent::replica_api::{ReadRequest, ReadResponse, Request, SubmitRequest};
+use crate::agent::replica_api::{/* Mode, */ ReadRequest, ReadResponse, Request, SubmitRequest};
 use crate::agent::signer::Signer;
 use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 
@@ -194,7 +194,7 @@ impl Agent {
         module: &Blob,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
-        self.install_with_attrs(canister_id, module, arg, &CanisterAttributes::default())
+        self.install_with_attrs(canister_id, module, arg, &CanisterAttributes::default(), None)
             .await
     }
 
@@ -215,13 +215,26 @@ impl Agent {
         module: &Blob,
         arg: &Blob,
         attributes: &CanisterAttributes,
+	mode: Option<Mode>,
     ) -> Result<RequestId, AgentError> {
+        let mode_opt =
+	  match mode {
+	    None => None,
+	    Some(m) =>
+	      match m {
+	        Mode::Upgrade => Some("upgrade"),
+	        Mode::Install => Some("install"),
+	        Mode::Replace => Some("replace"),
+	      },
+	  };
+
         self.submit(SubmitRequest::InstallCode {
             canister_id,
             module,
             arg,
             nonce: &self.nonce_factory.generate(),
             compute_allocation: attributes.compute_allocation.map(|x| x.into()),
+	    mode: mode_opt // Some(Mode::Install)
         })
         .await
     }

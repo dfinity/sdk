@@ -5,7 +5,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};
+use ic_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, Mode, RequestId};
 use slog::info;
 use std::convert::TryFrom;
 use tokio::runtime::Runtime;
@@ -41,13 +41,22 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(true)
                 .validator(compute_allocation_validator),
         )
+       .arg(
+            Arg::with_name("upgrade")
+//                .help(UserMessage::AsyncResult.to_str())
+                .long("upgrade")
+                .takes_value(false),
+        )
+
 }
+
 
 async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
     canister_info: &CanisterInfo,
     compute_allocation: Option<ComputeAllocation>,
+    mode: Option<Mode>
 ) -> DfxResult<RequestId> {
     let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
@@ -70,6 +79,7 @@ async fn install_canister(
             &Blob::from(wasm),
             &Blob::empty(),
             &CanisterAttributes { compute_allocation },
+	    mode
         )
         .await
         .map_err(DfxError::from)
@@ -99,13 +109,17 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
+    let mode = if args.is_present("upgrade") { Some(Mode::Upgrade) } else { None };
+
     if let Some(canister_name) = args.value_of("canister_name") {
         let canister_info = CanisterInfo::load(&config, canister_name)?;
+
         let request_id = runtime.block_on(install_canister(
             env,
             &agent,
             &canister_info,
             compute_allocation,
+	    mode
         ))?;
 
         if args.is_present("async") {
@@ -128,6 +142,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     &agent,
                     &canister_info,
                     compute_allocation,
+		    mode
                 ))?;
 
                 if args.is_present("async") {

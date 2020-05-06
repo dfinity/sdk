@@ -3,6 +3,17 @@ use serde::{Deserialize, Serialize};
 
 /// Request payloads for the /api/v1/read endpoint.
 /// This never needs to be deserialized.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "mode")]
+pub enum Mode {
+   Install,
+   Upgrade,
+   Replace,
+}
+
+/// Request payloads for the /api/v1/read endpoint.
+/// This never needs to be deserialized.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "request_type")]
@@ -49,6 +60,8 @@ pub enum SubmitRequest<'a> {
         nonce: &'a Option<Blob>,
         #[serde(skip_serializing_if = "Option::is_none")]
         compute_allocation: Option<u8>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+        mode: Option<& 'a str>,
     },
     Call {
         canister_id: &'a CanisterId,
