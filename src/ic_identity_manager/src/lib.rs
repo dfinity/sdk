@@ -16,6 +16,7 @@
 pub mod crypto_error;
 
 mod basic;
+pub mod file_hierarchy;
 mod types;
 
 use crate::basic::BasicSigner;
