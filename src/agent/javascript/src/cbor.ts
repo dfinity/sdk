@@ -7,6 +7,7 @@ import { Buffer } from 'buffer/';
 import * as cbor from 'simple-cbor';
 import { CborEncoder, SelfDescribeCborSerializer } from 'simple-cbor';
 import { CanisterId } from './canisterId';
+import { Principal } from './principal';
 import { BinaryBlob } from './types';
 
 // We are using hansl/simple-cbor for CBOR serialization, to avoid issues with
@@ -15,6 +16,24 @@ import { BinaryBlob } from './types';
 // we are using `BigNumber` and `Buffer` types instead of `BigInt` and
 // `Uint8Array` (respectively) so that we can use the dignifiedquire/borc CBOR
 // decoder.
+
+class PrincipalEncoder implements CborEncoder<Principal> {
+  public get name() {
+    return 'CanisterId';
+  }
+
+  public get priority() {
+    return 0;
+  }
+
+  public match(value: any): boolean {
+    return value && value._isPrincipal === true;
+  }
+
+  public encode(v: Principal): cbor.CborValue {
+    return cbor.value.bytes(v.toBlob());
+  }
+}
 
 class CanisterIdEncoder implements CborEncoder<CanisterId> {
   public get name() {
@@ -56,7 +75,8 @@ class BufferEncoder implements CborEncoder<Buffer> {
   }
 }
 
-const serializer = SelfDescribeCborSerializer.withDefaultEncoders();
+const serializer = SelfDescribeCborSerializer.withDefaultEncoders(true);
+serializer.addEncoder(new PrincipalEncoder());
 serializer.addEncoder(new CanisterIdEncoder());
 serializer.addEncoder(new BufferEncoder());
 
