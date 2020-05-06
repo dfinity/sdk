@@ -3,9 +3,10 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Result;
+use std::io::Write;
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
-use std::{fs, fs::create_dir_all};
+use std::{fs, fs::create_dir_all, fs::OpenOptions};
 
 lazy_static! {
     static ref VERSION: Version =
@@ -108,20 +109,6 @@ pub struct Metadata {
     version: Version,
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-struct PrincipalProfileProject {
-    version: Version,
-    #[serde(rename = "default")]
-    default_action: Option<HashMap<Action, PrincipalProfileId>>,
-}
-
-//
-pub fn set_default(profile: PrincipalProfile, project_path_dfx: &Path) -> Result<()> {
-    let default_principal = serde_json::to_string(&profile)?;
-    fs::write(project_path_dfx, default_principal)
-}
-
 impl FileHierarchy {
     pub fn new(root_path: PathBuf) -> Self {
         Self {
@@ -158,18 +145,22 @@ impl FileHierarchy {
             ));
         }
 
-        println!("PHASE I");
         let principal_profile = serde_json::to_string(&profile)?;
         let principal_dir_path = root_path.join(identifier.0.clone());
         create_dir_all(&principal_dir_path)?;
-        println!("PHASE II");
+
         let principal_file_path = principal_dir_path.join(identifier.0 + ".json");
-        // XXXX  we should not override! FIX
-        fs::write(principal_file_path, principal_profile)?;
-        // Pick each access file. Currently we assume and handle a single file
-        println!("PHASE III");
+
+        let mut file_handle = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(principal_file_path)?;
+        file_handle.write_all(principal_profile.as_ref())?;
+
+        // Pick each access file. Currently we assume and handle a
+        // single file.
         let files_iter = profile.access_files.values();
-        println!("PHASE IV");
+
         assert_eq!(files_iter.len(), 1);
         for access_file in files_iter {
             // let access_file_path = principal_dir_path.join(name);
@@ -177,7 +168,6 @@ impl FileHierarchy {
             println!("path : {:?}", access_file_path);
             fs::write(access_file_path, &access_content)?;
         }
-        println!("PHASE FIN");
 
         Ok(())
     }
@@ -185,20 +175,11 @@ impl FileHierarchy {
     /// Load user desired profiles. Note this is not checking if the
     /// version is valid. We assume we will fail during parsing. We read
     /// robust-fully and write pessimistically.
-    ////Version::new(0, 1, 0),
     pub fn partial_load_file_hierarchy(
         profiles: &[ProfileIdentifier],
-        // version: Version,
         root: &Path,
     ) -> Result<FileHierarchy> {
-        // let fh = OpenOptions::new()
-        //             .read(true)
-        //             .write(false)
-        //             .create(false)
-        //             .open(root+p);
-
         let mut map = HashMap::new();
-        println!("PHASE I");
 
         for profile_id in profiles.iter() {
             // let profile_id = ProfileIdentifier::new(p);
@@ -210,10 +191,8 @@ impl FileHierarchy {
 
             // Add version checks here. XX
         }
-        println!("PHASE II X");
 
         let metadata = fs::read_to_string(root.join("metadata.json"))?;
-        println!("PHASE III");
 
         let metadata: Metadata = serde_json::from_str(&metadata)?;
         let version = metadata.version;
@@ -242,23 +221,6 @@ mod tests {
 
     use tempfile::tempdir;
 
-    #[test]
-    fn test_parsing() {
-        let mut map = HashMap::new();
-        map.insert(Action::Default, PrincipalProfileId("Bob".to_owned()));
-        let project_default = PrincipalProfileProject {
-            version: Version::new(1, 2, 3),
-            default_action: Some(map),
-        };
-        let parsed_profile =
-            serde_json::to_string_pretty(&project_default).expect("Failed to parse profile");
-        println!("{:?}", &parsed_profile);
-        assert_eq!(
-            "{\n  \"version\": \"1.2.3\",\n  \"default\": {\n    \"default\": \"Bob\"\n  }\n}"
-                .to_owned(),
-            parsed_profile
-        );
-    }
     #[test]
     fn test_parsing_principal() {
         let dir = tempdir().unwrap();
