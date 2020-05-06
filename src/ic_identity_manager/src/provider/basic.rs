@@ -6,7 +6,7 @@
 //! However, there are two options: i) prompt the user per call, as
 //! the agent is "stateless" or ii) provide long-running service
 //! providers -- such as PGP, ssh-agent.
-use crate::crypto_error::{Error, Result};
+use crate::crypto_error::{Error, ParsedKeyError, Result};
 use crate::file_hierarchy::{FileHierarchy, ProfileIdentifier, UserProfile};
 use crate::types::Signature;
 
@@ -22,14 +22,14 @@ use std::path::PathBuf;
 
 // This module should not be re-exported. We want to ensure
 // construction and handling of keys is done only here.
-use self::private::BasicSignerReady;
+use self::private::BasicProviderReady;
 
 #[derive(Clone)]
-pub struct BasicSigner {
+pub struct BasicProvider {
     path: PathBuf,
 }
 
-impl BasicSigner {
+impl BasicProvider {
     pub fn new(path: PathBuf) -> Result<Self> {
         if !path.is_dir() {
             return Err(Error::ProviderFailedToInitialize);
@@ -45,8 +45,8 @@ fn generate() -> Result<String> {
     Ok(pem)
 }
 
-impl BasicSigner {
-    pub fn provide(&self) -> Result<BasicSignerReady> {
+impl BasicProvider {
+    pub fn provide(&self) -> Result<BasicProviderReady> {
         let profile_name = "default";
         let profile_id = ProfileIdentifier::new(profile_name);
         let root = self.path.clone();
@@ -78,10 +78,14 @@ impl BasicSigner {
             .map(|r_path| root.join(r_path.path))
             .ok_or_else(|| Error::ProfileMissing(profile_id))?;
 
-        let pkcs8_bytes = pem::parse(fs::read(pem_file)?)?.contents;
+        let pem_value = pem::parse(fs::read(pem_file)?)?;
+        if "PRIVATE KEY" != pem_value.tag {
+            return Err(Error::ParsedKeyError(ParsedKeyError::PrivateKeyPlaintext));
+        }
+        let pkcs8_bytes = pem_value.contents;
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
 
-        Ok(BasicSignerReady { key_pair })
+        Ok(BasicProviderReady { key_pair })
     }
 }
 
@@ -95,11 +99,11 @@ mod private {
     /// We enforce a state transition, reading the key as necessary, only
     /// to sign. TODO(eftychis): We should erase pin and erase the key
     /// from memory afterwards.
-    pub struct BasicSignerReady {
+    pub struct BasicProviderReady {
         pub key_pair: Ed25519KeyPair,
     }
 
-    impl BasicSignerReady {
+    impl BasicProviderReady {
         pub fn sign(&self, msg: &[u8]) -> Result<Signature> {
             let signature = self.key_pair.sign(msg);
             // At this point we shall validate the signature in this first

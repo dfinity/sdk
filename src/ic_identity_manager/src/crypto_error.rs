@@ -20,8 +20,16 @@ pub enum Error {
     PemError(pem::PemError),
     /// Failed to access file.
     IOError(std::io::Error),
-    ///
+    /// Missing Profile.
     ProfileMissing(ProfileIdentifier),
+    /// Parsed unexpected key.
+    ParsedKeyError(ParsedKeyError),
+}
+
+/// Parsed private and public key inconsistencies.
+#[derive(Debug)]
+pub enum ParsedKeyError {
+    PrivateKeyPlaintext,
 }
 
 impl From<ring::error::Unspecified> for Error {
