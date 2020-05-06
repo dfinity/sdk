@@ -12,8 +12,6 @@ lazy_static! {
         Version::parse("0.0.1").expect("Failed to parse version requirements");
 }
 
-// #[derive(Serialize, Deserialize)]
-// #[serde(rename_all = "snake_case")]
 #[derive(Debug)]
 pub struct FileHierarchy {
     location: PathBuf,
@@ -118,7 +116,7 @@ struct PrincipalProfileProject {
     default_action: Option<HashMap<Action, PrincipalProfileId>>,
 }
 
-// XXX
+//
 pub fn set_default(profile: PrincipalProfile, project_path_dfx: &Path) -> Result<()> {
     let default_principal = serde_json::to_string(&profile)?;
     fs::write(project_path_dfx, default_principal)
@@ -242,8 +240,6 @@ mod tests {
 
     use super::*;
 
-    use std::fs::File;
-    use std::io::{self, Read, Write};
     use tempfile::tempdir;
 
     #[test]
@@ -290,6 +286,18 @@ mod tests {
             Some(&alice_profile.principal_profile)
         );
         println!("{:?}", fh);
+        // Check that profiles do not interfere.
+        fh.add_profile(bob_profile.clone())
+            .expect("Failed to add profile");
+        let fh =
+            FileHierarchy::partial_load_file_hierarchy(&[ProfileIdentifier::new("Alice")], &root)
+                .unwrap();
+        assert_eq!(fh.location, root.clone());
+        assert_eq!(fh.version, VERSION.clone());
+        assert_eq!(
+            fh.inner.get(&ProfileIdentifier::new("Alice")),
+            Some(&alice_profile.principal_profile)
+        );
 
         dir.close().unwrap();
     }
