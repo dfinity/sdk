@@ -15,6 +15,13 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(false)
                 .help(UserMessage::SkipFrontend.to_str()),
         )
+	.arg(
+            Arg::with_name("upgrade")
+                .long("upgrade")
+                .takes_value(false)
+//                .help(UserMessage::SkipFrontend.to_str()),
+        )
+
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -34,8 +41,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     slog::info!(logger, "Building canisters...");
 
     // TODO: remove the forcing of generating canister id once we have an update flow.
+    let generate_id = !(args.is_present("upgrade"));
     canister_pool
-        .build_or_fail(BuildConfig::from_config(config.get_config()).with_generate_id(true))?;
+        .build_or_fail(BuildConfig::from_config(config.get_config()).with_generate_id(generate_id))?;
 
     // If there is not a package.json, we don't have a frontend and can quit early.
     if !config.get_project_root().join("package.json").exists() || args.is_present("skip-frontend")
