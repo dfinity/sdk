@@ -37,7 +37,15 @@ test('makeActor', async () => {
       );
     })
     .mockImplementationOnce((resource, init) => {
-      const body = cbor.encode({ status: 'pending' });
+      const body = cbor.encode({ status: 'received' });
+      return Promise.resolve(
+        new Response(body, {
+          status: 200,
+        }),
+      );
+    })
+    .mockImplementationOnce((resource, init) => {
+      const body = cbor.encode({ status: 'processing' });
       return Promise.resolve(
         new Response(body, {
           status: 200,
@@ -73,6 +81,7 @@ test('makeActor', async () => {
     Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]) as Nonce,
     Buffer.from([2, 3, 4, 5, 6, 7, 8, 9]) as Nonce,
     Buffer.from([3, 4, 5, 6, 7, 8, 9, 0]) as Nonce,
+    Buffer.from([4, 5, 6, 7, 8, 9, 0, 1]) as Nonce,
   ];
 
   const expectedCallRequest = {
@@ -112,7 +121,7 @@ test('makeActor', async () => {
 
   const { calls, results } = mockFetch.mock;
 
-  expect(calls.length).toBe(4);
+  expect(calls.length).toBe(5);
   expect(calls[0]).toEqual([
     '/api/v1/submit',
     {
@@ -171,6 +180,23 @@ test('makeActor', async () => {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
         nonce: nonces[3],
+      },
+      sender_pubkey: senderPubKey,
+      sender_sig: senderSig,
+    }),
+  });
+
+  expect(calls[4][0]).toBe('/api/v1/read');
+  expect(calls[4][1]).toEqual({
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/cbor',
+    },
+    body: cbor.encode({
+      content: {
+        request_type: 'request_status',
+        request_id: expectedCallRequestId,
+        nonce: nonces[4],
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,

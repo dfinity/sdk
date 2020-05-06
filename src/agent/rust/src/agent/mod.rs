@@ -124,7 +124,8 @@ impl Agent {
                 reject_message,
             } => Err(AgentError::ClientError(reject_code, reject_message)),
             ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
-            ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
+            ReadResponse::Received => Err(AgentError::InvalidClientResponse),
+            ReadResponse::Processing => Err(AgentError::InvalidClientResponse),
         })
     }
 
@@ -153,7 +154,8 @@ impl Agent {
                     reject_message,
                 } => return Err(AgentError::ClientError(reject_code, reject_message)),
                 RequestStatusResponse::Unknown => (),
-                RequestStatusResponse::Pending => (),
+                RequestStatusResponse::Received => (),
+                RequestStatusResponse::Processing => (),
             };
 
             waiter

@@ -7,7 +7,8 @@ use serde::Deserialize;
 /// The response of /api/v1/read with "request_status" request type
 pub enum RequestStatusResponse {
     Unknown,
-    Pending,
+    Received,
+    Processing,
     Replied {
         reply: Replied,
     },

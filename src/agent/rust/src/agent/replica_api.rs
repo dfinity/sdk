@@ -34,7 +34,8 @@ pub(crate) enum ReadResponse {
         reject_code: u16,
         reject_message: String,
     },
-    Pending,
+    Received,
+    Processing,
     Unknown,
 }
 

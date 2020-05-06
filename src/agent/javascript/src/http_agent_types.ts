@@ -135,13 +135,18 @@ export interface RequestStatusRequest extends Record<string, any> {
 
 // An ADT that represents responses to a "request_status" read request.
 export type RequestStatusResponse =
-  | RequestStatusResponsePending
+  | RequestStatusResponseReceived
+  | RequestStatusResponseProcessing
   | RequestStatusResponseReplied
   | RequestStatusResponseRejected
   | RequestStatusResponseUnknown;
 
-export interface RequestStatusResponsePending {
-  status: RequestStatusResponseStatus.Pending;
+export interface RequestStatusResponseReceived {
+  status: RequestStatusResponseStatus.Received;
+}
+
+export interface RequestStatusResponseProcessing {
+  status: RequestStatusResponseStatus.Processing;
 }
 
 export interface RequestStatusResponseReplied {
@@ -160,7 +165,8 @@ export interface RequestStatusResponseUnknown {
 }
 
 export enum RequestStatusResponseStatus {
-  Pending = 'pending',
+  Received = 'received',
+  Processing = 'processing',
   Replied = 'replied',
   Rejected = 'rejected',
   Unknown = 'unknown',
