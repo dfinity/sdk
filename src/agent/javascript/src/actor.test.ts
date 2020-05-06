@@ -11,7 +11,7 @@ import {
   SignedHttpAgentSubmitRequest,
   SubmitRequest,
   SubmitRequestType,
-} from "./http_agent_types";
+} from './http_agent_types';
 import * as IDL from './idl';
 import { Principal } from './principal';
 import { requestIdOf } from './request_id';
