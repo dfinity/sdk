@@ -26,6 +26,7 @@ pub enum Error {
 #[derive(Debug)]
 pub enum ParsedKeyError {
     PrivateKeyPlaintext,
+    PrivateKeyEncrypted,
 }
 
 impl From<ring::error::Unspecified> for Error {

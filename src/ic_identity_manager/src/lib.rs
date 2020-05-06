@@ -73,6 +73,7 @@ pub mod crypto_error;
 /// Defines an identity object and API.
 pub mod identity;
 
+mod encryption;
 pub mod file_hierarchy;
 pub mod provider;
 mod types;

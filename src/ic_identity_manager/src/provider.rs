@@ -38,5 +38,6 @@
 // }
 
 pub mod basic;
+pub mod enc_pkcs5;
 
 pub use basic::BasicProvider;
