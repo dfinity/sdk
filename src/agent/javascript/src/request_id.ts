@@ -26,12 +26,18 @@ async function hashValue(value: unknown): Promise<Buffer> {
     return hashString(value);
   } else if (typeof value === 'number') {
     return hash(lebEncode(value) as BinaryBlob);
-  } else if (value instanceof CanisterId) {
-    return hash(blobFromHex(value.toHex()));
   } else if (Buffer.isBuffer(value)) {
     return hash(new Uint8Array(value) as BinaryBlob);
   } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
     return hash(new Uint8Array(value) as BinaryBlob);
+  } else if (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as any).toHash === 'function'
+  ) {
+    return Promise.resolve((value as any).toHash()).then(x => hashValue(x));
+  } else if (value instanceof Promise) {
+    return value.then(x => hashValue(x));
   } else {
     throw new Error(`Attempt to hash a value of unsupported type: ${value}`);
   }

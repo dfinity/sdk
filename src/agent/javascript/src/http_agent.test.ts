@@ -12,8 +12,9 @@ import {
   Signed,
   SubmitRequestType,
 } from './http_agent_types';
+import { Principal } from './principal';
 import { requestIdOf } from './request_id';
-import { BinaryBlob } from './types';
+import { BinaryBlob, blobFromHex } from './types';
 import { Nonce } from './types';
 
 test('call', async () => {
@@ -33,9 +34,11 @@ test('call', async () => {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
   ]);
   const keyPair = createKeyPairFromSeed(seed);
+  const principal = await Principal.selfAuthenticating(keyPair.publicKey);
 
   const httpAgent = new HttpAgent({
     fetch: mockFetch,
+    principal,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonce));
   httpAgent.setAuthTransform(makeAuthTransform(keyPair));
@@ -56,6 +59,7 @@ test('call', async () => {
     // are checking that signature does not impact the request id.
     arg,
     nonce,
+    sender: principal.toBlob(),
   };
 
   const mockPartialsRequestId = await requestIdOf(mockPartialRequest);
@@ -113,9 +117,11 @@ test('requestStatus', async () => {
   ]);
   const keyPair = createKeyPairFromSeed(seed);
   const senderPubKey = keyPair.publicKey;
+  const principal = await Principal.selfAuthenticating(senderPubKey);
 
   const httpAgent = new HttpAgent({
     fetch: mockFetch,
+    principal,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonce));
   httpAgent.setAuthTransform(makeAuthTransform(keyPair, () => () => Buffer.from([0]) as SenderSig));
@@ -126,6 +132,7 @@ test('requestStatus', async () => {
     canister_id: CanisterId.fromText(canisterIdent),
     method_name: 'greet',
     arg: Buffer.from([]),
+    sender: principal.toBlob(),
   });
 
   const response = await httpAgent.requestStatus({
@@ -137,6 +144,7 @@ test('requestStatus', async () => {
       request_type: ReadRequestType.RequestStatus,
       request_id: requestId,
       nonce,
+      sender: principal.toBlob(),
     },
     sender_pubkey: senderPubKey,
     sender_sig: Buffer.from([0]) as SenderSig,
