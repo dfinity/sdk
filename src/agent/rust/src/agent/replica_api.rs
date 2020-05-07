@@ -47,7 +47,8 @@ pub enum SubmitRequest<'a> {
         module: &'a Blob,
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
-        compute_allocation: u8,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        compute_allocation: Option<u8>,
         #[serde(skip_serializing_if = "Option::is_none")]
         memory_allocation: Option<u64>,
     },

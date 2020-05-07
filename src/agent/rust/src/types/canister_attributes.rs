@@ -117,14 +117,14 @@ impl std::convert::TryFrom<String> for MemoryAllocation {
 }
 
 pub struct CanisterAttributes {
-    pub compute_allocation: ComputeAllocation,
+    pub compute_allocation: Option<ComputeAllocation>,
     pub memory_allocation: Option<MemoryAllocation>,
 }
 
 impl Default for CanisterAttributes {
     fn default() -> Self {
         CanisterAttributes {
-            compute_allocation: ComputeAllocation(0),
+            compute_allocation: None,
             memory_allocation: None,
         }
     }
