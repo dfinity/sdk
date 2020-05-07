@@ -143,9 +143,15 @@ on makeAuthTransform: // modified to provide canister id
 
 === User Profiles
 
+Question:
+
 Is this something we desire? Do we expect more than a single user to
 access a browser? Right now a user would have to erase their history
 and ensure the IndexedDB is erased to achieve this result.
+
+Answer:
+
+In the long run we should consider it, but not a feature for launch.
 
 === Public API
 
@@ -160,12 +166,22 @@ principals. Each agent on each device must:
 . Principals to assume per canister
 . Have a key to claim that principal
 
-One approach would be for the user to utilize a third party service
-that provides secure key synchronization across devices. This is
-however not always an option -- for instance on mobile. (Although
-there seems to be some support by Apple post iOS 8.)
+(One approach would be for the user to utilize a third party service
+that provides secure key synchronization across devices.)
 
 ==== Authorization Mechanism
+
+
+===== Phase I:
+
+As a first step, Alice explicitly adds the public key of Bob
+in the target canister. For more information related to the interface
+please see link:https://github.com/dfinity-lab/ic-ref/pull/26[Public
+Spec PR 26].
+
+
+
+=====  Phase II:
 
 The underlying authorization of a new key necessitates issuing a
 certificate to Bob. When accessing a new canister Bob shall use that
@@ -191,6 +207,8 @@ Thus, an add_key initial request to a canister must include:
 
 ==== UX above Authorization
 
+Principal Stakeholder/Designer: Stanley
+
 In this section we briefly discuss about how to exchange certificate
 signing requests and certificates themselves between the two devices.
 
@@ -199,13 +217,18 @@ We break down the process as follows:
 . Both devices need to exchange public keys in a trusted manner
 . One (or both) devices need to exchange generated certificates.
 
-For the latter step we can use a public-key encryption scheme to share the resulting certificate(s). We can achieve this with one of the following approaches:
+
+* Example Approach
+
+For the latter step we could use a public-key encryption scheme to share the resulting certificate(s). We can achieve this with one of the following approaches:
 
 . Over Bluetooth with prompt on both devices and challenge requiring user input
 . Alice providing a QR code (or a uri) that is scanned by Bob; then
 Bob provides a similar URI. User input is provided to verify
 authorization. (An extra scan is necessary if we require both devices
 to be authorized by the other.)
+
+
 
 ==== Synchronization Mechanism
 
@@ -245,7 +268,11 @@ const keys = await window.crypto.subtle.generateKey( options, false, 
  ['sign', 'verify'], );
 // Store keys in Indexdb
 
- const publicKey = await window.crypto.subtle.exportKey('jwk', keys.publicKey);
+// This is not going to be as easy it seems however, because Firefox
+// is not supporting public key export for pkcs8 container format.
+ const publicKey = await window.crypto.subtle.exportKey('pkcs8', keys.publicKey);
+
+
  let body = window.btoa(String.fromCharCode(...new Uint8Array(publicKey)));
  body = body.match(/.{1,64}/g).join('\n');
  return `-----BEGIN PUBLIC KEY-----\n${keys.publicKey}\n-----END PUBLIC KEY-----`;
@@ -260,15 +287,23 @@ library acts honestly; the adversary can not corrupt it. Requests and
 scripts can be run across origins.
 
 
+WARNING: RequestId computation, signing of the ingress message need to
+happen in the secure origin. This is to ensure that we attempt
+delivery of a correctly signed message to the corresponding
+canister. It is also prudent to have sending in the same origin,
+though it should not affect security.
+
 === Persistence Considerations
 
-One major consideration of using the WebCrypto API, and any system
-that ensures javascript in the same origin can not parse the secret
-key, is persistence and restoration of the value. The WebCrypto API
-supports an importKey operation, usually using JWK.
+Recall that WebCrypto API enforces that one can not parse the secret
+key even in the same origin. Then one major consideration of using
+the WebCrypto API is persistence and restoration of the value.
 
-IndexedDB is the suggested means of "persisting" values.
-
+The WebCrypto API supports an importKey operation, usually
+using JWK. IndexedDB is the suggested means of "persisting"
+values. Note, however, that IndexedDB as part of a browser's
+localstorage is more ephemeral in nature and acts as a long-term user
+cache.
 
 === Performance Considerations
 
