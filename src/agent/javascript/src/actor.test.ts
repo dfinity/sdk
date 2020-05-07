@@ -5,10 +5,18 @@ import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
 import { HttpAgent } from './http_agent';
 import { makeNonceTransform } from './http_agent_transforms';
-import { SubmitRequestType } from './http_agent_types';
+import {
+  CallRequest,
+  Signed,
+  SignedHttpAgentSubmitRequest,
+  SubmitRequest,
+  SubmitRequestType,
+} from './http_agent_types';
 import * as IDL from './idl';
+import { Principal } from './principal';
 import { requestIdOf } from './request_id';
 import { blobFromHex, Nonce } from './types';
+import { sha256 } from './utils/sha256';
 
 test('makeActor', async () => {
   const actorInterface = () => {
@@ -75,6 +83,8 @@ test('makeActor', async () => {
   const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
   const senderSecretKey = Buffer.alloc(32, 0) as SenderSecretKey;
   const senderSig = Buffer.from([0]) as SenderSig;
+  const principal = await Principal.selfAuthenticating(senderPubKey);
+  const sender = principal.toBlob();
 
   const nonces = [
     Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce,
@@ -91,10 +101,11 @@ test('makeActor', async () => {
       method_name: methodName,
       arg,
       nonce: nonces[0],
+      sender,
     },
     sender_pubkey: senderPubKey,
     sender_sig: senderSig,
-  };
+  } as Signed<CallRequest>;
 
   const expectedCallRequestId = await requestIdOf(expectedCallRequest.content);
 
@@ -102,6 +113,7 @@ test('makeActor', async () => {
 
   const httpAgent = new HttpAgent({
     fetch: mockFetch,
+    principal,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonces[nonceCount++]));
   httpAgent.setAuthTransform(
@@ -145,6 +157,7 @@ test('makeActor', async () => {
           request_type: 'request_status',
           request_id: expectedCallRequestId,
           nonce: nonces[1],
+          sender,
         },
         sender_pubkey: senderPubKey,
         sender_sig: senderSig,
@@ -163,6 +176,7 @@ test('makeActor', async () => {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
         nonce: nonces[2],
+        sender,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
@@ -180,6 +194,7 @@ test('makeActor', async () => {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
         nonce: nonces[3],
+        sender,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,

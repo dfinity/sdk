@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import { CanisterId } from './canisterId';
 import { RejectCode } from './reject_code';
 import { RequestId } from './request_id';
@@ -69,12 +70,14 @@ export interface CallRequest extends Record<string, any> {
   canister_id: CanisterId;
   method_name: string;
   arg: BinaryBlob;
+  sender: BinaryBlob;
 }
 export interface InstallCodeRequest extends Record<string, any> {
   request_type: SubmitRequestType.InstallCode;
   canister_id: CanisterId;
   module: BinaryBlob;
   arg?: BinaryBlob;
+  sender: BinaryBlob;
 }
 // tslint:enable:camel-case
 
@@ -125,12 +128,14 @@ export interface QueryRequest extends Record<string, any> {
   canister_id: CanisterId;
   method_name: string;
   arg: BinaryBlob;
+  sender: BinaryBlob;
 }
 
 // The fields in a "request_status" read request.
 export interface RequestStatusRequest extends Record<string, any> {
   request_type: ReadRequestType.RequestStatus;
   request_id: RequestId;
+  sender: BinaryBlob;
 }
 
 // An ADT that represents responses to a "request_status" read request.

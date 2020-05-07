@@ -5,6 +5,7 @@ import {
   makeAuthTransform,
   makeKeyPair,
   makeNonceTransform,
+  Principal,
 } from '@dfinity/agent';
 
 interface WindowWithInternetComputer extends Window {
@@ -85,7 +86,8 @@ if (host) {
   }
 }
 
-const agent = new HttpAgent({ host });
+const principal = Principal.selfAuthenticating(keyPair.publicKey);
+const agent = new HttpAgent({ host, principal });
 agent.addTransform(makeNonceTransform());
 agent.setAuthTransform(makeAuthTransform(keyPair));
 
