@@ -23,7 +23,7 @@ pub fn spawn_and_update_proxy(
 
             // Check the port and then start the proxy. Below, we panic to propagate the error
             // to the parent thread as an error via join().
-            b.set_message("Checking client!");
+            b.set_message("Checking replica!");
 
             let (send_port, rcv_port) = unbounded();
 
@@ -82,14 +82,14 @@ pub fn spawn_and_update_proxy(
                 proxy_supervisor
                     .request_stop_echo
                     .try_send(())
-                    .expect("Client thread couldn't signal parent to stop");
+                    .expect("Replica thread couldn't signal parent to stop");
 
                 panic!("Failed to watch port configuration file {:?}", e);
             });
             // Stop watching.
             let _ = hotwatch;
             let proxy = proxy.set_client_api_port(port.clone());
-            b.set_message(format!("Client bound at {}", port).as_str());
+            b.set_message(format!("Replica bound at {}", port).as_str());
             proxy
                 .restart(
                     proxy_supervisor.inform_parent.clone(),
@@ -99,7 +99,7 @@ pub fn spawn_and_update_proxy(
                     proxy_supervisor
                         .request_stop_echo
                         .try_send(())
-                        .expect("Client thread couldn't signal parent to stop");
+                        .expect("Replica thread couldn't signal parent to stop");
                     panic!("Failed to restart the proxy {:?}", e);
                 });
 

@@ -86,10 +86,10 @@ impl Proxy {
         let ic_client_bind_addr = "http://localhost:".to_owned() + self.port().to_string().as_str();
         let ic_client_bind_addr = ic_client_bind_addr.as_str();
         let client_api_uri =
-            url::Url::parse(ic_client_bind_addr).expect("Failed to parse client ingress url.");
+            url::Url::parse(ic_client_bind_addr).expect("Failed to parse replica ingress url.");
         // Add the localhost as an option.
         providers.push(client_api_uri);
-        eprintln!("client address: {:?}", ic_client_bind_addr);
+        eprintln!("replica address: {:?}", ic_client_bind_addr);
 
         run_webserver(
             self.config.logger.clone(),
