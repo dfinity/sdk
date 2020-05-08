@@ -1,4 +1,4 @@
-= Browser Design Doc
+= Web Crypto Design Doc
 // Author field:
 Eftychis <eftychis@dfinity.org>
 v0.1, 2020-04-15
@@ -75,6 +75,15 @@ https://tools.ietf.org/html/rfc7517
 * Edge
 
 https://en.wikipedia.org/w/index.php?title=Microsoft_Edge&action=edit&section=8
+
+* Firefox: The WebCryptoSubtle `exportKey` method is broken for parameter `pkcs8`, which is supposed to output a DER encoding of the key.
+  We use DER encoding when referencing the key in ingress messages.
+  DER turns out to be an ASN.1 encoding of the raw key exported with parameter `raw`, so we can work around this issue for public keys.
+  For private keys, where compatibility with non-browser software is less critical, we can use a format such as JWK instead.
+  The bug in Firefox has been open for several years.
+* Internet Explorer: While WebCrypto functionality is implemented, the interface of the methods differs from the standard.
+  The methods return a `CryptoOperation` instead of a `Promise`.
+
 
 
 == Expected User/Developer Experience
