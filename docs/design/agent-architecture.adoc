@@ -1,0 +1,278 @@
+= Agent Architecture Design Doc
+// Author field:
+Bjoern Tackmann <bjoern@dfinity.org>
+v0.1, 2020-05-08
+:draft:
+:toc:
+
+== Overview
+
+The browser runs code from different sources: this includes the agent/user library itself as well as the front-end code served by the canister.
+This document outlines the (security) architecture of the browser-based user agent, making sure that different elements in the browser are properly isolated.
+
+== Background
+////
+:required:
+
+Include as much information as necessary here to understand the design. Include
+glossary if necessary in this section. Links to examples, related projects
+or other design docs. Any previous/current version of this feature.
+
+Do not write ideas about how to solve the problem here.
+////
+
+=== Problem Statement
+
+The agent performs security-critical operations such as verifying information sent from an Internet Computer node and signing requests before they are sent to the IC.
+The agent also manages the user's cryptographic keys.
+The canister front end, even if the signature on the code set by an IC node is verified by the agent, cannot be trusted, as it is supplied by canister developers.
+Therefore, the front end code must not have access to cryptographic keys.
+
+=== Requirements
+
+Canister front end code can interact via update or query calls with the canister that served that front end.
+Canister front end code must not be able to send authenticated (i.e., non-anonymous, and using the existing user credentials) ingress or query messages to any other canister on the IC.
+
+== Expected User/Developer Experience
+
+The goal of this design is to provide security in a way that least hampers the user and developer experience.
+
+== Prior Art
+////
+:optional: But recommended.
+
+Link to other products available as comparatives to this design. For example,
+if another tool has a similar feature, list pros/cons/shortcomings of that tool.
+////
+
+=== Origin Model
+
+Browser security revolves around the origin model.
+An _origin_ is a triplet of protocol (i.e. `http` or `https`), domain (e.g. `dfinity.org`), and port (e.g. `80` or `443`).
+Each resource loaded by a browser is associated to an origin.
+The origin determines which code can access which data; only access to data in the same origin is unrestricted.
+For historical purposes, some access (e.g. writing through a `POST`) is permitted across origin boundaries.
+
+=== HTML Message Passing
+
+Documents in different origins can communicate through the `postMessage()` functionality introduced in HTML5.
+Importantly, the origin of the sending document is provided to the receiving document in a way that cannot be forged by the sender; this is guaranteed by the browser.
+
+
+== Detailed Design
+////
+:required:
+
+Full design on how to implement the feature. Use this section to also describe
+why some simpler approaches did not work. Mention other things to watch out
+for during implementation.
+
+Keep in mind that you might not be the person implementing the design.
+////
+
+=== Considered Solutions
+////
+:required:
+
+What solutions were considered, with a list of pros and cons of each solutions.
+////
+
+All solutions need to answer the following questions:
+
+* Which server provides the agent to the client?
+* How do we ensure isolation between different front ends?
+* How do we protect access to secret keys?
+
+To partially answer the second question up front: it will be necessary to run each canister front end under a different origin.
+As a running example, we assume that the user intends to visit the canister identified by `canister`, and use `canister.ic.org` as the corresponding origin.
+Additional rationale appears below.
+
+==== Serving the Agent from a Replica
+
+The first strawman solution is to resolve `canister.ic.org` through DNS to any node on the subnet serving `canister`.
+The browser fetches `index.html` from that node, which links the JS files that comprise the agent.
+
+This simple solution, however, is not secure. The reason is that any specific node is untrusted and may behave maliciously.
+As the node still has a valid X.509 certificate, the browser will still trust the node and run the returned code.
+(This is where the trust model of the traditional web and the IC diverge. On the traditional web, the server is inherently trusted.)
+Once the browser runs the code returned by the malicious replica, no further guarantees can be given, and private key material of the user may be exposed.
+
+NOTE: There are partial solutions to this problem that are, however, technically complicated and still only work if the browser connects to an honest node when _first_ accessing a canister.
+  Subsequent accesses could be protected. We decided that the trade-off between complexity and gains is not acceptable.
+
+==== Serving the Agent from Secure Bootstrap Servers
+
+The alternative solution involves serving the agent from dedicated, secure bootstrap servers.
+The idea is to allocate a few dedicated servers to only serve the agent.
+The servers will be "caged", ie. secured such that even the data center employees cannot access the hardware, and will only serve static assets via `https`, so that the attack surface is minimized.
+This is important since they serve as the root of trust _for the entire Internet Computer_ for traditional browsers.
+ 
+In this scheme, `canister.ic.org` resolves via DNS to one or more secure bootstrap server(s).
+The browser downloads the agent from there, running it in origin `canister.ic.org`.
+The agent then accesses any replica on the Internet Computer to determine the subnet on which `canister` resides, and then accesses a replica on that subnet to obtain the front end of `canister`.
+
+NOTE: A list of IPs of IC replicas could be included in the agent plaintext.
+  Alternatively, they could be resolved through DNS.
+  As we already depend on DNS for resolving the addresses of the bootstrap servers, using DNS to resolve the replica IPs is not an additional assumption.
+
+==== Strict Origin Separation between Different Canisters
+
+Following the above, each canister has its own origin such as `canister.ic.org`.
+The cryptographic keys used by the agent to identify toward `canister` _could_ also be stored in that origin, using a different set of cryptographic keys for each canister.
+Such a scheme would be secure in the sense that different canister front ends are strictly isolated from one another, so the front end of each canister can only send ingress or query messages to its own canister.
+
+The disadvantage of this model is that it makes key management too cumbersome for the user:
+It means that all key-management operations (such as key backup, or authorizing or revoking additional devices) has to be performed _per canister_.
+
+==== Specific Secure Origin for Key Storage
+
+This model mandates the storage of all user private keys under a special origin, such as `secure-key-storage.ic.org`.
+Note that the keys are not actually stored on the server; they are stored in the browser under the origin (`https`, `secure-key-storage.ic.org`, `443`).
+That domain is also served from a secure bootstrap server, and the server again only serves static files.
+
+=== Recommended Solution
+
+Following the above, this section contains a step-by-step description of how the browser accesses the agent and ultimately the canister front end.
+In practice, some of these steps will occur concurrently.
+Assume that the user types `canister.ic.org` in the browser address bar.
+
+. Resolve `canister.ic.org` via DNS.
+  This resolves to the IP address of one of the secure bootstrap servers.
+. Load `index.html` and the files that comprise the basic agent (i.e., the parts running under the front end origin) from the secure bootstrap server.
+  (Variant: only `index.html` is served from the secure bootstrap server. The agent files are served from different servers, but their integrity is guaranteed through Subresource Integrity.)
+. The `index.html` file also contains an iframe that loads the key-management part of the agent from `secure-key-storage.ic.org`, again from the secure bootstrap server.
+  The initial action of this part is described in a companion design document.
+. The agent running under `canister.ic.org` sends all requests that require a signature (i.e. authenticated query and update calls) through the key-management part via `postMessage()` message passing.
+
+For the interface between the two parts of the agent it is *critical* for security that request ID computation is performed in the key-management part.
+This is critical because we must ensure that the target canister (which is included in the request ID computation) is consistent with the origin of the sending front end.
+
+=== Public API
+
+The public (i.e. front-end developer) facing API should be unaffected.
+This should be a change that affects only the internal structure of the agent.
+
+=== Prototype
+////
+:optional:
+
+If a proof of concept is available, include a link to the files here (even if
+it's in the same PR).
+////
+
+No prototype at this point.
+
+=== Security Considerations
+////
+:optional:
+
+How will this feature impact security, and what needs to be done to keep it
+secure. Considerations should include:
+  - User input sanitization
+  - Existing security protocols and standards
+  - Permissions, Access Control and capabilities
+  - Privacy, GDPR considerations, etc.
+  - Anything else that can affect security and privacy.
+////
+
+The security of distributing the agent is based on similar assumptions as the current Internet infrastructure:
+
+- the public-key infrastructure is trustworthy -- the secure bootstrap server has a valid certificate accepted by the browser
+- data transmission is protected by TLS (HTTPS) -- based on above server certificate
+- the bootstrap server is trusted for serving the `canister.ic.org` and `secure-key-storage.ic.org` domains
+
+The verification of the assets served by the canister depends a bit on how we do certification, but is generally based on the assumptions underlying ICP (namely that no large coalition of data centers attacks the protocol).
+
+The security structure of the agent critically relies on the separation provided by the browser origin security model to guarantees that user private keys are not accessible to the canister front end.
+
+
+=== Performance Considerations
+////
+:optional:
+
+How will the feature affect speed and performance. Will there be a need to
+benchmark the feature (and if so, how)? Is there any considerations to keep
+in mind for avoiding and preventing future regressions?
+////
+
+In terms of computation, the overhead introduced stems mostly from the separation of the agent into two parts that use `postMessage` communication.
+As this communication is only needed once (query-response) for each authenticated query or update call, the impact is expected to be small.
+
+More importantly, we have to ensure that the secure bootstrap servers scale sufficiently, as they are involved in every (initial) canister access from a legacy browser.
+Especially in the beginning, we expect most accesses to originate from legacy browsers.
+
+== Breaking Changes
+////
+:optional:
+
+Does this feature create or require breaking changes?
+////
+
+=== Deprecation
+////
+:optional:
+
+Does this feature deprecates any existing APIs?
+////
+
+== Documentation
+////
+:required:
+
+How will this feature be documented? Which people need to be involved?
+////
+
+== Lifecycle
+
+=== Integration Plan
+////
+:optional: Required if there are interactions with other tools.
+
+How will this feature interact with other tools? Is there any changes outside
+of the SDK that are required to make this feature work? Does this feature
+have integration with `dfx`?
+////
+
+=== Publishing Plan
+////
+:optional: Required if there are new packages.
+
+Explain which new packages will be released and published with this feature.
+Include any changes to current released packages.
+////
+
+=== Rollout / Migration
+////
+:optional:
+
+How can we minimize impact to users? How do we maximize adoption?
+////
+
+=== Rollback Plan
+////
+:optional:
+
+How do you plan to rollback the change if a major issue is found?
+////
+
+=== Maintenance Plan
+////
+:required:
+
+How do you plan to maintain this feature for the next years? Can the
+APIs be cleanly evolved? Can Breaking Changes in the future be avoided?
+
+If this is a service, what is the update and monitoring strategy?
+
+If this is a package, how do we plan to publish and deploy it? This includes
+version numbering.
+////
+
+== Work Breakdown
+////
+:required:
+
+Description of the various phases and milestones. This is supposed to be a
+bullet point list of high level stories and tasks. It is not meant to be a
+1:1 ratio of PRs.
+////
