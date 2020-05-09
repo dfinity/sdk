@@ -1,7 +1,13 @@
+use crate::Blob;
 use openssl::sha::sha256;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::Error;
+use serde::export::TryFrom;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-const SELF_AUTHENTICATING_PRINCIPAL_LEN: usize = 33;
+const ID_SELF_AUTHENTICATING_LEN: usize = 33;
+const ID_SELF_AUTHENTICATING_SUFFIX: u8 = 0x02;
+const ID_ANONYMOUS_SUFFIX: u8 = 0x04;
+const ID_ANONYMOUS_BYTES: &'static [u8] = &[ID_ANONYMOUS_SUFFIX];
 
 /// A principal describes the security context of an identity, namely
 /// any identity that can be authenticated along with a specific
@@ -18,25 +24,53 @@ pub struct Principal(PrincipalInner);
 pub enum PrincipalInner {
     /// Defined as H(public_key) || 0x02.
     SelfAuthenticating(Vec<u8>),
+
+    /// The anonymous Principal.
+    Anonymous,
 }
 
 impl Principal {
     /// Right now we are enforcing a Twisted Edwards Curve 25519 point
     /// as the public key.
     pub fn self_authenticating(public_key: impl AsRef<[u8]>) -> Self {
-        let mut bytes = Vec::with_capacity(SELF_AUTHENTICATING_PRINCIPAL_LEN);
+        let mut bytes = Vec::with_capacity(ID_SELF_AUTHENTICATING_LEN);
         let hash = sha256(public_key.as_ref());
         bytes.extend(&hash);
         // Now add a suffix denoting the identifier as representing a
         // self-authenticating principal.
-        bytes.push(0x02);
+        bytes.push(ID_SELF_AUTHENTICATING_SUFFIX);
         Self(PrincipalInner::SelfAuthenticating(bytes))
+    }
+
+    pub fn anonymous() -> Self {
+        Self(PrincipalInner::SelfAuthenticating(vec![
+            ID_ANONYMOUS_SUFFIX,
+        ]))
     }
 }
 
-impl AsRef<[u8]> for Principal {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl TryFrom<Blob> for Principal {
+    type Error = String;
+
+    fn try_from(bytes: Blob) -> Result<Self, Self::Error> {
+        Self::try_from(bytes.0.as_slice())
+    }
+}
+
+impl TryFrom<&[u8]> for Principal {
+    type Error = String;
+
+    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+        let last_byte = bytes.last().ok_or(
+            "empty slice of bytes can not be parsed into an principal identifier".to_owned(),
+        )?;
+        match *last_byte {
+            ID_SELF_AUTHENTICATING_SUFFIX => Ok(Principal(PrincipalInner::SelfAuthenticating(
+                bytes.to_vec(),
+            ))),
+            ID_ANONYMOUS_SUFFIX => Ok(Principal(PrincipalInner::Anonymous)),
+            suffix => Err(format!("not supported principal type: {}", suffix)),
+        }
     }
 }
 
@@ -44,34 +78,20 @@ impl AsRef<[u8]> for PrincipalInner {
     fn as_ref(&self) -> &[u8] {
         match self {
             PrincipalInner::SelfAuthenticating(v) => v,
+            PrincipalInner::Anonymous => ID_ANONYMOUS_BYTES,
         }
     }
 }
 
 impl Serialize for Principal {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match self.0.clone() {
-            PrincipalInner::SelfAuthenticating(item) => item.serialize(serializer),
-        }
+        serializer.serialize_bytes(self.0.as_ref())
     }
 }
 
 impl<'de> Deserialize<'de> for Principal {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Principal, D::Error> {
-        let bytes = Vec::<u8>::deserialize(deserializer)?;
-        let last_byte = bytes
-            .last()
-            .ok_or_else(|| {
-                "empty slice of bytes can not be parsed into an principal identifier".to_owned()
-            })
-            .map_err(de::Error::custom)?;
-        match last_byte {
-            0x02 => Ok(Principal(PrincipalInner::SelfAuthenticating(bytes))),
-            _ => {
-                let err_str = "not supported".to_owned();
-                Err(de::Error::custom(err_str))
-            }
-        }
+        Principal::try_from(Blob::deserialize(deserializer)?).map_err(D::Error::custom)
     }
 }
 

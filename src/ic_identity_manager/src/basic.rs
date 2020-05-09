@@ -87,6 +87,10 @@ mod private {
     }
 
     impl BasicSignerReady {
+        pub fn sender(&self) -> Principal {
+            Principal::self_authenticating(self.key_pair.public_key().as_ref())
+        }
+
         pub fn sign(&self, msg: &[u8]) -> Result<Signature> {
             let signature = self.key_pair.sign(msg);
             // At this point we shall validate the signature in this first
