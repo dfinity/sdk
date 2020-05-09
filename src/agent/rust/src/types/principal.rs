@@ -7,7 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 const ID_SELF_AUTHENTICATING_LEN: usize = 33;
 const ID_SELF_AUTHENTICATING_SUFFIX: u8 = 0x02;
 const ID_ANONYMOUS_SUFFIX: u8 = 0x04;
-const ID_ANONYMOUS_BYTES: &'static [u8] = &[ID_ANONYMOUS_SUFFIX];
+const ID_ANONYMOUS_BYTES: &[u8] = &[ID_ANONYMOUS_SUFFIX];
 
 /// A principal describes the security context of an identity, namely
 /// any identity that can be authenticated along with a specific
@@ -61,9 +61,9 @@ impl TryFrom<&[u8]> for Principal {
     type Error = String;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        let last_byte = bytes.last().ok_or(
-            "empty slice of bytes can not be parsed into an principal identifier".to_owned(),
-        )?;
+        let last_byte = bytes.last().ok_or_else(|| {
+            "empty slice of bytes can not be parsed into an principal identifier".to_owned()
+        })?;
         match *last_byte {
             ID_SELF_AUTHENTICATING_SUFFIX => Ok(Principal(PrincipalInner::SelfAuthenticating(
                 bytes.to_vec(),

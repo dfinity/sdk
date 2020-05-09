@@ -25,7 +25,7 @@ impl ic_agent::Identity for Identity {
     fn sign(&self, request_id: &RequestId, _: &Principal) -> Result<Signature, AgentError> {
         let signature_tuple = self
             .0
-            .sign(Blob::from(request_id.clone()).as_slice())
+            .sign(Blob::from(*request_id).as_slice())
             .map_err(|e| AgentError::SigningError(e.to_string()))?;
 
         let signature = Blob::from(signature_tuple.signature.clone());
