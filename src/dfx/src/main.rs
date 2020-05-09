@@ -191,7 +191,7 @@ fn main() {
                 eprintln!("Command must be run in a project directory (with a dfx.json file).");
             }
             DfxError::AgentError(AgentError::ClientError(code, message)) => {
-                eprintln!("Client error (code {}): {}", code, message);
+                eprintln!("Replica error (code {}): {}", code, message);
             }
             DfxError::Unknown(err) => {
                 eprintln!("Unknown error: {}", err);
