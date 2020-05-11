@@ -1,3 +1,5 @@
+use crate::file_hierarchy::ProfileIdentifier;
+
 use std::{error, result};
 
 #[derive(Debug)]
@@ -18,6 +20,8 @@ pub enum Error {
     PemError(pem::PemError),
     /// Failed to access file.
     IOError(std::io::Error),
+    ///
+    ProfileMissing(ProfileIdentifier),
 }
 
 impl From<ring::error::Unspecified> for Error {

@@ -14,11 +14,11 @@ lazy_static! {
 }
 
 #[derive(Debug)]
-pub struct FileHierarchy {
-    location: PathBuf,
+pub(crate) struct FileHierarchy {
+    pub location: PathBuf,
     version: Version,
-    #[allow(dead_code)]
-    inner: HashMap<ProfileIdentifier, PrincipalProfile>,
+    // We can keep it simple as this is still an internal type to
+    pub inner: HashMap<ProfileIdentifier, PrincipalProfile>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -51,17 +51,32 @@ impl PrincipalProfile {
         self.access_files.insert(id, access_file);
         self
     }
+
+    pub fn get_default_file(&self, profile_id: ProfileIdentifier) -> Option<AccessFile> {
+        self.access_files
+            .get("main_key")
+            .cloned()
+            // Return the relative path to the root of the file hierarchy.
+            .map(|mut r_path| {
+                r_path.path = PathBuf::from(profile_id.0).join(r_path.path);
+                r_path
+            })
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct UserProfile {
     principal_profile: PrincipalProfile,
-    access_content: String,
+    access_content: Vec<u8>,
     profile_identifier: ProfileIdentifier,
 }
 
 impl UserProfile {
-    pub fn new_with_key(user: impl AsRef<str>, key: String, key_id: impl AsRef<str>) -> Self {
+    pub fn new_with_key(
+        user: impl AsRef<str>,
+        key: impl AsRef<[u8]>,
+        key_id: impl AsRef<str>,
+    ) -> Self {
         let access_file = AccessFile {
             access_type: AccessType::PrivateKey,
             path: PathBuf::from(key_id.as_ref().to_owned() + ".pem"),
@@ -72,7 +87,7 @@ impl UserProfile {
         let profile_identifier = ProfileIdentifier::new(user);
         Self {
             principal_profile,
-            access_content: key,
+            access_content: key.as_ref().to_vec(),
             profile_identifier,
         }
     }
@@ -115,6 +130,21 @@ impl FileHierarchy {
             location: root_path,
             version: VERSION.clone(),
             inner: HashMap::new(),
+        }
+    }
+
+    /// Setup adds necessary metadata fStringiles in the provided path if
+    /// necessary. We first check if the existing metadata is valid. If
+    /// not, we **fail** as we can not distinguish outdated
+    pub fn setup(&self) -> Result<()> {
+        // Check if there is a metadata file.
+        match fs::read_to_string(&self.location.join("metadata.json")) {
+            Ok(metadata) => {
+                let m: serde_json::Result<Metadata> = serde_json::from_str(&metadata);
+                m.map(|_| ()).map_err(|e| e.into())
+            }
+            // If there is none, create one.
+            Err(_) => self.add_metadata(),
         }
     }
 
@@ -182,14 +212,13 @@ impl FileHierarchy {
         let mut map = HashMap::new();
 
         for profile_id in profiles.iter() {
-            // let profile_id = ProfileIdentifier::new(p);
             let profile_name = profile_id.0.clone();
             let path = root.join(profile_name.clone()).join(profile_name + ".json");
             let contents = fs::read_to_string(path)?;
             let file: PrincipalProfile = serde_json::from_str(&contents)?;
             map.insert(profile_id.clone(), file);
 
-            // Add version checks here. XX
+            // TODO(eftychis): Add version checks here.
         }
 
         let metadata = fs::read_to_string(root.join("metadata.json"))?;
@@ -203,7 +232,7 @@ impl FileHierarchy {
         })
     }
 
-    pub fn add_metadata(&self) -> Result<()> {
+    fn add_metadata(&self) -> Result<()> {
         let identity_root = self.location.clone();
         let metadata = Metadata {
             version: self.version.clone(),
@@ -227,14 +256,14 @@ mod tests {
 
         // Create profiles and dummy key files
         let key1 = "this is a key".to_owned();
-        let key2 = "this is a key also I think".to_owned();
+        let key2 = vec![0, 1, 2, 3, 4, 5, 6, 7];
         let alice_profile = UserProfile::new_with_key("Alice", key1.clone(), "main_key");
         let bob_profile = UserProfile::new_with_key("Bob", key2.clone(), "main_key");
 
         // Create file hierarchy.
         let root = dir.path().to_path_buf();
         let fh = FileHierarchy::new(root.clone());
-        fh.add_metadata().unwrap();
+        fh.setup().unwrap();
         fh.add_profile(alice_profile.clone())
             .expect("Failed to add profile");
 
@@ -259,6 +288,59 @@ mod tests {
         assert_eq!(
             fh.inner.get(&ProfileIdentifier::new("Alice")),
             Some(&alice_profile.principal_profile)
+        );
+        assert_eq!(
+            alice_profile
+                .principal_profile
+                .access_files
+                .get("main_key")
+                .unwrap()
+                .path
+                .clone(),
+            PathBuf::from("main_key.pem")
+        );
+
+        assert_eq!(
+            alice_profile
+                .principal_profile
+                .get_default_file(ProfileIdentifier::new("Alice"))
+                .unwrap()
+                .path,
+            (PathBuf::from("Alice/main_key.pem"))
+        );
+
+        let key1_contents = fs::read_to_string(root.join("Alice").join("main_key.pem")).unwrap();
+        assert_eq!(key1_contents, key1);
+        let key2_contents = fs::read_to_string(root.join("Bob").join("main_key.pem")).unwrap();
+        assert_eq!(key2_contents, String::from_utf8(key2).unwrap());
+
+        let fh =
+            FileHierarchy::partial_load_file_hierarchy(&[ProfileIdentifier::new("Bob")], &root)
+                .unwrap();
+        assert_eq!(fh.location, root);
+        assert_eq!(fh.version, VERSION.clone());
+        assert_eq!(
+            fh.inner.get(&ProfileIdentifier::new("Bob")),
+            Some(&bob_profile.principal_profile)
+        );
+        assert_eq!(
+            bob_profile
+                .principal_profile
+                .access_files
+                .get("main_key")
+                .unwrap()
+                .path
+                .clone(),
+            PathBuf::from("main_key.pem")
+        );
+
+        assert_eq!(
+            bob_profile
+                .principal_profile
+                .get_default_file(ProfileIdentifier::new("Bob"))
+                .unwrap()
+                .path,
+            (PathBuf::from("Bob/main_key.pem"))
         );
 
         dir.close().unwrap();

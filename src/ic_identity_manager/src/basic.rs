@@ -7,6 +7,7 @@
 //! the agent is "stateless" or ii) provide long-running service
 //! providers -- such as PGP, ssh-agent.
 use crate::crypto_error::{Error, Result};
+use crate::file_hierarchy::{FileHierarchy, ProfileIdentifier, UserProfile};
 use crate::types::Signature;
 
 use ic_agent::Principal;
@@ -17,7 +18,7 @@ use ring::{
     signature::{self, KeyPair},
 };
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 // This module should not be re-exported. We want to ensure
 // construction and handling of keys is done only here.
@@ -37,33 +38,45 @@ impl BasicSigner {
     }
 }
 
-fn generate(profile_path: &impl AsRef<Path>) -> Result<PathBuf> {
+fn generate() -> Result<String> {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
-    // We create a temporary file that gets overwritten every time
-    // we create a new provider for now.
-    let pem_file = profile_path.as_ref().join("creds.pem");
-    fs::write(&pem_file, encode_pem_private_key(&(*pkcs8_bytes.as_ref())))?;
-
-    assert_eq!(
-        pem::parse(fs::read(&pem_file)?)?.contents,
-        pkcs8_bytes.as_ref()
-    );
-    Ok(pem_file)
+    let pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
+    Ok(pem)
 }
 
 impl BasicSigner {
     pub fn provide(&self) -> Result<BasicSignerReady> {
-        let mut dir = fs::read_dir(&self.path)?;
-        let name: std::ffi::OsString = "creds.pem".to_owned().into();
-        let pem_file = if dir.any(|n| match n {
-            Ok(n) => n.file_name() == name,
-            Err(_) => false,
-        }) {
-            self.path.join("creds.pem")
-        } else {
-            generate(&self.path)?
-        };
+        let profile_name = "default";
+        let profile_id = ProfileIdentifier::new(profile_name);
+        let root = self.path.clone();
+        // Ensure there is a setup.
+        FileHierarchy::new(root.clone()).setup()?;
+
+        let pem_file =
+            match FileHierarchy::partial_load_file_hierarchy(&[profile_id.clone()], &root) {
+                Ok(fh) => fh
+                    .inner
+                    .get(&profile_id)
+                    .cloned()
+                    .ok_or_else(|| Error::ProfileMissing(profile_id.clone())),
+                Err(_) => {
+                    let fh = FileHierarchy::new(root.clone());
+                    let key = generate()?;
+                    let profile = UserProfile::new_with_key(profile_name, key, "main_key");
+                    fh.add_profile(profile)?;
+                    let fh =
+                        FileHierarchy::partial_load_file_hierarchy(&[profile_id.clone()], &root)?;
+                    fh.inner
+                        .get(&profile_id)
+                        .cloned()
+                        .ok_or_else(|| Error::ProfileMissing(profile_id.clone()))
+                }
+            }?
+            .get_default_file(profile_id.clone())
+            // We have the realtive path; now return the path.
+            .map(|r_path| root.join(r_path.path))
+            .ok_or_else(|| Error::ProfileMissing(profile_id))?;
 
         let pkcs8_bytes = pem::parse(fs::read(pem_file)?)?.contents;
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref())?;
@@ -114,4 +127,21 @@ fn encode_pem_private_key(key: &[u8]) -> String {
         contents: key.to_vec(),
     };
     encode(&pem)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_basic_signing() {
+        let dir = tempdir().unwrap();
+        let root = dir.path().to_path_buf();
+        let provider = BasicSigner::new(root).expect("Failed to construct basic signer");
+        provider.provide().unwrap();
+        dir.close().unwrap();
+    }
 }
