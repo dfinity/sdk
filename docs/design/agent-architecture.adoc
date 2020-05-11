@@ -28,6 +28,13 @@ The agent also manages the user's cryptographic keys.
 The canister front end, even if the signature on the code set by an IC node is verified by the agent, cannot be trusted, as it is supplied by canister developers.
 Therefore, the front end code must not have access to cryptographic keys.
 
+One challenge is that the trust model underlying the current Web &mdash;and thus also browser&mdash; architecture, and underlying the Internet Computer are different.
+In the Web architecture, the server is trusted (for its origin): The browser executes all code returned by the server, still isolating it from the assets obtained from other servers.
+TLS (in HTTPS) is used to protect the transmission between the server and the browser from third parties.
+By contrast, no individual replica in the Internet Computer is trusted: Even when the connection between the replica and the browser is secured, the data sent by a dishonest replica may be fraudulent.
+The browser can only trust the data if it is verifiable by other means, such as certification by the Internet Computer.
+Yet, as we intend to support legacy web browsers, we need to provide a bootstrapping mechanism that allows to obtain an IC user agent in a web browser through means supported by the legacy architecture.
+
 === Requirements
 
 Canister front end code can interact via update or query calls with the canister that served that front end.
