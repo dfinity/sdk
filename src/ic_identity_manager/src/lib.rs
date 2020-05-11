@@ -50,7 +50,7 @@ impl Identity {
             .provide()
             .expect("Could not find an identity provider.");
 
-        identity.sender()
+        identity.principal()
     }
 
     /// Sign the provided message assuming a certain principal.
