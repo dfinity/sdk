@@ -1,8 +1,8 @@
 use crate::Blob;
 use openssl::sha::sha256;
 use serde::de::Error;
-use serde::export::TryFrom;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::convert::TryFrom;
 
 const ID_SELF_AUTHENTICATING_LEN: usize = 33;
 const ID_SELF_AUTHENTICATING_SUFFIX: u8 = 0x02;
