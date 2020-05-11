@@ -1,11 +1,15 @@
 = Web Crypto Design Doc
 // Author field:
 Eftychis <eftychis@dfinity.org>
+Bjoern <bjoern@dfinity.org>
 v0.1, 2020-04-15
 :draft:
 :toc:
 
 == Overview
+
+The purpose of this document is to describe the management of cryptographic keys in the browser user agent.
+The document complements the ones on the general architecture of the user agent (which describes how the agent is served to the browser) and the public specification of the Internet Computer (which describes the formats of the expected inputs and provided outputs of the IC).
 
 The user manages multiple user keys on the browser while mitigating
 the attack surface area. In the end, a user should be able to utilize
@@ -54,6 +58,7 @@ https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API
 
 https://tools.ietf.org/html/rfc7517
  Example
+....
 {
    "keys": [
         {
@@ -67,15 +72,12 @@ https://tools.ietf.org/html/rfc7517
         }
     ]
 }
-
+....
 
 === Browser Compatibility
 
 
-* Edge
-
-https://en.wikipedia.org/w/index.php?title=Microsoft_Edge&action=edit&section=8
-
+* Edge: Despite the negative statements in the documentation on Microsoft's web page, the newer versions of Edge appear to support the necessary parts of the WebCrypto standard.
 * Firefox: The WebCryptoSubtle `exportKey` method is broken for parameter `pkcs8`, which is supposed to output a DER encoding of the key.
   We use DER encoding when referencing the key in ingress messages.
   DER turns out to be an ASN.1 encoding of the raw key exported with parameter `raw`, so we can work around this issue for public keys.
@@ -88,40 +90,53 @@ https://en.wikipedia.org/w/index.php?title=Microsoft_Edge&action=edit&section=8
 
 == Expected User/Developer Experience
 
-Behavior as a first step remains the same. Local Storage contains only
-a public key in JSON Web Key form (JWK). In the second phase a user is
-prompted to authorize their public key.
+In a first step, the user interaction is supposed to remain the same.
+(Only the implementation changes in order to adapt to the current version of the public specification, and to use the cryptographic algorithms supported by the WebCrypto API.)
 
+In a second step, the agent allows the user to export/import a private key.
+The reason for this is that key storage in the browser local storage can hardly be considered persistent.
+
+In a third step, the agent will allow the client to link multiple devices.
+Subsequently, we will allow elevated security levels with more secure storage of cryptographic private keys.
 
 == Detailed Design
 
 
-=== Key derivation
-
-One approach is to utilize a main key for each device; then generate a
-new key per canister. When we authorize a new device we provide a
-certificate for the new device, and each key on the new device is
-derived. However, this does not offer us any advantages related to
-revocation or handling.
-
 === Considered Solutions
 
+We describe alternative solutions that were discarded in favor of the recommended solution described below.
 
-1. Authorization
-2. Key generation and persistence
+==== Key derivation
+
+One approach is to utilize a main key for each device; then derive a
+new key from the main key, per canister. When we authorize a new device we provide a
+certificate for the new device, and each key on the new device is
+derived. However, a key derivation scheme does not offer us any advantages related to
+revocation and handling, but would require a non-WebCrypto implementation of cryptographic algorithms.
+
+==== One-key per canister
+
+The approach still uses a main key per device with different keys per canister.
+In contrast to the above approach, however, the keys for individual canisters are not derived from the main key, but generated according to the usual procedures.
+This involves more complex handling of keys, and eventually more flexible revocation, but the advantages are initially rather small.
 
 === Recommended Solution
 
-
-
-Note, however, that we entrust the correctness and security of the
+We use WebCrypto to generate and store keys, and to sign messages.
+Note that we thus entrust the correctness and security of the
 implementation to the browser that realizes the WebCrypto API
 specification. We consider this an acceptable choice given the status
 quo in the browser scene.
 
-* Algorithm
+==== One key per device, securely managed by the agent
 
-on Userlib load:
+Each device (i.e. browser) has a single private cryptographic key.
+This key is managed in the user agent and stored in IndexedDB, separated from the canister front ends by origin.
+(Requests from the front end are passed to the secured user agent in a way that the target canister is still visible, so that cross-canister attacks can be avoided.)
+
+==== Key pair generation
+
+On Userlib load:
 
 . Check browser version:
 .. If Edge (>=79 ) // The browser is Chromium based
@@ -135,20 +150,46 @@ on Userlib load:
  // The problem here is that even if the browser supports it we can not
  // say anything about the implementation or its performance.
 
-on makeAuthTransform: // modified to provide canister id
+On makeAuthTransform:
 
+. Let `canister-id` be the canister id stated in the request.
+  Check that the `postMessage` invoking the request comes from origin `canister-id.ic.org`.
+  If not, then abort.
 . Open connection to IndexedDB
 . Check if browser supports generateKey, sign and importKey for ECDSA P256
 . If not fallback with a warning message to tweetnacl (key now stored in indexeddb)
-. search for a key for the particular canister id // and user id if we decide to have multiple user support
-.. create key if none found (as exportable) // This seems an inefficiency of IndexedDB and browser mentality -- there is no way to backup IndexedDB
-.. provide User with key pair encoded as a recovery key phrase // This needs to be in the origin of the Userlibrary; we need to ensure the adversary does not have access to it
-(use a library)
-.. import key as non exportable and store it in IndexedDB
-.. load key // a bit paranoid here, but IndexedDB is asynchronous; we need to at least check the key has been stored
+. create key if none found (as exportable) // This seems an inefficiency of IndexedDB and browser mentality -- there is no way to backup IndexedDB
+. load key // a bit paranoid here, but IndexedDB is asynchronous; we need to at least check the key has been stored
 . sign request
 
+==== Private key export / import
 
+As the browser local storage (including IndexedDB) cannot reasonably considered as persistent, we need to allow users to export their private keys, and re-import it later.
+That way, users can backup their keys or even switch to a different browser.
+The best level of compatibility between different browsers is achieved using JWK format.
+(Firefox fumbles on PKCS formats, all other browsers seem to follow standards.)
+
+More technically, the export occurs through `crypto.subtle.exportKey("jwk", keyPair.privateKey)`. 
+They exported key can then, e.g., be presented to the user as download.
+
+In the future, a more user-friendly option seems to be to export the key to a cloud service of the user's choice.
+(This, of course, has to be supported by the agent.)
+For this purpose, we may want to allow the user to password-encrypt the exported key, which is achieved as follows (this is pseudocode, but informed by the WebCrypto API):
+
+....
+pbkfs2params = { name = "PBKDF2", hash = "SHA-256", salt = randomSalt, iterations = /* to be determined */ }
+aesKeyGenParams = { name = "AES-GCM", length = 128 }
+
+wrappingKey = crypto.subtle.deriveKey(pbkdf2Params, password, aesKeyGenParams, false, "wrapKey");
+
+gcmIv = /* BufferSource with EXACTLY 96 bits randomness */
+gcmParams = { name = "AES-GCM", gcmIv, additionalData = /* empty BufferSource */, tagLength = 128 }
+ciphertext = crypto.subtle.wrapKey("jwk", keyPair.privateKey, wrappingKey, gcmParams);
+
+store the object { randomSalt, gcmIv, ciphertext }
+....
+
+WARNING: Exact parameter choices subject to change!
 
 === User Profiles
 
