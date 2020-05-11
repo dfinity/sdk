@@ -55,11 +55,11 @@ dfx_start() {
         local port=$(cat ${dfx_config_root}/client-1.port)
     fi
 
-    printf "Client Configured Port: %s\n" "${port}"
+    printf "Replica Configured Port: %s\n" "${port}"
 
     timeout 5 sh -c \
-        "until nc -z localhost ${port}; do echo waiting for client; sleep 1; done" \
-        || (echo "could not connect to client on port ${port}" && exit 1)
+        "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
+        || (echo "could not connect to replica on port ${port}" && exit 1)
 }
 
 # Stop the client and verify it is very very stopped.
