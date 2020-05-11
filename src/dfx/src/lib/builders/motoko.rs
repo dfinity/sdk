@@ -1,7 +1,8 @@
 use crate::config::cache::Cache;
 use crate::config::dfinity::Profile;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, PackageToolArguments,
+    WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -124,6 +125,7 @@ impl CanisterBuilder for MotokoBuilder {
             inject_code: false,
             verbose: false,
             input: &input_path,
+            packtool_arguments: &config.packtool_arguments,
             output: &output_idl_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -181,6 +183,7 @@ impl CanisterBuilder for MotokoBuilder {
             inject_code: true,
             verbose: false,
             input: &input_path,
+            packtool_arguments: &config.packtool_arguments,
             output: &output_wasm_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -242,6 +245,7 @@ struct MotokoParams<'a> {
     build_target: BuildTarget,
     idl_path: &'a Path,
     idl_map: &'a CanisterIdMap,
+    packtool_arguments: &'a PackageToolArguments,
     output: &'a Path,
     // The following fields will not be used by self.to_args()
     // TODO move input into self.to_args once inject_code is deprecated.
@@ -265,6 +269,9 @@ impl MotokoParams<'_> {
                 cmd.args(&["--actor-alias", name, canister_id]);
             }
         };
+        for arg in self.packtool_arguments.iter() {
+            cmd.arg(arg);
+        }
     }
 }
 

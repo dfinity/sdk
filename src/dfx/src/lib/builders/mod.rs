@@ -54,12 +54,17 @@ pub trait CanisterBuilder {
     ) -> DfxResult<BuildOutput>;
 }
 
+/// Command-line arguments for moc as returned by a package tool
+/// like https://github.com/kritzcreek/vessel
+pub type PackageToolArguments = Vec<String>;
+
 #[derive(Clone)]
 pub struct BuildConfig {
     profile: Profile,
     assets: bool,
     pub generate_id: bool,
     metadata: BTreeMap<String, serde_json::Value>,
+    packtool_arguments: PackageToolArguments
 }
 
 impl BuildConfig {
@@ -69,6 +74,7 @@ impl BuildConfig {
             assets: false,
             generate_id: false,
             metadata: BTreeMap::new(),
+            packtool_arguments: PackageToolArguments::new()
         }
     }
 
@@ -79,6 +85,13 @@ impl BuildConfig {
     pub fn with_generate_id(self, generate_id: bool) -> Self {
         Self {
             generate_id,
+            ..self
+        }
+    }
+
+    pub fn with_packtool_arguments(self, packtool_arguments: PackageToolArguments) -> Self {
+        Self {
+            packtool_arguments,
             ..self
         }
     }
