@@ -36,3 +36,26 @@ impl ic_agent::Identity for Identity {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use ic_agent::Identity;
+    use tempfile::tempdir;
+
+    #[test]
+    fn request_id_identity() {
+        let dir = tempdir().unwrap();
+        let request_id = RequestId::new(&[4; 32]);
+
+        let signer = super::Identity::new(dir.into_path());
+        let sender = signer.sender().expect("Failed to get the sender.");
+        let signature = signer.sign(&request_id, &sender).expect("Failed to sign.");
+
+        // Assert the principal is used for the public key.
+        assert_eq!(
+            sender,
+            Principal::self_authenticating(signature.public_key.as_slice())
+        );
+    }
+}
