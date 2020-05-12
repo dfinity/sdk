@@ -36,20 +36,20 @@ user_message!(
     // dfx canister call
     CallCanister => "Calls a method on a deployed canister.",
     MethodName => "Specifies the method name to call on the canister.",
-    AsyncResult => "Do not wait for the result of the call to be returned by polling the client. Instead return a response ID.",
+    AsyncResult => "Do not wait for the result of the call to be returned by polling the replica. Instead return a response ID.",
     ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
     ArgumentValue => "Specifies the argument to pass to the method.",
 
     // dfx canister install
-    InstallCanister => "Installs compiled code as a canister on the client.",
+    InstallCanister => "Installs compiled code as a canister on the replica.",
     InstallAll => "Install all canisters configured in dfx.json.",
     InstallCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
     InstallComputeAllocation => "Specifies the canister's compute allocation. This should be a percent in the range [0..100]",
     InstallMemoryAllocation => "Specifies the canister's memory allocation in bytes. The value should be in the range [0..2^48]. The input should be in the form <num><unit> where unit is one of {KB|MB|GB}.",
 
     // dfx canister mod
-    ManageCanister => "Manages canisters deployed on a network client.",
-    CanisterClient => "Override the client to connect to. By default uses the client set in dfx configuration.",
+    ManageCanister => "Manages canisters deployed on a network replica.",
+    CanisterClient => "Override the replica to connect to. By default uses the replica set in dfx configuration.",
 
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",
@@ -85,13 +85,13 @@ user_message!(
     CleanState => "Cleans state of current project.",
     StartNode => "Starts the local replica and a web server for the current project.",
     NodeAddress => "Specifies the host name and port number to bind the frontend to.",
-    StartBackground => "Exits the dfx leaving the client running. Will wait until the client replies before exiting.",
+    StartBackground => "Exits the dfx leaving the replica running. Will wait until the replica replies before exiting.",
 
     // misc
     CanisterName => "Specifies the canister name. If you don't specify this argument, all canisters are processed.",
 
     // dfx stop
-    StopNode => "Stops the local network client.",
+    StopNode => "Stops the local network replica.",
     // dfx ide
     StartLanguageService => "Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the end-user.",
     ForceTTY => "Forces the language server to start even when run from a terminal",
