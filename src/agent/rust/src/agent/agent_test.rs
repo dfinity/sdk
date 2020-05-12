@@ -87,7 +87,10 @@ fn query_rejected() -> Result<(), AgentError> {
     read_mock.assert();
 
     match result {
-        Err(AgentError::ClientError(code, msg)) => {
+        Err(AgentError::ReplicaError {
+            reject_code: code,
+            reject_message: msg,
+        }) => {
             assert_eq!(code, 1234);
             assert_eq!(msg, "Rejected Message");
         }
@@ -190,7 +193,10 @@ fn call_rejected() -> Result<(), AgentError> {
     });
 
     match result {
-        Err(AgentError::ClientError(code, msg)) => {
+        Err(AgentError::ReplicaError {
+            reject_code: code,
+            reject_message: msg,
+        }) => {
             assert_eq!(code, 1234);
             assert_eq!(msg, "Rejected Message");
         }
