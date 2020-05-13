@@ -1,10 +1,11 @@
-use crate::agent::signer::{DummyIdentity, Signer};
+use crate::identity::dummy::DummyIdentity;
+use crate::identity::Identity;
 use crate::NonceFactory;
 
 pub struct AgentConfig<'a> {
     pub url: &'a str,
     pub nonce_factory: NonceFactory,
-    pub signer: Box<dyn Signer>,
+    pub identity: Box<dyn Identity>,
 }
 
 impl Default for AgentConfig<'_> {
@@ -13,7 +14,7 @@ impl Default for AgentConfig<'_> {
             // Making sure this is invalid so users have to overwrite it.
             url: "-",
             nonce_factory: NonceFactory::random(),
-            signer: Box::new(DummyIdentity {}),
+            identity: Box::new(DummyIdentity {}),
         }
     }
 }
