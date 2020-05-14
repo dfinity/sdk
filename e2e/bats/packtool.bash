@@ -22,6 +22,7 @@ teardown() {
 
 @test "build succeeds with dependencies" {
     install_asset packtool_mo
+    rm patch.bash
     install_asset packtool_dependencies
 
     dfx build
@@ -29,6 +30,7 @@ teardown() {
 
 @test "project calls dependencies" {
     install_asset packtool_mo
+    rm patch.bash
     install_asset packtool_dependencies
 
     dfx_start
@@ -44,6 +46,7 @@ teardown() {
 
 @test "failure to invoke the package tool reports the command line and reason" {
     install_asset packtool_mo
+    rm patch.bash
     install_asset packtool_error_invocation
 
     assert_command_fail dfx build
@@ -54,6 +57,7 @@ teardown() {
 
 @test "failure in execution reports the command line and exit code" {
     install_asset packtool_mo
+    rm patch.bash
     install_asset packtool_error_execution
 
     assert_command_fail dfx build
