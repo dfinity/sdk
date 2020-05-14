@@ -1,4 +1,4 @@
-import counterFactory from '../utils/canisters/counter';
+import { counterFactory } from '../utils/canisters';
 
 test('can call a canister', async () => {
   let counter = await counterFactory();

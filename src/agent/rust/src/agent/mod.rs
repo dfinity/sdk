@@ -8,20 +8,16 @@ pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
-    pub use super::replica_api::{MessageWithSender, ReadRequest, Request, SignedMessage};
     pub use super::response::{Replied, RequestStatusResponse};
-    pub use super::signer::Signer;
     pub use super::Agent;
 }
 
 #[cfg(test)]
 mod agent_test;
 
-pub mod signer;
-
-use crate::agent::replica_api::{ReadRequest, ReadResponse, Request, SubmitRequest};
-use crate::agent::signer::Signer;
-use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
+use crate::agent::replica_api::{Envelope, ReadRequest, ReadResponse, SubmitRequest};
+use crate::identity::Identity;
+use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
 
 use public::*;
 use reqwest::header::HeaderMap;
@@ -31,7 +27,7 @@ pub struct Agent {
     url: reqwest::Url,
     client: reqwest::Client,
     nonce_factory: NonceFactory,
-    signer: Box<dyn Signer>,
+    identity: Box<dyn Identity>,
 }
 
 impl Agent {
@@ -50,7 +46,7 @@ impl Agent {
                 .map_err(|_| AgentError::InvalidClientUrl(String::from(url)))?,
             client: Client::builder().default_headers(default_headers).build()?,
             nonce_factory: config.nonce_factory,
-            signer: config.signer,
+            identity: config.identity,
         })
     }
 
@@ -58,15 +54,25 @@ impl Agent {
     where
         A: serde::de::DeserializeOwned,
     {
-        let request = Request::Query(request);
-        let (_, signed_request) = self.signer.sign(request)?;
-        let record = serde_cbor::to_vec(&signed_request)?;
+        let anonymous = Principal::anonymous();
+        let request_id = to_request_id(&request)?;
+        let sender = match &request {
+            ReadRequest::Query { sender, .. } => sender,
+            ReadRequest::RequestStatus { .. } => &anonymous,
+        };
+        let signature = self.identity.sign(&request_id, &sender)?;
+        let signed_request = Envelope {
+            content: request,
+            sender_pubkey: signature.public_key,
+            sender_sig: signature.signature,
+        };
+        let serialized_bytes = serde_cbor::to_vec(&signed_request)?;
         let url = self.url.join("read")?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
         http_request
             .body_mut()
-            .get_or_insert(reqwest::Body::from(record));
+            .get_or_insert(reqwest::Body::from(serialized_bytes));
 
         let bytes = self
             .client
@@ -80,18 +86,24 @@ impl Agent {
     }
 
     async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
-        // We need to calculate the signature, and thus also the
-        // request id initially.
-        let request = Request::Submit(request);
-        let (request_id, signed_request) = self.signer.sign(request)?;
-
-        let record = serde_cbor::to_vec(&signed_request)?;
+        let request_id = to_request_id(&request)?;
+        let sender = match request {
+            SubmitRequest::Call { sender, .. } => sender,
+            SubmitRequest::InstallCode { sender, .. } => sender,
+        };
+        let signature = self.identity.sign(&request_id, &sender)?;
+        let signed_request = Envelope {
+            content: request,
+            sender_pubkey: signature.public_key,
+            sender_sig: signature.signature,
+        };
+        let serialized_bytes = serde_cbor::to_vec(&signed_request)?;
         let url = self.url.join("submit")?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
         http_request
             .body_mut()
-            .get_or_insert(reqwest::Body::from(record));
+            .get_or_insert(reqwest::Body::from(serialized_bytes));
 
         // Clippy doesn't like when return values are not used.
         let _ = self
@@ -111,10 +123,12 @@ impl Agent {
         method_name: &'a str,
         arg: &'a Blob,
     ) -> Result<Blob, AgentError> {
+        let sender = self.identity.sender()?;
         self.read::<ReadResponse>(ReadRequest::Query {
             canister_id,
             method_name,
             arg,
+            sender: &sender,
         })
         .await
         .and_then(|response| match response {
@@ -179,11 +193,13 @@ impl Agent {
         method_name: &str,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
+        let sender = self.identity.sender()?;
         self.submit(SubmitRequest::Call {
             canister_id,
             method_name,
             arg,
             nonce: &self.nonce_factory.generate(),
+            sender: &sender,
         })
         .await
     }
@@ -216,11 +232,13 @@ impl Agent {
         arg: &Blob,
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
+        let sender = self.identity.sender()?;
         self.submit(SubmitRequest::InstallCode {
             canister_id,
             module,
             arg,
             nonce: &self.nonce_factory.generate(),
+            sender: &sender,
             compute_allocation: attributes.compute_allocation.map(|x| x.into()),
         })
         .await
