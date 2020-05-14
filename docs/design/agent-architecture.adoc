@@ -25,15 +25,15 @@ Do not write ideas about how to solve the problem here.
 
 The agent performs security-critical operations such as verifying information sent from an Internet Computer node and signing requests before they are sent to the IC.
 The agent also manages the user's cryptographic keys.
-The canister front end, even if the signature on the code set by an IC node is verified by the agent, cannot be trusted, as it is supplied by canister developers.
+Even if the signature on the code sent by an IC node is verified by the agent, the code cannot be trusted since it is supplied by canister developers.
 Therefore, the front end code must not have access to cryptographic keys.
 
-One challenge is that the trust model underlying the current Web &mdash;and thus also browser&mdash; architecture, and underlying the Internet Computer are different.
+One challenge is that the trust model underlying the current Web &mdash;and thus also browser&mdash; architecture, and the trust model underlying the Internet Computer are different.
 In the Web architecture, the server is trusted (for its origin): The browser executes all code returned by the server, still isolating it from the assets obtained from other servers.
-TLS (in HTTPS) is used to protect the transmission between the server and the browser from third parties.
+TLS (in HTTPS) is used to authenticate the server and protect the transmission between the server and the browser from third parties.
 By contrast, no individual replica in the Internet Computer is trusted: Even when the connection between the replica and the browser is secured, the data sent by a dishonest replica may be fraudulent.
 The browser can only trust the data if it is verifiable by other means, such as certification by the Internet Computer.
-Yet, as we intend to support legacy web browsers, we need to provide a bootstrapping mechanism that allows to obtain an IC user agent in a web browser through means supported by the legacy architecture.
+We aim to support legacy web browsers. We therefore need to provide a bootstrapping mechanism that allows  such a browser to obtain, through means supported by the legacy architecture,  a genuine IC user agent which can carry out the verification of IC certifications.
 
 === Requirements
 
@@ -62,7 +62,7 @@ For historical purposes, some access (e.g. writing through a `POST`) is permitte
 
 === HTML Message Passing
 
-Documents in different origins can communicate through the `postMessage()` functionality introduced in HTML5.
+Documents with different origins can communicate through the `postMessage()` functionality introduced in HTML5.
 Importantly, the origin of the sending document is provided to the receiving document in a way that cannot be forged by the sender; this is guaranteed by the browser.
 
 
@@ -96,15 +96,15 @@ Additional rationale appears below.
 
 ==== Serving the Agent from a Replica
 
-The first strawman solution is to resolve `canister.ic.org` through DNS to any node on the subnet serving `canister`.
-The browser fetches `index.html` from that node, which links the JS files that comprise the agent.
+The first strawman solution is to resolve `canister.ic.org` through DNS to any replica on the subnet serving `canister`.
+The browser fetches `index.html` from that replica, which links the JS files that comprise the agent.
 
-This simple solution, however, is not secure. The reason is that any specific node is untrusted and may behave maliciously.
-As the node still has a valid X.509 certificate, the browser will still trust the node and run the returned code.
+This simple solution, however, is not secure. The reason is that any specific replica is untrusted and may behave maliciously.
+As the node still has a valid X.509 certificate, the browser will still trust the node and run the code served by the node.
 (This is where the trust model of the traditional web and the IC diverge. On the traditional web, the server is inherently trusted.)
 Once the browser runs the code returned by the malicious replica, no further guarantees can be given, and private key material of the user may be exposed.
 
-NOTE: There are partial solutions to this problem that are, however, technically complicated and still only work if the browser connects to an honest node when _first_ accessing a canister.
+NOTE: There are partial solutions to this problem that are, however, technically complicated and still only work if the browser connects to an honest replica when _first_ accessing a canister.
   Subsequent accesses could be protected. We decided that the trade-off between complexity and gains is not acceptable.
 
 ==== Serving the Agent from Secure Bootstrap Servers
@@ -125,7 +125,7 @@ NOTE: A list of IPs of IC replicas could be included in the agent plaintext.
 ==== Strict Origin Separation between Different Canisters
 
 Following the above, each canister has its own origin such as `canister.ic.org`.
-The cryptographic keys used by the agent to identify toward `canister` _could_ also be stored in that origin, using a different set of cryptographic keys for each canister.
+The cryptographic keys used by the agent to identify toward `canister` _could_ also be stored in that origin; a different set of keys would be used for each canister. 
 Such a scheme would be secure in the sense that different canister front ends are strictly isolated from one another, so the front end of each canister can only send ingress or query messages to its own canister.
 
 The disadvantage of this model is that it makes key management too cumbersome for the user:
@@ -139,7 +139,7 @@ That domain is also served from a secure bootstrap server, and the server again 
 
 === Recommended Solution
 
-Following the above, this section contains a step-by-step description of how the browser accesses the agent and ultimately the canister front end.
+Following the above, this section contains a step-by-step description of how the browser accesses the agent and ultimately the canister front end. The agent comprises two parts (hence the "split-face" characterization): a basic component and a key-management component, each running under different origins. 
 In practice, some of these steps will occur concurrently.
 Assume that the user types `canister.ic.org` in the browser address bar.
 
@@ -187,6 +187,7 @@ The security of distributing the agent is based on similar assumptions as the cu
 - the public-key infrastructure is trustworthy -- the secure bootstrap server has a valid certificate accepted by the browser
 - data transmission is protected by TLS (HTTPS) -- based on above server certificate
 - the bootstrap server is trusted for serving the `canister.ic.org` and `secure-key-storage.ic.org` domains
+- communication between iframes authenticates the sender -- based on browser security guarantees.
 
 The verification of the assets served by the canister depends a bit on how we do certification, but is generally based on the assumptions underlying ICP (namely that no large coalition of data centers attacks the protocol).
 
