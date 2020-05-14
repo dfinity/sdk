@@ -76,7 +76,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     slog::info!(logger, "Bundling assets with canisters...");
     canister_pool.build_or_fail(BuildConfig::from_config(config.get_config())
         .with_assets(true)
-        .with_package_arguments(package_arguments.clone()))?;
+        .with_package_arguments(package_arguments))?;
 
     Ok(())
 }

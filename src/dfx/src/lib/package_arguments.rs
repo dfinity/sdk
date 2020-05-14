@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::config::dfinity::Config;
 use std::process::Command;
 
-/// Package arguments for moc or moc-ide as returned by
+/// Package arguments for moc or mo-ide as returned by
 /// a package tool like https://github.com/kritzcreek/vessel
 /// and including the standard (base) library.
 pub type PackageArguments = Vec<String>;
