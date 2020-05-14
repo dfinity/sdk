@@ -47,8 +47,9 @@ teardown() {
     install_asset packtool_error_invocation
 
     assert_command_fail dfx build
-    assert_match 'Failed to invoke Package Tool Command "ec567ho" "that command cannot be invoked"'
-    assert_match 'due to error: No such file or directory \(os error 2\)'
+    assert_match 'FailedToInvokePackageTool'
+    assert_match './no-such-command.*that command cannot be invoked'
+    assert_match 'No such file or directory \(os error 2\)'
 }
 
 @test "failure in execution reports the command line and exit code" {
@@ -56,5 +57,7 @@ teardown() {
     install_asset packtool_error_execution
 
     assert_command_fail dfx build
-    assert_match 'Package Tool Command "sh" "-c" "exit 3" failed with status: exit code: 3'
+    assert_match 'PackageToolReportedError'
+    assert_match 'sh.*-c.*exit 3'
+    assert_match 'exit code: 3'
 }

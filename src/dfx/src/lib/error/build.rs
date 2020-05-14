@@ -1,5 +1,4 @@
 use std::fmt;
-use std::process::ExitStatus;
 
 /// An error happened during build.
 #[derive(Debug)]
@@ -19,12 +18,6 @@ pub enum BuildErrorKind {
     // A cycle was detected in the dependency between canisters. For now we don't have
     // a list of dependencies creating the cycle.
     CircularDependency(String),
-
-    /// An error happened while calling the package tool.
-    PackageToolInvocationError(String, String),
-
-    /// The package tool returned an error
-    PackageToolExecutionError(String, ExitStatus, String, String),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -49,19 +42,6 @@ impl fmt::Display for BuildErrorKind {
                 "There is a dependency cycle between canisters found at canister {}.",
                 name,
             )),
-            PackageToolInvocationError(cmd, error) => f.write_fmt(format_args!(
-                "Failed to invoke Package Tool Command {}\n due to error: {}",
-                cmd, error
-            )),
-            PackageToolExecutionError(
-                cmd,
-                status,
-                stdout,
-                stderr
-            ) => f.write_fmt(format_args!(
-                "Package Tool Command {}\n failed with status: {}\n{}{}",
-                cmd, status, stdout, stderr
-            ))
         }
     }
 }

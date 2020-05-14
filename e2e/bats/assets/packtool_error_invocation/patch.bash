@@ -1,1 +1,1 @@
-dfx config defaults/build/packtool '["ec567ho", "that command cannot be invoked"]'
+dfx config defaults/build/packtool '["./no-such-command", "that command cannot be invoked"]'

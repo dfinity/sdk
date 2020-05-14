@@ -1,13 +1,13 @@
 use crate::config::cache::Cache;
 use crate::config::dfinity::Profile;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, PackageToolArguments,
-    WasmBuildOutput,
+    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::package_arguments::PackageArguments;
 use crate::util::assets;
 use ic_agent::CanisterId;
 // use serde_idl::IDLProg;
@@ -125,7 +125,7 @@ impl CanisterBuilder for MotokoBuilder {
             inject_code: false,
             verbose: false,
             input: &input_path,
-            packtool_arguments: &config.packtool_arguments,
+            package_arguments: &config.package_arguments,
             output: &output_idl_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -183,7 +183,7 @@ impl CanisterBuilder for MotokoBuilder {
             inject_code: true,
             verbose: false,
             input: &input_path,
-            packtool_arguments: &config.packtool_arguments,
+            package_arguments: &config.package_arguments,
             output: &output_wasm_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -245,7 +245,7 @@ struct MotokoParams<'a> {
     build_target: BuildTarget,
     idl_path: &'a Path,
     idl_map: &'a CanisterIdMap,
-    packtool_arguments: &'a PackageToolArguments,
+    package_arguments: &'a PackageArguments,
     output: &'a Path,
     // The following fields will not be used by self.to_args()
     // TODO move input into self.to_args once inject_code is deprecated.
@@ -269,9 +269,7 @@ impl MotokoParams<'_> {
                 cmd.args(&["--actor-alias", name, canister_id]);
             }
         };
-        for arg in self.packtool_arguments.iter() {
-            cmd.arg(arg);
-        }
+        cmd.args(self.package_arguments);
     }
 }
 
@@ -280,7 +278,6 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
     let mut cmd = cache.get_binary_command("moc")?;
 
     let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
-    let stdlib_path = cache.get_binary_command_path("base")?;
     let input_path = if params.inject_code {
         let input_path = params.input;
         let mut content = std::fs::read_to_string(input_path)?;
@@ -305,11 +302,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
     cmd.arg(&input_path);
     params.to_args(&mut cmd);
     let cmd = cmd
-        .env("MOC_RTS", mo_rts_path.as_path())
-        // TODO Move packages flags into params.to_args once dfx supports custom packages
-        .arg("--package")
-        .arg("base")
-        .arg(&stdlib_path.as_path());
+        .env("MOC_RTS", mo_rts_path.as_path());
     run_command(cmd, params.verbose, params.surpress_warning)?;
 
     if params.inject_code {

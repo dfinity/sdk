@@ -3,6 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::package_arguments::PackageArguments;
 use ic_agent::CanisterId;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -54,17 +55,13 @@ pub trait CanisterBuilder {
     ) -> DfxResult<BuildOutput>;
 }
 
-/// Command-line arguments for moc as returned by a package tool
-/// like https://github.com/kritzcreek/vessel
-pub type PackageToolArguments = Vec<String>;
-
 #[derive(Clone)]
 pub struct BuildConfig {
     profile: Profile,
     assets: bool,
     pub generate_id: bool,
     metadata: BTreeMap<String, serde_json::Value>,
-    packtool_arguments: PackageToolArguments
+    package_arguments: PackageArguments
 }
 
 impl BuildConfig {
@@ -74,7 +71,7 @@ impl BuildConfig {
             assets: false,
             generate_id: false,
             metadata: BTreeMap::new(),
-            packtool_arguments: PackageToolArguments::new()
+            package_arguments: PackageArguments::new()
         }
     }
 
@@ -89,9 +86,9 @@ impl BuildConfig {
         }
     }
 
-    pub fn with_packtool_arguments(self, packtool_arguments: PackageToolArguments) -> Self {
+    pub fn with_package_arguments(self, package_arguments: PackageArguments) -> Self {
         Self {
-            packtool_arguments,
+            package_arguments,
             ..self
         }
     }

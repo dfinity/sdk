@@ -5,6 +5,7 @@ use crate::lib::message::UserMessage;
 use atty;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::process::Stdio;
+use crate::lib::package_arguments::{self, PackageArguments};
 
 const CANISTER_ARG: &str = "canister";
 const FORCE_TTY: &str = "force-tty";
@@ -31,7 +32,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         Err(DfxError::LanguageServerFromATerminal)
     } else if let Some(config) = env.get_config() {
         let main_path = get_main_path(config.get_config(), args)?;
-        run_ide(env, main_path)
+        let package_arguments = package_arguments::load(env, &config, true)?;
+        run_ide(env, main_path, package_arguments)
     } else {
         Err(DfxError::CommandMustBeRunInAProject)
     }
@@ -80,9 +82,11 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
     })
 }
 
-fn run_ide(env: &dyn Environment, main_path: String) -> DfxResult {
-    let stdlib_path = env.get_cache().get_binary_command_path("base")?;
-
+fn run_ide(
+    env: &dyn Environment,
+    main_path: String,
+    package_arguments: PackageArguments
+) -> DfxResult {
     let output = env
         .get_cache()
         .get_binary_command("mo-ide")?
@@ -91,10 +95,8 @@ fn run_ide(env: &dyn Environment, main_path: String) -> DfxResult {
         // Point at the right canister
         .arg("--canister-main")
         .arg(main_path)
-        // Tell the IDE where the stdlib is located
-        .arg("--package")
-        .arg("base")
-        .arg(&stdlib_path.as_path())
+        // Tell the IDE where the stdlib and other packages are located
+        .args(package_arguments)
         .output()?;
 
     if !output.status.success() {
