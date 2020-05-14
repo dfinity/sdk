@@ -301,8 +301,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
 
     cmd.arg(&input_path);
     params.to_args(&mut cmd);
-    let cmd = cmd
-        .env("MOC_RTS", mo_rts_path.as_path());
+    let cmd = cmd.env("MOC_RTS", mo_rts_path.as_path());
     run_command(cmd, params.verbose, params.surpress_warning)?;
 
     if params.inject_code {

@@ -1,6 +1,6 @@
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::environment::Environment;
 use crate::config::dfinity::Config;
+use crate::lib::environment::Environment;
+use crate::lib::error::{DfxError, DfxResult};
 use std::process::Command;
 
 /// Package arguments for moc or mo-ide as returned by
@@ -11,11 +11,13 @@ pub type PackageArguments = Vec<String>;
 pub fn load(
     env: &dyn Environment,
     config: &Config,
-    quiet: bool // LSP needs nothing to be written to stdout
+    quiet: bool, // LSP needs nothing to be written to stdout
 ) -> DfxResult<PackageArguments> {
     let mut package_arguments = call_packtool_for_arguments(env, config, quiet)?;
 
-    let stdlib_path = env.get_cache().get_binary_command_path("base")?
+    let stdlib_path = env
+        .get_cache()
+        .get_binary_command_path("base")?
         .into_os_string()
         .into_string()
         .map_err(DfxError::CouldNotConvertOsString)?;
@@ -30,7 +32,7 @@ pub fn load(
 fn call_packtool_for_arguments(
     env: &dyn Environment,
     config: &Config,
-    quiet: bool
+    quiet: bool,
 ) -> DfxResult<PackageArguments> {
     let packtool = config
         .get_config()

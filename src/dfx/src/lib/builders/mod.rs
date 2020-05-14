@@ -61,7 +61,7 @@ pub struct BuildConfig {
     assets: bool,
     pub generate_id: bool,
     metadata: BTreeMap<String, serde_json::Value>,
-    package_arguments: PackageArguments
+    package_arguments: PackageArguments,
 }
 
 impl BuildConfig {
@@ -71,7 +71,7 @@ impl BuildConfig {
             assets: false,
             generate_id: false,
             metadata: BTreeMap::new(),
-            package_arguments: PackageArguments::new()
+            package_arguments: PackageArguments::new(),
         }
     }
 

@@ -27,7 +27,7 @@ const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsB
 
 const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
     output: None,
-    packtool: None
+    packtool: None,
 };
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
@@ -165,7 +165,7 @@ impl ConfigDefaultsBuild {
     pub fn get_packtool(&self) -> Vec<String> {
         match &self.packtool {
             Some(v) if !v.is_empty() => v.clone(),
-            _ => Vec::new()
+            _ => Vec::new(),
         }
     }
 }
