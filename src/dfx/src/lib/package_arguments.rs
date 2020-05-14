@@ -39,7 +39,7 @@ fn call_packtool_for_arguments(
         .get_defaults()
         .get_build()
         .get_packtool();
-    if packtool.is_empty() {
+    if packtool.is_none() {
         return Ok(Vec::new());
     }
 
@@ -48,8 +48,14 @@ fn call_packtool_for_arguments(
         slog::info!(logger, "Calling package tool...");
     }
 
-    let mut cmd = Command::new(packtool[0].clone());
-    for arg in packtool.iter().skip(1) {
+    let commandline: Vec<String> = packtool
+        .unwrap()
+        .split_ascii_whitespace()
+        .map(String::from)
+        .collect();
+
+    let mut cmd = Command::new(commandline[0].clone());
+    for arg in commandline.iter().skip(1) {
         cmd.arg(arg);
     }
 

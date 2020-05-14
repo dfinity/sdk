@@ -44,20 +44,20 @@ teardown() {
 
 @test "failure to invoke the package tool reports the command line and reason" {
     install_asset packtool_mo
-    dfx config defaults/build/packtool '["./no-such-command", "that command cannot be invoked"]'
+    dfx config defaults/build/packtool "./no-such-command that command cannot be invoked"
 
     assert_command_fail dfx build
     assert_match 'FailedToInvokePackageTool'
-    assert_match './no-such-command.*that command cannot be invoked'
+    assert_match 'no-such-command.*that.*command.*cannot.*be.*invoked'
     assert_match 'No such file or directory \(os error 2\)'
 }
 
 @test "failure in execution reports the command line and exit code" {
     install_asset packtool_mo
-    dfx config defaults/build/packtool '["sh", "-c", "exit 3"]'
+    dfx config defaults/build/packtool "sh ./command-that-fails.bash"
 
     assert_command_fail dfx build
     assert_match 'PackageToolReportedError'
-    assert_match 'sh.*-c.*exit 3'
+    assert_match 'sh.*command-that-fails.bash'
     assert_match 'exit code: 3'
 }

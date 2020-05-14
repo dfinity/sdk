@@ -64,7 +64,7 @@ pub struct ConfigDefaultsBootstrap {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {
     pub output: Option<String>,
-    pub packtool: Option<Vec<String>>,
+    pub packtool: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -162,10 +162,10 @@ impl ConfigDefaultsBuild {
             .unwrap_or_else(|| default.to_string())
     }
 
-    pub fn get_packtool(&self) -> Vec<String> {
+    pub fn get_packtool(&self) -> Option<&String> {
         match &self.packtool {
-            Some(v) if !v.is_empty() => v.clone(),
-            _ => Vec::new(),
+            Some(v) if !v.is_empty() => Some(&v),
+            _ => None,
         }
     }
 }
