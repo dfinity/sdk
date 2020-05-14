@@ -67,6 +67,29 @@ impl Cache for DiskBasedCache {
     }
 }
 
+/// Provides a profile for the user. This is located outside the
+/// ephemeral cache as the data here need to be persisted and strictly
+/// a user expects to clear the .cache directory with minimal
+/// consequences.
+pub fn get_profile_path() -> DfxResult<PathBuf> {
+    let home = std::env::var("HOME")
+        .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
+
+    let p = PathBuf::from(home).join(".dfinity").join("identity");
+
+    if !p.exists() {
+        if let Err(e) = std::fs::create_dir_all(&p) {
+            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
+        }
+    } else if !p.is_dir() {
+        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+    }
+
+    Ok(p)
+}
+
+/// Return the binary cache root. It constructs it if not present
+/// already.
 pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
         .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
@@ -114,8 +137,8 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
     }
 
     if Version::parse(v)? == *dfx_version() {
-        // Dismiss as fast as possible. We use the current_exe variable after an expensive
-        // step, and if this fails we can't continue anyway.
+        // Dismiss as fast as possible. We use the current_exe variable after an
+        // expensive step, and if this fails we can't continue anyway.
         let current_exe = std::env::current_exe()?;
 
         let b: Option<ProgressBar> = if atty::is(atty::Stream::Stderr) {
