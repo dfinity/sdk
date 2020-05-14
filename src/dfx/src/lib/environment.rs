@@ -165,7 +165,7 @@ impl Environment for EnvironmentImpl {
                     };
                     Agent::new(AgentConfig {
                         url: format!("http://{}:{}", address, port).as_str(),
-                        signer: Box::new(Identity::new(identity)),
+                        identity: Box::new(Identity::new(identity)),
                         ..AgentConfig::default()
                     })
                     .ok()
@@ -207,7 +207,7 @@ impl<'a> AgentEnvironment<'a> {
             backend,
             agent: Agent::new(AgentConfig {
                 url: agent_url,
-                signer: Box::new(Identity::new(identity)),
+                identity: Box::new(Identity::new(identity)),
                 ..AgentConfig::default()
             })
             .expect("Failed to construct agent"),

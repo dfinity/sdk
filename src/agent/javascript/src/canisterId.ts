@@ -1,4 +1,5 @@
 import { crc8 } from 'crc';
+import { blobFromHex } from './types';
 
 function getCrc(hex: string): string {
   return crc8(Buffer.from(hex, 'hex'))
@@ -31,9 +32,12 @@ export class CanisterId {
     return new this(hex);
   }
 
-  public _isCanisterId = true;
+  public readonly _isCanisterId = true;
   protected constructor(private _idHex: string) {}
 
+  public toHash() {
+    return blobFromHex(this._idHex);
+  }
   public toHex(): string {
     return this._idHex;
   }

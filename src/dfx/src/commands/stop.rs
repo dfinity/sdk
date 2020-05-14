@@ -45,7 +45,7 @@ pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
             }
         }
     } else {
-        eprintln!("No local network client found. Nothing to do.");
+        eprintln!("No local network replica found. Nothing to do.");
     }
 
     // We ignore errors here because there is no effect for the user. We're just being nice.

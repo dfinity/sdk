@@ -95,7 +95,6 @@ impl<'de> Deserialize<'de> for CanisterId {
     where
         S: Deserializer<'de>,
     {
-        // TODO(DFN-862): move this to blobs
         Ok(CanisterId::from(Blob::deserialize(deserializer)?))
     }
 }

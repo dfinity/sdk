@@ -1,15 +1,12 @@
-import { Actor, CanisterId, blobFromUint8Array } from '@dfinity/agent';
-import httpAgent from '../agent';
+import { Actor, blobFromUint8Array } from '@dfinity/agent';
+import { httpAgent, canisterIdFactory } from '../agent';
 import * as path from 'path';
 import { readFileSync } from 'fs';
 
 const wasm = readFileSync(path.join(__dirname, 'counter.wasm'));
 
 // The canisterId will be reused.
-const counterCanisterIdHex = (+new Date() % 0xFFFFFF).toString(16)
-                           + (Math.floor(Math.random() * 256)).toString(16);
-const counterCanisterId = CanisterId.fromHex(counterCanisterIdHex);
-
+const counterCanisterId = canisterIdFactory();
 let actor: Promise<CounterActor>;
 
 type CounterActor = Actor & {
@@ -26,7 +23,7 @@ const factory = httpAgent.makeActorFactory(({ IDL }) => IDL.Service({
 }));
 
 // TODO(hansl): Add a type to create an Actor interface from a IDL.Service definition.
-export default function(): Promise<CounterActor> {
+export function counterFactory(): Promise<CounterActor> {
   if (!actor) {
     actor = Promise.resolve(factory({
       canisterId: counterCanisterId,
