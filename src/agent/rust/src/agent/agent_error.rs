@@ -7,7 +7,6 @@ pub enum AgentError {
     InvalidClientResponse,
     CannotCalculateRequestId(RequestIdError),
     EmptyResponse(),
-    ClientError(u16, String),
     TimeoutWaitingForResponse,
 
     SigningError(String),
@@ -16,6 +15,16 @@ pub enum AgentError {
     ReqwestError(reqwest::Error),
     SerdeError(SerdeError),
     UrlParseError(url::ParseError),
+
+    ReplicaError {
+        reject_code: u16,
+        reject_message: String,
+    },
+    ServerError {
+        status: u16,
+        content_type: Option<String>,
+        content: String,
+    },
 }
 
 impl From<SerdeError> for AgentError {

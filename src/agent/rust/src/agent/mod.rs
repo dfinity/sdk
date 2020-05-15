@@ -50,6 +50,35 @@ impl Agent {
         })
     }
 
+    async fn execute<T: std::fmt::Debug + serde::Serialize>(
+        &self,
+        endpoint: &str,
+        envelope: Envelope<T>,
+    ) -> Result<Vec<u8>, AgentError> {
+        let serialized_bytes = serde_cbor::to_vec(&envelope)?;
+        let url = self.url.join(endpoint)?;
+
+        let mut http_request = reqwest::Request::new(Method::POST, url);
+        http_request
+            .body_mut()
+            .get_or_insert(reqwest::Body::from(serialized_bytes));
+
+        let response = self.client.execute(http_request).await?;
+        if response.status().is_client_error() || response.status().is_server_error() {
+            Err(AgentError::ServerError {
+                status: response.status().into(),
+                content_type: response
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok())
+                    .map(|x| x.to_string()),
+                content: response.text().await?,
+            })
+        } else {
+            Ok(response.bytes().await?.to_vec())
+        }
+    }
+
     async fn read<A>(&self, request: ReadRequest<'_>) -> Result<A, AgentError>
     where
         A: serde::de::DeserializeOwned,
@@ -61,25 +90,15 @@ impl Agent {
             ReadRequest::RequestStatus { .. } => &anonymous,
         };
         let signature = self.identity.sign(&request_id, &sender)?;
-        let signed_request = Envelope {
-            content: request,
-            sender_pubkey: signature.public_key,
-            sender_sig: signature.signature,
-        };
-        let serialized_bytes = serde_cbor::to_vec(&signed_request)?;
-        let url = self.url.join("read")?;
-
-        let mut http_request = reqwest::Request::new(Method::POST, url);
-        http_request
-            .body_mut()
-            .get_or_insert(reqwest::Body::from(serialized_bytes));
-
         let bytes = self
-            .client
-            .execute(http_request)
-            .await?
-            .error_for_status()?
-            .bytes()
+            .execute(
+                "read",
+                Envelope {
+                    content: request,
+                    sender_pubkey: signature.public_key,
+                    sender_sig: signature.signature,
+                },
+            )
             .await?;
 
         serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)
@@ -92,25 +111,16 @@ impl Agent {
             SubmitRequest::InstallCode { sender, .. } => sender,
         };
         let signature = self.identity.sign(&request_id, &sender)?;
-        let signed_request = Envelope {
-            content: request,
-            sender_pubkey: signature.public_key,
-            sender_sig: signature.signature,
-        };
-        let serialized_bytes = serde_cbor::to_vec(&signed_request)?;
-        let url = self.url.join("submit")?;
-
-        let mut http_request = reqwest::Request::new(Method::POST, url);
-        http_request
-            .body_mut()
-            .get_or_insert(reqwest::Body::from(serialized_bytes));
-
-        // Clippy doesn't like when return values are not used.
         let _ = self
-            .client
-            .execute(http_request)
-            .await?
-            .error_for_status()?;
+            .execute(
+                "submit",
+                Envelope {
+                    content: request,
+                    sender_pubkey: signature.public_key,
+                    sender_sig: signature.signature,
+                },
+            )
+            .await?;
 
         Ok(request_id)
     }
@@ -136,7 +146,10 @@ impl Agent {
             ReadResponse::Rejected {
                 reject_code,
                 reject_message,
-            } => Err(AgentError::ClientError(reject_code, reject_message)),
+            } => Err(AgentError::ReplicaError {
+                reject_code,
+                reject_message,
+            }),
             ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
             ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
         })
@@ -165,7 +178,12 @@ impl Agent {
                 RequestStatusResponse::Rejected {
                     reject_code,
                     reject_message,
-                } => return Err(AgentError::ClientError(reject_code, reject_message)),
+                } => {
+                    return Err(AgentError::ReplicaError {
+                        reject_code,
+                        reject_message,
+                    })
+                }
                 RequestStatusResponse::Unknown => (),
                 RequestStatusResponse::Pending => (),
             };
