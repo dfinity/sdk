@@ -70,7 +70,7 @@ pub enum DfxError {
     CouldNotSerializeConfiguration(serde_json::error::Error),
 
     /// Generic IDL error.
-    CouldNotSerializeIdlFile(serde_idl::error::Error),
+    CouldNotSerializeIdlFile(candid::Error),
 
     /// Client TOML Serialization error.
     CouldNotSerializeClientConfiguration(toml::ser::Error),
@@ -121,8 +121,8 @@ impl From<serde_json::error::Error> for DfxError {
     }
 }
 
-impl From<serde_idl::error::Error> for DfxError {
-    fn from(err: serde_idl::error::Error) -> Self {
+impl From<candid::error::Error> for DfxError {
+    fn from(err: candid::error::Error) -> Self {
         DfxError::CouldNotSerializeIdlFile(err)
     }
 }

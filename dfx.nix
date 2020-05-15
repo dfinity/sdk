@@ -19,7 +19,6 @@ let
     regexes = [
       ".*/assets/.*$"
       ".*\.rs$"
-      ".*\.lalrpop$"
       ".*Cargo\.toml$"
       ".*Cargo\.lock$"
       "^.cargo/config$"
