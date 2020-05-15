@@ -26,11 +26,7 @@ pub fn load(
             .into_string()
             .map_err(DfxError::CouldNotConvertOsString)?;
 
-        let base = vec!(
-            String::from("--package"),
-            String::from("base"),
-            stdlib_path
-        );
+        let base = vec![String::from("--package"), String::from("base"), stdlib_path];
         return Ok(base);
     }
 
