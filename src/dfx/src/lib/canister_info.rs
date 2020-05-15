@@ -13,6 +13,7 @@ use std::str::FromStr;
 pub struct CanisterInfo {
     name: String,
     input_path: PathBuf,
+    canister_type: String,
 
     output_root: PathBuf,
     idl_path: PathBuf,
@@ -73,9 +74,16 @@ impl CanisterInfo {
 
         let canister_id_path = output_root.join("_canister.id");
 
+        let canister_type = canister_config
+            .r#type
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| "motoko".to_owned());
+
         Ok(CanisterInfo {
             name: name.to_string(),
             input_path,
+            canister_type,
 
             output_root,
             idl_path,
@@ -98,6 +106,9 @@ impl CanisterInfo {
     }
     pub fn get_main_path(&self) -> &Path {
         self.input_path.as_path()
+    }
+    pub fn get_type(&self) -> &str {
+        &self.canister_type
     }
     pub fn get_output_wasm_path(&self) -> &Path {
         self.output_wasm_path.as_path()

@@ -86,10 +86,8 @@ impl CanisterBuilder for MotokoBuilder {
             .collect())
     }
 
-    fn can_build(&self, info: &CanisterInfo) -> bool {
-        info.get_main_path()
-            .extension()
-            .map_or(false, |p| p == "mo")
+    fn supported_canister_types(&self) -> &[&str] {
+        &["motoko"]
     }
 
     fn build(
