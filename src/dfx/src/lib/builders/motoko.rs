@@ -7,7 +7,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::package_arguments::PackageArguments;
+use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets;
 use ic_agent::CanisterId;
 // use serde_idl::IDLProg;
@@ -18,7 +18,6 @@ use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 // use std::str::FromStr;
-use crate::lib::package_arguments;
 use std::sync::Arc;
 
 pub struct MotokoBuilder {
