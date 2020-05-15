@@ -77,7 +77,7 @@ impl CanisterInfo {
         let canister_type = canister_config
             .r#type
             .as_ref()
-            .map(|x| x.clone())
+            .cloned()
             .unwrap_or_else(|| "motoko".to_owned());
 
         Ok(CanisterInfo {
