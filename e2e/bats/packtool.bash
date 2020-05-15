@@ -47,7 +47,7 @@ teardown() {
     dfx config defaults/build/packtool "./no-such-command that command cannot be invoked"
 
     assert_command_fail dfx build
-    assert_match 'FailedToInvokePackageTool'
+    assert_match 'Failed to invoke the package tool'
     assert_match 'no-such-command.*that.*command.*cannot.*be.*invoked'
     assert_match 'No such file or directory \(os error 2\)'
 }
@@ -57,7 +57,7 @@ teardown() {
     dfx config defaults/build/packtool "sh ./command-that-fails.bash"
 
     assert_command_fail dfx build
-    assert_match 'PackageToolReportedError'
+    assert_match 'Package tool.*reported an error'
     assert_match 'sh.*command-that-fails.bash'
     assert_match 'exit code: 3'
 }

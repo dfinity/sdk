@@ -90,12 +90,6 @@ pub enum DfxError {
 
     /// Could not convert an OsString to a String
     CouldNotConvertOsString(OsString),
-
-    /// An error happened while trying to invoke the package tool.
-    FailedToInvokePackageTool(String, String),
-
-    /// Ran the package tool, but it reported an error
-    PackageToolReportedError(String, String, String, String),
 }
 
 /// The result of running a DFX command.
