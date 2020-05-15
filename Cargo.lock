@@ -553,7 +553,7 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "candid_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -919,7 +919,7 @@ dependencies = [
  "actix-web 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "atty 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "candid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "candid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "console 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3889,7 +3889,7 @@ dependencies = [
 "checksum bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)" = "206fdffcfa2df7cbe15601ef46c813fce0965eb3286db6b56c583b814b51c81c"
 "checksum bytes 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)" = "130aac562c0dd69c56b3b1cc8ffd2e17be31d0b6c25b61c96b76231aa23e39e1"
 "checksum c2-chacha 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7d64d04786e0f528460fc884753cf8dddcc466be308f6026f8e355c41a0e4101"
-"checksum candid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f8604eed3a6648176bf632aab46a6aae2b976903b46604fc3ffc6ee3d163b1c9"
+"checksum candid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "031120ea642b54495cc3bb3fb7c6137094fbdab3d27707f3f3db97dd8e497b25"
 "checksum candid_derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0b90600b230b0c70398561ffdb7d41b7a8343f1c999adbbc8d987e2a01971bbc"
 "checksum cc 1.0.45 (registry+https://github.com/rust-lang/crates.io-index)" = "4fc9a35e1f4290eb9e5fc54ba6cf40671ed2a2514c3eeb2b2a908dda2ea5a1be"
 "checksum cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
