@@ -5,6 +5,7 @@ mod cache;
 
 pub use build::BuildErrorKind;
 pub use cache::CacheErrorKind;
+use std::ffi::OsString;
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
@@ -86,6 +87,9 @@ pub enum DfxError {
 
     /// A canister in the dfx.json did not have a supported builder.
     CouldNotFindBuilderForCanister(String),
+
+    /// Could not convert an OsString to a String
+    CouldNotConvertOsString(OsString),
 }
 
 /// The result of running a DFX command.

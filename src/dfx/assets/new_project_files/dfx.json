@@ -9,7 +9,8 @@
   },
   "defaults": {
     "build": {
-      "output": "canisters/"
+      "output": "canisters/",
+      "packtool": ""
     },
     "start": {
       "port": 8000,

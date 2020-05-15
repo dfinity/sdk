@@ -6,6 +6,7 @@ pub mod identity;
 pub mod logger;
 pub mod message;
 pub mod models;
+pub mod package_arguments;
 pub mod progress_bar;
 pub mod proxy;
 pub mod proxy_process;
