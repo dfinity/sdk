@@ -554,7 +554,7 @@ dependencies = [
 [[package]]
 name = "candid"
 version = "0.2.1"
-source = "git+https://github.com/dfinity/candid?branch=0.1.2#80e09e026119a2d77ab6450f6aaf30172ad37d78"
+source = "git+https://github.com/dfinity/candid?branch=0.1.2#0bf727f28b78f821ff1726e9e395d23771bd5cb5"
 dependencies = [
  "candid_derive 0.2.0 (git+https://github.com/dfinity/candid?branch=0.1.2)",
  "lalrpop 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -569,7 +569,7 @@ dependencies = [
 [[package]]
 name = "candid_derive"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/candid?branch=0.1.2#80e09e026119a2d77ab6450f6aaf30172ad37d78"
+source = "git+https://github.com/dfinity/candid?branch=0.1.2#0bf727f28b78f821ff1726e9e395d23771bd5cb5"
 dependencies = [
  "proc-macro2 1.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
