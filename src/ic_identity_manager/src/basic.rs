@@ -102,7 +102,7 @@ mod private {
                 public_key: public_key_bytes.to_vec(),
             })
         }
-        fn principal(&self) -> Principal {
+        pub fn principal(&self) -> Principal {
             Principal::self_authenticating(&self.key_pair.public_key())
         }
     }

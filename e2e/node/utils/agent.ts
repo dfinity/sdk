@@ -1,4 +1,5 @@
 import {
+  CanisterId,
   HttpAgent,
   Principal,
   generateKeyPair,
@@ -9,8 +10,12 @@ import {
 const keyPair = generateKeyPair();
 const principal = Principal.selfAuthenticating(keyPair.publicKey);
 
-const agent = new HttpAgent({ host: 'http://localhost:8080', principal });
-agent.addTransform(makeNonceTransform());
-agent.setAuthTransform(makeAuthTransform(keyPair));
+export const httpAgent = new HttpAgent({ host: 'http://localhost:8080', principal });
+httpAgent.addTransform(makeNonceTransform());
+httpAgent.setAuthTransform(makeAuthTransform(keyPair));
 
-export default agent;
+export function canisterIdFactory() {
+  const counterCanisterIdHex = (+new Date() % 0xFFFFFF).toString(16)
+    + (Math.floor(Math.random() * 256)).toString(16);
+  return CanisterId.fromHex(counterCanisterIdHex);
+}

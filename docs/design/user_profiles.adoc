@@ -316,12 +316,13 @@ local system identifier, a profile.
 ==== Global Profiles Structure
 
 By default dfx provides a user cache to store various versions of
-dfinity executables, and other data. Here we denote this directory
-with `<cache>`.
+dfinity executables, and other data. However, it is temporary in
+nature. Thus, we introduce a sibling .dfinity directory for data to be
+persisted. Here we denote this directory with `<dfinity>`.
 
 The identity hierarchy is represented by a series of files under
-`<cache>/identity/`. At the root of `<cache>/identity/` there
-is `<cache>/identity/metadata.json`. It represents only versioning
+`<dfinity>/identity/`. At the root of `<dfinity>/identity/` there
+is `<dfinity>/identity/metadata.json`. It represents only versioning
 information and any other meta-data that future versions elect to add.
 
 
