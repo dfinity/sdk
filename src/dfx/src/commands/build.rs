@@ -4,8 +4,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister::CanisterPool;
-
-use crate::lib::package_arguments;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
 pub fn construct() -> App<'static, 'static> {
@@ -31,18 +29,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // already.
     env.get_cache().install()?;
 
-    let package_arguments = package_arguments::load(env, &config, false)?;
-
     let canister_pool = CanisterPool::load(env)?;
     // First build.
     slog::info!(logger, "Building canisters...");
 
     // TODO: remove the forcing of generating canister id once we have an update flow.
-    canister_pool.build_or_fail(
-        BuildConfig::from_config(config.get_config())
-            .with_generate_id(true)
-            .with_package_arguments(package_arguments.clone()),
-    )?;
+    canister_pool
+        .build_or_fail(BuildConfig::from_config(config.get_config()).with_generate_id(true))?;
 
     // If there is not a package.json, we don't have a frontend and can quit early.
     if !config.get_project_root().join("package.json").exists() || args.is_present("skip-frontend")
@@ -75,11 +68,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Second build with assets.
     slog::info!(logger, "Bundling assets with canisters...");
-    canister_pool.build_or_fail(
-        BuildConfig::from_config(config.get_config())
-            .with_assets(true)
-            .with_package_arguments(package_arguments),
-    )?;
+    canister_pool.build_or_fail(BuildConfig::from_config(config.get_config()).with_assets(true))?;
 
     Ok(())
 }

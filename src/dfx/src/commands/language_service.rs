@@ -32,7 +32,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         Err(DfxError::LanguageServerFromATerminal)
     } else if let Some(config) = env.get_config() {
         let main_path = get_main_path(config.get_config(), args)?;
-        let package_arguments = package_arguments::load(env, &config, true)?;
+        let packtool = &config
+            .get_config()
+            .get_defaults()
+            .get_build()
+            .get_packtool();
+        let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
         run_ide(env, main_path, package_arguments)
     } else {
         Err(DfxError::CommandMustBeRunInAProject)

@@ -162,9 +162,9 @@ impl ConfigDefaultsBuild {
             .unwrap_or_else(|| default.to_string())
     }
 
-    pub fn get_packtool(&self) -> Option<&String> {
+    pub fn get_packtool(&self) -> Option<String> {
         match &self.packtool {
-            Some(v) if !v.is_empty() => Some(&v),
+            Some(v) if !v.is_empty() => self.packtool.to_owned(),
             _ => None,
         }
     }

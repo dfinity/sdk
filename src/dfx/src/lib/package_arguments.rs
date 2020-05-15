@@ -1,5 +1,4 @@
-use crate::config::dfinity::Config;
-use crate::lib::environment::Environment;
+use crate::config::cache::Cache;
 use crate::lib::error::{DfxError, DfxResult};
 use std::process::Command;
 
@@ -8,19 +7,9 @@ use std::process::Command;
 /// or, if there is no package tool, the base library.
 pub type PackageArguments = Vec<String>;
 
-pub fn load(
-    env: &dyn Environment,
-    config: &Config,
-    quiet: bool, // LSP needs nothing to be written to stdout
-) -> DfxResult<PackageArguments> {
-    let packtool = config
-        .get_config()
-        .get_defaults()
-        .get_build()
-        .get_packtool();
+pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageArguments> {
     if packtool.is_none() {
-        let stdlib_path = env
-            .get_cache()
+        let stdlib_path = cache
             .get_binary_command_path("base")?
             .into_os_string()
             .into_string()
@@ -30,12 +19,8 @@ pub fn load(
         return Ok(base);
     }
 
-    let logger = env.get_logger();
-    if !quiet {
-        slog::info!(logger, "Calling package tool...");
-    }
-
     let commandline: Vec<String> = packtool
+        .as_ref()
         .unwrap()
         .split_ascii_whitespace()
         .map(String::from)
@@ -63,8 +48,6 @@ pub fn load(
             String::from_utf8_lossy(&output.stdout).to_string(),
             String::from_utf8_lossy(&output.stderr).to_string(),
         ));
-    } else if !output.stderr.is_empty() && !quiet {
-        slog::warn!(logger, "{}", String::from_utf8_lossy(&output.stderr));
     }
 
     let package_arguments = String::from_utf8_lossy(&output.stdout)

@@ -18,6 +18,7 @@ use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 // use std::str::FromStr;
+use crate::lib::package_arguments;
 use std::sync::Arc;
 
 pub struct MotokoBuilder {
@@ -114,6 +115,9 @@ impl CanisterBuilder for MotokoBuilder {
         let idl_dir_path = canister_info.get_idl_dir_path();
         std::fs::create_dir_all(&idl_dir_path)?;
 
+        let package_arguments =
+            package_arguments::load(cache.as_ref(), canister_info.get_packtool())?;
+
         // Generate IDL
         let output_idl_path = canister_info.get_output_idl_path();
         let idl_file_path = canister_info
@@ -125,7 +129,7 @@ impl CanisterBuilder for MotokoBuilder {
             inject_code: false,
             verbose: false,
             input: &input_path,
-            package_arguments: &config.package_arguments,
+            package_arguments: &package_arguments,
             output: &output_idl_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -183,7 +187,7 @@ impl CanisterBuilder for MotokoBuilder {
             inject_code: true,
             verbose: false,
             input: &input_path,
-            package_arguments: &config.package_arguments,
+            package_arguments: &package_arguments,
             output: &output_wasm_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,

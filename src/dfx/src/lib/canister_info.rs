@@ -26,6 +26,8 @@ pub struct CanisterInfo {
     canister_id: RefCell<Option<CanisterId>>,
     canister_id_path: PathBuf,
 
+    packtool: Option<String>,
+
     has_frontend: bool,
     metadata: BTreeMap<String, serde_json::Value>,
 }
@@ -33,13 +35,9 @@ pub struct CanisterInfo {
 impl CanisterInfo {
     pub fn load(config: &Config, name: &str) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
-        let build_root = workspace_root.join(
-            config
-                .get_config()
-                .get_defaults()
-                .get_build()
-                .get_output("build/"),
-        );
+        let build_defaults = config.get_config().get_defaults().get_build();
+        let buf = workspace_root.join(build_defaults.get_output("build/"));
+        let build_root = buf;
         let idl_path = build_root.join("idl/");
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
@@ -88,6 +86,7 @@ impl CanisterInfo {
             canister_id: RefCell::new(None),
             canister_id_path,
 
+            packtool: build_defaults.get_packtool().clone(),
             has_frontend,
             metadata,
         })
@@ -147,6 +146,10 @@ impl CanisterInfo {
 
     pub fn get_metadata(&self) -> &BTreeMap<String, serde_json::Value> {
         &self.metadata
+    }
+
+    pub fn get_packtool(&self) -> &Option<String> {
+        &self.packtool
     }
 
     pub fn has_frontend(&self) -> bool {
