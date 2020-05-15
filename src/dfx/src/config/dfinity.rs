@@ -44,6 +44,7 @@ const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
 pub struct ConfigCanistersCanister {
     pub main: Option<String>,
     pub frontend: Option<Value>,
+    pub r#type: Option<String>,
 
     #[serde(flatten)]
     pub metadata: BTreeMap<String, Value>,

@@ -40,47 +40,6 @@ teardown() {
     assert_eq '("Hello, Blueberry!")'
 }
 
-@test "build + install + call + request-status -- counter_wat" {
-    skip "WAT not supporting IDL"
-    install_asset counter_wat
-
-    dfx build
-    dfx_start
-    dfx canister install 42 build/counter.wasm
-
-    # Currently the counter is set to 0. We call write which increments it
-    # 64 times. This is important because query returns a byte, and 64 is
-    # "A" in UTF8. We then just compare and work around the alphabet.
-    for _x in {0..64}; do
-        dfx canister call 42 write
-    done
-
-    run dfx canister call 42 read
-    [[ "$stdout" == "A" ]]
-    run dfx canister call 42 read
-    [[ "$stdout" == "A" ]]
-
-    dfx canister call 42 write
-    run dfx canister call 42 read
-    [[ "$stdout" == "B" ]]
-
-    dfx canister call 42 write
-    run dfx canister call 42 read
-    [[ "$stdout" == "C" ]]
-
-    run dfx canister call 42 write --async
-    [[ $status == 0 ]]
-    dfx canister request-status $stdout
-    [[ $status == 0 ]]
-
-    # Write has no return value. But we can _call_ read too.
-    run dfx canister call 42 read --async
-    [[ $status == 0 ]]
-    run dfx canister request-status $stdout
-    [[ $status == 0 ]]
-    [[ "$stdout" == "D" ]]
-}
-
 @test "build + install + call + request-status -- counter_mo" {
     install_asset counter_mo
     dfx_start
