@@ -13,6 +13,7 @@ use std::str::FromStr;
 pub struct CanisterInfo {
     name: String,
     input_path: PathBuf,
+    canister_type: String,
 
     output_root: PathBuf,
     idl_path: PathBuf,
@@ -26,6 +27,8 @@ pub struct CanisterInfo {
     canister_id: RefCell<Option<CanisterId>>,
     canister_id_path: PathBuf,
 
+    packtool: Option<String>,
+
     has_frontend: bool,
     metadata: BTreeMap<String, serde_json::Value>,
 }
@@ -33,13 +36,8 @@ pub struct CanisterInfo {
 impl CanisterInfo {
     pub fn load(config: &Config, name: &str) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
-        let build_root = workspace_root.join(
-            config
-                .get_config()
-                .get_defaults()
-                .get_build()
-                .get_output("build/"),
-        );
+        let build_defaults = config.get_config().get_defaults().get_build();
+        let build_root = workspace_root.join(build_defaults.get_output("build/"));
         let idl_path = build_root.join("idl/");
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
@@ -73,9 +71,16 @@ impl CanisterInfo {
 
         let canister_id_path = output_root.join("_canister.id");
 
+        let canister_type = canister_config
+            .r#type
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| "motoko".to_owned());
+
         Ok(CanisterInfo {
             name: name.to_string(),
             input_path,
+            canister_type,
 
             output_root,
             idl_path,
@@ -88,6 +93,7 @@ impl CanisterInfo {
             canister_id: RefCell::new(None),
             canister_id_path,
 
+            packtool: build_defaults.get_packtool(),
             has_frontend,
             metadata,
         })
@@ -98,6 +104,9 @@ impl CanisterInfo {
     }
     pub fn get_main_path(&self) -> &Path {
         self.input_path.as_path()
+    }
+    pub fn get_type(&self) -> &str {
+        &self.canister_type
     }
     pub fn get_output_wasm_path(&self) -> &Path {
         self.output_wasm_path.as_path()
@@ -147,6 +156,10 @@ impl CanisterInfo {
 
     pub fn get_metadata(&self) -> &BTreeMap<String, serde_json::Value> {
         &self.metadata
+    }
+
+    pub fn get_packtool(&self) -> &Option<String> {
+        &self.packtool
     }
 
     pub fn has_frontend(&self) -> bool {

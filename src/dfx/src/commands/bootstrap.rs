@@ -11,6 +11,7 @@ use std::io::{Error, ErrorKind};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::time::Duration;
 use url::{ParseError, Url};
 
 /// Constructs a sub-command to run the bootstrap server.
@@ -82,8 +83,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     info!(logger, "Webserver started...");
 
     // And then wait forever.
-    #[allow(clippy::empty_loop)]
-    loop {}
+    loop {
+        std::thread::sleep(Duration::from_secs(std::u64::MAX))
+    }
 }
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness

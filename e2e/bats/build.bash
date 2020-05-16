@@ -65,3 +65,9 @@ teardown() {
   assert_command dfx build
   assert_command_fail diff canisters/e2e_project/_canister.id previous_cid
 }
+
+@test "build fails if canister type is not supported" {
+  dfx config canisters.e2e_project.type unknown_canister_type
+  assert_command_fail dfx build
+  assert_match "CouldNotFindBuilderForCanister"
+}
