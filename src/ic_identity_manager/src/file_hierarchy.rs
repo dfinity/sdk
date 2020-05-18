@@ -195,7 +195,7 @@ impl FileHierarchy {
         for access_file in files_iter {
             // let access_file_path = principal_dir_path.join(name);
             let access_file_path = principal_dir_path.join(access_file.path.clone());
-            println!("path : {:?}", access_file_path);
+            eprintln!("path : {:?}", access_file_path);
             fs::write(access_file_path, &access_content)?;
         }
 
@@ -217,8 +217,6 @@ impl FileHierarchy {
             let contents = fs::read_to_string(path)?;
             let file: PrincipalProfile = serde_json::from_str(&contents)?;
             map.insert(profile_id.clone(), file);
-
-            // TODO(eftychis): Add version checks here.
         }
 
         let metadata = fs::read_to_string(root.join("metadata.json"))?;

@@ -18,8 +18,8 @@ teardown() {
     install_asset greet_mo
     dfx_start
     dfx build
-    INSTALL_REQUEST_ID=$(dfx canister install hello --async)
-    dfx canister request-status $INSTALL_REQUEST_ID
+    INSTALL_REQUEST_ID=$(dfx canister install hello --async 2> /dev/null)
+    dfx canister request-status ${INSTALL_REQUEST_ID}
 
     assert_command dfx canister call hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
