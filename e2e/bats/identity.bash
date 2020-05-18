@@ -14,7 +14,7 @@ teardown() {
 }
 
 @test "calls and query receive the same principal from dfx" {
-    install_asset identity_mo
+    install_asset identity
     assert_command dfx build
     dfx_start
     assert_command dfx canister install --all

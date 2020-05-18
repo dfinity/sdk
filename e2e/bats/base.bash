@@ -14,7 +14,7 @@ teardown() {
 }
 
 @test "provides base library location by default" {
-    install_asset base_mo
+    install_asset base
 
     dfx_start
     dfx build
@@ -28,7 +28,7 @@ teardown() {
 }
 
 @test "does not provide base library if there is a packtool" {
-    install_asset base_mo
+    install_asset base
     dfx config defaults/build/packtool "echo"
 
     assert_command_fail dfx build
