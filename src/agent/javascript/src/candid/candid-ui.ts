@@ -98,6 +98,9 @@ class Parse extends IDL.Visitor<string, any> {
   public visitText(t: IDL.TextClass, v: string): string {
     return v;
   }
+  public visitFloat(t: IDL.FloatClass, v: string): number {
+    return parseFloat(v);
+  }
   public visitNumber(t: IDL.PrimitiveType, v: string): BigNumber {
     return new BigNumber(v);
   }
@@ -124,6 +127,9 @@ class Random extends IDL.Visitor<string, any> {
     return Math.random()
       .toString(36)
       .substring(6);
+  }
+  public visitFloat(t: IDL.FloatClass, v: string): number {
+    return Math.random();
   }
   public visitInt(t: IDL.IntClass, v: string): BigNumber {
     return new BigNumber(this.generateNumber(true));

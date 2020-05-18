@@ -1,7 +1,0 @@
-[package]
-name = "dfx_info"
-version = "0.0.0"
-authors = ["Yan Chen <yan.chen@dfinity.org>"]
-
-[dependencies]
-dfx_derive = { path = "../dfx_derive" }

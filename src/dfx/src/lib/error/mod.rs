@@ -5,6 +5,7 @@ mod cache;
 
 pub use build::BuildErrorKind;
 pub use cache::CacheErrorKind;
+use std::ffi::OsString;
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
@@ -70,7 +71,7 @@ pub enum DfxError {
     CouldNotSerializeConfiguration(serde_json::error::Error),
 
     /// Generic IDL error.
-    CouldNotSerializeIdlFile(serde_idl::error::Error),
+    CouldNotSerializeIdlFile(candid::Error),
 
     /// Client TOML Serialization error.
     CouldNotSerializeClientConfiguration(toml::ser::Error),
@@ -86,6 +87,9 @@ pub enum DfxError {
 
     /// A canister in the dfx.json did not have a supported builder.
     CouldNotFindBuilderForCanister(String),
+
+    /// Could not convert an OsString to a String
+    CouldNotConvertOsString(OsString),
 }
 
 /// The result of running a DFX command.
@@ -121,8 +125,8 @@ impl From<serde_json::error::Error> for DfxError {
     }
 }
 
-impl From<serde_idl::error::Error> for DfxError {
-    fn from(err: serde_idl::error::Error) -> Self {
+impl From<candid::error::Error> for DfxError {
+    fn from(err: candid::error::Error) -> Self {
         DfxError::CouldNotSerializeIdlFile(err)
     }
 }

@@ -1,4 +1,4 @@
-import A "mo:stdlib/Array";
+import A "mo:base/Array";
 import M "secret_import";
 
 type Matrix = [[Int]];

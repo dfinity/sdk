@@ -8,20 +8,16 @@ pub(crate) mod public {
     pub use super::agent_config::AgentConfig;
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
-    pub use super::replica_api::{MessageWithSender, ReadRequest, Request, SignedMessage};
     pub use super::response::{Replied, RequestStatusResponse};
-    pub use super::signer::Signer;
     pub use super::Agent;
 }
 
 #[cfg(test)]
 mod agent_test;
 
-pub mod signer;
-
-use crate::agent::replica_api::{ReadRequest, ReadResponse, Request, SubmitRequest};
-use crate::agent::signer::Signer;
-use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
+use crate::agent::replica_api::{Envelope, ReadRequest, ReadResponse, SubmitRequest};
+use crate::identity::Identity;
+use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
 
 use public::*;
 use reqwest::header::HeaderMap;
@@ -31,7 +27,7 @@ pub struct Agent {
     url: reqwest::Url,
     client: reqwest::Client,
     nonce_factory: NonceFactory,
-    signer: Box<dyn Signer>,
+    identity: Box<dyn Identity>,
 }
 
 impl Agent {
@@ -50,55 +46,81 @@ impl Agent {
                 .map_err(|_| AgentError::InvalidClientUrl(String::from(url)))?,
             client: Client::builder().default_headers(default_headers).build()?,
             nonce_factory: config.nonce_factory,
-            signer: config.signer,
+            identity: config.identity,
         })
+    }
+
+    async fn execute<T: std::fmt::Debug + serde::Serialize>(
+        &self,
+        endpoint: &str,
+        envelope: Envelope<T>,
+    ) -> Result<Vec<u8>, AgentError> {
+        let serialized_bytes = serde_cbor::to_vec(&envelope)?;
+        let url = self.url.join(endpoint)?;
+
+        let mut http_request = reqwest::Request::new(Method::POST, url);
+        http_request
+            .body_mut()
+            .get_or_insert(reqwest::Body::from(serialized_bytes));
+
+        let response = self.client.execute(http_request).await?;
+        if response.status().is_client_error() || response.status().is_server_error() {
+            Err(AgentError::ServerError {
+                status: response.status().into(),
+                content_type: response
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok())
+                    .map(|x| x.to_string()),
+                content: response.text().await?,
+            })
+        } else {
+            Ok(response.bytes().await?.to_vec())
+        }
     }
 
     async fn read<A>(&self, request: ReadRequest<'_>) -> Result<A, AgentError>
     where
         A: serde::de::DeserializeOwned,
     {
-        let request = Request::Query(request);
-        let (_, signed_request) = self.signer.sign(request)?;
-        let record = serde_cbor::to_vec(&signed_request)?;
-        let url = self.url.join("read")?;
-
-        let mut http_request = reqwest::Request::new(Method::POST, url);
-        http_request
-            .body_mut()
-            .get_or_insert(reqwest::Body::from(record));
-
+        let anonymous = Principal::anonymous();
+        let request_id = to_request_id(&request)?;
+        let sender = match &request {
+            ReadRequest::Query { sender, .. } => sender,
+            ReadRequest::RequestStatus { .. } => &anonymous,
+        };
+        let signature = self.identity.sign(&request_id, &sender)?;
         let bytes = self
-            .client
-            .execute(http_request)
-            .await?
-            .error_for_status()?
-            .bytes()
+            .execute(
+                "read",
+                Envelope {
+                    content: request,
+                    sender_pubkey: signature.public_key,
+                    sender_sig: signature.signature,
+                },
+            )
             .await?;
 
         serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)
     }
 
     async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
-        // We need to calculate the signature, and thus also the
-        // request id initially.
-        let request = Request::Submit(request);
-        let (request_id, signed_request) = self.signer.sign(request)?;
-
-        let record = serde_cbor::to_vec(&signed_request)?;
-        let url = self.url.join("submit")?;
-
-        let mut http_request = reqwest::Request::new(Method::POST, url);
-        http_request
-            .body_mut()
-            .get_or_insert(reqwest::Body::from(record));
-
-        // Clippy doesn't like when return values are not used.
+        let request_id = to_request_id(&request)?;
+        let sender = match request {
+            SubmitRequest::Call { sender, .. } => sender,
+            SubmitRequest::InstallCode { sender, .. } => sender,
+        };
+        let signature = self.identity.sign(&request_id, &sender)?;
         let _ = self
-            .client
-            .execute(http_request)
-            .await?
-            .error_for_status()?;
+            .execute(
+                "submit",
+                Envelope {
+                    content: request,
+                    sender_pubkey: signature.public_key,
+                    sender_sig: signature.signature,
+                },
+            )
+            .await?;
 
         Ok(request_id)
     }
@@ -111,10 +133,12 @@ impl Agent {
         method_name: &'a str,
         arg: &'a Blob,
     ) -> Result<Blob, AgentError> {
+        let sender = self.identity.sender()?;
         self.read::<ReadResponse>(ReadRequest::Query {
             canister_id,
             method_name,
             arg,
+            sender: &sender,
         })
         .await
         .and_then(|response| match response {
@@ -122,7 +146,10 @@ impl Agent {
             ReadResponse::Rejected {
                 reject_code,
                 reject_message,
-            } => Err(AgentError::ClientError(reject_code, reject_message)),
+            } => Err(AgentError::ReplicaError {
+                reject_code,
+                reject_message,
+            }),
             ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
             ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
         })
@@ -151,7 +178,12 @@ impl Agent {
                 RequestStatusResponse::Rejected {
                     reject_code,
                     reject_message,
-                } => return Err(AgentError::ClientError(reject_code, reject_message)),
+                } => {
+                    return Err(AgentError::ReplicaError {
+                        reject_code,
+                        reject_message,
+                    })
+                }
                 RequestStatusResponse::Unknown => (),
                 RequestStatusResponse::Pending => (),
             };
@@ -179,11 +211,13 @@ impl Agent {
         method_name: &str,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
+        let sender = self.identity.sender()?;
         self.submit(SubmitRequest::Call {
             canister_id,
             method_name,
             arg,
             nonce: &self.nonce_factory.generate(),
+            sender: &sender,
         })
         .await
     }
@@ -216,12 +250,14 @@ impl Agent {
         arg: &Blob,
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
+        let sender = self.identity.sender()?;
         self.submit(SubmitRequest::InstallCode {
             canister_id,
             module,
             arg,
             nonce: &self.nonce_factory.generate(),
-            compute_allocation: attributes.compute_allocation.0,
+            sender: &sender,
+            compute_allocation: attributes.compute_allocation.map(|x| x.into()),
         })
         .await
     }

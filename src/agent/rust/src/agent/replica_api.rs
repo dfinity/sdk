@@ -1,4 +1,4 @@
-use crate::{Blob, CanisterId, RequestId};
+use crate::{Blob, CanisterId, Principal, RequestId};
 use serde::{Deserialize, Serialize};
 
 /// Request payloads for the /api/v1/read endpoint.
@@ -11,6 +11,7 @@ pub enum ReadRequest<'a> {
         canister_id: &'a CanisterId,
         method_name: &'a str,
         arg: &'a Blob,
+        sender: &'a Principal,
     },
     RequestStatus {
         request_id: &'a RequestId,
@@ -47,37 +48,24 @@ pub enum SubmitRequest<'a> {
         module: &'a Blob,
         arg: &'a Blob,
         nonce: &'a Option<Blob>,
-        compute_allocation: u8,
+        sender: &'a Principal,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        compute_allocation: Option<u8>,
     },
     Call {
         canister_id: &'a CanisterId,
         method_name: &'a str,
         arg: &'a Blob,
+        sender: &'a Principal,
+        #[serde(skip_serializing_if = "Option::is_none")]
         nonce: &'a Option<Blob>,
     },
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(untagged)]
-pub enum Request<'a> {
-    Submit(SubmitRequest<'a>),
-    Query(ReadRequest<'a>),
-}
-
-#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub struct MessageWithSender<T: Serialize> {
-    #[serde(flatten)]
-    pub request: T,
-    pub sender: Blob,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub struct SignedMessage<'a> {
-    #[serde(rename = "content")]
-    pub request_with_sender: Request<'a>,
+pub struct Envelope<T: Serialize> {
+    pub content: T,
     pub sender_pubkey: Blob,
-    #[serde(rename = "sender_sig")]
-    pub signature: Blob,
+    pub sender_sig: Blob,
 }

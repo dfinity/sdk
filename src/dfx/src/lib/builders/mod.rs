@@ -31,6 +31,9 @@ pub struct BuildOutput {
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.
 pub trait CanisterBuilder {
+    /// Returns the types of canister this builder can build.
+    fn supported_canister_types(&self) -> &[&str];
+
     /// Returns the dependencies of this canister, if any. This should not be a transitive
     /// list.
     fn get_dependencies(
@@ -40,9 +43,6 @@ pub trait CanisterBuilder {
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(Vec::new())
     }
-
-    /// Whether or not the canister info can be built using this builder.
-    fn can_build(&self, info: &CanisterInfo) -> bool;
 
     /// Build a canister. The canister contains all information related to a single canister,
     /// while the config contains information related to this particular build.
@@ -58,6 +58,7 @@ pub trait CanisterBuilder {
 pub struct BuildConfig {
     profile: Profile,
     assets: bool,
+    pub generate_id: bool,
     metadata: BTreeMap<String, serde_json::Value>,
 }
 
@@ -66,12 +67,20 @@ impl BuildConfig {
         BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),
             assets: false,
+            generate_id: false,
             metadata: BTreeMap::new(),
         }
     }
 
     pub fn with_assets(self, assets: bool) -> Self {
         Self { assets, ..self }
+    }
+
+    pub fn with_generate_id(self, generate_id: bool) -> Self {
+        Self {
+            generate_id,
+            ..self
+        }
     }
 }
 
@@ -90,7 +99,11 @@ impl BuilderPool {
     pub fn get(&self, info: &CanisterInfo) -> Option<Arc<dyn CanisterBuilder>> {
         self.builders
             .iter()
-            .find(|builder| builder.can_build(info))
+            .find(|builder| {
+                builder
+                    .supported_canister_types()
+                    .contains(&info.get_type())
+            })
             .map(|x| Arc::clone(x))
     }
 }

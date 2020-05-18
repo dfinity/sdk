@@ -1,14 +1,14 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use candid::{Encode, IDLArgs, IDLProg};
 use ic_agent::Blob;
-use serde_idl::{Encode, IDLArgs, IDLProg, EMPTY_DIDL};
 
 pub mod assets;
 pub mod clap;
 
 /// Deserialize and print return values from canister method.
-pub fn print_idl_blob(blob: &Blob) -> Result<(), serde_idl::Error> {
-    let result = serde_idl::IDLArgs::from_bytes(&(*blob.0));
+pub fn print_idl_blob(blob: &Blob) -> Result<(), candid::Error> {
+    let result = candid::IDLArgs::from_bytes(&(*blob.0));
     if result.is_err() {
         let hex_string = hex::encode(&(*blob.0));
         eprintln!("Error deserializing blob 0x{}", hex_string);
@@ -40,13 +40,13 @@ pub fn blob_from_arguments(arguments: Option<&str>, arg_type: Option<&str>) -> D
 
     if let Some(a) = arguments {
         match arg_type {
-            "string" => Ok(Encode!(&a)),
+            "string" => Ok(Encode!(&a)?),
             "number" => Ok(Encode!(&a.parse::<u64>().map_err(|e| {
                 DfxError::InvalidArgument(format!(
                     "Argument is not a valid 64-bit unsigned integer: {}",
                     e
                 ))
-            })?)),
+            })?)?),
             "raw" => Ok(hex::decode(&a).map_err(|e| {
                 DfxError::InvalidArgument(format!("Argument is not a valid hex string: {}", e))
             })?),
@@ -64,7 +64,7 @@ pub fn blob_from_arguments(arguments: Option<&str>, arg_type: Option<&str>) -> D
     } else {
         match arg_type {
             "raw" => Ok(Blob::empty()),
-            _ => Ok(Blob::from(EMPTY_DIDL)),
+            _ => Ok(Blob::from(Encode!()?)),
         }
     }
 }
