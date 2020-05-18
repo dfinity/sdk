@@ -74,7 +74,7 @@ impl BasicSigner {
                 }
             }?
             .get_default_file(profile_id.clone())
-            // We have the realtive path; now return the path.
+            // We have the realtive path; now return the absolute path.
             .map(|r_path| root.join(r_path.path))
             .ok_or_else(|| Error::ProfileMissing(profile_id))?;
 

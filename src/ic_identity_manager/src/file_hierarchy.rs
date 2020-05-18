@@ -175,7 +175,7 @@ impl FileHierarchy {
             ));
         }
 
-        let principal_profile = serde_json::to_string(&profile)?;
+        let principal_profile = serde_json::to_string_pretty(&profile)?;
         let principal_dir_path = root_path.join(identifier.0.clone());
         create_dir_all(&principal_dir_path)?;
 
