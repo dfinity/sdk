@@ -1,0 +1,62 @@
+:proglang: Motoko
+= Alpha DFINITY Canister SDK License Agreement
+
+Thank you for your interest in the Internet Computer, its infrastructure platform and its associated software development kit!
+ We are excited for you to tryout the Alpha DFINITY Canister SDK, its related documentation, APIs, sample code, and other materials provided to you, and any upgrades, modified versions, additions, and improvements thereof, if any (collectively, the "DFINITY Canister SDK") designed to enable software developers to build applications on top of the Internet Computer.
+
+This Alpha DFINITY Canister SDK License Agreement (the "Agreement") governs your use of the DFINITY Canister SDK and/or the entity on whose behalf you are accessing or downloading the DFINITY Canister SDK ("You").
+ BY DOWNLOADING, INSTALLING, OR OTHERWISE ACCESSING OR USING THE DFINITY CANISTER SDK, YOU AGREE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY THIS AGREEMENT.
+ IF YOU DO NOT AGREE, YOU MAY NOT USE THE DFINITY CANISTER SDK OR DFINITY MATERIALS.
+
+If you choose to use or access the DFINITY Canister SDK, you and DFINITY Foundation including its affiliates and subsidiaries (collectively “DFINITY”) acknowledge and agree as follows:
+
+. *Limited License.* Subject to the terms and conditions contained in this Agreement, DFINITY grants you a limited, non-exclusive, non-transferable, non-sublicensable, revocable license to use the items in the DFINITY Canister SDK only for the purpose of internal development of application programs designed to function with the Internet Computer.
+
+. *Restrictions.* You may not (i) copy, redistribute, sell, sublicense, rent, loan, lease or modify any portion of the DFINITY Canister SDK (any public, production, commercial, or similar use requires a separate agreement with DFINITY); (ii) use or implement any undocumented feature of the DFINITY Canister SDK, or use any documented feature DFINITY Canister SDK other than in accordance with applicable documentation; (iii) reverse engineer, decompile or disassemble any portion of the DFINITY Canister SDK (to the extent that local law grants You the right to decompile software in order to obtain information necessary to render the software interoperable with other software, You shall first request to DFINITY in writing to provide You with the necessary information);  (iv) use the DFINITY Canister SDK for any purpose, or use the DFINITY Canister SDK in the development of any application that is for the purpose of lifesaving, emergency response, or otherwise for deployment in any circumstance in which failure would be likely to lead to property damage, environmental damage, personal injury, or death; or (v) remove any copyright notices included in the DFINITY Canister SDK.
+
+. *Applicable Laws.* You will comply with all applicable laws and regulations (including without limitation laws and regulations related to export controls) in connection with Your use of the DFINITY Canister SDK.
+ Without limiting the generality of the foregoing, you represent and warrant that the DFINITY Canister SDK will not be shipped, transferred or exported into any country or used in any manner prohibited by the United States Export Administration Act or any other export laws, restrictions or regulations (collectively the "Export Laws").
+In addition, if the DFINITY Canister SDK is identified as export controlled items under the Export Laws, you represent and warrant that you are not a citizen, or otherwise located within, an embargoed and that you are not otherwise prohibited under the Export Laws from receiving the DFINITY Canister SDK.
+Any use in violation of this Section is strictly prohibited.
+
+. *Reservation of DFINITY’s right.* The DFINITY Canister SDK is owned by DFINITY and licensed, not sold, to You.
+The DFINITY Canister SDK, content, visual interfaces, interactive features, information, graphics, design, compilation, computer code, products, services, and all other elements of the DFINITY Canister SDK and related documentation, are protected by applicable intellectual property laws.
+As between you and DFINITY, all DFINITY materials and the DFINITY Canister SDK, including intellectual property rights therein and thereto, are the sole and exclusive property of DFINITY or its subsidiaries or affiliated companies and/or its third-party licensors.
+DFINITY reserves all rights not expressly granted in this Agreement.
+You do not acquire any right, title or interest to the DFINITY materials or DFINITY Canister SDK, whether by implication, estoppel, or otherwise, except for the limited rights set forth in this Agreement.
+
+. *Confidentiality.* The DFINITY Canister SDK (including as embodied in or utilized by any application) is the confidential and proprietary information of DFINITY, and you may not, during the term or thereafter, disclose them to any third party, or to use them for any purpose other than as expressly provided herein, without a separate written agreement with DFINITY authorizing you to do so.
+
+. *Feedback.* If you provide DFINITY with any comments, bug reports, feedback, enhancements, or modifications proposed or suggested by you for the DFINITY Canister SDK or any services ("Feedback"), such Feedback is provided on a non-confidential basis, and DFINITY shall have the right to use such Feedback at its discretion, including, but not limited to the incorporation of such suggested changes into the DFINITY materials, DFINITY Canister SDK or services.
+You hereby grant DFINITY a perpetual, irrevocable, transferable, sublicensable, nonexclusive license under all rights necessary to so incorporate and use your Feedback for any purpose, including to make and sell products and services.
+
+. *Term and Termination.* This Agreement will remain in effect until terminated.
+The Agreement, and Your rights and licenses hereunder, will terminate immediately upon your breach of the Agreement.
+You may terminate the Agreement by uninstalling and ceasing all use of the DFINITY Canister SDK.
+DFINITY may terminate this Agreement at any time for any reason, including without limitation any actual or suspected misuse or abuse by You of the DFINITY Canister SDK or any violation of this Agreement.
+Following any termination of this Agreement, you must immediately uninstall and cease use of the DFINITY Canister SDK, and destroy all copies of the DFINITY Canister SDK and any DFINITY materials in Your possession.
+Sections 3 through 14 shall survive any termination of this Agreement.
+
+. *Warranty Disclaimer and Limitation of Liability.* THE DFINITY CANISTER SDK AND ALL DFINITY MATERIALS ARE PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTY OF ANY KIND.
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, DFINITY DISCLAIMS ALL WARRANTIES AND CONDITIONS, EXPRESS, IMPLIED, STATUTORY OR OTHERWISE, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OR CONDITIONS OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, TITLE, QUALITY, RESULTS, AND NON-INFRINGEMENT.
+DFINITY EXPRESSLY DISCLAIMS ANY WARRANTIES OF ANY KIND WITH RESPECT TO THE ACCURACY OR FUNCTIONALITY OF THE DFINITY CANISTER SDK, AND WITH RESPECT TO THE ACCURACY, VALIDITY, OR COMPLETENESS OF ANY INFORMATION OR FEATURES AVAILABLE THROUGH THE DFINITY CANISTER SDK, OR THE QUALITY OR CONSISTENCY OF THE DFINITY CANISTER SDK OR RESULTS OBTAINED THROUGH ITS USE.
+UNDER NO CIRCUMSTANCES WILL DFINITY BE LIABLE FOR ANY CONSEQUENTIAL, SPECIAL, INDIRECT, INCIDENTAL OR PUNITIVE DAMAGES WHATSOEVER ARISING OUT OF THE USE OR INABILITY TO USE THE DFINITY CANISTER SDK OR DFINITY MATERIALS, EVEN IF DFINITY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES, AND NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+IN NO EVENT WILL DFINITY'S AGGREGATE LIABILITY FOR DAMAGES ARISING OUT OF THIS AGREEMENT OR THE TERMS EXCEED $100 USD.
+
+. *Indemnity.* You agree to indemnify, defend and hold DFINITY and its affiliates, officers, directors, suppliers, licensors, and other customers harmless from and against any and all liability and costs, including reasonable attorneys' fees incurred by such parties, in connection with or arising out of your applications, your use or misuse of the DFINITY Canister SDK, or your violation of this Agreement, any applicable law or regulation.
+
+. *Governing Law; Venue.* Any claim relating to the DFINITY Canister SDK shall be governed by the laws of Switzerland, to the exclusion of the rules on conflicts of laws.
+Any claim or dispute related to this Agreement or in relation to it shall (including for non-contractual disputes or claims and their interpretation) be subject to the exclusive jurisdiction of the Courts of Zug, Switzerland, subject to an appeal at the Swiss Federal Court.
+You agree that any dispute is personal to you and DFINITY, and that any dispute shall only be resolved by an individual litigation and shall not be brought as a class action, or any other representative proceeding.
+
+. *Entire Agreement and Severability.* This Agreement is the entire agreement between You and DFINITY, and supersedes any and all prior agreements, negotiations, or other communications between You and DFINITY, whether oral or written, with respect to the subject matter hereof, and, except as expressly provided herein, cannot be modified except in writing signed by both parties.
+In the event that any provision of this Agreement is held to be invalid or unenforceable, then: (a) such provision shall be deemed reformed to the extent strictly necessary to render such provision valid and enforceable, or if not capable of such reformation shall be deemed severed from this Agreement; and (b) the validity and enforceability of all of the other provisions hereof, shall in no way be affected or impaired thereby.
+
+. *Assignment.* You may not assign this Agreement without the prior written consent of DFINITY, whether expressly or by operation of law, including in connection with a merger or change of control, and any such attempted assignment shall be void and of no effect.
+DFINITY may assign this Agreement without restriction and without any notice to You.
+Subject to the foregoing, this Agreement shall be binding on the parties and their respective successors and permitted assigns.
+
+. *No Waiver.* The failure to exercise, or delay in exercising, a right, power or remedy provided in this Agreement or by law shall not constitute a waiver of that right, power or remedy.
+DFINITY 's waiver of any obligation or breach of this Agreement shall not operate as a waiver of any other obligation or subsequent breach of the Agreement.
+
+. *English Version.* The English language version of this Agreement shall be the official and controlling version, and any translation provided is solely for convenience.
