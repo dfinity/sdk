@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 mod motoko;
+mod rust;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -98,6 +99,7 @@ impl BuilderPool {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         let mut builders: Vec<Arc<dyn CanisterBuilder>> = Vec::new();
         builders.push(Arc::new(motoko::MotokoBuilder::new(env)?));
+        builders.push(Arc::new(rust::RustBuilder::new(env)?));
 
         Ok(Self { builders })
     }

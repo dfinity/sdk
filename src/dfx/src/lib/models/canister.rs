@@ -36,6 +36,10 @@ impl Canister {
     pub fn canister_id(&self) -> CanisterId {
         self.info.get_canister_id().unwrap()
     }
+
+    pub fn canister_info(&self) -> &CanisterInfo {
+        &self.info
+    }
 }
 
 /// A canister pool is a list of canisters.

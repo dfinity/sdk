@@ -26,6 +26,9 @@ pub enum BuildErrorKind {
 
     /// Ran the package tool, but it reported an error
     PackageToolReportedError(String, ExitStatus, String, String),
+
+    /// A generic error kind.
+    CustomError(String),
 }
 
 impl fmt::Display for BuildErrorKind {
