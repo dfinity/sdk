@@ -7,6 +7,7 @@ use delay::Delay;
 use std::time::Duration;
 
 mod call;
+mod id;
 mod install;
 mod query;
 mod request_status;
@@ -24,6 +25,7 @@ pub fn create_waiter() -> Delay {
 fn builtins() -> Vec<CliCommand> {
     vec![
         CliCommand::new(call::construct(), call::exec),
+        CliCommand::new(id::construct(), id::exec),
         CliCommand::new(install::construct(), install::exec),
         CliCommand::new(query::construct(), query::exec),
         CliCommand::new(request_status::construct(), request_status::exec),
