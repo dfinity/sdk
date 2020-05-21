@@ -89,7 +89,7 @@ sdk $ nix-shell
 /nix/store/g419n569py1gas7642q9jf5vh19xzp3y-dfx-assets
 ----
 
-. Launch CLion and `File | Open... | ~/d/sdk/Cargo.toml`
+. Launch your IDE and then `File | Open... | ~/d/sdk/Cargo.toml`
 You should briefly see a small popup that says `Using rustup`.
 
 . In the Project window, navigate to `src/dfx/src/main.rs` and right-click `Run 'Run dfx'`
