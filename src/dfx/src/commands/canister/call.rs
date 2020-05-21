@@ -82,7 +82,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         let canister_id = CanisterId::from_text(canister_name)
             .map_err(|_| DfxError::InvalidArgument("canister_name".to_string()))?;
         Ok((canister_id, None))
-    });
+    })?;
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
     let is_query = if args.is_present("async") {
