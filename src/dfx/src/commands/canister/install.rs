@@ -63,7 +63,7 @@ async fn install_canister(
 
     let wasm_path = canister_info
         .get_output_wasm_path()
-        .expect("Cannot get output path.");
+        .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
     agent
