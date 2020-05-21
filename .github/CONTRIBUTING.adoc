@@ -57,19 +57,19 @@ The key is to use a `nix-shell` to provide the `DFX_ASSETS` environment variable
 This example assumes that your git workspaces are under `~/d` and
 your `dfx` workspaces are under `~/w`, but they can be anywhere.
 
-===== Debugging `dfx` in CLion on OSX
+===== Debugging `dfx` in JetBrains IDEs on OSX
 
 . Install https://www.rust-lang.org/tools/install[Rust]
 
-. Switch to the version of the rust toolchain that builds `dfx`
+. Switch to the version of the rust toolchain from the https://github.com/dfinity-lab/common/blob/master/nix/overlays/rust.nix#L12[common repo]
 +
 [source,bash]
 ----
-$ rustup toolchain install 1.41.0
-$ rustup default 1.41.0
+$ rustup toolchain install 1.41.1
+$ rustup default 1.41.1
 ----
-
-. Install https://www.jetbrains.com/clion/[CLion] with its Rust plugin.
++
+. Install https://www.jetbrains.com/idea/[IDEA Ultimate] or https://www.jetbrains.com/clion/[CLion], and the Rust plugin.
 
 . Install https://brew.sh/[Homebrew] and required packages:
 +
