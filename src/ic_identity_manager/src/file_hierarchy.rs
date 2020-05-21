@@ -195,7 +195,6 @@ impl FileHierarchy {
         for access_file in files_iter {
             // let access_file_path = principal_dir_path.join(name);
             let access_file_path = principal_dir_path.join(access_file.path.clone());
-            eprintln!("path : {:?}", access_file_path);
             fs::write(access_file_path, &access_content)?;
         }
 
