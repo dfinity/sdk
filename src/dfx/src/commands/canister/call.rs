@@ -68,13 +68,17 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let method_name = args
         .value_of("method_name")
         .ok_or_else(|| DfxError::InvalidArgument("method_name".to_string()))?;
-    let canister_info = CanisterInfo::load(&config, canister_name)?;
-    let maybe_canister_id = canister_info.get_canister_id().map(|canister_id| {
-        let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
-        let is_query_method =
-            idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
-        (canister_id, is_query_method)
-    });
+    let maybe_canister_id =
+        CanisterInfo::load(&config, canister_name)
+            .ok()
+            .and_then(|canister_info| {
+                canister_info.get_canister_id().and_then(|canister_id| {
+                    let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
+                    let is_query_method = idl_ast
+                        .and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
+                    Some((canister_id, is_query_method))
+                })
+            });
     let (canister_id, is_query_method) = match maybe_canister_id {
         Some(x) => x,
         None => CanisterId::from_text(canister_name)
