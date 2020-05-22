@@ -59,6 +59,6 @@ try:
 finally:
     file.close()
 
-id = "ic:".join("{:02X}".format(byte) for byte in data)
+id = "ic:" + "".join("{:02X}".format(byte) for byte in data)
 
 print(id)
