@@ -21,7 +21,7 @@ actix-server = "0.6.1"
 actix-web = "1.0.8"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = { git = "https://github.com/dfinity/candid", rev = "a414958" }
+candid = { git = "https://github.com/dfinity/candid", rev = "a4149587cc6a751b60cdc1210e3f1ac2c7773afd" }
 clap = "2.33.0"
 console = "0.7.7"
 crossbeam = "0.7.3"
