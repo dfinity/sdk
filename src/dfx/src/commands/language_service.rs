@@ -79,12 +79,17 @@ fn get_main_path(config: &ConfigInterface, args: &ArgMatches<'_>) -> Result<Stri
             }
         }?;
 
-    canister.main.ok_or_else(|| {
-        DfxError::InvalidData(format!(
-            "Canister {0} lacks a 'main' element in {1}",
-            canister_name, dfx_json
-        ))
-    })
+    canister
+        .extras
+        .get("main")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| {
+            DfxError::InvalidData(format!(
+                "Canister {0} lacks a 'main' element in {1}",
+                canister_name, dfx_json
+            ))
+        })
+        .map(|s| s.to_owned())
 }
 
 fn run_ide(
