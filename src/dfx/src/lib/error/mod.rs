@@ -90,6 +90,9 @@ pub enum DfxError {
 
     /// Could not convert an OsString to a String
     CouldNotConvertOsString(OsString),
+
+    /// A canister has an unsupported type.
+    InvalidCanisterType(String),
 }
 
 /// The result of running a DFX command.
