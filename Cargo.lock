@@ -554,9 +554,9 @@ dependencies = [
 [[package]]
 name = "candid"
 version = "0.2.1"
-source = "git+https://github.com/dfinity/candid?rev=a4149587cc6a751b60cdc1210e3f1ac2c7773afd#a4149587cc6a751b60cdc1210e3f1ac2c7773afd"
+source = "git+https://github.com/dfinity/candid?branch=nix-fix#a4149587cc6a751b60cdc1210e3f1ac2c7773afd"
 dependencies = [
- "candid_derive 0.2.0 (git+https://github.com/dfinity/candid?rev=a4149587cc6a751b60cdc1210e3f1ac2c7773afd)",
+ "candid_derive 0.2.0 (git+https://github.com/dfinity/candid?branch=nix-fix)",
  "lalrpop 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lalrpop-util 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "leb128 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -569,7 +569,7 @@ dependencies = [
 [[package]]
 name = "candid_derive"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/candid?rev=a4149587cc6a751b60cdc1210e3f1ac2c7773afd#a4149587cc6a751b60cdc1210e3f1ac2c7773afd"
+source = "git+https://github.com/dfinity/candid?branch=nix-fix#a4149587cc6a751b60cdc1210e3f1ac2c7773afd"
 dependencies = [
  "proc-macro2 1.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -919,7 +919,7 @@ dependencies = [
  "actix-web 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "atty 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "candid 0.2.1 (git+https://github.com/dfinity/candid?rev=a4149587cc6a751b60cdc1210e3f1ac2c7773afd)",
+ "candid 0.2.1 (git+https://github.com/dfinity/candid?branch=nix-fix)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "console 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3842,8 +3842,8 @@ dependencies = [
 "checksum bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)" = "206fdffcfa2df7cbe15601ef46c813fce0965eb3286db6b56c583b814b51c81c"
 "checksum bytes 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)" = "130aac562c0dd69c56b3b1cc8ffd2e17be31d0b6c25b61c96b76231aa23e39e1"
 "checksum c2-chacha 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7d64d04786e0f528460fc884753cf8dddcc466be308f6026f8e355c41a0e4101"
-"checksum candid 0.2.1 (git+https://github.com/dfinity/candid?rev=a4149587cc6a751b60cdc1210e3f1ac2c7773afd)" = "<none>"
-"checksum candid_derive 0.2.0 (git+https://github.com/dfinity/candid?rev=a4149587cc6a751b60cdc1210e3f1ac2c7773afd)" = "<none>"
+"checksum candid 0.2.1 (git+https://github.com/dfinity/candid?branch=nix-fix)" = "<none>"
+"checksum candid_derive 0.2.0 (git+https://github.com/dfinity/candid?branch=nix-fix)" = "<none>"
 "checksum cc 1.0.45 (registry+https://github.com/rust-lang/crates.io-index)" = "4fc9a35e1f4290eb9e5fc54ba6cf40671ed2a2514c3eeb2b2a908dda2ea5a1be"
 "checksum cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 "checksum cgmath 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)" = "64a4b57c8f4e3a2e9ac07e0f6abc9c24b6fc9e1b54c3478cfb598f3d0023e51c"
