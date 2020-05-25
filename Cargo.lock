@@ -554,7 +554,7 @@ dependencies = [
 [[package]]
 name = "candid"
 version = "0.2.1"
-source = "git+https://github.com/dfinity/candid?branch=nix-fix#a4149587cc6a751b60cdc1210e3f1ac2c7773afd"
+source = "git+https://github.com/dfinity/candid?branch=nix-fix#e8c16e3ae633f6f4cb2dde05cb145ecad22a8864"
 dependencies = [
  "candid_derive 0.2.0 (git+https://github.com/dfinity/candid?branch=nix-fix)",
  "lalrpop 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -569,7 +569,7 @@ dependencies = [
 [[package]]
 name = "candid_derive"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/candid?branch=nix-fix#a4149587cc6a751b60cdc1210e3f1ac2c7773afd"
+source = "git+https://github.com/dfinity/candid?branch=nix-fix#e8c16e3ae633f6f4cb2dde05cb145ecad22a8864"
 dependencies = [
  "proc-macro2 1.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
