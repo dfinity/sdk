@@ -75,7 +75,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
 
-    let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
+    let idl_ast = load_idl_file(
+        env,
+        &canister_info
+            .get_output_idl_path()
+            .expect("Could not find IDL file."),
+    );
     let is_query = if args.is_present("async") {
         false
     } else {
