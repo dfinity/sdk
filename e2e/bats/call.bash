@@ -12,7 +12,7 @@ teardown() {
 }
 
 @test "call subcommand accepts canister identifier as canister name" {
-    install_asset print
+    install_asset greet
     dfx_start
     dfx build
     dfx canister install e2e_project
