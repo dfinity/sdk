@@ -1,46 +1,47 @@
 #![allow(dead_code)]
 use crate::config::dfinity::Config;
+use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
 use ic_agent::{Blob, CanisterId};
 use rand::{thread_rng, RngCore};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
+
+pub mod motoko;
+
+pub trait CanisterInfoFactory {
+    /// Returns true if this factory supports creating extra info for this canister info.
+    fn supports(info: &CanisterInfo) -> bool;
+
+    fn create(info: &CanisterInfo) -> DfxResult<Self>
+    where
+        Self: std::marker::Sized;
+}
 
 /// Information about a canister project (source code, destination, etc).
 #[derive(Debug)]
 pub struct CanisterInfo {
     name: String,
-    input_path: PathBuf,
+    canister_type: String,
 
-    output_root: PathBuf,
-    idl_path: PathBuf,
-
-    output_wasm_path: PathBuf,
-    output_idl_path: PathBuf,
-    output_did_js_path: PathBuf,
-    output_canister_js_path: PathBuf,
-    output_assets_root: PathBuf,
+    workspace_root: PathBuf,
+    build_root: PathBuf,
+    canister_root: PathBuf,
 
     canister_id: RefCell<Option<CanisterId>>,
     canister_id_path: PathBuf,
 
-    has_frontend: bool,
-    metadata: BTreeMap<String, serde_json::Value>,
+    packtool: Option<String>,
+
+    extras: BTreeMap<String, serde_json::Value>,
 }
 
 impl CanisterInfo {
     pub fn load(config: &Config, name: &str) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
-        let build_root = workspace_root.join(
-            config
-                .get_config()
-                .get_defaults()
-                .get_build()
-                .get_output("build/"),
-        );
-        let idl_path = build_root.join("idl/");
+        let build_defaults = config.get_config().get_defaults().get_build();
+        let build_root = workspace_root.join(build_defaults.get_output("build/"));
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
             DfxError::Unknown("No canisters in the configuration file.".to_string())
@@ -49,85 +50,45 @@ impl CanisterInfo {
         let canister_config = canister_map
             .get(name)
             .ok_or_else(|| DfxError::CannotFindCanisterName(name.to_string()))?;
-        let main_path = PathBuf::from_str(canister_config.main.as_ref().ok_or_else(|| {
-            DfxError::Unknown("Main field mandatory for canister config.".to_string())
-        })?)
-        .expect("Could not convert Main field to a path.");
 
-        let metadata = canister_config.metadata.clone();
-        let has_frontend = canister_config.frontend.is_some();
+        let canister_root = workspace_root.to_path_buf();
+        let extras = canister_config.extras.clone();
 
-        let input_path = workspace_root.join(&main_path);
         let output_root = build_root.join(name);
-        let output_wasm_path = output_root
-            .join(
-                main_path
-                    .file_name()
-                    .ok_or_else(|| DfxError::Unknown("Main is not a file path.".to_string()))?,
-            )
-            .with_extension("wasm");
-        let output_idl_path = output_wasm_path.with_extension("did");
-        let output_did_js_path = output_wasm_path.with_extension("did.js");
-        let output_canister_js_path = output_wasm_path.with_extension("js");
-        let output_assets_root = output_root.join("assets");
-
         let canister_id_path = output_root.join("_canister.id");
+        let canister_type = canister_config
+            .r#type
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| "motoko".to_owned());
 
         Ok(CanisterInfo {
             name: name.to_string(),
-            input_path,
+            canister_type,
 
-            output_root,
-            idl_path,
-            output_wasm_path,
-            output_idl_path,
-            output_did_js_path,
-            output_canister_js_path,
-            output_assets_root,
+            workspace_root: workspace_root.to_path_buf(),
+            build_root,
+            canister_root,
 
             canister_id: RefCell::new(None),
             canister_id_path,
 
-            has_frontend,
-            metadata,
+            packtool: build_defaults.get_packtool(),
+            extras,
         })
     }
 
     pub fn get_name(&self) -> &str {
         self.name.as_str()
     }
-    pub fn get_main_path(&self) -> &Path {
-        self.input_path.as_path()
+    pub fn get_type(&self) -> &str {
+        &self.canister_type
     }
-    pub fn get_output_wasm_path(&self) -> &Path {
-        self.output_wasm_path.as_path()
+    pub fn get_workspace_root(&self) -> &Path {
+        &self.workspace_root
     }
-    pub fn get_output_idl_path(&self) -> &Path {
-        self.output_idl_path.as_path()
-    }
-    pub fn get_output_did_js_path(&self) -> &Path {
-        self.output_did_js_path.as_path()
-    }
-    pub fn get_output_canister_js_path(&self) -> &Path {
-        self.output_canister_js_path.as_path()
-    }
-    pub fn get_output_assets_root(&self) -> &Path {
-        self.output_assets_root.as_path()
-    }
-    pub fn get_output_root(&self) -> &Path {
-        self.output_root.as_path()
-    }
-    pub fn get_idl_dir_path(&self) -> &Path {
-        self.idl_path.as_path()
-    }
-    pub fn get_idl_file_path(&self) -> Option<PathBuf> {
-        let idl_path = self.get_idl_dir_path();
-        let canister_id = self.get_canister_id()?;
-        Some(
-            idl_path
-                .join(canister_id.to_text().split_off(3))
-                .with_extension("did"),
-        )
+    pub fn get_build_root(&self) -> &Path {
+        &self.build_root
     }
     pub fn get_canister_id_path(&self) -> &Path {
         self.canister_id_path.as_path()
@@ -145,12 +106,47 @@ impl CanisterInfo {
         canister_id
     }
 
-    pub fn get_metadata(&self) -> &BTreeMap<String, serde_json::Value> {
-        &self.metadata
+    pub fn get_extra_value(&self, name: &str) -> Option<serde_json::Value> {
+        self.extras.get(name).cloned()
     }
 
-    pub fn has_frontend(&self) -> bool {
-        self.has_frontend
+    pub fn get_extra<T: serde::de::DeserializeOwned>(&self, name: &str) -> DfxResult<T> {
+        self.get_extra_value(name)
+            .ok_or_else(|| {
+                DfxError::Unknown(format!(
+                    "Field '{}' is mandatory for canister {}.",
+                    name,
+                    self.get_name()
+                ))
+            })
+            .and_then(|v| {
+                T::deserialize(v).map_err(|_| {
+                    DfxError::Unknown(format!("Field '{}' is of the wrong type", name))
+                })
+            })
+    }
+    pub fn get_extras(&self) -> &BTreeMap<String, serde_json::Value> {
+        &self.extras
+    }
+
+    pub fn get_packtool(&self) -> &Option<String> {
+        &self.packtool
+    }
+
+    pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
+        if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
+            Some(info.get_output_wasm_path().to_path_buf())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_output_idl_path(&self) -> Option<PathBuf> {
+        if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
+            Some(info.get_output_idl_path().to_path_buf())
+        } else {
+            None
+        }
     }
 
     pub fn generate_canister_id(&self) -> DfxResult<CanisterId> {
@@ -159,5 +155,13 @@ impl CanisterInfo {
         rng.fill_bytes(v.as_mut_slice());
 
         Ok(CanisterId::from(Blob(v)))
+    }
+
+    pub fn as_info<T: CanisterInfoFactory>(&self) -> DfxResult<T> {
+        if T::supports(self) {
+            T::create(self)
+        } else {
+            Err(DfxError::InvalidCanisterType(self.get_type().to_string()))
+        }
     }
 }

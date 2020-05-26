@@ -24,8 +24,9 @@ import {
   SubmitResponse,
 } from './http_agent_types';
 import * as IDL from './idl';
+import { Principal } from './principal';
 import { requestIdOf } from './request_id';
-import { BinaryBlob, blobFromHex, blobFromUint8Array } from './types';
+import { BinaryBlob, blobFromHex } from './types';
 
 const API_VERSION = 'v1';
 
@@ -42,6 +43,10 @@ export interface HttpAgentOptions {
   // The host to use for the client. By default, uses the same host as
   // the current page.
   host?: string;
+
+  // The principal used to send messages. This cannot be empty at the request
+  // time (will throw).
+  principal?: Principal | Promise<Principal>;
 }
 
 declare const window: Window & { fetch: typeof fetch };
@@ -72,11 +77,13 @@ export class HttpAgent {
   private _authTransform: AuthHttpAgentRequestTransformFn | null = null;
   private readonly _fetch: typeof fetch;
   private readonly _host: string = '';
+  private readonly _principal: Promise<Principal> | null = null;
 
   constructor(options: HttpAgentOptions = {}) {
     if (options.parent) {
       this._pipeline = [...options.parent._pipeline];
       this._authTransform = options.parent._authTransform;
+      this._principal = options.parent._principal;
     }
     this._fetch = options.fetch || getDefaultFetch() || fetch.bind(global);
     if (options.host) {
@@ -86,10 +93,13 @@ export class HttpAgent {
         this._host = options.host;
       }
     }
+    if (options.principal) {
+      this._principal = Promise.resolve(options.principal);
+    }
   }
 
   public addTransform(fn: HttpAgentRequestTransformFn, priority = fn.priority || 0) {
-    // Keep the pipeline sorted at all time, by priotity.
+    // Keep the pipeline sorted at all time, by priority.
     const i = this._pipeline.findIndex(x => (x.priority || 0) < priority);
     this._pipeline.splice(i >= 0 ? i : this._pipeline.length, 0, Object.assign(fn, { priority }));
   }
@@ -147,42 +157,69 @@ export class HttpAgent {
     return cbor.decode(Buffer.from(await response.arrayBuffer()));
   }
 
-  public call(
+  public async call(
     canisterId: CanisterId | string,
     fields: {
       methodName: string;
       arg: BinaryBlob;
     },
+    principal?: Principal | Promise<Principal>,
   ): Promise<SubmitResponse> {
+    let p = this._principal || principal;
+    if (!p) {
+      throw new Error('No principal specified.');
+    }
+    p = await Promise.resolve(p);
+
     return this.submit({
       request_type: SubmitRequestType.Call,
       canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
+      sender: p.toBlob(),
     });
   }
 
-  public install(
+  public async install(
     canisterId: CanisterId | string,
     fields: {
       module: BinaryBlob;
       arg?: BinaryBlob;
     },
+    principal?: Principal,
   ): Promise<SubmitResponse> {
+    let p = this._principal || principal;
+    if (!p) {
+      throw new Error('No principal specified.');
+    }
+    p = await Promise.resolve(p);
+
     return this.submit({
       request_type: SubmitRequestType.InstallCode,
       canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
       module: fields.module,
       arg: fields.arg || blobFromHex(''),
+      sender: p.toBlob(),
     });
   }
 
-  public query(canisterId: CanisterId | string, fields: QueryFields): Promise<QueryResponse> {
+  public async query(
+    canisterId: CanisterId | string,
+    fields: QueryFields,
+    principal?: Principal,
+  ): Promise<QueryResponse> {
+    let p = this._principal || principal;
+    if (!p) {
+      throw new Error('No principal specified.');
+    }
+    p = await Promise.resolve(p);
+
     return this.read({
       request_type: ReadRequestType.Query,
       canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
+      sender: p.toBlob(),
     }) as Promise<QueryResponse>;
   }
 
@@ -204,10 +241,20 @@ export class HttpAgent {
     });
   }
 
-  public requestStatus(fields: ResponseStatusFields): Promise<RequestStatusResponse> {
+  public async requestStatus(
+    fields: ResponseStatusFields,
+    principal?: Principal,
+  ): Promise<RequestStatusResponse> {
+    let p = this._principal || principal;
+    if (!p) {
+      throw new Error('No principal specified.');
+    }
+    p = await Promise.resolve(p);
+
     return this.read({
       request_type: ReadRequestType.RequestStatus,
       request_id: fields.requestId,
+      sender: p.toBlob(),
     }) as Promise<RequestStatusResponse>;
   }
 

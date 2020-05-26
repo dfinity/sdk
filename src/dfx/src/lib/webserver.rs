@@ -122,7 +122,7 @@ pub fn run_webserver(
 
     info!(
         logger,
-        "client(s): {}",
+        "replica(s): {}",
         providers
             .iter()
             .map(|x| x.clone().into_string())

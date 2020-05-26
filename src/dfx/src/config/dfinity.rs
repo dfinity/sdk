@@ -25,7 +25,10 @@ const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsB
     timeout: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { output: None };
+const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
+    output: None,
+    packtool: None,
+};
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
     message_gas_limit: None,
@@ -40,13 +43,15 @@ const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     serve_root: None,
 };
 
+/// A Canister configuration in the dfx.json config file.
+/// It only contains a type; everything else should be infered using the
+/// CanisterInfo type.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
-    pub main: Option<String>,
-    pub frontend: Option<Value>,
+    pub r#type: Option<String>,
 
     #[serde(flatten)]
-    pub metadata: BTreeMap<String, Value>,
+    pub extras: BTreeMap<String, Value>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -61,6 +66,7 @@ pub struct ConfigDefaultsBootstrap {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {
     pub output: Option<String>,
+    pub packtool: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -103,11 +109,7 @@ pub struct ConfigInterface {
     pub defaults: Option<ConfigDefaults>,
 }
 
-impl ConfigCanistersCanister {
-    pub fn get_main(&self, default: &str) -> String {
-        self.main.to_owned().unwrap_or_else(|| default.to_string())
-    }
-}
+impl ConfigCanistersCanister {}
 
 fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
     match s.to_socket_addrs() {
@@ -156,6 +158,13 @@ impl ConfigDefaultsBuild {
         self.output
             .to_owned()
             .unwrap_or_else(|| default.to_string())
+    }
+
+    pub fn get_packtool(&self) -> Option<String> {
+        match &self.packtool {
+            Some(v) if !v.is_empty() => self.packtool.to_owned(),
+            _ => None,
+        }
     }
 }
 
