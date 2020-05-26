@@ -17,7 +17,7 @@ lazy_static! {
 pub(crate) struct FileHierarchy {
     pub location: PathBuf,
     version: Version,
-    // We can keep it simple as this is still an internal type to
+    // We can keep it simple as this is still an internal type.
     pub inner: HashMap<ProfileIdentifier, PrincipalProfile>,
 }
 
