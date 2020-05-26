@@ -9,6 +9,7 @@
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
 , agent-js ? import ./src/agent/javascript { inherit pkgs; }
+, assets ? import ./assets.nix { inherit pkgs; }
 }:
 let
   lib = pkgs.lib;
@@ -65,19 +66,7 @@ let
           if !lib.isDerivation drv then drv else
             drv.overrideAttrs (
               _: {
-                DFX_ASSETS = pkgs.runCommandNoCC "dfx-assets" {} ''
-                  mkdir -p $out
-                  cp ${pkgs.dfinity.ic-replica}/bin/replica $out
-                  cp ${pkgs.motoko.moc-bin}/bin/moc $out
-                  cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
-                  cp ${pkgs.motoko.didc}/bin/didc $out
-                  cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
-                  mkdir $out/base && cp -R ${pkgs.motoko.stdlib}/. $out/base
-
-                  mkdir $out/js-user-library
-                  tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $out/js-user-library
-                  cp -R ${agent-js.lib}/node_modules $out/js-user-library
-                '';
+                DFX_ASSETS = assets;
               }
             )
       ) ws
