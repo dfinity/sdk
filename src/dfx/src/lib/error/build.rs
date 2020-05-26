@@ -63,6 +63,7 @@ impl fmt::Display for BuildErrorKind {
                     cmd, exit_status, stdout, stderr
                 ))
             }
+            CustomError(message) => f.write_str(message),
         }
     }
 }

@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use crate::config::dfinity::Config;
-use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
 use ic_agent::{Blob, CanisterId};
 use rand::{thread_rng, RngCore};
@@ -9,6 +8,10 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 pub mod motoko;
+use motoko::MotokoCanisterInfo;
+
+pub mod rust;
+use rust::RustCanisterInfo;
 
 pub trait CanisterInfoFactory {
     /// Returns true if this factory supports creating extra info for this canister info.
@@ -136,6 +139,8 @@ impl CanisterInfo {
     pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
         if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
+            Some(info.wasm_path)
         } else {
             None
         }
@@ -144,6 +149,8 @@ impl CanisterInfo {
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
         if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
+            Some(info.idl_path)
         } else {
             None
         }

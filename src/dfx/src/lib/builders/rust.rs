@@ -6,76 +6,109 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use ic_agent::CanisterId;
+use serde::Deserialize;
 use std::path::PathBuf;
+use std::process::Stdio;
 
 pub struct RustBuilder {}
 
 impl RustBuilder {
-    pub fn new(env: &dyn Environment) -> DfxResult<Self> {
+    pub fn new(_env: &dyn Environment) -> DfxResult<Self> {
         Ok(RustBuilder {})
     }
 }
 
 impl CanisterBuilder for RustBuilder {
+    fn supports(&self, info: &CanisterInfo) -> bool {
+        info.get_type() == "rust"
+    }
+
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        // We don't detect dependencies yet.
-        Ok(vec![])
-    }
+        let deps = info.get_extra_value("dependencies");
+        let deps = match deps {
+            None => vec![],
+            Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
+                DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
+            })?,
+        };
 
-    fn supported_canister_types(&self) -> &[&str] {
-        &["rust"]
+        Ok(deps
+            .iter()
+            .filter_map(|name| {
+                pool.get_first_canister_with_name(name)
+                    .map(|c| c.canister_id())
+            })
+            .collect())
     }
 
     fn build(
         &self,
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
-        config: &BuildConfig,
+        _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let extras = canister_info.get_metadata();
-        let candid_path = extras
-            .get("candid")
-            .ok_or_else(|| BuildErrorKind::CustomError("Key 'candid' is missing.".to_string()))?
-            .as_str()
-            .ok_or_else(|| {
-                BuildErrorKind::CustomError("Key 'candid' needs to be a string.".to_string())
-            })?;
+        let canister_id = canister_info.get_canister_id().unwrap();
+        let candid_path = canister_info.get_extra::<PathBuf>("candid")?;
+        let candid_path = canister_info.get_workspace_root().join(candid_path);
 
-        let candid_path = PathBuf::from(candid_path);
         if !candid_path.exists() {
             return Err(DfxError::BuildError(BuildErrorKind::CustomError(
                 "IDL file must exist.".to_string(),
             )));
         }
 
-        let output_path = extras
-            .get("output")
-            .ok_or_else(|| BuildErrorKind::CustomError("Key 'output' is missing.".to_string()))?
-            .as_str()
-            .ok_or_else(|| {
-                BuildErrorKind::CustomError("Key 'output' needs to be a string.".to_string())
-            })?;
-        let output_path = PathBuf::from(output_path);
+        let output_path = canister_info.get_extra::<PathBuf>("output")?;
+        let output_path = canister_info.get_workspace_root().join(output_path);
 
-        let mut cargo_cmd = std::process::Command::new("cargo")
-            .env(
-                "CANISTER_ID",
-                format!("{}", canister_info.get_canister_id().unwrap()),
-            )
+        let mut cargo_cmd = std::process::Command::new("cargo");
+
+        cargo_cmd
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .env("CANISTER_ID", format!("{}", canister_id))
             .arg("build")
-            .args(&["--target", "wasm32-unknown-unknown"]);
+            .args(&["--target", "wasm32-unknown-unknown"])
+            .args(&["--package", canister_info.get_name()]);
 
-        // Add all canister IDs to environment variables so they can be used during build.
-        pool.get_canister_list().iter().for_each(|c| {
-            let cid = c.canister_id();
-            cargo_cmd = cargo_cmd.env(format!("CANISTER_ID_{}", c.get_name()), cid.to_text());
-        });
+        // Add all canister IDs and Candid paths to environment variables so they can be
+        // used during build.
+        for c in pool.get_canister_list() {
+            cargo_cmd.env(
+                format!("CANISTER_ID_{}", c.get_name()),
+                c.canister_id().to_text(),
+            );
+            match c.get_build_output() {
+                Some(BuildOutput {
+                    idl: IdlBuildOutput::File(ref p),
+                    ..
+                }) => {
+                    cargo_cmd.env(
+                        format!("CANISTER_CANDID_{}", c.get_name()),
+                        p.to_string_lossy().to_string(),
+                    );
+                }
+                None => {}
+            }
+        }
 
-        cargo_cmd.output()?;
+        // Run the command.
+        let output = cargo_cmd.output()?;
+        if !output.status.success() {
+            return Err(DfxError::BuildError(BuildErrorKind::CompilerError(
+                format!("{:?}", cargo_cmd).to_owned(),
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap(),
+            )));
+        }
+        if !output_path.exists() {
+            return Err(DfxError::BuildError(BuildErrorKind::CustomError(
+                "The output WASM file does not exist.".to_string(),
+            )));
+        }
 
         Ok(BuildOutput {
             canister_id,
