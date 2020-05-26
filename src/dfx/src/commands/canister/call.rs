@@ -73,9 +73,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .ok()
             .and_then(|canister_info| {
                 canister_info.get_canister_id().and_then(|canister_id| {
-                    let idl_ast = load_idl_file(env, canister_info.get_output_idl_path());
-                    let is_query_method = idl_ast
-                        .and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
+                    let path = canister_info.get_output_idl_path()?;
+                    let ast = load_idl_file(env, &path).expect("Could not find IDL file.");
+                    let is_query_method = ast.get_method_type(&method_name).map(|f| f.is_query());
                     Some((canister_id, is_query_method))
                 })
             });

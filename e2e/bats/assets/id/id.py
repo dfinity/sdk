@@ -43,10 +43,8 @@ table = [
     0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3,
 ]
 
-file = open(args[1], "rb")
 data = []
-
-try:
+with open(args[1], "rb") as file:
     crc = 0x00
     buf = file.read(1)
     while buf != b"":
@@ -55,10 +53,5 @@ try:
         crc = table[crc ^ byte]
         buf = file.read(1)
     data.append(crc)
-
-finally:
-    file.close()
-
 id = "ic:" + "".join("{:02X}".format(byte) for byte in data)
-
 print(id)

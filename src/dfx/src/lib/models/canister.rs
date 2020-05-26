@@ -180,6 +180,67 @@ impl CanisterPool {
         }
     }
 
+    fn step_prebuild_all(
+        &self,
+        _build_config: &BuildConfig,
+        _order: &mut Vec<CanisterId>,
+    ) -> DfxResult<()> {
+        Ok(())
+    }
+
+    fn step_prebuild(&self, _build_config: &BuildConfig, _canister: &Canister) -> DfxResult<()> {
+        Ok(())
+    }
+
+    fn step_build(
+        &self,
+        build_config: &BuildConfig,
+        canister: &Canister,
+    ) -> DfxResult<BuildOutput> {
+        canister.build(self, build_config)
+    }
+
+    fn step_postbuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
+        // Copy the IDL output file to the proper directory for downstream to pick it up if
+        // needed.
+        let idl_root = &build_config.idl_root;
+        let canister_id = canister.canister_id();
+        let idl_file_path = idl_root
+            .join(canister_id.to_text().split_off(3))
+            .with_extension("did");
+
+        let output_idl_path = canister
+            .info
+            .get_output_idl_path()
+            .ok_or_else(|| DfxError::Unknown("Could not get the IDL path.".to_string()))?;
+
+        std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
+        std::fs::copy(&output_idl_path, &idl_file_path)
+            .map(|_| {})
+            .map_err(DfxError::from)
+    }
+
+    fn step_postbuild_all(
+        &self,
+        build_config: &BuildConfig,
+        _order: &[CanisterId],
+    ) -> DfxResult<()> {
+        // We don't want to simply remove the whole directory, as in the future,
+        // we may want to keep the IDL files downloaded from network.
+        for canister in &self.canisters {
+            let idl_root = &build_config.idl_root;
+            let canister_id = canister.canister_id();
+            let idl_file_path = idl_root
+                .join(canister_id.to_text().split_off(3))
+                .with_extension("did");
+
+            // Ignore errors (e.g. File Not Found).
+            let _ = std::fs::remove_file(idl_file_path);
+        }
+
+        Ok(())
+    }
+
     /// Build all canisters, returning a vector of results of each builds.
     pub fn build(&self, build_config: BuildConfig) -> DfxResult<Vec<DfxResult<BuildOutput>>> {
         if build_config.generate_id {
@@ -187,7 +248,7 @@ impl CanisterPool {
         }
 
         let graph = self.build_dependencies_graph()?;
-        let order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
+        let mut order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
             .map_err(|cycle| match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => DfxError::BuildError(BuildErrorKind::CircularDependency(
                     match self.get_canister_info(canister_id) {
@@ -204,24 +265,23 @@ impl CanisterPool {
             .map(|idx| graph.node_weight(*idx).unwrap().clone())
             .collect();
 
+        self.step_prebuild_all(&build_config, &mut order)?;
+
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
-                result.push(canister.build(self, &build_config));
+                result.push(
+                    Ok(())
+                        .and_then(|_| self.step_prebuild(&build_config, canister))
+                        .and_then(|_| self.step_build(&build_config, canister))
+                        .and_then(|output| {
+                            self.step_postbuild(&build_config, canister).map(|_| output)
+                        }),
+                );
             }
         }
 
-        // We don't want to simply remove the whole directory, as in the future,
-        // we may want to keep the IDL files downloaded from network.
-        for canister in &self.canisters {
-            let idl_file_path = canister
-                .info
-                .get_idl_file_path()
-                .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
-
-            // Ignore errors (e.g. File Not Found).
-            let _ = std::fs::remove_file(idl_file_path);
-        }
+        self.step_postbuild_all(&build_config, &order)?;
 
         Ok(result)
     }
