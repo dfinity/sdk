@@ -16,5 +16,6 @@ teardown() {
     dfx_start
     dfx build
     dfx canister install e2e_project
-    dfx canister call $(dfx canister id e2e_project) hello
+    assert_command dfx canister call $(dfx canister id e2e_project) greet '("Names are difficult")'
+    assert_eq '("Hello, Names are difficult!")'
 }
