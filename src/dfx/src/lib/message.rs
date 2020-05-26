@@ -33,6 +33,9 @@ user_message!(
     CacheList => "List installed and used version.",
     CacheShow => "Show the path of the cache used by this version.",
 
+    // dfx canister id
+    IdCanister => "Prints the identifier of a canister.",
+
     // dfx canister call
     CallCanister => "Calls a method on a deployed canister.",
     MethodName => "Specifies the method name to call on the canister.",
