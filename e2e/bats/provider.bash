@@ -17,7 +17,7 @@ teardown() {
 
 # This test is around 15 seconds to run. I don't think it should be faster without raising the
 # flakiness (replica start time).
-@test "replica flag can be passed in" {
+@test "provider flag can be passed in" {
   dfx build
 
   # Start a replica manually on a specific port.
@@ -29,8 +29,8 @@ teardown() {
   sleep 5 # Wait for replica to be available.
 
   export PORT=$(cat port)
-  dfx canister --replica http://localhost:$PORT install --all
-  dfx canister --replica http://localhost:$PORT call e2e_project greet '("Blueberry")'
-  assert_command_fail dfx canister call --replica http://localhost:$PORT e2e_project greet '("Blueberry")'
+  dfx canister --provider http://localhost:$PORT install --all
+  dfx canister --provider http://localhost:$PORT call e2e_project greet '("Blueberry")'
+  assert_command_fail dfx canister call --provider http://localhost:$PORT e2e_project greet '("Blueberry")'
   assert_command_fail dfx canister call e2e_project greet '("Blueberry")'
 }

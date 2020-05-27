@@ -36,9 +36,9 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("canister")
         .about(UserMessage::ManageCanister.to_str())
         .arg(
-            Arg::with_name("replica")
-                .help(UserMessage::CanisterReplica.to_str())
-                .long("replica")
+            Arg::with_name("provider")
+                .help(UserMessage::CanisterComputeProvider.to_str())
+                .long("provider")
                 .validator(|v| {
                     reqwest::Url::parse(&v)
                         .map(|_| ())
@@ -53,13 +53,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let subcommand = args.subcommand();
 
     // Need storage for AgentEnvironment ownership.
-    let mut _replica_env: Option<AgentEnvironment<'_>> = None;
-    let env = if args.is_present("replica") {
-        _replica_env = Some(AgentEnvironment::new(
+    let mut _agent_env: Option<AgentEnvironment<'_>> = None;
+    let env = if args.is_present("provider") {
+        _agent_env = Some(AgentEnvironment::new(
             env,
-            args.value_of("replica").expect("Could not find replica."),
+            args.value_of("provider").expect("Could not find provider."),
         ));
-        _replica_env.as_ref().unwrap()
+        _agent_env.as_ref().unwrap()
     } else {
         env
     };
