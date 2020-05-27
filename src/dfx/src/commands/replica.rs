@@ -112,11 +112,13 @@ fn get_round_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) ->
 /// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
+    let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
 
     let system = actix::System::new("dfx-replica");
     let config = get_config(env, args)?;
 
     actors::replica::Replica::new(actors::replica::Config {
+        ic_starter_path: ic_starter_pathbuf,
         replica_config: config,
         replica_path: replica_pathbuf,
         logger: Some(env.get_logger().clone()),

@@ -38,6 +38,7 @@ pub mod signals {
 
 /// The configuration for the replica actor.
 pub struct Config {
+    pub ic_starter_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub replica_path: PathBuf,
     pub logger: Option<Logger>,
@@ -106,25 +107,22 @@ impl Replica {
     fn start_replica(&mut self, addr: Addr<Self>) -> DfxResult {
         let logger = self.logger.clone();
 
-        // Create a replica config and make it into TOML.
+        // Create a replica config.
         let config = &self.config.replica_config;
-        let config_toml = config.to_toml()?;
-        debug!(
-            logger,
-            "Replica Configuration (TOML):\n-----\n{}-----\n", config_toml
-        );
 
         let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
         let replica_path = self.config.replica_path.to_path_buf();
+        let ic_starter_path = self.config.ic_starter_path.to_path_buf();
 
         let (sender, receiver) = unbounded();
 
         let handle = replica_start_thread(
             logger,
-            config_toml,
+            config.clone(),
             port,
             write_port_to,
+            ic_starter_path,
             replica_path,
             addr,
             receiver,
@@ -215,9 +213,10 @@ fn wait_for_child_or_receiver(
 
 fn replica_start_thread(
     logger: Logger,
-    config_toml: String,
+    config: ReplicaConfig,
     port: Option<u16>,
     write_port_to: Option<PathBuf>,
+    ic_starter_path: PathBuf,
     replica_path: PathBuf,
     addr: Addr<Replica>,
     receiver: Receiver<()>,
@@ -231,9 +230,13 @@ fn replica_start_thread(
         waiter.start();
 
         // Start the process, then wait for the file.
-        let replica_path = replica_path.as_os_str();
-        let mut cmd = std::process::Command::new(replica_path);
-        cmd.args(&["--config", &config_toml]);
+        let ic_starter_path = ic_starter_path.as_os_str();
+
+        // form the ic-start command here similar to replica command
+        let mut cmd = std::process::Command::new(ic_starter_path);
+        cmd.args(&["--replica-path", replica_path.to_str().unwrap_or_default(),
+                   "--http-port", &port.unwrap_or_default().to_string(),
+                   "--state-dir", config.state_manager.state_root.to_str().unwrap_or_default()]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
