@@ -34,7 +34,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     slog::info!(logger, "Building canisters...");
 
     // TODO: remove the forcing of generating canister id once we have an update flow.
-    canister_pool.build_or_fail(BuildConfig::from_config(&config).with_generate_id(true))?;
+    canister_pool.build_or_fail(BuildConfig::from_config(&config).with_generate_id(false))?;
 
     // If there is not a package.json, we don't have a frontend and can quit early.
     if !config.get_project_root().join("package.json").exists() || args.is_present("skip-frontend")
