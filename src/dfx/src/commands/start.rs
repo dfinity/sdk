@@ -108,7 +108,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
 
-    b.set_message("Starting up the client...");
+    b.set_message("Starting up the replica...");
     b.enable_steady_tick(80);
 
     // Must be unbounded, as a killed child should not deadlock.
@@ -177,9 +177,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         b.clone(),
     )?;
 
-    b.set_message("Pinging the Internet Computer client...");
+    b.set_message("Pinging the Internet Computer replica...");
     ping_and_wait(&frontend_url)?;
-    b.finish_with_message("Internet Computer client started...");
+    b.finish_with_message("Internet Computer replica started...");
 
     // TODO/In Progress(eftychis): Here we should define a Supervisor
     // actor to keep track and spawn these two processes
@@ -239,13 +239,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         ))
     })?;
 
-    b.set_message("Gathering client thread...");
+    b.set_message("Gathering replica thread...");
     // Join and handle errors for the client watchdog thread. Here we
     // check the result of client_watchdog and start_client.
     client_watchdog.join().map_err(|e| {
         DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
-            format!("Failed while running client thread -- {:?}", e),
+            format!("Failed while running replica thread -- {:?}", e),
         ))
     })??;
     b.finish_with_message("Terminated successfully... Have a great day!!!");
@@ -330,7 +330,7 @@ fn start_client(
     let mut child = cmd.spawn().unwrap_or_else(|e| {
         request_stop
             .try_send(())
-            .expect("Client thread couldn't signal parent to stop");
+            .expect("Replica thread couldn't signal parent to stop");
         // We still want to send an error message.
         panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
     });
@@ -366,7 +366,7 @@ fn start_client(
             Err(e) => {
                 request_stop
                     .send(())
-                    .expect("Could not signal parent thread from client runner");
+                    .expect("Could not signal parent thread from replica runner");
                 panic!("Failed to check the status of the replica: {}", e)
             }
         }
@@ -387,6 +387,6 @@ fn start_client(
     // parent thread.
     request_stop
         .send(())
-        .expect("Could not signal parent thread from client runner");
+        .expect("Could not signal parent thread from replica runner");
     Ok(())
 }

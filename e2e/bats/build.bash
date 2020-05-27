@@ -15,13 +15,13 @@ teardown() {
 }
 
 @test "build fails on invalid motoko" {
-    install_asset invalid_mo
+    install_asset invalid
     assert_command_fail dfx build
     assert_match "syntax error"
 }
 
 @test "build supports relative imports" {
-    install_asset import_mo
+    install_asset import
     assert_command dfx build
     dfx_start
     dfx canister install --all
@@ -48,13 +48,13 @@ teardown() {
 }
 
 @test "build outputs warning" {
-    install_asset warning_mo
+    install_asset warning
     assert_command dfx build
     assert_match "warning, this pattern consuming type"
 }
 
 @test "build fails on unknown imports" {
-    install_asset import_error_mo
+    install_asset import_error
     assert_command_fail dfx build
     assert_match 'import error, canister alias "random" not defined'
 }
@@ -64,4 +64,10 @@ teardown() {
   cp canisters/e2e_project/_canister.id previous_cid
   assert_command dfx build
   assert_command_fail diff canisters/e2e_project/_canister.id previous_cid
+}
+
+@test "build fails if canister type is not supported" {
+  dfx config canisters.e2e_project.type unknown_canister_type
+  assert_command_fail dfx build
+  assert_match "CouldNotFindBuilderForCanister"
 }

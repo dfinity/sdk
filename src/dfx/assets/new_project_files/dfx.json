@@ -3,12 +3,14 @@
   "dfx": "{dfx_version}",
   "canisters": {
     "{project_name}": {
+      "type": "motoko",
       "main": "src/{project_name}/main.mo"
     }
   },
   "defaults": {
     "build": {
-      "output": "canisters/"
+      "output": "canisters/",
+      "packtool": ""
     },
     "start": {
       "port": 8000,

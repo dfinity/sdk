@@ -3,20 +3,20 @@ use crate::config::dfinity::Profile;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
+use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets;
 use ic_agent::CanisterId;
-// use serde_idl::IDLProg;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
 use std::io::Read;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::process::Output;
-// use std::str::FromStr;
 use std::sync::Arc;
 
 pub struct MotokoBuilder {
@@ -38,6 +38,7 @@ impl CanisterBuilder for MotokoBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         let mut result = BTreeSet::new();
+        let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
 
         fn find_deps_recursive(
             cache: &dyn Cache,
@@ -71,7 +72,11 @@ impl CanisterBuilder for MotokoBuilder {
 
             Ok(())
         }
-        find_deps_recursive(self.cache.as_ref(), info.get_main_path(), &mut result)?;
+        find_deps_recursive(
+            self.cache.as_ref(),
+            motoko_info.get_main_path(),
+            &mut result,
+        )?;
 
         Ok(result
             .iter()
@@ -86,10 +91,8 @@ impl CanisterBuilder for MotokoBuilder {
             .collect())
     }
 
-    fn can_build(&self, info: &CanisterInfo) -> bool {
-        info.get_main_path()
-            .extension()
-            .map_or(false, |p| p == "mo")
+    fn supports(&self, info: &CanisterInfo) -> bool {
+        info.get_type() == "motoko"
     }
 
     fn build(
@@ -98,9 +101,10 @@ impl CanisterBuilder for MotokoBuilder {
         canister_info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
+        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let profile = config.profile;
-        let input_path = canister_info.get_main_path();
-        let output_wasm_path = canister_info.get_output_wasm_path();
+        let input_path = motoko_info.get_main_path();
+        let output_wasm_path = motoko_info.get_output_wasm_path();
 
         let id_map = BTreeMap::from_iter(
             pool.get_canister_list()
@@ -108,37 +112,37 @@ impl CanisterBuilder for MotokoBuilder {
                 .map(|c| (c.get_name().to_string(), c.canister_id().to_text())),
         );
 
-        std::fs::create_dir_all(canister_info.get_output_root())?;
+        std::fs::create_dir_all(motoko_info.get_output_root())?;
         let cache = &self.cache;
-        let idl_dir_path = canister_info.get_idl_dir_path();
+        let idl_dir_path = &config.idl_root;
         std::fs::create_dir_all(&idl_dir_path)?;
 
+        let package_arguments =
+            package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
+
         // Generate IDL
-        let output_idl_path = canister_info.get_output_idl_path();
-        let idl_file_path = canister_info
-            .get_idl_file_path()
-            .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
+        let output_idl_path = motoko_info.get_output_idl_path();
         let params = MotokoParams {
             build_target: BuildTarget::IDL,
             surpress_warning: false,
             inject_code: false,
             verbose: false,
             input: &input_path,
+            package_arguments: &package_arguments,
             output: &output_idl_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
         };
         motoko_compile(cache.as_ref(), &params, &BTreeMap::new())?;
-        std::fs::copy(&output_idl_path, &idl_file_path)?;
 
         // Generate JS code even if the canister doesn't have a frontend. It might still be
         // used by another canister's frontend.
-        let output_did_js_path = canister_info.get_output_did_js_path();
+        let output_did_js_path = motoko_info.get_output_did_js_path();
         let canister_id = canister_info
             .get_canister_id()
             .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
         build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
-        build_canister_js(&canister_id, &canister_info)?;
+        build_canister_js(&canister_id, &canister_info, &motoko_info)?;
 
         let mut assets = AssetMap::new();
 
@@ -150,15 +154,15 @@ impl CanisterBuilder for MotokoBuilder {
         assets.insert("candid.js".to_owned(), did_js_content);
 
         // Add assets from the folder (the frontend dfx.json key).
-        if config.assets && canister_info.has_frontend() {
-            for dir_entry in std::fs::read_dir(canister_info.get_output_assets_root())? {
+        if config.assets && motoko_info.has_frontend() {
+            for dir_entry in std::fs::read_dir(motoko_info.get_output_assets_root())? {
                 if let Ok(e) = dir_entry {
                     let p = e.path();
                     let ext = p.extension().unwrap_or_else(|| std::ffi::OsStr::new(""));
                     if p.is_file() && ext != "map" {
                         let content = base64::encode(&std::fs::read(&p)?);
                         assets.insert(
-                            p.strip_prefix(canister_info.get_output_assets_root())
+                            p.strip_prefix(motoko_info.get_output_assets_root())
                                 .expect("Cannot strip prefix.")
                                 .to_str()
                                 .expect("Could not get path.")
@@ -181,6 +185,7 @@ impl CanisterBuilder for MotokoBuilder {
             inject_code: true,
             verbose: false,
             input: &input_path,
+            package_arguments: &package_arguments,
             output: &output_wasm_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -191,8 +196,8 @@ impl CanisterBuilder for MotokoBuilder {
             canister_id: canister_info
                 .get_canister_id()
                 .expect("Could not find canister ID."),
-            wasm: WasmBuildOutput::File(canister_info.get_output_wasm_path().to_path_buf()),
-            idl: IdlBuildOutput::File(canister_info.get_output_idl_path().to_path_buf()),
+            wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
+            idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
         })
     }
 }
@@ -242,6 +247,7 @@ struct MotokoParams<'a> {
     build_target: BuildTarget,
     idl_path: &'a Path,
     idl_map: &'a CanisterIdMap,
+    package_arguments: &'a PackageArguments,
     output: &'a Path,
     // The following fields will not be used by self.to_args()
     // TODO move input into self.to_args once inject_code is deprecated.
@@ -265,6 +271,7 @@ impl MotokoParams<'_> {
                 cmd.args(&["--actor-alias", name, canister_id]);
             }
         };
+        cmd.args(self.package_arguments);
     }
 }
 
@@ -273,7 +280,6 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
     let mut cmd = cache.get_binary_command("moc")?;
 
     let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
-    let stdlib_path = cache.get_binary_command_path("base")?;
     let input_path = if params.inject_code {
         let input_path = params.input;
         let mut content = std::fs::read_to_string(input_path)?;
@@ -297,12 +303,7 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
 
     cmd.arg(&input_path);
     params.to_args(&mut cmd);
-    let cmd = cmd
-        .env("MOC_RTS", mo_rts_path.as_path())
-        // TODO Move packages flags into params.to_args once dfx supports custom packages
-        .arg("--package")
-        .arg("base")
-        .arg(&stdlib_path.as_path());
+    let cmd = cmd.env("MOC_RTS", mo_rts_path.as_path());
     run_command(cmd, params.verbose, params.surpress_warning)?;
 
     if params.inject_code {
@@ -416,8 +417,12 @@ fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
     })
 }
 
-fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
-    let output_canister_js_path = canister_info.get_output_canister_js_path();
+fn build_canister_js(
+    canister_id: &CanisterId,
+    canister_info: &CanisterInfo,
+    motoko_info: &MotokoCanisterInfo,
+) -> DfxResult {
+    let output_canister_js_path = motoko_info.get_output_canister_js_path();
 
     let mut language_bindings = assets::language_bindings()?;
 

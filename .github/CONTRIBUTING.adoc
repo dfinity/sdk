@@ -2,9 +2,137 @@
 
 == Developing `dfx`
 
-Run `nix-shell` in the `dfx` directory to bring the right version of `rustc` and
-`cargo` into scope. Inside the shell use `cargo` to build and test the Rust
-packages (crates).
+Run `nix-shell` in the root directory of this repo to bring the right version
+of `rustc` and `cargo` into scope.
+
+Inside the shell use `cargo` to build and test the Rust packages (crates).
+
+[source,bash]
+----
+sdk $ nix-shell
+[nix-shell:~/d/sdk]$ cargo build
+[nix-shell:~/d/sdk]$ cargo test
+----
+
+Open a second window to run `dfx`, since we usually run it in a different
+subdirectory and running it does not require a `nix-shell`.
+
+[source,bash]
+----
+sdk $ alias dfx=$(pwd)/target/debug/dfx
+sdk $ dfx --version
+dfx 0.5.7-1-gad81116
+----
+
+=== Other Development Workflows
+
+==== Running End-to-End Tests Locally
+
+[source,bash]
+----
+sdk $ nix-shell -A e2e-tests default.nix
+[nix-shell:~/d/sdk]$ cd e2e/bats
+[nix-shell:~/d/sdk]$ bats *.bash
+----
+
+==== Running End-to-End Tests Locally Against Reference IC
+
+This runs the end-to-end tests against the
+https://github.com/dfinity-lab/ic-ref[reference implementation of the Internet Computer].
+
+[source,bash]
+----
+sdk $ nix-shell -A e2e-tests-ic-ref default.nix
+[nix-shell:~/d/sdk]$ cd e2e/bats
+[nix-shell:~/d/sdk]$ USE_IC_REF=1 bats *.bash
+----
+
+==== Running `dfx` in a Debugger
+
+While there are many OS/IDE variants where this can work, this document provides
+a specific example in order to make the instructions easier to follow.
+
+The key is to use a `nix-shell` to provide the `DFX_ASSETS` environment variable for `dfx`.
+
+This example assumes that your git workspaces are under `~/d` and
+your `dfx` workspaces are under `~/w`, but they can be anywhere.
+
+===== Debugging `dfx` in JetBrains IDEs on OSX
+
+. Install https://www.rust-lang.org/tools/install[Rust]
+
+. Switch to the version of the rust toolchain from the https://github.com/dfinity-lab/common/blob/master/nix/overlays/rust.nix#L12[common repo]
++
+[source,bash]
+----
+$ rustup toolchain install 1.41.1
+$ rustup default 1.41.1
+----
++
+. Install https://www.jetbrains.com/idea/[IDEA Ultimate] or https://www.jetbrains.com/clion/[CLion], and the Rust plugin.
+
+. Install https://brew.sh/[Homebrew] and required packages:
++
+[source,bash]
+----
+$ brew install openssl cmake
+----
+
+. Start a `nix-shell` and obtain `DFX_ASSETS`.
++
+Leave this `nix-shell` open.
++
+[source,bash]
+----
+sdk $ nix-shell
+[nix-shell:~/d/sdk]$ echo $DFX_ASSETS
+/nix/store/g419n569py1gas7642q9jf5vh19xzp3y-dfx-assets
+----
+
+. Launch your IDE and then `File | Open... | ~/d/sdk/Cargo.toml`
+You should briefly see a small popup that says `Using rustup`.
+
+. In the Project window, navigate to `src/dfx/src/main.rs` and right-click `Run 'Run dfx'`
++
+It will build, but fail to run with an error like this:
++
+----
+thread 'main' panicked at 'Cannot find DFX_ASSETS: NotPresent', src/libcore/result.rs:1188:5
+----
+
+. Fix the Run/Debug Configuration
++
+By default, it will be set up to run `dfx` without parameters
+in the `sdk` workspace directory.
++
+We'll set up a configuration to run `dfx new <project>`, which we can duplicate
+and alter for other commands, by making these changes:
++
+* Change the `Name` field to indicate which command we are running
+* Specify the `--manifest-path` for `cargo run`
+* Add command-line arguments for `dfx`
+* Provide the `DFX_ASSETS` environment variable
+* Change the working directory to where we want to run `dfx`
++
+Before:
++
+----
+Name: Run dfx
+Command: run --package dfx --bin dfx
+Environment variables:
+Working directory: <home>/d/sdk
+----
++
+After:
++
+----
+Name: dfx new dfxdebug
+Command: run --manifest-path <home>/d/sdk/Cargo.toml --package dfx --bin dfx new someproject
+Environment variables: DFX_ASSETS=<DFX_ASSETS path from nix-shell>
+Working directory: <home>/w
+----
+
+. Run or set breakpoints and debug.
 
 == Conventional Commits
 
