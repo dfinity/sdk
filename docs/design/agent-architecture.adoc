@@ -38,7 +38,7 @@ We aim to support legacy web browsers. We therefore need to provide a bootstrapp
 === Requirements
 
 Canister front end code can interact via update or query calls with the canister that served that front end.
-Canister front end code must not be able to send authenticated (i.e., non-anonymous, and using the existing user credentials) ingress or query messages to any other canister on the IC.
+Authenticated (i.e., non-anonymous, signed using the user's signature keys) ingress or query messages sent by different canister front ends must use different authentication methods.
 
 == Expected User/Developer Experience
 
@@ -91,12 +91,12 @@ All solutions need to answer the following questions:
 * How do we protect access to secret keys?
 
 To partially answer the second question up front: it will be necessary to run each canister front end under a different origin.
-As a running example, we assume that the user intends to visit the canister identified by `canister`, and use `canister.ic.org` as the corresponding origin.
+As a running example, we assume that the user intends to visit the canister identified by `canister`, and use `canister.ic0.app` as the corresponding origin.
 Additional rationale appears below.
 
 ==== Serving the Agent from a Replica
 
-The first strawman solution is to resolve `canister.ic.org` through DNS to any replica on the subnet serving `canister`.
+The first strawman solution is to resolve `canister.ic0.app` through DNS to any replica on the subnet serving `canister`.
 The browser fetches `index.html` from that replica, which links the JS files that comprise the agent.
 
 This simple solution, however, is not secure. The reason is that any specific replica is untrusted and may behave maliciously.
@@ -114,45 +114,46 @@ The idea is to allocate a few dedicated servers to only serve the agent.
 The servers will be "caged", ie. secured such that even the data center employees cannot access the hardware, and will only serve static assets via `https`, so that the attack surface is minimized.
 This is important since they serve as the root of trust _for the entire Internet Computer_ for traditional browsers.
  
-In this scheme, `canister.ic.org` resolves via DNS to one or more secure bootstrap server(s).
-The browser downloads the agent from there, running it in origin `canister.ic.org`.
+In this scheme, `canister.ic0.app` resolves via DNS to one or more secure bootstrap server(s).
+The browser downloads the agent from there, running it in origin `canister.ic0.app`.
 The agent then accesses any replica on the Internet Computer to determine the subnet on which `canister` resides, and then accesses a replica on that subnet to obtain the front end of `canister`.
 
 NOTE: A list of IPs of IC replicas could be included in the agent plaintext.
   Alternatively, they could be resolved through DNS.
   As we already depend on DNS for resolving the addresses of the bootstrap servers, using DNS to resolve the replica IPs is not an additional assumption.
 
-==== Strict Origin Separation between Different Canisters
+==== Strict Origin Separation between Different Canister Front Ends
 
-Following the above, each canister has its own origin such as `canister.ic.org`.
-The cryptographic keys used by the agent to identify toward `canister` _could_ also be stored in that origin; a different set of keys would be used for each canister. 
+Following the above, each canister has its own origin such as `canister.ic0.app`, and the front end served from that canister is associated with that origin.
+The cryptographic keys used by the agent to identify toward the IC on behalf of that canister _could_ also be stored in that origin; a different set of keys would be used for each front end. 
 Such a scheme would be secure in the sense that different canister front ends are strictly isolated from one another, so the front end of each canister can only send ingress or query messages to its own canister.
 
 The disadvantage of this model is that it makes key management too cumbersome for the user:
-It means that all key-management operations (such as key backup, or authorizing or revoking additional devices) has to be performed _per canister_.
+It means that all key-management operations (such as key backup, or authorizing or revoking additional devices) has to be performed _per canister front end_.
 
 ==== Specific Secure Origin for Key Storage
 
-This model mandates the storage of all user private keys under a special origin, such as `secure-key-storage.ic.org`.
-Note that the keys are not actually stored on the server; they are stored in the browser under the origin (`https`, `secure-key-storage.ic.org`, `443`).
+This model mandates the storage of all user private keys under a special origin, such as `secure-key-storage.ic.dfinity.org`.
+Note that the keys are not actually stored on the server; they are stored in the browser under the origin (`https`, `secure-key-storage.ic.dfinity.org`, `443`).
 That domain is also served from a secure bootstrap server, and the server again only serves static files.
 
 === Recommended Solution
 
 Following the above, this section contains a step-by-step description of how the browser accesses the agent and ultimately the canister front end. The agent comprises two parts (hence the "split-face" characterization): a basic component and a key-management component, each running under different origins. 
 In practice, some of these steps will occur concurrently.
-Assume that the user types `canister.ic.org` in the browser address bar.
+Assume that the user types `canister.ic0.app` in the browser address bar.
 
-. Resolve `canister.ic.org` via DNS.
+. Resolve `canister.ic0.app` via DNS.
   This resolves to the IP address of one of the secure bootstrap servers.
 . Load `index.html` and the files that comprise the basic agent (i.e., the parts running under the front end origin) from the secure bootstrap server.
   (Variant: only `index.html` is served from the secure bootstrap server. The agent files are served from different servers, but their integrity is guaranteed through Subresource Integrity.)
-. The `index.html` file also contains an iframe that loads the key-management part of the agent from `secure-key-storage.ic.org`, again from the secure bootstrap server.
+. The `index.html` file also contains an iframe that loads the key-management part of the agent from `secure-key-storage.ic.dfinity.org`, again from the secure bootstrap server.
   The initial action of this part is described in a companion design document.
-. The agent running under `canister.ic.org` sends all requests that require a signature (i.e. authenticated query and update calls) through the key-management part via `postMessage()` message passing.
+. The agent running under `canister.ic0.app` sends all requests that require a signature (i.e. authenticated query and update .dfinitycalls) through the key-management part via `postMessage()` message passing.
 
-For the interface between the two parts of the agent it is *critical* for security that request ID computation is performed in the key-management part.
-This is critical because we must ensure that the target canister (which is included in the request ID computation) is consistent with the origin of the sending front end.
+The part of the agent from `secure-key-storage.ic.dfinity.org` must keep different keys for each canister front end.
+That is, the ingress messages received via `postMessage()` from front end `canister-1.ic0.app` must be different from the ingress messages received via `postMessage()` from front end `canister-2.ic0.app`, even if the message from front end `canister-1.ic0.app` is actually targeting `canister-2`.
+This is necessary to prevent the equivalent of cross-site request forgery attacks from the legacy web.
 
 === Public API
 
@@ -186,7 +187,7 @@ The security of distributing the agent is based on similar assumptions as the cu
 
 - the public-key infrastructure is trustworthy -- the secure bootstrap server has a valid certificate accepted by the browser
 - data transmission is protected by TLS (HTTPS) -- based on above server certificate
-- the bootstrap server is trusted for serving the `canister.ic.org` and `secure-key-storage.ic.org` domains
+- the bootstrap server is trusted for serving the `canister.ic0.app` and `secure-key-storage.ic.dfinity.org` domains
 - communication between iframes authenticates the sender -- based on browser security guarantees.
 
 The verification of the assets served by the canister depends a bit on how we do certification, but is generally based on the assumptions underlying ICP (namely that no large coalition of data centers attacks the protocol).
