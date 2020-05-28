@@ -133,7 +133,7 @@ impl FileHierarchy {
         }
     }
 
-    /// Setup adds necessary metadata fStringiles in the provided path if
+    /// Setup adds necessary metadata files in the provided path if
     /// necessary. We first check if the existing metadata is valid. If
     /// not, we **fail** as we can not distinguish outdated
     pub fn setup(&self) -> Result<()> {
