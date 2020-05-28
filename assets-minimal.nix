@@ -7,27 +7,16 @@
 , system ? builtins.currentSystem
 }:
 let
-  inputs = with pkgs; [
-    bash
-    coreutils
-  ];
-
 in
-builtins.derivation {
-  name = "assets-minimal";
-  system = pkgs.stdenv.system;
-  PATH = pkgs.lib.makeSearchPath "bin" inputs;
-  builder =
-    pkgs.writeScript "builder.sh" ''
-      #!${pkgs.stdenv.shell}
-      set -eo pipefail
+pkgs.runCommandNoCCLocal "assets-minimal" {
+  inherit (pkgs.motoko) didc rts stdlib;
+} ''
+  mkdir -p $out
 
-      mkdir -p $out
+  cp ${pkgs.motoko.moc-bin}/bin/moc $out
+  cp $didc/bin/didc $out
+  cp $rts/rts/mo-rts.wasm $out
 
-      cp ${pkgs.motoko.moc-bin}/bin/moc $out
-      cp ${pkgs.motoko.didc}/bin/didc $out
-      cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
-
-      mkdir $out/base && cp -R ${pkgs.motoko.stdlib}/. $out/base
-    '';
-} // { meta = {}; }
+  mkdir $out/base
+  cp -R $stdlib/. $out/base
+''
