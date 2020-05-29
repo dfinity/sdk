@@ -6,14 +6,13 @@
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
 }:
-let
-in
 pkgs.runCommandNoCCLocal "assets-minimal" {
   inherit (pkgs.motoko) didc rts stdlib;
+  moc = pkgs.motoko.moc-bin;
 } ''
   mkdir -p $out
 
-  cp ${pkgs.motoko.moc-bin}/bin/moc $out
+  cp $moc/bin/moc $out
   cp $didc/bin/didc $out
   cp $rts/rts/mo-rts.wasm $out
 

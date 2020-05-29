@@ -3,8 +3,6 @@
 , assets-minimal ? import ./assets-minimal.nix { inherit pkgs; }
 , agent-js ? import ./src/agent/javascript { inherit pkgs; }
 }:
-let
-in
 pkgs.runCommandNoCCLocal "assets" {} ''
   mkdir -p $out
 
