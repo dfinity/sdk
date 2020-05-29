@@ -17,7 +17,7 @@ rec {
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
-  assets = import ./assets.nix { inherit pkgs; };
+  assets = import ./assets.nix { inherit pkgs assets-minimal; };
   assets-minimal = import ./assets-minimal.nix { inherit pkgs; };
 
   inherit (pkgs) nix-fmt nix-fmt-check;
