@@ -52,17 +52,43 @@ impl CanisterBuilder for RustBuilder {
         _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let canister_id = canister_info.get_canister_id().unwrap();
-        let candid_path = canister_info.get_extra::<PathBuf>("candid")?;
-        let candid_path = canister_info.get_workspace_root().join(candid_path);
 
-        if !candid_path.exists() {
-            return Err(DfxError::BuildError(BuildErrorKind::CustomError(
-                "IDL file must exist.".to_string(),
-            )));
-        }
+        let (create_candid, candid_path) = {
+            let candid_path = canister_info
+                .get_extra::<PathBuf>("candid")
+                .map(|candid_path| canister_info.get_workspace_root().join(candid_path));
+
+            match candid_path {
+                // Candid must be created. It wasn't specified in the dfx.json.
+                Err(_) => {
+                    let candid_dir = tempfile::tempdir()?;
+                    std::fs::create_dir_all(candid_dir.path())?;
+                    let candid_path = candid_dir.path().join("candid.did");
+                    Ok((true, candid_path))
+                }
+                Ok(candid_path) => {
+                    if !candid_path.exists() {
+                        Err(DfxError::BuildError(BuildErrorKind::CustomError(
+                            "IDL file must exist.".to_string(),
+                        )))
+                    } else {
+                        Ok((false, candid_path))
+                    }
+                }
+            }
+        }?;
 
         let output_path = canister_info.get_extra::<PathBuf>("output")?;
         let output_path = canister_info.get_workspace_root().join(output_path);
+
+        // First, run cargo clean to make sure we don't have bad artifacts. Ignore errors.
+        let _ = std::process::Command::new("cargo")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .arg("clean")
+            .args(&["--target", "wasm32-unknown-unknown"])
+            .args(&["--package", canister_info.get_name()])
+            .output();
 
         let mut cargo_cmd = std::process::Command::new("cargo");
 
@@ -73,6 +99,13 @@ impl CanisterBuilder for RustBuilder {
             .arg("build")
             .args(&["--target", "wasm32-unknown-unknown"])
             .args(&["--package", canister_info.get_name()]);
+
+        if create_candid {
+            cargo_cmd.env(
+                "CANDID_OUTPUT_PATH",
+                format!("{}", candid_path.to_string_lossy()),
+            );
+        }
 
         // Add all canister IDs and Candid paths to environment variables so they can be
         // used during build.
