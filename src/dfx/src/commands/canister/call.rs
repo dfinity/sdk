@@ -5,6 +5,8 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::util::{blob_from_arguments, load_idl_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
+use ic_agent::CanisterId;
+use std::option::Option;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -62,30 +64,32 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
     let canister_name = args.value_of("canister_name").unwrap();
-    let canister_info = CanisterInfo::load(&config, canister_name)?;
-    // Read the config.
-    let canister_id = canister_info.get_canister_id().ok_or_else(|| {
-        DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
-    })?;
     let method_name = args
         .value_of("method_name")
         .ok_or_else(|| DfxError::InvalidArgument("method_name".to_string()))?;
+    let maybe_canister_id =
+        CanisterInfo::load(&config, canister_name)
+            .ok()
+            .and_then(|canister_info| {
+                canister_info.get_canister_id().and_then(|canister_id| {
+                    let path = canister_info.get_output_idl_path()?;
+                    let ast = load_idl_file(env, &path).expect("Could not find IDL file.");
+                    let is_query_method = ast.get_method_type(&method_name).map(|f| f.is_query());
+                    Some((canister_id, is_query_method))
+                })
+            });
+    let (canister_id, is_query_method) = match maybe_canister_id {
+        Some(x) => x,
+        None => CanisterId::from_text(canister_name)
+            .map(|cid| (cid, None))
+            .map_err(|_| DfxError::InvalidArgument("canister_name".to_string()))?,
+    };
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
-
-    let idl_ast = load_idl_file(
-        env,
-        &canister_info
-            .get_output_idl_path()
-            .expect("Could not find IDL file."),
-    );
     let is_query = if args.is_present("async") {
         false
     } else {
-        let is_query_method =
-            idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
         match is_query_method {
             Some(true) => !args.is_present("update"),
             Some(false) => {
