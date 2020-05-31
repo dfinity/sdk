@@ -1,6 +1,5 @@
 use crate::types::blob::Blob;
 use crc8::Crc8;
-use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, str};
 
