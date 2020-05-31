@@ -1,7 +1,5 @@
 use crate::config::dfx_version_str;
 use slog::{Drain, Level, Logger};
-use slog_async;
-use slog_term;
 use std::fs::File;
 use std::path::PathBuf;
 

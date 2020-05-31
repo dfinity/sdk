@@ -4,7 +4,7 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::*;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 use clap::{App, AppSettings, Arg, ArgMatches};
-use slog;
+use ic_agent::AgentError;
 use std::path::PathBuf;
 
 mod actors;

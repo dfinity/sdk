@@ -3,7 +3,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::package_arguments::{self, PackageArguments};
-use atty;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::process::Stdio;
 
