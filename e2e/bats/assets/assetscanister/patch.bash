@@ -1,1 +1,1 @@
-dfx config canisters/e2e_project/type assets
+# nothing to do

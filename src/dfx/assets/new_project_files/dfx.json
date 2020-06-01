@@ -5,6 +5,15 @@
     "{project_name}": {
       "type": "motoko",
       "main": "src/{project_name}/main.mo"
+    },
+    "{project_name}_assets": {
+      "type": "assets",
+      "source": [
+        "src/{project_name}_assets/assets"
+      ],
+      "dependencies": [
+        "{project_name}"
+      ]
     }
   },
   "defaults": {
@@ -15,7 +24,7 @@
     "start": {
       "port": 8000,
       "address": "127.0.0.1",
-      "serve_root": "canisters/{project_name}/assets"
+      "serve_root": "canisters/{project_name}_assets/assets"
     }
   }
 }

@@ -2,6 +2,7 @@ use crate::commands::canister::create_waiter;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::message::UserMessage;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -66,7 +67,7 @@ async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    agent
+    let result = agent
         .install_with_attrs(
             &canister_id,
             &Blob::from(wasm),
@@ -74,7 +75,17 @@ async fn install_canister(
             &CanisterAttributes { compute_allocation },
         )
         .await
-        .map_err(DfxError::from)
+        .map_err(DfxError::from);
+
+    if result.is_ok() && canister_info.get_type() == "assets" {
+        let request_id = result.as_ref().unwrap();
+        agent
+            .request_status_and_wait(request_id, create_waiter())
+            .await?;
+        post_install_store_assets(&canister_info, &agent).await?;
+    }
+
+    result
 }
 
 fn compute_allocation_validator(compute_allocation: String) -> Result<(), String> {
