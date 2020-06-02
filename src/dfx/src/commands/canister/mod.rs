@@ -36,9 +36,9 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("canister")
         .about(UserMessage::ManageCanister.to_str())
         .arg(
-            Arg::with_name("client")
-                .help(UserMessage::CanisterClient.to_str())
-                .long("client")
+            Arg::with_name("provider")
+                .help(UserMessage::CanisterComputeProvider.to_str())
+                .long("provider")
                 .validator(|v| {
                     reqwest::Url::parse(&v)
                         .map(|_| ())
@@ -52,14 +52,14 @@ pub fn construct() -> App<'static, 'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let subcommand = args.subcommand();
 
-    // Need storage for ClientEnvironment ownership.
-    let mut _client_env: Option<AgentEnvironment<'_>> = None;
-    let env = if args.is_present("client") {
-        _client_env = Some(AgentEnvironment::new(
+    // Need storage for AgentEnvironment ownership.
+    let mut _agent_env: Option<AgentEnvironment<'_>> = None;
+    let env = if args.is_present("provider") {
+        _agent_env = Some(AgentEnvironment::new(
             env,
-            args.value_of("client").expect("Could not find client."),
+            args.value_of("provider").expect("Could not find provider."),
         ));
-        _client_env.as_ref().unwrap()
+        _agent_env.as_ref().unwrap()
     } else {
         env
     };
