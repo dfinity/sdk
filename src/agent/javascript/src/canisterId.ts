@@ -12,8 +12,9 @@ function getCrc(hex: string): string {
 export class CanisterId {
   public static fromText(text: string): CanisterId {
     if (text.startsWith('ic:')) {
+      text = text.toUpperCase();
       const hex = text.slice(3);
-      if (hex.length >= 2 && hex.length % 2 === 0 && /^[0-9a-zA-F]+$/.test(hex)) {
+      if (hex.length >= 2 && hex.length % 2 === 0 && /^[0-9A-F]+$/.test(hex)) {
         const id = hex.slice(0, -2);
         const checksum = hex.slice(-2);
         if (checksum !== getCrc(id)) {
