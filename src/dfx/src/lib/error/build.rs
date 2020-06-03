@@ -26,6 +26,12 @@ pub enum BuildErrorKind {
 
     /// Ran the package tool, but it reported an error
     PackageToolReportedError(String, ExitStatus, String, String),
+
+    /// An external tool failed. See description above for why.
+    ExternalToolError(Option<i32>),
+
+    /// A command line string was invalid.
+    InvalidBuildCommand(String),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -60,6 +66,16 @@ impl fmt::Display for BuildErrorKind {
                     cmd, exit_status, stdout, stderr
                 ))
             }
+            InvalidBuildCommand(_) => {
+                f.write_fmt(format_args!("Build command could not be parsed."))
+            }
+            ExternalToolError(status) => match status {
+                None => f.write_str("External tool interrupted by signal."),
+                Some(code) => f.write_fmt(format_args!(
+                    "An external tool failed with status {}. See above for more information.",
+                    code
+                )),
+            },
         }
     }
 }
