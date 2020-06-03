@@ -7,6 +7,7 @@ use ic_agent::CanisterId;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+mod assets;
 mod motoko;
 
 #[derive(Debug)]
@@ -98,6 +99,7 @@ impl BuilderPool {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         let mut builders: Vec<Arc<dyn CanisterBuilder>> = Vec::new();
         builders.push(Arc::new(motoko::MotokoBuilder::new(env)?));
+        builders.push(Arc::new(assets::AssetsBuilder::new(env)?));
 
         Ok(Self { builders })
     }

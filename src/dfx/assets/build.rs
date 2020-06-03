@@ -32,6 +32,32 @@ fn add_assets(fn_name: &str, f: &mut File, path: &str) {
     .unwrap();
 }
 
+fn add_optional_assets(fn_name: &str, f: &mut File, path: &str)
+{
+    if Path::new(path).exists()
+    {
+        add_assets(fn_name, f, path);
+    }
+    else
+    {
+        f.write_all(
+            format!(
+                "
+            pub fn {fn_name}() -> Result<Archive<GzDecoder<Cursor<Vec<u8>>>>> {{
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    \"{fn_name} is not available during this build phase.\",
+                ))
+            }}
+        ",
+                fn_name = fn_name,
+            )
+            .as_bytes(),
+        )
+        .unwrap();
+    }
+}
+
 fn get_git_hash() -> Option<String> {
     use std::process::Command;
 
@@ -62,6 +88,8 @@ fn main() {
 
     let path = env::var("DFX_ASSETS").expect("Cannot find DFX_ASSETS");
     add_assets("binary_cache", &mut f, &path);
+    let assetstorage_canister_path = path + &String::from("/canisters/assetstorage");
+    add_optional_assets("assetstorage_canister", &mut f, &assetstorage_canister_path);
     add_assets("language_bindings", &mut f, "assets/language_bindings");
     add_assets("new_project_files", &mut f, "assets/new_project_files");
     add_assets(
