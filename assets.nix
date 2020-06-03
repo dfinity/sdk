@@ -1,5 +1,4 @@
-{ pkgs ? import ./nix { inherit system; }
-, system ? builtins.currentSystem
+{ pkgs ? import ./nix {}
 , agent-js ? import ./src/agent/javascript { inherit pkgs; }
 , assets-minimal ? import ./assets-minimal.nix { inherit pkgs; }
 }:

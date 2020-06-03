@@ -3,8 +3,7 @@
 # even the simplest canister.
 # This derivation provides the minimal assets required to build canisters
 # that use the base library and do not have a frontend.
-{ pkgs ? import ./nix { inherit system; }
-, system ? builtins.currentSystem
+{ pkgs ? import ./nix {}
 }:
 pkgs.runCommandNoCCLocal "assets-minimal" {
   inherit (pkgs.motoko) didc rts stdlib;
