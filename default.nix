@@ -6,7 +6,7 @@
 , jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
 }:
 rec {
-  dfx = import ./dfx.nix { inherit pkgs agent-js; };
+  dfx = import ./dfx.nix { inherit pkgs agent-js assets; };
 
   e2e-tests = import ./e2e/bats { inherit pkgs dfx; };
   e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
@@ -17,7 +17,7 @@ rec {
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
-  assets = import ./assets.nix { inherit pkgs assets-minimal; };
+  assets = import ./assets.nix { inherit pkgs agent-js assets-minimal; };
   assets-minimal = import ./assets-minimal.nix { inherit pkgs; };
 
   inherit (pkgs) nix-fmt nix-fmt-check;

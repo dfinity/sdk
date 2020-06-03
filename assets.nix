@@ -1,7 +1,7 @@
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
-, assets-minimal ? import ./assets-minimal.nix { inherit pkgs; }
 , agent-js ? import ./src/agent/javascript { inherit pkgs; }
+, assets-minimal ? import ./assets-minimal.nix { inherit pkgs; }
 }:
 pkgs.runCommandNoCCLocal "assets" {} ''
   mkdir -p $out
