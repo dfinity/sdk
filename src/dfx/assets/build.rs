@@ -34,12 +34,9 @@ fn add_assets(fn_name: &str, f: &mut File, path: &str) {
 
 fn add_optional_assets(fn_name: &str, f: &mut File, path: &str)
 {
-    if Path::new(path).exists()
-    {
+    if Path::new(path).exists() {
         add_assets(fn_name, f, path);
-    }
-    else
-    {
+    } else {
         f.write_all(
             format!(
                 "
