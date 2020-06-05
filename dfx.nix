@@ -77,7 +77,8 @@ let
                   cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
                   cp ${pkgs.motoko.didc}/bin/didc $out
                   cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
-                  mkdir $out/base && cp -R ${pkgs.motoko.stdlib}/. $out/base
+                  mkdir $out/base && cp -R ${pkgs.motoko.base-src}/. $out/base
+                  mkdir $out/base/doc && cp -R ${pkgs.motoko.base-doc}/. $out/base/doc
 
                   mkdir $out/js-user-library
                   tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $out/js-user-library
