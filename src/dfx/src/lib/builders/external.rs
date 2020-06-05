@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 /// Set of extras that can be specified in the dfx.json.
-struct ExternalBuilderExtra {
+struct CustomBuilderExtra {
     /// A list of canister names to use as dependencies.
     dependencies: Vec<CanisterId>,
     /// Where the wasm output will be located.
@@ -26,7 +26,7 @@ struct ExternalBuilderExtra {
     build: Option<String>,
 }
 
-impl ExternalBuilderExtra {
+impl CustomBuilderExtra {
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
         let deps = match info.get_extra_value("dependencies") {
             None => vec![],
@@ -50,7 +50,7 @@ impl ExternalBuilderExtra {
         let candid = info.get_extra::<PathBuf>("candid")?;
         let build = info.get_extra::<Option<String>>("build")?;
 
-        Ok(ExternalBuilderExtra {
+        Ok(CustomBuilderExtra {
             dependencies,
             wasm,
             candid,
@@ -65,19 +65,19 @@ impl ExternalBuilderExtra {
 ///   `CANDID_PATH`     => Its own candid path.
 ///   `CANISTER_ID_{}`  => The canister ID of all dependencies. `{}` is replaced by the name.
 ///   `CANDID_{}`       => The candid path of all dependencies. `{}` is replaced by the name.
-pub struct ExternalBuilder {
+pub struct CustomBuilder {
     logger: Logger,
 }
 
-impl ExternalBuilder {
+impl CustomBuilder {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
-        Ok(ExternalBuilder {
+        Ok(CustomBuilder {
             logger: env.get_logger().clone(),
         })
     }
 }
 
-impl CanisterBuilder for ExternalBuilder {
+impl CanisterBuilder for CustomBuilder {
     fn supports(&self, info: &CanisterInfo) -> bool {
         info.get_type() == "external"
     }
@@ -87,7 +87,7 @@ impl CanisterBuilder for ExternalBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        Ok(ExternalBuilderExtra::try_from(info, pool)?.dependencies)
+        Ok(CustomBuilderExtra::try_from(info, pool)?.dependencies)
     }
 
     fn build(
@@ -96,12 +96,12 @@ impl CanisterBuilder for ExternalBuilder {
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let ExternalBuilderExtra {
+        let CustomBuilderExtra {
             candid,
             wasm,
             build,
             dependencies,
-        } = ExternalBuilderExtra::try_from(info, pool)?;
+        } = CustomBuilderExtra::try_from(info, pool)?;
 
         let canister_id = info.get_canister_id().unwrap();
 
@@ -117,7 +117,7 @@ impl CanisterBuilder for ExternalBuilder {
             let args = shell_words::split(&command)
                 .map_err(|_| DfxError::BuildError(BuildErrorKind::InvalidBuildCommand(command)))?;
             // No commands, noop.
-            if args.len() > 0 {
+            if !args.is_empty() {
                 run_command(args, &canister_id, &candid, dependencies, pool)?;
             }
         }
@@ -147,7 +147,7 @@ fn run_command(
         .env("CANISTER_ID", canister_id.to_text())
         .env("CANISTER_CANDID_PATH", candid.as_os_str());
 
-    for ref deps in dependencies {
+    for deps in &dependencies {
         let canister = pool.get_canister(deps).unwrap();
         cmd.env(
             format!("CANISTER_ID_{}", canister.get_name()),

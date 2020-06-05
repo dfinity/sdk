@@ -236,9 +236,7 @@ impl CanisterPool {
             .join(canister_id.to_text().split_off(3))
             .with_extension("did");
 
-        let output_idl_path = match build_output.idl {
-            IdlBuildOutput::File(ref p) => p,
-        };
+        let IdlBuildOutput::File(output_idl_path) = &build_output.idl;
 
         std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
         std::fs::copy(&output_idl_path, &idl_file_path)

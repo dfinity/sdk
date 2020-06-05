@@ -99,7 +99,7 @@ impl BuilderPool {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         let mut builders: Vec<Arc<dyn CanisterBuilder>> = Vec::new();
         builders.push(Arc::new(motoko::MotokoBuilder::new(env)?));
-        builders.push(Arc::new(external::ExternalBuilder::new(env)?));
+        builders.push(Arc::new(external::CustomBuilder::new(env)?));
 
         Ok(Self { builders })
     }
