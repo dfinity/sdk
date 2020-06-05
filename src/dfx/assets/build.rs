@@ -32,8 +32,7 @@ fn add_assets(fn_name: &str, f: &mut File, path: &str) {
     .unwrap();
 }
 
-fn add_optional_assets(fn_name: &str, f: &mut File, path: &str)
-{
+fn add_optional_assets(fn_name: &str, f: &mut File, path: &str) {
     if Path::new(path).exists() {
         add_assets(fn_name, f, path);
     } else {

@@ -26,8 +26,7 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
         let name = info.get_name();
 
         let output_root = build_root.join(name);
-        let output_wasm_path = output_root
-            .join(Path::new("assetstorage.wasm"));
+        let output_wasm_path = output_root.join(Path::new("assetstorage.wasm"));
         let output_idl_path = output_wasm_path.with_extension("did");
 
         Ok(AssetsCanisterInfo {

@@ -9,8 +9,8 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-pub mod motoko;
 pub mod assets;
+pub mod motoko;
 
 pub trait CanisterInfoFactory {
     /// Returns true if this factory supports creating extra info for this canister info.
