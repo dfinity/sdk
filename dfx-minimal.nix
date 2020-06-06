@@ -14,8 +14,7 @@ let
       ".*Cargo\.lock$"
       "^.cargo/config$"
     ];
-    cargoTestCommands = _: [
-    ];
+    cargoTestCommands = _: [];
     override = oldAttrs: {
       DFX_ASSETS = assets-minimal;
     };
@@ -23,8 +22,8 @@ let
 
 in
 pkgs.lib.standaloneRust
-{
-  drv = workspace.build;
-  exename = "dfx";
-  usePackager = false;
-}
+  {
+    drv = workspace.build;
+    exename = "dfx";
+    usePackager = false;
+  }
