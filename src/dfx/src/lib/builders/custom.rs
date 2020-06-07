@@ -46,8 +46,12 @@ impl CustomBuilderExtra {
             })
             .collect::<DfxResult<Vec<CanisterId>>>()?;
 
-        let wasm = info.get_extra::<PathBuf>("wasm")?;
-        let candid = info.get_extra::<PathBuf>("candid")?;
+        let wasm = info
+            .get_output_wasm_path()
+            .expect("Missing wasm key in JSON.");
+        let candid = info
+            .get_output_idl_path()
+            .expect("Missing candid key in JSON.");
         let build = info.get_extra::<Option<String>>("build")?;
 
         Ok(CustomBuilderExtra {
@@ -79,7 +83,7 @@ impl CustomBuilder {
 
 impl CanisterBuilder for CustomBuilder {
     fn supports(&self, info: &CanisterInfo) -> bool {
-        info.get_type() == "external"
+        info.get_type() == "custom"
     }
 
     fn get_dependencies(
@@ -165,11 +169,11 @@ fn run_command(
         }
     }
 
-    let output = cmd.output().expect("Could not run external tool.");
+    let output = cmd.output().expect("Could not run custom tool.");
     if output.status.success() {
         Ok(())
     } else {
-        Err(DfxError::BuildError(BuildErrorKind::ExternalToolError(
+        Err(DfxError::BuildError(BuildErrorKind::CustomToolError(
             output.status.code(),
         )))
     }
