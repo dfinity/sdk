@@ -57,9 +57,12 @@ pub fn blob_from_arguments(
                     .parse()
                     .map_err(|e| DfxError::InvalidArgument(format!("Invalid IDL: {}", e)))?;
                 match method_type {
-                    None => Ok(args.to_bytes().map_err(|e| {
-                        DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
-                    })?),
+                    None => {
+                        eprintln!("cannot find method type, dfx will send message without type annotation");
+                        Ok(args.to_bytes().map_err(|e| {
+                            DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
+                        })?)
+                    },
                     Some((env, func)) => {
                         Ok(args.to_bytes_with_types(&env, &func.args).map_err(|e| {
                             DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
