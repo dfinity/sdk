@@ -71,3 +71,13 @@ teardown() {
   assert_command_fail dfx build
   assert_match "CouldNotFindBuilderForCanister"
 }
+
+@test "can build a custom canister type" {
+  install_asset custom_canister
+  assert_command dfx build
+  assert_match "CUSTOM_CANISTER_BUILD_DONE"
+
+  dfx_start
+  dfx canister install --all
+  assert_command dfx canister call custom hashFromQuery
+}

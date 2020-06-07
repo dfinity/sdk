@@ -1,0 +1,4 @@
+service : {
+    "hashFromCall": () -> (nat);
+    "hashFromQuery": () -> (nat);
+}
