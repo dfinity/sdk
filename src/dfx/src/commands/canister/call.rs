@@ -68,13 +68,22 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let method_name = args
         .value_of("method_name")
         .ok_or_else(|| DfxError::InvalidArgument("method_name".to_string()))?;
-    let canister_info = CanisterInfo::load(&config, canister_name)?;
-    let canister_id = match canister_info.get_canister_id() {
-        Some(id) => id,
-        None => CanisterId::from_text(canister_name)
-            .map_err(|_| DfxError::InvalidArgument("canister_name".to_string()))?,
+
+    let (canister_id, maybe_candid_path) = match CanisterId::from_text(canister_name) {
+        Ok(id) => {
+            // TODO fetch candid file from canister
+            (id, None)
+        }
+        Err(_) => {
+            let canister_info = CanisterInfo::load(&config, canister_name)?;
+            match canister_info.get_canister_id() {
+                Some(id) => (id, canister_info.get_output_idl_path()),
+                None => return Err(DfxError::InvalidArgument("canister_name".to_string())),
+            }
+        }
     };
-    let method_type = canister_info.get_output_idl_path().and_then(|path| {
+
+    let method_type = maybe_candid_path.and_then(|path| {
         let (env, actor) = check_candid_file(&path)?;
         let f = actor.get(method_name)?;
         Some((env, f.clone()))
