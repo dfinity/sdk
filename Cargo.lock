@@ -587,7 +587,7 @@ checksum = "130aac562c0dd69c56b3b1cc8ffd2e17be31d0b6c25b61c96b76231aa23e39e1"
 [[package]]
 name = "candid"
 version = "0.2.3"
-source = "git+https://github.com/dfinity/candid?branch=typing#f2dfbcbe8a9feae970f9859dcc34b0082253665b"
+source = "git+https://github.com/dfinity/candid?branch=typing#c54aa6c9bf4e676f4044d71e0bb2bcbb79cdf38b"
 dependencies = [
  "byteorder",
  "candid_derive",
@@ -605,7 +605,7 @@ dependencies = [
 [[package]]
 name = "candid_derive"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/candid?branch=typing#f2dfbcbe8a9feae970f9859dcc34b0082253665b"
+source = "git+https://github.com/dfinity/candid?branch=typing#c54aa6c9bf4e676f4044d71e0bb2bcbb79cdf38b"
 dependencies = [
  "proc-macro2 1.0.18",
  "quote 1.0.7",
