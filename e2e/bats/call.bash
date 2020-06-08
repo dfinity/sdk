@@ -17,5 +17,5 @@ teardown() {
     dfx build
     dfx canister install hello
     assert_command dfx canister call $(dfx canister id hello) greet '("Names are difficult")'
-    assert_eq 'cannot find method type, dfx will send message with inferred type\n("Hello, Names are difficult!")'
+    assert_match '("Hello, Names are difficult!")'
 }
