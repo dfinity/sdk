@@ -43,14 +43,15 @@ const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     serve_root: None,
 };
 
+/// A Canister configuration in the dfx.json config file.
+/// It only contains a type; everything else should be infered using the
+/// CanisterInfo type.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
-    pub main: Option<String>,
-    pub frontend: Option<Value>,
     pub r#type: Option<String>,
 
     #[serde(flatten)]
-    pub metadata: BTreeMap<String, Value>,
+    pub extras: BTreeMap<String, Value>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -108,11 +109,7 @@ pub struct ConfigInterface {
     pub defaults: Option<ConfigDefaults>,
 }
 
-impl ConfigCanistersCanister {
-    pub fn get_main(&self, default: &str) -> String {
-        self.main.to_owned().unwrap_or_else(|| default.to_string())
-    }
-}
+impl ConfigCanistersCanister {}
 
 fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
     match s.to_socket_addrs() {
