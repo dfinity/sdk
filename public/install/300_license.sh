@@ -7,7 +7,7 @@ confirm_license() {
     license="DFINITY Foundation -- All rights reserved. This is an ALPHA version
 of the DFINITY Canister Software Development Kit (SDK). Permission is hereby granted
 to use AS IS and only subject to the Alpha DFINITY Canister SDK License Agreement which
-can be found here [https://sdk.dfinity.org/sdk-license-agreement]. It comes with NO WARRANTY.\n"
+can be found here [https://sdk.dfinity.org/sdk-license-agreement.txt]. It comes with NO WARRANTY.\n"
 
     prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
 
