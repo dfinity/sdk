@@ -21,11 +21,19 @@ pub enum IdlBuildOutput {
     File(PathBuf),
 }
 
+#[derive(Debug)]
+pub enum ManifestBuildOutput {
+    // IDLProg(IDLProg),
+    File(PathBuf),
+}
+
+
 /// The output of a build.
 pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
+    pub manifest: ManifestBuildOutput,
 }
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.

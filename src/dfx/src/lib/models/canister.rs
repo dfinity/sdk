@@ -8,6 +8,10 @@ use slog::Logger;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+use serde_json::Map;
+use std::path::{PathBuf};
+
 /// Represents a canister from a DFX project. It can be a virtual Canister.
 /// Multiple canister instances can have the same info, but would be differentiated
 /// by their IDs.
@@ -42,6 +46,19 @@ impl Canister {
 pub struct CanisterPool {
     canisters: Vec<Arc<Canister>>,
     logger: Logger,
+}
+
+#[derive(Serialize, Deserialize,Debug)]
+pub struct CanisterManifest {
+    pub canisters: Map<String, serde_json::value::Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CanManMetadata {
+    pub timestamp: String,
+    pub canister_id: String,
+    pub wasm_path: PathBuf,
+    pub candid_path: PathBuf,
 }
 
 impl CanisterPool {
@@ -122,9 +139,30 @@ impl CanisterPool {
                             .expect("Cannot use root."),
                     )?;
                     let cid = canister_info.generate_canister_id()?;
+
+                    let mut can = CanisterManifest {
+                        canisters : Map::new(),
+                    };
+
+                    let metadata = CanManMetadata {
+                        timestamp: "asdf".to_owned(),
+                        canister_id: cid.clone().to_text(),
+                        wasm_path: canister_info.get_output_wasm_path().unwrap(),
+                        candid_path: canister_info.get_output_idl_path().unwrap(),
+
+                    };
+
+                    // Add that canister information to the manifest
+                    // and convert to json
+                    can.canisters.insert(canister_info.get_name().to_string(), serde_json::to_value(metadata).unwrap());
+
+
+                    let manifest_json = serde_json::to_string_pretty(&can)?;
+
+                    // write the manifest
                     std::fs::write(
-                        canister_info.get_canister_id_path(),
-                        cid.clone().into_blob().0,
+                        canister_info.get_manifest_path(),
+                        manifest_json,
                     )
                     .map_err(DfxError::from)?;
 

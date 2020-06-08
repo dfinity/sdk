@@ -2,6 +2,7 @@
 use crate::config::dfinity::Config;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::models::canister::{CanisterManifest, CanManMetadata};
 use ic_agent::{Blob, CanisterId};
 use rand::{thread_rng, RngCore};
 use std::cell::RefCell;
@@ -32,6 +33,8 @@ pub struct CanisterInfo {
     canister_id: RefCell<Option<CanisterId>>,
     canister_id_path: PathBuf,
 
+    manifest_path: PathBuf,
+
     packtool: Option<String>,
 
     extras: BTreeMap<String, serde_json::Value>,
@@ -56,6 +59,9 @@ impl CanisterInfo {
 
         let output_root = build_root.join(name);
         let canister_id_path = output_root.join("_canister.id");
+
+        let manifest_path = output_root.join("canister_manifest.json");
+
         let canister_type = canister_config
             .r#type
             .as_ref()
@@ -72,6 +78,8 @@ impl CanisterInfo {
 
             canister_id: RefCell::new(None),
             canister_id_path,
+
+            manifest_path,
 
             packtool: build_defaults.get_packtool(),
             extras,
@@ -93,12 +101,17 @@ impl CanisterInfo {
     pub fn get_canister_id_path(&self) -> &Path {
         self.canister_id_path.as_path()
     }
-
+    pub fn get_manifest_path(&self) -> &Path {
+        self.manifest_path.as_path()
+    }
     pub fn get_canister_id(&self) -> Option<CanisterId> {
+        let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
+        let manifest : CanisterManifest = serde_json::from_reader(file).unwrap();
+        let serde_value = &manifest.canisters[&self.name.clone()];
+        let metadata : CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
+
         let canister_id = self.canister_id.replace(None).or_else(|| {
-            std::fs::read(&self.canister_id_path)
-                .ok()
-                .map(|cid| CanisterId::from(Blob::from(cid)))
+            CanisterId::from_text(metadata.canister_id).ok()
         });
 
         self.canister_id.replace(canister_id.clone());

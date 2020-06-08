@@ -15,7 +15,7 @@ pub(crate) mod public {
 #[cfg(test)]
 mod agent_test;
 
-use crate::agent::replica_api::{AsyncContent, Envelope, ReadRequest, ReadResponse, SubmitRequest};
+use crate::agent::replica_api::{AsyncContent, Envelope, SyncContent};
 use crate::identity::Identity;
 use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
 
@@ -23,6 +23,7 @@ use public::*;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Method};
 use std::convert::TryInto;
+use std::convert::TryFrom;
 
 pub struct Agent {
     url: reqwest::Url,
@@ -80,17 +81,15 @@ impl Agent {
         }
     }
 
-    async fn read<A>(&self, request: replica_api::SyncContent) -> Result<A, AgentError>
+    async fn read<A>(&self, request: SyncContent) -> Result<A, AgentError>
     where
         A: serde::de::DeserializeOwned,
     {
         let anonymous = Principal::anonymous();
         let request_id = to_request_id(&request)?;
         let sender = match &request {
-            // ReadRequest::Query { sender, .. } => sender,
-            replica_api::SyncContent::QueryRequest { sender, .. } => sender,
-            replica_api::SyncContent::RequestStatusRequest { .. } => &anonymous,
-            // ReadRequest::RequestStatus { .. } => &anonymous,
+            SyncContent::QueryRequest { sender, .. } => sender,
+            SyncContent::RequestStatusRequest { .. } => &anonymous,
         };
         let signature = self.identity.sign(&request_id, &sender)?;
         let bytes = self
@@ -107,12 +106,12 @@ impl Agent {
         serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)
     }
 
-    async fn submit(&self, request: replica_api::AsyncContent) -> Result<RequestId, AgentError> {
+    async fn submit(&self, request: AsyncContent) -> Result<RequestId, AgentError> {
         let request_id = to_request_id(&request)?;
         let sender = match request.clone() {
-            replica_api::AsyncContent::CreateCanisterRequest { sender, .. } => sender,
-            replica_api::AsyncContent::CallRequest { sender, .. } => sender,
-            replica_api::AsyncContent::InstallCodeRequest { sender, .. } => sender,
+            AsyncContent::CreateCanisterRequest { sender, .. } => sender,
+            AsyncContent::CallRequest { sender, .. } => sender,
+            AsyncContent::InstallCodeRequest { sender, .. } => sender,
 
         };
         let signature = self.identity.sign(&request_id, &sender)?;
@@ -138,8 +137,7 @@ impl Agent {
         method_name: &'a str,
         arg: &'a Blob,
     ) -> Result<Blob, AgentError> {
-        let sender = self.identity.sender()?;
-        self.read::<replica_api::QueryResponse>(replica_api::SyncContent::QueryRequest {
+        self.read::<replica_api::QueryResponse>(SyncContent::QueryRequest {
             sender: self.identity.sender()?,
             canister_id: canister_id.as_bytes().try_into().unwrap(),
             method_name: method_name.to_string(),
@@ -162,7 +160,7 @@ impl Agent {
         &self,
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
-        self.read(replica_api::SyncContent::RequestStatusRequest {
+        self.read(SyncContent::RequestStatusRequest {
             request_id: request_id.as_slice().into(),
         })
         .await
@@ -172,11 +170,11 @@ impl Agent {
                     replica_api::RequestStatusResponseReplied::CallReply(reply) => {
                         Replied::CallReplied(Blob::from(reply.arg))
                     }
+                    replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
+                        Replied::CreateCanisterReplied(CanisterId::from_bytes(&reply.canister_id))
+                    }
                     replica_api::RequestStatusResponseReplied::InstallCodeReply(_) => {
                         Replied::InstallCodeReplied
-                    }
-                    replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
-                        Replied::CreateCanisterReply(reply.canister_id)
                     }
                 };
 
@@ -244,15 +242,7 @@ impl Agent {
         method_name: &str,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
-        let sender = self.identity.sender()?;
-        self.submit(replica_api::AsyncContent::CallRequest {
-            // canister_id,
-            // method_name,
-            // arg,
-            // nonce: &self.nonce_factory.generate(),
-            // sender: &sender,
-            // canister_id: canister_id.into(),
-            // canister_id: canister_id.as_bytes().into(),
+        self.submit(AsyncContent::CallRequest {
             canister_id: canister_id.as_bytes().try_into().unwrap(),
             method_name: method_name.into(),
             arg: arg.clone().into(),
@@ -270,7 +260,7 @@ impl Agent {
         &self,
         desired_id: Option<CanisterId>,
     ) -> Result<RequestId, AgentError> {
-        self.submit(replica_api::AsyncContent::CreateCanisterRequest {
+        self.submit(AsyncContent::CreateCanisterRequest {
             sender: self.identity.sender()?,
             nonce: self.nonce_factory.generate().map(|b| b.into()),
             desired_id: desired_id.map(|id| id.as_bytes().try_into().unwrap()),
@@ -284,7 +274,7 @@ impl Agent {
     ) -> Result<CanisterId, AgentError> {
         let request_id = self.create_canister().await?;
         match self.request_status_and_wait(&request_id, waiter).await? {
-            Replied::CreateCanisterReply(id) => Ok(id),
+            Replied::CreateCanisterReplied(id) => Ok(id),
             reply => Err(AgentError::UnexpectedReply(reply)),
         }
     }
@@ -320,23 +310,16 @@ impl Agent {
         arg: &Blob,
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
-        let sender = self.identity.sender()?;
-        self.submit(replica_api::AsyncContent::InstallCodeRequest {
-            // canister_id,
-            // module,
-            // arg,
-            // nonce: &self.nonce_factory.generate(),
-            // sender: &sender,
-            // compute_allocation: attributes.compute_allocation.map(|x| x.into()),
-
+        println!("install_with_attrs {:?}", canister_id.clone().to_text());
+        self.submit(AsyncContent::InstallCodeRequest {
             nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
             sender: self.identity.sender()?,
-            canister_id: canister_id.as_bytes().try_into().unwrap(),
+            canister_id: Principal::try_from(canister_id.as_bytes()).unwrap(),
             module: module.clone().into(),
             arg: arg.clone().into(),
             compute_allocation: attributes.compute_allocation.map(|x| x.into()),
-            // memory_allocation: Option::is_none,
-            // mode: replica_api::InstallCodeRequestMode::Install,
+            memory_allocation: None,
+            mode: None,
         })
         .await
     }

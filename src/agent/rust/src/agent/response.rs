@@ -9,7 +9,6 @@ pub enum RequestStatusResponse {
         reply: Replied,
     },
     Rejected {
-        //change to u64
         reject_code: u64,
         reject_message: String,
     },
@@ -18,6 +17,6 @@ pub enum RequestStatusResponse {
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Replied {
     CallReplied(Blob),
-    CreateCanisterReply(CanisterId),
+    CreateCanisterReplied(CanisterId),
     InstallCodeReplied,
 }
