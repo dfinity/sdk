@@ -33,6 +33,9 @@ user_message!(
     CacheList => "List installed and used version.",
     CacheShow => "Show the path of the cache used by this version.",
 
+    // dfx canister id
+    IdCanister => "Prints the identifier of a canister.",
+
     // dfx canister call
     CallCanister => "Calls a method on a deployed canister.",
     MethodName => "Specifies the method name to call on the canister.",
@@ -48,7 +51,7 @@ user_message!(
 
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network replica.",
-    CanisterClient => "Override the replica to connect to. By default uses the replica set in dfx configuration.",
+    CanisterComputeProvider => "Override the compute provider to connect to. By default uses the address and port set in dfx configuration.",
 
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",

@@ -1,0 +1,20 @@
+{
+  "canisters": {
+    "assetstorage": {
+      "main": "assetstorage.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "output": "canisters/",
+      "packtool": ""
+    },
+    "start": {
+      "address": "127.0.0.1",
+      "port": 8000,
+      "serve_root": "canisters/assetstorage/assets"
+    }
+  },
+  "version": 1
+}
