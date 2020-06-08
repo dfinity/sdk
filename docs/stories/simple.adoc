@@ -1,0 +1,62 @@
+= Simple User Story
+
+== Create a new project
+
+[source, bash]
+dfx new tinder_for_dogs
+cd tinder_for_dogs
+
+== New project
+
+.dfx.json
+[source,json5]
+{
+  canisters: {
+    tinder_for_dogs: "src/tinder_for_dogs/canister.json",
+    tinder_for_dogs_assets: {
+      type: assets
+      dependencies: [ "tinder_for_dogs" ]
+      // ...
+    }
+  }
+  // ...
+}
+
+.src/tinder_for_dogs/canister.json
+[source,json]
+{
+  type: motoko
+  main: main.mo
+}
+
+== Canister ID creation on a subnet
+
+[source,bash]
+----
+$ dfx canister --provider http://gateway.ic.dfinity.org/ create --all
+username: hans@larsen.online
+password: ********
+
+We saved your auth token in .dfx/auth so you don't have type those again.
+----
+
+.src/tinder_for_dogs/canister.json
+[source,json]
+{
+  type: motoko
+  main: main.mo
+  networks: {
+    "http://gateway.ic.dfinity.org/": {
+      canister_id: 1234567
+    }
+  }
+}
+
+== Building, Installing and Calling
+[source,bash]
+----
+dfx build --provider http://gateway.ic.dfinity.org/
+dfx canister --provider http://gateway.ic.dfinity.org/ install --all
+
+dfx canister --provider http://gateway.ic.dfinity.org/ call tinder_for_dogs some_method '(123)'
+----
