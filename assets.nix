@@ -1,6 +1,7 @@
 { pkgs ? import ./nix {}
 , agent-js ? import ./src/agent/javascript { inherit pkgs; }
 , assets-minimal ? import ./assets-minimal.nix { inherit pkgs; }
+, distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs assets-minimal; }
 }:
 pkgs.runCommandNoCCLocal "assets" {} ''
   mkdir -p $out
@@ -13,4 +14,6 @@ pkgs.runCommandNoCCLocal "assets" {} ''
   mkdir $out/js-user-library
   tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $out/js-user-library
   cp -R ${agent-js.lib}/node_modules $out/js-user-library
+
+  cp -R ${distributed-canisters} $out/canisters
 ''
