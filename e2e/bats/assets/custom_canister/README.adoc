@@ -1,0 +1,8 @@
+= How to build the main.wasm
+
+The code for this WASM is in `/e2e/node/utils/canisters/identity/main.mo`.
+
+Follow the instructions there; create a new dfx project, move the main.mo in the project,
+change the code and rebuild it. Take the resulting WASM and DID and put them here.
+
+- [ ] TODO(#682)
