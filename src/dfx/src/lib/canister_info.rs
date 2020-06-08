@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use crate::config::dfinity::Config;
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
+use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
 use ic_agent::{Blob, CanisterId};
@@ -10,6 +11,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 pub mod assets;
+pub mod custom;
 pub mod motoko;
 
 pub trait CanisterInfoFactory {
@@ -143,6 +145,8 @@ impl CanisterInfo {
     pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
         if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
+            Some(info.get_output_wasm_path().to_path_buf())
         } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
         } else {
@@ -152,6 +156,8 @@ impl CanisterInfo {
 
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
         if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
+            Some(info.get_output_idl_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())

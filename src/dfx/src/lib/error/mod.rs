@@ -93,6 +93,9 @@ pub enum DfxError {
 
     /// A canister has an unsupported type.
     InvalidCanisterType(String),
+
+    /// A canister name could not be found in the project.
+    UnknownCanisterNamed(String),
 }
 
 /// The result of running a DFX command.
