@@ -50,7 +50,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
 
-    let arg_value = blob_from_arguments(arguments, arg_type)?;
+    let arg_value = blob_from_arguments(arguments, arg_type, None)?;
     eprintln!(
         r#"The 'canister query' command has been deprecated. Please use the 'canister call' command."#
     );
