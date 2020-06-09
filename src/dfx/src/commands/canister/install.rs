@@ -75,17 +75,16 @@ async fn install_canister(
             &CanisterAttributes { compute_allocation },
         )
         .await
-        .map_err(DfxError::from);
+        .map_err(DfxError::from)?;
 
-    if result.is_ok() && canister_info.get_type() == "assets" {
-        let request_id = result.as_ref().unwrap();
+    if canister_info.get_type() == "assets" {
         agent
-            .request_status_and_wait(request_id, create_waiter())
+            .request_status_and_wait(&result, create_waiter())
             .await?;
         post_install_store_assets(&canister_info, &agent).await?;
     }
 
-    result
+    Ok(result)
 }
 
 fn compute_allocation_validator(compute_allocation: String) -> Result<(), String> {
