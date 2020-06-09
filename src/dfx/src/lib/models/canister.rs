@@ -124,6 +124,10 @@ impl CanisterPool {
         None
     }
 
+    pub fn get_logger(&self) -> &Logger {
+        &self.logger
+    }
+
     pub fn generate_canister_id(&self, force: bool) -> DfxResult {
         // Write all canister IDs if needed.
         for canister in &self.canisters {
