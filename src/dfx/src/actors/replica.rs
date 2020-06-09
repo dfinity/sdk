@@ -234,9 +234,14 @@ fn replica_start_thread(
 
         // form the ic-start command here similar to replica command
         let mut cmd = std::process::Command::new(ic_starter_path);
-        cmd.args(&["--replica-path", replica_path.to_str().unwrap_or_default(),
-                   "--http-port", &port.unwrap_or_default().to_string(),
-                   "--state-dir", config.state_manager.state_root.to_str().unwrap_or_default()]);
+        cmd.args(&[
+            "--replica-path",
+            replica_path.to_str().unwrap_or_default(),
+            "--http-port",
+            &port.unwrap_or_default().to_string(),
+            "--state-dir",
+            config.state_manager.state_root.to_str().unwrap_or_default(),
+        ]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 

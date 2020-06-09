@@ -48,6 +48,7 @@ user_message!(
     InstallAll => "Install all canisters configured in dfx.json.",
     InstallCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
     InstallComputeAllocation => "Specifies the canister's compute allocation. This should be a percent in the range [0..100]",
+    InstallMode => "Install, Reinstall, or Upgrade the canister.",
 
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network replica.",

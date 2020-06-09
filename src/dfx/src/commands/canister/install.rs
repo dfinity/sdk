@@ -34,6 +34,15 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(false),
         )
         .arg(
+            Arg::with_name("mode")
+                .help(UserMessage::InstallMode.to_str())
+                .long("mode")
+                .short("m")
+                .possible_values(&["install", "reinstall", "upgrade"])
+                .default_value("install")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("compute-allocation")
                 .help(UserMessage::InstallComputeAllocation.to_str())
                 .long("compute-allocation")
@@ -48,6 +57,7 @@ async fn install_canister(
     agent: &Agent,
     canister_info: &CanisterInfo,
     compute_allocation: Option<ComputeAllocation>,
+    mode: &str,
 ) -> DfxResult<RequestId> {
     let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().ok_or_else(|| {
@@ -69,6 +79,7 @@ async fn install_canister(
     agent
         .install_with_attrs(
             &canister_id,
+            &mode,
             &Blob::from(wasm),
             &Blob::empty(),
             &CanisterAttributes { compute_allocation },
@@ -99,6 +110,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .expect("Compute Allocation must be a percentage.")
     });
 
+    let mode = args.value_of("mode").unwrap();
+
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     if let Some(canister_name) = args.value_of("canister_name") {
@@ -108,6 +121,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             &agent,
             &canister_info,
             compute_allocation,
+            mode,
         ))?;
 
         if args.is_present("async") {
@@ -130,6 +144,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     &agent,
                     &canister_info,
                     compute_allocation,
+                    mode,
                 ))?;
 
                 if args.is_present("async") {

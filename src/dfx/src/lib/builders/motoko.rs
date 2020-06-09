@@ -1,7 +1,7 @@
 use crate::config::cache::Cache;
 use crate::config::dfinity::Profile;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput, ManifestBuildOutput
+    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, ManifestBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;

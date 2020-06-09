@@ -10,16 +10,6 @@ pub struct Envelope<T: Serialize> {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum InstallCodeRequestMode {
-    #[serde(rename = "install")]
-    Install,
-    #[serde(rename = "replace")]
-    Replace,
-    #[serde(rename = "upgrade")]
-    Upgrade,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "request_type")]
 pub enum AsyncContent {
     #[serde(rename = "create_canister")]
@@ -43,7 +33,7 @@ pub enum AsyncContent {
         #[serde(skip_serializing_if = "Option::is_none")]
         memory_allocation: Option<u64>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        mode: Option<InstallCodeRequestMode>,
+        mode: Option<String>,
     },
     #[serde(rename = "call")]
     CallRequest {

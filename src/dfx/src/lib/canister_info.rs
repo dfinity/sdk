@@ -2,9 +2,8 @@
 use crate::config::dfinity::Config;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::models::canister::{CanisterManifest, CanManMetadata};
-use ic_agent::{Blob, CanisterId};
-use rand::{thread_rng, RngCore};
+use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
+use ic_agent::CanisterId;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -56,7 +55,7 @@ impl CanisterInfo {
         let canister_root = workspace_root.to_path_buf();
         let extras = canister_config.extras.clone();
 
-        let output_root = build_root.join(name);
+        let _output_root = build_root.join(name);
         // todo needs to be in child "canisters" dir of canister_root
         let manifest_path = canister_root.join("canister_manifest.json");
 
@@ -100,13 +99,14 @@ impl CanisterInfo {
     }
     pub fn get_canister_id(&self) -> Option<CanisterId> {
         let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
-        let manifest : CanisterManifest = serde_json::from_reader(file).unwrap();
+        let manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
         let serde_value = &manifest.canisters[&self.name.clone()];
-        let metadata : CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
+        let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
 
-        let canister_id = self.canister_id.replace(None).or_else(|| {
-            CanisterId::from_text(metadata.canister_id).ok()
-        });
+        let canister_id = self
+            .canister_id
+            .replace(None)
+            .or_else(|| CanisterId::from_text(metadata.canister_id).ok());
 
         self.canister_id.replace(canister_id.clone());
 

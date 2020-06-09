@@ -111,7 +111,6 @@ impl Agent {
             AsyncContent::CreateCanisterRequest { sender, .. } => sender,
             AsyncContent::CallRequest { sender, .. } => sender,
             AsyncContent::InstallCodeRequest { sender, .. } => sender,
-
         };
         let signature = self.identity.sign(&request_id, &sender)?;
         let _ = self
@@ -284,7 +283,7 @@ impl Agent {
         module: &Blob,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
-        self.install_with_attrs(canister_id, module, arg, &CanisterAttributes::default())
+        self.install_with_attrs(canister_id, "", module, arg, &CanisterAttributes::default())
             .await
     }
 
@@ -305,11 +304,18 @@ impl Agent {
     pub async fn install_with_attrs(
         &self,
         canister_id: &CanisterId,
+        mode: &str,
         module: &Blob,
         arg: &Blob,
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
         println!("install_with_attrs {:?}", canister_id.clone().to_text());
+        let mode = match mode {
+            "install" => Some(mode.to_string()),
+            "reinstall" => Some(mode.to_string()),
+            "upgrade" => Some(mode.to_string()),
+            &_ => None,
+        };
         self.submit(AsyncContent::InstallCodeRequest {
             nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
             sender: self.identity.sender()?,
@@ -318,7 +324,7 @@ impl Agent {
             arg: arg.clone().into(),
             compute_allocation: attributes.compute_allocation.map(|x| x.into()),
             memory_allocation: None,
-            mode: None,
+            mode: mode,
         })
         .await
     }

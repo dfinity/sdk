@@ -3,17 +3,17 @@ use crate::lib::builders::{BuildConfig, BuildOutput, BuilderPool, CanisterBuilde
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use delay::Delay;
 use ic_agent::CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use slog::Logger;
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use delay::Delay;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use tokio::runtime::Runtime;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
@@ -72,23 +72,20 @@ impl CanisterManifest {
             canister_id: cid.clone().to_text(),
             wasm_path: info.get_output_wasm_path().unwrap(),
             candid_path: info.get_output_idl_path().unwrap(),
-
         };
-        self.canisters.insert(info.get_name().to_string(), serde_json::to_value(metadata).unwrap());
+        self.canisters.insert(
+            info.get_name().to_string(),
+            serde_json::to_value(metadata).unwrap(),
+        );
         let manifest_json = serde_json::to_string_pretty(&self)?;
         // write the manifest
-        std::fs::write(
-            info.get_manifest_path(),
-            manifest_json,
-        )
-        .map_err(DfxError::from)?;
+        std::fs::write(info.get_manifest_path(), manifest_json).map_err(DfxError::from)?;
         Ok(())
     }
 }
 
-
 impl CanisterPool {
-    pub fn load(env: &dyn Environment, generate_id: bool) -> DfxResult<Self> {
+    pub fn load(env: &dyn Environment, _generate_id: bool) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
@@ -119,35 +116,37 @@ impl CanisterPool {
     }
 
     pub fn create_canisters(&self, env: &dyn Environment) -> DfxResult {
-        let agent = env.get_agent().ok_or(DfxError::CommandMustBeRunInAProject)?;
+        let agent = env
+            .get_agent()
+            .ok_or(DfxError::CommandMustBeRunInAProject)?;
         let mut runtime = Runtime::new().expect("Unable to create a runtime");
         // check manifest first before getting new can id here
         for canister in &self.canisters {
             let waiter = Delay::builder()
-                        .throttle(Duration::from_millis(100))
-                        .timeout(Duration::from_secs(60))
-                        .build();
-            
+                .throttle(Duration::from_millis(100))
+                .timeout(Duration::from_secs(60))
+                .build();
+
             let info = &canister.info;
 
             let manifest_path = info.get_manifest_path();
             // check if the canister_manifest.json file exists
-            let exists = manifest_path.is_file();
-            if (exists) {
+            if manifest_path.is_file() {
                 {
                     let file = std::fs::File::open(info.get_manifest_path()).unwrap();
-                    let mut manifest : CanisterManifest = serde_json::from_reader(file).unwrap();
+                    let mut manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
 
                     match manifest.canisters.get(info.get_name().clone()) {
                         Some(serde_value) => {
-                            let metadata : CanManMetadata = serde_json::from_value(serde_value.to_owned()).unwrap();
+                            let metadata: CanManMetadata =
+                                serde_json::from_value(serde_value.to_owned()).unwrap();
                             CanisterId::from_text(metadata.canister_id).ok();
                             ()
                         }
                         None => {
                             let cid = runtime.block_on(agent.create_canister_and_wait(waiter))?;
                             info.set_canister_id(cid.clone())?;
-                            manifest.add_entry(info, cid.clone());
+                            manifest.add_entry(info, cid.clone())?;
                             ()
                         }
                     }
@@ -156,10 +155,11 @@ impl CanisterPool {
                 let cid = runtime.block_on(agent.create_canister_and_wait(waiter))?;
                 info.set_canister_id(cid.clone())?;
                 let mut manifest = CanisterManifest {
-                    canisters : Map::new(),
+                    canisters: Map::new(),
                 };
-                manifest.add_entry(info, cid.clone());
+                manifest.add_entry(info, cid.clone())?;
             }
+            slog::debug!(self.logger, "  {} => {}", canister.get_name(), canister.canister_id().to_text());
         }
         Ok(())
     }

@@ -124,8 +124,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let request_stop_echo = request_stop.clone();
     let rcv_wait_fwatcher = rcv_wait.clone();
     b.set_message("Generating IC local replica configuration.");
-    let replica_config = ReplicaConfig::new(state_root)
-        .with_random_port(&client_port_path);
+    let replica_config = ReplicaConfig::new(state_root).with_random_port(&client_port_path);
 
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
@@ -328,9 +327,19 @@ fn start_client(
     let mut cmd = std::process::Command::new(ic_starter);
     // if None is returned, then an empty String will be provided to replica-path
     // TODO: figure out the right solution
-    cmd.args(&["--replica-path", client_pathbuf.to_str().unwrap_or_default(),
-               "--http-port-file", config.http_handler.write_port_to.unwrap_or_default().to_str().unwrap_or_default(),
-               "--state-dir", config.state_manager.state_root.to_str().unwrap_or_default()]);
+    cmd.args(&[
+        "--replica-path",
+        client_pathbuf.to_str().unwrap_or_default(),
+        "--http-port-file",
+        config
+            .http_handler
+            .write_port_to
+            .unwrap_or_default()
+            .to_str()
+            .unwrap_or_default(),
+        "--state-dir",
+        config.state_manager.state_root.to_str().unwrap_or_default(),
+    ]);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
 

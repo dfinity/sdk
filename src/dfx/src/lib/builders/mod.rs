@@ -23,10 +23,8 @@ pub enum IdlBuildOutput {
 
 #[derive(Debug)]
 pub enum ManifestBuildOutput {
-    // IDLProg(IDLProg),
     File(PathBuf),
 }
-
 
 /// The output of a build.
 pub struct BuildOutput {
