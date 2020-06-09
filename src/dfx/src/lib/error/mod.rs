@@ -6,6 +6,7 @@ mod cache;
 pub use build::BuildErrorKind;
 pub use cache::CacheErrorKind;
 use std::ffi::OsString;
+use std::path::PathBuf;
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
@@ -96,6 +97,12 @@ pub enum DfxError {
 
     /// A canister name could not be found in the project.
     UnknownCanisterNamed(String),
+
+    /// An error while traversing a directory tree
+    CouldNotWalkDirectory(walkdir::Error),
+
+    /// A directory lies outside the workspace root, and t
+    DirectoryIsOutsideWorkspaceRoot(PathBuf),
 }
 
 /// The result of running a DFX command.
@@ -140,5 +147,11 @@ impl From<candid::error::Error> for DfxError {
 impl From<semver::SemVerError> for DfxError {
     fn from(err: semver::SemVerError) -> DfxError {
         DfxError::VersionCouldNotBeParsed(err)
+    }
+}
+
+impl From<walkdir::Error> for DfxError {
+    fn from(err: walkdir::Error) -> DfxError {
+        DfxError::CouldNotWalkDirectory(err)
     }
 }

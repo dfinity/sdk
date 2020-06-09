@@ -58,8 +58,8 @@ pub trait CanisterBuilder {
 #[derive(Clone)]
 pub struct BuildConfig {
     profile: Profile,
-    assets: bool,
     pub generate_id: bool,
+    pub skip_frontend: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
@@ -74,19 +74,22 @@ impl BuildConfig {
 
         BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),
-            assets: false,
             generate_id: false,
+            skip_frontend: false,
             idl_root: build_root.join("idl/"),
         }
-    }
-
-    pub fn with_assets(self, assets: bool) -> Self {
-        Self { assets, ..self }
     }
 
     pub fn with_generate_id(self, generate_id: bool) -> Self {
         Self {
             generate_id,
+            ..self
+        }
+    }
+
+    pub fn with_skip_frontend(self, skip_frontend: bool) -> Self {
+        Self {
+            skip_frontend,
             ..self
         }
     }
