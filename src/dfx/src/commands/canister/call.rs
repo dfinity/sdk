@@ -3,7 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::util::{blob_from_arguments, load_idl_file, print_idl_blob};
+use crate::util::{blob_from_arguments, check_candid_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::CanisterId;
 use std::option::Option;
@@ -68,23 +68,31 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let method_name = args
         .value_of("method_name")
         .ok_or_else(|| DfxError::InvalidArgument("method_name".to_string()))?;
-    let maybe_canister_id =
-        CanisterInfo::load(&config, canister_name)
-            .ok()
-            .and_then(|canister_info| {
-                canister_info.get_canister_id().and_then(|canister_id| {
-                    let path = canister_info.get_output_idl_path()?;
-                    let ast = load_idl_file(env, &path).expect("Could not find IDL file.");
-                    let is_query_method = ast.get_method_type(&method_name).map(|f| f.is_query());
-                    Some((canister_id, is_query_method))
-                })
-            });
-    let (canister_id, is_query_method) = match maybe_canister_id {
-        Some(x) => x,
-        None => CanisterId::from_text(canister_name)
-            .map(|cid| (cid, None))
-            .map_err(|_| DfxError::InvalidArgument("canister_name".to_string()))?,
+
+    let (canister_id, maybe_candid_path) = match CanisterId::from_text(canister_name) {
+        Ok(id) => {
+            // TODO fetch candid file from canister
+            (id, None)
+        }
+        Err(_) => {
+            let canister_info = CanisterInfo::load(&config, canister_name)?;
+            match canister_info.get_canister_id() {
+                Some(id) => (id, canister_info.get_output_idl_path()),
+                None => return Err(DfxError::InvalidArgument("canister_name".to_string())),
+            }
+        }
     };
+
+    let method_type = maybe_candid_path.and_then(|path| {
+        let (env, actor) = check_candid_file(&path)?;
+        let f = actor.get(method_name)?;
+        Some((env, f.clone()))
+    });
+    let is_query_method = match &method_type {
+        Some((_, f)) => Some(f.is_query()),
+        None => None,
+    };
+
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
     let is_query = if args.is_present("async") {
@@ -108,7 +116,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, arg_type)?;
+    let arg_value = blob_from_arguments(arguments, arg_type, method_type)?;
     let client = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
