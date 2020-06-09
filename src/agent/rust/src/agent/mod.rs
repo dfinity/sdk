@@ -23,7 +23,6 @@ use public::*;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Method};
 use std::convert::TryInto;
-use std::convert::TryFrom;
 
 pub struct Agent {
     url: reqwest::Url,
@@ -139,7 +138,7 @@ impl Agent {
     ) -> Result<Blob, AgentError> {
         self.read::<replica_api::QueryResponse>(SyncContent::QueryRequest {
             sender: self.identity.sender()?,
-            canister_id: canister_id.as_bytes().try_into().unwrap(),
+            canister_id: canister_id.clone(),
             method_name: method_name.to_string(),
             arg: arg.clone().into(),
         })
@@ -171,7 +170,7 @@ impl Agent {
                         Replied::CallReplied(Blob::from(reply.arg))
                     }
                     replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
-                        Replied::CreateCanisterReplied(CanisterId::from_bytes(&reply.canister_id))
+                        Replied::CreateCanisterReplied(reply.canister_id)
                     }
                     replica_api::RequestStatusResponseReplied::InstallCodeReply(_) => {
                         Replied::InstallCodeReplied
@@ -243,7 +242,7 @@ impl Agent {
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
         self.submit(AsyncContent::CallRequest {
-            canister_id: canister_id.as_bytes().try_into().unwrap(),
+            canister_id: canister_id.clone(),
             method_name: method_name.into(),
             arg: arg.clone().into(),
             nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
@@ -314,7 +313,7 @@ impl Agent {
         self.submit(AsyncContent::InstallCodeRequest {
             nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
             sender: self.identity.sender()?,
-            canister_id: Principal::try_from(canister_id.as_bytes()).unwrap(),
+            canister_id: canister_id.clone(),
             module: module.clone().into(),
             arg: arg.clone().into(),
             compute_allocation: attributes.compute_allocation.map(|x| x.into()),

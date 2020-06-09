@@ -64,6 +64,7 @@ user_message!(
     // dfx build
     BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     SkipFrontend => "Skip building the frontend, only build the canisters.",
+    SkipRegenCID => "Skip regeneration of canister ids.",
 
     // dfx config
     ConfigureOptions => "Configures project options for your currently-selected project.",

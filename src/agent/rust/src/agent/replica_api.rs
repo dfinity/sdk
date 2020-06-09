@@ -1,4 +1,4 @@
-use crate::{Blob, Principal};
+use crate::{Blob, CanisterId, Principal};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize)]
@@ -35,7 +35,7 @@ pub enum AsyncContent {
         #[serde(skip_serializing_if = "Option::is_none")]
         nonce: Option<Blob>,
         sender: Principal,
-        canister_id: Principal,
+        canister_id: CanisterId,
         module: Blob,
         arg: Blob,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -50,7 +50,7 @@ pub enum AsyncContent {
         #[serde(skip_serializing_if = "Option::is_none")]
         nonce: Option<Blob>,
         sender: Principal,
-        canister_id: Principal,
+        canister_id: CanisterId,
         method_name: String,
         arg: Blob,
     },
@@ -72,7 +72,7 @@ pub enum SyncContent {
     #[serde(rename = "query")]
     QueryRequest {
         sender: Principal,
-        canister_id: Principal,
+        canister_id: CanisterId,
         method_name: String,
         arg: Blob,
     },
@@ -112,7 +112,7 @@ pub enum RequestStatusResponseReplied {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CreateCanisterReply {
-    pub canister_id: Principal,
+    pub canister_id: CanisterId,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

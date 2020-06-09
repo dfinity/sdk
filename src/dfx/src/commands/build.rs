@@ -15,6 +15,12 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(false)
                 .help(UserMessage::SkipFrontend.to_str()),
         )
+        .arg(
+            Arg::with_name("skip-regen-id")
+                .long("skip-regen-can-id")
+                .takes_value(false)
+                .help(UserMessage::SkipRegenCID.to_str()),
+        )
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -29,7 +35,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // already.
     env.get_cache().install()?;
 
-    let canister_pool = CanisterPool::load(env)?;
+    let canister_pool = CanisterPool::load(env, args.is_present("skip-regen-id"))?;
+
+    //create canisters on the replica and associate canister ids locally
+    canister_pool.create_canisters(env)?;
+
     // First build.
     slog::info!(logger, "Building canisters...");
 

@@ -31,7 +31,6 @@ pub struct CanisterInfo {
     canister_root: PathBuf,
 
     canister_id: RefCell<Option<CanisterId>>,
-    canister_id_path: PathBuf,
 
     manifest_path: PathBuf,
 
@@ -58,9 +57,8 @@ impl CanisterInfo {
         let extras = canister_config.extras.clone();
 
         let output_root = build_root.join(name);
-        let canister_id_path = output_root.join("_canister.id");
-
-        let manifest_path = output_root.join("canister_manifest.json");
+        // todo needs to be in child "canisters" dir of canister_root
+        let manifest_path = canister_root.join("canister_manifest.json");
 
         let canister_type = canister_config
             .r#type
@@ -77,7 +75,6 @@ impl CanisterInfo {
             canister_root,
 
             canister_id: RefCell::new(None),
-            canister_id_path,
 
             manifest_path,
 
@@ -97,9 +94,6 @@ impl CanisterInfo {
     }
     pub fn get_build_root(&self) -> &Path {
         &self.build_root
-    }
-    pub fn get_canister_id_path(&self) -> &Path {
-        self.canister_id_path.as_path()
     }
     pub fn get_manifest_path(&self) -> &Path {
         self.manifest_path.as_path()
@@ -162,12 +156,9 @@ impl CanisterInfo {
         }
     }
 
-    pub fn generate_canister_id(&self) -> DfxResult<CanisterId> {
-        let mut rng = thread_rng();
-        let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
-        rng.fill_bytes(v.as_mut_slice());
-
-        Ok(CanisterId::from(Blob(v)))
+    pub fn set_canister_id(&self, canister_id: CanisterId) -> DfxResult {
+        self.canister_id.replace(Some(canister_id));
+        Ok(())
     }
 
     pub fn as_info<T: CanisterInfoFactory>(&self) -> DfxResult<T> {
