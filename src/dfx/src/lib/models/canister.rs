@@ -69,7 +69,7 @@ impl CanisterManifest {
     pub fn add_entry(&mut self, info: &CanisterInfo, cid: CanisterId) -> DfxResult<()> {
         let metadata = CanManMetadata {
             timestamp: "bbbb".to_owned(),
-            canister_id: cid.clone().to_text(),
+            canister_id: cid.to_text(),
             wasm_path: info.get_output_wasm_path().unwrap(),
             candid_path: info.get_output_idl_path().unwrap(),
         };
@@ -136,18 +136,16 @@ impl CanisterPool {
                     let file = std::fs::File::open(info.get_manifest_path()).unwrap();
                     let mut manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
 
-                    match manifest.canisters.get(info.get_name().clone()) {
+                    match manifest.canisters.get(info.get_name()) {
                         Some(serde_value) => {
                             let metadata: CanManMetadata =
                                 serde_json::from_value(serde_value.to_owned()).unwrap();
                             CanisterId::from_text(metadata.canister_id).ok();
-                            ()
                         }
                         None => {
                             let cid = runtime.block_on(agent.create_canister_and_wait(waiter))?;
                             info.set_canister_id(cid.clone())?;
-                            manifest.add_entry(info, cid.clone())?;
-                            ()
+                            manifest.add_entry(info, cid)?;
                         }
                     }
                 }
@@ -157,7 +155,7 @@ impl CanisterPool {
                 let mut manifest = CanisterManifest {
                     canisters: Map::new(),
                 };
-                manifest.add_entry(info, cid.clone())?;
+                manifest.add_entry(info, cid)?;
             }
             slog::debug!(
                 self.logger,

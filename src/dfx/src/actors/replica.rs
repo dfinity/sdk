@@ -211,6 +211,7 @@ fn wait_for_child_or_receiver(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn replica_start_thread(
     logger: Logger,
     config: ReplicaConfig,

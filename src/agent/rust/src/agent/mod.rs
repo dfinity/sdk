@@ -139,11 +139,11 @@ impl Agent {
             sender: self.identity.sender()?,
             canister_id: canister_id.clone(),
             method_name: method_name.to_string(),
-            arg: arg.clone().into(),
+            arg: arg.clone(),
         })
         .await
         .and_then(|response| match response {
-            replica_api::QueryResponse::Replied { reply } => Ok(Blob::from(reply.arg)),
+            replica_api::QueryResponse::Replied { reply } => Ok(reply.arg),
             replica_api::QueryResponse::Rejected {
                 reject_code,
                 reject_message,
@@ -166,7 +166,7 @@ impl Agent {
             replica_api::RequestStatusResponse::Replied { reply } => {
                 let reply = match reply {
                     replica_api::RequestStatusResponseReplied::CallReply(reply) => {
-                        Replied::CallReplied(Blob::from(reply.arg))
+                        Replied::CallReplied(reply.arg)
                     }
                     replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
                         Replied::CreateCanisterReplied(reply.canister_id)
@@ -243,7 +243,7 @@ impl Agent {
         self.submit(AsyncContent::CallRequest {
             canister_id: canister_id.clone(),
             method_name: method_name.into(),
-            arg: arg.clone().into(),
+            arg: arg.clone(),
             nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
             sender: self.identity.sender()?,
         })
@@ -260,7 +260,7 @@ impl Agent {
     ) -> Result<RequestId, AgentError> {
         self.submit(AsyncContent::CreateCanisterRequest {
             sender: self.identity.sender()?,
-            nonce: self.nonce_factory.generate().map(|b| b.into()),
+            nonce: self.nonce_factory.generate().map(|b| b),
             desired_id: desired_id.map(|id| id.as_bytes().try_into().unwrap()),
         })
         .await
@@ -319,11 +319,11 @@ impl Agent {
             nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
             sender: self.identity.sender()?,
             canister_id: canister_id.clone(),
-            module: module.clone().into(),
-            arg: arg.clone().into(),
+            module: module.clone(),
+            arg: arg.clone(),
             compute_allocation: attributes.compute_allocation.map(|x| x.into()),
             memory_allocation: None,
-            mode: mode,
+            mode,
         })
         .await
     }

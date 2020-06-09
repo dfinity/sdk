@@ -48,18 +48,16 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
             let file = std::fs::File::open(info.get_manifest_path()).unwrap();
             let mut manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
 
-            match manifest.canisters.get(info.get_name().clone()) {
+            match manifest.canisters.get(info.get_name()) {
                 Some(serde_value) => {
                     let metadata: CanManMetadata =
                         serde_json::from_value(serde_value.to_owned()).unwrap();
                     CanisterId::from_text(metadata.canister_id).ok();
-                    ()
                 }
                 None => {
                     let cid = runtime.block_on(agent.create_canister_and_wait(create_waiter()))?;
                     info.set_canister_id(cid.clone())?;
-                    manifest.add_entry(&info, cid.clone())?;
-                    ()
+                    manifest.add_entry(&info, cid)?;
                 }
             }
         }
@@ -69,7 +67,7 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
         let mut manifest = CanisterManifest {
             canisters: Map::new(),
         };
-        manifest.add_entry(&info, cid.clone())?;
+        manifest.add_entry(&info, cid)?;
     }
     Ok(())
 }
