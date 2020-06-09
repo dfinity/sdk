@@ -248,8 +248,8 @@ export class HttpAgent {
           );
 
         case QueryResponseStatus.Replied:
-          const [content] = IDL.decode([IDL.Text], response.reply.arg);
-          return toByteArray('' + content);
+          const [content] = IDL.decode([IDL.Vec(IDL.Nat8)], response.reply.arg);
+          return new Uint8Array(content as number[]);
       }
     });
   }

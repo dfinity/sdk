@@ -1,9 +1,11 @@
 import A "mo:base/AssocList";
+import B "mo:base/Blob";
 import L "mo:base/List";
+import P "mo:base/Prelude";
 
 actor {
     public type Path = Text;
-    public type Contents = Text;
+    public type Contents = Blob;
 
     var stored: A.AssocList<Path, Contents> = L.nil<(Path, Contents)>();
 
@@ -19,7 +21,10 @@ actor {
     public query func retrieve(path: Path): async Contents {
         let result = A.find<Path, Contents>(stored, path, pathEq);
         switch result {
-            case null { assert false; "" };
+            case null {
+              // what is the syntax to throw?
+              P.nyi()
+            };
             case (?contents) { contents };
         }
     };

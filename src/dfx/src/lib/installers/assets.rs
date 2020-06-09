@@ -2,7 +2,6 @@ use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
 use crate::lib::waiter::create_waiter;
-use candid::Encode;
 use ic_agent::Agent;
 use ic_agent::Blob;
 use std::path::Path;
@@ -20,10 +19,15 @@ pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> Df
             let relative: &Path = source
                 .strip_prefix(output_assets_path)
                 .expect("cannot strip prefix");
-            let content: String = base64::encode(&std::fs::read(&source)?);
+            let content = &std::fs::read(&source)?;
             let path = relative.to_string_lossy().to_string();
-            let parameter = Encode!(&path, &content)?;
-            let blob = Blob::from(&parameter);
+
+            let mut builder = candid::ser::IDLBuilder::new();
+            builder.arg::<String>(&path)?;
+            builder.arg::<Vec<u8>>(&content)?;
+            let blob = builder.serialize_to_vec()?;
+            let blob = Blob::from(&blob);
+
             let canister_id = info.get_canister_id().expect("Could not find canister ID.");
             let method_name = String::from("store");
             agent
