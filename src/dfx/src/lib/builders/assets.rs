@@ -116,12 +116,13 @@ fn delete_output_directory(
     assets_canister_info: &AssetsCanisterInfo,
 ) -> DfxResult {
     let output_assets_path = assets_canister_info.get_output_assets_path();
-    if !output_assets_path.starts_with(info.get_workspace_root()) {
-        return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
-            output_assets_path.to_path_buf(),
-        ));
-    }
     if output_assets_path.exists() {
+        let output_assets_path = output_assets_path.canonicalize()?;
+        if !output_assets_path.starts_with(info.get_workspace_root()) {
+            return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
+                output_assets_path.to_path_buf(),
+            ));
+        }
         fs::remove_dir_all(output_assets_path)?;
     }
     Ok(())
