@@ -17,8 +17,12 @@ rec {
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
-  assets = import ./assets.nix { inherit pkgs agent-js assets-minimal; };
+  assets = import ./assets.nix { inherit pkgs agent-js assets-minimal distributed-canisters; };
   assets-minimal = import ./assets-minimal.nix { inherit pkgs; };
+
+  dfx-minimal = import ./dfx-minimal.nix { inherit pkgs assets-minimal; };
+
+  distributed-canisters = import ./distributed-canisters.nix { inherit pkgs assets-minimal dfx-minimal; };
 
   inherit (pkgs) nix-fmt nix-fmt-check;
 
