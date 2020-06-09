@@ -1,9 +1,9 @@
-use crate::commands::canister::create_waiter;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::message::UserMessage;
+use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};

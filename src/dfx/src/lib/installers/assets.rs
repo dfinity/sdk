@@ -1,23 +1,12 @@
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
+use crate::lib::waiter::create_waiter;
 use candid::Encode;
-use delay::Delay;
 use ic_agent::Agent;
 use ic_agent::Blob;
 use std::path::Path;
-use std::time::Duration;
 use walkdir::WalkDir;
-
-const RETRY_PAUSE: Duration = Duration::from_millis(100);
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
-
-pub fn create_waiter() -> Delay {
-    Delay::builder()
-        .throttle(RETRY_PAUSE)
-        .timeout(REQUEST_TIMEOUT)
-        .build()
-}
 
 pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;

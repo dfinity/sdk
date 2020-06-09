@@ -12,4 +12,5 @@ pub mod progress_bar;
 pub mod proxy;
 pub mod proxy_process;
 pub mod replica_config;
+pub mod waiter;
 pub mod webserver;

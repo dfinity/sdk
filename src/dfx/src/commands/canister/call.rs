@@ -1,8 +1,8 @@
-use crate::commands::canister::create_waiter;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::waiter::create_waiter;
 use crate::util::{blob_from_arguments, load_idl_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::CanisterId;

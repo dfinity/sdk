@@ -1,4 +1,3 @@
-use crate::commands::canister::create_waiter;
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -6,6 +5,7 @@ use crate::lib::message::UserMessage;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
+use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
