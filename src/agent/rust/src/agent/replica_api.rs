@@ -69,12 +69,6 @@ pub enum SyncContent {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum ResponseContent {
-    RequestStatusResponse(RequestStatusResponse),
-    QueryResponse(QueryResponse),
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "status")]
 pub enum RequestStatusResponse {
     #[serde(rename = "unknown")]

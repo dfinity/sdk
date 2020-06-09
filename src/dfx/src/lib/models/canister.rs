@@ -159,7 +159,12 @@ impl CanisterPool {
                 };
                 manifest.add_entry(info, cid.clone())?;
             }
-            slog::debug!(self.logger, "  {} => {}", canister.get_name(), canister.canister_id().to_text());
+            slog::debug!(
+                self.logger,
+                "  {} => {}",
+                canister.get_name(),
+                canister.canister_id().to_text()
+            );
         }
         Ok(())
     }

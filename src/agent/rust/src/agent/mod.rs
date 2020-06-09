@@ -309,7 +309,6 @@ impl Agent {
         arg: &Blob,
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
-        println!("install_with_attrs {:?}", canister_id.clone().to_text());
         let mode = match mode {
             "install" => Some(mode.to_string()),
             "reinstall" => Some(mode.to_string()),
