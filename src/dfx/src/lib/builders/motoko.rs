@@ -262,7 +262,6 @@ fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMa
     let input_path = if params.inject_code {
         let input_path = params.input;
         let mut content = std::fs::read_to_string(input_path)?;
-
         // Because we don't have an AST (yet) we need to do some regex magic.
         // Find `actor {`
         // TODO: remove this once entire process once store assets is supported by the client.
