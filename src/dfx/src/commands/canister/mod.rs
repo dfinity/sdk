@@ -3,24 +3,12 @@ use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use delay::Delay;
-use std::time::Duration;
 
 mod call;
 mod id;
 mod install;
 mod query;
 mod request_status;
-
-const RETRY_PAUSE: Duration = Duration::from_millis(100);
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
-
-pub fn create_waiter() -> Delay {
-    Delay::builder()
-        .throttle(RETRY_PAUSE)
-        .timeout(REQUEST_TIMEOUT)
-        .build()
-}
 
 fn builtins() -> Vec<CliCommand> {
     vec![

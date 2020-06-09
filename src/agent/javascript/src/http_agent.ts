@@ -225,7 +225,7 @@ export class HttpAgent {
 
   public retrieveAsset(canisterId: CanisterId | string, path: string): Promise<Uint8Array> {
     const arg = IDL.encode([IDL.Text], [path]) as BinaryBlob;
-    return this.query(canisterId, { methodName: '__dfx_asset_path', arg }).then(response => {
+    return this.query(canisterId, { methodName: 'retrieve', arg }).then(response => {
       switch (response.status) {
         case QueryResponseStatus.Rejected:
           throw new Error(
