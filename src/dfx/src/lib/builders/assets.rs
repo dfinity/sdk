@@ -115,9 +115,7 @@ fn delete_output_directory(
     info: &CanisterInfo,
     assets_canister_info: &AssetsCanisterInfo,
 ) -> DfxResult {
-    let output_assets_path = assets_canister_info
-        .get_output_assets_path()
-        .canonicalize()?;
+    let output_assets_path = assets_canister_info.get_output_assets_path();
     if !output_assets_path.starts_with(info.get_workspace_root()) {
         return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
             output_assets_path.to_path_buf(),
