@@ -16,5 +16,5 @@ pkgs.runCommandNoCCLocal "assets-minimal" {
   cp $rts/rts/mo-rts.wasm $out
 
   mkdir $out/base
-  cp -R $base-src/. $out/base
+  cp -R ${base-src}/. $out/base
 ''
