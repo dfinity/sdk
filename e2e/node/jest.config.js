@@ -1,6 +1,6 @@
 module.exports = {
   bail: false,
-  testTimeout: 300007,
+  testTimeout: 300008,
   globalSetup: './setup',
   globalTeardown: './teardown',
   setupFiles: [
