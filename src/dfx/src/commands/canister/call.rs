@@ -1,10 +1,12 @@
-use crate::commands::canister::create_waiter;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::util::{blob_from_arguments, load_idl_file, print_idl_blob};
+use crate::lib::waiter::create_waiter;
+use crate::util::{blob_from_arguments, check_candid_file, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
+use ic_agent::CanisterId;
+use std::option::Option;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -62,30 +64,40 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
     let canister_name = args.value_of("canister_name").unwrap();
-    let canister_info = CanisterInfo::load(&config, canister_name)?;
-    // Read the config.
-    let canister_id = canister_info.get_canister_id().ok_or_else(|| {
-        DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
-    })?;
     let method_name = args
         .value_of("method_name")
         .ok_or_else(|| DfxError::InvalidArgument("method_name".to_string()))?;
+
+    let (canister_id, maybe_candid_path) = match CanisterId::from_text(canister_name) {
+        Ok(id) => {
+            // TODO fetch candid file from canister
+            (id, None)
+        }
+        Err(_) => {
+            let canister_info = CanisterInfo::load(&config, canister_name)?;
+            match canister_info.get_canister_id() {
+                Some(id) => (id, canister_info.get_output_idl_path()),
+                None => return Err(DfxError::InvalidArgument("canister_name".to_string())),
+            }
+        }
+    };
+
+    let method_type = maybe_candid_path.and_then(|path| {
+        let (env, actor) = check_candid_file(&path)?;
+        let f = actor.get(method_name)?;
+        Some((env, f.clone()))
+    });
+    let is_query_method = match &method_type {
+        Some((_, f)) => Some(f.is_query()),
+        None => None,
+    };
+
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
-
-    let idl_ast = load_idl_file(
-        env,
-        &canister_info
-            .get_output_idl_path()
-            .expect("Could not find IDL file."),
-    );
     let is_query = if args.is_present("async") {
         false
     } else {
-        let is_query_method =
-            idl_ast.and_then(|ast| ast.get_method_type(&method_name).map(|f| f.is_query()));
         match is_query_method {
             Some(true) => !args.is_present("update"),
             Some(false) => {
@@ -104,7 +116,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, arg_type)?;
+    let arg_value = blob_from_arguments(arguments, arg_type, method_type)?;
     let client = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 use crate::config::dfinity::Config;
+use crate::lib::canister_info::assets::AssetsCanisterInfo;
+use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
@@ -8,6 +10,8 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+pub mod assets;
+pub mod custom;
 pub mod motoko;
 
 pub trait CanisterInfoFactory {
@@ -27,6 +31,7 @@ pub struct CanisterInfo {
 
     workspace_root: PathBuf,
     build_root: PathBuf,
+    output_root: PathBuf,
     canister_root: PathBuf,
 
     canister_id: RefCell<Option<CanisterId>>,
@@ -55,7 +60,7 @@ impl CanisterInfo {
         let canister_root = workspace_root.to_path_buf();
         let extras = canister_config.extras.clone();
 
-        // let _output_root = build_root.join(name);
+        let output_root = build_root.join(name);
         // todo needs to be in child "canisters" dir of canister_root
         // let temp_dir = env.get_temp_dir();
         let canisters_dir = canister_root.join("canisters");
@@ -75,6 +80,7 @@ impl CanisterInfo {
 
             workspace_root: workspace_root.to_path_buf(),
             build_root,
+            output_root,
             canister_root,
 
             canister_id: RefCell::new(None),
@@ -100,6 +106,9 @@ impl CanisterInfo {
     }
     pub fn get_manifest_path(&self) -> &Path {
         self.manifest_path.as_path()
+    }
+    pub fn get_output_root(&self) -> &Path {
+        &self.output_root
     }
     pub fn get_canister_id(&self) -> Option<CanisterId> {
         let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
@@ -147,6 +156,10 @@ impl CanisterInfo {
     pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
         if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
+            Some(info.get_output_wasm_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
+            Some(info.get_output_wasm_path().to_path_buf())
         } else {
             None
         }
@@ -154,6 +167,10 @@ impl CanisterInfo {
 
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
         if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
+            Some(info.get_output_idl_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
+            Some(info.get_output_idl_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else {
             None

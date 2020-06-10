@@ -153,27 +153,6 @@ impl CanisterBuilder for MotokoBuilder {
         let did_js_content = base64::encode(&std::fs::read(&output_did_js_path)?);
         assets.insert("candid.js".to_owned(), did_js_content);
 
-        // Add assets from the folder (the frontend dfx.json key).
-        if config.assets && motoko_info.has_frontend() {
-            for dir_entry in std::fs::read_dir(motoko_info.get_output_assets_root())? {
-                if let Ok(e) = dir_entry {
-                    let p = e.path();
-                    let ext = p.extension().unwrap_or_else(|| std::ffi::OsStr::new(""));
-                    if p.is_file() && ext != "map" {
-                        let content = base64::encode(&std::fs::read(&p)?);
-                        assets.insert(
-                            p.strip_prefix(motoko_info.get_output_assets_root())
-                                .expect("Cannot strip prefix.")
-                                .to_str()
-                                .expect("Could not get path.")
-                                .to_string(),
-                            content,
-                        );
-                    }
-                }
-            }
-        }
-
         // Generate wasm
         let params = MotokoParams {
             build_target: match profile {

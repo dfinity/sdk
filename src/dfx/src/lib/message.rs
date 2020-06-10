@@ -52,7 +52,6 @@ user_message!(
 
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network replica.",
-    CanisterClient => "Override the replica to connect to. By default uses the replica set in dfx configuration.",
 
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",

@@ -1,5 +1,6 @@
-// use crate::commands::canister::create_waiter;
-use crate::lib::builders::{BuildConfig, BuildOutput, BuilderPool, CanisterBuilder};
+use crate::lib::builders::{
+    BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
+};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
@@ -7,6 +8,7 @@ use delay::Delay;
 use ic_agent::CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use slog::Logger;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -25,17 +27,30 @@ use tokio::runtime::Runtime;
 pub struct Canister {
     info: CanisterInfo,
     builder: Arc<dyn CanisterBuilder>,
+    output: RefCell<Option<BuildOutput>>,
 }
 
 impl Canister {
     /// Create a new canister.
     /// This can only be done by a CanisterPool.
     pub(super) fn new(info: CanisterInfo, builder: Arc<dyn CanisterBuilder>) -> Self {
-        Self { info, builder }
+        Self {
+            info,
+            builder,
+            output: RefCell::new(None),
+        }
     }
 
-    pub fn build(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult<BuildOutput> {
-        self.builder.build(pool, &self.info, build_config)
+    pub fn build(
+        &self,
+        pool: &CanisterPool,
+        build_config: &BuildConfig,
+    ) -> DfxResult<&BuildOutput> {
+        let output = self.builder.build(pool, &self.info, build_config)?;
+
+        // Ignore the old output, and return a reference.
+        let _ = self.output.replace(Some(output));
+        Ok(self.get_build_output().unwrap())
     }
 
     pub fn get_name(&self) -> &str {
@@ -44,6 +59,12 @@ impl Canister {
 
     pub fn canister_id(&self) -> CanisterId {
         self.info.get_canister_id().unwrap()
+    }
+
+    /// Get the build output of a build process. If the output isn't known at this time,
+    /// will return [None].
+    pub fn get_build_output(&self) -> Option<&BuildOutput> {
+        unsafe { (&*self.output.as_ptr()).as_ref() }
     }
 }
 
@@ -198,6 +219,10 @@ impl CanisterPool {
         None
     }
 
+    pub fn get_logger(&self) -> &Logger {
+        &self.logger
+    }
+
     fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
@@ -252,15 +277,20 @@ impl CanisterPool {
         Ok(())
     }
 
-    fn step_build(
+    fn step_build<'a>(
         &self,
         build_config: &BuildConfig,
-        canister: &Canister,
-    ) -> DfxResult<BuildOutput> {
+        canister: &'a Canister,
+    ) -> DfxResult<&'a BuildOutput> {
         canister.build(self, build_config)
     }
 
-    fn step_postbuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
+    fn step_postbuild(
+        &self,
+        build_config: &BuildConfig,
+        canister: &Canister,
+        build_output: &BuildOutput,
+    ) -> DfxResult<()> {
         // Copy the IDL output file to the proper directory for downstream to pick it up if
         // needed.
         let idl_root = &build_config.idl_root;
@@ -269,10 +299,7 @@ impl CanisterPool {
             .join(canister_id.to_text().split_off(3))
             .with_extension("did");
 
-        let output_idl_path = canister
-            .info
-            .get_output_idl_path()
-            .ok_or_else(|| DfxError::Unknown("Could not get the IDL path.".to_string()))?;
+        let IdlBuildOutput::File(output_idl_path) = &build_output.idl;
 
         std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
         std::fs::copy(&output_idl_path, &idl_file_path)
@@ -302,7 +329,7 @@ impl CanisterPool {
     }
 
     /// Build all canisters, returning a vector of results of each builds.
-    pub fn build(&self, build_config: BuildConfig) -> DfxResult<Vec<DfxResult<BuildOutput>>> {
+    pub fn build(&self, build_config: BuildConfig) -> DfxResult<Vec<DfxResult<&BuildOutput>>> {
         let graph = self.build_dependencies_graph()?;
         let mut order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
             .map_err(|cycle| match graph.node_weight(cycle.node_id()) {
@@ -331,7 +358,8 @@ impl CanisterPool {
                         .and_then(|_| self.step_prebuild(&build_config, canister))
                         .and_then(|_| self.step_build(&build_config, canister))
                         .and_then(|output| {
-                            self.step_postbuild(&build_config, canister).map(|_| output)
+                            self.step_postbuild(&build_config, canister, output)
+                                .map(|_| output)
                         }),
                 );
             }

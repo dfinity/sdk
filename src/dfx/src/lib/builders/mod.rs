@@ -7,6 +7,8 @@ use ic_agent::CanisterId;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+mod assets;
+mod custom;
 mod motoko;
 
 #[derive(Debug)]
@@ -62,8 +64,8 @@ pub trait CanisterBuilder {
 #[derive(Clone)]
 pub struct BuildConfig {
     profile: Profile,
-    assets: bool,
     pub generate_id: bool,
+    pub skip_frontend: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
@@ -78,19 +80,22 @@ impl BuildConfig {
 
         BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),
-            assets: false,
             generate_id: false,
+            skip_frontend: false,
             idl_root: build_root.join("idl/"),
         }
-    }
-
-    pub fn with_assets(self, assets: bool) -> Self {
-        Self { assets, ..self }
     }
 
     pub fn with_generate_id(self, generate_id: bool) -> Self {
         Self {
             generate_id,
+            ..self
+        }
+    }
+
+    pub fn with_skip_frontend(self, skip_frontend: bool) -> Self {
+        Self {
+            skip_frontend,
             ..self
         }
     }
@@ -103,6 +108,8 @@ pub struct BuilderPool {
 impl BuilderPool {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         let mut builders: Vec<Arc<dyn CanisterBuilder>> = Vec::new();
+        builders.push(Arc::new(assets::AssetsBuilder::new(env)?));
+        builders.push(Arc::new(custom::CustomBuilder::new(env)?));
         builders.push(Arc::new(motoko::MotokoBuilder::new(env)?));
 
         Ok(Self { builders })

@@ -9,6 +9,7 @@
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
 , agent-js ? import ./src/agent/javascript { inherit pkgs; }
+, assets ? import ./assets.nix { inherit pkgs agent-js; }
 }:
 let
   lib = pkgs.lib;
@@ -28,7 +29,11 @@ let
       ''cargo $cargo_options test $cargo_test_options --workspace --exclude ic-agent''
       ''RUST_TEST_THREADS=1 cargo $cargo_options test $cargo_test_options -p ic-agent''
     ];
-    static = pkgs.stdenv.isLinux;
+    override = oldAttrs: {
+      # both needed for bindgen, used by rocksdb-sys, zstd-sys, lmdb-sys, etc
+      LIBCLANG_PATH = "${pkgs.llvmPackages.libclang}/lib";
+      CLANG_PATH = "${pkgs.llvmPackages.clang}/bin/clang";
+    };
   };
 
   # add extra executables used when linting
@@ -65,20 +70,7 @@ let
           if !lib.isDerivation drv then drv else
             drv.overrideAttrs (
               _: {
-                DFX_ASSETS = pkgs.runCommandNoCC "dfx-assets" {} ''
-                  mkdir -p $out
-                  cp ${pkgs.dfinity.ic-replica}/bin/replica $out
-                  cp ${pkgs.dfinity.ic-starter}/bin/ic-starter $out
-                  cp ${pkgs.motoko.moc-bin}/bin/moc $out
-                  cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
-                  cp ${pkgs.motoko.didc}/bin/didc $out
-                  cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
-                  mkdir $out/base && cp -R ${pkgs.motoko.stdlib}/. $out/base
-
-                  mkdir $out/js-user-library
-                  tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $out/js-user-library
-                  cp -R ${agent-js.lib}/node_modules $out/js-user-library
-                '';
+                DFX_ASSETS = assets;
               }
             )
       ) ws
@@ -95,13 +87,24 @@ let
         };
     };
 
+  # Note that on Linux we need the static environment.
+  cc = if pkgs.stdenv.isLinux
+  then pkgs.pkgsStatic.stdenv.cc
+  else pkgs.stdenv.cc;
+
   # fixup the shell for more convenient developer use
   fixShell = ws:
     ws // {
       shell =
         pkgs.mkCompositeShell {
           name = "dfinity-sdk-rust-env";
-          nativeBuildInputs = [ pkgs.rls ];
+          nativeBuildInputs = [
+            pkgs.rls
+            # wabt-sys needs file in path, as well as cc (for cmake).
+            pkgs.file
+            cc
+            pkgs.coreutils
+          ] ++ lib.optional pkgs.stdenv.isDarwin pkgs.stdenv.cc.bintools;
           inputsFrom = [ ws.shell ];
           shellHook = ''
             # Set CARGO_HOME to minimize interaction with any environment outside nix
