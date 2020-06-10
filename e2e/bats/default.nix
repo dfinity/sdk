@@ -18,6 +18,7 @@ let
     gnugrep
     gnutar
     gzip
+    jq
     netcat
     ps
     python3

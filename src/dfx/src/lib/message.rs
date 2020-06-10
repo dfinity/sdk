@@ -66,6 +66,7 @@ user_message!(
     BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     SkipFrontend => "Skip building the frontend, only build the canisters.",
     SkipRegenCID => "Skip regeneration of canister ids.",
+    CanisterComputeProvider => "Override the compute provider to connect to. By default uses the address and port set in dfx configuration.",
 
     // dfx config
     ConfigureOptions => "Configures project options for your currently-selected project.",

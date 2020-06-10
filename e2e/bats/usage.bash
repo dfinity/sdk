@@ -25,5 +25,6 @@ load utils/_
 
     dfx new t --no-frontend
     cd t
+    dfx_start
     assert_command dfx build
 }

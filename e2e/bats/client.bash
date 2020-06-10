@@ -20,19 +20,18 @@ teardown() {
 # This test is around 15 seconds to run. I don't think it should be faster without raising the
 # flakiness (client start time).
 @test "client flag can be passed in" {
-  dfx build
+  # # Start a client manually on a specific port.
+  # dfx replica --port 8080 &
+  # echo $! > dfx.pid # Use a local file for the client.
+  # pgrep -P `cat dfx.pid` > replica.pid
+  # sleep 5 # Wait for client to be available.
+  # dfx build --provider http://localhost:8080
 
-  # Start a client manually on a specific port.
-  $(dfx cache show)/replica --config '
-    [http_handler]
-    write_port_to="port"
-  ' &
-  echo $! > client.pid # Use a local file for the client.
-  sleep 5 # Wait for client to be available.
-
-  export PORT=$(cat port)
-  dfx canister --client http://localhost:$PORT install --all
-  dfx canister --client http://localhost:$PORT call e2e_project greet '("Blueberry")'
-  assert_command_fail dfx canister call --client http://localhost:$PORT e2e_project greet '("Blueberry")'
-  assert_command_fail dfx canister call e2e_project greet '("Blueberry")'
+  # # export PORT=$(cat port)
+  # dfx canister --client http://localhost:8080 install --all
+  # dfx canister --client http://localhost:8080 call e2e_project greet '("Blueberry")'
+  # assert_command_fail dfx canister call --client http://localhost:8080 e2e_project greet '("Blueberry")'
+  # assert_command_fail dfx canister call e2e_project greet '("Blueberry")'
+  # kill -9 `cat dfx.pid`
+  # kill -9 `cat replica.pid`
 }

@@ -54,6 +54,10 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Replica
     }
     .validate()?;
 
+    let temp_dir = env.get_temp_dir();
+    let state_dir = temp_dir.join("state/replicated_state");
+    std::fs::create_dir_all(&state_dir)?;
+
     let mut replica_config = ReplicaConfig::new(env.get_state_dir());
     replica_config.http_handler = http_handler;
     replica_config.scheduler = scheduler;

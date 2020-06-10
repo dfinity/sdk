@@ -16,57 +16,57 @@ teardown() {
 
 @test "build fails on invalid motoko" {
     install_asset invalid
+    dfx_start
     assert_command_fail dfx build
     assert_match "syntax error"
 }
 
 @test "build supports relative imports" {
     install_asset import
-    assert_command dfx build
     dfx_start
+    assert_command dfx build
     dfx canister install --all
     assert_command dfx canister call e2e_project greet --type=string World
     assert_match "10World"
 }
 
 @test "build succeeds on default project" {
+    dfx_start
     assert_command dfx build
 }
 
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
 # Currently due to new canister ids, the wasm binary will be different for inter-canister calls.
 @test "build twice produces the same wasm binary" {
+  dfx_start
   assert_command dfx build
   cp canisters/e2e_project/main.wasm ./old.wasm
   assert_command dfx build
   assert_command diff canisters/e2e_project/main.wasm ./old.wasm
 }
 
-@test "build outputs the canister ID" {
+@test "build outputs the canister manifest" {
+    dfx_start
     assert_command dfx build
-    [[ -f canisters/e2e_project/_canister.id ]]
+    [[ -f canisters/canister_manifest.json ]]
 }
 
 @test "build outputs warning" {
     install_asset warning
+    dfx_start
     assert_command dfx build
     assert_match "warning, this pattern consuming type"
 }
 
 @test "build fails on unknown imports" {
     install_asset import_error
+    dfx_start
     assert_command_fail dfx build
     assert_match 'import error, canister alias "random" not defined'
 }
 
-@test "build generates IDs every rebuild" {
-  assert_command dfx build
-  cp canisters/e2e_project/_canister.id previous_cid
-  assert_command dfx build
-  assert_command_fail diff canisters/e2e_project/_canister.id previous_cid
-}
-
 @test "build fails if canister type is not supported" {
+  dfx_start
   dfx config canisters.e2e_project.type unknown_canister_type
   assert_command_fail dfx build
   assert_match "CouldNotFindBuilderForCanister"
