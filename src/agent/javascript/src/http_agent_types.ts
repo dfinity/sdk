@@ -79,15 +79,20 @@ export interface InstallCodeRequest extends Record<string, any> {
   arg?: BinaryBlob;
   sender: BinaryBlob;
 }
+export interface CreateCanisterRequest extends Record<string, any> {
+  request_type: SubmitRequestType.CreateCanister;
+  sender: BinaryBlob;
+}
 // tslint:enable:camel-case
 
 // The types of values allowed in the `request_type` field for submit requests.
 export enum SubmitRequestType {
   Call = 'call',
   InstallCode = 'install_code',
+  CreateCanister = 'create_canister',
 }
 
-export type SubmitRequest = CallRequest | InstallCodeRequest;
+export type SubmitRequest = CallRequest | InstallCodeRequest | CreateCanisterRequest;
 export interface SubmitResponse {
   requestId: RequestId;
   response: Response;
@@ -151,7 +156,10 @@ export interface RequestStatusResponsePending {
 
 export interface RequestStatusResponseReplied {
   status: RequestStatusResponseStatus.Replied;
-  reply: { arg?: BinaryBlob };
+  reply: {
+    canister_id?: BinaryBlob,
+    arg?: BinaryBlob,
+  };
 }
 
 export interface RequestStatusResponseRejected {

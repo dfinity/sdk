@@ -16,7 +16,7 @@ use std::time::Duration;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::runtime::Runtime;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
@@ -88,6 +88,17 @@ pub struct CanManMetadata {
 }
 
 impl CanisterManifest {
+    pub fn load(path: &Path) -> DfxResult<Self> {
+        let content = std::fs::read_to_string(path).map_err(DfxError::from)?;
+        serde_json::from_str(&content).map_err(DfxError::from)
+    }
+
+    pub fn save(&self, path: &Path) -> DfxResult<()> {
+        let content =
+            serde_json::to_string_pretty(self).map_err(DfxError::CouldNotSerializeConfiguration)?;
+        std::fs::write(path, content).map_err(DfxError::from)
+    }
+
     pub fn add_entry(&mut self, info: &CanisterInfo, cid: CanisterId) -> DfxResult<()> {
         let now = Utc::now();
         let timestamp = now.to_rfc2822();
@@ -102,15 +113,13 @@ impl CanisterManifest {
             info.get_name().to_string(),
             serde_json::to_value(metadata).unwrap(),
         );
-        let manifest_json = serde_json::to_string_pretty(&self)?;
-        // write the manifest
-        std::fs::write(info.get_manifest_path(), manifest_json).map_err(DfxError::from)?;
-        Ok(())
+
+        self.save(info.get_manifest_path())
     }
 }
 
 impl CanisterPool {
-    pub fn load(env: &dyn Environment, _generate_id: bool) -> DfxResult<Self> {
+    pub fn load(env: &dyn Environment) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
@@ -158,8 +167,7 @@ impl CanisterPool {
             // check if the canister_manifest.json file exists
             if manifest_path.is_file() {
                 {
-                    let file = std::fs::File::open(info.get_manifest_path()).unwrap();
-                    let mut manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
+                    let mut manifest = CanisterManifest::load(info.get_manifest_path())?;
 
                     match manifest.canisters.get(info.get_name()) {
                         Some(serde_value) => {

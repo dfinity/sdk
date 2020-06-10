@@ -19,7 +19,7 @@ let
       mkdir -p $build_dir
       cp -R $source_root/* $build_dir
 
-      ( cd $build_dir ; DFX_ASSETS=${assets-minimal} ${dfx-minimal}/bin/dfx build )
+      ( cd $build_dir ; DFX_ASSETS=${assets-minimal} ${dfx-minimal}/bin/dfx build --skip-manifest )
     done
   '';
 

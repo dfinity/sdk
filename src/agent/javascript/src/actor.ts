@@ -1,7 +1,11 @@
 import { Buffer } from 'buffer/';
 import { CanisterId } from './canisterId';
 import { HttpAgent } from './http_agent';
-import { QueryResponseStatus, RequestStatusResponseStatus } from './http_agent_types';
+import {
+  QueryResponseStatus, RequestStatusResponse, RequestStatusResponseReplied,
+  RequestStatusResponseStatus,
+  SubmitResponse,
+} from "./http_agent_types";
 import * as IDL from './idl';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
@@ -12,6 +16,10 @@ import { BinaryBlob } from './types';
  */
 export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
   __actorInterface(): Record<string, IDL.FuncClass>;
+  __createCanister(options?: {
+    maxAttempts?: number;
+    throttleDurationInMSecs?: number;
+  }): Promise<CanisterId>;
   __canisterId(): string;
   __getAsset(path: string): Promise<Uint8Array>;
   __install(
@@ -91,25 +99,19 @@ export function makeActorFactory(
 ): ActorConstructor {
   const actorInterface = actorInterfaceFactory({ IDL });
 
-  async function requestStatusAndLoop(
+  async function requestStatusAndLoop<T>(
     httpAgent: HttpAgent,
     requestId: RequestId,
-    returnType: IDL.Type[],
+    decoder: (response: RequestStatusResponseReplied) => T,
     attempts: number,
     maxAttempts: number,
     throttle: number,
-  ): Promise<unknown> {
+  ): Promise<T> {
     const status = await httpAgent.requestStatus({ requestId });
 
     switch (status.status) {
       case RequestStatusResponseStatus.Replied: {
-        if (status.reply.arg !== undefined) {
-          return decodeReturnValue(returnType, status.reply.arg);
-        } else if (returnType.length === 0) {
-          return undefined;
-        } else {
-          throw new Error(`Call was returned undefined, but type [${returnType.join(',')}].`);
-        }
+        return decoder(status);
       }
 
       case RequestStatusResponseStatus.Unknown:
@@ -124,7 +126,7 @@ export function makeActorFactory(
 
         // Wait a little, then retry.
         return new Promise(resolve => setTimeout(resolve, throttle)).then(() =>
-          requestStatusAndLoop(httpAgent, requestId, returnType, attempts, maxAttempts, throttle),
+          requestStatusAndLoop(httpAgent, requestId, decoder, attempts, maxAttempts, throttle),
         );
 
       case RequestStatusResponseStatus.Rejected:
@@ -161,6 +163,47 @@ export function makeActorFactory(
 
         return agent.retrieveAsset(canisterId, path);
       },
+      async __createCanister(options: {
+        maxAttempts?: number;
+        throttleDurationInMSecs?: number;
+      } = {}): Promise<CanisterId> {
+        const agent = httpAgent || getDefaultHttpAgent();
+        if (!agent) {
+          throw new Error('Cannot make call. httpAgent is undefined.');
+        }
+
+        // Resolve the options that can be used globally or locally.
+        const effectiveMaxAttempts = options.maxAttempts?.valueOf() || 0;
+        const effectiveThrottle = options.throttleDurationInMSecs?.valueOf() || 0;
+
+        const { requestId, response } = await agent.createCanister();
+        if (!response.ok) {
+          throw new Error(
+            [
+              'Canister Creation failed:',
+              `  Request ID: ${requestIdToHex(requestId)}`,
+              `  HTTP status code: ${response.status}`,
+              `  HTTP status text: ${response.statusText}`,
+            ].join('\n'),
+          );
+        }
+
+        return await requestStatusAndLoop(
+          agent,
+          requestId,
+          (status) => {
+            if (status.reply.canister_id === undefined) {
+              throw new Error('Canister Creation failed: Replica did not reply with a canister id.');
+            }
+            return CanisterId.fromBlob(status.reply.canister_id);
+          },
+              effectiveMaxAttempts,
+              effectiveMaxAttempts,
+              effectiveThrottle
+          ,
+        );
+      },
+
       async __install(
         fields: {
           module: BinaryBlob;
@@ -196,7 +239,7 @@ export function makeActorFactory(
         return requestStatusAndLoop(
           agent,
           requestId,
-          [],
+          () => {},
           effectiveMaxAttempts,
           effectiveMaxAttempts,
           effectiveThrottle,
@@ -245,7 +288,16 @@ export function makeActorFactory(
           return requestStatusAndLoop(
             agent,
             requestId,
-            func.retTypes,
+            status => {
+              if (status.reply.arg !== undefined) {
+                return decodeReturnValue(func.retTypes, status.reply.arg);
+              } else if (func.retTypes.length === 0) {
+                return undefined;
+              } else {
+                throw new Error(`Call was returned undefined, but type [${func.retTypes.join(',')}].`);
+              }
+            }
+          ,
             maxAttempts,
             maxAttempts,
             throttleDurationInMSecs,

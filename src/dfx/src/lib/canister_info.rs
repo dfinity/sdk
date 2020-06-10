@@ -111,6 +111,10 @@ impl CanisterInfo {
         &self.output_root
     }
     pub fn get_canister_id(&self) -> Option<CanisterId> {
+        if !self.get_manifest_path().exists() {
+            return Some(CanisterId::from_bytes(&[0, 1, 2, 3]));
+        }
+
         let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
         let manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
         let serde_value = &manifest.canisters[&self.name.clone()];
