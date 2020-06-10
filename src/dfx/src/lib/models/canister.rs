@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
 use std::path::PathBuf;
@@ -67,8 +68,11 @@ pub struct CanManMetadata {
 
 impl CanisterManifest {
     pub fn add_entry(&mut self, info: &CanisterInfo, cid: CanisterId) -> DfxResult<()> {
+        let now = Utc::now();
+        let timestamp = now.to_rfc2822();
+
         let metadata = CanManMetadata {
-            timestamp: "bbbb".to_owned(),
+            timestamp,
             canister_id: cid.to_text(),
             wasm_path: info.get_output_wasm_path().unwrap(),
             candid_path: info.get_output_idl_path().unwrap(),
