@@ -28,4 +28,6 @@ teardown() {
     ID=$(dfx canister call e2e_project getCanisterId)
     assert_command dfx canister call e2e_project isMyself "$ID"
     assert_eq '(true)'
+    assert_command dfx canister call e2e_project isMyself "$ID_CALL"
+    assert_eq '(false)'    
 }
