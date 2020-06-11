@@ -22,10 +22,7 @@ pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> Df
             let content = &std::fs::read(&source)?;
             let path = relative.to_string_lossy().to_string();
 
-            let mut builder = candid::ser::IDLBuilder::new();
-            builder.arg::<String>(&path)?;
-            builder.arg::<Vec<u8>>(&content)?;
-            let blob = builder.serialize_to_vec()?;
+            let blob = candid::Encode!(&path, &content)?;
             let blob = Blob::from(&blob);
 
             let canister_id = info.get_canister_id().expect("Could not find canister ID.");
