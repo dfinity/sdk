@@ -73,6 +73,7 @@ teardown() {
 }
 
 @test "can build a custom canister type" {
+  dfx_start
   install_asset custom_canister
   assert_command dfx build
   assert_match "CUSTOM_CANISTER_BUILD_DONE"
