@@ -6,8 +6,9 @@
 { pkgs ? import ./nix {}
 }:
 pkgs.runCommandNoCCLocal "assets-minimal" {
-  inherit (pkgs.motoko) didc rts stdlib;
+  inherit (pkgs.motoko) didc rts;
   moc = pkgs.motoko.moc-bin;
+  base = pkgs.motoko.base-src;
 } ''
   mkdir -p $out
 
@@ -16,5 +17,5 @@ pkgs.runCommandNoCCLocal "assets-minimal" {
   cp $rts/rts/mo-rts.wasm $out
 
   mkdir $out/base
-  cp -R $stdlib/. $out/base
+  cp -R $base/. $out/base
 ''

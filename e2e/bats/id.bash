@@ -13,7 +13,8 @@ teardown() {
 
 @test "id subcommand prints valid canister identifier" {
     install_asset id
+    dfx_start
     dfx build
     assert_command dfx canister id e2e_project
-    assert_match $(python id.py canisters/e2e_project/_canister.id)
+    assert_match $(cat canisters/canister_manifest.json | jq -r .canisters.e2e_project.canister_id)
 }

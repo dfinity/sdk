@@ -46,6 +46,9 @@ impl std::convert::TryFrom<u8> for ComputeAllocation {
     }
 }
 
+// #[derive(Copy, Clone, Debug)]
+// pub struct MemoryAllocation(pub(crate) u64);
+
 pub struct CanisterAttributes {
     pub compute_allocation: Option<ComputeAllocation>,
 }

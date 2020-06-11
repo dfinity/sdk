@@ -1,5 +1,5 @@
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, ManifestBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -130,6 +130,7 @@ impl CanisterBuilder for CustomBuilder {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
             idl: IdlBuildOutput::File(candid),
+            manifest: ManifestBuildOutput::File(info.get_manifest_path().to_path_buf()),
         })
     }
 }

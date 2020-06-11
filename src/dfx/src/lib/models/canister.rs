@@ -4,12 +4,20 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use delay::Delay;
 use ic_agent::CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use slog::Logger;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::time::Duration;
+
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use serde_json::Map;
+use std::path::{Path, PathBuf};
+use tokio::runtime::Runtime;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
 /// Multiple canister instances can have the same info, but would be differentiated
@@ -66,6 +74,50 @@ pub struct CanisterPool {
     logger: Logger,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CanisterManifest {
+    pub canisters: Map<String, serde_json::value::Value>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CanManMetadata {
+    pub timestamp: String,
+    pub canister_id: String,
+    pub wasm_path: PathBuf,
+    pub candid_path: PathBuf,
+}
+
+impl CanisterManifest {
+    pub fn load(path: &Path) -> DfxResult<Self> {
+        let content = std::fs::read_to_string(path).map_err(DfxError::from)?;
+        serde_json::from_str(&content).map_err(DfxError::from)
+    }
+
+    pub fn save(&self, path: &Path) -> DfxResult<()> {
+        let content =
+            serde_json::to_string_pretty(self).map_err(DfxError::CouldNotSerializeConfiguration)?;
+        std::fs::write(path, content).map_err(DfxError::from)
+    }
+
+    pub fn add_entry(&mut self, info: &CanisterInfo, cid: CanisterId) -> DfxResult<()> {
+        let now = Utc::now();
+        let timestamp = now.to_rfc2822();
+
+        let metadata = CanManMetadata {
+            timestamp,
+            canister_id: cid.to_text(),
+            wasm_path: info.get_output_wasm_path().unwrap(),
+            candid_path: info.get_output_idl_path().unwrap(),
+        };
+        self.canisters.insert(
+            info.get_name().to_string(),
+            serde_json::to_value(metadata).unwrap(),
+        );
+
+        self.save(info.get_manifest_path())
+    }
+}
+
 impl CanisterPool {
     pub fn load(env: &dyn Environment) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
@@ -97,6 +149,57 @@ impl CanisterPool {
         })
     }
 
+    pub fn create_canisters(&self, env: &dyn Environment) -> DfxResult {
+        let agent = env
+            .get_agent()
+            .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        let mut runtime = Runtime::new().expect("Unable to create a runtime");
+        // check manifest first before getting new can id here
+        for canister in &self.canisters {
+            let waiter = Delay::builder()
+                .throttle(Duration::from_millis(100))
+                .timeout(Duration::from_secs(60))
+                .build();
+
+            let info = &canister.info;
+
+            let manifest_path = info.get_manifest_path();
+            // check if the canister_manifest.json file exists
+            if manifest_path.is_file() {
+                {
+                    let mut manifest = CanisterManifest::load(info.get_manifest_path())?;
+
+                    match manifest.canisters.get(info.get_name()) {
+                        Some(serde_value) => {
+                            let metadata: CanManMetadata =
+                                serde_json::from_value(serde_value.to_owned()).unwrap();
+                            CanisterId::from_text(metadata.canister_id).ok();
+                        }
+                        None => {
+                            let cid = runtime.block_on(agent.create_canister_and_wait(waiter))?;
+                            info.set_canister_id(cid.clone())?;
+                            manifest.add_entry(info, cid)?;
+                        }
+                    }
+                }
+            } else {
+                let cid = runtime.block_on(agent.create_canister_and_wait(waiter))?;
+                info.set_canister_id(cid.clone())?;
+                let mut manifest = CanisterManifest {
+                    canisters: Map::new(),
+                };
+                manifest.add_entry(info, cid)?;
+            }
+            slog::debug!(
+                self.logger,
+                "  {} => {}",
+                canister.get_name(),
+                canister.canister_id().to_text()
+            );
+        }
+        Ok(())
+    }
+
     pub fn get_canister(&self, canister_id: &CanisterId) -> Option<&Canister> {
         for c in &self.canisters {
             let info = &c.info;
@@ -126,42 +229,6 @@ impl CanisterPool {
 
     pub fn get_logger(&self) -> &Logger {
         &self.logger
-    }
-
-    pub fn generate_canister_id(&self, force: bool) -> DfxResult {
-        // Write all canister IDs if needed.
-        for canister in &self.canisters {
-            let canister_info = &canister.info;
-
-            let canister_id = if force {
-                None
-            } else {
-                canister_info.get_canister_id()
-            };
-            let canister_id = match canister_id {
-                Some(cid) => cid,
-                None => {
-                    std::fs::create_dir_all(
-                        canister_info
-                            .get_canister_id_path()
-                            .parent()
-                            .expect("Cannot use root."),
-                    )?;
-                    let cid = canister_info.generate_canister_id()?;
-                    std::fs::write(
-                        canister_info.get_canister_id_path(),
-                        cid.clone().into_blob().0,
-                    )
-                    .map_err(DfxError::from)?;
-
-                    cid
-                }
-            };
-
-            slog::debug!(self.logger, "  {} => {}", canister.get_name(), canister_id);
-        }
-
-        Ok(())
     }
 
     fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
@@ -271,10 +338,6 @@ impl CanisterPool {
 
     /// Build all canisters, returning a vector of results of each builds.
     pub fn build(&self, build_config: BuildConfig) -> DfxResult<Vec<DfxResult<&BuildOutput>>> {
-        if build_config.generate_id {
-            self.generate_canister_id(true)?;
-        }
-
         let graph = self.build_dependencies_graph()?;
         let mut order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
             .map_err(|cycle| match graph.node_weight(cycle.node_id()) {

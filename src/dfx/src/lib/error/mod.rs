@@ -74,9 +74,6 @@ pub enum DfxError {
     /// Generic IDL error.
     CouldNotSerializeIdlFile(candid::Error),
 
-    /// Client TOML Serialization error.
-    CouldNotSerializeClientConfiguration(toml::ser::Error),
-
     /// An error during parsing of a version string.
     VersionCouldNotBeParsed(semver::SemVerError),
 

@@ -9,7 +9,9 @@ pkgs.runCommandNoCCLocal "assets" {} ''
   cp -R ${assets-minimal}/* $out
 
   cp ${pkgs.dfinity.ic-replica}/bin/replica $out
+  cp ${pkgs.dfinity.ic-starter}/bin/ic-starter $out
   cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
+  cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
 
   mkdir $out/js-user-library
   tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $out/js-user-library

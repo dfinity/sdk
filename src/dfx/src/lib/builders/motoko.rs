@@ -1,7 +1,7 @@
 use crate::config::cache::Cache;
 use crate::config::dfinity::Profile;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, ManifestBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
@@ -177,6 +177,7 @@ impl CanisterBuilder for MotokoBuilder {
                 .expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
+            manifest: ManifestBuildOutput::File(canister_info.get_manifest_path().to_path_buf()),
         })
     }
 }
