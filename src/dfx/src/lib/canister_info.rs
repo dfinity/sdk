@@ -5,7 +5,8 @@ use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
-use ic_agent::CanisterId;
+use ic_agent::{Blob, CanisterId};
+use rand::{thread_rng, RngCore};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -112,7 +113,10 @@ impl CanisterInfo {
     }
     pub fn get_canister_id(&self) -> Option<CanisterId> {
         if !self.get_manifest_path().exists() {
-            return Some(CanisterId::from_bytes(&[0, 1, 2, 3]));
+            let mut rng = thread_rng();
+            let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
+            rng.fill_bytes(v.as_mut_slice());
+            return Some(CanisterId::from(Blob(v)));
         }
 
         let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
