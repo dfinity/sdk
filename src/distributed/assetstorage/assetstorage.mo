@@ -1,7 +1,5 @@
 import A "mo:base/AssocList";
-import B "mo:base/Blob";
 import L "mo:base/List";
-import P "mo:base/Prelude";
 import Prim "mo:prim";
 
 actor {
@@ -22,12 +20,12 @@ actor {
     public query func retrieve(path: Path): async Contents {
         let result = A.find<Path, Contents>(stored, path, pathEq);
         switch result {
-            case null { throw Prim.error("asset '" # asset # "' not found") };
+            case null {
+                // more than 8 chars treated as invalid UTF-8
+                // https://github.com/dfinity-lab/sdk/issues/701
+                throw Prim.error("notfound")
+            };
             case (?contents) { contents };
         }
     };
-
-    public query func die(): async ()) {
-        throw Prim.error("just throwing");
-    }
 };
