@@ -1,22 +1,24 @@
+use crate::config::cache::Cache;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
+    BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::util::assets;
+use chrono::Utc;
 use delay::Delay;
 use ic_agent::CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
+use serde::{Deserialize, Serialize};
+use serde_json::Map;
 use slog::Logger;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
-
-use chrono::Utc;
-use serde::{Deserialize, Serialize};
-use serde_json::Map;
-use std::path::{Path, PathBuf};
 use tokio::runtime::Runtime;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
@@ -72,6 +74,7 @@ impl Canister {
 pub struct CanisterPool {
     canisters: Vec<Arc<Canister>>,
     logger: Logger,
+    cache: Arc<dyn Cache>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -106,12 +109,12 @@ impl CanisterManifest {
         let metadata = CanManMetadata {
             timestamp,
             canister_id: cid.to_text(),
-            wasm_path: info.get_output_wasm_path().unwrap(),
-            candid_path: info.get_output_idl_path().unwrap(),
+            wasm_path: info.get_build_wasm_path(),
+            candid_path: info.get_build_idl_path(),
         };
         self.canisters.insert(
             info.get_name().to_string(),
-            serde_json::to_value(metadata).unwrap(),
+            serde_json::to_value(metadata).expect("Could not serialize metadata"),
         );
 
         self.save(info.get_manifest_path())
@@ -146,6 +149,7 @@ impl CanisterPool {
         Ok(CanisterPool {
             canisters: canisters_map,
             logger,
+            cache: env.get_cache().clone(),
         })
     }
 
@@ -299,20 +303,46 @@ impl CanisterPool {
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
-        // Copy the IDL output file to the proper directory for downstream to pick it up if
-        // needed.
+        // Copy the WASM and IDL files to canisters/NAME/...
+        let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
+        let idl_file_path = canister.info.get_build_idl_path();
+        if build_idl_path.ne(&idl_file_path) {
+            std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
+            std::fs::copy(&build_idl_path, &idl_file_path)
+                .map(|_| {})
+                .map_err(DfxError::from)?;
+
+            let mut perms = std::fs::metadata(&idl_file_path)?.permissions();
+            perms.set_readonly(false);
+            std::fs::set_permissions(&idl_file_path, perms)?;
+        }
+
+        let WasmBuildOutput::File(build_wasm_path) = &build_output.wasm;
+        let wasm_file_path = canister.info.get_build_wasm_path();
+        if build_wasm_path.ne(&wasm_file_path) {
+            std::fs::create_dir_all(wasm_file_path.parent().unwrap())?;
+            std::fs::copy(&build_wasm_path, &wasm_file_path)
+                .map(|_| {})
+                .map_err(DfxError::from)?;
+
+            let mut perms = std::fs::metadata(&wasm_file_path)?.permissions();
+            perms.set_readonly(false);
+            std::fs::set_permissions(&wasm_file_path, perms)?;
+        }
+
+        // And then create an canisters/IDL folder with canister DID files per canister ID.
         let idl_root = &build_config.idl_root;
         let canister_id = canister.canister_id();
         let idl_file_path = idl_root
             .join(canister_id.to_text().split_off(3))
             .with_extension("did");
 
-        let IdlBuildOutput::File(output_idl_path) = &build_output.idl;
-
         std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
-        std::fs::copy(&output_idl_path, &idl_file_path)
+        std::fs::copy(&build_idl_path, &idl_file_path)
             .map(|_| {})
-            .map_err(DfxError::from)
+            .map_err(DfxError::from)?;
+
+        build_canister_js(self.cache.clone(), &canister.canister_id(), &canister.info)
     }
 
     fn step_postbuild_all(
@@ -389,4 +419,66 @@ impl CanisterPool {
 
         Ok(())
     }
+}
+
+fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
+    path.to_str().ok_or_else(|| {
+        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+            "Unable to convert output canister js path to a string: {:#?}",
+            path
+        )))
+    })
+}
+
+/// Create a canister JavaScript DID and Actor Factory.
+fn build_canister_js(
+    cache: Arc<dyn Cache>,
+    canister_id: &CanisterId,
+    canister_info: &CanisterInfo,
+) -> DfxResult {
+    let output_did_js_path = canister_info.get_build_idl_path().with_extension("did.js");
+    let output_canister_js_path = canister_info.get_build_idl_path().with_extension("js");
+
+    let mut cmd = cache.get_binary_command("didc")?;
+    let cmd = cmd
+        .arg("--js")
+        .arg(&canister_info.get_build_idl_path())
+        .arg("-o")
+        .arg(&output_did_js_path);
+
+    let output = cmd.output()?;
+    if !output.status.success() {
+        return Err(DfxError::BuildError(BuildErrorKind::CompilerError(
+            format!("{:?}", cmd),
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        )));
+    } else if !output.stderr.is_empty() {
+        // Cannot use eprintln, because it would interfere with the progress bar.
+        println!("{}", String::from_utf8_lossy(&output.stderr));
+    }
+
+    let mut language_bindings = assets::language_bindings()?;
+
+    for f in language_bindings.entries()? {
+        let mut file = f?;
+        let mut file_contents = String::new();
+        file.read_to_string(&mut file_contents)?;
+
+        let new_file_contents = file_contents
+            .replace("{canister_id}", &canister_id.to_text())
+            .replace("{project_name}", canister_info.get_name());
+
+        match decode_path_to_str(&file.path()?)? {
+            "canister.js" => {
+                std::fs::write(
+                    decode_path_to_str(&output_canister_js_path)?,
+                    new_file_contents,
+                )?;
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(())
 }

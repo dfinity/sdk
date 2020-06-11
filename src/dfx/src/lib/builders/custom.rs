@@ -23,7 +23,7 @@ struct CustomBuilderExtra {
     candid: PathBuf,
     /// A command to run to build this canister. This is optional if the canister
     /// only needs to exist.
-    build: Option<String>,
+    build: Vec<String>,
 }
 
 impl CustomBuilderExtra {
@@ -52,7 +52,15 @@ impl CustomBuilderExtra {
         let candid = info
             .get_output_idl_path()
             .expect("Missing candid key in JSON.");
-        let build = info.get_extra::<Option<String>>("build")?;
+        let build = if let Some(json) = info.get_extra_value("build") {
+            if let Ok(s) = String::deserialize(json.clone()) {
+                vec![s]
+            } else {
+                Vec::<String>::deserialize(json)?
+            }
+        } else {
+            vec![]
+        };
 
         Ok(CustomBuilderExtra {
             dependencies,
@@ -109,7 +117,7 @@ impl CanisterBuilder for CustomBuilder {
 
         let canister_id = info.get_canister_id().unwrap();
 
-        if let Some(command) = build {
+        for command in build {
             info!(
                 self.logger,
                 r#"{} '{}'"#,
@@ -122,7 +130,7 @@ impl CanisterBuilder for CustomBuilder {
                 .map_err(|_| DfxError::BuildError(BuildErrorKind::InvalidBuildCommand(command)))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &canister_id, &candid, dependencies, pool)?;
+                run_command(args, &canister_id, &candid, dependencies.clone(), pool)?;
             }
         }
 
