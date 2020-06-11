@@ -16,7 +16,9 @@ teardown() {
 }
 
 @test "install fails if no argument is provided" {
-	dfx_start
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+
+    dfx_start
     assert_command_fail dfx canister install
     assert_match "required arguments were not provided"
     assert_match "--all"
