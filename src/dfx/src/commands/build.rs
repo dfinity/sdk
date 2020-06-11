@@ -15,10 +15,10 @@ pub fn construct() -> App<'static, 'static> {
                 .help(UserMessage::SkipFrontend.to_str()),
         )
         .arg(
-            Arg::with_name("skip-regen-id")
-                .long("skip-regen-can-id")
+            Arg::with_name("skip-manifest")
+                .long("skip-manifest")
                 .takes_value(false)
-                .help(UserMessage::SkipRegenCID.to_str()),
+                .help(UserMessage::BuildSkipManifest.to_str()),
         )
         .arg(
             Arg::with_name("provider")
@@ -58,10 +58,17 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     env.get_cache().install()?;
 
     // First build.
-    let canister_pool = CanisterPool::load(env, args.is_present("skip-regen-id"))?;
+    let canister_pool = CanisterPool::load(env)?;
 
-    //create canisters on the replica and associate canister ids locally
-    canister_pool.create_canisters(env)?;
+    // Create canisters on the replica and associate canister ids locally.
+    if !args.is_present("skip-manifest") {
+        canister_pool.create_canisters(env)?;
+    } else {
+        slog::warn!(
+            env.get_logger(),
+            "Skipping the build manifest. Canister IDs might be hard coded."
+        );
+    }
 
     slog::info!(logger, "Building canisters...");
 
@@ -69,7 +76,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     canister_pool.build_or_fail(
         BuildConfig::from_config(&config)
             .with_generate_id(true)
-            .with_skip_frontend(args.is_present("skip-frontend")),
+            .with_skip_frontend(args.is_present("skip-frontend"))
+            .with_skip_manifest(args.is_present("skip-manifest")),
     )?;
 
     Ok(())

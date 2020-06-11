@@ -66,6 +66,7 @@ pub struct BuildConfig {
     profile: Profile,
     pub generate_id: bool,
     pub skip_frontend: bool,
+    pub skip_manifest: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
@@ -82,6 +83,7 @@ impl BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),
             generate_id: false,
             skip_frontend: false,
+            skip_manifest: false,
             idl_root: build_root.join("idl/"),
         }
     }
@@ -96,6 +98,13 @@ impl BuildConfig {
     pub fn with_skip_frontend(self, skip_frontend: bool) -> Self {
         Self {
             skip_frontend,
+            ..self
+        }
+    }
+
+    pub fn with_skip_manifest(self, skip_manifest: bool) -> Self {
+        Self {
+            skip_manifest,
             ..self
         }
     }

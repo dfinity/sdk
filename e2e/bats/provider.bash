@@ -18,6 +18,7 @@ teardown() {
 # This test is around 15 seconds to run. I don't think it should be faster without raising the
 # flakiness (replica start time).
 @test "provider flag can be passed in" {
+  skip "refactor this test to replace client.bash"
   dfx build
 
   # Start a replica manually on a specific port.

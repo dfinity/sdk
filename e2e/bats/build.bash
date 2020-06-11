@@ -73,11 +73,11 @@ teardown() {
 }
 
 @test "can build a custom canister type" {
+  dfx_start
   install_asset custom_canister
   assert_command dfx build
   assert_match "CUSTOM_CANISTER_BUILD_DONE"
 
-  dfx_start
   dfx canister install --all
   assert_command dfx canister call custom hashFromQuery
 }

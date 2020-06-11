@@ -45,6 +45,6 @@ builtins.derivation {
 
       # Timeout of 10 minutes is enough for now. Reminder; CI might be running with
       # less resources than a dev's computer, so e2e might take longer.
-      timeout --preserve-status 600 bats --recursive ${e2e}/* | tee $out
+      timeout --preserve-status 3600 bats --recursive ${e2e}/* | tee $out
     '';
 } // { meta = {}; }
