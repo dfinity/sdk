@@ -14,6 +14,7 @@ teardown() {
 }
 
 @test "print_mo" {
+    skip "Don't run on CI for now"
     [ "$USE_IC_REF" ] && skip "printing from mo not specified"
 
     install_asset print

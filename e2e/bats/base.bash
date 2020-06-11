@@ -31,6 +31,7 @@ teardown() {
     install_asset base
     dfx config defaults/build/packtool "echo"
 
+    dfx_start
     assert_command_fail dfx build
     assert_match 'import error, package "base" not defined'
 }

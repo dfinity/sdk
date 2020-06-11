@@ -15,8 +15,8 @@ teardown() {
 
 @test "calls and query receive the same principal from dfx" {
     install_asset identity
-    assert_command dfx build
     dfx_start
+    assert_command dfx build
     assert_command dfx canister install --all
 
     ID_CALL=$(dfx canister call e2e_project hashFromCall)

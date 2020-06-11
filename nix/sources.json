@@ -32,9 +32,9 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "v0.5.7",
+        "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "eb653572373754564ac815cd0785c5f7b9674d6d",
+        "rev": "0d53b954840d2bf5721dc9eaea449fe2efd64bf5",
         "type": "git"
     },
     "ic-ref": {
@@ -47,7 +47,7 @@
     "motoko": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "b80fa5d5d2ecddcb5e1de6433a8d20ee5de2b16a",
+        "rev": "bca4f3bc7aec0d006d2e2c2c1bf82270cc8a1f4d",
         "type": "git"
     },
     "napalm": {

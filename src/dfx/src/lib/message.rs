@@ -48,10 +48,10 @@ user_message!(
     InstallAll => "Install all canisters configured in dfx.json.",
     InstallCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
     InstallComputeAllocation => "Specifies the canister's compute allocation. This should be a percent in the range [0..100]",
+    InstallMode => "Install, Reinstall, or Upgrade the canister.",
 
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network replica.",
-    CanisterComputeProvider => "Override the compute provider to connect to. By default uses the address and port set in dfx configuration.",
 
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",
@@ -64,6 +64,8 @@ user_message!(
     // dfx build
     BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     SkipFrontend => "Skip building the frontend, only build the canisters.",
+    BuildSkipManifest => "Skip creating a build manifest. This also skip creating canisters and contacting the replica.",
+    CanisterComputeProvider => "Override the compute provider to connect to. By default uses the address and port set in dfx configuration.",
 
     // dfx config
     ConfigureOptions => "Configures project options for your currently-selected project.",
