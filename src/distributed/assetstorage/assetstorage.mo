@@ -22,8 +22,12 @@ actor {
     public query func retrieve(path: Path): async Contents {
         let result = A.find<Path, Contents>(stored, path, pathEq);
         switch result {
-            case null { throw Prim.error("asset not found: " # path) };
+            case null { throw Prim.error("asset '" # asset # "' not found") };
             case (?contents) { contents };
         }
     };
+
+    public query func die(): async ()) {
+        throw Prim.error("just throwing");
+    }
 };
