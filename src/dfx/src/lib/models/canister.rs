@@ -453,11 +453,9 @@ fn build_canister_js(
             String::from_utf8_lossy(&output.stdout).to_string(),
             String::from_utf8_lossy(&output.stderr).to_string(),
         )));
-    } else {
-        if !output.stderr.is_empty() {
-            // Cannot use eprintln, because it would interfere with the progress bar.
-            println!("{}", String::from_utf8_lossy(&output.stderr));
-        }
+    } else if !output.stderr.is_empty() {
+        // Cannot use eprintln, because it would interfere with the progress bar.
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 
     let mut language_bindings = assets::language_bindings()?;
