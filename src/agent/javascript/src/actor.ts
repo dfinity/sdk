@@ -2,10 +2,12 @@ import { Buffer } from 'buffer/';
 import { CanisterId } from './canisterId';
 import { HttpAgent } from './http_agent';
 import {
-  QueryResponseStatus, RequestStatusResponse, RequestStatusResponseReplied,
+  QueryResponseStatus,
+  RequestStatusResponse,
+  RequestStatusResponseReplied,
   RequestStatusResponseStatus,
   SubmitResponse,
-} from "./http_agent_types";
+} from './http_agent_types';
 import * as IDL from './idl';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
@@ -20,7 +22,8 @@ export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
     maxAttempts?: number;
     throttleDurationInMSecs?: number;
   }): Promise<CanisterId>;
-  __canisterId(): string;
+  __setCanisterId(cid: CanisterId): void;
+  __canisterId(): string | undefined;
   __getAsset(path: string): Promise<Uint8Array>;
   __install(
     fields: {
@@ -35,7 +38,7 @@ export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
 };
 
 export interface ActorConfig {
-  canisterId: string | CanisterId;
+  canisterId?: string | CanisterId;
   httpAgent?: HttpAgent;
   maxAttempts?: number;
   throttleDurationInMSecs?: number;
@@ -144,7 +147,13 @@ export function makeActorFactory(
       ...DEFAULT_ACTOR_CONFIG,
       ...config,
     } as Required<ActorConfig>;
-    const cid = typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId;
+
+    let cid =
+      canisterId !== undefined
+        ? typeof canisterId === 'string'
+          ? CanisterId.fromText(canisterId)
+          : canisterId
+        : undefined;
     const actor: Actor = {
       __actorInterface() {
         return actorInterface._fields.reduce(
@@ -153,20 +162,28 @@ export function makeActorFactory(
         );
       },
       __canisterId() {
-        return cid.toHex();
+        return cid?.toHex();
       },
       async __getAsset(path: string) {
         const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
           throw new Error('Cannot make call. httpAgent is undefined.');
         }
+        if (!cid) {
+          throw new Error('Cannot make call. Canister ID is undefined.');
+        }
 
-        return agent.retrieveAsset(canisterId, path);
+        return agent.retrieveAsset(cid, path);
       },
-      async __createCanister(options: {
-        maxAttempts?: number;
-        throttleDurationInMSecs?: number;
-      } = {}): Promise<CanisterId> {
+      __setCanisterId(newCid: CanisterId): void {
+        cid = newCid;
+      },
+      async __createCanister(
+        options: {
+          maxAttempts?: number;
+          throttleDurationInMSecs?: number;
+        } = {},
+      ): Promise<CanisterId> {
         const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
           throw new Error('Cannot make call. httpAgent is undefined.');
@@ -191,16 +208,17 @@ export function makeActorFactory(
         return await requestStatusAndLoop(
           agent,
           requestId,
-          (status) => {
+          status => {
             if (status.reply.canister_id === undefined) {
-              throw new Error('Canister Creation failed: Replica did not reply with a canister id.');
+              throw new Error(
+                'Canister Creation failed: Replica did not reply with a canister id.',
+              );
             }
             return CanisterId.fromBlob(status.reply.canister_id);
           },
-              effectiveMaxAttempts,
-              effectiveMaxAttempts,
-              effectiveThrottle
-          ,
+          effectiveMaxAttempts,
+          effectiveMaxAttempts,
+          effectiveThrottle,
         );
       },
 
@@ -218,12 +236,15 @@ export function makeActorFactory(
         if (!agent) {
           throw new Error('Cannot make call. httpAgent is undefined.');
         }
+        if (!cid) {
+          throw new Error('Cannot make call. Canister ID is undefined.');
+        }
 
         // Resolve the options that can be used globally or locally.
         const effectiveMaxAttempts = options.maxAttempts?.valueOf() || 0;
         const effectiveThrottle = options.throttleDurationInMSecs?.valueOf() || 0;
 
-        const { requestId, response } = await agent.install(canisterId, fields);
+        const { requestId, response } = await agent.install(cid, fields);
         if (!response.ok) {
           throw new Error(
             [
@@ -252,6 +273,9 @@ export function makeActorFactory(
         const agent = httpAgent || getDefaultHttpAgent();
         if (!agent) {
           throw new Error('Cannot make call. httpAgent is undefined.');
+        }
+        if (!cid) {
+          throw new Error('Cannot make call. Canister ID is undefined.');
         }
 
         const arg = IDL.encode(func.argTypes, args) as BinaryBlob;
@@ -294,10 +318,11 @@ export function makeActorFactory(
               } else if (func.retTypes.length === 0) {
                 return undefined;
               } else {
-                throw new Error(`Call was returned undefined, but type [${func.retTypes.join(',')}].`);
+                throw new Error(
+                  `Call was returned undefined, but type [${func.retTypes.join(',')}].`,
+                );
               }
-            }
-          ,
+            },
             maxAttempts,
             maxAttempts,
             throttleDurationInMSecs,

@@ -157,8 +157,8 @@ export interface RequestStatusResponsePending {
 export interface RequestStatusResponseReplied {
   status: RequestStatusResponseStatus.Replied;
   reply: {
-    canister_id?: BinaryBlob,
-    arg?: BinaryBlob,
+    canister_id?: BinaryBlob;
+    arg?: BinaryBlob;
   };
 }
 

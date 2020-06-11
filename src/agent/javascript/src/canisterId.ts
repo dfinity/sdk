@@ -1,5 +1,5 @@
 import { crc8 } from 'crc';
-import { BinaryBlob, blobFromHex, blobToHex } from "./types";
+import { BinaryBlob, blobFromHex, blobToHex } from './types';
 
 function getCrc(hex: string): string {
   return crc8(Buffer.from(hex, 'hex'))
