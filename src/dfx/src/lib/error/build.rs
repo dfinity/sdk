@@ -14,9 +14,6 @@ pub enum BuildErrorKind {
     /// An error happened while creating the JS canister bindings.
     CanisterJsGenerationError(String),
 
-    // Cannot find or read the canister ID.
-    CouldNotReadCanisterId(),
-
     // A cycle was detected in the dependency between canisters. For now we don't have
     // a list of dependencies creating the cycle.
     CircularDependency(String),
@@ -51,7 +48,6 @@ impl fmt::Display for BuildErrorKind {
                 "Creating canister JS bindings returned an error:\n{}",
                 stdout
             )),
-            CouldNotReadCanisterId() => f.write_str("The canister ID could not be found."),
             CircularDependency(name) => f.write_fmt(format_args!(
                 "There is a dependency cycle between canisters found at canister {}.",
                 name,

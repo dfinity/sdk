@@ -1,10 +1,7 @@
-use crate::Blob;
-use serde::Deserialize;
+use crate::{Blob, CanisterId};
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-#[serde(tag = "status")]
-/// The response of /api/v1/read with "request_status" request type
+/// The response of /api/v1/read with "request_status" request type.
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum RequestStatusResponse {
     Unknown,
     Pending,
@@ -12,14 +9,14 @@ pub enum RequestStatusResponse {
         reply: Replied,
     },
     Rejected {
-        reject_code: u16,
+        reject_code: u64,
         reject_message: String,
     },
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Replied {
-    CodeCallReplied { arg: Blob },
-    Empty {},
+    CallReplied(Blob),
+    CreateCanisterReplied(CanisterId),
+    InstallCodeReplied,
 }

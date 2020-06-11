@@ -9,6 +9,7 @@ pkgs.runCommandNoCCLocal "assets" {} ''
   cp -R ${assets-minimal}/* $out
 
   cp ${pkgs.dfinity.ic-replica}/bin/replica $out
+  cp ${pkgs.dfinity.ic-starter}/bin/ic-starter $out
   cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
   cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
 
