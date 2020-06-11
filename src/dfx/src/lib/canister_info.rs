@@ -134,6 +134,10 @@ impl CanisterInfo {
         self.extras.get(name).cloned()
     }
 
+    pub fn has_extra(&self, name: &str) -> bool {
+        self.extras.contains_key(name)
+    }
+
     pub fn get_extra<T: serde::de::DeserializeOwned>(&self, name: &str) -> DfxResult<T> {
         self.get_extra_value(name)
             .ok_or_else(|| {
@@ -155,6 +159,22 @@ impl CanisterInfo {
 
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+
+    pub fn get_build_wasm_path(&self) -> PathBuf {
+        self.build_root
+            .join(PathBuf::from(&self.name))
+            .join(&self.name)
+            .with_extension("wasm")
+            .to_path_buf()
+    }
+
+    pub fn get_build_idl_path(&self) -> PathBuf {
+        self.build_root
+            .join(PathBuf::from(&self.name))
+            .join(&self.name)
+            .with_extension("did")
+            .to_path_buf()
     }
 
     pub fn get_output_wasm_path(&self) -> Option<PathBuf> {

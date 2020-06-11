@@ -31,7 +31,7 @@ pkgs.runCommandNoCCLocal "distributed-canisters" {} ''
     output_dir=$out/$canister_name
     mkdir -p $output_dir
 
-    for ext in did did.js wasm
+    for ext in did wasm
     do
       cp $canister_root/canisters/$canister_name/$canister_name.$ext $output_dir
     done
