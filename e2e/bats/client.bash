@@ -29,7 +29,7 @@ teardown() {
   # export PORT=$(cat port)
   dfx canister --provider http://localhost:8080 install --all
   dfx canister --provider http://localhost:8080 call e2e_project greet '("Blueberry")'
-  assert_command_fail dfx canister --provider http://localhost:8080 call e2e_project greet '("Blueberry")'
+  assert_command_fail dfx canister call --provider http://localhost:8080 e2e_project greet '("Blueberry")'
   assert_command_fail dfx canister call e2e_project greet '("Blueberry")'
   kill -TERM `cat dfx.pid`
 }
