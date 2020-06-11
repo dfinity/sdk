@@ -2,6 +2,7 @@ import A "mo:base/AssocList";
 import B "mo:base/Blob";
 import L "mo:base/List";
 import P "mo:base/Prelude";
+import Prim "mo:prim";
 
 actor {
     public type Path = Text;
@@ -21,10 +22,7 @@ actor {
     public query func retrieve(path: Path): async Contents {
         let result = A.find<Path, Contents>(stored, path, pathEq);
         switch result {
-            case null {
-              // what is the syntax to throw?
-              P.nyi()
-            };
+            case null { throw Prim.error("asset not found: " # path) };
             case (?contents) { contents };
         }
     };
