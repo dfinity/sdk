@@ -367,7 +367,10 @@ impl CanisterPool {
     }
 
     /// Build all canisters, returning a vector of results of each builds.
-    pub fn build(&self, build_config: BuildConfig) -> DfxResult<Vec<DfxResult<&BuildOutput>>> {
+    pub fn build(
+        &self,
+        build_config: BuildConfig,
+    ) -> DfxResult<Vec<Result<&BuildOutput, BuildErrorKind>>> {
         let graph = self.build_dependencies_graph()?;
         let mut order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
             .map_err(|cycle| match graph.node_weight(cycle.node_id()) {
@@ -386,24 +389,42 @@ impl CanisterPool {
             .map(|idx| graph.node_weight(*idx).unwrap().clone())
             .collect();
 
-        self.step_prebuild_all(&build_config, &mut order)?;
+        self.step_prebuild_all(&build_config, &mut order)
+            .map_err(|e| {
+                DfxError::BuildError(BuildErrorKind::PrebuildAllStepFailed(Box::new(e)))
+            })?;
 
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
                 result.push(
-                    Ok(())
-                        .and_then(|_| self.step_prebuild(&build_config, canister))
-                        .and_then(|_| self.step_build(&build_config, canister))
-                        .and_then(|output| {
-                            self.step_postbuild(&build_config, canister, output)
-                                .map(|_| output)
+                    self.step_prebuild(&build_config, canister)
+                        .map_err(|e| {
+                            BuildErrorKind::PrebuildStepFailed(canister_id.clone(), Box::new(e))
+                        })
+                        .and_then(|_| {
+                            self.step_build(&build_config, canister).map_err(|e| {
+                                BuildErrorKind::BuildStepFailed(canister_id.clone(), Box::new(e))
+                            })
+                        })
+                        .and_then(|o| {
+                            self.step_postbuild(&build_config, canister, o)
+                                .map_err(|e| {
+                                    BuildErrorKind::PostbuildStepFailed(
+                                        canister_id.clone(),
+                                        Box::new(e),
+                                    )
+                                })
+                                .map(|_| o)
                         }),
                 );
             }
         }
 
-        self.step_postbuild_all(&build_config, &order)?;
+        self.step_postbuild_all(&build_config, &order)
+            .map_err(|e| {
+                DfxError::BuildError(BuildErrorKind::PostbuildAllStepFailed(Box::new(e)))
+            })?;
 
         Ok(result)
     }
@@ -414,7 +435,7 @@ impl CanisterPool {
         let outputs = self.build(build_config)?;
 
         for output in outputs {
-            output?;
+            output.map_err(DfxError::BuildError)?;
         }
 
         Ok(())
