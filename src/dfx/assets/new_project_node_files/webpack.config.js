@@ -6,16 +6,14 @@ const dfxJson = require("./dfx.json");
 // the `import ... from "ic:canisters/xyz"` where xyz is the name of a
 // canister.
 const aliases = Object.entries(dfxJson.canisters)
-    .filter(([name,value]) => value.main)
-    .reduce((acc, [name,value]) => {
-  const outputRoot = path.join(__dirname, dfxJson.defaults.build.output, name);
-  const filename = path.basename(value.main, ".mo");
-  return {
-    ...acc,
-    ["ic:canisters/" + name]: path.join(outputRoot, filename + ".js"),
-    ["ic:idl/" + name]: path.join(outputRoot, filename + ".did.js"),
-  };
-}, {});
+  .reduce((acc, [name,value]) => {
+    const outputRoot = path.join(__dirname, dfxJson.defaults.build.output, name);
+    return {
+      ...acc,
+      ["ic:canisters/" + name]: path.join(outputRoot, name + ".js"),
+      ["ic:idl/" + name]: path.join(outputRoot, name + ".did.js"),
+    };
+  }, {});
 
 /**
  * Generate a webpack configuration for a canister.
@@ -25,7 +23,6 @@ function generateWebpackConfigForCanister(name, info) {
     return;
   }
 
-  const outputRoot = path.join(__dirname, dfxJson.defaults.build.output, name);
   const inputRoot = __dirname;
 
   return {
@@ -43,7 +40,7 @@ function generateWebpackConfigForCanister(name, info) {
     },
     output: {
       filename: "[name].js",
-      path: path.join(inputRoot, info.frontend.output),
+      path: path.join(__dirname, info.frontend.output),
     },
     plugins: [
     ],
