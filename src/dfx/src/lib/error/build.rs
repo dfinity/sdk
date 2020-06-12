@@ -99,17 +99,17 @@ impl fmt::Display for BuildErrorKind {
             )),
 
             PrebuildStepFailed(c, e) => f.write_fmt(format_args!(
-                "step failed for canister {} with error: {:?}",
+                "Prebuild step failed for canister {} with error: {:?}",
                 c, e
             )),
 
             BuildStepFailed(c, e) => f.write_fmt(format_args!(
-                "step failed for canister {} with error: {:?}",
+                "Build step failed for canister {} with error: {:?}",
                 c, e
             )),
 
             PostbuildStepFailed(c, e) => f.write_fmt(format_args!(
-                "step failed for canister {} with error: {:?}",
+                "Postbuild step failed for canister {} with error: {:?}",
                 c, e
             )),
         }
