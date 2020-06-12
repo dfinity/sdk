@@ -90,26 +90,25 @@ impl fmt::Display for BuildErrorKind {
                 )),
             },
             PrebuildAllStepFailed(e) => {
-                f.write_fmt(format_args!("Prebuild ALL step failed with error: {:?}", e))
+                f.write_fmt(format_args!("Prebuild ALL step failed with error: {}", e))
             }
 
-            PostbuildAllStepFailed(e) => f.write_fmt(format_args!(
-                "Postbuild ALL step failed with error: {:?}",
-                e
-            )),
+            PostbuildAllStepFailed(e) => {
+                f.write_fmt(format_args!("Postbuild ALL step failed with error: {}", e))
+            }
 
             PrebuildStepFailed(c, e) => f.write_fmt(format_args!(
-                "Prebuild step failed for canister {} with error: {:?}",
+                "Prebuild step failed for canister {} with error: {}",
                 c, e
             )),
 
             BuildStepFailed(c, e) => f.write_fmt(format_args!(
-                "Build step failed for canister {} with error: {:?}",
+                "Build step failed for canister {} with error: {}",
                 c, e
             )),
 
             PostbuildStepFailed(c, e) => f.write_fmt(format_args!(
-                "Postbuild step failed for canister {} with error: {:?}",
+                "Postbuild step failed for canister {} with error: {}",
                 c, e
             )),
         }
