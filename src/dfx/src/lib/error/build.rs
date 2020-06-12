@@ -1,3 +1,5 @@
+use crate::lib::error::DfxError;
+use ic_agent::CanisterId;
 use std::fmt;
 use std::io::Error;
 use std::process::ExitStatus;
@@ -5,6 +7,21 @@ use std::process::ExitStatus;
 /// An error happened during build.
 #[derive(Debug)]
 pub enum BuildErrorKind {
+    /// The prebuild all step failed with the embedded error.
+    PrebuildAllStepFailed(Box<DfxError>),
+
+    /// The prebuild all step failed with the embedded error.
+    PostbuildAllStepFailed(Box<DfxError>),
+
+    /// The prebuild step failed with the embedded error.
+    PrebuildStepFailed(CanisterId, Box<DfxError>),
+
+    /// The prebuild all step failed with the embedded error.
+    BuildStepFailed(CanisterId, Box<DfxError>),
+
+    /// The prebuild step failed with the embedded error.
+    PostbuildStepFailed(CanisterId, Box<DfxError>),
+
     /// A compiler error happened.
     CompilerError(String, String, String),
 
@@ -72,6 +89,28 @@ impl fmt::Display for BuildErrorKind {
                     code
                 )),
             },
+            PrebuildAllStepFailed(e) => {
+                f.write_fmt(format_args!("Prebuild ALL step failed with error: {}", e))
+            }
+
+            PostbuildAllStepFailed(e) => {
+                f.write_fmt(format_args!("Postbuild ALL step failed with error: {}", e))
+            }
+
+            PrebuildStepFailed(c, e) => f.write_fmt(format_args!(
+                "Prebuild step failed for canister {} with error: {}",
+                c, e
+            )),
+
+            BuildStepFailed(c, e) => f.write_fmt(format_args!(
+                "Build step failed for canister {} with error: {}",
+                c, e
+            )),
+
+            PostbuildStepFailed(c, e) => f.write_fmt(format_args!(
+                "Postbuild step failed for canister {} with error: {}",
+                c, e
+            )),
         }
     }
 }
