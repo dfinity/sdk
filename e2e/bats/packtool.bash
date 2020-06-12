@@ -14,7 +14,6 @@ teardown() {
 }
 
 @test "build fails if packtool is not configured" {
-    skip "Don't run on CI for now"
     install_asset packtool
 
     dfx_start
@@ -23,7 +22,6 @@ teardown() {
 }
 
 @test "build succeeds if packtool is configured" {
-    skip "Don't run on CI for now"
     install_asset packtool
     source configure_packtool.bash
 
@@ -32,7 +30,6 @@ teardown() {
 }
 
 @test "project calls dependencies made available by packtool" {
-    skip "Don't run on CI for now"
     install_asset packtool
     source configure_packtool.bash
 
@@ -48,7 +45,6 @@ teardown() {
 }
 
 @test "failure to invoke the package tool reports the command line and reason" {
-    skip "Don't run on CI for now"
     install_asset packtool
     dfx config defaults/build/packtool "./no-such-command that command cannot be invoked"
 
@@ -60,7 +56,6 @@ teardown() {
 }
 
 @test "failure in execution reports the command line and exit code" {
-    skip "Don't run on CI for now"
     install_asset packtool
     dfx config defaults/build/packtool "sh ./command-that-fails.bash"
 
