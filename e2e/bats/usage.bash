@@ -1,5 +1,9 @@
 load utils/_
 
+teardown() {
+    dfx_stop
+}
+
 @test "dfx help succeeds" {
   dfx --help
 }
