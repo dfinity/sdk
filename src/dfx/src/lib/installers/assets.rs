@@ -2,6 +2,7 @@ use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
 use crate::lib::waiter::create_waiter;
+use candid::Encode;
 use ic_agent::Agent;
 use ic_agent::Blob;
 use std::path::Path;
