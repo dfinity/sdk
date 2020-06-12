@@ -1,5 +1,9 @@
 load utils/_
 
+teardown() {
+    dfx_stop
+}
+
 @test "dfx help succeeds" {
   dfx --help
 }
@@ -25,5 +29,6 @@ load utils/_
 
     dfx new t --no-frontend
     cd t
+    dfx_start
     assert_command dfx build
 }

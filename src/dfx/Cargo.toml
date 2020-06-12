@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.5.7"
+version = "0.5.8"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -21,7 +21,8 @@ actix-server = "0.6.1"
 actix-web = "1.0.8"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = "0.2.4"
+candid = "0.2.6"
+chrono = "0.4.9"
 clap = "2.33.0"
 console = "0.7.7"
 crossbeam = "0.7.3"
