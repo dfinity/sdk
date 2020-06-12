@@ -21,7 +21,6 @@ pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> Df
                 .expect("cannot strip prefix");
             let content = &std::fs::read(&source)?;
             let path = relative.to_string_lossy().to_string();
-
             let blob = candid::Encode!(&path, &content)?;
             let blob = Blob::from(&blob);
 
