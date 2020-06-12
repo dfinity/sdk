@@ -130,12 +130,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
-    } else if let Some(blob) = runtime.block_on(client.call_and_wait(
-        &canister_id,
-        method_name,
-        &arg_value,
-        create_waiter(),
-    ))? {
+    } else {
+        let blob = runtime.block_on(client.call_and_wait(
+            &canister_id,
+            method_name,
+            &arg_value,
+            create_waiter(),
+        ))?;
+
         print_idl_blob(&blob)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     }

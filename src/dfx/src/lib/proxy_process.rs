@@ -27,7 +27,7 @@ pub fn spawn_and_update_proxy(
 
             let (send_port, rcv_port) = unbounded();
 
-            let mut hotwatch = Hotwatch::new_with_custom_delay(std::time::Duration::from_secs(30))
+            let mut hotwatch = Hotwatch::new_with_custom_delay(std::time::Duration::from_secs(1))
                 .expect("hotwatch failed to initialize!");
             let is_killed = proxy_supervisor.is_killed.clone();
             // We start a hotwatch watcher. It will run on the

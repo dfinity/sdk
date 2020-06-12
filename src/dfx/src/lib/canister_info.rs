@@ -4,8 +4,8 @@ use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
-use ic_agent::{Blob, CanisterId};
-use rand::{thread_rng, RngCore};
+use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
+use ic_agent::CanisterId;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -35,7 +35,8 @@ pub struct CanisterInfo {
     canister_root: PathBuf,
 
     canister_id: RefCell<Option<CanisterId>>,
-    canister_id_path: PathBuf,
+
+    manifest_path: PathBuf,
 
     packtool: Option<String>,
 
@@ -60,7 +61,13 @@ impl CanisterInfo {
         let extras = canister_config.extras.clone();
 
         let output_root = build_root.join(name);
-        let canister_id_path = output_root.join("_canister.id");
+        // todo needs to be in child "canisters" dir of canister_root
+        // let temp_dir = env.get_temp_dir();
+        let canisters_dir = canister_root.join("canisters");
+        std::fs::create_dir_all(&canisters_dir)?;
+
+        let manifest_path = canisters_dir.join("canister_manifest.json");
+
         let canister_type = canister_config
             .r#type
             .as_ref()
@@ -77,7 +84,8 @@ impl CanisterInfo {
             canister_root,
 
             canister_id: RefCell::new(None),
-            canister_id_path,
+
+            manifest_path,
 
             packtool: build_defaults.get_packtool(),
             extras,
@@ -96,19 +104,26 @@ impl CanisterInfo {
     pub fn get_build_root(&self) -> &Path {
         &self.build_root
     }
+    pub fn get_manifest_path(&self) -> &Path {
+        self.manifest_path.as_path()
+    }
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
     }
-    pub fn get_canister_id_path(&self) -> &Path {
-        self.canister_id_path.as_path()
-    }
-
     pub fn get_canister_id(&self) -> Option<CanisterId> {
-        let canister_id = self.canister_id.replace(None).or_else(|| {
-            std::fs::read(&self.canister_id_path)
-                .ok()
-                .map(|cid| CanisterId::from(Blob::from(cid)))
-        });
+        if !self.get_manifest_path().exists() {
+            return Some(CanisterId::from_bytes(&[0, 1, 2, 3]));
+        }
+
+        let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
+        let manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
+        let serde_value = &manifest.canisters[&self.name.clone()];
+        let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
+
+        let canister_id = self
+            .canister_id
+            .replace(None)
+            .or_else(|| CanisterId::from_text(metadata.canister_id).ok());
 
         self.canister_id.replace(canister_id.clone());
 
@@ -117,6 +132,10 @@ impl CanisterInfo {
 
     pub fn get_extra_value(&self, name: &str) -> Option<serde_json::Value> {
         self.extras.get(name).cloned()
+    }
+
+    pub fn has_extra(&self, name: &str) -> bool {
+        self.extras.contains_key(name)
     }
 
     pub fn get_extra<T: serde::de::DeserializeOwned>(&self, name: &str) -> DfxResult<T> {
@@ -140,6 +159,22 @@ impl CanisterInfo {
 
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+
+    pub fn get_build_wasm_path(&self) -> PathBuf {
+        self.build_root
+            .join(PathBuf::from(&self.name))
+            .join(&self.name)
+            .with_extension("wasm")
+            .to_path_buf()
+    }
+
+    pub fn get_build_idl_path(&self) -> PathBuf {
+        self.build_root
+            .join(PathBuf::from(&self.name))
+            .join(&self.name)
+            .with_extension("did")
+            .to_path_buf()
     }
 
     pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
@@ -166,12 +201,9 @@ impl CanisterInfo {
         }
     }
 
-    pub fn generate_canister_id(&self) -> DfxResult<CanisterId> {
-        let mut rng = thread_rng();
-        let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
-        rng.fill_bytes(v.as_mut_slice());
-
-        Ok(CanisterId::from(Blob(v)))
+    pub fn set_canister_id(&self, canister_id: CanisterId) -> DfxResult {
+        self.canister_id.replace(Some(canister_id));
+        Ok(())
     }
 
     pub fn as_info<T: CanisterInfoFactory>(&self) -> DfxResult<T> {

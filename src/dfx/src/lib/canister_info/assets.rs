@@ -35,16 +35,23 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
         let name = info.get_name();
 
         let input_root = info.get_workspace_root();
-        let source_paths = info.get_extra::<Vec<PathBuf>>("source")?;
-        let source_paths: Vec<PathBuf> = source_paths.iter().map(|x| input_root.join(x)).collect();
-        for source_path in &source_paths {
-            let canonical = source_path.canonicalize()?;
-            if !canonical.starts_with(info.get_workspace_root()) {
-                return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
-                    source_path.to_path_buf(),
-                ));
+        // If there are no "source" field, we just ignore this.
+        let source_paths = if info.has_extra("source") {
+            let source_paths = info.get_extra::<Vec<PathBuf>>("source")?;
+            let source_paths: Vec<PathBuf> =
+                source_paths.iter().map(|x| input_root.join(x)).collect();
+            for source_path in &source_paths {
+                let canonical = source_path.canonicalize()?;
+                if !canonical.starts_with(info.get_workspace_root()) {
+                    return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
+                        source_path.to_path_buf(),
+                    ));
+                }
             }
-        }
+            source_paths
+        } else {
+            vec![]
+        };
 
         let output_root = build_root.join(name);
 
