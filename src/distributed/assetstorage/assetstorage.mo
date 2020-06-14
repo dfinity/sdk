@@ -22,7 +22,7 @@ actor {
         switch result {
             case null {
                 // more than 8 chars treated as invalid UTF-8
-                // https://github.com/dfinity-lab/sdk/issues/701
+                // TODO: https://github.com/dfinity-lab/sdk/issues/701
                 throw Prim.error("notfound")
             };
             case (?contents) { contents };
