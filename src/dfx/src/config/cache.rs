@@ -88,16 +88,27 @@ pub fn get_profile_path() -> DfxResult<PathBuf> {
     Ok(p)
 }
 
-/// Return the binary cache root. It constructs it if not present
-/// already.
-pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
+pub fn get_cache_root() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
         .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
 
-    let p = PathBuf::from(home)
-        .join(".cache")
-        .join("dfinity")
-        .join("versions");
+    let p = PathBuf::from(home).join(".cache").join("dfinity");
+
+    if !p.exists() {
+        if let Err(e) = std::fs::create_dir_all(&p) {
+            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
+        }
+    } else if !p.is_dir() {
+        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+    }
+
+    Ok(p)
+}
+
+/// Return the binary cache root. It constructs it if not present
+/// already.
+pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
+    let p = get_cache_root()?.join("versions");
 
     if !p.exists() {
         if let Err(e) = std::fs::create_dir_all(&p) {

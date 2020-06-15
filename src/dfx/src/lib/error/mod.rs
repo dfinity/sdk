@@ -102,6 +102,9 @@ pub enum DfxError {
 
     /// A directory lies outside the workspace root, and t
     DirectoryIsOutsideWorkspaceRoot(PathBuf),
+
+    /// Could not parse an URL for some reason.
+    InvalidUrl(String),
 }
 
 /// The result of running a DFX command.

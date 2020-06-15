@@ -5,7 +5,7 @@ pub(crate) mod replica_api;
 pub(crate) mod response;
 
 pub(crate) mod public {
-    pub use super::agent_config::AgentConfig;
+    pub use super::agent_config::{AgentConfig, AgentRequestExecutor};
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
     pub use super::response::{Replied, RequestStatusResponse};
@@ -18,34 +18,27 @@ mod agent_test;
 use crate::agent::replica_api::{AsyncContent, Envelope, SyncContent};
 use crate::identity::Identity;
 use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
+use reqwest::Method;
+use std::convert::TryInto;
 
 use public::*;
-use reqwest::header::HeaderMap;
-use reqwest::{Client, Method};
-use std::convert::TryInto;
 
 pub struct Agent {
     url: reqwest::Url,
-    client: reqwest::Client,
     nonce_factory: NonceFactory,
+    request_executor: Box<dyn AgentRequestExecutor>,
     identity: Box<dyn Identity>,
 }
 
 impl Agent {
     pub fn new(config: AgentConfig<'_>) -> Result<Agent, AgentError> {
-        let mut default_headers = HeaderMap::new();
-        default_headers.insert(
-            reqwest::header::CONTENT_TYPE,
-            "application/cbor".parse().unwrap(),
-        );
-
         let url = config.url;
 
         Ok(Agent {
             url: reqwest::Url::parse(url)
                 .and_then(|url| url.join("api/v1/"))
                 .map_err(|_| AgentError::InvalidClientUrl(String::from(url)))?,
-            client: Client::builder().default_headers(default_headers).build()?,
+            request_executor: config.request_executor,
             nonce_factory: config.nonce_factory,
             identity: config.identity,
         })
@@ -60,11 +53,15 @@ impl Agent {
         let url = self.url.join(endpoint)?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
+        http_request.headers_mut().insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/cbor".parse().unwrap(),
+        );
         http_request
             .body_mut()
             .get_or_insert(reqwest::Body::from(serialized_bytes));
 
-        let response = self.client.execute(http_request).await?;
+        let response = self.request_executor.execute(http_request).await?;
         if response.status().is_client_error() || response.status().is_server_error() {
             Err(AgentError::ServerError {
                 status: response.status().into(),
@@ -335,7 +332,7 @@ impl Agent {
             reqwest::header::CONTENT_TYPE,
             "application/cbor".parse().unwrap(),
         );
-        let response = self.client.execute(http_request).await?;
+        let response = self.request_executor.execute(http_request).await?;
 
         if response.status().is_client_error() || response.status().is_server_error() {
             Err(AgentError::ServerError {
