@@ -79,6 +79,9 @@ user_message!(
     DryRun => "Provides a preview the directories and files to be created without adding them to the file system.",
     NewFrontend => "Install the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.",
 
+    // dfx ping
+    Ping => "Ping an Internet Computer and returns its status.",
+
     // dfx replica
     Replica => "Start a local replica.",
     ReplicaMessageGasLimit => "Maximum amount of gas a single message can consume.",

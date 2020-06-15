@@ -328,33 +328,50 @@ impl Agent {
         .await
     }
 
-    pub async fn ping_once(&self) -> Result<(), AgentError> {
+    pub async fn ping_once(&self) -> Result<serde_cbor::Value, AgentError> {
         let url = self.url.join("status")?;
-        let http_request = reqwest::Request::new(Method::GET, url);
+        let mut http_request = reqwest::Request::new(Method::GET, url);
+        http_request.headers_mut().insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/cbor".parse().unwrap(),
+        );
         let response = self.client.execute(http_request).await?;
 
-        if response.status().as_u16() == 200 {
-            Ok(())
+        if response.status().is_client_error() || response.status().is_server_error() {
+            Err(AgentError::ServerError {
+                status: response.status().into(),
+                content_type: response
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok())
+                    .map(|x| x.to_string()),
+                content: response.text().await?,
+            })
         } else {
-            // Verify the error is 2XX.
-            response
-                .error_for_status()
-                .map(|_| ())
-                .map_err(AgentError::from)
+            let bytes = response.bytes().await?.to_vec();
+            Ok(serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)?)
         }
     }
 
-    pub async fn ping<W: delay::Waiter>(&self, mut waiter: W) -> Result<(), AgentError> {
+    pub async fn ping<W: delay::Waiter>(
+        &self,
+        mut waiter: W,
+    ) -> Result<serde_cbor::Value, AgentError> {
         waiter.start();
         loop {
-            if self.ping_once().await.is_ok() {
-                break;
-            }
+            // Break if the server/replica answered but was an error (compared to not being
+            // able to reach the server).
+            match self.ping_once().await {
+                Ok(x) => return Ok(x),
+                Err(x @ AgentError::ServerError { .. }) => Err(x),
+                Err(x @ AgentError::ReplicaError { .. }) => Err(x),
+                Err(x @ AgentError::ReqwestError(_)) => Err(x),
+                _ => Ok(()),
+            }?;
 
             waiter
                 .wait()
                 .map_err(|_| AgentError::TimeoutWaitingForResponse)?;
         }
-        Ok(())
     }
 }
