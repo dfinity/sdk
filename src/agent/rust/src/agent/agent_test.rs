@@ -3,6 +3,7 @@ use crate::agent::response::{Replied, RequestStatusResponse};
 use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId};
 use delay::Delay;
 use mockito::mock;
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 #[test]
@@ -252,7 +253,11 @@ fn install() -> Result<(), AgentError> {
 
 #[test]
 fn ping() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
+    let response = serde_cbor::Value::Map(BTreeMap::new());
+    let read_mock = mock("GET", "/api/v1/status")
+        .with_status(200)
+        .with_body(serde_cbor::to_vec(&response)?)
+        .create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -270,14 +275,18 @@ fn ping() -> Result<(), AgentError> {
 
 #[test]
 fn ping_okay() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
+    let response = serde_cbor::Value::Map(BTreeMap::new());
+    let read_mock = mock("GET", "/api/v1/status")
+        .with_status(200)
+        .with_body(serde_cbor::to_vec(&response)?)
+        .create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async { agent.ping(Delay::instant()).await });
+    let result = runtime.block_on(agent.ping(Delay::instant()));
 
     read_mock.assert();
 

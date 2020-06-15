@@ -360,11 +360,9 @@ impl Agent {
             // able to reach the server).
             match self.ping_once().await {
                 Ok(x) => return Ok(x),
-                Err(x @ AgentError::ServerError { .. }) => Err(x),
-                Err(x @ AgentError::ReplicaError { .. }) => Err(x),
-                Err(x @ AgentError::ReqwestError(_)) => Err(x),
-                _ => Ok(()),
-            }?;
+                Err(AgentError::ReqwestError(_)) => {}
+                Err(x) => return Err(x),
+            }
 
             waiter
                 .wait()
