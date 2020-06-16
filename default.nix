@@ -15,6 +15,9 @@ rec {
   # Agents in varous languages
   agent-js = import ./src/agent/javascript { inherit pkgs; };
 
+  # Bootstrap frontend.
+  bootstrap = import ./src/bootstrap { inherit pkgs; };
+
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
   assets = import ./assets.nix { inherit pkgs agent-js assets-minimal distributed-canisters; };

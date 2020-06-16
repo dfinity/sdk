@@ -11,6 +11,12 @@
     "sourceMap": true,
     "tsBuildInfoFile": "./build_info.json",
     "strict": true,
+    "paths": {
+        "@dfinity/agent": [
+            "../agent/javascript",
+            "node_modules/@dfinity/agent"
+        ]
+    },
     "baseUrl": "./",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
