@@ -104,7 +104,7 @@ pub enum DfxError {
     DirectoryIsOutsideWorkspaceRoot(PathBuf),
 
     /// Could not parse an URL for some reason.
-    InvalidUrl(String),
+    InvalidUrl(String, url::ParseError),
 }
 
 /// The result of running a DFX command.

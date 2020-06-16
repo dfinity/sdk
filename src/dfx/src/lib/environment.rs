@@ -5,10 +5,12 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::Identity;
 use crate::lib::progress_bar::ProgressBar;
 
+use async_trait::async_trait;
 use ic_agent::{Agent, AgentConfig};
 use lazy_init::Lazy;
 use semver::Version;
 use slog::{Logger, Record};
+use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -252,10 +254,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 }
 
-use async_trait::async_trait;
-use std::collections::BTreeMap;
-
 pub struct AgentClient {
+    logger: Logger,
     client: reqwest::Client,
     url: reqwest::Url,
 
@@ -265,48 +265,65 @@ pub struct AgentClient {
 
 impl AgentClient {
     pub fn new(logger: Logger, url: String, client: reqwest::Client) -> DfxResult<AgentClient> {
-        let url = reqwest::Url::parse(&url).map_err(|_| DfxError::InvalidUrl(url))?;
-        let host = url.host().map(|h| h.to_string());
-        let mut auth: Option<String> = None;
+        let url = reqwest::Url::parse(&url).map_err(|e| DfxError::InvalidUrl(url, e))?;
 
-        if let Some(h) = &host {
-            if let Ok(map) = Self::read_http_auth() {
-                auth = map.get(h).cloned();
+        let result = Self {
+            logger,
+            client,
+            url,
+            auth: Arc::new(Mutex::new(None)),
+        };
 
-                // If we don't use a secure protocol, we
-                if auth.is_some() && url.scheme() != "https" {
+        if let Ok(Some(auth)) = result.read_http_auth() {
+            result.auth.lock().unwrap().replace(auth);
+        }
+
+        Ok(result)
+    }
+
+    fn http_auth_path() -> DfxResult<PathBuf> {
+        Ok(cache::get_cache_root()?.join("http_auth"))
+    }
+
+    fn read_http_auth_map(&self) -> DfxResult<BTreeMap<String, String>> {
+        let p = &Self::http_auth_path()?;
+        let content = std::fs::read_to_string(p)?;
+
+        // If there's an error parsing, simply use an empty map.
+        Ok(
+            serde_json::from_slice::<BTreeMap<String, String>>(content.as_bytes())
+                .unwrap_or_else(|_| BTreeMap::new()),
+        )
+    }
+
+    fn read_http_auth(&self) -> DfxResult<Option<String>> {
+        match self.url.host() {
+            None => Ok(None),
+            Some(h) => {
+                if self.url.scheme() != "https" {
                     slog::warn!(
-                        logger,
+                        self.logger,
                         "HTTP Auth was found, but protocol is not secure. Refusing to use the token."
                     );
-                    auth = None;
+                    Ok(None)
+                } else {
+                    let map = self.read_http_auth_map()?;
+                    Ok(map.get(&h.to_string()).cloned())
                 }
             }
         }
-
-        Ok(Self {
-            auth: Arc::new(Mutex::new(auth)),
-            url,
-            client,
-        })
     }
 
-    fn read_http_auth() -> DfxResult<BTreeMap<String, String>> {
-        let p = &cache::get_cache_root()?.join("http_auth");
-        let content = std::fs::read_to_string(p)?;
-        Ok(serde_json::from_slice::<BTreeMap<String, String>>(
-            content.as_bytes(),
-        )?)
-    }
-
-    fn save_http_auth(host: &str, auth: &str) -> DfxResult {
-        let mut map = Self::read_http_auth().unwrap_or_else(|_| BTreeMap::new());
+    fn save_http_auth(&self, host: &str, auth: &str) -> DfxResult<PathBuf> {
+        let mut map = self
+            .read_http_auth_map()
+            .unwrap_or_else(|_| BTreeMap::new());
         map.insert(host.to_string(), auth.to_string());
 
-        let p = &cache::get_cache_root()?.join("http_auth");
+        let p = Self::http_auth_path()?;
         std::fs::write(&p, serde_json::to_string(&map)?.as_bytes())?;
 
-        Ok(())
+        Ok(p)
     }
 }
 
@@ -354,8 +371,13 @@ impl ic_agent::AgentRequestExecutor for AgentClient {
                 self.auth.lock().unwrap().replace(auth.clone());
 
                 if let Some(h) = &self.url.host() {
-                    let _ = Self::save_http_auth(&h.to_string(), &auth);
-                    eprintln!("Saved HTTP credentials to ~/.cache/dfinity/http_auth");
+                    if let Ok(p) = self.save_http_auth(&h.to_string(), &auth) {
+                        slog::info!(
+                            self.logger,
+                            "Saved HTTP credentials to {}.",
+                            p.to_string_lossy()
+                        );
+                    }
                 }
             } else {
                 return Ok(response);
