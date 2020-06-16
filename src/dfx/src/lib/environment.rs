@@ -300,15 +300,19 @@ impl AgentClient {
         match self.url.host() {
             None => Ok(None),
             Some(h) => {
-                if self.url.scheme() != "https" {
-                    slog::warn!(
+                let map = self.read_http_auth_map()?;
+                if let Some(token) = map.get(&h.to_string()) {
+                    if self.url.scheme() != "https" {
+                        slog::warn!(
                         self.logger,
                         "HTTP Auth was found, but protocol is not secure. Refusing to use the token."
                     );
-                    Ok(None)
+                        Ok(None)
+                    } else {
+                        Ok(Some(token.clone()))
+                    }
                 } else {
-                    let map = self.read_http_auth_map()?;
-                    Ok(map.get(&h.to_string()).cloned())
+                    Ok(None)
                 }
             }
         }
