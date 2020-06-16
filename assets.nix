@@ -1,6 +1,6 @@
 { pkgs ? import ./nix {}
 , agent-js ? import ./src/agent/javascript { inherit pkgs; }
-, bootstrap-js ? import ./src/bootstrap { inherit pkgs; }
+, bootstrap-js ? import ./src/bootstrap { inherit pkgs agent-js; }
 , assets-minimal ? import ./assets-minimal.nix { inherit pkgs; }
 , distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs assets-minimal; }
 }:
