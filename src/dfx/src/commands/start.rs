@@ -57,6 +57,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     runtime
         .block_on(agent.ping(create_waiter()))
+        .map(|_| ())
         .map_err(DfxError::from)
 }
 
