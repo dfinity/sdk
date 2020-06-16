@@ -16,7 +16,7 @@ rec {
   agent-js = import ./src/agent/javascript { inherit pkgs; };
 
   # Bootstrap frontend.
-  bootstrap = import ./src/bootstrap { inherit pkgs; };
+  bootstrap = import ./src/bootstrap { inherit pkgs agent-js; };
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
