@@ -17,7 +17,7 @@ use url::Url;
 /// The amount of time to wait for the client to answer, in seconds.
 /// Actix requests does not support having no timeout, so we have to put a reasonable value here,
 /// even though our normal canister commands don't have timeouts themselves.
-const FORWARD_REQUEST_TIMEOUT_IN_SECS: u64 = 20;
+const FORWARD_REQUEST_TIMEOUT_IN_SECS: u64 = 60;
 
 struct ForwardActixData {
     pub providers: Vec<Url>,
@@ -45,8 +45,16 @@ fn forward(
         .timeout(std::time::Duration::from_secs(
             FORWARD_REQUEST_TIMEOUT_IN_SECS,
         ));
+
     let forwarded_req = if let Some(addr) = req.head().peer_addr {
         forwarded_req.header("x-forwarded-for", format!("{}", addr.ip()))
+    } else {
+        forwarded_req
+    };
+
+    // Set the virtual host properly.
+    let forwarded_req = if let Some(h) = url.host() {
+        forwarded_req.header("host", h.to_string())
     } else {
         forwarded_req
     };
@@ -70,8 +78,11 @@ fn forward(
                 indicatif::HumanBytes(req_body.len() as u64),
                 url,
             );
-            trace!(logger, "  type  {}", req.content_type());
-            trace!(logger, "  body  {}", hex::encode(&req_body));
+            trace!(logger, "  headers");
+            for (k, v) in req.head().headers.iter() {
+                trace!(logger, "      {}: {}", k, v.to_str().unwrap());
+            }
+            trace!(logger, "  body    {}", hex::encode(&req_body));
 
             forwarded_req
                 .send_body(req_body)
