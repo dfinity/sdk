@@ -4,7 +4,7 @@
 }:
 pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.)) {
   root = ./.;
-  name = "dfinity-sdk-bootstrap";
+  name = "bootstrap-js";
   buildInputs = [ agent-js ];
 
   outputs = [ "out" "lib" ];
