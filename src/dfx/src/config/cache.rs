@@ -162,6 +162,10 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             None
         };
 
+        let temp_p = get_bin_cache(&format!("_{}", v))?;
+        std::fs::create_dir(&temp_p)
+            .map_err(|e| DfxError::CouldNotCreateTempInstallDirectory(e, temp_p.clone()))?;
+
         let mut binary_cache_assets = util::assets::binary_cache()?;
         // Write binaries and set them to be executable.
         for file in binary_cache_assets.entries()? {
@@ -170,21 +174,27 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             if file.header().entry_type().is_dir() {
                 continue;
             }
-            file.unpack_in(p.as_path())?;
+            file.unpack_in(temp_p.as_path())?;
 
-            let full_path = p.join(file.path()?);
+            let full_path = temp_p.join(file.path()?);
             let mut perms = std::fs::metadata(full_path.as_path())?.permissions();
             perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
             std::fs::set_permissions(full_path.as_path(), perms)?;
         }
 
         // Copy our own binary in the cache.
-        let dfx = p.join("dfx");
+        let dfx = temp_p.join("dfx");
         std::fs::write(&dfx, std::fs::read(current_exe)?)?;
         // And make it executable.
         let mut perms = std::fs::metadata(&dfx)?.permissions();
         perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
         std::fs::set_permissions(&dfx, perms)?;
+
+        // atomically install cache version into place
+        if force && p.exists() {
+            std::fs::remove_dir_all(&p)?;
+        }
+        std::fs::rename(&temp_p, &p)?;
 
         if let Some(b) = b {
             b.finish_with_message(&format!("Version v{} installed successfully.", v));
