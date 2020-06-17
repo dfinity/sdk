@@ -146,9 +146,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         }
     })?;
 
-    let bootstrap_dir = env
-        .get_cache()
-        .get_binary_command_path("js-user-library/dist/bootstrap")?;
+    let bootstrap_dir = env.get_cache().get_binary_command_path("bootstrap")?;
 
     // We have a long-lived replica process and a proxy. We use
     // currently a messaging pattern to supervise. This is going to

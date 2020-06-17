@@ -176,7 +176,7 @@ fn get_providers(
 /// Gets the directory containing static assets served by the bootstrap server. First checks if the
 /// directory was specified on the command-line using --root, otherwise checks if the directory was
 /// specified in the dfx configuration file, otherise defaults to
-/// $HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap.
+/// $HOME/.cache/dfinity/versions/$DFX_VERSION/bootstrap.
 fn get_root(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
@@ -188,11 +188,7 @@ fn get_root(
             config
                 .root
                 .clone()
-                .map_or(
-                    env.get_cache()
-                        .get_binary_command_path("js-user-library/dist/bootstrap"),
-                    Ok,
-                )
+                .map_or(env.get_cache().get_binary_command_path("bootstrap"), Ok)
                 .and_then(|root| {
                     parse_dir(
                         root.to_str()
