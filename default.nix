@@ -16,11 +16,11 @@ rec {
   agent-js = import ./src/agent/javascript { inherit pkgs; };
 
   # Bootstrap frontend.
-  bootstrap = import ./src/bootstrap { inherit pkgs agent-js; };
+  bootstrap-js = import ./src/bootstrap { inherit pkgs agent-js; };
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
-  assets = import ./assets.nix { inherit pkgs agent-js assets-minimal bootstrap distributed-canisters; };
+  assets = import ./assets.nix { inherit pkgs agent-js assets-minimal bootstrap-js distributed-canisters; };
   assets-minimal = import ./assets-minimal.nix { inherit pkgs; };
 
   dfx-minimal = import ./dfx-minimal.nix { inherit pkgs assets-minimal; };
