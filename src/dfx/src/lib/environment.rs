@@ -285,6 +285,12 @@ impl AgentClient {
         Ok(cache::get_cache_root()?.join("http_auth"))
     }
 
+    // A connection is considered secure if it goes to an HTTPs scheme or if it's the
+    // localhost (which cannot be spoofed).
+    fn is_secure(&self) -> bool {
+        self.url.scheme() == "https" || self.url.host_str().unwrap_or("") == "localhost"
+    }
+
     fn read_http_auth_map(&self) -> DfxResult<BTreeMap<String, String>> {
         let p = &Self::http_auth_path()?;
         let content = std::fs::read_to_string(p)?;
@@ -302,7 +308,7 @@ impl AgentClient {
             Some(h) => {
                 let map = self.read_http_auth_map()?;
                 if let Some(token) = map.get(&h.to_string()) {
-                    if self.url.scheme() != "https" {
+                    if !self.is_secure() {
                         slog::warn!(
                         self.logger,
                         "HTTP Auth was found, but protocol is not secure. Refusing to use the token."
@@ -355,7 +361,7 @@ impl ic_agent::AgentRequestExecutor for AgentClient {
 
             // 401 is HTTP Authentication unauthorized access.
             if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-                if self.url.scheme() != "https" {
+                if !self.is_secure() {
                     return Ok(response);
                 }
 

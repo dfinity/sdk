@@ -5,9 +5,9 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::waiter::create_waiter;
 use crate::util::assets;
 use chrono::Utc;
-use delay::Delay;
 use ic_agent::CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,6 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::runtime::Runtime;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
@@ -160,11 +159,7 @@ impl CanisterPool {
         let mut runtime = Runtime::new().expect("Unable to create a runtime");
         // check manifest first before getting new can id here
         for canister in &self.canisters {
-            let waiter = Delay::builder()
-                .throttle(Duration::from_millis(100))
-                .timeout(Duration::from_secs(60))
-                .build();
-
+            let waiter = create_waiter();
             let info = &canister.info;
 
             let manifest_path = info.get_manifest_path();
