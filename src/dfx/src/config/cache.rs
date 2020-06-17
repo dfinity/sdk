@@ -191,6 +191,9 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
         std::fs::set_permissions(&dfx, perms)?;
 
         // atomically install cache version into place
+        if force && p.exists() {
+            std::fs::remove_dir_all(&p)?;
+        }
         std::fs::rename(&temp_p, &p)?;
 
         if let Some(b) = b {
