@@ -6,9 +6,10 @@ To get started, you might want to explore the project directory structure and th
 
 To learn more before you start working with {project_name}, see the following documentation available online:
 
-- [Quick Start](https://sdk.dfinity.org/developers-guide/quickstart.html)
-- [Developer's Guide](https://sdk.dfinity.org/developers-guide)
-- [Language Reference](https://sdk.dfinity.org/language-guide)
+- [Quick Start](https://sdk.dfinity.org/docs/quickstart/quickstart.html)
+- [SDK Developer Tools](https://sdk.dfinity.org/docs/developers-guide/sdk-guide.html)
+- [Motoko Programming Language Guide](https://sdk.dfinity.org/docs/language-guide/motoko.html)
+- [Motoko Language Quick Reference](https://sdk.dfinity.org/docs/language-guide/language-manual.html)
 
 If you want to start working on your project right away, you might want to try the following commands:
 
