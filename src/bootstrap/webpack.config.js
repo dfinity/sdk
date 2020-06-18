@@ -1,22 +1,26 @@
+const fs = require("fs");
 const path = require("path");
 const TerserPlugin = require('terser-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-const bootstrapConfig = {
+// If we're in Nix, we need to let the resolution works normally.
+const agentPath = path.join(__dirname, '../agent/javascript/src');
+const resolve = fs.existsSync(agentPath) ? {
+  alias: {
+    '@dfinity/agent': agentPath,
+  }
+} : {};
+
+module.exports = {
   mode: "production",
-  entry: "./bootstrap/index.js",
+  entry: "./src/index.js",
   target: "web",
   output: {
-    libraryTarget: "umd",
-    path: path.resolve(__dirname, "./dist/bootstrap"),
+    path: path.resolve(__dirname, "./dist"),
     filename: "index.js",
   },
-  resolve: {
-    alias: {
-      '@dfinity/agent': path.resolve('src'),
-    },
-  },
+  resolve,
   devtool: "none",
   optimization: {
     minimize: true,
@@ -42,20 +46,16 @@ const bootstrapConfig = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: 'bootstrap/index.html',
+      template: 'src/index.html',
       filename: 'index.html'
     }),
     new HtmlWebpackPlugin({
-      template: 'bootstrap/candid/index.html',
+      template: 'src/candid/index.html',
       filename: 'candid/index.html'
     }),
     new CopyWebpackPlugin([{
-        from: 'bootstrap/dfinity.png',
+        from: 'src/dfinity.png',
         to: 'favicon.ico',
       }]),
   ]
 };
-
-module.exports = [
-  bootstrapConfig,
-];

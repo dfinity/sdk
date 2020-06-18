@@ -87,13 +87,10 @@ impl ReplicaConfig {
         self
     }
 
-    pub fn with_random_port(&mut self, write_port_to: &Path) -> &mut Self {
+    pub fn with_random_port(&mut self, write_port_to: &Path) -> Self {
         self.http_handler.port = None;
         self.http_handler.write_port_to = Some(write_port_to.to_path_buf());
-        self
-    }
-
-    pub fn to_toml(&self) -> DfxResult<String> {
-        toml::to_string(&self).map_err(DfxError::CouldNotSerializeClientConfiguration)
+        let config = &*self;
+        config.clone()
     }
 }

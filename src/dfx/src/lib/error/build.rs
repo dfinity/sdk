@@ -1,3 +1,5 @@
+use crate::lib::error::DfxError;
+use ic_agent::CanisterId;
 use std::fmt;
 use std::io::Error;
 use std::process::ExitStatus;
@@ -5,6 +7,21 @@ use std::process::ExitStatus;
 /// An error happened during build.
 #[derive(Debug)]
 pub enum BuildErrorKind {
+    /// The prebuild all step failed with the embedded error.
+    PrebuildAllStepFailed(Box<DfxError>),
+
+    /// The prebuild all step failed with the embedded error.
+    PostbuildAllStepFailed(Box<DfxError>),
+
+    /// The prebuild step failed with the embedded error.
+    PrebuildStepFailed(CanisterId, Box<DfxError>),
+
+    /// The prebuild all step failed with the embedded error.
+    BuildStepFailed(CanisterId, Box<DfxError>),
+
+    /// The prebuild step failed with the embedded error.
+    PostbuildStepFailed(CanisterId, Box<DfxError>),
+
     /// A compiler error happened.
     CompilerError(String, String, String),
 
@@ -13,9 +30,6 @@ pub enum BuildErrorKind {
 
     /// An error happened while creating the JS canister bindings.
     CanisterJsGenerationError(String),
-
-    // Cannot find or read the canister ID.
-    CouldNotReadCanisterId(),
 
     // A cycle was detected in the dependency between canisters. For now we don't have
     // a list of dependencies creating the cycle.
@@ -26,6 +40,12 @@ pub enum BuildErrorKind {
 
     /// Ran the package tool, but it reported an error
     PackageToolReportedError(String, ExitStatus, String, String),
+
+    /// An custom tool failed. See description above for why.
+    CustomToolError(Option<i32>),
+
+    /// A command line string was invalid.
+    InvalidBuildCommand(String),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -45,7 +65,6 @@ impl fmt::Display for BuildErrorKind {
                 "Creating canister JS bindings returned an error:\n{}",
                 stdout
             )),
-            CouldNotReadCanisterId() => f.write_str("The canister ID could not be found."),
             CircularDependency(name) => f.write_fmt(format_args!(
                 "There is a dependency cycle between canisters found at canister {}.",
                 name,
@@ -60,6 +79,38 @@ impl fmt::Display for BuildErrorKind {
                     cmd, exit_status, stdout, stderr
                 ))
             }
+            InvalidBuildCommand(_) => {
+                f.write_fmt(format_args!("Build command could not be parsed."))
+            }
+            CustomToolError(status) => match status {
+                None => f.write_str("Custom tool interrupted by signal."),
+                Some(code) => f.write_fmt(format_args!(
+                    "A custom tool failed with status {}. See above for more information.",
+                    code
+                )),
+            },
+            PrebuildAllStepFailed(e) => {
+                f.write_fmt(format_args!("Prebuild ALL step failed with error: {}", e))
+            }
+
+            PostbuildAllStepFailed(e) => {
+                f.write_fmt(format_args!("Postbuild ALL step failed with error: {}", e))
+            }
+
+            PrebuildStepFailed(c, e) => f.write_fmt(format_args!(
+                "Prebuild step failed for canister {} with error: {}",
+                c, e
+            )),
+
+            BuildStepFailed(c, e) => f.write_fmt(format_args!(
+                "Build step failed for canister {} with error: {}",
+                c, e
+            )),
+
+            PostbuildStepFailed(c, e) => f.write_fmt(format_args!(
+                "Postbuild step failed for canister {} with error: {}",
+                c, e
+            )),
         }
     }
 }

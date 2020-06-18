@@ -5,9 +5,6 @@ dist/
 **/*.js.map
 **/*.d.ts
 
-# Cannot ignore candid.js, the last bastion of JS code in our app.
-!bootstrap/candid/candid.js
-
 # Cannot ignore .d.ts files in types/
 !types/**/*.d.ts
 

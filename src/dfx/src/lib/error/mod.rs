@@ -5,7 +5,10 @@ mod cache;
 
 pub use build::BuildErrorKind;
 pub use cache::CacheErrorKind;
+use serde::export::Formatter;
 use std::ffi::OsString;
+use std::fmt::Display;
+use std::path::PathBuf;
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
 #[derive(Debug)]
@@ -73,9 +76,6 @@ pub enum DfxError {
     /// Generic IDL error.
     CouldNotSerializeIdlFile(candid::Error),
 
-    /// Client TOML Serialization error.
-    CouldNotSerializeClientConfiguration(toml::ser::Error),
-
     /// An error during parsing of a version string.
     VersionCouldNotBeParsed(semver::SemVerError),
 
@@ -93,10 +93,99 @@ pub enum DfxError {
 
     /// A canister has an unsupported type.
     InvalidCanisterType(String),
+
+    /// A canister name could not be found in the project.
+    UnknownCanisterNamed(String),
+
+    /// An error while traversing a directory tree
+    CouldNotWalkDirectory(walkdir::Error),
+
+    /// A directory lies outside the workspace root, and t
+    DirectoryIsOutsideWorkspaceRoot(PathBuf),
+
+    /// Could not parse an URL for some reason.
+    InvalidUrl(String, url::ParseError),
+
+    /// A temporary installation directory could not be created.
+    /// It's possible that it's in the process of being built.
+    CouldNotCreateTempInstallDirectory(std::io::Error, PathBuf),
 }
 
 /// The result of running a DFX command.
 pub type DfxResult<T = ()> = Result<T, DfxError>;
+
+impl Display for DfxError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            DfxError::BuildError(err) => {
+                f.write_fmt(format_args!("Build failed. Reason:\n  {}", err))?;
+            }
+            DfxError::IdeError(msg) => {
+                f.write_fmt(format_args!(
+                    "The Motoko Language Server returned an error:\n{}",
+                    msg
+                ))?;
+            }
+            DfxError::UnknownCommand(command) => {
+                f.write_fmt(format_args!("Unknown command: {}", command))?;
+            }
+            DfxError::ProjectExists => {
+                f.write_fmt(format_args!(
+                    "Cannot create a new project because the directory already exists."
+                ))?;
+            }
+            DfxError::CommandMustBeRunInAProject => {
+                f.write_fmt(format_args!(
+                    "Command must be run in a project directory (with a dfx.json file)."
+                ))?;
+            }
+            DfxError::AgentError(AgentError::ReplicaError {
+                reject_code,
+                reject_message,
+            }) => {
+                f.write_fmt(format_args!(
+                    "Replica error (code {}): {}",
+                    reject_code, reject_message
+                ))?;
+            }
+            DfxError::Unknown(err) => {
+                f.write_fmt(format_args!("Unknown error: {}", err))?;
+            }
+            DfxError::ConfigPathDoesNotExist(config_path) => {
+                f.write_fmt(format_args!("Config path does not exist: {}", config_path))?;
+            }
+            DfxError::InvalidArgument(e) => {
+                f.write_fmt(format_args!("Invalid argument: {}", e))?;
+            }
+            DfxError::InvalidData(e) => {
+                f.write_fmt(format_args!("Invalid data: {}", e))?;
+            }
+            DfxError::LanguageServerFromATerminal => {
+                f.write_str(
+                    "The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.",
+                )?;
+            }
+            DfxError::CouldNotCreateTempInstallDirectory(e, path) => {
+                f.write_fmt(format_args!(
+                    "Could not create temporary installation directory:\n\
+                        {}{}\n\
+                    This was the error:\n\
+                        {}{}\n\
+                    If dfx is already running elsewhere, wait for it to finish.\n\
+                    If not, delete this directory and try again.",
+                    "    ",
+                    path.to_string_lossy(),
+                    "    ",
+                    e
+                ))?;
+            }
+            err => {
+                f.write_fmt(format_args!("An error occured:\n{:#?}", err))?;
+            }
+        }
+        Ok(())
+    }
+}
 
 impl From<clap::Error> for DfxError {
     fn from(err: clap::Error) -> DfxError {
@@ -137,5 +226,11 @@ impl From<candid::error::Error> for DfxError {
 impl From<semver::SemVerError> for DfxError {
     fn from(err: semver::SemVerError) -> DfxError {
         DfxError::VersionCouldNotBeParsed(err)
+    }
+}
+
+impl From<walkdir::Error> for DfxError {
+    fn from(err: walkdir::Error) -> DfxError {
+        DfxError::CouldNotWalkDirectory(err)
     }
 }

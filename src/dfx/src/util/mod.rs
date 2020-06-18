@@ -1,5 +1,6 @@
-use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use candid::parser::typing::{check_prog, ActorEnv, TypeEnv};
+use candid::types::Function;
 use candid::{Encode, IDLArgs, IDLProg};
 use ic_agent::Blob;
 
@@ -17,25 +18,26 @@ pub fn print_idl_blob(blob: &Blob) -> Result<(), candid::Error> {
     Ok(())
 }
 
-/// Parse IDL file into AST. This is a best effort function: it will succeed if
-/// the IDL file can be type checked by didc, parsed in Rust parser, and has an
+/// Parse IDL file into TypeEnv. This is a best effort function: it will succeed if
+/// the IDL file can be parsed and type checked in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.
-pub fn load_idl_file(env: &dyn Environment, idl_path: &std::path::Path) -> Option<IDLProg> {
-    let mut didc = env.get_cache().get_binary_command("didc").ok()?;
-    let status = didc.arg("--check").arg(&idl_path).status().ok()?;
-    if !status.success() {
-        return None;
-    }
+pub fn check_candid_file(idl_path: &std::path::Path) -> Option<(TypeEnv, ActorEnv)> {
     let idl_file = std::fs::read_to_string(idl_path).ok()?;
     let ast = idl_file.parse::<IDLProg>().ok()?;
-    if ast.actor.is_some() {
-        Some(ast)
-    } else {
+    let mut env = TypeEnv::new();
+    let actor = check_prog(&mut env, &ast).ok()?;
+    if actor.is_empty() {
         None
+    } else {
+        Some((env, actor))
     }
 }
 
-pub fn blob_from_arguments(arguments: Option<&str>, arg_type: Option<&str>) -> DfxResult<Blob> {
+pub fn blob_from_arguments(
+    arguments: Option<&str>,
+    arg_type: Option<&str>,
+    method_type: Option<(TypeEnv, Function)>,
+) -> DfxResult<Blob> {
     let arg_type = arg_type.unwrap_or("idl");
 
     if let Some(a) = arguments {
@@ -54,9 +56,21 @@ pub fn blob_from_arguments(arguments: Option<&str>, arg_type: Option<&str>) -> D
                 let args: IDLArgs = a
                     .parse()
                     .map_err(|e| DfxError::InvalidArgument(format!("Invalid IDL: {}", e)))?;
-                Ok(args.to_bytes().map_err(|e| {
-                    DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
-                })?)
+                match method_type {
+                    None => {
+                        eprintln!(
+                            "cannot find method type, dfx will send message with inferred type"
+                        );
+                        Ok(args.to_bytes().map_err(|e| {
+                            DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
+                        })?)
+                    }
+                    Some((env, func)) => {
+                        Ok(args.to_bytes_with_types(&env, &func.args).map_err(|e| {
+                            DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
+                        })?)
+                    }
+                }
             }
             v => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
         }

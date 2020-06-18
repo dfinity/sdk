@@ -1,15 +1,16 @@
-use crate::agent::replica_api::{QueryResponseReply, ReadResponse};
+use crate::agent::replica_api::{CallReply, QueryResponse};
 use crate::agent::response::{Replied, RequestStatusResponse};
 use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId};
 use delay::Delay;
 use mockito::mock;
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 #[test]
 fn query() -> Result<(), AgentError> {
     let blob = Blob(Vec::from("Hello World"));
-    let response = ReadResponse::Replied {
-        reply: QueryResponseReply { arg: blob.clone() },
+    let response = QueryResponse::Replied {
+        reply: CallReply { arg: blob.clone() },
     };
 
     let read_mock = mock("POST", "/api/v1/read")
@@ -61,7 +62,7 @@ fn query_error() -> Result<(), AgentError> {
 
 #[test]
 fn query_rejected() -> Result<(), AgentError> {
-    let response: ReadResponse = ReadResponse::Rejected {
+    let response: QueryResponse = QueryResponse::Rejected {
         reject_code: 1234,
         reject_message: "Rejected Message".to_string(),
     };
@@ -103,8 +104,8 @@ fn query_rejected() -> Result<(), AgentError> {
 #[test]
 fn call() -> Result<(), AgentError> {
     let blob = Blob(Vec::from("Hello World"));
-    let response = ReadResponse::Replied {
-        reply: QueryResponseReply { arg: blob.clone() },
+    let response = QueryResponse::Replied {
+        reply: CallReply { arg: blob.clone() },
     };
 
     let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
@@ -133,7 +134,7 @@ fn call() -> Result<(), AgentError> {
     assert_eq!(
         result?,
         RequestStatusResponse::Replied {
-            reply: Replied::CodeCallReplied { arg: blob }
+            reply: Replied::CallReplied(blob)
         }
     );
 
@@ -165,7 +166,7 @@ fn call_error() -> Result<(), AgentError> {
 
 #[test]
 fn call_rejected() -> Result<(), AgentError> {
-    let response: ReadResponse = ReadResponse::Rejected {
+    let response: QueryResponse = QueryResponse::Rejected {
         reject_code: 1234,
         reject_message: "Rejected Message".to_string(),
     };
@@ -183,7 +184,7 @@ fn call_rejected() -> Result<(), AgentError> {
     })?;
 
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result: Result<Option<Blob>, AgentError> = runtime.block_on(async {
+    let result: Result<Replied, AgentError> = runtime.block_on(async {
         let request_id = agent
             .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
@@ -215,8 +216,8 @@ fn install() -> Result<(), AgentError> {
     let module = Blob::from(&[1, 2]);
 
     let blob = Blob(Vec::from("Hello World"));
-    let response = ReadResponse::Replied {
-        reply: QueryResponseReply { arg: blob.clone() },
+    let response = QueryResponse::Replied {
+        reply: CallReply { arg: blob.clone() },
     };
 
     let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
@@ -243,7 +244,7 @@ fn install() -> Result<(), AgentError> {
     assert_eq!(
         result?,
         RequestStatusResponse::Replied {
-            reply: Replied::CodeCallReplied { arg: blob }
+            reply: Replied::CallReplied(blob)
         }
     );
 
@@ -252,7 +253,11 @@ fn install() -> Result<(), AgentError> {
 
 #[test]
 fn ping() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
+    let response = serde_cbor::Value::Map(BTreeMap::new());
+    let read_mock = mock("GET", "/api/v1/status")
+        .with_status(200)
+        .with_body(serde_cbor::to_vec(&response)?)
+        .create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -270,14 +275,18 @@ fn ping() -> Result<(), AgentError> {
 
 #[test]
 fn ping_okay() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
+    let response = serde_cbor::Value::Map(BTreeMap::new());
+    let read_mock = mock("GET", "/api/v1/status")
+        .with_status(200)
+        .with_body(serde_cbor::to_vec(&response)?)
+        .create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async { agent.ping(Delay::instant()).await });
+    let result = runtime.block_on(agent.ping(Delay::instant()));
 
     read_mock.assert();
 

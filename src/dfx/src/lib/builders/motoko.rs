@@ -1,7 +1,7 @@
 use crate::config::cache::Cache;
 use crate::config::dfinity::Profile;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, ManifestBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
@@ -9,11 +9,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
-use crate::util::assets;
 use ic_agent::CanisterId;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
-use std::io::Read;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::process::Output;
@@ -137,43 +135,6 @@ impl CanisterBuilder for MotokoBuilder {
 
         // Generate JS code even if the canister doesn't have a frontend. It might still be
         // used by another canister's frontend.
-        let output_did_js_path = motoko_info.get_output_did_js_path();
-        let canister_id = canister_info
-            .get_canister_id()
-            .ok_or_else(|| DfxError::BuildError(BuildErrorKind::CouldNotReadCanisterId()))?;
-        build_did_js(cache.as_ref(), &output_idl_path, &output_did_js_path)?;
-        build_canister_js(&canister_id, &canister_info, &motoko_info)?;
-
-        let mut assets = AssetMap::new();
-
-        // Add Candid and JS binding to assets.
-        // We always bind those so that it's visible even if the canister doesn't have a frontend.
-        let candid_content = base64::encode(&std::fs::read(&output_idl_path)?);
-        assets.insert("candid.did".to_owned(), candid_content);
-        let did_js_content = base64::encode(&std::fs::read(&output_did_js_path)?);
-        assets.insert("candid.js".to_owned(), did_js_content);
-
-        // Add assets from the folder (the frontend dfx.json key).
-        if config.assets && motoko_info.has_frontend() {
-            for dir_entry in std::fs::read_dir(motoko_info.get_output_assets_root())? {
-                if let Ok(e) = dir_entry {
-                    let p = e.path();
-                    let ext = p.extension().unwrap_or_else(|| std::ffi::OsStr::new(""));
-                    if p.is_file() && ext != "map" {
-                        let content = base64::encode(&std::fs::read(&p)?);
-                        assets.insert(
-                            p.strip_prefix(motoko_info.get_output_assets_root())
-                                .expect("Cannot strip prefix.")
-                                .to_str()
-                                .expect("Could not get path.")
-                                .to_string(),
-                            content,
-                        );
-                    }
-                }
-            }
-        }
-
         // Generate wasm
         let params = MotokoParams {
             build_target: match profile {
@@ -190,7 +151,7 @@ impl CanisterBuilder for MotokoBuilder {
             idl_path: &idl_dir_path,
             idl_map: &id_map,
         };
-        motoko_compile(cache.as_ref(), &params, &assets)?;
+        motoko_compile(cache.as_ref(), &params, &BTreeMap::new())?;
 
         Ok(BuildOutput {
             canister_id: canister_info
@@ -198,6 +159,7 @@ impl CanisterBuilder for MotokoBuilder {
                 .expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
+            manifest: ManifestBuildOutput::File(canister_info.get_manifest_path().to_path_buf()),
         })
     }
 }
@@ -377,13 +339,6 @@ impl TryFrom<&str> for MotokoImport {
     }
 }
 
-fn build_did_js(cache: &dyn Cache, input_path: &Path, output_path: &Path) -> DfxResult {
-    let mut cmd = cache.get_binary_command("didc")?;
-    let cmd = cmd.arg("--js").arg(&input_path).arg("-o").arg(&output_path);
-    run_command(cmd, false, false)?;
-    Ok(())
-}
-
 fn run_command(
     cmd: &mut std::process::Command,
     verbose: bool,
@@ -406,45 +361,4 @@ fn run_command(
         }
         Ok(output)
     }
-}
-
-fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
-    path.to_str().ok_or_else(|| {
-        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
-            "Unable to convert output canister js path to a string: {:#?}",
-            path
-        )))
-    })
-}
-
-fn build_canister_js(
-    canister_id: &CanisterId,
-    canister_info: &CanisterInfo,
-    motoko_info: &MotokoCanisterInfo,
-) -> DfxResult {
-    let output_canister_js_path = motoko_info.get_output_canister_js_path();
-
-    let mut language_bindings = assets::language_bindings()?;
-
-    for f in language_bindings.entries()? {
-        let mut file = f?;
-        let mut file_contents = String::new();
-        file.read_to_string(&mut file_contents)?;
-
-        let new_file_contents = file_contents
-            .replace("{canister_id}", &canister_id.to_text())
-            .replace("{project_name}", canister_info.get_name());
-
-        match decode_path_to_str(&file.path()?)? {
-            "canister.js" => {
-                std::fs::write(
-                    decode_path_to_str(output_canister_js_path)?,
-                    new_file_contents,
-                )?;
-            }
-            _ => unreachable!(),
-        }
-    }
-
-    Ok(())
 }

@@ -25,6 +25,10 @@ impl RequestId {
         RequestId(*from)
     }
 
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+
     pub(crate) fn to_vec(&self) -> Vec<u8> {
         self.0.to_vec()
     }
