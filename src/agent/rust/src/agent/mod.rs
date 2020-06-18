@@ -176,8 +176,8 @@ impl Agent {
                 RequestStatusResponse::Replied { reply }
             }
             replica_api::RequestStatusResponse::Unknown {} => RequestStatusResponse::Unknown,
-            replica_api::RequestStatusResponse::Received {} => RequestStatusResponse::Pending,
-            replica_api::RequestStatusResponse::Processing {} => RequestStatusResponse::Pending,
+            replica_api::RequestStatusResponse::Received {} => RequestStatusResponse::Received,
+            replica_api::RequestStatusResponse::Processing {} => RequestStatusResponse::Processing,
             replica_api::RequestStatusResponse::Rejected {
                 reject_code,
                 reject_message,
@@ -207,8 +207,9 @@ impl Agent {
                         reject_message,
                     })
                 }
-                RequestStatusResponse::Unknown {} => (),
-                RequestStatusResponse::Pending {} => (),
+                RequestStatusResponse::Unknown => (),
+                RequestStatusResponse::Received => (),
+                RequestStatusResponse::Processing => (),
             };
 
             waiter

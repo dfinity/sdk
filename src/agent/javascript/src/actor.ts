@@ -118,7 +118,8 @@ export function makeActorFactory(
       }
 
       case RequestStatusResponseStatus.Unknown:
-      case RequestStatusResponseStatus.Pending:
+      case RequestStatusResponseStatus.Received:
+      case RequestStatusResponseStatus.Processing:
         if (--attempts === 0) {
           throw new Error(
             `Failed to retrieve a reply for request after ${maxAttempts} attempts:\n` +
