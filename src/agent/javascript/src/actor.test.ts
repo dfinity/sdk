@@ -212,6 +212,7 @@ test('makeActor', async () => {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
         nonce: nonces[4],
+        sender,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
