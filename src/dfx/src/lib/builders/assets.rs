@@ -69,11 +69,12 @@ impl CanisterBuilder for AssetsBuilder {
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(AssetsBuilderExtra::try_from(info, pool)?.dependencies)
     }
+
     fn build(
         &self,
-        pool: &CanisterPool,
+        _pool: &CanisterPool,
         info: &CanisterInfo,
-        config: &BuildConfig,
+        _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let mut canister_assets = util::assets::assetstorage_canister()?;
         for file in canister_assets.entries()? {
@@ -89,10 +90,6 @@ impl CanisterBuilder for AssetsBuilder {
         delete_output_directory(&info, &assets_canister_info)?;
         copy_assets(&assets_canister_info)?;
 
-        if !config.skip_frontend {
-            build_frontend(info.get_workspace_root(), pool.get_logger())?;
-        }
-
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
         Ok(BuildOutput {
@@ -101,6 +98,19 @@ impl CanisterBuilder for AssetsBuilder {
             idl: IdlBuildOutput::File(idl_path),
             manifest: ManifestBuildOutput::File(info.get_manifest_path().to_path_buf()),
         })
+    }
+
+    fn postbuild(
+        &self,
+        pool: &CanisterPool,
+        info: &CanisterInfo,
+        config: &BuildConfig,
+    ) -> DfxResult {
+        if !config.skip_frontend {
+            build_frontend(info.get_workspace_root(), pool.get_logger())?;
+        }
+
+        Ok(())
     }
 }
 
