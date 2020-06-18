@@ -51,6 +51,15 @@ pub trait CanisterBuilder {
         Ok(Vec::new())
     }
 
+    fn prebuild(
+        &self,
+        _pool: &CanisterPool,
+        _info: &CanisterInfo,
+        _config: &BuildConfig,
+    ) -> DfxResult {
+        Ok(())
+    }
+
     /// Build a canister. The canister contains all information related to a single canister,
     /// while the config contains information related to this particular build.
     fn build(
@@ -59,6 +68,15 @@ pub trait CanisterBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput>;
+
+    fn postbuild(
+        &self,
+        _pool: &CanisterPool,
+        _info: &CanisterInfo,
+        _config: &BuildConfig,
+    ) -> DfxResult {
+        Ok(())
+    }
 }
 
 #[derive(Clone)]

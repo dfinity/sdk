@@ -42,6 +42,10 @@ impl Canister {
         }
     }
 
+    pub fn prebuild(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
+        self.builder.prebuild(pool, &self.info, build_config)
+    }
+
     pub fn build(
         &self,
         pool: &CanisterPool,
@@ -52,6 +56,10 @@ impl Canister {
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));
         Ok(self.get_build_output().unwrap())
+    }
+
+    pub fn postbuild(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
+        self.builder.postbuild(pool, &self.info, build_config)
     }
 
     pub fn get_name(&self) -> &str {
@@ -280,8 +288,8 @@ impl CanisterPool {
         Ok(())
     }
 
-    fn step_prebuild(&self, _build_config: &BuildConfig, _canister: &Canister) -> DfxResult<()> {
-        Ok(())
+    fn step_prebuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
+        canister.prebuild(self, build_config)
     }
 
     fn step_build<'a>(
@@ -337,7 +345,9 @@ impl CanisterPool {
             .map(|_| {})
             .map_err(DfxError::from)?;
 
-        build_canister_js(self.cache.clone(), &canister.canister_id(), &canister.info)
+        build_canister_js(self.cache.clone(), &canister.canister_id(), &canister.info)?;
+
+        canister.postbuild(self, build_config)
     }
 
     fn step_postbuild_all(
