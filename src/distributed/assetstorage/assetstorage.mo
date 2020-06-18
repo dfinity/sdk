@@ -1,9 +1,10 @@
 import A "mo:base/AssocList";
 import L "mo:base/List";
+import Prim "mo:prim";
 
 actor {
     public type Path = Text;
-    public type Contents = Text;
+    public type Contents = Blob;
 
     var stored: A.AssocList<Path, Contents> = L.nil<(Path, Contents)>();
 
@@ -19,7 +20,11 @@ actor {
     public query func retrieve(path: Path): async Contents {
         let result = A.find<Path, Contents>(stored, path, pathEq);
         switch result {
-            case null { assert false; "" };
+            case null {
+                // more than 8 chars treated as invalid UTF-8
+                // TODO: https://github.com/dfinity-lab/sdk/issues/701
+                throw Prim.error("notfound")
+            };
             case (?contents) { contents };
         }
     };

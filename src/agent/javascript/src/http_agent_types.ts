@@ -79,15 +79,20 @@ export interface InstallCodeRequest extends Record<string, any> {
   arg?: BinaryBlob;
   sender: BinaryBlob;
 }
+export interface CreateCanisterRequest extends Record<string, any> {
+  request_type: SubmitRequestType.CreateCanister;
+  sender: BinaryBlob;
+}
 // tslint:enable:camel-case
 
 // The types of values allowed in the `request_type` field for submit requests.
 export enum SubmitRequestType {
   Call = 'call',
   InstallCode = 'install_code',
+  CreateCanister = 'create_canister',
 }
 
-export type SubmitRequest = CallRequest | InstallCodeRequest;
+export type SubmitRequest = CallRequest | InstallCodeRequest | CreateCanisterRequest;
 export interface SubmitResponse {
   requestId: RequestId;
   response: Response;
@@ -140,18 +145,26 @@ export interface RequestStatusRequest extends Record<string, any> {
 
 // An ADT that represents responses to a "request_status" read request.
 export type RequestStatusResponse =
-  | RequestStatusResponsePending
+  | RequestStatusResponseReceived
+  | RequestStatusResponseProcessing
   | RequestStatusResponseReplied
   | RequestStatusResponseRejected
   | RequestStatusResponseUnknown;
 
-export interface RequestStatusResponsePending {
-  status: RequestStatusResponseStatus.Pending;
+export interface RequestStatusResponseReceived {
+  status: RequestStatusResponseStatus.Received;
+}
+
+export interface RequestStatusResponseProcessing {
+  status: RequestStatusResponseStatus.Processing;
 }
 
 export interface RequestStatusResponseReplied {
   status: RequestStatusResponseStatus.Replied;
-  reply: { arg?: BinaryBlob };
+  reply: {
+    canister_id?: BinaryBlob;
+    arg?: BinaryBlob;
+  };
 }
 
 export interface RequestStatusResponseRejected {
@@ -165,7 +178,8 @@ export interface RequestStatusResponseUnknown {
 }
 
 export enum RequestStatusResponseStatus {
-  Pending = 'pending',
+  Received = 'received',
+  Processing = 'processing',
   Replied = 'replied',
   Rejected = 'rejected',
   Unknown = 'unknown',

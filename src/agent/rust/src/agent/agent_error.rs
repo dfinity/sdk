@@ -1,4 +1,4 @@
-use crate::RequestIdError;
+use crate::{Replied, RequestIdError};
 use serde_cbor::error::Error as SerdeError;
 
 #[derive(Debug)]
@@ -17,7 +17,7 @@ pub enum AgentError {
     UrlParseError(url::ParseError),
 
     ReplicaError {
-        reject_code: u16,
+        reject_code: u64,
         reject_message: String,
     },
     ServerError {
@@ -25,6 +25,8 @@ pub enum AgentError {
         content_type: Option<String>,
         content: String,
     },
+
+    UnexpectedReply(Replied),
 }
 
 impl From<SerdeError> for AgentError {

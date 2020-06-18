@@ -203,6 +203,19 @@ export class HttpAgent {
     });
   }
 
+  public async createCanister(principal?: Principal): Promise<SubmitResponse> {
+    let p = this._principal || principal;
+    if (!p) {
+      throw new Error('No principal specified.');
+    }
+    p = await Promise.resolve(p);
+
+    return this.submit({
+      request_type: SubmitRequestType.CreateCanister,
+      sender: p.toBlob(),
+    });
+  }
+
   public async query(
     canisterId: CanisterId | string,
     fields: QueryFields,
@@ -235,8 +248,8 @@ export class HttpAgent {
           );
 
         case QueryResponseStatus.Replied:
-          const [content] = IDL.decode([IDL.Text], response.reply.arg);
-          return toByteArray('' + content);
+          const [content] = IDL.decode([IDL.Vec(IDL.Nat8)], response.reply.arg);
+          return new Uint8Array(content as number[]);
       }
     });
   }

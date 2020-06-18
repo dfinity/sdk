@@ -1,14 +1,14 @@
 {
   "name": "@dfinity/agent",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "main": "src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "bundle": "npm run build && webpack",
+    "bundle": "npm run build",
     "ci": "npm run prettier && npm run lint && npm run build && npm run test",
     "lint": "tslint --project tsconfig.json --config tslint.json",
     "lint:fix": "npm run lint -- --fix",
-    "prettier": "npx prettier --check \"src/**/*.ts\" \"bootstrap/**/*.ts\"",
+    "prettier": "npx prettier --check \"src/**/*.ts\"",
     "prettier:write": "npm run prettier -- --write",
     "test": "jest --verbose"
   },
@@ -27,21 +27,14 @@
     "@types/base64-js": "^1.2.5",
     "@types/crc": "^3.4.0",
     "@types/jest": "^24.0.18",
-    "copy-webpack-plugin": "^5.1.1",
-    "css-loader": "^3.4.2",
-    "html-webpack-plugin": "^3.2.0",
     "jest": "^24.9.0",
     "jest-expect-message": "^1.0.2",
     "node-fetch": "2.6.0",
     "prettier": "^1.19.1",
-    "style-loader": "^1.1.3",
-    "terser-webpack-plugin": "^2.3.2",
     "text-encoding": "^0.7.0",
     "ts-jest": "^24.2.0",
     "tslint": "^5.20.0",
     "typescript": "^3.6.3",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10",
     "whatwg-fetch": "^3.0.0"
   }
 }

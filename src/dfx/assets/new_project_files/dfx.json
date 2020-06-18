@@ -23,8 +23,7 @@
     },
     "start": {
       "port": 8000,
-      "address": "127.0.0.1",
-      "serve_root": "canisters/{project_name}_assets/assets"
+      "address": "127.0.0.1"
     }
   }
 }

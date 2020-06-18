@@ -78,6 +78,10 @@ impl CanisterId {
         buf.push(checksum_byte);
         format!("{}{}", CANISTER_ID_TEXT_PREFIX, hex::encode_upper(buf))
     }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_slice()
+    }
 }
 
 /// Serialize into a blob.

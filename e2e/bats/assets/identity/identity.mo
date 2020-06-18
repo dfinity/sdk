@@ -1,11 +1,16 @@
-import Prim "mo:prim";
 import P "mo:base/Principal";
 
-actor {
-    public shared(msg) func hashFromCall(): async Nat {
-        Prim.word32ToNat(P.hash(msg.caller))
+actor Self {
+    public shared(msg) func fromCall(): async Principal {
+        msg.caller
     };
-    public shared query(msg) func hashFromQuery() : async Nat {
-        Prim.word32ToNat(P.hash(msg.caller))
+    public shared query(msg) func fromQuery() : async Principal {
+        msg.caller
     };
+    public query func getCanisterId() : async Principal {
+        P.fromActor(Self)
+    };
+    public query func isMyself(id: Principal) : async Bool {
+        id == P.fromActor(Self)
+    };    
 };

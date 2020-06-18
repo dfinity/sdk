@@ -5,7 +5,7 @@ pub(crate) mod replica_api;
 pub(crate) mod response;
 
 pub(crate) mod public {
-    pub use super::agent_config::AgentConfig;
+    pub use super::agent_config::{AgentConfig, AgentRequestExecutor};
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
     pub use super::response::{Replied, RequestStatusResponse};
@@ -15,36 +15,30 @@ pub(crate) mod public {
 #[cfg(test)]
 mod agent_test;
 
-use crate::agent::replica_api::{Envelope, ReadRequest, ReadResponse, SubmitRequest};
+use crate::agent::replica_api::{AsyncContent, Envelope, SyncContent};
 use crate::identity::Identity;
 use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
+use reqwest::Method;
+use std::convert::TryInto;
 
 use public::*;
-use reqwest::header::HeaderMap;
-use reqwest::{Client, Method};
 
 pub struct Agent {
     url: reqwest::Url,
-    client: reqwest::Client,
     nonce_factory: NonceFactory,
+    request_executor: Box<dyn AgentRequestExecutor>,
     identity: Box<dyn Identity>,
 }
 
 impl Agent {
     pub fn new(config: AgentConfig<'_>) -> Result<Agent, AgentError> {
-        let mut default_headers = HeaderMap::new();
-        default_headers.insert(
-            reqwest::header::CONTENT_TYPE,
-            "application/cbor".parse().unwrap(),
-        );
-
         let url = config.url;
 
         Ok(Agent {
             url: reqwest::Url::parse(url)
                 .and_then(|url| url.join("api/v1/"))
                 .map_err(|_| AgentError::InvalidClientUrl(String::from(url)))?,
-            client: Client::builder().default_headers(default_headers).build()?,
+            request_executor: config.request_executor,
             nonce_factory: config.nonce_factory,
             identity: config.identity,
         })
@@ -59,11 +53,15 @@ impl Agent {
         let url = self.url.join(endpoint)?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
+        http_request.headers_mut().insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/cbor".parse().unwrap(),
+        );
         http_request
             .body_mut()
             .get_or_insert(reqwest::Body::from(serialized_bytes));
 
-        let response = self.client.execute(http_request).await?;
+        let response = self.request_executor.execute(http_request).await?;
         if response.status().is_client_error() || response.status().is_server_error() {
             Err(AgentError::ServerError {
                 status: response.status().into(),
@@ -79,15 +77,15 @@ impl Agent {
         }
     }
 
-    async fn read<A>(&self, request: ReadRequest<'_>) -> Result<A, AgentError>
+    async fn read<A>(&self, request: SyncContent) -> Result<A, AgentError>
     where
         A: serde::de::DeserializeOwned,
     {
         let anonymous = Principal::anonymous();
         let request_id = to_request_id(&request)?;
         let sender = match &request {
-            ReadRequest::Query { sender, .. } => sender,
-            ReadRequest::RequestStatus { .. } => &anonymous,
+            SyncContent::QueryRequest { sender, .. } => sender,
+            SyncContent::RequestStatusRequest { .. } => &anonymous,
         };
         let signature = self.identity.sign(&request_id, &sender)?;
         let bytes = self
@@ -104,11 +102,12 @@ impl Agent {
         serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)
     }
 
-    async fn submit(&self, request: SubmitRequest<'_>) -> Result<RequestId, AgentError> {
+    async fn submit(&self, request: AsyncContent) -> Result<RequestId, AgentError> {
         let request_id = to_request_id(&request)?;
-        let sender = match request {
-            SubmitRequest::Call { sender, .. } => sender,
-            SubmitRequest::InstallCode { sender, .. } => sender,
+        let sender = match request.clone() {
+            AsyncContent::CreateCanisterRequest { sender, .. } => sender,
+            AsyncContent::CallRequest { sender, .. } => sender,
+            AsyncContent::InstallCodeRequest { sender, .. } => sender,
         };
         let signature = self.identity.sign(&request_id, &sender)?;
         let _ = self
@@ -133,25 +132,22 @@ impl Agent {
         method_name: &'a str,
         arg: &'a Blob,
     ) -> Result<Blob, AgentError> {
-        let sender = self.identity.sender()?;
-        self.read::<ReadResponse>(ReadRequest::Query {
-            canister_id,
-            method_name,
-            arg,
-            sender: &sender,
+        self.read::<replica_api::QueryResponse>(SyncContent::QueryRequest {
+            sender: self.identity.sender()?,
+            canister_id: canister_id.clone(),
+            method_name: method_name.to_string(),
+            arg: arg.clone(),
         })
         .await
         .and_then(|response| match response {
-            ReadResponse::Replied { reply } => Ok(reply.arg),
-            ReadResponse::Rejected {
+            replica_api::QueryResponse::Replied { reply } => Ok(reply.arg),
+            replica_api::QueryResponse::Rejected {
                 reject_code,
                 reject_message,
             } => Err(AgentError::ReplicaError {
                 reject_code,
                 reject_message,
             }),
-            ReadResponse::Unknown => Err(AgentError::InvalidClientResponse),
-            ReadResponse::Pending => Err(AgentError::InvalidClientResponse),
         })
     }
 
@@ -159,22 +155,49 @@ impl Agent {
         &self,
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
-        self.read(ReadRequest::RequestStatus { request_id }).await
+        self.read(SyncContent::RequestStatusRequest {
+            request_id: request_id.as_slice().into(),
+        })
+        .await
+        .map(|response| match response {
+            replica_api::RequestStatusResponse::Replied { reply } => {
+                let reply = match reply {
+                    replica_api::RequestStatusResponseReplied::CallReply(reply) => {
+                        Replied::CallReplied(reply.arg)
+                    }
+                    replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
+                        Replied::CreateCanisterReplied(reply.canister_id)
+                    }
+                    replica_api::RequestStatusResponseReplied::InstallCodeReply(_) => {
+                        Replied::InstallCodeReplied
+                    }
+                };
+
+                RequestStatusResponse::Replied { reply }
+            }
+            replica_api::RequestStatusResponse::Unknown {} => RequestStatusResponse::Unknown,
+            replica_api::RequestStatusResponse::Received {} => RequestStatusResponse::Received,
+            replica_api::RequestStatusResponse::Processing {} => RequestStatusResponse::Processing,
+            replica_api::RequestStatusResponse::Rejected {
+                reject_code,
+                reject_message,
+            } => RequestStatusResponse::Rejected {
+                reject_code,
+                reject_message,
+            },
+        })
     }
 
     pub async fn request_status_and_wait<W: delay::Waiter>(
         &self,
         request_id: &RequestId,
         mut waiter: W,
-    ) -> Result<Option<Blob>, AgentError> {
+    ) -> Result<Replied, AgentError> {
         waiter.start();
 
         loop {
             match self.request_status(request_id).await? {
-                RequestStatusResponse::Replied { reply } => match reply {
-                    Replied::CodeCallReplied { arg } => return Ok(Some(arg)),
-                    Replied::Empty {} => return Ok(None),
-                },
+                RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
                     reject_code,
                     reject_message,
@@ -185,7 +208,8 @@ impl Agent {
                     })
                 }
                 RequestStatusResponse::Unknown => (),
-                RequestStatusResponse::Pending => (),
+                RequestStatusResponse::Received => (),
+                RequestStatusResponse::Processing => (),
             };
 
             waiter
@@ -200,9 +224,12 @@ impl Agent {
         method_name: &str,
         arg: &Blob,
         waiter: W,
-    ) -> Result<Option<Blob>, AgentError> {
+    ) -> Result<Blob, AgentError> {
         let request_id = self.call(canister_id, method_name, arg).await?;
-        self.request_status_and_wait(&request_id, waiter).await
+        match self.request_status_and_wait(&request_id, waiter).await? {
+            Replied::CallReplied(arg) => Ok(arg),
+            reply => Err(AgentError::UnexpectedReply(reply)),
+        }
     }
 
     pub async fn call(
@@ -211,15 +238,41 @@ impl Agent {
         method_name: &str,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
-        let sender = self.identity.sender()?;
-        self.submit(SubmitRequest::Call {
-            canister_id,
-            method_name,
-            arg,
-            nonce: &self.nonce_factory.generate(),
-            sender: &sender,
+        self.submit(AsyncContent::CallRequest {
+            canister_id: canister_id.clone(),
+            method_name: method_name.into(),
+            arg: arg.clone(),
+            nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
+            sender: self.identity.sender()?,
         })
         .await
+    }
+
+    pub async fn create_canister(&self) -> Result<RequestId, AgentError> {
+        self.create_canister_with_desired_id(None).await
+    }
+
+    pub async fn create_canister_with_desired_id(
+        &self,
+        desired_id: Option<CanisterId>,
+    ) -> Result<RequestId, AgentError> {
+        self.submit(AsyncContent::CreateCanisterRequest {
+            sender: self.identity.sender()?,
+            nonce: self.nonce_factory.generate().map(|b| b),
+            desired_id: desired_id.map(|id| id.as_bytes().try_into().unwrap()),
+        })
+        .await
+    }
+
+    pub async fn create_canister_and_wait<W: delay::Waiter>(
+        &self,
+        waiter: W,
+    ) -> Result<CanisterId, AgentError> {
+        let request_id = self.create_canister().await?;
+        match self.request_status_and_wait(&request_id, waiter).await? {
+            Replied::CreateCanisterReplied(id) => Ok(id),
+            reply => Err(AgentError::UnexpectedReply(reply)),
+        }
     }
 
     pub async fn install(
@@ -228,7 +281,7 @@ impl Agent {
         module: &Blob,
         arg: &Blob,
     ) -> Result<RequestId, AgentError> {
-        self.install_with_attrs(canister_id, module, arg, &CanisterAttributes::default())
+        self.install_with_attrs(canister_id, "", module, arg, &CanisterAttributes::default())
             .await
     }
 
@@ -238,57 +291,83 @@ impl Agent {
         module: &Blob,
         arg: &Blob,
         waiter: W,
-    ) -> Result<Option<Blob>, AgentError> {
+    ) -> Result<(), AgentError> {
         let request_id = self.install(canister_id, module, arg).await?;
-        self.request_status_and_wait(&request_id, waiter).await
+        match self.request_status_and_wait(&request_id, waiter).await? {
+            Replied::InstallCodeReplied => Ok(()),
+            reply => Err(AgentError::UnexpectedReply(reply)),
+        }
     }
 
     pub async fn install_with_attrs(
         &self,
         canister_id: &CanisterId,
+        mode: &str,
         module: &Blob,
         arg: &Blob,
         attributes: &CanisterAttributes,
     ) -> Result<RequestId, AgentError> {
-        let sender = self.identity.sender()?;
-        self.submit(SubmitRequest::InstallCode {
-            canister_id,
-            module,
-            arg,
-            nonce: &self.nonce_factory.generate(),
-            sender: &sender,
+        let mode = match mode {
+            "install" => Some(mode.to_string()),
+            "reinstall" => Some(mode.to_string()),
+            "upgrade" => Some(mode.to_string()),
+            &_ => None,
+        };
+        self.submit(AsyncContent::InstallCodeRequest {
+            nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
+            sender: self.identity.sender()?,
+            canister_id: canister_id.clone(),
+            module: module.clone(),
+            arg: arg.clone(),
             compute_allocation: attributes.compute_allocation.map(|x| x.into()),
+            memory_allocation: None,
+            mode,
         })
         .await
     }
 
-    pub async fn ping_once(&self) -> Result<(), AgentError> {
+    pub async fn ping_once(&self) -> Result<serde_cbor::Value, AgentError> {
         let url = self.url.join("status")?;
-        let http_request = reqwest::Request::new(Method::GET, url);
-        let response = self.client.execute(http_request).await?;
+        let mut http_request = reqwest::Request::new(Method::GET, url);
+        http_request.headers_mut().insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/cbor".parse().unwrap(),
+        );
+        let response = self.request_executor.execute(http_request).await?;
 
-        if response.status().as_u16() == 200 {
-            Ok(())
+        if response.status().is_client_error() || response.status().is_server_error() {
+            Err(AgentError::ServerError {
+                status: response.status().into(),
+                content_type: response
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok())
+                    .map(|x| x.to_string()),
+                content: response.text().await?,
+            })
         } else {
-            // Verify the error is 2XX.
-            response
-                .error_for_status()
-                .map(|_| ())
-                .map_err(AgentError::from)
+            let bytes = response.bytes().await?.to_vec();
+            Ok(serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)?)
         }
     }
 
-    pub async fn ping<W: delay::Waiter>(&self, mut waiter: W) -> Result<(), AgentError> {
+    pub async fn ping<W: delay::Waiter>(
+        &self,
+        mut waiter: W,
+    ) -> Result<serde_cbor::Value, AgentError> {
         waiter.start();
         loop {
-            if self.ping_once().await.is_ok() {
-                break;
+            // Break if the server/replica answered but was an error (compared to not being
+            // able to reach the server).
+            match self.ping_once().await {
+                Ok(x) => return Ok(x),
+                Err(AgentError::ReqwestError(_)) => {}
+                Err(x) => return Err(x),
             }
 
             waiter
                 .wait()
                 .map_err(|_| AgentError::TimeoutWaitingForResponse)?;
         }
-        Ok(())
     }
 }

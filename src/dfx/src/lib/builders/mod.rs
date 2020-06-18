@@ -23,11 +23,17 @@ pub enum IdlBuildOutput {
     File(PathBuf),
 }
 
+#[derive(Debug)]
+pub enum ManifestBuildOutput {
+    File(PathBuf),
+}
+
 /// The output of a build.
 pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
+    pub manifest: ManifestBuildOutput,
 }
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.
@@ -45,6 +51,15 @@ pub trait CanisterBuilder {
         Ok(Vec::new())
     }
 
+    fn prebuild(
+        &self,
+        _pool: &CanisterPool,
+        _info: &CanisterInfo,
+        _config: &BuildConfig,
+    ) -> DfxResult {
+        Ok(())
+    }
+
     /// Build a canister. The canister contains all information related to a single canister,
     /// while the config contains information related to this particular build.
     fn build(
@@ -53,6 +68,15 @@ pub trait CanisterBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput>;
+
+    fn postbuild(
+        &self,
+        _pool: &CanisterPool,
+        _info: &CanisterInfo,
+        _config: &BuildConfig,
+    ) -> DfxResult {
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -60,6 +84,7 @@ pub struct BuildConfig {
     profile: Profile,
     pub generate_id: bool,
     pub skip_frontend: bool,
+    pub skip_manifest: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
@@ -76,6 +101,7 @@ impl BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),
             generate_id: false,
             skip_frontend: false,
+            skip_manifest: false,
             idl_root: build_root.join("idl/"),
         }
     }
@@ -90,6 +116,13 @@ impl BuildConfig {
     pub fn with_skip_frontend(self, skip_frontend: bool) -> Self {
         Self {
             skip_frontend,
+            ..self
+        }
+    }
+
+    pub fn with_skip_manifest(self, skip_manifest: bool) -> Self {
+        Self {
+            skip_manifest,
             ..self
         }
     }

@@ -57,6 +57,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     runtime
         .block_on(agent.ping(create_waiter()))
+        .map(|_| ())
         .map_err(DfxError::from)
 }
 
@@ -72,6 +73,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let (frontend_url, address_and_port) = frontend_address(args, &config)?;
 
     let client_pathbuf = env.get_cache().get_binary_command_path("replica")?;
+    let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
+
     let temp_dir = env.get_temp_dir();
     let state_root = env.get_state_dir();
 
@@ -88,6 +91,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let client_configuration_dir = temp_dir.join("client-configuration");
     fs::create_dir_all(&client_configuration_dir)?;
+    let state_dir = temp_dir.join("state/replicated_state");
+    fs::create_dir_all(&state_dir)?;
     let client_port_path = client_configuration_dir.join("client-1.port");
 
     // Touch the client port file. This ensures it is empty prior to
@@ -120,9 +125,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let request_stop_echo = request_stop.clone();
     let rcv_wait_fwatcher = rcv_wait.clone();
     b.set_message("Generating IC local replica configuration.");
-    let replica_config = ReplicaConfig::new(state_root)
-        .with_random_port(&client_port_path)
-        .to_toml()?;
+    let replica_config = ReplicaConfig::new(state_root).with_random_port(&client_port_path);
 
     // TODO(eftychis): we need a proper manager type when we start
     // spawning multiple client processes and registry.
@@ -133,6 +136,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         move || {
             start_client(
                 &client_pathbuf,
+                &ic_starter_pathbuf,
                 &pid_file_path,
                 is_killed_client,
                 request_stop,
@@ -142,9 +146,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         }
     })?;
 
-    let bootstrap_dir = env
-        .get_cache()
-        .get_binary_command_path("js-user-library/dist/bootstrap")?;
+    let bootstrap_dir = env.get_cache().get_binary_command_path("bootstrap")?;
 
     // We have a long-lived replica process and a proxy. We use
     // currently a messaging pattern to supervise. This is going to
@@ -311,17 +313,32 @@ fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
 /// We panic here to transmit an error to the parent thread.
 fn start_client(
     client_pathbuf: &PathBuf,
+    ic_starter_pathbuf: &PathBuf,
     pid_file_path: &PathBuf,
     is_killed_client: Receiver<()>,
     request_stop: Sender<()>,
-    config: String,
+    config: ReplicaConfig,
     b: ProgressBar,
 ) -> DfxResult<()> {
     b.set_message("Generating IC local replica configuration.");
-    let client = client_pathbuf.as_path().as_os_str();
 
-    let mut cmd = std::process::Command::new(client);
-    cmd.args(&["--config", config.as_str()]);
+    let ic_starter = ic_starter_pathbuf.as_path().as_os_str();
+    let mut cmd = std::process::Command::new(ic_starter);
+    // if None is returned, then an empty String will be provided to replica-path
+    // TODO: figure out the right solution
+    cmd.args(&[
+        "--replica-path",
+        client_pathbuf.to_str().unwrap_or_default(),
+        "--http-port-file",
+        config
+            .http_handler
+            .write_port_to
+            .unwrap_or_default()
+            .to_str()
+            .unwrap_or_default(),
+        "--state-dir",
+        config.state_manager.state_root.to_str().unwrap_or_default(),
+    ]);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
 
@@ -332,7 +349,7 @@ fn start_client(
             .try_send(())
             .expect("Replica thread couldn't signal parent to stop");
         // We still want to send an error message.
-        panic!("Couldn't spawn node manager with command {:?}: {}", cmd, e);
+        panic!("Couldn't spawn ic-starter with command {:?}: {}", cmd, e);
     });
 
     // Update the pid file.

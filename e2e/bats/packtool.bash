@@ -16,6 +16,7 @@ teardown() {
 @test "build fails if packtool is not configured" {
     install_asset packtool
 
+    dfx_start
     assert_command_fail dfx build
     assert_match 'import error, package "(rate|describe)" not defined'
 }
@@ -24,6 +25,7 @@ teardown() {
     install_asset packtool
     source configure_packtool.bash
 
+    dfx_start
     dfx build
 }
 
@@ -46,6 +48,7 @@ teardown() {
     install_asset packtool
     dfx config defaults/build/packtool "./no-such-command that command cannot be invoked"
 
+    dfx_start
     assert_command_fail dfx build
     assert_match 'Failed to invoke the package tool'
     assert_match 'no-such-command.*that.*command.*cannot.*be.*invoked'
@@ -56,6 +59,7 @@ teardown() {
     install_asset packtool
     dfx config defaults/build/packtool "sh ./command-that-fails.bash"
 
+    dfx_start
     assert_command_fail dfx build
     assert_match 'Package tool.*reported an error'
     assert_match 'sh.*command-that-fails.bash'
