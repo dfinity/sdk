@@ -1,6 +1,8 @@
+use crate::config::dfinity::ConfigNetwork;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::provider::command_line_provider_to_url;
 use crate::lib::waiter::create_waiter;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use serde_cbor::Value;
@@ -57,17 +59,28 @@ pub fn cbor_to_json(cbor: &Value) -> DfxResult<serde_json::Value> {
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    // Need storage for AgentEnvironment ownership.
-    let mut _agent_env: Option<AgentEnvironment<'_>> = None;
-    let env = if args.is_present("provider") {
-        _agent_env = Some(AgentEnvironment::new(
-            env,
-            args.value_of("provider").expect("Could not find provider."),
-        ));
-        _agent_env.as_ref().unwrap()
-    } else {
-        env
+    let config = env
+        .get_config()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let config = config.as_ref().get_config();
+
+    // For ping, "provider" could either be a URL or a network name.
+    // If not passed, we default to the "local" network.
+    let provider = args.value_of("provider").unwrap_or("local");
+    let agent_url = match config.get_network(&provider) {
+        Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
+            match network_provider.providers.first() {
+                Some(url) => Ok(url.clone()),
+                None => Err(DfxError::ComputeNetworkHasNoProviders(provider.to_string())),
+            }?
+        }
+        Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
+            format!("http://{}", local_provider.bind)
+        }
+        None => command_line_provider_to_url(&provider)?,
     };
+
+    let env = AgentEnvironment::new(env, &agent_url);
 
     let agent = env
         .get_agent()

@@ -2,8 +2,9 @@ use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::provider::{get_provider_urls, parse_provider_url};
 use crate::lib::webserver::webserver;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches, SubCommand, Values};
 use slog::info;
 use std::default::Default;
 use std::fs;
@@ -12,7 +13,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
-use url::{ParseError, Url};
+use url::Url;
 
 /// Constructs a sub-command to run the bootstrap server.
 pub fn construct() -> App<'static, 'static> {
@@ -33,8 +34,16 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("providers")
                 .help(UserMessage::BootstrapProviders.to_str())
+                .conflicts_with("network")
                 .long("providers")
                 .multiple(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("network")
+                .help(UserMessage::CanisterComputeNetwork.to_str())
+                .conflicts_with("providers")
+                .long("network")
                 .takes_value(true),
         )
         .arg(
@@ -55,16 +64,17 @@ pub fn construct() -> App<'static, 'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let logger = env.get_logger();
     let config = get_config(env, args)?;
+    let providers = get_providers(env, args)?;
 
     let (sender, receiver) = crossbeam::unbounded();
 
     webserver(
         logger.clone(),
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
-        config
-            .providers
-            .map(|vec| vec.iter().map(|uri| Url::from_str(uri).unwrap()).collect())
-            .unwrap(),
+        providers
+            .iter()
+            .map(|uri| Url::from_str(uri).unwrap())
+            .collect(),
         &config.root.unwrap(),
         sender,
     )?
@@ -94,13 +104,11 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ConfigD
     let config = get_config_from_file(env);
     let ip = get_ip(&config, args)?;
     let port = get_port(&config, args)?;
-    let providers = get_providers(&config, args)?;
     let root = get_root(&config, env, args)?;
     let timeout = get_timeout(&config, args)?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
-        providers: Some(providers),
         root: Some(root),
         timeout: Some(timeout),
     })
@@ -146,31 +154,20 @@ fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResul
 
 /// Gets the list of compute provider API endpoints. First checks if the providers were specified
 /// on the command-line using --providers, otherwise checks if the providers were specified in the
-/// dfx configuration file, otherwise defaults to http://127.0.0.1:8080/api.
-fn get_providers(
-    config: &ConfigDefaultsBootstrap,
-    args: &ArgMatches<'_>,
-) -> DfxResult<Vec<String>> {
-    args.values_of("providers")
-        .map(|providers| {
-            providers
-                .map(|provider| parse_url(provider))
-                .collect::<Result<_, _>>()
-        })
-        .unwrap_or_else(|| {
-            let default = vec!["http://127.0.0.1:8080/api".to_string()];
-            config.providers.clone().map_or(Ok(default), |providers| {
-                if providers.is_empty() {
-                    Err(ParseError::EmptyHost)
-                } else {
-                    providers
-                        .iter()
-                        .map(|provider| parse_url(provider))
-                        .collect()
-                }
-            })
-        })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid provider: {}", err)))
+/// dfx configuration file, which in turn defaults to the local network.
+fn get_providers(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Vec<String>> {
+    let providers: Option<Values<'_>> = args.values_of("providers");
+    let provider_urls: Option<Result<Vec<String>, DfxError>> = providers.map(|providers| {
+        providers
+            .map(|provider| parse_provider_url(provider))
+            .collect::<Result<_, _>>()
+    });
+    provider_urls.unwrap_or_else(|| {
+        get_provider_urls(env, args)?
+            .iter()
+            .map(|url| Ok(format!("{}/api", url)))
+            .collect()
+    })
 }
 
 /// Gets the directory containing static assets served by the bootstrap server. First checks if the
@@ -218,9 +215,4 @@ fn parse_dir(dir: &str) -> DfxResult<PathBuf> {
     fs::metadata(dir)
         .map(|_| PathBuf::from(dir))
         .map_err(|_| DfxError::Io(Error::new(ErrorKind::NotFound, dir)))
-}
-
-/// TODO (enzo): Documentation.
-fn parse_url(url: &str) -> Result<String, ParseError> {
-    Url::parse(url).map(|_| String::from(url))
 }
