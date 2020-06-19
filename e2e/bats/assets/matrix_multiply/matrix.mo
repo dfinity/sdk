@@ -5,10 +5,10 @@ type Matrix = [[Int]];
 
 actor {
     public func multiply(a: Matrix, b: Matrix) : async Matrix {
-        assert (a.len() > 0 and b.len() > 0);
-        assert (a[0].len() == b.len());
-        let n = a.len();
-        let k = b[0].len();
+        assert (a.size() > 0 and b.size() > 0);
+        assert (a[0].size() == b.size());
+        let n = a.size();
+        let k = b[0].size();
         let bt = await M.T.transpose(b);
         let res : [[var Int]] = A.tabulate<[var Int]>(n, func (_:Nat):[var Int] = A.init<Int>(k, 0));
         var i = 0;
