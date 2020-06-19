@@ -1241,7 +1241,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     throw new Error('Wrong number of return values');
   }
 
-  function getType(t: number): IDLTypeIds | [number, any] {
+  function getType(t: number): IDLTypeIds | [IDLTypeIds, any] {
     if (t < -24) {
       throw new Error('future value not supported');
     }
@@ -1255,14 +1255,25 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   }
   function decodeType(type: number): Type {
     const t = getType(type);
-    switch (t) {
-      case IDLTypeIds.Null:
-        return Null;
-      case IDLTypeIds.Bool:
-        return Bool;
-      default:
-        return Null;
-      // throw new Error('Illegal op_code: ' + t);
+    if (Array.isArray(t)) {
+      switch (t[0]) {
+        case IDLTypeIds.Vector: {
+          const ty = decodeType(t[1]);
+          return Vec(ty);
+        }
+        default:
+          return Null;
+      }
+    } else {
+      switch (t) {
+        case IDLTypeIds.Null:
+          return Null;
+        case IDLTypeIds.Bool:
+          return Bool;
+        default:
+          return Null;
+          // throw new Error('Illegal op_code: ' + t);
+      }
     }
   }
 
