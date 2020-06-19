@@ -1241,43 +1241,98 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     throw new Error('Wrong number of return values');
   }
 
-  function getType(t: number): IDLTypeIds | [IDLTypeIds, any] {
+  const table: RecClass[] = rawTable.map(_ => Rec());
+  function getType(t: number): Type {
     if (t < -24) {
       throw new Error('future value not supported');
     }
     if (t < 0) {
-      return t;
+      switch (t) {
+        case -1:
+          return Null;
+        case -2:
+          return Bool;
+        case -3:
+          return Nat;
+        case -4:
+          return Int;
+        case -5:
+          return Nat8;
+        case -6:
+          return Nat16;
+        case -7:
+          return Nat32;
+        case -8:
+          return Nat64;
+        case -9:
+          return Int8;
+        case -10:
+          return Int16;
+        case -11:
+          return Int32;
+        case -12:
+          return Int64;
+        case -13:
+          return Float64; // TODO: fix float32
+        case -14:
+          return Float64;
+        case -15:
+          return Text;
+        case -16:
+          return Empty; // TODO: fix reversed
+        case -17:
+          return Empty;
+        default:
+          throw new Error('Illegal op_code: ' + t);
+      }
     }
     if (t >= rawTable.length) {
       throw new Error('type index out of range');
     }
-    return rawTable[t];
+    return table[t];
   }
-  function decodeType(type: number): Type {
-    const t = getType(type);
-    if (Array.isArray(t)) {
-      switch (t[0]) {
-        case IDLTypeIds.Vector: {
-          const ty = decodeType(t[1]);
-          return Vec(ty);
+  function buildType(entry: [IDLTypeIds, any]): Type {
+    switch (entry[0]) {
+      case IDLTypeIds.Vector: {
+        const ty = getType(entry[1]);
+        return Vec(ty);
+      }
+      case IDLTypeIds.Opt: {
+        const ty = getType(entry[1]);
+        return Opt(ty);
+      }
+      case IDLTypeIds.Record: {
+        const fields: Record<string, Type> = {};
+        for (const [hash, ty] of entry[1]) {
+          const name = `_${hash}_`;
+          fields[name] = getType(ty);
         }
-        default:
-          return Null;
+        return Record(fields);
       }
-    } else {
-      switch (t) {
-        case IDLTypeIds.Null:
-          return Null;
-        case IDLTypeIds.Bool:
-          return Bool;
-        default:
-          return Null;
-          // throw new Error('Illegal op_code: ' + t);
+      case IDLTypeIds.Variant: {
+        const fields: Record<string, Type> = {};
+        for (const [hash, ty] of entry[1]) {
+          const name = `_${hash}_`;
+          fields[name] = getType(ty);
+        }
+        return Variant(fields);
       }
+      case IDLTypeIds.Func: {
+        return Func([], [], []);
+      }
+      case IDLTypeIds.Service: {
+        return Service({});
+      }
+      default:
+        throw new Error('Illegal op_code: ' + entry[0]);
     }
   }
+  rawTable.forEach((entry, i) => {
+    const t = buildType(entry);
+    table[i].fill(t);
+  });
 
-  const types = rawTypes.map(t => decodeType(t));
+  const types = rawTypes.map(t => getType(t));
   const output = retTypes.map((t, i) => {
     return t.decodeValue(b);
   });
