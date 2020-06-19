@@ -273,6 +273,7 @@ export class BoolClass extends PrimitiveType<boolean> {
   }
 
   public decodeValue(b: Pipe) {
+    //checkOpcode(t, IDLTypeIds.Bool);
     const x = b.read(1).toString('hex');
     return x === '01';
   }
@@ -1162,34 +1163,43 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     throw new Error('Wrong magic number: ' + magic);
   }
 
-  function decodeType(pipe: Pipe) {
+  function readTypeTable(pipe: Pipe): [any[], number[]] {
+    const typeTable = [];
     const len = lebDecode(pipe).toNumber();
 
     for (let i = 0; i < len; i++) {
       const ty = slebDecode(pipe).toNumber();
       switch (ty) {
-        case IDLTypeIds.Opt:
-          slebDecode(pipe);
+        case IDLTypeIds.Opt: {
+          const t = slebDecode(pipe).toNumber();
+          typeTable.push([ty, t]);
           break;
-        case IDLTypeIds.Vector:
-          slebDecode(pipe);
+        }
+        case IDLTypeIds.Vector: {
+          const t = slebDecode(pipe).toNumber();
+          typeTable.push([ty, t]);
           break;
+        }
         case IDLTypeIds.Record: {
-          // record/tuple
+          const fields = [];
           let objectLength = lebDecode(pipe).toNumber();
           while (objectLength--) {
-            lebDecode(pipe);
-            slebDecode(pipe);
+            const hash = lebDecode(pipe).toNumber();
+            const t = slebDecode(pipe).toNumber();
+            fields.push([hash, t]);
           }
+          typeTable.push([ty, fields]);
           break;
         }
         case IDLTypeIds.Variant: {
-          // variant
+          const fields = [];
           let variantLength = lebDecode(pipe).toNumber();
           while (variantLength--) {
-            lebDecode(pipe);
-            slebDecode(pipe);
+            const hash = lebDecode(pipe).toNumber();
+            const t = slebDecode(pipe).toNumber();
+            fields.push([hash, t]);
           }
+          typeTable.push([ty, fields]);
           break;
         }
         case IDLTypeIds.Func: {
@@ -1201,6 +1211,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           }
           const annLen = lebDecode(pipe).toNumber();
           pipe.read(annLen);
+          typeTable.push([ty, undefined]);
           break;
         }
         case IDLTypeIds.Service: {
@@ -1210,6 +1221,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
             pipe.read(l);
             slebDecode(pipe);
           }
+          typeTable.push([ty, undefined]);
           break;
         }
         default:
@@ -1217,14 +1229,46 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
       }
     }
 
+    const types: number[] = [];
     const length = lebDecode(pipe).toNumber();
     for (let i = 0; i < length; i++) {
-      slebDecode(pipe);
+      types.push(slebDecode(pipe).toNumber());;
+    }
+    return [typeTable, types];
+  }
+  function decodeType(rawTable: any[], type: number): Type {
+    function getType(t: number) {
+      if (t < -24) {
+        throw new Error('future value not supported');
+      }
+      if (t < 0) {
+        return t;
+      }
+      if (t >= rawTable.length) {
+        throw new Error('type index out of range');
+      }
+      return rawTable[t];
+    }
+    const t = getType(type);
+    switch (t) {
+      case IDLTypeIds.Null:
+        return Null;
+      case IDLTypeIds.Bool:
+        return Bool;
+      default:
+        throw new Error('Illegal op_code: ' + t);
     }
   }
-
-  decodeType(b);
-  const output = retTypes.map(t => t.decodeValue(b));
+  
+  const [rawTable, rawTypes] = readTypeTable(b);
+  const types = rawTypes.map(t => decodeType(rawTable, t));
+  if (types.length < retTypes.length) {
+    throw new Error('Wrong number of return values');
+  }
+  const output = retTypes.map((t, i) => {
+    return t.decodeValue(b);
+  });
+  
   if (b.buffer.length > 0) {
     throw new Error('decode: Left-over bytes');
   }
