@@ -273,7 +273,7 @@ export class BoolClass extends PrimitiveType<boolean> {
   }
 
   public decodeValue(b: Pipe) {
-    //checkOpcode(t, IDLTypeIds.Bool);
+    // checkOpcode(t, IDLTypeIds.Bool);
     const x = b.read(1).toString('hex');
     return x === '01';
   }
@@ -1163,8 +1163,8 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     throw new Error('Wrong magic number: ' + magic);
   }
 
-  function readTypeTable(pipe: Pipe): [any[], number[]] {
-    const typeTable = [];
+  function readTypeTable(pipe: Pipe): [Array<[IDLTypeIds, any]>, number[]] {
+    const typeTable: Array<[IDLTypeIds, any]> = [];
     const len = lebDecode(pipe).toNumber();
 
     for (let i = 0; i < len; i++) {
@@ -1229,26 +1229,31 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
       }
     }
 
-    const types: number[] = [];
+    const rawList: number[] = [];
     const length = lebDecode(pipe).toNumber();
     for (let i = 0; i < length; i++) {
-      types.push(slebDecode(pipe).toNumber());;
+      rawList.push(slebDecode(pipe).toNumber());
     }
-    return [typeTable, types];
+    return [typeTable, rawList];
   }
-  function decodeType(rawTable: any[], type: number): Type {
-    function getType(t: number) {
-      if (t < -24) {
-        throw new Error('future value not supported');
-      }
-      if (t < 0) {
-        return t;
-      }
-      if (t >= rawTable.length) {
-        throw new Error('type index out of range');
-      }
-      return rawTable[t];
+  const [rawTable, rawTypes] = readTypeTable(b);
+  if (rawTypes.length < retTypes.length) {
+    throw new Error('Wrong number of return values');
+  }
+
+  function getType(t: number): IDLTypeIds | [number, any] {
+    if (t < -24) {
+      throw new Error('future value not supported');
     }
+    if (t < 0) {
+      return t;
+    }
+    if (t >= rawTable.length) {
+      throw new Error('type index out of range');
+    }
+    return rawTable[t];
+  }
+  function decodeType(type: number): Type {
     const t = getType(type);
     switch (t) {
       case IDLTypeIds.Null:
@@ -1256,19 +1261,16 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
       case IDLTypeIds.Bool:
         return Bool;
       default:
-        throw new Error('Illegal op_code: ' + t);
+        return Null;
+      // throw new Error('Illegal op_code: ' + t);
     }
   }
-  
-  const [rawTable, rawTypes] = readTypeTable(b);
-  const types = rawTypes.map(t => decodeType(rawTable, t));
-  if (types.length < retTypes.length) {
-    throw new Error('Wrong number of return values');
-  }
+
+  const types = rawTypes.map(t => decodeType(t));
   const output = retTypes.map((t, i) => {
     return t.decodeValue(b);
   });
-  
+
   if (b.buffer.length > 0) {
     throw new Error('decode: Left-over bytes');
   }

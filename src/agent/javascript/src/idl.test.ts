@@ -33,7 +33,7 @@ test('IDL encoding (magic number)', () => {
 test('IDL encoding (empty)', () => {
   // Empty
   expect(() => IDL.encode([IDL.Empty], [undefined])).toThrow(/Invalid empty argument:/);
-  expect(() => IDL.decode([IDL.Empty], Buffer.from('DIDL'))).toThrow(
+  expect(() => IDL.decode([IDL.Empty], Buffer.from('4449444c00016f', 'hex'))).toThrow(
     /Empty cannot appear as an output/,
   );
 });
