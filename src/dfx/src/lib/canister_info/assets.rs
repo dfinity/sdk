@@ -3,6 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use std::path::{Path, PathBuf};
 
 pub struct AssetsCanisterInfo {
+    input_root: PathBuf,
     source_paths: Vec<PathBuf>,
 
     output_wasm_path: PathBuf,
@@ -23,6 +24,21 @@ impl AssetsCanisterInfo {
     pub fn get_output_assets_path(&self) -> &Path {
         self.output_assets_path.as_path()
     }
+
+    pub fn assert_source_paths(&self) -> DfxResult<()> {
+        let source_paths = &self.source_paths;
+        let input_root = &self.input_root;
+        let source_paths: Vec<PathBuf> = source_paths.iter().map(|x| input_root.join(x)).collect();
+        for source_path in &source_paths {
+            let canonical = source_path.canonicalize()?;
+            if !canonical.starts_with(input_root) {
+                return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
+                    source_path.to_path_buf(),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl CanisterInfoFactory for AssetsCanisterInfo {
@@ -34,21 +50,10 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
         let build_root = info.get_build_root();
         let name = info.get_name();
 
-        let input_root = info.get_workspace_root();
+        let input_root = info.get_workspace_root().to_path_buf();
         // If there are no "source" field, we just ignore this.
         let source_paths = if info.has_extra("source") {
-            let source_paths = info.get_extra::<Vec<PathBuf>>("source")?;
-            let source_paths: Vec<PathBuf> =
-                source_paths.iter().map(|x| input_root.join(x)).collect();
-            for source_path in &source_paths {
-                let canonical = source_path.canonicalize()?;
-                if !canonical.starts_with(info.get_workspace_root()) {
-                    return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
-                        source_path.to_path_buf(),
-                    ));
-                }
-            }
-            source_paths
+            info.get_extra::<Vec<PathBuf>>("source")?
         } else {
             vec![]
         };
@@ -60,6 +65,7 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
         let output_assets_path = output_root.join(Path::new("assets"));
 
         Ok(AssetsCanisterInfo {
+            input_root,
             source_paths,
             output_wasm_path,
             output_idl_path,
