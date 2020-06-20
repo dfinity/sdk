@@ -54,6 +54,9 @@ test('IDL encoding (text)', () => {
   );
   expect(() => IDL.encode([IDL.Text], [0])).toThrow(/Invalid text argument/);
   expect(() => IDL.encode([IDL.Text], [null])).toThrow(/Invalid text argument/);
+  expect(() =>
+    IDL.decode([IDL.Vec(IDL.Nat8)], Buffer.from('4449444c00017107486920e298830a', 'hex')),
+  ).toThrow(/type mismatch: type on the wire text, expect type vec nat8/);
 });
 
 test('IDL encoding (int)', () => {
@@ -70,6 +73,9 @@ test('IDL encoding (int)', () => {
   test_(IDL.Int, new BigNumber(-1234567890), '4449444c00017caefaa7b37b', 'Negative Int');
   test_(IDL.Opt(IDL.Int), [new BigNumber(42)], '4449444c016e7c0100012a', 'Nested Int');
   testEncode(IDL.Opt(IDL.Int), [42], '4449444c016e7c0100012a', 'Nested Int (number)');
+  expect(() => IDL.decode([IDL.Int], Buffer.from('4449444c00017d2a', 'hex'))).toThrow(
+    /type mismatch: type on the wire nat, expect type int/,
+  );
 });
 
 test('IDL encoding (nat)', () => {
@@ -193,6 +199,21 @@ test('IDL encoding (record)', () => {
     { foo: '💩', bar: 42 },
     '4449444c016c02d3e3aa027c868eb7027101002a04f09f92a9',
     'Record',
+  );
+});
+
+test('IDL decoding (skip fields)', () => {
+  testDecode(
+    IDL.Record({ foo: IDL.Text, bar: IDL.Int }),
+    { foo: '💩', bar: new BigNumber(42) },
+    '4449444c016c04017f027ed3e3aa027c868eb702710100012a04f09f92a9',
+    'ignore record fields',
+  );
+  testDecode(
+    IDL.Variant({ ok: IDL.Text, err: IDL.Text }),
+    { ok: 'good' },
+    '4449444c016b03017e9cc20171e58eb4027101000104676f6f64',
+    'adjust variant index',
   );
 });
 
