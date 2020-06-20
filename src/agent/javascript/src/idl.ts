@@ -197,7 +197,7 @@ export abstract class Type<T = any> {
    */
   public abstract encodeType(typeTable: TypeTable): Buffer;
 
-  public abstract decodeValue(x: Pipe): T;
+  public abstract decodeValue(x: Pipe, t: Type): T;
 
   protected abstract _buildTypeTableImpl(typeTable: TypeTable): void;
 }
@@ -273,7 +273,6 @@ export class BoolClass extends PrimitiveType<boolean> {
   }
 
   public decodeValue(b: Pipe) {
-    // checkOpcode(t, IDLTypeIds.Bool);
     const x = b.read(1).toString('hex');
     return x === '01';
   }
@@ -590,11 +589,15 @@ export class VecClass<T> extends ConstructType<T[]> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public decodeValue(b: Pipe): any[] {
+  public decodeValue(b: Pipe, t: RecClass): any[] {
+    const vec = t.getType();
+    if (!(vec instanceof VecClass)) {
+      throw new Error('Not a vector type');
+    }
     const len = lebDecode(b).toNumber();
     const rets: any[] = [];
     for (let i = 0; i < len; i++) {
-      rets.push(this._type.decodeValue(b));
+      rets.push(this._type.decodeValue(b, vec._type));
     }
     return rets;
   }
@@ -646,12 +649,16 @@ export class OptClass<T> extends ConstructType<[T] | []> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public decodeValue(b: Pipe): [T] | [] {
+  public decodeValue(b: Pipe, t: RecClass): [T] | [] {
+    const opt = t.getType();
+    if (!(opt instanceof OptClass)) {
+      throw new Error('Not an option type');
+    }
     const len = b.read(1).toString('hex');
     if (len === '00') {
       return [];
     } else {
-      return [this._type.decodeValue(b)];
+      return [this._type.decodeValue(b, opt._type)];
     }
   }
 
@@ -688,6 +695,18 @@ export class RecordClass extends ConstructType<Record<string, any>> {
     return v.visitRecord(this, this._fields, d);
   }
 
+  public tryAsTuple(): Type[] | null {
+    const res: Type[] = [];
+    for (let i = 0; i < this._fields.length; i++) {
+      const [key, type] = this._fields[i];
+      if (key !== `_${i}_`) {
+        return null;
+      }
+      res.push(type);
+    }
+    return res;
+  }
+
   public covariant(x: any): x is Record<string, any> {
     return (
       typeof x === 'object' &&
@@ -717,10 +736,25 @@ export class RecordClass extends ConstructType<Record<string, any>> {
     T.add(this, Buffer.concat([opCode, len, Buffer.concat(fields)]));
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: RecClass) {
+    const record = t.getType();
+    if (!(record instanceof RecordClass)) {
+      throw new Error('Not a record type');
+    }
     const x: Record<string, any> = {};
-    for (const [key, type] of this._fields) {
-      x[key] = type.decodeValue(b);
+    let idx = 0;
+    for (const [hash, type] of record._fields) {
+      const [expectKey, expectType] = this._fields[idx];
+      if (idlLabelToId(expectKey) === idlLabelToId(hash)) {
+        x[expectKey] = expectType.decodeValue(b, type);
+        idx++;
+      } else {
+        // skip this field
+        type.decodeValue(b, type);
+      }
+    }
+    if (idx < this._fields.length) {
+      throw new Error('Cannot find field ' + this._fields[idx][0]);
     }
     return x;
   }
@@ -770,8 +804,15 @@ class TupleClass<T extends any[]> extends RecordClass {
     return Buffer.concat(bufs);
   }
 
-  public decodeValue(b: Pipe): T {
-    return this._components.map(c => c.decodeValue(b)) as T;
+  public decodeValue(b: Pipe, t: RecClass): T {
+    const tuple = t.getType();
+    if (!(tuple instanceof TupleClass)) {
+      throw new Error('not a tuple class');
+    }
+    if (tuple._components.length < this._components.length) {
+      throw new Error('tuple mismatch');
+    }
+    return this._components.map((c, i) => c.decodeValue(b, tuple._components[i])) as T;
   }
 }
 
@@ -826,16 +867,23 @@ export class VariantClass extends ConstructType<Record<string, any>> {
     typeTable.add(this, Buffer.concat([opCode, len, ...fields]));
   }
 
-  public decodeValue(b: Pipe) {
-    const idx = lebDecode(b).toNumber();
-    if (idx >= this._fields.length) {
-      throw Error('Invalid variant: ' + idx);
+  public decodeValue(b: Pipe, t: RecClass) {
+    const variant = t.getType();
+    if (!(variant instanceof VariantClass)) {
+      throw new Error('Not a variant type');
     }
-
-    const value = this._fields[idx][1].decodeValue(b);
-    return {
-      [this._fields[idx][0]]: value,
-    };
+    const idx = lebDecode(b).toNumber();
+    if (idx >= variant._fields.length) {
+      throw Error('Invalid variant index: ' + idx);
+    }
+    const [wireHash, wireType] = variant._fields[idx];
+    for (const [key, expectType] of this._fields) {
+      if (idlLabelToId(wireHash) === idlLabelToId(key)) {
+        const value = expectType.decodeValue(b, wireType);
+        return { [key]: value };
+      }
+    }
+    throw new Error('Cannot find field hash ' + wireHash);
   }
 
   get name() {
@@ -903,11 +951,11 @@ export class RecClass<T = any> extends ConstructType<T> {
     typeTable.merge(this, this._type.name);
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
     if (!this._type) {
       throw Error('Recursive type uninitialized.');
     }
-    return this._type.decodeValue(b);
+    return this._type.decodeValue(b, t);
   }
 
   get name() {
@@ -1282,6 +1330,8 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           return Empty; // TODO: fix reversed
         case -17:
           return Empty;
+        case -24:
+          return Principal;
         default:
           throw new Error('Illegal op_code: ' + t);
       }
@@ -1307,7 +1357,13 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           const name = `_${hash}_`;
           fields[name] = getType(ty);
         }
-        return Record(fields);
+        const record = Record(fields);
+        const tuple = record.tryAsTuple();
+        if (Array.isArray(tuple)) {
+          return new TupleClass(tuple);
+        } else {
+          return record;
+        }
       }
       case IDLTypeIds.Variant: {
         const fields: Record<string, Type> = {};
@@ -1334,7 +1390,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
 
   const types = rawTypes.map(t => getType(t));
   const output = retTypes.map((t, i) => {
-    return t.decodeValue(b);
+    return t.decodeValue(b, types[i]);
   });
 
   if (b.buffer.length > 0) {
