@@ -847,6 +847,17 @@ class TupleClass<T extends any[]> extends RecordClass {
     }
     return this._components.map((c, i) => c.decodeValue(b, tuple._components[i])) as T;
   }
+
+  public display() {
+    const fields = this._fields.map(([key, value]) => value.display());
+    return `record {${fields.join('; ')}}`;
+  }
+
+  public valueToString(x: Record<string, any>) {
+    const values = this._fields.map(([key]) => x[key]);
+    const fields = zipWith(this._fields, values, ([k, c], d) => c.valueToString(d));
+    return `record {${fields.join('; ')}}`;
+  }
 }
 
 /**
@@ -925,7 +936,9 @@ export class VariantClass extends ConstructType<Record<string, any>> {
   }
 
   public display() {
-    const fields = this._fields.map(([key, type]) => key + ':' + type.display());
+    const fields = this._fields.map(([key, type]) =>
+      key + type.name === 'null' ? '' : `:${type.display()}`,
+    );
     return `variant {${fields.join('; ')}}`;
   }
 
@@ -933,10 +946,14 @@ export class VariantClass extends ConstructType<Record<string, any>> {
     for (const [name, type] of this._fields) {
       if (x.hasOwnProperty(name)) {
         const value = type.valueToString(x[name]);
-        return `variant {${name}=${value}}`;
+        if (value === 'null') {
+          return `variant {${name}}`;
+        } else {
+          return `variant {${name}=${value}}`;
+        }
       }
     }
-    throw Error('Variant has no data: ' + x);
+    throw new Error('Variant has no data: ' + x);
   }
 }
 
