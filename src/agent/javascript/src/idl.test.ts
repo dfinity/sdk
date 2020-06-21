@@ -215,6 +215,20 @@ test('IDL decoding (skip fields)', () => {
     '4449444c016b03017e9cc20171e58eb4027101000104676f6f64',
     'adjust variant index',
   );
+  const recordType = IDL.Record({ foo: IDL.Int32, bar: IDL.Bool });
+  const recordValue = { foo: 42, bar: true };
+  test_(
+    IDL.Record({ foo: IDL.Int32, bar: recordType, baz: recordType, bib: recordType }),
+    { foo: 42, bar: recordValue, baz: recordValue, bib: recordValue },
+    '4449444c026c02d3e3aa027e868eb702756c04d3e3aa0200dbe3aa0200bbf1aa0200868eb702750101012a000000012a000000012a0000002a000000',
+    'nested record',
+  );
+  testDecode(
+    IDL.Record({ baz: IDL.Record({ foo: IDL.Int32 }) }),
+    { baz: { foo: 42 } },
+    '4449444c026c02d3e3aa027e868eb702756c04d3e3aa0200dbe3aa0200bbf1aa0200868eb702750101012a000000012a000000012a0000002a000000',
+    'skip nested fields',
+  );
 });
 
 test('IDL encoding (numbered record)', () => {

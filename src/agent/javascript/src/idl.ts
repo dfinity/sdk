@@ -140,6 +140,10 @@ export abstract class Visitor<D, R> {
   public visitRecord(t: RecordClass, fields: Array<[string, Type]>, data: D): R {
     return this.visitConstruct(t, data);
   }
+  public visitTuple<T extends any[]>(t: TupleClass<T>, components: Type[], data: D): R {
+    const fields: Array<[string, Type]> = components.map((ty, i) => [`_${i}_`, ty]);
+    return this.visitRecord(t, fields, data);
+  }
   public visitVariant(t: VariantClass, fields: Array<[string, Type]>, data: D): R {
     return this.visitConstruct(t, data);
   }
@@ -217,7 +221,7 @@ export abstract class PrimitiveType<T = any> extends Type<T> {
 }
 
 export abstract class ConstructType<T = any> extends Type<T> {
-  public checkType(t: Type): Type {
+  public checkType(t: Type): ConstructType<T> {
     if (t instanceof RecClass) {
       const ty = t.getType();
       if (typeof ty === 'undefined') {
@@ -769,14 +773,14 @@ export class RecordClass extends ConstructType<Record<string, any>> {
     const x: Record<string, any> = {};
     let idx = 0;
     for (const [hash, type] of record._fields) {
-      const [expectKey, expectType] = this._fields[idx];
-      if (idlLabelToId(expectKey) === idlLabelToId(hash)) {
-        x[expectKey] = expectType.decodeValue(b, type);
-        idx++;
-      } else {
-        // skip this field
-        const v = type.decodeValue(b, type);
+      if (idx >= this._fields.length || idlLabelToId(this._fields[idx][0]) !== idlLabelToId(hash)) {
+        // skip field
+        type.decodeValue(b, type);
+        continue;
       }
+      const [expectKey, expectType] = this._fields[idx];
+      x[expectKey] = expectType.decodeValue(b, type);
+      idx++;
     }
     if (idx < this._fields.length) {
       throw new Error('Cannot find field ' + this._fields[idx][0]);
@@ -815,6 +819,10 @@ class TupleClass<T extends any[]> extends RecordClass {
     this._components = _components;
   }
 
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitTuple(this, this._components, d);
+  }
+
   public covariant(x: any): x is T {
     // `>=` because tuples can be covariant when encoded.
     return (
@@ -832,7 +840,7 @@ class TupleClass<T extends any[]> extends RecordClass {
   public decodeValue(b: Pipe, t: Type): T {
     const tuple = this.checkType(t);
     if (!(tuple instanceof TupleClass)) {
-      throw new Error('not a tuple class');
+      throw new Error('not a tuple type');
     }
     if (tuple._components.length < this._components.length) {
       throw new Error('tuple mismatch');
