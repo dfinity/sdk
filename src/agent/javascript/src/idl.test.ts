@@ -144,7 +144,7 @@ test('IDL encoding (tuple)', () => {
     'Pairs',
   );
   expect(() => IDL.encode([IDL.Tuple(IDL.Int, IDL.Text)], [[0]])).toThrow(
-    /Invalid record {_0_:int; _1_:text} argument/,
+    /Invalid record {int; text} argument/,
   );
 });
 

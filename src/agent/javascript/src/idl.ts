@@ -936,8 +936,8 @@ export class VariantClass extends ConstructType<Record<string, any>> {
   }
 
   public display() {
-    const fields = this._fields.map(([key, type]) =>
-      key + type.name === 'null' ? '' : `:${type.display()}`,
+    const fields = this._fields.map(
+      ([key, type]) => key + (type.name === 'null' ? '' : `:${type.display()}`),
     );
     return `variant {${fields.join('; ')}}`;
   }
