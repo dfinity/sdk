@@ -21,6 +21,7 @@ const enum IDLTypeIds {
   Bool = -2,
   Nat = -3,
   Int = -4,
+  Float32 = -13,
   Float64 = -14,
   Text = -15,
   Empty = -17,
@@ -450,6 +451,12 @@ export class NatClass extends PrimitiveType<BigNumber> {
  * Represents an IDL Float
  */
 export class FloatClass extends PrimitiveType<number> {
+  constructor(private _bits: number) {
+    super();
+    if (_bits !== 32 && _bits !== 64) {
+      throw new Error('not a valid float type');
+    }
+  }
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
     return v.visitFloat(this, d);
   }
@@ -459,23 +466,32 @@ export class FloatClass extends PrimitiveType<number> {
   }
 
   public encodeValue(x: number) {
-    const buf = Buffer.allocUnsafe(8);
-    buf.writeDoubleLE(x, 0);
+    const buf = Buffer.allocUnsafe(this._bits / 8);
+    if (this._bits === 32) {
+      buf.writeFloatLE(x, 0);
+    } else {
+      buf.writeDoubleLE(x, 0);
+    }
     return buf;
   }
 
   public encodeType() {
-    return slebEncode(IDLTypeIds.Float64);
+    const opcode = this._bits === 32 ? IDLTypeIds.Float32 : IDLTypeIds.Float64;
+    return slebEncode(opcode);
   }
 
   public decodeValue(b: Pipe, t: Type) {
     this.checkType(t);
-    const x = b.read(8);
-    return x.readDoubleLE(0);
+    const x = b.read(this._bits / 8);
+    if (this._bits === 32) {
+      return x.readFloatLE(0);
+    } else {
+      return x.readDoubleLE(0);
+    }
   }
 
   get name() {
-    return 'float64';
+    return 'float' + this._bits;
   }
 
   public valueToString(x: number) {
@@ -1371,7 +1387,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
         case -12:
           return Int64;
         case -13:
-          return Float64; // TODO: fix float32
+          return Float32;
         case -14:
           return Float64;
         case -15:
@@ -1458,7 +1474,8 @@ export const Text = new TextClass();
 export const Int = new IntClass();
 export const Nat = new NatClass();
 
-export const Float64 = new FloatClass();
+export const Float32 = new FloatClass(32);
+export const Float64 = new FloatClass(64);
 
 export const Int8 = new FixedIntClass(8);
 export const Int16 = new FixedIntClass(16);
