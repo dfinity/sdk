@@ -121,7 +121,11 @@ impl CanisterInfo {
 
                 let manifest: CanisterManifest =
                     serde_json::from_str(&content).map_err(DfxError::from)?;
-                let serde_value = &manifest.canisters[&self.name.clone()];
+
+                let serde_value = manifest.canisters.get(&self.name.clone()).ok_or_else(|| {
+                    DfxError::BuildError(BuildErrorKind::CanisterIdNotFound(self.name.clone()))
+                })?;
+
                 let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
 
                 let canister_id = self

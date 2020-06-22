@@ -49,6 +49,9 @@ pub enum BuildErrorKind {
 
     /// The canister_manifest.json file does not exist.
     NoManifestError(),
+
+    /// The canister id was not found in the canister_manifest.json file.
+    CanisterIdNotFound(String),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -117,6 +120,11 @@ impl fmt::Display for BuildErrorKind {
 
             NoManifestError() => f.write_fmt(format_args!(
                 "Failed to find canister manifest, please issue 'dfx canister create'."
+            )),
+
+            CanisterIdNotFound(name) => f.write_fmt(format_args!(
+                "Failed to find canister id for {}, please issue 'dfx canister create {}'.",
+                name, name
             )),
         }
     }
