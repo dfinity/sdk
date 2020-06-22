@@ -24,6 +24,7 @@ pub struct AgentConfig<'a> {
     pub nonce_factory: NonceFactory,
     pub identity: Box<dyn Identity>,
     pub request_executor: Box<dyn AgentRequestExecutor>,
+    pub default_waiter: delay::Delay,
 }
 
 impl Default for AgentConfig<'_> {
@@ -38,6 +39,7 @@ impl Default for AgentConfig<'_> {
                     .build()
                     .expect("Could not create HTTP client."),
             }),
+            default_waiter: delay::Delay::instant(),
         }
     }
 }
