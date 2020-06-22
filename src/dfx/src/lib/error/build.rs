@@ -46,6 +46,9 @@ pub enum BuildErrorKind {
 
     /// A command line string was invalid.
     InvalidBuildCommand(String),
+
+    /// The canister_manifest.json file does not exist.
+    NoManifestError(),
 }
 
 impl fmt::Display for BuildErrorKind {
@@ -110,6 +113,10 @@ impl fmt::Display for BuildErrorKind {
             PostbuildStepFailed(c, e) => f.write_fmt(format_args!(
                 "Postbuild step failed for canister {} with error: {}",
                 c, e
+            )),
+
+            NoManifestError() => f.write_fmt(format_args!(
+                "Failed to find canister manifest, please issue 'dfx canister create'."
             )),
         }
     }

@@ -22,7 +22,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let canister_name = args.value_of("canister_name").unwrap();
     let canister_info = CanisterInfo::load(&config, canister_name)?;
-    let canister_id = canister_info.get_canister_id().ok_or_else(|| {
+    let canister_id = canister_info.get_canister_id().map_err(|_| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
     println!("{}", CanisterId::to_text(&canister_id));
