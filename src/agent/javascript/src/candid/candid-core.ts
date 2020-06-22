@@ -159,6 +159,29 @@ export class RecordForm extends InputForm {
   }
 }
 
+export class TupleForm extends InputForm {
+  constructor(public components: IDL.Type[], public ui: FormConfig) {
+    super(ui);
+  }
+  public generateForm(): void {
+    this.form = this.components.map(type => {
+      const input = this.ui.render(type);
+      return input;
+    });
+  }
+  public parse(config: ParseConfig): any[] | undefined {
+    const v: any[] = [];
+    this.components.forEach((_, i) => {
+      const value = this.form[i].parse(config);
+      v.push(value);
+    });
+    if (this.form.some(input => input.isRejected())) {
+      return undefined;
+    }
+    return v;
+  }
+}
+
 export class VariantForm extends InputForm {
   constructor(public fields: Array<[string, IDL.Type]>, public ui: FormConfig) {
     super(ui);

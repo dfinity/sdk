@@ -809,7 +809,7 @@ export class RecordClass extends ConstructType<Record<string, any>> {
  * Represents Tuple, a syntactic sugar for Record.
  * @param {Type} components
  */
-class TupleClass<T extends any[]> extends RecordClass {
+export class TupleClass<T extends any[]> extends RecordClass {
   protected readonly _components: Type[];
 
   constructor(_components: Type[]) {
@@ -849,13 +849,12 @@ class TupleClass<T extends any[]> extends RecordClass {
   }
 
   public display() {
-    const fields = this._fields.map(([key, value]) => value.display());
+    const fields = this._components.map(value => value.display());
     return `record {${fields.join('; ')}}`;
   }
 
-  public valueToString(x: Record<string, any>) {
-    const values = this._fields.map(([key]) => x[key]);
-    const fields = zipWith(this._fields, values, ([k, c], d) => c.valueToString(d));
+  public valueToString(values: any[]) {
+    const fields = zipWith(this._components, values, (c, d) => c.valueToString(d));
     return `record {${fields.join('; ')}}`;
   }
 }
