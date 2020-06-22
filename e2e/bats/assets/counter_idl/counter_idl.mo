@@ -19,7 +19,7 @@ actor {
     };
     public func inc(i: Int, b: Bool, str: Text, vec: [Nat], l: List<Int>, l2: List2<Int>) : async (Int, Bool, Text, [Nat], List<Int>, List2<Int>) {
         let arr = A.tabulate<Nat>(
-          vec.len(),
+          vec.size(),
           func (i : Nat) : Nat {
               vec[i]+1;
           });
