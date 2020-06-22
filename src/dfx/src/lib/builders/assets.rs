@@ -88,7 +88,6 @@ impl CanisterBuilder for AssetsBuilder {
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
         delete_output_directory(&info, &assets_canister_info)?;
-        copy_assets(&assets_canister_info)?;
 
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
@@ -110,6 +109,9 @@ impl CanisterBuilder for AssetsBuilder {
             build_frontend(info.get_workspace_root(), pool.get_logger())?;
         }
 
+        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
+        assets_canister_info.assert_source_paths()?;
+        copy_assets(&assets_canister_info)?;
         Ok(())
     }
 }
