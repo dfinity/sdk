@@ -127,6 +127,11 @@ impl fmt::Display for BuildErrorKind {
                 "Failed to find canister id for {}, please issue 'dfx canister create {}'.",
                 name, name
             )),
+
+            CanisterIdNotFound(name) => f.write_fmt(format_args!(
+                "Failed to find canister id for {}, please issue 'dfx canister create {}'.",
+                name, name
+            )),
         }
     }
 }
