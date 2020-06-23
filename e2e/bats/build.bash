@@ -26,7 +26,7 @@ teardown() {
     dfx_start
     assert_command dfx build
     dfx canister install --all
-    assert_command dfx canister call e2e_project greet World
+    assert_command dfx canister call e2e_project greet '"World"'
     assert_match "10World"
 }
 
