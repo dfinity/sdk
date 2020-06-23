@@ -4,9 +4,9 @@ type Matrix = [[Int]];
 
 actor {
     public query func transpose(m: Matrix) : async Matrix {
-        assert (m.len() > 0);
-        let n_row = m.len();
-        let n_col = m[0].len();
+        assert (m.size() > 0);
+        let n_row = m.size();
+        let n_col = m[0].size();
         A.tabulate<[Int]>(
           n_col,
           func (j:Nat) : [Int] {
