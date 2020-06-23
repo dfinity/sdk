@@ -1459,6 +1459,11 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     return t.decodeValue(b, types[i]);
   });
 
+  // skip unused values
+  for (let ind = retTypes.length; ind < types.length; ind++) {
+    types[ind].decodeValue(b, types[ind]);
+  }
+
   if (b.buffer.length > 0) {
     throw new Error('decode: Left-over bytes');
   }
