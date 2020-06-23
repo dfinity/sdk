@@ -14,8 +14,7 @@
     },
     "start": {
       "address": "127.0.0.1",
-      "port": 8000,
-      "serve_root": "canisters/eeoo/assets"
+      "port": 8000
     }
   }
 }

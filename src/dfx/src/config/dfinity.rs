@@ -39,8 +39,6 @@ const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsRepli
 const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
     address: None,
     port: None,
-    nodes: None,
-    serve_root: None,
 };
 
 /// A Canister configuration in the dfx.json config file.
@@ -79,9 +77,7 @@ pub struct ConfigDefaultsReplica {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsStart {
     pub address: Option<String>,
-    pub nodes: Option<u64>,
     pub port: Option<u16>,
-    pub serve_root: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -137,16 +133,6 @@ impl ConfigDefaultsStart {
 
             to_socket_addr(format!("{}:{}", addr, port).as_str())
         })
-    }
-    pub fn get_serve_root(&self, default: &str) -> PathBuf {
-        PathBuf::from(
-            self.serve_root
-                .to_owned()
-                .unwrap_or_else(|| default.to_string()),
-        )
-    }
-    pub fn get_nodes(&self, default: u64) -> u64 {
-        self.nodes.unwrap_or(default)
     }
     pub fn get_port(&self, default: u16) -> u16 {
         self.port.unwrap_or(default)
