@@ -15,6 +15,9 @@ export const inputBox = (t: IDL.Type, config: Partial<UI.UIConfig>) => {
 export const recordForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
   return new UI.RecordForm(fields, { ...FormConfig, ...config });
 };
+export const tupleForm = (components: IDL.Type[], config: Partial<UI.FormConfig>) => {
+  return new UI.TupleForm(components, { ...FormConfig, ...config });
+};
 export const variantForm = (fields: Array<[string, IDL.Type]>, config: Partial<UI.FormConfig>) => {
   return new UI.VariantForm(fields, { ...FormConfig, ...config });
 };
@@ -43,6 +46,20 @@ export class Render extends IDL.Visitor<null, InputBox> {
       config = { container };
     }
     const form = recordForm(fields, config);
+    return inputBox(t, { form });
+  }
+  public visitTuple<T extends any[]>(
+    t: IDL.TupleClass<T>,
+    components: IDL.Type[],
+    d: null,
+  ): InputBox {
+    let config = {};
+    if (components.length > 1) {
+      const container = document.createElement('div');
+      container.classList.add('popup-form');
+      config = { container };
+    }
+    const form = tupleForm(components, config);
     return inputBox(t, { form });
   }
   public visitVariant(t: IDL.VariantClass, fields: Array<[string, IDL.Type]>, d: null): InputBox {
@@ -200,6 +217,12 @@ class RenderValue extends IDL.Visitor<ValueConfig, void> {
     const form = d.input.ui.form!;
     fields.forEach(([key, type], i) => {
       renderValue(type, form.form[i], d.value[key]);
+    });
+  }
+  public visitTuple<T extends any[]>(t: IDL.TupleClass<T>, components: IDL.Type[], d: ValueConfig) {
+    const form = d.input.ui.form!;
+    components.forEach((type, i) => {
+      renderValue(type, form.form[i], d.value[i]);
     });
   }
   public visitVariant(t: IDL.VariantClass, fields: Array<[string, IDL.Type]>, d: ValueConfig) {
