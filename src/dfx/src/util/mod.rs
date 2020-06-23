@@ -1,7 +1,7 @@
 use crate::lib::error::{DfxError, DfxResult};
 use candid::parser::typing::{check_prog, ActorEnv, TypeEnv};
 use candid::types::Function;
-use candid::{IDLArgs, IDLProg};
+use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
 use ic_agent::Blob;
 
 pub mod assets;
@@ -48,9 +48,12 @@ pub fn blob_from_arguments(
         }
         "idl" => {
             let arguments = arguments.unwrap_or("()");
-            let args: IDLArgs = arguments
-                .parse()
-                .map_err(|e| DfxError::InvalidArgument(format!("Invalid IDL: {}", e)))?;
+            // Try to parse the argument as IDLValue if parsing as IDLArgs fails
+            let args: IDLArgs = match arguments.parse::<IDLArgs>() {
+                Ok(args) => Ok(args),
+                Err(_) => arguments.parse::<IDLValue>().map(|v| IDLArgs::new(&[v])),
+            }
+            .map_err(|e| DfxError::InvalidArgument(format!("Invalid Candid values: {}", e)))?;
             let typed_args = match method_type {
                 None => {
                     eprintln!("cannot find method type, dfx will send message with inferred type");
@@ -58,7 +61,9 @@ pub fn blob_from_arguments(
                 }
                 Some((env, func)) => args.to_bytes_with_types(&env, &func.args),
             }
-            .map_err(|e| DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e)))?;
+            .map_err(|e| {
+                DfxError::InvalidData(format!("Unable to serialize Candid values: {}", e))
+            })?;
             Ok(typed_args)
         }
         v => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
