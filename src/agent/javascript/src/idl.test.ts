@@ -33,7 +33,7 @@ test('IDL encoding (magic number)', () => {
 test('IDL encoding (empty)', () => {
   // Empty
   expect(() => IDL.encode([IDL.Empty], [undefined])).toThrow(/Invalid empty argument:/);
-  expect(() => IDL.decode([IDL.Empty], Buffer.from('DIDL'))).toThrow(
+  expect(() => IDL.decode([IDL.Empty], Buffer.from('4449444c00016f', 'hex'))).toThrow(
     /Empty cannot appear as an output/,
   );
 });
@@ -54,6 +54,9 @@ test('IDL encoding (text)', () => {
   );
   expect(() => IDL.encode([IDL.Text], [0])).toThrow(/Invalid text argument/);
   expect(() => IDL.encode([IDL.Text], [null])).toThrow(/Invalid text argument/);
+  expect(() =>
+    IDL.decode([IDL.Vec(IDL.Nat8)], Buffer.from('4449444c00017107486920e298830a', 'hex')),
+  ).toThrow(/type mismatch: type on the wire text, expect type vec nat8/);
 });
 
 test('IDL encoding (int)', () => {
@@ -70,6 +73,9 @@ test('IDL encoding (int)', () => {
   test_(IDL.Int, new BigNumber(-1234567890), '4449444c00017caefaa7b37b', 'Negative Int');
   test_(IDL.Opt(IDL.Int), [new BigNumber(42)], '4449444c016e7c0100012a', 'Nested Int');
   testEncode(IDL.Opt(IDL.Int), [42], '4449444c016e7c0100012a', 'Nested Int (number)');
+  expect(() => IDL.decode([IDL.Int], Buffer.from('4449444c00017d2a', 'hex'))).toThrow(
+    /type mismatch: type on the wire nat, expect type int/,
+  );
 });
 
 test('IDL encoding (nat)', () => {
@@ -138,7 +144,7 @@ test('IDL encoding (tuple)', () => {
     'Pairs',
   );
   expect(() => IDL.encode([IDL.Tuple(IDL.Int, IDL.Text)], [[0]])).toThrow(
-    /Invalid record {_0_:int; _1_:text} argument/,
+    /Invalid record {int; text} argument/,
   );
 });
 
@@ -193,6 +199,35 @@ test('IDL encoding (record)', () => {
     { foo: '💩', bar: 42 },
     '4449444c016c02d3e3aa027c868eb7027101002a04f09f92a9',
     'Record',
+  );
+});
+
+test('IDL decoding (skip fields)', () => {
+  testDecode(
+    IDL.Record({ foo: IDL.Text, bar: IDL.Int }),
+    { foo: '💩', bar: new BigNumber(42) },
+    '4449444c016c04017f027ed3e3aa027c868eb702710100012a04f09f92a9',
+    'ignore record fields',
+  );
+  testDecode(
+    IDL.Variant({ ok: IDL.Text, err: IDL.Text }),
+    { ok: 'good' },
+    '4449444c016b03017e9cc20171e58eb4027101000104676f6f64',
+    'adjust variant index',
+  );
+  const recordType = IDL.Record({ foo: IDL.Int32, bar: IDL.Bool });
+  const recordValue = { foo: 42, bar: true };
+  test_(
+    IDL.Record({ foo: IDL.Int32, bar: recordType, baz: recordType, bib: recordType }),
+    { foo: 42, bar: recordValue, baz: recordValue, bib: recordValue },
+    '4449444c026c02d3e3aa027e868eb702756c04d3e3aa0200dbe3aa0200bbf1aa0200868eb702750101012a000000012a000000012a0000002a000000',
+    'nested record',
+  );
+  testDecode(
+    IDL.Record({ baz: IDL.Record({ foo: IDL.Int32 }) }),
+    { baz: { foo: 42 } },
+    '4449444c026c02d3e3aa027e868eb702756c04d3e3aa0200dbe3aa0200bbf1aa0200868eb702750101012a000000012a000000012a0000002a000000',
+    'skip nested fields',
   );
 });
 
