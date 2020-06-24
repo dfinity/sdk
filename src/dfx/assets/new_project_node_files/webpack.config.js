@@ -45,8 +45,9 @@ function generateWebpackConfigForCanister(name, info) {
 
 // Depending in the language or framework you are using for
 // front-end development, add module loaders to the default 
-// webpack configuration. For example, if following the
-// "Adding a stylesheet" tutorial, uncomment the following lines:
+// webpack configuration. For example, if you are using React
+// modules and CSS as described in the "Adding a stylesheet"
+// tutorial, uncomment the following lines:
 // module: {
 //  rules: [
 //    { test: /\.(js|ts)x?$/, loader: "ts-loader" },
