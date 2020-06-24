@@ -11,6 +11,7 @@
     ]
   },
   "rules": {
+    "max-classes-per-file": false,
     "interface-name": [true, "never-prefix"],
     "no-consecutive-blank-lines": [true, 2],
     "no-empty": [true, "allow-empty-functions"],
