@@ -48,24 +48,39 @@ pub fn blob_from_arguments(
         }
         "idl" => {
             let arguments = arguments.unwrap_or("()");
-            // Try to parse the argument in the following order: IDLArgs, IDLValue, Text
-            let args: IDLArgs = arguments
-                .parse::<IDLArgs>()
-                .or_else(|_| {
-                    arguments
-                        .parse::<IDLValue>()
-                        .or_else(|_| Ok(IDLValue::Text(arguments.to_string())))
-                        .map(|v| IDLArgs::new(&[v]))
-                })
-                .map_err(|e: candid::Error| {
+            let args: DfxResult<IDLArgs> =
+                arguments.parse::<IDLArgs>().map_err(|e: candid::Error| {
                     DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
-                })?;
+                });
             let typed_args = match method_type {
                 None => {
                     eprintln!("cannot find method type, dfx will send message with inferred type");
-                    args.to_bytes()
+                    args?.to_bytes()
                 }
-                Some((env, func)) => args.to_bytes_with_types(&env, &func.args),
+                Some((env, func)) => {
+                    // If parsing fails and method expects a single value, try parsing as IDLValue.
+                    // If it still fails, and method expects a text type, send arguments as text.
+                    let args = args.or_else(|e| {
+                        if func.args.len() == 1 {
+                            arguments
+                                .parse::<IDLValue>()
+                                .or_else(|e| {
+                                    if candid::types::Type::Text == func.args[0] {
+                                        Ok(IDLValue::Text(arguments.to_string()))
+                                    } else {
+                                        Err(DfxError::InvalidArgument(format!(
+                                            "Invalid Candid value: {}",
+                                            e
+                                        )))
+                                    }
+                                })
+                                .map(|v| IDLArgs::new(&[v]))
+                        } else {
+                            Err(e)
+                        }
+                    });
+                    args?.to_bytes_with_types(&env, &func.args)
+                }
             }
             .map_err(|e| {
                 DfxError::InvalidData(format!("Unable to serialize Candid values: {}", e))
