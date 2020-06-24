@@ -126,7 +126,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         print_idl_blob(&blob)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
-        let request_id = runtime.block_on(client.call(&canister_id, method_name, &arg_value))?;
+        let request_id =
+            runtime.block_on(client.call_raw(&canister_id, method_name, &arg_value))?;
 
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
