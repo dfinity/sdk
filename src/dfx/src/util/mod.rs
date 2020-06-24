@@ -48,12 +48,18 @@ pub fn blob_from_arguments(
         }
         "idl" => {
             let arguments = arguments.unwrap_or("()");
-            // Try to parse the argument as IDLValue if parsing as IDLArgs fails
-            let args: IDLArgs = match arguments.parse::<IDLArgs>() {
-                Ok(args) => Ok(args),
-                Err(_) => arguments.parse::<IDLValue>().map(|v| IDLArgs::new(&[v])),
-            }
-            .map_err(|e| DfxError::InvalidArgument(format!("Invalid Candid values: {}", e)))?;
+            // Try to parse the argument in the following order: IDLArgs, IDLValue, Text
+            let args: IDLArgs = arguments
+                .parse::<IDLArgs>()
+                .or_else(|_| {
+                    arguments
+                        .parse::<IDLValue>()
+                        .or_else(|_| Ok(IDLValue::Text(arguments.to_string())))
+                        .map(|v| IDLArgs::new(&[v]))
+                })
+                .map_err(|e: candid::Error| {
+                    DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
+                })?;
             let typed_args = match method_type {
                 None => {
                     eprintln!("cannot find method type, dfx will send message with inferred type");
