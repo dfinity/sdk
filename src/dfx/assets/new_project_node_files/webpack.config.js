@@ -42,12 +42,11 @@ function generateWebpackConfigForCanister(name, info) {
       filename: "[name].js",
       path: path.join(__dirname, info.frontend.output),
     },
-    
+
 // Depending in the language or framework you are using for
-// front-end development, you might need to add module loaders
-// to the default webpack configuration. For example, if you
-// using React modules and CSS as described in the "Adding
-// a stylesheet" tutorial, uncomment the following lines:
+// front-end development, add module loaders to the default 
+// webpack configuration. For example, if following the
+// "Adding a stylesheet" tutorial, uncomment the following lines:
 // module: {
 //  rules: [
 //    { test: /\.(js|ts)x?$/, loader: "ts-loader" },
