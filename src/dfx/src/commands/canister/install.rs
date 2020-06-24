@@ -6,7 +6,7 @@ use crate::lib::message::UserMessage;
 use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};
+use ic_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, ManagementCanister, RequestId};
 use slog::info;
 use std::convert::TryFrom;
 use tokio::runtime::Runtime;
@@ -60,6 +60,7 @@ async fn install_canister(
     compute_allocation: Option<ComputeAllocation>,
     mode: &str,
 ) -> DfxResult<RequestId> {
+    let mgr = ManagementCanister { agent };
     let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().map_err(|_| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
@@ -77,8 +78,8 @@ async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    let result = agent
-        .install_with_attrs(
+    let result = mgr
+        .install_code(
             &canister_id,
             &mode,
             &Blob::from(wasm),

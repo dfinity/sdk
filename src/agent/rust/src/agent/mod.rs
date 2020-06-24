@@ -17,7 +17,7 @@ mod agent_test;
 
 use crate::agent::replica_api::{AsyncContent, Envelope, SyncContent};
 use crate::identity::Identity;
-use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
+use crate::{to_request_id, Blob, CanisterId, Principal, RequestId};
 use reqwest::Method;
 use serde::Serialize;
 
@@ -111,9 +111,7 @@ impl Agent {
     async fn submit(&self, request: AsyncContent) -> Result<RequestId, AgentError> {
         let request_id = to_request_id(&request)?;
         let sender = match request.clone() {
-            AsyncContent::CreateCanisterRequest { sender, .. } => sender,
             AsyncContent::CallRequest { sender, .. } => sender,
-            AsyncContent::InstallCodeRequest { sender, .. } => sender,
         };
         let signature = self.identity.sign(&request_id, &sender)?;
         let _ = self
@@ -175,12 +173,6 @@ impl Agent {
                 let reply = match reply {
                     replica_api::RequestStatusResponseReplied::CallReply(reply) => {
                         Replied::CallReplied(reply.arg)
-                    }
-                    replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
-                        Replied::CreateCanisterReplied(reply.canister_id)
-                    }
-                    replica_api::RequestStatusResponseReplied::InstallCodeReply(_) => {
-                        Replied::InstallCodeReplied
                     }
                 };
 
@@ -265,76 +257,6 @@ impl Agent {
             arg: arg.clone(),
             nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
             sender: self.identity.sender()?,
-        })
-        .await
-    }
-
-    pub async fn create_canister(&self) -> Result<RequestId, AgentError> {
-        self.submit(AsyncContent::CreateCanisterRequest {
-            sender: self.identity.sender()?,
-            nonce: self.nonce_factory.generate().map(|b| b),
-        })
-        .await
-    }
-
-    pub async fn create_canister_and_wait<W: delay::Waiter>(
-        &self,
-        waiter: W,
-    ) -> Result<CanisterId, AgentError> {
-        let request_id = self.create_canister().await?;
-        match self.request_status_and_wait(&request_id, waiter).await? {
-            Replied::CreateCanisterReplied(id) => Ok(id),
-            reply => Err(AgentError::UnexpectedReply(reply)),
-        }
-    }
-
-    pub async fn install(
-        &self,
-        canister_id: &CanisterId,
-        module: &Blob,
-        arg: &Blob,
-    ) -> Result<RequestId, AgentError> {
-        self.install_with_attrs(canister_id, "", module, arg, &CanisterAttributes::default())
-            .await
-    }
-
-    pub async fn install_and_wait<W: delay::Waiter>(
-        &self,
-        canister_id: &CanisterId,
-        module: &Blob,
-        arg: &Blob,
-        waiter: W,
-    ) -> Result<(), AgentError> {
-        let request_id = self.install(canister_id, module, arg).await?;
-        match self.request_status_and_wait(&request_id, waiter).await? {
-            Replied::InstallCodeReplied => Ok(()),
-            reply => Err(AgentError::UnexpectedReply(reply)),
-        }
-    }
-
-    pub async fn install_with_attrs(
-        &self,
-        canister_id: &CanisterId,
-        mode: &str,
-        module: &Blob,
-        arg: &Blob,
-        attributes: &CanisterAttributes,
-    ) -> Result<RequestId, AgentError> {
-        let mode = match mode {
-            "install" => Some(mode.to_string()),
-            "reinstall" => Some(mode.to_string()),
-            "upgrade" => Some(mode.to_string()),
-            &_ => None,
-        };
-        self.submit(AsyncContent::InstallCodeRequest {
-            nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
-            sender: self.identity.sender()?,
-            canister_id: canister_id.clone(),
-            module: module.clone(),
-            arg: arg.clone(),
-            compute_allocation: attributes.compute_allocation.map(|x| x.into()),
-            memory_allocation: None,
-            mode,
         })
         .await
     }
