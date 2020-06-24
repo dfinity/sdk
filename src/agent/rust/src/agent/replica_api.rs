@@ -12,27 +12,6 @@ pub struct Envelope<T: Serialize> {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "request_type")]
 pub enum AsyncContent {
-    #[serde(rename = "create_canister")]
-    CreateCanisterRequest {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        nonce: Option<Blob>,
-        sender: Principal,
-    },
-    #[serde(rename = "install_code")]
-    InstallCodeRequest {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        nonce: Option<Blob>,
-        sender: Principal,
-        canister_id: CanisterId,
-        module: Blob,
-        arg: Blob,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        compute_allocation: Option<u8>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        memory_allocation: Option<u64>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        mode: Option<String>,
-    },
     #[serde(rename = "call")]
     CallRequest {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,14 +21,6 @@ pub enum AsyncContent {
         method_name: String,
         arg: Blob,
     },
-    // #[serde(rename = "set_controller")]
-    // SetControllerRequest {
-    //     #[serde(skip_serializing_if = "Option::is_none")]
-    //     nonce: &'a Option<Blob>,
-    //     sender: &'a Principal,
-    //     canister_id: &'a CanisterId,
-    //     controller: Principal,
-    // },
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -88,17 +59,7 @@ pub enum RequestStatusResponse {
 #[serde(untagged)]
 pub enum RequestStatusResponseReplied {
     CallReply(CallReply),
-    CreateCanisterReply(CreateCanisterReply),
-    InstallCodeReply(InstallCodeReply),
 }
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct CreateCanisterReply {
-    pub canister_id: CanisterId,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct InstallCodeReply {}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CallReply {
