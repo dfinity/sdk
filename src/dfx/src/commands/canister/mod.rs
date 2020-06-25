@@ -8,7 +8,6 @@ mod call;
 mod create;
 mod id;
 mod install;
-mod query;
 mod request_status;
 
 fn builtins() -> Vec<CliCommand> {
@@ -17,7 +16,6 @@ fn builtins() -> Vec<CliCommand> {
         CliCommand::new(create::construct(), create::exec),
         CliCommand::new(id::construct(), id::exec),
         CliCommand::new(install::construct(), install::exec),
-        CliCommand::new(query::construct(), query::exec),
         CliCommand::new(request_status::construct(), request_status::exec),
     ]
 }
