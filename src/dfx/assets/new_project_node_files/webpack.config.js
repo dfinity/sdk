@@ -42,13 +42,25 @@ function generateWebpackConfigForCanister(name, info) {
       filename: "[name].js",
       path: path.join(__dirname, info.frontend.output),
     },
+
+// Depending in the language or framework you are using for
+// front-end development, add module loaders to the default 
+// webpack configuration. For example, if you are using React
+// modules and CSS as described in the "Adding a stylesheet"
+// tutorial, uncomment the following lines:
+// module: {
+//  rules: [
+//    { test: /\.(js|ts)x?$/, loader: "ts-loader" },
+//    { test: /\.css$/, use: ['style-loader','css-loader'] }
+//  ]
+// },
     plugins: [
     ],
   };
 }
 
-// If you have webpack configurations you want to build as part of this
-// config, add them here.
+// If you have additional webpack configurations you want to build
+//  as part of this configuration, add them to the section below.
 module.exports = [
   ...Object.entries(dfxJson.canisters).map(([name, info]) => {
     return generateWebpackConfigForCanister(name, info);
