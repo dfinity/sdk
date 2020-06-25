@@ -126,6 +126,16 @@ impl CanisterManifest {
 
         self.save(info.get_manifest_path())
     }
+    pub fn get_candid(&self, cid: &str) -> Option<PathBuf> {
+        for (_, v) in self.canisters.iter() {
+            let id = v.get("canister_id")?.as_str()?;
+            if id == cid {
+                let path = v.get("candid_path")?.as_str()?;
+                return Some(PathBuf::from(path));
+            }
+        }
+        None
+    }
 }
 
 impl CanisterPool {

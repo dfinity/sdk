@@ -23,6 +23,7 @@ pub struct ProxyConfig {
     pub serve_dir: PathBuf,
     pub providers: Vec<url::Url>,
     pub logger: slog::Logger,
+    pub manifest_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug)]
@@ -93,6 +94,7 @@ impl Proxy {
 
         run_webserver(
             self.config.logger.clone(),
+            self.config.manifest_path.clone(),
             self.config.bind,
             providers,
             self.config.serve_dir.clone(),
