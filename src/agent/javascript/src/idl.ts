@@ -21,6 +21,7 @@ const enum IDLTypeIds {
   Bool = -2,
   Nat = -3,
   Int = -4,
+  Float32 = -13,
   Float64 = -14,
   Text = -15,
   Empty = -17,
@@ -140,6 +141,10 @@ export abstract class Visitor<D, R> {
   public visitRecord(t: RecordClass, fields: Array<[string, Type]>, data: D): R {
     return this.visitConstruct(t, data);
   }
+  public visitTuple<T extends any[]>(t: TupleClass<T>, components: Type[], data: D): R {
+    const fields: Array<[string, Type]> = components.map((ty, i) => [`_${i}_`, ty]);
+    return this.visitRecord(t, fields, data);
+  }
   public visitVariant(t: VariantClass, fields: Array<[string, Type]>, data: D): R {
     return this.visitConstruct(t, data);
   }
@@ -197,12 +202,19 @@ export abstract class Type<T = any> {
    */
   public abstract encodeType(typeTable: TypeTable): Buffer;
 
-  public abstract decodeValue(x: Pipe): T;
+  public abstract checkType(t: Type): Type;
+  public abstract decodeValue(x: Pipe, t: Type): T;
 
   protected abstract _buildTypeTableImpl(typeTable: TypeTable): void;
 }
 
 export abstract class PrimitiveType<T = any> extends Type<T> {
+  public checkType(t: Type): Type {
+    if (this.name !== t.name) {
+      throw new Error(`type mismatch: type on the wire ${t.name}, expect type ${this.name}`);
+    }
+    return t;
+  }
   public _buildTypeTableImpl(typeTable: TypeTable): void {
     // No type table encoding for Primitive types.
     return;
@@ -210,6 +222,16 @@ export abstract class PrimitiveType<T = any> extends Type<T> {
 }
 
 export abstract class ConstructType<T = any> extends Type<T> {
+  public checkType(t: Type): ConstructType<T> {
+    if (t instanceof RecClass) {
+      const ty = t.getType();
+      if (typeof ty === 'undefined') {
+        throw new Error('type mismatch with uninitialized type');
+      }
+      return ty;
+    }
+    throw new Error(`type mismatch: type on the wire ${t.name}, expect type ${this.name}`);
+  }
   public encodeType(typeTable: TypeTable) {
     return typeTable.indexOf(this.name);
   }
@@ -272,7 +294,8 @@ export class BoolClass extends PrimitiveType<boolean> {
     return slebEncode(IDLTypeIds.Bool);
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
+    this.checkType(t);
     const x = b.read(1).toString('hex');
     return x === '01';
   }
@@ -302,7 +325,8 @@ export class NullClass extends PrimitiveType<null> {
     return slebEncode(IDLTypeIds.Null);
   }
 
-  public decodeValue() {
+  public decodeValue(b: Pipe, t: Type) {
+    this.checkType(t);
     return null;
   }
 
@@ -333,7 +357,8 @@ export class TextClass extends PrimitiveType<string> {
     return slebEncode(IDLTypeIds.Text);
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
+    this.checkType(t);
     const len = lebDecode(b).toNumber();
     return b.read(len).toString('utf8');
   }
@@ -369,7 +394,8 @@ export class IntClass extends PrimitiveType<BigNumber> {
     return slebEncode(IDLTypeIds.Int);
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
+    this.checkType(t);
     return slebDecode(b);
   }
 
@@ -407,7 +433,8 @@ export class NatClass extends PrimitiveType<BigNumber> {
     return slebEncode(IDLTypeIds.Nat);
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
+    this.checkType(t);
     return lebDecode(b);
   }
 
@@ -424,6 +451,12 @@ export class NatClass extends PrimitiveType<BigNumber> {
  * Represents an IDL Float
  */
 export class FloatClass extends PrimitiveType<number> {
+  constructor(private _bits: number) {
+    super();
+    if (_bits !== 32 && _bits !== 64) {
+      throw new Error('not a valid float type');
+    }
+  }
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
     return v.visitFloat(this, d);
   }
@@ -433,22 +466,32 @@ export class FloatClass extends PrimitiveType<number> {
   }
 
   public encodeValue(x: number) {
-    const buf = Buffer.allocUnsafe(8);
-    buf.writeDoubleLE(x, 0);
+    const buf = Buffer.allocUnsafe(this._bits / 8);
+    if (this._bits === 32) {
+      buf.writeFloatLE(x, 0);
+    } else {
+      buf.writeDoubleLE(x, 0);
+    }
     return buf;
   }
 
   public encodeType() {
-    return slebEncode(IDLTypeIds.Float64);
+    const opcode = this._bits === 32 ? IDLTypeIds.Float32 : IDLTypeIds.Float64;
+    return slebEncode(opcode);
   }
 
-  public decodeValue(b: Pipe) {
-    const x = b.read(8);
-    return x.readDoubleLE(0);
+  public decodeValue(b: Pipe, t: Type) {
+    this.checkType(t);
+    const x = b.read(this._bits / 8);
+    if (this._bits === 32) {
+      return x.readFloatLE(0);
+    } else {
+      return x.readDoubleLE(0);
+    }
   }
 
   get name() {
-    return 'float64';
+    return 'float' + this._bits;
   }
 
   public valueToString(x: number) {
@@ -490,7 +533,8 @@ export class FixedIntClass extends PrimitiveType<BigNumber | number> {
     return slebEncode(-9 - offset);
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
+    this.checkType(t);
     const num = readIntLE(b, this._bits / 8);
     if (this._bits <= 32) {
       return num.toNumber();
@@ -541,7 +585,8 @@ export class FixedNatClass extends PrimitiveType<BigNumber | number> {
     return slebEncode(-5 - offset);
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
+    this.checkType(t);
     const num = readUIntLE(b, this._bits / 8);
     if (this._bits <= 32) {
       return num.toNumber();
@@ -589,11 +634,15 @@ export class VecClass<T> extends ConstructType<T[]> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public decodeValue(b: Pipe): any[] {
+  public decodeValue(b: Pipe, t: Type): any[] {
+    const vec = this.checkType(t);
+    if (!(vec instanceof VecClass)) {
+      throw new Error('Not a vector type');
+    }
     const len = lebDecode(b).toNumber();
     const rets: any[] = [];
     for (let i = 0; i < len; i++) {
-      rets.push(this._type.decodeValue(b));
+      rets.push(this._type.decodeValue(b, vec._type));
     }
     return rets;
   }
@@ -645,12 +694,16 @@ export class OptClass<T> extends ConstructType<[T] | []> {
     typeTable.add(this, Buffer.concat([opCode, buffer]));
   }
 
-  public decodeValue(b: Pipe): [T] | [] {
+  public decodeValue(b: Pipe, t: Type): [T] | [] {
+    const opt = this.checkType(t);
+    if (!(opt instanceof OptClass)) {
+      throw new Error('Not an option type');
+    }
     const len = b.read(1).toString('hex');
     if (len === '00') {
       return [];
     } else {
-      return [this._type.decodeValue(b)];
+      return [this._type.decodeValue(b, opt._type)];
     }
   }
 
@@ -687,6 +740,18 @@ export class RecordClass extends ConstructType<Record<string, any>> {
     return v.visitRecord(this, this._fields, d);
   }
 
+  public tryAsTuple(): Type[] | null {
+    const res: Type[] = [];
+    for (let i = 0; i < this._fields.length; i++) {
+      const [key, type] = this._fields[i];
+      if (key !== `_${i}_`) {
+        return null;
+      }
+      res.push(type);
+    }
+    return res;
+  }
+
   public covariant(x: any): x is Record<string, any> {
     return (
       typeof x === 'object' &&
@@ -716,10 +781,25 @@ export class RecordClass extends ConstructType<Record<string, any>> {
     T.add(this, Buffer.concat([opCode, len, Buffer.concat(fields)]));
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
+    const record = this.checkType(t);
+    if (!(record instanceof RecordClass)) {
+      throw new Error('Not a record type');
+    }
     const x: Record<string, any> = {};
-    for (const [key, type] of this._fields) {
-      x[key] = type.decodeValue(b);
+    let idx = 0;
+    for (const [hash, type] of record._fields) {
+      if (idx >= this._fields.length || idlLabelToId(this._fields[idx][0]) !== idlLabelToId(hash)) {
+        // skip field
+        type.decodeValue(b, type);
+        continue;
+      }
+      const [expectKey, expectType] = this._fields[idx];
+      x[expectKey] = expectType.decodeValue(b, type);
+      idx++;
+    }
+    if (idx < this._fields.length) {
+      throw new Error('Cannot find field ' + this._fields[idx][0]);
     }
     return x;
   }
@@ -745,7 +825,7 @@ export class RecordClass extends ConstructType<Record<string, any>> {
  * Represents Tuple, a syntactic sugar for Record.
  * @param {Type} components
  */
-class TupleClass<T extends any[]> extends RecordClass {
+export class TupleClass<T extends any[]> extends RecordClass {
   protected readonly _components: Type[];
 
   constructor(_components: Type[]) {
@@ -753,6 +833,10 @@ class TupleClass<T extends any[]> extends RecordClass {
     _components.forEach((e, i) => (x['_' + i + '_'] = e));
     super(x);
     this._components = _components;
+  }
+
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitTuple(this, this._components, d);
   }
 
   public covariant(x: any): x is T {
@@ -769,8 +853,25 @@ class TupleClass<T extends any[]> extends RecordClass {
     return Buffer.concat(bufs);
   }
 
-  public decodeValue(b: Pipe): T {
-    return this._components.map(c => c.decodeValue(b)) as T;
+  public decodeValue(b: Pipe, t: Type): T {
+    const tuple = this.checkType(t);
+    if (!(tuple instanceof TupleClass)) {
+      throw new Error('not a tuple type');
+    }
+    if (tuple._components.length < this._components.length) {
+      throw new Error('tuple mismatch');
+    }
+    return this._components.map((c, i) => c.decodeValue(b, tuple._components[i])) as T;
+  }
+
+  public display() {
+    const fields = this._components.map(value => value.display());
+    return `record {${fields.join('; ')}}`;
+  }
+
+  public valueToString(values: any[]) {
+    const fields = zipWith(this._components, values, (c, d) => c.valueToString(d));
+    return `record {${fields.join('; ')}}`;
   }
 }
 
@@ -825,16 +926,23 @@ export class VariantClass extends ConstructType<Record<string, any>> {
     typeTable.add(this, Buffer.concat([opCode, len, ...fields]));
   }
 
-  public decodeValue(b: Pipe) {
-    const idx = lebDecode(b).toNumber();
-    if (idx >= this._fields.length) {
-      throw Error('Invalid variant: ' + idx);
+  public decodeValue(b: Pipe, t: Type) {
+    const variant = this.checkType(t);
+    if (!(variant instanceof VariantClass)) {
+      throw new Error('Not a variant type');
     }
-
-    const value = this._fields[idx][1].decodeValue(b);
-    return {
-      [this._fields[idx][0]]: value,
-    };
+    const idx = lebDecode(b).toNumber();
+    if (idx >= variant._fields.length) {
+      throw Error('Invalid variant index: ' + idx);
+    }
+    const [wireHash, wireType] = variant._fields[idx];
+    for (const [key, expectType] of this._fields) {
+      if (idlLabelToId(wireHash) === idlLabelToId(key)) {
+        const value = expectType.decodeValue(b, wireType);
+        return { [key]: value };
+      }
+    }
+    throw new Error('Cannot find field hash ' + wireHash);
   }
 
   get name() {
@@ -843,7 +951,9 @@ export class VariantClass extends ConstructType<Record<string, any>> {
   }
 
   public display() {
-    const fields = this._fields.map(([key, type]) => key + ':' + type.display());
+    const fields = this._fields.map(
+      ([key, type]) => key + (type.name === 'null' ? '' : `:${type.display()}`),
+    );
     return `variant {${fields.join('; ')}}`;
   }
 
@@ -851,10 +961,14 @@ export class VariantClass extends ConstructType<Record<string, any>> {
     for (const [name, type] of this._fields) {
       if (x.hasOwnProperty(name)) {
         const value = type.valueToString(x[name]);
-        return `variant {${name}=${value}}`;
+        if (value === 'null') {
+          return `variant {${name}}`;
+        } else {
+          return `variant {${name}=${value}}`;
+        }
       }
     }
-    throw Error('Variant has no data: ' + x);
+    throw new Error('Variant has no data: ' + x);
   }
 }
 
@@ -902,11 +1016,11 @@ export class RecClass<T = any> extends ConstructType<T> {
     typeTable.merge(this, this._type.name);
   }
 
-  public decodeValue(b: Pipe) {
+  public decodeValue(b: Pipe, t: Type) {
     if (!this._type) {
       throw Error('Recursive type uninitialized.');
     }
-    return this._type.decodeValue(b);
+    return this._type.decodeValue(b, t);
   }
 
   get name() {
@@ -964,7 +1078,8 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
     return slebEncode(IDLTypeIds.Principal);
   }
 
-  public decodeValue(b: Pipe): CanisterId {
+  public decodeValue(b: Pipe, t: Type): CanisterId {
+    this.checkType(t);
     return decodePrincipalId(b);
   }
 
@@ -1162,34 +1277,43 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     throw new Error('Wrong magic number: ' + magic);
   }
 
-  function decodeType(pipe: Pipe) {
+  function readTypeTable(pipe: Pipe): [Array<[IDLTypeIds, any]>, number[]] {
+    const typeTable: Array<[IDLTypeIds, any]> = [];
     const len = lebDecode(pipe).toNumber();
 
     for (let i = 0; i < len; i++) {
       const ty = slebDecode(pipe).toNumber();
       switch (ty) {
-        case IDLTypeIds.Opt:
-          slebDecode(pipe);
+        case IDLTypeIds.Opt: {
+          const t = slebDecode(pipe).toNumber();
+          typeTable.push([ty, t]);
           break;
-        case IDLTypeIds.Vector:
-          slebDecode(pipe);
+        }
+        case IDLTypeIds.Vector: {
+          const t = slebDecode(pipe).toNumber();
+          typeTable.push([ty, t]);
           break;
+        }
         case IDLTypeIds.Record: {
-          // record/tuple
+          const fields = [];
           let objectLength = lebDecode(pipe).toNumber();
           while (objectLength--) {
-            lebDecode(pipe);
-            slebDecode(pipe);
+            const hash = lebDecode(pipe).toNumber();
+            const t = slebDecode(pipe).toNumber();
+            fields.push([hash, t]);
           }
+          typeTable.push([ty, fields]);
           break;
         }
         case IDLTypeIds.Variant: {
-          // variant
+          const fields = [];
           let variantLength = lebDecode(pipe).toNumber();
           while (variantLength--) {
-            lebDecode(pipe);
-            slebDecode(pipe);
+            const hash = lebDecode(pipe).toNumber();
+            const t = slebDecode(pipe).toNumber();
+            fields.push([hash, t]);
           }
+          typeTable.push([ty, fields]);
           break;
         }
         case IDLTypeIds.Func: {
@@ -1201,6 +1325,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           }
           const annLen = lebDecode(pipe).toNumber();
           pipe.read(annLen);
+          typeTable.push([ty, undefined]);
           break;
         }
         case IDLTypeIds.Service: {
@@ -1210,6 +1335,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
             pipe.read(l);
             slebDecode(pipe);
           }
+          typeTable.push([ty, undefined]);
           break;
         }
         default:
@@ -1217,14 +1343,127 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
       }
     }
 
+    const rawList: number[] = [];
     const length = lebDecode(pipe).toNumber();
     for (let i = 0; i < length; i++) {
-      slebDecode(pipe);
+      rawList.push(slebDecode(pipe).toNumber());
     }
+    return [typeTable, rawList];
+  }
+  const [rawTable, rawTypes] = readTypeTable(b);
+  if (rawTypes.length < retTypes.length) {
+    throw new Error('Wrong number of return values');
   }
 
-  decodeType(b);
-  const output = retTypes.map(t => t.decodeValue(b));
+  const table: RecClass[] = rawTable.map(_ => Rec());
+  function getType(t: number): Type {
+    if (t < -24) {
+      throw new Error('future value not supported');
+    }
+    if (t < 0) {
+      switch (t) {
+        case -1:
+          return Null;
+        case -2:
+          return Bool;
+        case -3:
+          return Nat;
+        case -4:
+          return Int;
+        case -5:
+          return Nat8;
+        case -6:
+          return Nat16;
+        case -7:
+          return Nat32;
+        case -8:
+          return Nat64;
+        case -9:
+          return Int8;
+        case -10:
+          return Int16;
+        case -11:
+          return Int32;
+        case -12:
+          return Int64;
+        case -13:
+          return Float32;
+        case -14:
+          return Float64;
+        case -15:
+          return Text;
+        case -16:
+          return Empty; // TODO: fix reversed
+        case -17:
+          return Empty;
+        case -24:
+          return Principal;
+        default:
+          throw new Error('Illegal op_code: ' + t);
+      }
+    }
+    if (t >= rawTable.length) {
+      throw new Error('type index out of range');
+    }
+    return table[t];
+  }
+  function buildType(entry: [IDLTypeIds, any]): Type {
+    switch (entry[0]) {
+      case IDLTypeIds.Vector: {
+        const ty = getType(entry[1]);
+        return Vec(ty);
+      }
+      case IDLTypeIds.Opt: {
+        const ty = getType(entry[1]);
+        return Opt(ty);
+      }
+      case IDLTypeIds.Record: {
+        const fields: Record<string, Type> = {};
+        for (const [hash, ty] of entry[1]) {
+          const name = `_${hash}_`;
+          fields[name] = getType(ty);
+        }
+        const record = Record(fields);
+        const tuple = record.tryAsTuple();
+        if (Array.isArray(tuple)) {
+          return Tuple(...tuple);
+        } else {
+          return record;
+        }
+      }
+      case IDLTypeIds.Variant: {
+        const fields: Record<string, Type> = {};
+        for (const [hash, ty] of entry[1]) {
+          const name = `_${hash}_`;
+          fields[name] = getType(ty);
+        }
+        return Variant(fields);
+      }
+      case IDLTypeIds.Func: {
+        return Func([], [], []);
+      }
+      case IDLTypeIds.Service: {
+        return Service({});
+      }
+      default:
+        throw new Error('Illegal op_code: ' + entry[0]);
+    }
+  }
+  rawTable.forEach((entry, i) => {
+    const t = buildType(entry);
+    table[i].fill(t);
+  });
+
+  const types = rawTypes.map(t => getType(t));
+  const output = retTypes.map((t, i) => {
+    return t.decodeValue(b, types[i]);
+  });
+
+  // skip unused values
+  for (let ind = retTypes.length; ind < types.length; ind++) {
+    types[ind].decodeValue(b, types[ind]);
+  }
+
   if (b.buffer.length > 0) {
     throw new Error('decode: Left-over bytes');
   }
@@ -1240,7 +1479,8 @@ export const Text = new TextClass();
 export const Int = new IntClass();
 export const Nat = new NatClass();
 
-export const Float64 = new FloatClass();
+export const Float32 = new FloatClass(32);
+export const Float64 = new FloatClass(64);
 
 export const Int8 = new FixedIntClass(8);
 export const Int16 = new FixedIntClass(16);

@@ -17,8 +17,6 @@ pub enum AsyncContent {
         #[serde(skip_serializing_if = "Option::is_none")]
         nonce: Option<Blob>,
         sender: Principal,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        desired_id: Option<Principal>,
     },
     #[serde(rename = "install_code")]
     InstallCodeRequest {

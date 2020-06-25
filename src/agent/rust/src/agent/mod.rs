@@ -19,7 +19,6 @@ use crate::agent::replica_api::{AsyncContent, Envelope, SyncContent};
 use crate::identity::Identity;
 use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
 use reqwest::Method;
-use std::convert::TryInto;
 
 use public::*;
 
@@ -28,6 +27,7 @@ pub struct Agent {
     nonce_factory: NonceFactory,
     request_executor: Box<dyn AgentRequestExecutor>,
     identity: Box<dyn Identity>,
+    default_waiter: delay::Delay,
 }
 
 impl Agent {
@@ -41,6 +41,7 @@ impl Agent {
             request_executor: config.request_executor,
             nonce_factory: config.nonce_factory,
             identity: config.identity,
+            default_waiter: config.default_waiter,
         })
     }
 
@@ -151,7 +152,12 @@ impl Agent {
         })
     }
 
-    pub async fn request_status(
+    pub async fn request_status(&self, request_id: &RequestId) -> Result<Replied, AgentError> {
+        self.request_status_and_wait(request_id, self.default_waiter.clone())
+            .await
+    }
+
+    pub async fn request_status_raw(
         &self,
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
@@ -196,7 +202,7 @@ impl Agent {
         waiter.start();
 
         loop {
-            match self.request_status(request_id).await? {
+            match self.request_status_raw(request_id).await? {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
                     reject_code,
@@ -225,7 +231,7 @@ impl Agent {
         arg: &Blob,
         waiter: W,
     ) -> Result<Blob, AgentError> {
-        let request_id = self.call(canister_id, method_name, arg).await?;
+        let request_id = self.call_raw(canister_id, method_name, arg).await?;
         match self.request_status_and_wait(&request_id, waiter).await? {
             Replied::CallReplied(arg) => Ok(arg),
             reply => Err(AgentError::UnexpectedReply(reply)),
@@ -233,6 +239,16 @@ impl Agent {
     }
 
     pub async fn call(
+        &self,
+        canister_id: &CanisterId,
+        method_name: &str,
+        arg: &Blob,
+    ) -> Result<Blob, AgentError> {
+        self.call_and_wait(canister_id, method_name, arg, self.default_waiter.clone())
+            .await
+    }
+
+    pub async fn call_raw(
         &self,
         canister_id: &CanisterId,
         method_name: &str,
@@ -249,17 +265,9 @@ impl Agent {
     }
 
     pub async fn create_canister(&self) -> Result<RequestId, AgentError> {
-        self.create_canister_with_desired_id(None).await
-    }
-
-    pub async fn create_canister_with_desired_id(
-        &self,
-        desired_id: Option<CanisterId>,
-    ) -> Result<RequestId, AgentError> {
         self.submit(AsyncContent::CreateCanisterRequest {
             sender: self.identity.sender()?,
             nonce: self.nonce_factory.generate().map(|b| b),
-            desired_id: desired_id.map(|id| id.as_bytes().try_into().unwrap()),
         })
         .await
     }
