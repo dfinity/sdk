@@ -3,6 +3,8 @@ use crate::lib::error::DfxError::CacheError;
 use crate::lib::error::{CacheErrorKind, DfxError, DfxResult};
 use crate::util;
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use semver::Version;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
@@ -162,9 +164,9 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             None
         };
 
-        let temp_p = get_bin_cache(&format!("_{}", v))?;
-        std::fs::create_dir(&temp_p)
-            .map_err(|e| DfxError::CouldNotCreateTempInstallDirectory(e, temp_p.clone()))?;
+        let rand_string: String = thread_rng().sample_iter(&Alphanumeric).take(12).collect();
+        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
+        std::fs::create_dir(&temp_p)?;
 
         let mut binary_cache_assets = util::assets::binary_cache()?;
         // Write binaries and set them to be executable.
@@ -194,10 +196,16 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
         if force && p.exists() {
             std::fs::remove_dir_all(&p)?;
         }
-        std::fs::rename(&temp_p, &p)?;
 
-        if let Some(b) = b {
-            b.finish_with_message(&format!("Version v{} installed successfully.", v));
+        if std::fs::rename(&temp_p, &p).is_ok() {
+            if let Some(b) = b {
+                b.finish_with_message(&format!("Version v{} installed successfully.", v));
+            }
+        } else {
+            std::fs::remove_dir_all(&temp_p)?;
+            if let Some(b) = b {
+                b.finish_with_message(&format!("Version v{} was already installed.", v));
+            }
         }
 
         Ok(p)
