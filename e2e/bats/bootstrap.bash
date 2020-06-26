@@ -5,7 +5,7 @@ load utils/_
 setup() {
     # We want to work from a temporary directory, different for every test.
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
-    dfx_new hello
+    dfx_new
 }
 
 teardown() {
@@ -19,5 +19,5 @@ teardown() {
     ID=$(dfx canister id hello)
 
     assert_command curl http://localhost:8000/_/candid?canisterId="$ID"
-    assert_match /(text) -> (text)/
+    assert_lines_match '"greet": (text) -> (text);' 1
 }
