@@ -278,6 +278,16 @@ impl Config {
             "An incorrect configuration path was set with no parent, i.e. did not include root",
         )
     }
+    pub fn get_manifest_path(&self) -> PathBuf {
+        let build_dir = self
+            .get_config()
+            .get_defaults()
+            .get_build()
+            .get_output("build/");
+        self.get_project_root()
+            .join(build_dir)
+            .join("canister_manifest.json")
+    }
 
     pub fn save(&self) -> DfxResult {
         let json_pretty = serde_json::to_string_pretty(&self.json).or_else(|e| {

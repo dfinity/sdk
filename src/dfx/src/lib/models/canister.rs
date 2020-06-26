@@ -86,6 +86,7 @@ pub struct CanisterPool {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CanisterManifest {
+    pub path: PathBuf,
     pub canisters: Map<String, serde_json::value::Value>,
 }
 
@@ -100,13 +101,17 @@ pub struct CanManMetadata {
 impl CanisterManifest {
     pub fn load(path: &Path) -> DfxResult<Self> {
         let content = std::fs::read_to_string(path).map_err(DfxError::from)?;
-        serde_json::from_str(&content).map_err(DfxError::from)
+        let canisters = serde_json::from_str(&content).map_err(DfxError::from)?;
+        Ok(CanisterManifest {
+            path: path.to_path_buf(),
+            canisters,
+        })
     }
 
-    pub fn save(&self, path: &Path) -> DfxResult<()> {
+    pub fn save(&self) -> DfxResult<()> {
         let content =
             serde_json::to_string_pretty(self).map_err(DfxError::CouldNotSerializeConfiguration)?;
-        std::fs::write(path, content).map_err(DfxError::from)
+        std::fs::write(&self.path, content).map_err(DfxError::from)
     }
 
     pub fn add_entry(&mut self, info: &CanisterInfo, cid: CanisterId) -> DfxResult<()> {
@@ -124,7 +129,7 @@ impl CanisterManifest {
             serde_json::to_value(metadata).expect("Could not serialize metadata"),
         );
 
-        self.save(info.get_manifest_path())
+        self.save()
     }
     pub fn get_candid(&self, cid: &str) -> Option<PathBuf> {
         for (_, v) in self.canisters.iter() {
@@ -180,11 +185,14 @@ impl CanisterPool {
             let waiter = create_waiter();
             let info = &canister.info;
 
-            let manifest_path = info.get_manifest_path();
+            let manifest_path = env
+                .get_config()
+                .ok_or(DfxError::CommandMustBeRunInAProject)?
+                .get_manifest_path();
             // check if the canister_manifest.json file exists
             if manifest_path.is_file() {
                 {
-                    let mut manifest = CanisterManifest::load(info.get_manifest_path())?;
+                    let mut manifest = CanisterManifest::load(&manifest_path)?;
 
                     match manifest.canisters.get(info.get_name()) {
                         Some(serde_value) => {
@@ -203,6 +211,7 @@ impl CanisterPool {
                 let cid = runtime.block_on(agent.create_canister_and_wait(waiter))?;
                 info.set_canister_id(cid.clone())?;
                 let mut manifest = CanisterManifest {
+                    path: manifest_path.to_path_buf(),
                     canisters: Map::new(),
                 };
                 manifest.add_entry(info, cid)?;

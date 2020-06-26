@@ -55,18 +55,10 @@ pub fn construct() -> App<'static, 'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let logger = env.get_logger();
     let config = get_config(env, args)?;
-    let manifest_path = {
-        let config = env
-            .get_config()
-            .ok_or(DfxError::CommandMustBeRunInAProject)?;
-        // TODO: Remove the hardcoded path after we remove the hardcoding in CanisterInfo.manifest_path.
-        // Also manifest_path should not be inside CanisterInfo.
-        config
-            .get_path()
-            .parent()
-            .unwrap()
-            .join("canisters/canister_manifest.json")
-    };
+    let manifest_path = env
+        .get_config()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?
+        .get_manifest_path();
 
     let (sender, receiver) = crossbeam::unbounded();
 
