@@ -55,9 +55,12 @@ async function _loadJs(
 }
 
 async function _loadCandid(canisterId: string): Promise<any> {
-  const response = await fetch(
-    `http://localhost:8000/_/candid?canister_id=${canisterId}&format=js`,
-  );
+  const origin = window.location.origin;
+  const url = `${origin}/_/candid?canister_id=${canisterId}&format=js`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Cannot fetch candid file`);
+  }
   const js = await response.text();
   const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
   return eval('import("' + dataUri + '")'); // tslint:disable-line
