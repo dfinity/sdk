@@ -20,4 +20,6 @@ teardown() {
 
     assert_command curl http://localhost:8000/_/candid?canisterId="$ID" -o ./web.txt
     assert_command diff canisters/hello/hello.did ./web.txt
+    assert_command curl http://localhost:8000/_/candid?canisterId="$ID"&format=js -o ./web.txt
+    assert_command diff canisters/hello/hello.did.js ./web.txt    
 }
