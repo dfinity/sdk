@@ -93,6 +93,7 @@ in
 
       s3cp "${./public/manifest.json}" "sdk/manifest.json" "application/json" "$do_not_cache"
       s3cp "${./public/sdk-license-agreement/index.txt}" "sdk/sdk-license-agreement.txt" "application/txt" "$do_not_cache"
+      s3cp "${./public/tungsten-license-agreement.txt}" "sdk/tungsten-license-agreement.txt" "application/txt" "$do_not_cache"
       s3cp "${install.x86_64-linux}" "sdk/install.sh" "application/x-sh" "$do_not_cache"
     ''
   );
