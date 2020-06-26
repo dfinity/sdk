@@ -19,5 +19,5 @@ teardown() {
     ID=$(dfx canister id hello)
 
     assert_command curl http://localhost:8000/_/candid?canisterId="$ID"
-    assert_match '"greet": (text) -> (text);'
+    assert_match '(text) -> (text)'
 }
