@@ -54,6 +54,15 @@ async function _loadJs(
   return eval('import("' + dataUri + '")'); // tslint:disable-line
 }
 
+async function _loadCandid(canisterId: string): Promise<any> {
+  const response = await fetch(
+    `http://localhost:8000/_/candid?canister_id=${canisterId}&format=js`,
+  );
+  const js = await response.text();
+  const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
+  return eval('import("' + dataUri + '")'); // tslint:disable-line
+}
+
 const k = _getVariable('userIdentity', localStorageIdentityKey);
 let keyPair;
 if (k) {
@@ -107,7 +116,7 @@ async function _main() {
   } else {
     if (window.location.pathname === '/candid') {
       // Load candid.js from the canister.
-      const candid = await _loadJs(canisterId, 'candid.js');
+      const candid = await _loadCandid(canisterId);
       const canister = window.icHttpAgent.makeActorFactory(candid.default)({ canisterId });
       // @ts-ignore: Could not find a declaration file for module
       const render: any = await import('./candid/candid.js');
