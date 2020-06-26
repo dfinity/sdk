@@ -61,10 +61,6 @@ impl CanisterInfo {
         let extras = canister_config.extras.clone();
 
         let output_root = build_root.join(name);
-        // todo needs to be in child "canisters" dir of canister_root
-        // let temp_dir = env.get_temp_dir();
-        let canisters_dir = canister_root.join("canisters");
-        std::fs::create_dir_all(&canisters_dir)?;
 
         let manifest_path = config.get_manifest_path();
 
@@ -104,15 +100,18 @@ impl CanisterInfo {
     pub fn get_build_root(&self) -> &Path {
         &self.build_root
     }
+    pub fn get_manifest_path(&self) -> &Path {
+        self.manifest_path.as_path()
+    }
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
     }
     pub fn get_canister_id(&self) -> Option<CanisterId> {
-        if !self.manifest_path.exists() {
+        if !self.get_manifest_path().exists() {
             return Some(CanisterId::from_bytes(&[0, 1, 2, 3]));
         }
 
-        let file = std::fs::File::open(&self.manifest_path).unwrap();
+        let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
         let manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
         let serde_value = &manifest.canisters[&self.name.clone()];
         let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();

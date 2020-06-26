@@ -40,7 +40,7 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let info = CanisterInfo::load(&config, canister_name)?;
 
-    let manifest_path = config.get_manifest_path();
+    let manifest_path = info.get_manifest_path();
     // check if the canister_manifest.json file exists
 
     if manifest_path.is_file() {
@@ -65,7 +65,6 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
         let cid = runtime.block_on(agent.create_canister_and_wait(create_waiter()))?;
         info.set_canister_id(cid.clone())?;
         let mut manifest = CanisterManifest {
-            path: manifest_path,
             canisters: Map::new(),
         };
         manifest.add_entry(&info, cid)?;
