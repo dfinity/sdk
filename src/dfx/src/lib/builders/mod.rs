@@ -88,8 +88,7 @@ impl BuildConfig {
     pub fn from_config(config: &Config) -> Self {
         let workspace_root = config.get_path().parent().unwrap();
         let config = config.get_config();
-        let build_root =
-            workspace_root.join(config.get_defaults().get_build().get_output("build/"));
+        let build_root = workspace_root.join(config.get_defaults().get_build().get_output());
 
         BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),

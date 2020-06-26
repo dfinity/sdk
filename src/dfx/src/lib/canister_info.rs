@@ -47,7 +47,7 @@ impl CanisterInfo {
     pub fn load(config: &Config, name: &str) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
-        let build_root = workspace_root.join(build_defaults.get_output("build/"));
+        let build_root = workspace_root.join(build_defaults.get_output());
         std::fs::create_dir_all(&build_root)?;
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
