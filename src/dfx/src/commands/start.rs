@@ -156,7 +156,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
-    let manifest_path = Some(config.get_manifest_path());
+    let manifest_path = config.get_manifest_path();
 
     let proxy_config = ProxyConfig {
         logger: env.get_logger().clone(),

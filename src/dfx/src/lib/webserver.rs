@@ -28,7 +28,7 @@ struct ForwardActixData {
 }
 
 struct CandidData {
-    pub manifest_path: Option<PathBuf>,
+    pub manifest_path: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -44,11 +44,7 @@ fn candid(
 ) -> DfxResult<HttpResponse> {
     use crate::lib::models::canister::CanisterManifest;
     let id = info.canister_id;
-    let path = data
-        .manifest_path
-        .as_ref()
-        .ok_or_else(|| DfxError::Unknown("no manifest file".to_string()))?;
-    let manifest = CanisterManifest::load(&path)?;
+    let manifest = CanisterManifest::load(&data.manifest_path)?;
     let mut candid_path = manifest
         .get_candid(&id)
         .ok_or_else(|| DfxError::Unknown("cannot find candid file".to_string()))?;
@@ -157,7 +153,7 @@ fn forward(
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
-    manifest_path: Option<PathBuf>,
+    manifest_path: PathBuf,
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
@@ -220,7 +216,7 @@ pub fn run_webserver(
 
 pub fn webserver(
     logger: Logger,
-    manifest_path: Option<PathBuf>,
+    manifest_path: PathBuf,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
     serve_dir: &Path,

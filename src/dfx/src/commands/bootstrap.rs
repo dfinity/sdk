@@ -64,7 +64,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     webserver(
         logger.clone(),
-        Some(manifest_path),
+        manifest_path,
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
         config
             .providers

@@ -36,6 +36,13 @@ function _getVariable(
   return defaultValue;
 }
 
+function _importJs(content: string) {
+  const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(content);
+  // TODO(hansl): either get rid of eval, or rid of webpack, or make this
+  // work without this horrible hack.
+  return eval('import("' + dataUri + '")'); // tslint:disable-line
+}
+
 // Retrieve and execute a JavaScript file from the server.
 async function _loadJs(
   canisterId: string,
@@ -44,14 +51,10 @@ async function _loadJs(
 ): Promise<any> {
   const content = await window.icHttpAgent.retrieveAsset(canisterId, filename);
   const js = new TextDecoder().decode(content);
-  const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
-
   // Run an event function so the callee can execute some code before loading the
   // Javascript.
   await onload();
-  // TODO(hansl): either get rid of eval, or rid of webpack, or make this
-  // work without this horrible hack.
-  return eval('import("' + dataUri + '")'); // tslint:disable-line
+  return _importJs(js);
 }
 
 async function _loadCandid(canisterId: string): Promise<any> {
@@ -62,8 +65,7 @@ async function _loadCandid(canisterId: string): Promise<any> {
     throw new Error(`Cannot fetch candid file`);
   }
   const js = await response.text();
-  const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
-  return eval('import("' + dataUri + '")'); // tslint:disable-line
+  return _importJs(js);
 }
 
 const k = _getVariable('userIdentity', localStorageIdentityKey);

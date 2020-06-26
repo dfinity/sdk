@@ -23,7 +23,7 @@ pub struct ProxyConfig {
     pub serve_dir: PathBuf,
     pub providers: Vec<url::Url>,
     pub logger: slog::Logger,
-    pub manifest_path: Option<PathBuf>,
+    pub manifest_path: PathBuf,
 }
 
 #[derive(Clone, Debug)]
