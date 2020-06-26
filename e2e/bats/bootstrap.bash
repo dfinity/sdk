@@ -18,6 +18,6 @@ teardown() {
     dfx canister install hello
     ID=$(dfx canister id hello)
 
-    assert_command curl http://localhost:8000/_/candid?canisterId="$ID"
-    assert_lines_match '"greet": (text) -> (text);' 1
+    assert_command curl http://localhost:8000/_/candid?canisterId="$ID" > web.txt
+    assert_command diff canisters/hello/hello.did ./web.txt
 }
