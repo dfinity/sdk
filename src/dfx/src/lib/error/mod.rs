@@ -105,10 +105,6 @@ pub enum DfxError {
 
     /// Could not parse an URL for some reason.
     InvalidUrl(String, url::ParseError),
-
-    /// A temporary installation directory could not be created.
-    /// It's possible that it's in the process of being built.
-    CouldNotCreateTempInstallDirectory(std::io::Error, PathBuf),
 }
 
 /// The result of running a DFX command.
@@ -164,20 +160,6 @@ impl Display for DfxError {
                 f.write_str(
                     "The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.",
                 )?;
-            }
-            DfxError::CouldNotCreateTempInstallDirectory(e, path) => {
-                f.write_fmt(format_args!(
-                    "Could not create temporary installation directory:\n\
-                        {}{}\n\
-                    This was the error:\n\
-                        {}{}\n\
-                    If dfx is already running elsewhere, wait for it to finish.\n\
-                    If not, delete this directory and try again.",
-                    "    ",
-                    path.to_string_lossy(),
-                    "    ",
-                    e
-                ))?;
             }
             err => {
                 f.write_fmt(format_args!("An error occured:\n{:#?}", err))?;
