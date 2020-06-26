@@ -5,7 +5,7 @@ load utils/_
 setup() {
     # We want to work from a temporary directory, different for every test.
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
-    dfx_new
+    dfx_new hello
 }
 
 teardown() {
