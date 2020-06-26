@@ -33,8 +33,9 @@ struct CandidData {
 
 #[derive(Deserialize)]
 struct CandidRequest {
+    #[serde(rename = "canisterId")]
     canister_id: String,
-    format: String,
+    format: Option<String>,
 }
 
 fn candid(
@@ -51,7 +52,7 @@ fn candid(
     let mut candid_path = manifest
         .get_candid(&id)
         .ok_or_else(|| DfxError::Unknown("cannot find candid file".to_string()))?;
-    if info.format == "js" {
+    if info.format == Some("js".to_string()) {
         candid_path.set_extension("did.js");
     }
     let content = std::fs::read_to_string(candid_path)?;

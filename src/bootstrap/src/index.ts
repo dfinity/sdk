@@ -56,7 +56,7 @@ async function _loadJs(
 
 async function _loadCandid(canisterId: string): Promise<any> {
   const origin = window.location.origin;
-  const url = `${origin}/_/candid?canister_id=${canisterId}&format=js`;
+  const url = `${origin}/_/candid?canisterId=${canisterId}&format=js`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Cannot fetch candid file`);
