@@ -17,6 +17,7 @@ teardown() {
     install_asset assetscanister
 
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install e2e_project_assets
 

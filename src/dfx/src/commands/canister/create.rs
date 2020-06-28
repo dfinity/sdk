@@ -1,5 +1,5 @@
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::environment::Environment;
+use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
@@ -12,20 +12,31 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("create")
-        .about(UserMessage::InstallCanister.to_str())
+        .about(UserMessage::CreateCanister.to_str())
         .arg(
             Arg::with_name("canister_name")
                 .takes_value(true)
                 .required_unless("all")
-                // .help(UserMessage::InstallCanisterName.to_str())
+                .help(UserMessage::CreateCanisterName.to_str())
                 .required(false),
         )
         .arg(
             Arg::with_name("all")
                 .long("all")
                 .required_unless("canister_name")
-                // .help(UserMessage::InstallAll.to_str())
+                .help(UserMessage::CreateAll.to_str())
                 .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("provider")
+                .help(UserMessage::CanisterComputeProvider.to_str())
+                .long("provider")
+                .validator(|v| {
+                    reqwest::Url::parse(&v)
+                        .map(|_| ())
+                        .map_err(|_| "should be a valid URL.".to_string())
+                })
+                .takes_value(true),
         )
 }
 
@@ -73,6 +84,17 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+    // Need storage for AgentEnvironment ownership.
+    let mut _agent_env: Option<AgentEnvironment<'_>> = None;
+    let env = if args.is_present("provider") {
+        _agent_env = Some(AgentEnvironment::new(
+            env,
+            args.value_of("provider").expect("Could not find provider."),
+        ));
+        _agent_env.as_ref().unwrap()
+    } else {
+        env
+    };
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

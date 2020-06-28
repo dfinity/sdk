@@ -199,7 +199,7 @@ impl CanisterPool {
 
         // Add all the canisters as nodes.
         for canister in &self.canisters {
-            let canister_id = canister.canister_id();
+            let canister_id = canister.info.get_canister_id()?;
             id_set.insert(canister_id.clone(), graph.add_node(canister_id.clone()));
         }
 

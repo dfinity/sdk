@@ -17,6 +17,7 @@ teardown() {
     install_asset packtool
 
     dfx_start
+    dfx canister create --all
     assert_command_fail dfx build
     assert_match 'import error, package "(rate|describe)" not defined'
 }
@@ -26,6 +27,7 @@ teardown() {
     source configure_packtool.bash
 
     dfx_start
+    dfx canister create --all
     dfx build
 }
 
@@ -34,6 +36,7 @@ teardown() {
     source configure_packtool.bash
 
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install e2e_project
 
@@ -49,6 +52,7 @@ teardown() {
     dfx config defaults/build/packtool "./no-such-command that command cannot be invoked"
 
     dfx_start
+    dfx canister create --all
     assert_command_fail dfx build
     assert_match 'Failed to invoke the package tool'
     assert_match 'no-such-command.*that.*command.*cannot.*be.*invoked'
@@ -60,6 +64,7 @@ teardown() {
     dfx config defaults/build/packtool "sh ./command-that-fails.bash"
 
     dfx_start
+    dfx canister create --all
     assert_command_fail dfx build
     assert_match 'Package tool.*reported an error'
     assert_match 'sh.*command-that-fails.bash'

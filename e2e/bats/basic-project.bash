@@ -17,6 +17,7 @@ teardown() {
 @test "build + install + call + request-status -- greet_mo" {
     install_asset greet
     dfx_start
+    dfx canister create --all
     dfx build
     INSTALL_REQUEST_ID=$(dfx canister install hello --async)
     dfx canister request-status $INSTALL_REQUEST_ID
@@ -40,6 +41,7 @@ teardown() {
 @test "build + install + call + request-status -- counter_mo" {
     install_asset counter
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install hello
 
@@ -80,6 +82,7 @@ teardown() {
 @test "build + install + call -- counter_idl_mo" {
     install_asset counter_idl
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install --all
 
@@ -90,6 +93,7 @@ teardown() {
 @test "build + install + call -- matrix_multiply_mo" {
     install_asset matrix_multiply
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install --all
 
