@@ -123,7 +123,6 @@ impl CanisterBuilder for MotokoBuilder {
         let params = MotokoParams {
             build_target: BuildTarget::IDL,
             surpress_warning: false,
-            inject_code: false,
             verbose: false,
             input: &input_path,
             package_arguments: &package_arguments,
@@ -131,10 +130,8 @@ impl CanisterBuilder for MotokoBuilder {
             idl_path: &idl_dir_path,
             idl_map: &id_map,
         };
-        motoko_compile(cache.as_ref(), &params, &BTreeMap::new())?;
+        motoko_compile(cache.as_ref(), &params)?;
 
-        // Generate JS code even if the canister doesn't have a frontend. It might still be
-        // used by another canister's frontend.
         // Generate wasm
         let params = MotokoParams {
             build_target: match profile {
@@ -143,7 +140,6 @@ impl CanisterBuilder for MotokoBuilder {
             },
             // Surpress the warnings the second time we call moc
             surpress_warning: true,
-            inject_code: true,
             verbose: false,
             input: &input_path,
             package_arguments: &package_arguments,
@@ -151,7 +147,7 @@ impl CanisterBuilder for MotokoBuilder {
             idl_path: &idl_dir_path,
             idl_map: &id_map,
         };
-        motoko_compile(cache.as_ref(), &params, &BTreeMap::new())?;
+        motoko_compile(cache.as_ref(), &params)?;
 
         Ok(BuildOutput {
             canister_id: canister_info
@@ -164,40 +160,7 @@ impl CanisterBuilder for MotokoBuilder {
     }
 }
 
-type AssetMap = BTreeMap<String, String>;
 type CanisterIdMap = BTreeMap<String, String>;
-
-fn get_asset_fn(assets: &AssetMap) -> String {
-    // Create the if/else series.
-    let mut cases = String::new();
-    assets.iter().for_each(|(filename, content)| {
-        cases += format!(
-            r#"case "{}" "{}";{endline}"#,
-            filename,
-            content
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", ""),
-            endline = "\n"
-        )
-        .as_str();
-    });
-
-    format!(
-        r#"
-            public query func __dfx_asset_path(path: Text): async Text {par}
-              switch path {par}
-                {}
-                case _ {par}assert false; ""{end}
-              {end}
-            {end};
-        "#,
-        cases,
-        par = "{",
-        end = "}"
-    )
-}
 
 enum BuildTarget {
     Release,
@@ -211,16 +174,15 @@ struct MotokoParams<'a> {
     idl_map: &'a CanisterIdMap,
     package_arguments: &'a PackageArguments,
     output: &'a Path,
-    // The following fields will not be used by self.to_args()
-    // TODO move input into self.to_args once inject_code is deprecated.
     input: &'a Path,
-    verbose: bool,
+    // The following fields are control flags for dfx and will not be used by self.to_args()
     surpress_warning: bool,
-    inject_code: bool,
+    verbose: bool,
 }
 
 impl MotokoParams<'_> {
     fn to_args(&self, cmd: &mut std::process::Command) {
+        cmd.arg(self.input);
         cmd.arg("-o").arg(self.output);
         match self.build_target {
             BuildTarget::Release => cmd.args(&["-c", "--release"]),
@@ -238,39 +200,12 @@ impl MotokoParams<'_> {
 }
 
 /// Compile a motoko file.
-fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>, assets: &AssetMap) -> DfxResult {
+fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
-
     let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
-    let input_path = if params.inject_code {
-        let input_path = params.input;
-        let mut content = std::fs::read_to_string(input_path)?;
-        // Because we don't have an AST (yet) we need to do some regex magic.
-        // Find `actor {`
-        // TODO: remove this once entire process once store assets is supported by the client.
-        //       See https://github.com/dfinity-lab/dfinity/pull/2106 for reference.
-        let re = regex::Regex::new(r"\bactor\s.*?\{")
-            .map_err(|_| DfxError::Unknown("Could not create regex.".to_string()))?;
-        if let Some(actor_idx) = re.find(&content) {
-            let (before, after) = content.split_at(actor_idx.end());
-            content = before.to_string() + get_asset_fn(assets).as_str() + after;
-        }
-
-        let input_path = input_path.with_extension("mo-assets".to_string());
-        std::fs::write(&input_path, content.as_bytes())?;
-        input_path
-    } else {
-        params.input.to_path_buf()
-    };
-
-    cmd.arg(&input_path);
     params.to_args(&mut cmd);
     let cmd = cmd.env("MOC_RTS", mo_rts_path.as_path());
     run_command(cmd, params.verbose, params.surpress_warning)?;
-
-    if params.inject_code {
-        std::fs::remove_file(input_path)?;
-    }
     Ok(())
 }
 
@@ -356,8 +291,7 @@ fn run_command(
         )))
     } else {
         if !surpress_warning && !output.stderr.is_empty() {
-            // Cannot use eprintln, because it would interfere with the progress bar.
-            println!("{}", String::from_utf8_lossy(&output.stderr));
+            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
         }
         Ok(output)
     }
