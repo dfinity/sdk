@@ -32,9 +32,9 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "master",
+        "ref": "dsd/info_log_level_starter",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "34233cef571f088cd9c9fed8495ddf07a2ef2c9f",
+        "rev": "3e64d663d1c94909aab0c35d5cf78703f6926776",
         "type": "git"
     },
     "ic-ref": {
