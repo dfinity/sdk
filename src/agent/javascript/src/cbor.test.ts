@@ -45,5 +45,5 @@ function buf2hex(buffer: Uint8Array) {
   // Construct an array such that each number is translated to the
   // hexadecimal equivalent, ensure it is a string and padded then
   // join the elements.
-  return Array.prototype.map.call(buffer, (x) => ('00' + x.toString(16)).slice(-2)).join('');
+  return Array.prototype.map.call(buffer, x => ('00' + x.toString(16)).slice(-2)).join('');
 }

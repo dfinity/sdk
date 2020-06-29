@@ -99,7 +99,7 @@ export class HttpAgent implements Agent {
 
   public addTransform(fn: HttpAgentRequestTransformFn, priority = fn.priority || 0) {
     // Keep the pipeline sorted at all time, by priority.
-    const i = this._pipeline.findIndex((x) => (x.priority || 0) < priority);
+    const i = this._pipeline.findIndex(x => (x.priority || 0) < priority);
     this._pipeline.splice(i >= 0 ? i : this._pipeline.length, 0, Object.assign(fn, { priority }));
   }
 
@@ -213,7 +213,7 @@ export class HttpAgent implements Agent {
     let p = Promise.resolve(request);
 
     for (const fn of this._pipeline) {
-      p = p.then((r) => fn(r).then((r2) => r2 || r));
+      p = p.then(r => fn(r).then(r2 => r2 || r));
     }
 
     if (this._authTransform != null) {

@@ -35,9 +35,9 @@ async function hashValue(value: unknown): Promise<Buffer> {
     value !== null &&
     typeof (value as any).toHash === 'function'
   ) {
-    return Promise.resolve((value as any).toHash()).then((x) => hashValue(x));
+    return Promise.resolve((value as any).toHash()).then(x => hashValue(x));
   } else if (value instanceof Promise) {
-    return value.then((x) => hashValue(x));
+    return value.then(x => hashValue(x));
   } else {
     throw new Error(`Attempt to hash a value of unsupported type: ${value}`);
   }

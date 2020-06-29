@@ -53,7 +53,7 @@ class CanisterIdEncoder implements CborEncoder<CanisterId> {
     if (!h) {
       throw new Error('Provided Canister id is not a array of bytes');
     }
-    return cbor.value.bytes(new Uint8Array(h.map((a) => parseInt(a, 16))));
+    return cbor.value.bytes(new Uint8Array(h.map(a => parseInt(a, 16))));
   }
 }
 

@@ -152,7 +152,7 @@ test('IDL encoding (array)', () => {
   // Array
   test_(
     IDL.Vec(IDL.Int),
-    [0, 1, 2, 3].map((x) => new BigNumber(x)),
+    [0, 1, 2, 3].map(x => new BigNumber(x)),
     '4449444c016d7c01000400010203',
     'Array of Ints',
   );
