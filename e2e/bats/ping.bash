@@ -25,21 +25,21 @@ teardown() {
     dfx_start
     assert_command dfx ping
 
-    assert_match "{ \"ic_api_version\": \".*\" }"
+    assert_match "{ \"ic_api_version\": .* }"
 }
 
 @test "dfx ping succeeds by specific host:post" {
     dfx_start
     assert_command dfx ping http://127.0.0.1:8000
 
-    assert_match "{ \"ic_api_version\": \".*\" }"
+    assert_match "{ \"ic_api_version\": .* }"
 }
 
 @test "dfx ping succeeds by network name" {
     dfx_start
     assert_command dfx ping local
 
-    assert_match "{ \"ic_api_version\": \".*\" }"
+    assert_match "{ \"ic_api_version\": .* }"
 }
 
 @test "dfx ping succeeds by network name if network bind address is host:port format" {
@@ -47,5 +47,5 @@ teardown() {
     assert_command dfx config networks.local.bind '"127.0.0.1:8000"'
     assert_command dfx ping local
 
-    assert_match "{ \"ic_api_version\": \".*\" }"
+    assert_match "{ \"ic_api_version\": .* }"
 }
