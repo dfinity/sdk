@@ -34,11 +34,10 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let mgr = ManagementCanister {
-        agent: env
-            .get_agent()
+    let mgr = ManagementCanister::new(
+        env.get_agent()
             .ok_or(DfxError::CommandMustBeRunInAProject)?,
-    };
+    );
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let info = CanisterInfo::load(&config, canister_name)?;
 
@@ -55,7 +54,7 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
                 CanisterId::from_text(metadata.canister_id).ok();
             }
             None => {
-                let cid = runtime.block_on(agent.create_canister_and_wait(create_waiter()))?;
+                let cid = runtime.block_on(mgr.create_canister(create_waiter()))?;
                 info.set_canister_id(cid.clone())?;
                 manifest.add_entry(&info, cid)?;
             }

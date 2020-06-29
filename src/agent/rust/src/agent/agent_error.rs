@@ -30,6 +30,8 @@ pub enum AgentError {
 
     CandidError(candid::Error),
     CanisterIdTextError(TextualCanisterIdError),
+
+    InstallModeError(String),
 }
 
 impl From<SerdeError> for AgentError {
