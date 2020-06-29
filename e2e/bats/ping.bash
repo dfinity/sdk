@@ -25,6 +25,7 @@ teardown() {
     dfx_start
     assert_command dfx ping
 
+    assert_match "ic_api_version"
     assert_match "{ \"ic_api_version\": .* }"
 }
 
@@ -32,6 +33,7 @@ teardown() {
     dfx_start
     assert_command dfx ping http://127.0.0.1:8000
 
+    assert_match "ic_api_version"
     assert_match "{ \"ic_api_version\": .* }"
 }
 
@@ -39,6 +41,7 @@ teardown() {
     dfx_start
     assert_command dfx ping local
 
+    assert_match "ic_api_version"
     assert_match "{ \"ic_api_version\": .* }"
 }
 
@@ -47,5 +50,6 @@ teardown() {
     assert_command dfx config networks.local.bind '"127.0.0.1:8000"'
     assert_command dfx ping local
 
+    assert_match "ic_api_version"
     assert_match "{ \"ic_api_version\": .* }"
 }
