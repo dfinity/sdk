@@ -21,6 +21,7 @@ use std::process::Command;
 use std::time::Duration;
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 use tokio::runtime::Runtime;
+use crate::config::dfinity::ConfigNetwork::ConfigLocalProvider;
 
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
@@ -273,6 +274,11 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
         .unwrap_or_else(|| {
             Ok(config
                 .get_config()
+                .get_network( "local" )
+                .map(|network| {
+                    Some(ConfigLocalProvider(local)) =>
+                    SocketAddr.parse(local)
+                })
                 .get_defaults()
                 .get_start()
                 .get_binding_socket_addr("localhost:8000")
