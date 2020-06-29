@@ -165,7 +165,7 @@ export class ProxyAgent implements Agent {
   }
 
   public createCanister(principal?: Principal): Promise<SubmitResponse> {
-    throw 2;
+    throw new Error('unimplemented. This will be removed when we upgrade the spec to 0.8');
   }
 
   public install(
@@ -176,7 +176,7 @@ export class ProxyAgent implements Agent {
     },
     principal?: Principal,
   ): Promise<SubmitResponse> {
-    throw 3;
+    throw new Error('unimplemented. This will be removed when we upgrade the spec to 0.8');
   }
 
   public query(

@@ -16,7 +16,9 @@ If you need HTTPs (for example, using lvh or ic0.app using redirects), you will 
 your own nginx reverse proxy. Look up instructions online.
 
 **Note that HTTPS is needed for the crypto API if you're accessing a non-localhost URL. This is
-a limitation of the web API (see )**.
+a limitation of the web API (see
+https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts/features_restricted_to_secure_contexts[
+the MDN documentation])**.
 
 
 
