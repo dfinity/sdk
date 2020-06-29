@@ -27,7 +27,7 @@ teardown() {
     [ "$USE_IC_REF" ] && skip "dfx start cannot serve frontent when using ic-ref"
 
     dfx_start --host 127.0.0.1:12345
-    dfx canister create --all --provider http://127.0.0.1:12345
+    dfx canister --provider http://127.0.0.1:12345 create --all
     dfx build --skip-frontend --provider http://127.0.0.1:12345
 
     assert_command curl http://localhost:12345 # 8000 = default port.

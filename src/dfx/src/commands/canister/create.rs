@@ -1,5 +1,5 @@
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::environment::{AgentEnvironment, Environment};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
@@ -26,17 +26,6 @@ pub fn construct() -> App<'static, 'static> {
                 .required_unless("canister_name")
                 .help(UserMessage::CreateAll.to_str())
                 .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("provider")
-                .help(UserMessage::CanisterComputeProvider.to_str())
-                .long("provider")
-                .validator(|v| {
-                    reqwest::Url::parse(&v)
-                        .map(|_| ())
-                        .map_err(|_| "should be a valid URL.".to_string())
-                })
-                .takes_value(true),
         )
 }
 
@@ -84,17 +73,6 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    // Need storage for AgentEnvironment ownership.
-    let mut _agent_env: Option<AgentEnvironment<'_>> = None;
-    let env = if args.is_present("provider") {
-        _agent_env = Some(AgentEnvironment::new(
-            env,
-            args.value_of("provider").expect("Could not find provider."),
-        ));
-        _agent_env.as_ref().unwrap()
-    } else {
-        env
-    };
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
