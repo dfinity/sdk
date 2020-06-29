@@ -78,7 +78,7 @@ export class ProxyStubAgent {
   public onmessage(msg: ProxyMessage): void {
     switch (msg.type) {
       case ProxyMessageKind.Query:
-        this._agent.query(...msg.args).then(response => {
+        this._agent.query(...msg.args).then((response) => {
           this._frontend({
             id: msg.id,
             type: ProxyMessageKind.QueryResponse,
@@ -87,7 +87,7 @@ export class ProxyStubAgent {
         });
         break;
       case ProxyMessageKind.Call:
-        this._agent.call(...msg.args).then(response => {
+        this._agent.call(...msg.args).then((response) => {
           this._frontend({
             id: msg.id,
             type: ProxyMessageKind.CallResponse,
@@ -96,7 +96,7 @@ export class ProxyStubAgent {
         });
         break;
       case ProxyMessageKind.RequestStatus:
-        this._agent.requestStatus(...msg.args).then(response => {
+        this._agent.requestStatus(...msg.args).then((response) => {
           this._frontend({
             id: msg.id,
             type: ProxyMessageKind.RequestStatusResponse,

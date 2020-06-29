@@ -137,7 +137,7 @@ export function makeActorFactory(
         }
 
         // Wait a little, then retry.
-        return new Promise(resolve => setTimeout(resolve, throttle)).then(() =>
+        return new Promise((resolve) => setTimeout(resolve, throttle)).then(() =>
           requestStatusAndLoop(agent, requestId, decoder, attempts, maxAttempts, throttle),
         );
 
@@ -180,7 +180,7 @@ export function makeActorFactory(
         }
 
         const arg = IDL.encode([IDL.Text], [path]) as BinaryBlob;
-        return agent.query(canisterId, { methodName: 'retrieve', arg }).then(response => {
+        return agent.query(canisterId, { methodName: 'retrieve', arg }).then((response) => {
           switch (response.status) {
             case QueryResponseStatus.Rejected:
               throw new Error(
@@ -224,7 +224,7 @@ export function makeActorFactory(
         return await requestStatusAndLoop(
           agent,
           requestId,
-          status => {
+          (status) => {
             if (status.reply.canister_id === undefined) {
               throw new Error(
                 'Canister Creation failed: Replica did not reply with a canister id.',
@@ -322,7 +322,7 @@ export function makeActorFactory(
           return requestStatusAndLoop(
             agent,
             requestId,
-            status => {
+            (status) => {
               if (status.reply.arg !== undefined) {
                 return decodeReturnValue(func.retTypes, status.reply.arg);
               } else if (func.retTypes.length === 0) {

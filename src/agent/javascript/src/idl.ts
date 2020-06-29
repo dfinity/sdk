@@ -618,12 +618,12 @@ export class VecClass<T> extends ConstructType<T[]> {
   }
 
   public covariant(x: any): x is T[] {
-    return Array.isArray(x) && x.every(v => this._type.covariant(v));
+    return Array.isArray(x) && x.every((v) => this._type.covariant(v));
   }
 
   public encodeValue(x: T[]) {
     const len = lebEncode(x.length);
-    return Buffer.concat([len, ...x.map(d => this._type.encodeValue(d))]);
+    return Buffer.concat([len, ...x.map((d) => this._type.encodeValue(d))]);
   }
 
   public _buildTypeTableImpl(typeTable: TypeTable) {
@@ -656,7 +656,7 @@ export class VecClass<T> extends ConstructType<T[]> {
   }
 
   public valueToString(x: T[]) {
-    const elements = x.map(e => this._type.valueToString(e));
+    const elements = x.map((e) => this._type.valueToString(e));
     return 'vec {' + elements.join('; ') + '}';
   }
 }
@@ -865,7 +865,7 @@ export class TupleClass<T extends any[]> extends RecordClass {
   }
 
   public display() {
-    const fields = this._components.map(value => value.display());
+    const fields = this._components.map((value) => value.display());
     return `record {${fields.join('; ')}}`;
   }
 
@@ -1048,10 +1048,7 @@ function decodePrincipalId(b: Pipe): CanisterId {
     throw new Error('Cannot decode principal');
   }
   const len = lebDecode(b).toNumber();
-  const hex = b
-    .read(len)
-    .toString('hex')
-    .toUpperCase();
+  const hex = b.read(len).toString('hex').toUpperCase();
   return CanisterId.fromHex(hex);
 }
 
@@ -1130,16 +1127,16 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
   }
 
   public _buildTypeTableImpl(T: TypeTable) {
-    this.argTypes.forEach(arg => arg.buildTypeTable(T));
-    this.retTypes.forEach(arg => arg.buildTypeTable(T));
+    this.argTypes.forEach((arg) => arg.buildTypeTable(T));
+    this.retTypes.forEach((arg) => arg.buildTypeTable(T));
 
     const opCode = slebEncode(IDLTypeIds.Func);
     const argLen = lebEncode(this.argTypes.length);
-    const args = Buffer.concat(this.argTypes.map(arg => arg.encodeType(T)));
+    const args = Buffer.concat(this.argTypes.map((arg) => arg.encodeType(T)));
     const retLen = lebEncode(this.retTypes.length);
-    const rets = Buffer.concat(this.retTypes.map(arg => arg.encodeType(T)));
+    const rets = Buffer.concat(this.retTypes.map((arg) => arg.encodeType(T)));
     const annLen = lebEncode(this.annotations.length);
-    const anns = Buffer.concat(this.annotations.map(a => this.encodeAnnotation(a)));
+    const anns = Buffer.concat(this.annotations.map((a) => this.encodeAnnotation(a)));
 
     T.add(this, Buffer.concat([opCode, argLen, args, retLen, rets, annLen, anns]));
   }
@@ -1157,8 +1154,8 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
   }
 
   get name() {
-    const args = this.argTypes.map(arg => arg.name).join(', ');
-    const rets = this.retTypes.map(arg => arg.name).join(', ');
+    const args = this.argTypes.map((arg) => arg.name).join(', ');
+    const rets = this.retTypes.map((arg) => arg.name).join(', ');
     const annon = ' ' + this.annotations.join(' ');
     return `(${args}) -> (${rets})${annon}`;
   }
@@ -1168,8 +1165,8 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
   }
 
   public display(): string {
-    const args = this.argTypes.map(arg => arg.display()).join(', ');
-    const rets = this.retTypes.map(arg => arg.display()).join(', ');
+    const args = this.argTypes.map((arg) => arg.display()).join(', ');
+    const rets = this.retTypes.map((arg) => arg.display()).join(', ');
     const annon = ' ' + this.annotations.join(' ');
     return `(${args}) → (${rets})${annon}`;
   }
@@ -1241,12 +1238,12 @@ export function encode(argTypes: Array<Type<any>>, args: any[]) {
   }
 
   const typeTable = new TypeTable();
-  argTypes.forEach(t => t.buildTypeTable(typeTable));
+  argTypes.forEach((t) => t.buildTypeTable(typeTable));
 
   const magic = Buffer.from(magicNumber, 'utf8');
   const table = typeTable.encode();
   const len = lebEncode(args.length);
-  const typs = Buffer.concat(argTypes.map(t => t.encodeType(typeTable)));
+  const typs = Buffer.concat(argTypes.map((t) => t.encodeType(typeTable)));
   const vals = Buffer.concat(
     zipWith(argTypes, args, (t, x) => {
       if (!t.covariant(x)) {
@@ -1355,7 +1352,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     throw new Error('Wrong number of return values');
   }
 
-  const table: RecClass[] = rawTable.map(_ => Rec());
+  const table: RecClass[] = rawTable.map((_) => Rec());
   function getType(t: number): Type {
     if (t < -24) {
       throw new Error('future value not supported');
@@ -1454,7 +1451,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     table[i].fill(t);
   });
 
-  const types = rawTypes.map(t => getType(t));
+  const types = rawTypes.map((t) => getType(t));
   const output = retTypes.map((t, i) => {
     return t.decodeValue(b, types[i]);
   });
