@@ -352,13 +352,12 @@ mod tests {
     }
 
     #[test]
-    fn config_defaults_start_addr() {
+    fn config_with_local_bind_addr() {
         let config = Config::from_str(
             r#"{
-            "defaults": {
-                "start": {
-                    "address": "localhost",
-                    "port": 8000
+            "networks": {
+                "local": {
+                    "bind": "localhost:8000"
                 }
             }
         }"#,
@@ -375,13 +374,10 @@ mod tests {
     }
 
     #[test]
-    fn config_defaults_start_addr_no_address() {
+    fn config_no_local_network_address() {
         let config = Config::from_str(
             r#"{
-            "defaults": {
-                "start": {
-                    "port": 8000
-                }
+            "networks": {
             }
         }"#,
         )
@@ -392,29 +388,7 @@ mod tests {
                 .get_config()
                 .get_local_bind_address("1.2.3.4:123")
                 .ok(),
-            to_socket_addr("1.2.3.4:8000").ok()
-        );
-    }
-
-    #[test]
-    fn config_defaults_start_addr_no_port() {
-        let config = Config::from_str(
-            r#"{
-            "defaults": {
-                "start": {
-                    "address": "localhost"
-                }
-            }
-        }"#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            config
-                .get_config()
-                .get_local_bind_address("1.2.3.4:123")
-                .ok(),
-            to_socket_addr("localhost:123").ok()
+            to_socket_addr("1.2.3.4:123").ok()
         );
     }
 }
