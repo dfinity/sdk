@@ -1048,10 +1048,7 @@ function decodePrincipalId(b: Pipe): CanisterId {
     throw new Error('Cannot decode principal');
   }
   const len = lebDecode(b).toNumber();
-  const hex = b
-    .read(len)
-    .toString('hex')
-    .toUpperCase();
+  const hex = b.read(len).toString('hex').toUpperCase();
   return CanisterId.fromHex(hex);
 }
 

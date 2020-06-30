@@ -141,9 +141,7 @@ class Random extends IDL.Visitor<string, any> {
     return Math.random() < 0.5;
   }
   public visitText(t: IDL.TextClass, v: string): string {
-    return Math.random()
-      .toString(36)
-      .substring(6);
+    return Math.random().toString(36).substring(6);
   }
   public visitFloat(t: IDL.FloatClass, v: string): number {
     return Math.random();
