@@ -1,22 +1,15 @@
 import { Buffer } from 'buffer/';
 import { makeActorFactory } from './actor';
+import { HttpAgent } from './agent';
 import { makeAuthTransform, SenderPubKey, SenderSecretKey, SenderSig } from './auth';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
-import { HttpAgent } from './http_agent';
 import { makeNonceTransform } from './http_agent_transforms';
-import {
-  CallRequest,
-  Signed,
-  SignedHttpAgentSubmitRequest,
-  SubmitRequest,
-  SubmitRequestType,
-} from './http_agent_types';
+import { CallRequest, Signed, SubmitRequestType } from './http_agent_types';
 import * as IDL from './idl';
 import { Principal } from './principal';
 import { requestIdOf } from './request_id';
 import { blobFromHex, Nonce } from './types';
-import { sha256 } from './utils/sha256';
 
 test('makeActor', async () => {
   const actorInterface = () => {
@@ -126,7 +119,7 @@ test('makeActor', async () => {
     ),
   );
 
-  const actor = makeActorFactory(actorInterface)({ canisterId, httpAgent });
+  const actor = makeActorFactory(actorInterface)({ canisterId, agent: httpAgent });
   const reply = await actor.greet(argValue);
 
   expect(reply).toEqual(IDL.decode([IDL.Text], expectedReplyArg)[0]);

@@ -126,11 +126,7 @@ export function writeIntLE(value: BigNumber | number, byteLength: number): Buffe
     if (value.lt(0) && sub === 0 && byte !== 0) {
       sub = 1;
     }
-    byte = value
-      .idiv(mul)
-      .minus(sub)
-      .mod(256)
-      .toNumber();
+    byte = value.idiv(mul).minus(sub).mod(256).toNumber();
     pipe.write([byte]);
     mul = mul.times(256);
   }

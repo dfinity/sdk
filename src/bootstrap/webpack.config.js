@@ -1,27 +1,37 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 // If we're in Nix, we need to let the resolution works normally.
 const agentPath = path.join(__dirname, '../agent/javascript/src');
-const resolve = fs.existsSync(agentPath) ? {
-  alias: {
-    '@dfinity/agent': agentPath,
-  }
-} : {};
+const resolve = fs.existsSync(agentPath)
+  ? {
+      alias: {
+        '@dfinity/agent': agentPath,
+      },
+    }
+  : {};
 
 module.exports = {
-  mode: "production",
-  entry: "./src/index.js",
-  target: "web",
-  output: {
-    path: path.resolve(__dirname, "./dist"),
-    filename: "index.js",
+  mode: 'production',
+  entry: {
+    bootstrap: './src/index.ts',
+    candid: './src/candid/candid.js',
+    worker: './src/worker.ts',
   },
-  resolve,
-  devtool: "none",
+  target: 'web',
+  output: {
+    path: path.resolve(__dirname, './dist'),
+    filename: '[name].js',
+  },
+  resolve: {
+    plugins: [new TsconfigPathsPlugin({ configFile: './tsconfig.json' })],
+    extensions: ['.tsx', '.ts', '.js'],
+  },
+  devtool: 'source-map',
   optimization: {
     minimize: true,
     minimizer: [
@@ -32,30 +42,47 @@ module.exports = {
         terserOptions: {
           ecma: 8,
           minimize: true,
-          comments: false
+          comments: false,
           // https://github.com/webpack-contrib/terser-webpack-plugin#terseroptions
-        }
+        },
       }),
     ],
   },
   module: {
-    rules: [{
-      test: /\.css$/,
-      use: ['style-loader', 'css-loader']
-    }]
+    rules: [
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.tsx?$/,
+        use: ['ts-loader'],
+      },
+    ],
   },
   plugins: [
     new HtmlWebpackPlugin({
       template: 'src/index.html',
-      filename: 'index.html'
+      filename: 'index.html',
+      chunks: ['bootstrap'],
+    }),
+    new HtmlWebpackPlugin({
+      template: 'src/worker.html',
+      filename: 'worker.html',
+      chunks: ['worker'],
     }),
     new HtmlWebpackPlugin({
       template: 'src/candid/index.html',
-      filename: 'candid/index.html'
+      filename: 'candid/index.html',
+      // TODO: change candid.js to candid.ts, and make it a proper bootstrap, and
+      //       change this chunk to candid.
+      chunks: ['bootstrap'],
     }),
-    new CopyWebpackPlugin([{
+    new CopyWebpackPlugin([
+      {
         from: 'src/dfinity.png',
         to: 'favicon.ico',
-      }]),
-  ]
+      },
+    ]),
+  ],
 };
