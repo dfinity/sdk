@@ -1,5 +1,5 @@
 import actorInterface from "ic:idl/{project_name}";
 
-export default icHttpAgent.makeActorFactory(actorInterface)({
+export default ic.agent.makeActorFactory(actorInterface)({
   canisterId: "{canister_id}",
 });

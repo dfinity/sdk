@@ -30,7 +30,7 @@
     "jest": "^24.9.0",
     "jest-expect-message": "^1.0.2",
     "node-fetch": "2.6.0",
-    "prettier": "^1.19.1",
+    "prettier": "^2.0.5",
     "text-encoding": "^0.7.0",
     "ts-jest": "^24.2.0",
     "tslint": "^5.20.0",
