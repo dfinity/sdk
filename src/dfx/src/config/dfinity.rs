@@ -14,7 +14,6 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bootstrap: None,
     build: None,
     replica: None,
-    start: None,
 };
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
@@ -33,11 +32,6 @@ const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsRepli
     message_gas_limit: None,
     port: None,
     round_gas_limit: None,
-};
-
-const EMPTY_CONFIG_DEFAULTS_START: ConfigDefaultsStart = ConfigDefaultsStart {
-    address: None,
-    port: None,
 };
 
 /// A Canister configuration in the dfx.json config file.
@@ -73,12 +67,6 @@ pub struct ConfigDefaultsReplica {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct ConfigDefaultsStart {
-    pub address: Option<String>,
-    pub port: Option<u16>,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigNetworkProvider {
     pub providers: Vec<String>,
 }
@@ -108,7 +96,6 @@ pub struct ConfigDefaults {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub replica: Option<ConfigDefaultsReplica>,
-    pub start: Option<ConfigDefaultsStart>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -123,7 +110,7 @@ pub struct ConfigInterface {
 
 impl ConfigCanistersCanister {}
 
-fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
+pub fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
     match s.to_socket_addrs() {
         Ok(mut a) => match a.next() {
             Some(res) => Ok(res),
@@ -133,25 +120,6 @@ fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
             ))),
         },
         Err(err) => Err(DfxError::from(err)),
-    }
-}
-
-impl ConfigDefaultsStart {
-    pub fn get_address(&self, default: &str) -> String {
-        self.address
-            .to_owned()
-            .unwrap_or_else(|| default.to_string())
-    }
-    pub fn get_binding_socket_addr(&self, default: &str) -> DfxResult<SocketAddr> {
-        to_socket_addr(default).and_then(|default_addr| {
-            let addr = self.get_address(default_addr.ip().to_string().as_str());
-            let port = self.get_port(default_addr.port());
-
-            to_socket_addr(format!("{}:{}", addr, port).as_str())
-        })
-    }
-    pub fn get_port(&self, default: u16) -> u16 {
-        self.port.unwrap_or(default)
     }
 }
 
@@ -189,12 +157,6 @@ impl ConfigDefaults {
             None => &EMPTY_CONFIG_DEFAULTS_REPLICA,
         }
     }
-    pub fn get_start(&self) -> &ConfigDefaultsStart {
-        match &self.start {
-            Some(x) => &x,
-            None => &EMPTY_CONFIG_DEFAULTS_START,
-        }
-    }
 }
 
 impl ConfigInterface {
@@ -226,6 +188,15 @@ impl ConfigInterface {
         self.networks
             .as_ref()
             .and_then(|networks| networks.get(network))
+    }
+
+    pub fn get_local_bind_address(&self, default: &str) -> DfxResult<SocketAddr> {
+        self.get_network("local")
+            .map(|network| match network {
+                ConfigNetwork::ConfigLocalProvider(local) => to_socket_addr(&local.bind),
+                _ => Err(DfxError::NoLocalNetworkProviderFound),
+            })
+            .unwrap_or_else(|| to_socket_addr(default))
     }
 
     pub fn get_version(&self) -> u32 {
@@ -387,13 +358,12 @@ mod tests {
     }
 
     #[test]
-    fn config_defaults_start_addr() {
+    fn config_with_local_bind_addr() {
         let config = Config::from_str(
             r#"{
-            "defaults": {
-                "start": {
-                    "address": "localhost",
-                    "port": 8000
+            "networks": {
+                "local": {
+                    "bind": "localhost:8000"
                 }
             }
         }"#,
@@ -403,22 +373,17 @@ mod tests {
         assert_eq!(
             config
                 .get_config()
-                .get_defaults()
-                .get_start()
-                .get_binding_socket_addr("1.2.3.4:123")
+                .get_local_bind_address("1.2.3.4:123")
                 .ok(),
             to_socket_addr("localhost:8000").ok()
         );
     }
 
     #[test]
-    fn config_defaults_start_addr_no_address() {
+    fn config_no_local_network_address() {
         let config = Config::from_str(
             r#"{
-            "defaults": {
-                "start": {
-                    "port": 8000
-                }
+            "networks": {
             }
         }"#,
         )
@@ -427,35 +392,9 @@ mod tests {
         assert_eq!(
             config
                 .get_config()
-                .get_defaults()
-                .get_start()
-                .get_binding_socket_addr("1.2.3.4:123")
+                .get_local_bind_address("1.2.3.4:123")
                 .ok(),
-            to_socket_addr("1.2.3.4:8000").ok()
-        );
-    }
-
-    #[test]
-    fn config_defaults_start_addr_no_port() {
-        let config = Config::from_str(
-            r#"{
-            "defaults": {
-                "start": {
-                    "address": "localhost"
-                }
-            }
-        }"#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            config
-                .get_config()
-                .get_defaults()
-                .get_start()
-                .get_binding_socket_addr("1.2.3.4:123")
-                .ok(),
-            to_socket_addr("localhost:123").ok()
+            to_socket_addr("1.2.3.4:123").ok()
         );
     }
 }
