@@ -156,6 +156,13 @@ fn copy_assets(assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
 
             let destination = output_assets_path.join(relative);
 
+            // If the destination exists, we simply continue. We delete the output directory
+            // prior to building so the only way this exists is if it's an output to one
+            // of the build steps.
+            if destination.exists() {
+                continue;
+            }
+
             if entry.file_type().is_dir() {
                 fs::create_dir(destination)?;
             } else {

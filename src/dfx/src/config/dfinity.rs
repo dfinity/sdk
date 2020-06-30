@@ -20,7 +20,6 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
     port: None,
-    providers: None,
     root: None,
     timeout: None,
 };
@@ -56,7 +55,6 @@ pub struct ConfigCanistersCanister {
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
     pub port: Option<u16>,
-    pub providers: Option<Vec<String>>,
     pub root: Option<PathBuf>,
     pub timeout: Option<u64>,
 }
@@ -78,6 +76,23 @@ pub struct ConfigDefaultsReplica {
 pub struct ConfigDefaultsStart {
     pub address: Option<String>,
     pub port: Option<u16>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigNetworkProvider {
+    pub providers: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigLocalProvider {
+    pub bind: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum ConfigNetwork {
+    ConfigNetworkProvider(ConfigNetworkProvider),
+    ConfigLocalProvider(ConfigLocalProvider),
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -103,6 +118,7 @@ pub struct ConfigInterface {
     pub dfx: Option<String>,
     pub canisters: Option<BTreeMap<String, ConfigCanistersCanister>>,
     pub defaults: Option<ConfigDefaults>,
+    pub networks: Option<BTreeMap<String, ConfigNetwork>>,
 }
 
 impl ConfigCanistersCanister {}
@@ -188,6 +204,30 @@ impl ConfigInterface {
             _ => &EMPTY_CONFIG_DEFAULTS,
         }
     }
+    pub fn get_provider_url(&self, network: &str) -> DfxResult<Option<String>> {
+        match &self.networks {
+            Some(networks) => match networks.get(network) {
+                Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
+                    match network_provider.providers.first() {
+                        Some(provider) => Ok(Some(provider.clone())),
+                        None => Err(DfxError::ComputeNetworkHasNoProviders(network.to_string())),
+                    }
+                }
+                Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
+                    Ok(Some(local_provider.bind.clone()))
+                }
+                _ => Ok(None),
+            },
+            _ => Ok(None),
+        }
+    }
+
+    pub fn get_network(&self, network: &str) -> Option<&ConfigNetwork> {
+        self.networks
+            .as_ref()
+            .and_then(|networks| networks.get(network))
+    }
+
     pub fn get_version(&self) -> u32 {
         self.version.unwrap_or(1)
     }

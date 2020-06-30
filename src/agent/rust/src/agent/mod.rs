@@ -19,6 +19,7 @@ use crate::agent::replica_api::{AsyncContent, Envelope, SyncContent};
 use crate::identity::Identity;
 use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
 use reqwest::Method;
+use serde::Serialize;
 
 use public::*;
 
@@ -50,7 +51,11 @@ impl Agent {
         endpoint: &str,
         envelope: Envelope<T>,
     ) -> Result<Vec<u8>, AgentError> {
-        let serialized_bytes = serde_cbor::to_vec(&envelope)?;
+        let mut serialized_bytes = Vec::new();
+        let mut serializer = serde_cbor::Serializer::new(&mut serialized_bytes);
+        serializer.self_describe()?;
+        envelope.serialize(&mut serializer)?;
+
         let url = self.url.join(endpoint)?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);

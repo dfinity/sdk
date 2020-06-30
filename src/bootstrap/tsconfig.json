@@ -1,24 +1,27 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "target": "es2017",
+    "outDir": "ts-out/",
+    "target": "ES2017",
     "module": "commonjs",
     "lib": [
       "dom",
       "es2017"
     ],
-    "declaration": true,
     "sourceMap": true,
-    "tsBuildInfoFile": "./build_info.json",
     "strict": true,
     "paths": {
         "@dfinity/agent": [
-            "../agent/javascript",
+            "../../src/agent/javascript/src",
             "node_modules/@dfinity/agent"
         ]
     },
     "baseUrl": "./",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  "include": [
+    "types/*",
+    "src/**/*.ts"
+  ]
 }

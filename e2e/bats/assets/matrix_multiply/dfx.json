@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "canisters": {
     "dot_product": {
       "main": "dot_product.mo"
@@ -15,8 +16,13 @@
       "output": "canisters/"
     },
     "start": {
-      "address": "127.0.0.1",
-      "port": 8000
+      "port": 8000,
+      "address": "127.0.0.1"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000"
     }
   }
 }
