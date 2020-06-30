@@ -1,6 +1,7 @@
 build_info.json
 node_modules/
 dist/
+ts-out/
 **/*.js
 **/*.js.map
 **/*.d.ts

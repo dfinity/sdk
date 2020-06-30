@@ -1,102 +1,44 @@
-import {
-  generateKeyPair,
-  HttpAgent,
-  IDL,
-  makeAuthTransform,
-  makeKeyPair,
-  makeNonceTransform,
-  Principal,
-} from '@dfinity/agent';
+import { CanisterId, GlobalInternetComputer, HttpAgent, IDL } from '@dfinity/agent';
+import { createAgent, SiteInfo } from './host';
 
-interface WindowWithInternetComputer extends Window {
-  icHttpAgent: HttpAgent;
-  ic: {
-    httpAgent: HttpAgent;
-  };
-}
-declare const window: WindowWithInternetComputer;
-
-const localStorageIdentityKey = 'dfinity-ic-user-identity';
-const localStorageCanisterIdKey = 'dfinity-ic-canister-id';
-const localStorageHostKey = 'dfinity-ic-host';
-
-function _getVariable(
-  queryName: string,
-  localStorageName: string,
-  defaultValue?: string,
-): string | undefined {
-  const queryValue = window.location.search.match(new RegExp(`[?&]${queryName}=([^&]*)(?:&|$)`));
-  if (queryValue) {
-    return decodeURIComponent(queryValue[1]);
-  }
-  const lsValue = window.localStorage.getItem(localStorageName);
-  if (lsValue) {
-    return lsValue;
-  }
-  return defaultValue;
-}
+declare const window: GlobalInternetComputer & Window;
 
 // Retrieve and execute a JavaScript file from the server.
 async function _loadJs(
-  canisterId: string,
+  canisterId: CanisterId,
   filename: string,
   onload = async () => {},
 ): Promise<any> {
-  const content = await window.icHttpAgent.retrieveAsset(canisterId, filename);
-  const js = new TextDecoder().decode(content);
-  const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
+  const idlFn = ({ IDL: idl }: any) => {
+    return idl.Service({
+      retrieve: idl.Func([idl.Text], [idl.Vec(idl.Nat8)], ['query']),
+    });
+  };
+
+  const actor = window.ic.agent.makeActorFactory(idlFn)({
+    canisterId,
+  });
+
+  const content = (await actor.retrieve(filename)) as number[];
+  const js = new TextDecoder().decode(new Uint8Array(content));
+  // const dataUri = new Function(js);
 
   // Run an event function so the callee can execute some code before loading the
   // Javascript.
   await onload();
+
   // TODO(hansl): either get rid of eval, or rid of webpack, or make this
   // work without this horrible hack.
-  return eval('import("' + dataUri + '")'); // tslint:disable-line
+  return eval(js); // tslint:disable-line
 }
-
-const k = _getVariable('userIdentity', localStorageIdentityKey);
-let keyPair;
-if (k) {
-  keyPair = JSON.parse(k);
-  keyPair = makeKeyPair(
-    new Uint8Array(keyPair.publicKey.data),
-    new Uint8Array(keyPair.secretKey.data),
-  );
-} else {
-  keyPair = generateKeyPair();
-  // TODO(eftycis): use a parser+an appropriate format to avoid
-  // leaking the key when constructing the string for
-  // localStorage.
-  window.localStorage.setItem(localStorageIdentityKey, JSON.stringify(keyPair));
-}
-
-// Figure out the host.
-let host = _getVariable('host', localStorageHostKey, '');
-if (host) {
-  try {
-    host = JSON.parse(host);
-
-    if (Array.isArray(host)) {
-      host = '' + host[Math.floor(Math.random() * host.length)];
-    } else {
-      host = '' + host;
-    }
-  } catch (_) {
-    host = '';
-  }
-}
-
-const principal = Principal.selfAuthenticating(keyPair.publicKey);
-const agent = new HttpAgent({ host, principal });
-agent.addTransform(makeNonceTransform());
-agent.setAuthTransform(makeAuthTransform(keyPair));
-
-window.icHttpAgent = agent;
-window.ic = { httpAgent: agent };
 
 async function _main() {
+  const site = await SiteInfo.fromWindow();
+  const agent = await createAgent(site);
+  window.ic = { agent, HttpAgent, IDL };
+
   // Find the canister ID. Allow override from the url with 'canister_id=1234..'
-  const canisterId = _getVariable('canisterId', localStorageCanisterIdKey, '');
+  const canisterId = site.canisterId;
   if (!canisterId) {
     // Show an error.
     const div = document.createElement('div');
@@ -108,7 +50,7 @@ async function _main() {
     if (window.location.pathname === '/candid') {
       // Load candid.js from the canister.
       const candid = await _loadJs(canisterId, 'candid.js');
-      const canister = window.icHttpAgent.makeActorFactory(candid.default)({ canisterId });
+      const canister = window.ic.agent.makeActorFactory(candid.default)({ canisterId });
       // @ts-ignore: Could not find a declaration file for module
       const render: any = await import('./candid/candid.js');
       render.render(canisterId, canister);
