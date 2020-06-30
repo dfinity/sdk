@@ -95,7 +95,7 @@ pub enum Profile {
 pub struct ConfigDefaults {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
-    pub replica: Option<ConfigDefaultsReplica>
+    pub replica: Option<ConfigDefaultsReplica>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
