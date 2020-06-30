@@ -2,10 +2,7 @@ import { crc8 } from 'crc';
 import { BinaryBlob, blobFromHex, blobToHex } from './types';
 
 function getCrc(hex: string): string {
-  return crc8(Buffer.from(hex, 'hex'))
-    .toString(16)
-    .toUpperCase()
-    .padStart(2, '0');
+  return crc8(Buffer.from(hex, 'hex')).toString(16).toUpperCase().padStart(2, '0');
 }
 
 // Canister IDs are represented as an array of bytes in the HTTP handler of the client.
@@ -49,5 +46,8 @@ export class CanisterId {
   public toText(): string {
     const crc = getCrc(this._idHex);
     return 'ic:' + this.toHex() + crc;
+  }
+  public toString(): string {
+    return this.toText();
   }
 }

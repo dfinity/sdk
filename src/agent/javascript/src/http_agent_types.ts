@@ -59,8 +59,13 @@ export interface QueryFields {
   methodName: string;
   arg: BinaryBlob;
 }
-export interface ResponseStatusFields {
+export interface RequestStatusFields {
   requestId: RequestId;
+}
+
+export interface CallFields {
+  methodName: string;
+  arg: BinaryBlob;
 }
 
 // The fields in a "call" submit request.
@@ -95,7 +100,11 @@ export enum SubmitRequestType {
 export type SubmitRequest = CallRequest | InstallCodeRequest | CreateCanisterRequest;
 export interface SubmitResponse {
   requestId: RequestId;
-  response: Response;
+  response: {
+    ok: boolean;
+    status: number;
+    statusText: string;
+  };
 }
 
 // An ADT that represents responses to a "query" read request.
