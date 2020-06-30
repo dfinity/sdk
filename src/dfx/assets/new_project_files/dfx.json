@@ -25,5 +25,15 @@
       "port": 8000,
       "address": "127.0.0.1"
     }
+  },
+  "networks": {
+    "tungsten": {
+      "providers": [
+        "https://gateway.dfinity.systems"
+      ]
+    },
+    "local": {
+      "bind": "127.0.0.1:8000"
+    }
   }
 }

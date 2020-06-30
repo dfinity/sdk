@@ -81,3 +81,47 @@ teardown() {
   dfx canister install --all
   assert_command dfx canister call custom hashFromQuery
 }
+
+@test "build succeeds with correct provider URL" {
+    dfx_start
+    assert_command dfx build --provider http://127.0.0.1:8000
+}
+
+@test "build fails with incorrect provider URL default project" {
+    dfx_start
+    assert_command_fail dfx build --provider http://127.0.0.1:8765
+    assert_match "ConnectionRefused"
+}
+
+@test "build succeeds with network parameter" {
+    dfx_start
+    assert_command dfx build --network local
+}
+
+@test "build succeeds with incorrect network" {
+    dfx_start
+    assert_command_fail dfx build --network nosuch
+    assert_match "ComputeNetworkNotFound"
+}
+
+@test "build fails with network parameter when network does not exist" {
+    dfx_start
+    assert_command dfx config networks.tungsten.providers '[ "http://not-real.nowhere.systems" ]'
+    assert_command_fail dfx build --network tungsten
+    assert_match "ConnectError"
+}
+
+@test "build succeeds when requested network is configured" {
+    dfx_start
+
+    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+    assert_command dfx build --network tungsten
+}
+
+@test "build fails if selected network exists but has no providers" {
+    dfx_start
+
+    assert_command dfx config networks.tungsten.providers '[  ]'
+    assert_command_fail dfx build --network tungsten
+    assert_match "ComputeNetworkHasNoProviders"
+}
