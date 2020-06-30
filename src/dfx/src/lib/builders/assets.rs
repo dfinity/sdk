@@ -1,7 +1,7 @@
 use crate::config::cache::Cache;
 use crate::config::dfx_version;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, ManifestBuildOutput, WasmBuildOutput,
+    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
@@ -95,7 +95,6 @@ impl CanisterBuilder for AssetsBuilder {
             canister_id: info.get_canister_id().expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(wasm_path),
             idl: IdlBuildOutput::File(idl_path),
-            manifest: ManifestBuildOutput::File(info.get_manifest_path().to_path_buf()),
         })
     }
 

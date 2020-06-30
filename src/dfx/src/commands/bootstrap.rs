@@ -64,12 +64,17 @@ pub fn construct() -> App<'static, 'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let logger = env.get_logger();
     let config = get_config(env, args)?;
+    let manifest_path = env
+        .get_config()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?
+        .get_manifest_path();
     let providers = get_providers(env, args)?;
 
     let (sender, receiver) = crossbeam::unbounded();
 
     webserver(
         logger.clone(),
+        manifest_path,
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
         providers
             .iter()

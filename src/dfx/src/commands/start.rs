@@ -156,12 +156,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
+    let manifest_path = config.get_manifest_path();
+
     let proxy_config = ProxyConfig {
         logger: env.get_logger().clone(),
         client_api_port: address_and_port.port(),
         bind: address_and_port,
         serve_dir: bootstrap_dir,
         providers,
+        manifest_path,
     };
 
     let supervisor_actor_handle = CoordinateProxy {
