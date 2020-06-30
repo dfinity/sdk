@@ -32,9 +32,9 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "master",
+        "ref": "akhi3030/v0.5.8",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "b63315a1ae098e705cf66beb6eba82e9a0af0d3a",
+        "rev": "3045e224d47aff317e265ac66e37834c31637011",
         "type": "git"
     },
     "ic-ref": {
