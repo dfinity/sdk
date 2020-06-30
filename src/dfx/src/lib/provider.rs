@@ -17,7 +17,7 @@ pub fn get_provider_urls<'a>(
                     .get_config()
                     .ok_or(DfxError::CommandMustBeRunInAProject)?;
                 let config = config.as_ref().get_config();
-                let x = match config.get_network(&network_name) {
+                match config.get_network(&network_name) {
                     Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
                         match &network_provider.providers {
                             providers if !providers.is_empty() => Ok(providers.to_vec()),
@@ -30,12 +30,10 @@ pub fn get_provider_urls<'a>(
                         Ok(vec![format!("http://{}", local_provider.bind)])
                     }
                     None => Err(DfxError::ComputeNetworkNotFound(network_name.to_string())),
-                }?;
-                let y: DfxResult<Vec<String>> = x
-                    .iter()
-                    .map(|provider| parse_provider_url(provider))
-                    .collect::<Result<_, _>>();
-                y
+                }?
+                .iter()
+                .map(|provider| parse_provider_url(provider))
+                .collect::<Result<_, _>>()
             },
             |provider| command_line_provider_to_url(&provider).map(|url| vec![url]),
         )

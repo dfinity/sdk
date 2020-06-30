@@ -112,6 +112,7 @@ pub enum DfxError {
     /// The network was found in dfx.json, but its "providers" array is empty.
     ComputeNetworkHasNoProviders(String),
 
+    /// The "local" network provider with a bind address was not found.
     NoLocalNetworkProviderFound,
 }
 
