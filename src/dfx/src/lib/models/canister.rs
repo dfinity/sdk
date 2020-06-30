@@ -105,6 +105,12 @@ pub struct CanManMetadata {
 }
 
 impl CanisterManifest {
+    pub fn load(path: &Path) -> DfxResult<Self> {
+        let content = std::fs::read_to_string(path)
+            .map_err(|_| DfxError::BuildError(BuildErrorKind::NoManifestError()))?;
+        serde_json::from_str(&content).map_err(DfxError::from)
+    }
+
     pub fn save(&self, path: &Path) -> DfxResult<()> {
         let content =
             serde_json::to_string_pretty(self).map_err(DfxError::CouldNotSerializeConfiguration)?;

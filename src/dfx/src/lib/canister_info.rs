@@ -115,11 +115,7 @@ impl CanisterInfo {
                 Some(canister_id)
             }
             None => {
-                let content = std::fs::read_to_string(&self.get_manifest_path())
-                    .map_err(|_| DfxError::BuildError(BuildErrorKind::NoManifestError()))?;
-
-                let manifest: CanisterManifest =
-                    serde_json::from_str(&content).map_err(DfxError::from)?;
+                let manifest = CanisterManifest::load(&self.get_manifest_path())?;
 
                 let serde_value = manifest.canisters.get(&self.name.clone()).ok_or_else(|| {
                     DfxError::BuildError(BuildErrorKind::CanisterIdNotFound(self.name.clone()))
