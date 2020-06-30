@@ -40,7 +40,10 @@ async function _loadCandid(canisterId: CanisterId): Promise<any> {
     throw new Error(`Cannot fetch candid file`);
   }
   const js = await response.text();
-  return eval(js); // tslint:disable-line
+  const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
+  // TODO(hansl): either get rid of eval, or rid of webpack, or make this
+  // work without this horrible hack.
+  return eval('import("' + dataUri + '")'); // tslint:disable-line
 }
 
 async function _main() {
