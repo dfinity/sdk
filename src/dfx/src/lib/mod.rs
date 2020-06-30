@@ -9,6 +9,7 @@ pub mod message;
 pub mod models;
 pub mod package_arguments;
 pub mod progress_bar;
+pub mod provider;
 pub mod proxy;
 pub mod proxy_process;
 pub mod replica_config;

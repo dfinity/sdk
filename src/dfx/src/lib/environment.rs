@@ -7,7 +7,6 @@ use crate::lib::progress_bar::ProgressBar;
 
 use async_trait::async_trait;
 use ic_agent::{Agent, AgentConfig};
-use lazy_init::Lazy;
 use semver::Version;
 use slog::{Logger, Record};
 use std::collections::BTreeMap;
@@ -52,7 +51,6 @@ pub struct EnvironmentImpl {
     config: Option<Arc<Config>>,
     temp_dir: PathBuf,
 
-    agent: Lazy<Option<Agent>>,
     cache: Arc<dyn Cache>,
 
     version: Version,
@@ -110,7 +108,6 @@ impl EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),
             config: config.map(Arc::new),
             temp_dir,
-            agent: Lazy::new(),
             version: version.clone(),
             logger: None,
             progress: true,
@@ -154,27 +151,9 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_agent(&self) -> Option<&Agent> {
-        self.agent
-            .get_or_create(move || {
-                if let Some(config) = self.config.as_ref() {
-                    let start = config.get_config().get_defaults().get_start();
-                    let address = start.get_address("localhost");
-                    let port = start.get_port(8000);
-                    // This is the default to keep it simple.
-                    let identity = match get_profile_path() {
-                        Ok(p) => p,
-                        Err(_) => return None,
-                    };
-                    create_agent(
-                        self.get_logger().clone(),
-                        &format!("http://{}:{}", address, port),
-                        identity,
-                    )
-                } else {
-                    None
-                }
-            })
-            .as_ref()
+        // create an AgentEnvironment explicitly, in order to specify provider/network
+        // See install, build for examples.
+        None
     }
 
     fn get_logger(&self) -> &slog::Logger {

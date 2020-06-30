@@ -1,8 +1,9 @@
 use crate::lib::builders::BuildConfig;
-use crate::lib::environment::{AgentEnvironment, Environment};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::provider::create_agent_environment;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
 pub fn construct() -> App<'static, 'static> {
@@ -24,6 +25,7 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("provider")
                 .help(UserMessage::CanisterComputeProvider.to_str())
                 .long("provider")
+                .conflicts_with("network")
                 .validator(|v| {
                     reqwest::Url::parse(&v)
                         .map(|_| ())
@@ -31,20 +33,17 @@ pub fn construct() -> App<'static, 'static> {
                 })
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("network")
+                .help(UserMessage::CanisterComputeNetwork.to_str())
+                .long("network")
+                .conflicts_with("provider")
+                .takes_value(true),
+        )
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    // Need storage for AgentEnvironment ownership.
-    let mut _agent_env: Option<AgentEnvironment<'_>> = None;
-    let env = if args.is_present("provider") {
-        _agent_env = Some(AgentEnvironment::new(
-            env,
-            args.value_of("provider").expect("Could not find provider."),
-        ));
-        _agent_env.as_ref().unwrap()
-    } else {
-        env
-    };
+    let env = create_agent_environment(env, args)?;
 
     let logger = env.get_logger();
 
@@ -58,7 +57,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     env.get_cache().install()?;
 
     // First build.
-    let canister_pool = CanisterPool::load(env)?;
+    let canister_pool = CanisterPool::load(&env)?;
 
     // Create canisters on the replica and associate canister ids locally.
     if args.is_present("skip-manifest") {

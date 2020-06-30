@@ -45,7 +45,7 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
 
     if manifest_path.is_file() {
         {
-            let file = std::fs::File::open(info.get_manifest_path()).unwrap();
+            let file = std::fs::File::open(manifest_path).unwrap();
             let mut manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
 
             match manifest.canisters.get(info.get_name()) {

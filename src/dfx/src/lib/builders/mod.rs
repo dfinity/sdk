@@ -23,17 +23,11 @@ pub enum IdlBuildOutput {
     File(PathBuf),
 }
 
-#[derive(Debug)]
-pub enum ManifestBuildOutput {
-    File(PathBuf),
-}
-
 /// The output of a build.
 pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
-    pub manifest: ManifestBuildOutput,
 }
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.
@@ -93,8 +87,7 @@ impl BuildConfig {
     pub fn from_config(config: &Config) -> Self {
         let workspace_root = config.get_path().parent().unwrap();
         let config = config.get_config();
-        let build_root =
-            workspace_root.join(config.get_defaults().get_build().get_output("build/"));
+        let build_root = workspace_root.join(config.get_defaults().get_build().get_output());
 
         BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),

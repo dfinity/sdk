@@ -1,7 +1,8 @@
 use crate::commands::CliCommand;
-use crate::lib::environment::{AgentEnvironment, Environment};
+use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::provider::create_agent_environment;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
 mod call;
@@ -32,6 +33,14 @@ pub fn construct() -> App<'static, 'static> {
                         .map(|_| ())
                         .map_err(|_| "should be a valid URL.".to_string())
                 })
+                .conflicts_with("network")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("network")
+                .help(UserMessage::CanisterComputeNetwork.to_str())
+                .long("network")
+                .conflicts_with("provider")
                 .takes_value(true),
         )
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
@@ -40,21 +49,11 @@ pub fn construct() -> App<'static, 'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let subcommand = args.subcommand();
 
-    // Need storage for AgentEnvironment ownership.
-    let mut _agent_env: Option<AgentEnvironment<'_>> = None;
-    let env = if args.is_present("provider") {
-        _agent_env = Some(AgentEnvironment::new(
-            env,
-            args.value_of("provider").expect("Could not find provider."),
-        ));
-        _agent_env.as_ref().unwrap()
-    } else {
-        env
-    };
+    let agent_env = create_agent_environment(env, args)?;
 
     if let (name, Some(subcommand_args)) = subcommand {
         match builtins().into_iter().find(|x| name == x.get_name()) {
-            Some(cmd) => cmd.execute(env, subcommand_args),
+            Some(cmd) => cmd.execute(&agent_env, subcommand_args),
             None => Err(DfxError::UnknownCommand(format!(
                 "Command {} not found.",
                 name

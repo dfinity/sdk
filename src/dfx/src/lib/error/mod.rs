@@ -105,6 +105,12 @@ pub enum DfxError {
 
     /// Could not parse an URL for some reason.
     InvalidUrl(String, url::ParseError),
+
+    /// The value of the --network argument was not found in dfx.json.
+    ComputeNetworkNotFound(String),
+
+    /// The network was found in dfx.json, but its "providers" array is empty.
+    ComputeNetworkHasNoProviders(String),
 }
 
 /// The result of running a DFX command.
@@ -216,3 +222,5 @@ impl From<walkdir::Error> for DfxError {
         DfxError::CouldNotWalkDirectory(err)
     }
 }
+
+impl actix_web::error::ResponseError for DfxError {}

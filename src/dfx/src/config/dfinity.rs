@@ -20,7 +20,6 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
     port: None,
-    providers: None,
     root: None,
     timeout: None,
 };
@@ -56,7 +55,6 @@ pub struct ConfigCanistersCanister {
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
     pub port: Option<u16>,
-    pub providers: Option<Vec<String>>,
     pub root: Option<PathBuf>,
     pub timeout: Option<u64>,
 }
@@ -78,6 +76,23 @@ pub struct ConfigDefaultsReplica {
 pub struct ConfigDefaultsStart {
     pub address: Option<String>,
     pub port: Option<u16>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigNetworkProvider {
+    pub providers: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigLocalProvider {
+    pub bind: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum ConfigNetwork {
+    ConfigNetworkProvider(ConfigNetworkProvider),
+    ConfigLocalProvider(ConfigLocalProvider),
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -103,6 +118,7 @@ pub struct ConfigInterface {
     pub dfx: Option<String>,
     pub canisters: Option<BTreeMap<String, ConfigCanistersCanister>>,
     pub defaults: Option<ConfigDefaults>,
+    pub networks: Option<BTreeMap<String, ConfigNetwork>>,
 }
 
 impl ConfigCanistersCanister {}
@@ -140,10 +156,10 @@ impl ConfigDefaultsStart {
 }
 
 impl ConfigDefaultsBuild {
-    pub fn get_output(&self, default: &str) -> String {
+    pub fn get_output(&self) -> String {
         self.output
             .to_owned()
-            .unwrap_or_else(|| default.to_string())
+            .unwrap_or_else(|| "build/".to_string())
     }
 
     pub fn get_packtool(&self) -> Option<String> {
@@ -188,6 +204,30 @@ impl ConfigInterface {
             _ => &EMPTY_CONFIG_DEFAULTS,
         }
     }
+    pub fn get_provider_url(&self, network: &str) -> DfxResult<Option<String>> {
+        match &self.networks {
+            Some(networks) => match networks.get(network) {
+                Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
+                    match network_provider.providers.first() {
+                        Some(provider) => Ok(Some(provider.clone())),
+                        None => Err(DfxError::ComputeNetworkHasNoProviders(network.to_string())),
+                    }
+                }
+                Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
+                    Ok(Some(local_provider.bind.clone()))
+                }
+                _ => Ok(None),
+            },
+            _ => Ok(None),
+        }
+    }
+
+    pub fn get_network(&self, network: &str) -> Option<&ConfigNetwork> {
+        self.networks
+            .as_ref()
+            .and_then(|networks| networks.get(network))
+    }
+
     pub fn get_version(&self) -> u32 {
         self.version.unwrap_or(1)
     }
@@ -277,6 +317,12 @@ impl Config {
         self.path.parent().expect(
             "An incorrect configuration path was set with no parent, i.e. did not include root",
         )
+    }
+    pub fn get_manifest_path(&self) -> PathBuf {
+        let build_dir = self.get_config().get_defaults().get_build().get_output();
+        self.get_project_root()
+            .join(build_dir)
+            .join("canister_manifest.json")
     }
 
     pub fn save(&self) -> DfxResult {
