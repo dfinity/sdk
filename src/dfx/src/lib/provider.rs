@@ -26,7 +26,6 @@ pub fn get_provider_urls<'a>(
                             )),
                         }
                     }
-                    
                     Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
                         Ok(vec![format!("http://{}", local_provider.bind)])
                     }
