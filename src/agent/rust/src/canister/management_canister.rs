@@ -59,12 +59,14 @@ impl<'agent> ManagementCanister<'agent> {
         &self,
         waiter: W,
     ) -> Result<CanisterId, AgentError> {
+        // candid encoding of () i.e. no arguments
+        let bytes: Vec<u8> = candid::Encode!(&()).unwrap();
         let request_id = self
             .agent
             .call_raw(
                 &CanisterId::from_text(MANAGEMENT_CANISTER_ID).unwrap(),
                 CREATE_METHOD_NAME,
-                &Blob::empty(),
+                &Blob::from(bytes),
             )
             .await?;
         match self
