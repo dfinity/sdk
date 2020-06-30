@@ -276,9 +276,7 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
         .unwrap_or_else(|| {
             Ok(config
                 .get_config()
-                .get_defaults()
-                .get_start()
-                .get_binding_socket_addr("localhost:8000")
+                .get_local_bind_address("localhost:8000")
                 .expect("could not get socket_addr"))
         })
         .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;

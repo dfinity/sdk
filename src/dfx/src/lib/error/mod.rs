@@ -111,6 +111,9 @@ pub enum DfxError {
 
     /// The network was found in dfx.json, but its "providers" array is empty.
     ComputeNetworkHasNoProviders(String),
+
+    /// The "local" network provider with a bind address was not found.
+    NoLocalNetworkProviderFound,
 }
 
 /// The result of running a DFX command.
@@ -166,6 +169,9 @@ impl Display for DfxError {
                 f.write_str(
                     "The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.",
                 )?;
+            }
+            DfxError::NoLocalNetworkProviderFound => {
+                f.write_str("Expected there to be a local network with a bind address")?;
             }
             err => {
                 f.write_fmt(format_args!("An error occured:\n{:#?}", err))?;
