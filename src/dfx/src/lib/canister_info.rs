@@ -47,7 +47,8 @@ impl CanisterInfo {
     pub fn load(config: &Config, name: &str) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
-        let build_root = workspace_root.join(build_defaults.get_output("build/"));
+        let build_root = workspace_root.join(build_defaults.get_output());
+        std::fs::create_dir_all(&build_root)?;
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
             DfxError::Unknown("No canisters in the configuration file.".to_string())
@@ -61,12 +62,8 @@ impl CanisterInfo {
         let extras = canister_config.extras.clone();
 
         let output_root = build_root.join(name);
-        // todo needs to be in child "canisters" dir of canister_root
-        // let temp_dir = env.get_temp_dir();
-        let canisters_dir = canister_root.join("canisters");
-        std::fs::create_dir_all(&canisters_dir)?;
 
-        let manifest_path = canisters_dir.join("canister_manifest.json");
+        let manifest_path = config.get_manifest_path();
 
         let canister_type = canister_config
             .r#type

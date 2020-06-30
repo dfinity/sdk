@@ -32,6 +32,20 @@ async function _loadJs(
   return eval(js); // tslint:disable-line
 }
 
+async function _loadCandid(canisterId: CanisterId): Promise<any> {
+  const origin = window.location.origin;
+  const url = `${origin}/_/candid?canisterId=${canisterId.toText()}&format=js`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Cannot fetch candid file`);
+  }
+  const js = await response.text();
+  const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
+  // TODO(hansl): either get rid of eval, or rid of webpack, or make this
+  // work without this horrible hack.
+  return eval('import("' + dataUri + '")'); // tslint:disable-line
+}
+
 async function _main() {
   const site = await SiteInfo.fromWindow();
   const agent = await createAgent(site);
@@ -48,8 +62,8 @@ async function _main() {
     document.body.replaceChild(div, document.body.getElementsByTagName('app').item(0)!);
   } else {
     if (window.location.pathname === '/candid') {
-      // Load candid.js from the canister.
-      const candid = await _loadJs(canisterId, 'candid.js');
+      // Load candid.did.js from endpoint.
+      const candid = await _loadCandid(canisterId);
       const canister = window.ic.agent.makeActorFactory(candid.default)({ canisterId });
       // @ts-ignore: Could not find a declaration file for module
       const render: any = await import('./candid/candid.js');

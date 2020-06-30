@@ -124,10 +124,10 @@ pub fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
 }
 
 impl ConfigDefaultsBuild {
-    pub fn get_output(&self, default: &str) -> String {
+    pub fn get_output(&self) -> String {
         self.output
             .to_owned()
-            .unwrap_or_else(|| default.to_string())
+            .unwrap_or_else(|| "build/".to_string())
     }
 
     pub fn get_packtool(&self) -> Option<String> {
@@ -288,6 +288,12 @@ impl Config {
         self.path.parent().expect(
             "An incorrect configuration path was set with no parent, i.e. did not include root",
         )
+    }
+    pub fn get_manifest_path(&self) -> PathBuf {
+        let build_dir = self.get_config().get_defaults().get_build().get_output();
+        self.get_project_root()
+            .join(build_dir)
+            .join("canister_manifest.json")
     }
 
     pub fn save(&self) -> DfxResult {

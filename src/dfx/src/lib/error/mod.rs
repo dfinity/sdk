@@ -228,3 +228,5 @@ impl From<walkdir::Error> for DfxError {
         DfxError::CouldNotWalkDirectory(err)
     }
 }
+
+impl actix_web::error::ResponseError for DfxError {}
