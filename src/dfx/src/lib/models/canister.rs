@@ -334,6 +334,11 @@ impl CanisterPool {
         &self,
         build_config: BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildErrorKind>>> {
+        // check for canister ids before building
+        self.step_prebuild_all(&build_config).map_err(|e| {
+            DfxError::BuildError(BuildErrorKind::PrebuildAllStepFailed(Box::new(e)))
+        })?;
+
         let graph = self.build_dependencies_graph()?;
         let order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
             .map_err(|cycle| match graph.node_weight(cycle.node_id()) {
@@ -390,11 +395,6 @@ impl CanisterPool {
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
     pub fn build_or_fail(&self, build_config: BuildConfig) -> DfxResult<()> {
-        // check for canister ids before building
-        self.step_prebuild_all(&build_config).map_err(|e| {
-            DfxError::BuildError(BuildErrorKind::PrebuildAllStepFailed(Box::new(e)))
-        })?;
-
         let outputs = self.build(build_config)?;
 
         for output in outputs {
