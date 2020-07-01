@@ -77,8 +77,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         Err(_) => {
             let canister_info = CanisterInfo::load(&config, canister_name)?;
             match canister_info.get_canister_id() {
-                Some(id) => (id, canister_info.get_output_idl_path()),
-                None => return Err(DfxError::InvalidArgument("canister_name".to_string())),
+                Ok(id) => (id, canister_info.get_output_idl_path()),
+                Err(_) => return Err(DfxError::InvalidArgument("canister_name".to_string())),
             }
         }
     };

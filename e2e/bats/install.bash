@@ -25,6 +25,7 @@ teardown() {
 
 @test "install succeeds when --all is provided" {
     dfx_start
+    dfx canister create --all
     dfx build
 
     assert_command dfx canister install --all
@@ -34,6 +35,7 @@ teardown() {
 
 @test "install succeeds with provider URL" {
     dfx_start
+    dfx canister create --all
     dfx build
 
     assert_command dfx canister --provider http://127.0.0.1:8000 install --all
@@ -43,6 +45,7 @@ teardown() {
 
 @test "install fails with incorrect provider URL" {
     dfx_start
+    dfx canister create --all
     dfx build
 
     assert_command_fail dfx canister --provider http://127.0.0.1:8765 install --all
@@ -52,6 +55,7 @@ teardown() {
 
 @test "install succeeds with network name" {
     dfx_start
+    dfx canister create --all
     dfx build
 
     assert_command dfx canister --network local install --all
@@ -61,6 +65,7 @@ teardown() {
 
 @test "install fails with network name that is not in dfx.json" {
     dfx_start
+    dfx canister create --all
     dfx build
 
     assert_command_fail dfx canister --network nosuch install --all

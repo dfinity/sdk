@@ -3,7 +3,7 @@ use crate::config::dfinity::Config;
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
 use ic_agent::CanisterId;
 use std::cell::RefCell;
@@ -107,24 +107,33 @@ impl CanisterInfo {
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
     }
-    pub fn get_canister_id(&self) -> Option<CanisterId> {
-        if !self.get_manifest_path().exists() {
-            return Some(CanisterId::from_bytes(&[0, 1, 2, 3]));
-        }
+    pub fn get_canister_id(&self) -> DfxResult<CanisterId> {
+        let canister_id = self.canister_id.replace(None);
+        let cid = match canister_id {
+            Some(canister_id) => {
+                self.canister_id.replace(Some(canister_id.clone()));
+                Some(canister_id)
+            }
+            None => {
+                let manifest = CanisterManifest::load(&self.get_manifest_path())?;
 
-        let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
-        let manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
-        let serde_value = &manifest.canisters[&self.name.clone()];
-        let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
+                let serde_value = manifest.canisters.get(&self.name.clone()).ok_or_else(|| {
+                    DfxError::BuildError(BuildErrorKind::CanisterIdNotFound(self.name.clone()))
+                })?;
 
-        let canister_id = self
-            .canister_id
-            .replace(None)
-            .or_else(|| CanisterId::from_text(metadata.canister_id).ok());
+                let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
 
-        self.canister_id.replace(canister_id.clone());
+                let canister_id = self
+                    .canister_id
+                    .replace(None)
+                    .or_else(|| CanisterId::from_text(metadata.canister_id).ok());
 
-        canister_id
+                self.canister_id.replace(canister_id.clone());
+
+                canister_id
+            }
+        };
+        cid.ok_or_else(|| DfxError::Unknown(String::from("No canister id")))
     }
 
     pub fn get_extra_value(&self, name: &str) -> Option<serde_json::Value> {

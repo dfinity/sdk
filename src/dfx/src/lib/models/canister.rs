@@ -5,11 +5,11 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
-use crate::lib::waiter::create_waiter;
 use crate::util::assets;
 use chrono::Utc;
-use ic_agent::CanisterId;
+use ic_agent::{Blob, CanisterId};
 use petgraph::graph::{DiGraph, NodeIndex};
+use rand::{thread_rng, RngCore};
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
 use slog::Logger;
@@ -18,7 +18,6 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
 /// Multiple canister instances can have the same info, but would be differentiated
@@ -70,6 +69,14 @@ impl Canister {
         self.info.get_canister_id().unwrap()
     }
 
+    // this function is only ever used when build_config.skip_manifest is true
+    pub fn generate_and_set_canister_id(&self) -> DfxResult {
+        let mut rng = thread_rng();
+        let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
+        rng.fill_bytes(v.as_mut_slice());
+        self.info.set_canister_id(CanisterId::from(Blob(v)))
+    }
+
     /// Get the build output of a build process. If the output isn't known at this time,
     /// will return [None].
     pub fn get_build_output(&self) -> Option<&BuildOutput> {
@@ -99,7 +106,11 @@ pub struct CanManMetadata {
 
 impl CanisterManifest {
     pub fn load(path: &Path) -> DfxResult<Self> {
-        let content = std::fs::read_to_string(path).map_err(DfxError::from)?;
+        let content = std::fs::read_to_string(path).map_err(|_| {
+            DfxError::BuildError(BuildErrorKind::NoManifestError(
+                path.to_str().unwrap().to_string(),
+            ))
+        })?;
         serde_json::from_str(&content).map_err(DfxError::from)
     }
 
@@ -170,57 +181,10 @@ impl CanisterPool {
         })
     }
 
-    pub fn create_canisters(&self, env: &dyn Environment) -> DfxResult {
-        let agent = env
-            .get_agent()
-            .ok_or(DfxError::CommandMustBeRunInAProject)?;
-        let mut runtime = Runtime::new().expect("Unable to create a runtime");
-        // check manifest first before getting new can id here
-        for canister in &self.canisters {
-            let waiter = create_waiter();
-            let info = &canister.info;
-
-            let manifest_path = info.get_manifest_path();
-            // check if the canister_manifest.json file exists
-            if manifest_path.is_file() {
-                {
-                    let mut manifest = CanisterManifest::load(&manifest_path)?;
-
-                    match manifest.canisters.get(info.get_name()) {
-                        Some(serde_value) => {
-                            let metadata: CanManMetadata =
-                                serde_json::from_value(serde_value.to_owned()).unwrap();
-                            CanisterId::from_text(metadata.canister_id).ok();
-                        }
-                        None => {
-                            let cid = runtime.block_on(agent.create_canister_and_wait(waiter))?;
-                            info.set_canister_id(cid.clone())?;
-                            manifest.add_entry(info, cid)?;
-                        }
-                    }
-                }
-            } else {
-                let cid = runtime.block_on(agent.create_canister_and_wait(waiter))?;
-                info.set_canister_id(cid.clone())?;
-                let mut manifest = CanisterManifest {
-                    canisters: Map::new(),
-                };
-                manifest.add_entry(info, cid)?;
-            }
-            slog::debug!(
-                self.logger,
-                "  {} => {}",
-                canister.get_name(),
-                canister.canister_id().to_text()
-            );
-        }
-        Ok(())
-    }
-
     pub fn get_canister(&self, canister_id: &CanisterId) -> Option<&Canister> {
         for c in &self.canisters {
             let info = &c.info;
-            if Some(canister_id) == info.get_canister_id().as_ref() {
+            if Some(canister_id) == info.get_canister_id().ok().as_ref() {
                 return Some(c);
             }
         }
@@ -254,7 +218,7 @@ impl CanisterPool {
 
         // Add all the canisters as nodes.
         for canister in &self.canisters {
-            let canister_id = canister.canister_id();
+            let canister_id = canister.info.get_canister_id()?;
             id_set.insert(canister_id.clone(), graph.add_node(canister_id.clone()));
         }
 
@@ -290,11 +254,21 @@ impl CanisterPool {
         }
     }
 
-    fn step_prebuild_all(
-        &self,
-        _build_config: &BuildConfig,
-        _order: &mut Vec<CanisterId>,
-    ) -> DfxResult<()> {
+    fn step_prebuild_all(&self, build_config: &BuildConfig) -> DfxResult<()> {
+        for canister in &self.canisters {
+            if build_config.skip_manifest {
+                canister.generate_and_set_canister_id()?;
+            } else if !canister.info.get_manifest_path().exists() {
+                return Err(DfxError::BuildError(BuildErrorKind::NoManifestError(
+                    canister
+                        .info
+                        .get_manifest_path()
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
+                )));
+            }
+        }
         Ok(())
     }
 
@@ -386,8 +360,13 @@ impl CanisterPool {
         &self,
         build_config: BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildErrorKind>>> {
+        // check for canister ids before building
+        self.step_prebuild_all(&build_config).map_err(|e| {
+            DfxError::BuildError(BuildErrorKind::PrebuildAllStepFailed(Box::new(e)))
+        })?;
+
         let graph = self.build_dependencies_graph()?;
-        let mut order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
+        let order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
             .map_err(|cycle| match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => DfxError::BuildError(BuildErrorKind::CircularDependency(
                     match self.get_canister_info(canister_id) {
@@ -403,11 +382,6 @@ impl CanisterPool {
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| graph.node_weight(*idx).unwrap().clone())
             .collect();
-
-        self.step_prebuild_all(&build_config, &mut order)
-            .map_err(|e| {
-                DfxError::BuildError(BuildErrorKind::PrebuildAllStepFailed(Box::new(e)))
-            })?;
 
         let mut result = Vec::new();
         for canister_id in &order {

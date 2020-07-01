@@ -12,19 +12,19 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("create")
-        .about(UserMessage::InstallCanister.to_str())
+        .about(UserMessage::CreateCanister.to_str())
         .arg(
             Arg::with_name("canister_name")
                 .takes_value(true)
                 .required_unless("all")
-                // .help(UserMessage::InstallCanisterName.to_str())
+                .help(UserMessage::CreateCanisterName.to_str())
                 .required(false),
         )
         .arg(
             Arg::with_name("all")
                 .long("all")
                 .required_unless("canister_name")
-                // .help(UserMessage::InstallAll.to_str())
+                .help(UserMessage::CreateAll.to_str())
                 .takes_value(false),
         )
 }
@@ -44,21 +44,18 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
     // check if the canister_manifest.json file exists
 
     if manifest_path.is_file() {
-        {
-            let file = std::fs::File::open(manifest_path).unwrap();
-            let mut manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
+        let mut manifest = CanisterManifest::load(manifest_path)?;
 
-            match manifest.canisters.get(info.get_name()) {
-                Some(serde_value) => {
-                    let metadata: CanManMetadata =
-                        serde_json::from_value(serde_value.to_owned()).unwrap();
-                    CanisterId::from_text(metadata.canister_id).ok();
-                }
-                None => {
-                    let cid = runtime.block_on(agent.create_canister_and_wait(create_waiter()))?;
-                    info.set_canister_id(cid.clone())?;
-                    manifest.add_entry(&info, cid)?;
-                }
+        match manifest.canisters.get(info.get_name()) {
+            Some(serde_value) => {
+                let metadata: CanManMetadata =
+                    serde_json::from_value(serde_value.to_owned()).unwrap();
+                CanisterId::from_text(metadata.canister_id).ok();
+            }
+            None => {
+                let cid = runtime.block_on(agent.create_canister_and_wait(create_waiter()))?;
+                info.set_canister_id(cid.clone())?;
+                manifest.add_entry(&info, cid)?;
             }
         }
     } else {

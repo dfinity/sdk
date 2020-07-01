@@ -61,7 +61,7 @@ async fn install_canister(
     mode: &str,
 ) -> DfxResult<RequestId> {
     let log = env.get_logger();
-    let canister_id = canister_info.get_canister_id().ok_or_else(|| {
+    let canister_id = canister_info.get_canister_id().map_err(|_| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
 

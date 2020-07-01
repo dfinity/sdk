@@ -30,5 +30,6 @@ teardown() {
     dfx new t --no-frontend
     cd t
     dfx_start
+    dfx canister create --all
     assert_command dfx build
 }

@@ -43,6 +43,12 @@ user_message!(
     ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
     ArgumentValue => "Specifies the argument to pass to the method.",
 
+
+    // dfx canister create
+    CreateCanister => "Creates an empty canister on the Internet Computer and associates the Internet Computer assigned Canister ID to the canister name.",
+    CreateCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
+    CreateAll => "Creates all canisters configured in dfx.json.",
+
     // dfx canister install
     InstallCanister => "Installs compiled code as a canister on the replica.",
     InstallAll => "Install all canisters configured in dfx.json.",

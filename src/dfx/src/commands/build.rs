@@ -60,9 +60,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let canister_pool = CanisterPool::load(&env)?;
 
     // Create canisters on the replica and associate canister ids locally.
-    if !args.is_present("skip-manifest") {
-        canister_pool.create_canisters(&env)?;
-    } else {
+    if args.is_present("skip-manifest") {
         slog::warn!(
             env.get_logger(),
             "Skipping the build manifest. Canister IDs might be hard coded."
@@ -74,7 +72,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // TODO: remove the forcing of generating canister id once we have an update flow.
     canister_pool.build_or_fail(
         BuildConfig::from_config(&config)
-            .with_generate_id(true)
             .with_skip_frontend(args.is_present("skip-frontend"))
             .with_skip_manifest(args.is_present("skip-manifest")),
     )?;

@@ -76,7 +76,6 @@ pub trait CanisterBuilder {
 #[derive(Clone)]
 pub struct BuildConfig {
     profile: Profile,
-    pub generate_id: bool,
     pub skip_frontend: bool,
     pub skip_manifest: bool,
 
@@ -92,17 +91,9 @@ impl BuildConfig {
 
         BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),
-            generate_id: false,
             skip_frontend: false,
             skip_manifest: false,
             idl_root: build_root.join("idl/"),
-        }
-    }
-
-    pub fn with_generate_id(self, generate_id: bool) -> Self {
-        Self {
-            generate_id,
-            ..self
         }
     }
 
