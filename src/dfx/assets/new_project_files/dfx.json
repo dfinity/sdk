@@ -20,10 +20,6 @@
     "build": {
       "output": "canisters/",
       "packtool": ""
-    },
-    "start": {
-      "port": 8000,
-      "address": "127.0.0.1"
     }
   },
   "networks": {
