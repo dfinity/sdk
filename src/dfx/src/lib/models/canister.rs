@@ -106,8 +106,11 @@ pub struct CanManMetadata {
 
 impl CanisterManifest {
     pub fn load(path: &Path) -> DfxResult<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|_| DfxError::BuildError(BuildErrorKind::NoManifestError()))?;
+        let content = std::fs::read_to_string(path).map_err(|_| {
+            DfxError::BuildError(BuildErrorKind::NoManifestError(
+                path.to_str().unwrap().to_string(),
+            ))
+        })?;
         serde_json::from_str(&content).map_err(DfxError::from)
     }
 
@@ -256,7 +259,14 @@ impl CanisterPool {
             if build_config.skip_manifest {
                 canister.generate_and_set_canister_id()?;
             } else if !canister.info.get_manifest_path().exists() {
-                return Err(DfxError::BuildError(BuildErrorKind::NoManifestError()));
+                return Err(DfxError::BuildError(BuildErrorKind::NoManifestError(
+                    canister
+                        .info
+                        .get_manifest_path()
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
+                )));
             }
         }
         Ok(())
