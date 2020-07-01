@@ -248,6 +248,14 @@ export class HttpAgent implements Agent {
       requestIdOf(submit),
     ]);
 
+    if (!response.ok) {
+      throw new Error(
+        `Server returned an error:\n` +
+          `  Code: ${response.status} (${response.statusText}\n` +
+          `  Body: ${await response.text()}\n`,
+      );
+    }
+
     return {
       requestId,
       response: {
@@ -276,6 +284,15 @@ export class HttpAgent implements Agent {
       ...transformedRequest.request,
       body,
     });
+
+    if (!response.ok) {
+      throw new Error(
+        `Server returned an error:\n` +
+          `  Code: ${response.status} (${response.statusText}\n` +
+          `  Body: ${await response.text()}\n`,
+      );
+    }
+
     return cbor.decode(Buffer.from(await response.arrayBuffer()));
   }
 }
