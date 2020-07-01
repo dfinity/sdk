@@ -52,7 +52,10 @@ export enum DomainKind {
 
 export class SiteInfo {
   public static async worker(): Promise<SiteInfo> {
-    return new SiteInfo(DomainKind.Unknown);
+    const siteInfo = await SiteInfo.fromWindow();
+    siteInfo._isWorker = true;
+
+    return siteInfo;
   }
 
   public static async unknown(): Promise<SiteInfo> {
@@ -88,6 +91,8 @@ export class SiteInfo {
     }
   }
 
+  private _isWorker = false;
+
   constructor(
     public readonly kind: DomainKind,
     public readonly canisterId?: CanisterId,
@@ -95,17 +100,21 @@ export class SiteInfo {
   ) {}
 
   public async getWorkerHost(): Promise<string> {
+    if (this._isWorker) {
+      return '';
+    }
+
     const { port, protocol } = window.location;
 
     switch (this.kind) {
       case DomainKind.Unknown:
-        return '';
+        throw new Error('Cannot get worker host inside a worker.');
       case DomainKind.Ic0:
-        return `${protocol}//z.ic0.app:${port}`;
+        return `${protocol}//z.ic0.app${port ? ':' + port : ''}`;
       case DomainKind.Lvh:
-        return `${protocol}//z.lvh.me:${port}`;
+        return `${protocol}//z.lvh.me${port ? ':' + port : ''}`;
       case DomainKind.Localhost:
-        return `${protocol}//z.localhost:${port}`;
+        return `${protocol}//z.localhost${port ? ':' + port : ''}`;
     }
   }
 
@@ -117,18 +126,32 @@ export class SiteInfo {
         host = JSON.parse(host);
 
         if (Array.isArray(host)) {
-          host = '' + host[Math.floor(Math.random() * host.length)];
+          return '' + host[Math.floor(Math.random() * host.length)];
         } else {
-          host = '' + host;
+          return '' + host;
         }
       } catch (_) {
         host = '';
       }
-    } else {
-      host = '';
     }
 
-    return host;
+    if (!host) {
+      const { port, protocol } = window.location;
+
+      switch (this.kind) {
+        case DomainKind.Unknown:
+          return '';
+        case DomainKind.Ic0:
+          // TODO: think if we want to have this hard coded here. We might.
+          return `${protocol}//gw.dfinity.network${port ? ':' + port : ''}`;
+        case DomainKind.Lvh:
+          return `${protocol}//r.lvh.me${port ? ':' + port : ''}`;
+        case DomainKind.Localhost:
+          return `${protocol}//r.localhost${port ? ':' + port : ''}`;
+      }
+    }
+
+    return host || '';
   }
 }
 
