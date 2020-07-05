@@ -82,8 +82,9 @@ impl<'agent> ManagementCanister<'agent> {
         }
     }
 
-    pub async fn install_code(
+    pub async fn install_code<W: delay::Waiter>(
         &self,
+        waiter: W,
         canister_id: &CanisterId,
         mode: InstallMode,
         module: &Blob,
@@ -98,12 +99,22 @@ impl<'agent> ManagementCanister<'agent> {
             compute_allocation: attributes.compute_allocation.map(|x| x.into()),
         };
         let bytes: Vec<u8> = candid::Encode!(&canister_to_install).unwrap();
-        self.agent
+        let request_id = self
+            .agent
             .call_raw(
                 &CanisterId::from_text(MANAGEMENT_CANISTER_ID).unwrap(),
                 INSTALL_METHOD_NAME,
                 &Blob::from(bytes),
             )
-            .await
+            .await?;
+        match self
+            .agent
+            .request_status_and_wait(&request_id, waiter)
+            .await?
+        {
+            // Candid type returned is () so ignoring _blob on purpose
+            Replied::CallReplied(_blob) => Ok(request_id),
+            reply => Err(AgentError::UnexpectedReply(reply)),
+        }
     }
 }

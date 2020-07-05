@@ -83,6 +83,7 @@ async fn install_canister(
 
     let result = mgr
         .install_code(
+            create_waiter(),
             &canister_id,
             mode,
             &Blob::from(wasm),
