@@ -1,3 +1,4 @@
+import { fromByteArray } from 'base64-js';
 import { Buffer } from 'buffer/';
 import * as actor from '../actor';
 import { Agent } from '../agent';
@@ -52,14 +53,21 @@ declare const window: Window & { fetch: typeof fetch };
 declare const global: { fetch: typeof fetch };
 declare const self: { fetch: typeof fetch };
 
-function getDefaultFetch() {
-  return typeof window === 'undefined'
-    ? typeof global === 'undefined'
-      ? typeof self === 'undefined'
-        ? undefined
-        : self.fetch.bind(self)
-      : global.fetch.bind(global)
-    : window.fetch.bind(window);
+function getDefaultFetch(): typeof fetch {
+  const result =
+    typeof window === 'undefined'
+      ? typeof global === 'undefined'
+        ? typeof self === 'undefined'
+          ? undefined
+          : self.fetch.bind(self)
+        : global.fetch.bind(global)
+      : window.fetch.bind(window);
+
+  if (!result) {
+    throw new Error('Could not find default `fetch` implementation.');
+  }
+
+  return result;
 }
 
 // A HTTP agent allows users to interact with a client of the internet computer
@@ -75,7 +83,7 @@ export class HttpAgent implements Agent {
   private readonly _pipeline: HttpAgentRequestTransformFn[] = [];
   private _authTransform: AuthHttpAgentRequestTransformFn | null = null;
   private readonly _fetch: typeof fetch;
-  private readonly _host: string = '';
+  private readonly _host: URL;
   private readonly _principal: Promise<Principal> | null = null;
 
   constructor(options: HttpAgentOptions = {}) {
@@ -87,10 +95,16 @@ export class HttpAgent implements Agent {
     this._fetch = options.fetch || getDefaultFetch() || fetch.bind(global);
     if (options.host) {
       if (!options.host.match(/^[a-z]+:/) && typeof window !== 'undefined') {
-        this._host = window.location.protocol + '//' + options.host;
+        this._host = new URL(window.location.protocol + '//' + options.host);
       } else {
-        this._host = options.host;
+        this._host = new URL(options.host);
       }
+    } else {
+      const location = window?.location;
+      if (!location) {
+        throw new Error('Must specify a host to connect to.');
+      }
+      this._host = new URL(location + '');
     }
     if (options.principal) {
       this._principal = Promise.resolve(options.principal);
@@ -241,9 +255,10 @@ export class HttpAgent implements Agent {
     // Run both in parallel. The fetch is quite expensive, so we have plenty of time to
     // calculate the requestId locally.
     const [response, requestId] = await Promise.all([
-      this._fetch(`${this._host}/api/${API_VERSION}/${Endpoint.Submit}`, {
+      this._fetch('' + new URL(`/api/${API_VERSION}/${Endpoint.Submit}`, this._host), {
         ...transformedRequest.request,
         body,
+        credentials: 'include',
       }),
       requestIdOf(submit),
     ]);
@@ -280,10 +295,14 @@ export class HttpAgent implements Agent {
 
     const body = cbor.encode(transformedRequest.body);
 
-    const response = await this._fetch(`${this._host}/api/${API_VERSION}/${Endpoint.Read}`, {
-      ...transformedRequest.request,
-      body,
-    });
+    const response = await this._fetch(
+      '' + new URL(`/api/${API_VERSION}/${Endpoint.Read}`, this._host),
+      {
+        ...transformedRequest.request,
+        body,
+        credentials: 'include',
+      },
+    );
 
     if (!response.ok) {
       throw new Error(
