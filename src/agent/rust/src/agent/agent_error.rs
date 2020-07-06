@@ -1,4 +1,4 @@
-use crate::{Replied, RequestIdError};
+use crate::{Replied, RequestIdError, TextualCanisterIdError};
 use serde_cbor::error::Error as SerdeError;
 
 #[derive(Debug)]
@@ -27,6 +27,11 @@ pub enum AgentError {
     },
 
     UnexpectedReply(Replied),
+
+    CandidError(candid::Error),
+    CanisterIdTextError(TextualCanisterIdError),
+
+    InstallModeError(String),
 }
 
 impl From<SerdeError> for AgentError {
@@ -41,6 +46,12 @@ impl From<reqwest::Error> for AgentError {
     }
 }
 
+impl From<candid::Error> for AgentError {
+    fn from(err: candid::Error) -> Self {
+        Self::CandidError(err)
+    }
+}
+
 impl From<url::ParseError> for AgentError {
     fn from(err: url::ParseError) -> Self {
         Self::UrlParseError(err)
@@ -50,5 +61,11 @@ impl From<url::ParseError> for AgentError {
 impl From<RequestIdError> for AgentError {
     fn from(err: RequestIdError) -> Self {
         Self::CannotCalculateRequestId(err)
+    }
+}
+
+impl From<TextualCanisterIdError> for AgentError {
+    fn from(err: TextualCanisterIdError) -> Self {
+        Self::CanisterIdTextError(err)
     }
 }
