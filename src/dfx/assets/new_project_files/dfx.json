@@ -20,11 +20,16 @@
     "build": {
       "output": "canisters/",
       "packtool": ""
+    }
+  },
+  "networks": {
+    "tungsten": {
+      "providers": [
+        "https://gateway.dfinity.systems"
+      ]
     },
-    "start": {
-      "port": 8000,
-      "address": "127.0.0.1",
-      "serve_root": "canisters/{project_name}_assets/assets"
+    "local": {
+      "bind": "127.0.0.1:8000"
     }
   }
 }

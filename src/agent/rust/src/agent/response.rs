@@ -4,7 +4,8 @@ use crate::{Blob, CanisterId};
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum RequestStatusResponse {
     Unknown,
-    Pending,
+    Received,
+    Processing,
     Replied {
         reply: Replied,
     },

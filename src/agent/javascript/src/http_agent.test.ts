@@ -1,20 +1,19 @@
 import { Buffer } from 'buffer/';
+import { HttpAgent } from './agent';
 import { createKeyPairFromSeed, makeAuthTransform, SenderSig, sign, verify } from './auth';
 import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
-import { HttpAgent } from './http_agent';
 import { makeNonceTransform } from './http_agent_transforms';
 import {
   CallRequest,
   ReadRequestType,
   RequestStatusResponseReplied,
-  RequestStatusResponseStatus,
   Signed,
   SubmitRequestType,
 } from './http_agent_types';
 import { Principal } from './principal';
 import { requestIdOf } from './request_id';
-import { BinaryBlob, blobFromHex } from './types';
+import { BinaryBlob } from './types';
 import { Nonce } from './types';
 
 test('call', async () => {

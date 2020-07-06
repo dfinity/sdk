@@ -1,8 +1,8 @@
-import { toByteArray } from 'base64-js';
 import { Buffer } from 'buffer/';
-import * as actor from './actor';
-import { CanisterId } from './canisterId';
-import * as cbor from './cbor';
+import * as actor from '../actor';
+import { Agent } from '../agent';
+import { CanisterId } from '../canisterId';
+import * as cbor from '../cbor';
 import {
   AuthHttpAgentRequestTransformFn,
   Endpoint,
@@ -16,26 +16,25 @@ import {
   ReadRequest,
   ReadRequestType,
   ReadResponse,
+  RequestStatusFields,
   RequestStatusResponse,
-  ResponseStatusFields,
   SignedHttpAgentRequest,
   SubmitRequest,
   SubmitRequestType,
   SubmitResponse,
-} from './http_agent_types';
-import * as IDL from './idl';
-import { Principal } from './principal';
-import { requestIdOf } from './request_id';
-import { BinaryBlob, blobFromHex } from './types';
+} from '../http_agent_types';
+import * as IDL from '../idl';
+import { Principal } from '../principal';
+import { requestIdOf } from '../request_id';
+import { BinaryBlob, blobFromHex } from '../types';
 
 const API_VERSION = 'v1';
 
 // HttpAgent options that can be used at construction.
 export interface HttpAgentOptions {
-  // A parent to inherit configuration (pipeline and fetch) of. This is only
-  // used at construction; if the parent is changed we don't propagate those
-  // changes to the children.
-  parent?: HttpAgent;
+  // Another HttpAgent to inherit configuration (pipeline and fetch) of. This
+  // is only used at construction.
+  source?: HttpAgent;
 
   // A surrogate to the global fetch function. Useful for testing.
   fetch?: typeof fetch;
@@ -72,7 +71,7 @@ function getDefaultFetch() {
 // it to the client. This is to decouple signature, nonce generation and
 // other computations so that this class can stay as simple as possible while
 // allowing extensions.
-export class HttpAgent {
+export class HttpAgent implements Agent {
   private readonly _pipeline: HttpAgentRequestTransformFn[] = [];
   private _authTransform: AuthHttpAgentRequestTransformFn | null = null;
   private readonly _fetch: typeof fetch;
@@ -80,10 +79,10 @@ export class HttpAgent {
   private readonly _principal: Promise<Principal> | null = null;
 
   constructor(options: HttpAgentOptions = {}) {
-    if (options.parent) {
-      this._pipeline = [...options.parent._pipeline];
-      this._authTransform = options.parent._authTransform;
-      this._principal = options.parent._principal;
+    if (options.source) {
+      this._pipeline = [...options.source._pipeline];
+      this._authTransform = options.source._authTransform;
+      this._principal = options.source._principal;
     }
     this._fetch = options.fetch || getDefaultFetch() || fetch.bind(global);
     if (options.host) {
@@ -106,55 +105,6 @@ export class HttpAgent {
 
   public setAuthTransform(fn: AuthHttpAgentRequestTransformFn) {
     this._authTransform = fn;
-  }
-
-  public async submit(submit: SubmitRequest): Promise<SubmitResponse> {
-    const transformedRequest = (await this._transform({
-      request: {
-        body: null,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/cbor',
-        },
-      },
-      endpoint: Endpoint.Submit,
-      body: submit,
-    })) as HttpAgentSubmitRequest;
-
-    const body = cbor.encode(transformedRequest.body);
-
-    // Run both in parallel. The fetch is quite expensive, so we have plenty of time to
-    // calculate the requestId locally.
-    const [response, requestId] = await Promise.all([
-      this._fetch(`${this._host}/api/${API_VERSION}/${Endpoint.Submit}`, {
-        ...transformedRequest.request,
-        body,
-      }),
-      requestIdOf(submit),
-    ]);
-
-    return { requestId, response };
-  }
-
-  public async read(request: ReadRequest): Promise<ReadResponse> {
-    const transformedRequest = (await this._transform({
-      request: {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/cbor',
-        },
-      },
-      endpoint: Endpoint.Read,
-      body: request,
-    })) as HttpAgentReadRequest;
-
-    const body = cbor.encode(transformedRequest.body);
-
-    const response = await this._fetch(`${this._host}/api/${API_VERSION}/${Endpoint.Read}`, {
-      ...transformedRequest.request,
-      body,
-    });
-    return cbor.decode(Buffer.from(await response.arrayBuffer()));
   }
 
   public async call(
@@ -236,26 +186,8 @@ export class HttpAgent {
     }) as Promise<QueryResponse>;
   }
 
-  public retrieveAsset(canisterId: CanisterId | string, path: string): Promise<Uint8Array> {
-    const arg = IDL.encode([IDL.Text], [path]) as BinaryBlob;
-    return this.query(canisterId, { methodName: 'retrieve', arg }).then(response => {
-      switch (response.status) {
-        case QueryResponseStatus.Rejected:
-          throw new Error(
-            `An error happened while retrieving asset "${path}":\n` +
-              `  Status: ${response.status}\n` +
-              `  Message: ${response.reject_message}\n`,
-          );
-
-        case QueryResponseStatus.Replied:
-          const [content] = IDL.decode([IDL.Text], response.reply.arg);
-          return toByteArray('' + content);
-      }
-    });
-  }
-
   public async requestStatus(
-    fields: ResponseStatusFields,
+    fields: RequestStatusFields,
     principal?: Principal,
   ): Promise<RequestStatusResponse> {
     let p = this._principal || principal;
@@ -289,5 +221,78 @@ export class HttpAgent {
     } else {
       return p;
     }
+  }
+
+  protected async submit(submit: SubmitRequest): Promise<SubmitResponse> {
+    const transformedRequest = (await this._transform({
+      request: {
+        body: null,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/cbor',
+        },
+      },
+      endpoint: Endpoint.Submit,
+      body: submit,
+    })) as HttpAgentSubmitRequest;
+
+    const body = cbor.encode(transformedRequest.body);
+
+    // Run both in parallel. The fetch is quite expensive, so we have plenty of time to
+    // calculate the requestId locally.
+    const [response, requestId] = await Promise.all([
+      this._fetch(`${this._host}/api/${API_VERSION}/${Endpoint.Submit}`, {
+        ...transformedRequest.request,
+        body,
+      }),
+      requestIdOf(submit),
+    ]);
+
+    if (!response.ok) {
+      throw new Error(
+        `Server returned an error:\n` +
+          `  Code: ${response.status} (${response.statusText}\n` +
+          `  Body: ${await response.text()}\n`,
+      );
+    }
+
+    return {
+      requestId,
+      response: {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+      },
+    };
+  }
+
+  protected async read(request: ReadRequest): Promise<ReadResponse> {
+    const transformedRequest = (await this._transform({
+      request: {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/cbor',
+        },
+      },
+      endpoint: Endpoint.Read,
+      body: request,
+    })) as HttpAgentReadRequest;
+
+    const body = cbor.encode(transformedRequest.body);
+
+    const response = await this._fetch(`${this._host}/api/${API_VERSION}/${Endpoint.Read}`, {
+      ...transformedRequest.request,
+      body,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Server returned an error:\n` +
+          `  Code: ${response.status} (${response.statusText}\n` +
+          `  Body: ${await response.text()}\n`,
+      );
+    }
+
+    return cbor.decode(Buffer.from(await response.arrayBuffer()));
   }
 }

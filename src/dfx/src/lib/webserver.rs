@@ -1,3 +1,4 @@
+use crate::lib::error::{DfxError, DfxResult};
 use actix::dev::Stream;
 use actix::System;
 use actix_cors::Cors;
@@ -8,6 +9,7 @@ use actix_web::{
 };
 use crossbeam::channel::Sender;
 use futures::Future;
+use serde::Deserialize;
 use slog::{debug, info, trace, Logger};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -17,12 +19,41 @@ use url::Url;
 /// The amount of time to wait for the client to answer, in seconds.
 /// Actix requests does not support having no timeout, so we have to put a reasonable value here,
 /// even though our normal canister commands don't have timeouts themselves.
-const FORWARD_REQUEST_TIMEOUT_IN_SECS: u64 = 20;
+const FORWARD_REQUEST_TIMEOUT_IN_SECS: u64 = 60;
 
 struct ForwardActixData {
     pub providers: Vec<Url>,
     pub logger: slog::Logger,
     pub counter: usize,
+}
+
+struct CandidData {
+    pub manifest_path: PathBuf,
+}
+
+#[derive(Deserialize)]
+struct CandidRequest {
+    #[serde(rename = "canisterId")]
+    canister_id: String,
+    format: Option<String>,
+}
+
+fn candid(
+    web::Query(info): web::Query<CandidRequest>,
+    data: web::Data<Arc<CandidData>>,
+) -> DfxResult<HttpResponse> {
+    use crate::lib::models::canister::CanisterManifest;
+    let id = info.canister_id;
+    let manifest = CanisterManifest::load(&data.manifest_path)?;
+    let mut candid_path = manifest
+        .get_candid(&id)
+        .ok_or_else(|| DfxError::Unknown("cannot find candid file".to_string()))?;
+    if info.format == Some("js".to_string()) {
+        candid_path.set_extension("did.js");
+    }
+    let content = std::fs::read_to_string(candid_path)?;
+    let response = HttpResponse::Ok().body(content);
+    Ok(response)
 }
 
 fn forward(
@@ -45,8 +76,16 @@ fn forward(
         .timeout(std::time::Duration::from_secs(
             FORWARD_REQUEST_TIMEOUT_IN_SECS,
         ));
+
     let forwarded_req = if let Some(addr) = req.head().peer_addr {
         forwarded_req.header("x-forwarded-for", format!("{}", addr.ip()))
+    } else {
+        forwarded_req
+    };
+
+    // Set the virtual host properly.
+    let forwarded_req = if let Some(h) = url.host() {
+        forwarded_req.header("host", h.to_string())
     } else {
         forwarded_req
     };
@@ -70,8 +109,11 @@ fn forward(
                 indicatif::HumanBytes(req_body.len() as u64),
                 url,
             );
-            trace!(logger, "  type  {}", req.content_type());
-            trace!(logger, "  body  {}", hex::encode(&req_body));
+            trace!(logger, "  headers");
+            for (k, v) in req.head().headers.iter() {
+                trace!(logger, "      {}: {}", k, v.to_str().unwrap());
+            }
+            trace!(logger, "  body    {}", hex::encode(&req_body));
 
             forwarded_req
                 .send_body(req_body)
@@ -111,6 +153,7 @@ fn forward(
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
+    manifest_path: PathBuf,
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
@@ -137,11 +180,13 @@ pub fn run_webserver(
         logger: logger.clone(),
         counter: 0,
     }));
+    let candid_data = Arc::new(CandidData { manifest_path });
 
     let handler = HttpServer::new(move || {
         App::new()
             .data(Client::new())
             .data(forward_data.clone())
+            .data(candid_data.clone())
             .wrap(
                 Cors::new()
                     .allowed_methods(vec!["POST"])
@@ -152,6 +197,7 @@ pub fn run_webserver(
             )
             .wrap(middleware::Logger::default())
             .service(web::scope("/api").default_service(web::to_async(forward)))
+            .service(web::resource("/_/candid").route(web::get().to(candid)))
             .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
     })
     .bind(bind)?
@@ -170,6 +216,7 @@ pub fn run_webserver(
 
 pub fn webserver(
     logger: Logger,
+    manifest_path: PathBuf,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
     serve_dir: &Path,
@@ -177,6 +224,16 @@ pub fn webserver(
 ) -> std::io::Result<std::thread::JoinHandle<()>> {
     std::thread::Builder::new().name("Frontend".into()).spawn({
         let serve_dir = serve_dir.to_path_buf();
-        move || run_webserver(logger, bind, clients_api_uri, serve_dir, inform_parent).unwrap()
+        move || {
+            run_webserver(
+                logger,
+                manifest_path,
+                bind,
+                clients_api_uri,
+                serve_dir,
+                inform_parent,
+            )
+            .unwrap()
+        }
     })
 }

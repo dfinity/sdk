@@ -100,12 +100,12 @@ pub fn get_latest_version(
     b.enable_steady_tick(80);
 
     let client = match timeout {
-        Some(timeout) => reqwest::Client::builder().timeout(timeout),
-        None => reqwest::Client::builder(),
+        Some(timeout) => reqwest::blocking::Client::builder().timeout(timeout),
+        None => reqwest::blocking::Client::builder(),
     };
 
     let client = client.build()?;
-    let mut response = client.get(manifest_url).send().map_err(DfxError::Reqwest)?;
+    let response = client.get(manifest_url).send().map_err(DfxError::Reqwest)?;
     let status_code = response.status();
     b.finish_and_clear();
 
@@ -138,7 +138,7 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
 
     b.set_message(format!("Downloading {}", url).as_str());
     b.enable_steady_tick(80);
-    let mut response = reqwest::get(url).map_err(DfxError::Reqwest)?;
+    let mut response = reqwest::blocking::get(url).map_err(DfxError::Reqwest)?;
     let mut decoder = Decoder::new(&mut response)
         .map_err(|e| DfxError::InvalidData(format!("unable to gunzip file: {}", e)))?;
     let mut archive = Archive::new(&mut decoder);

@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer/';
+import { Agent } from './agent';
 import { CanisterId } from './canisterId';
-import { HttpAgent } from './http_agent';
 import {
   QueryResponseStatus,
   RequestStatusResponse,
@@ -9,6 +9,7 @@ import {
   SubmitResponse,
 } from './http_agent_types';
 import * as IDL from './idl';
+import { GlobalInternetComputer } from './index';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
 
@@ -39,23 +40,30 @@ export type Actor = Record<string, (...args: unknown[]) => Promise<unknown>> & {
 
 export interface ActorConfig {
   canisterId?: string | CanisterId;
-  httpAgent?: HttpAgent;
+  agent?: Agent;
   maxAttempts?: number;
   throttleDurationInMSecs?: number;
 }
 
-declare const window: { icHttpAgent?: HttpAgent };
-declare const global: { icHttpAgent?: HttpAgent };
-declare const self: { icHttpAgent?: HttpAgent };
+declare const window: GlobalInternetComputer;
+declare const global: GlobalInternetComputer;
+declare const self: GlobalInternetComputer;
 
-function getDefaultHttpAgent() {
-  return typeof window === 'undefined'
-    ? typeof global === 'undefined'
-      ? typeof self === 'undefined'
-        ? undefined
-        : self.icHttpAgent
-      : global.icHttpAgent
-    : window.icHttpAgent;
+function getDefaultAgent(): Agent {
+  const agent =
+    typeof window === 'undefined'
+      ? typeof global === 'undefined'
+        ? typeof self === 'undefined'
+          ? undefined
+          : self.ic.agent
+        : global.ic.agent
+      : window.ic.agent;
+
+  if (!agent) {
+    throw new Error('No Agent could be found.');
+  }
+
+  return agent;
 }
 
 // IDL functions can have multiple return values, so decoding always
@@ -86,7 +94,7 @@ export type ActorConstructor = (config: ActorConfig) => Actor;
 // Allows for one HTTP agent for the lifetime of the actor:
 //
 // ```
-// const actor = makeActor(actorInterface)(httpAgent);
+// const actor = makeActor(actorInterface)({ agent });
 // const reply = await actor.greet();
 // ```
 //
@@ -94,8 +102,8 @@ export type ActorConstructor = (config: ActorConfig) => Actor;
 //
 // ```
 // const actor = makeActor(actorInterface);
-// const reply1 = await actor(httpAgent1).greet();
-// const reply2 = await actor(httpAgent2).greet();
+// const reply1 = await actor(agent1).greet();
+// const reply2 = await actor(agent2).greet();
 // ```
 export function makeActorFactory(
   actorInterfaceFactory: (_: { IDL: typeof IDL }) => IDL.ServiceClass,
@@ -103,14 +111,14 @@ export function makeActorFactory(
   const actorInterface = actorInterfaceFactory({ IDL });
 
   async function requestStatusAndLoop<T>(
-    httpAgent: HttpAgent,
+    agent: Agent,
     requestId: RequestId,
     decoder: (response: RequestStatusResponseReplied) => T,
     attempts: number,
     maxAttempts: number,
     throttle: number,
   ): Promise<T> {
-    const status = await httpAgent.requestStatus({ requestId });
+    const status = await agent.requestStatus({ requestId });
 
     switch (status.status) {
       case RequestStatusResponseStatus.Replied: {
@@ -118,7 +126,8 @@ export function makeActorFactory(
       }
 
       case RequestStatusResponseStatus.Unknown:
-      case RequestStatusResponseStatus.Pending:
+      case RequestStatusResponseStatus.Received:
+      case RequestStatusResponseStatus.Processing:
         if (--attempts === 0) {
           throw new Error(
             `Failed to retrieve a reply for request after ${maxAttempts} attempts:\n` +
@@ -129,7 +138,7 @@ export function makeActorFactory(
 
         // Wait a little, then retry.
         return new Promise(resolve => setTimeout(resolve, throttle)).then(() =>
-          requestStatusAndLoop(httpAgent, requestId, decoder, attempts, maxAttempts, throttle),
+          requestStatusAndLoop(agent, requestId, decoder, attempts, maxAttempts, throttle),
         );
 
       case RequestStatusResponseStatus.Rejected:
@@ -143,7 +152,7 @@ export function makeActorFactory(
   }
 
   return (config: ActorConfig) => {
-    const { canisterId, maxAttempts, throttleDurationInMSecs, httpAgent } = {
+    const { canisterId, maxAttempts, throttleDurationInMSecs, agent: configAgent } = {
       ...DEFAULT_ACTOR_CONFIG,
       ...config,
     } as Required<ActorConfig>;
@@ -165,15 +174,26 @@ export function makeActorFactory(
         return cid?.toHex();
       },
       async __getAsset(path: string) {
-        const agent = httpAgent || getDefaultHttpAgent();
-        if (!agent) {
-          throw new Error('Cannot make call. httpAgent is undefined.');
-        }
+        const agent = configAgent || getDefaultAgent();
         if (!cid) {
           throw new Error('Cannot make call. Canister ID is undefined.');
         }
 
-        return agent.retrieveAsset(cid, path);
+        const arg = IDL.encode([IDL.Text], [path]) as BinaryBlob;
+        return agent.query(canisterId, { methodName: 'retrieve', arg }).then(response => {
+          switch (response.status) {
+            case QueryResponseStatus.Rejected:
+              throw new Error(
+                `An error happened while retrieving asset "${path}":\n` +
+                  `  Status: ${response.status}\n` +
+                  `  Message: ${response.reject_message}\n`,
+              );
+
+            case QueryResponseStatus.Replied:
+              const [content] = IDL.decode([IDL.Vec(IDL.Nat8)], response.reply.arg);
+              return new Uint8Array(content as number[]);
+          }
+        });
       },
       __setCanisterId(newCid: CanisterId): void {
         cid = newCid;
@@ -184,11 +204,7 @@ export function makeActorFactory(
           throttleDurationInMSecs?: number;
         } = {},
       ): Promise<CanisterId> {
-        const agent = httpAgent || getDefaultHttpAgent();
-        if (!agent) {
-          throw new Error('Cannot make call. httpAgent is undefined.');
-        }
-
+        const agent = configAgent || getDefaultAgent();
         // Resolve the options that can be used globally or locally.
         const effectiveMaxAttempts = options.maxAttempts?.valueOf() || 0;
         const effectiveThrottle = options.throttleDurationInMSecs?.valueOf() || 0;
@@ -232,10 +248,7 @@ export function makeActorFactory(
           throttleDurationInMSecs?: number;
         } = {},
       ) {
-        const agent = httpAgent || getDefaultHttpAgent();
-        if (!agent) {
-          throw new Error('Cannot make call. httpAgent is undefined.');
-        }
+        const agent = configAgent || getDefaultAgent();
         if (!cid) {
           throw new Error('Cannot make call. Canister ID is undefined.');
         }
@@ -270,10 +283,7 @@ export function makeActorFactory(
 
     for (const [methodName, func] of actorInterface._fields) {
       actor[methodName] = async (...args: any[]) => {
-        const agent = httpAgent || getDefaultHttpAgent();
-        if (!agent) {
-          throw new Error('Cannot make call. httpAgent is undefined.');
-        }
+        const agent = configAgent || getDefaultAgent();
         if (!cid) {
           throw new Error('Cannot make call. Canister ID is undefined.');
         }

@@ -3,7 +3,7 @@ use crate::config::dfinity::Config;
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
 use ic_agent::CanisterId;
 use std::cell::RefCell;
@@ -47,7 +47,8 @@ impl CanisterInfo {
     pub fn load(config: &Config, name: &str) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
-        let build_root = workspace_root.join(build_defaults.get_output("build/"));
+        let build_root = workspace_root.join(build_defaults.get_output());
+        std::fs::create_dir_all(&build_root)?;
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
             DfxError::Unknown("No canisters in the configuration file.".to_string())
@@ -61,12 +62,8 @@ impl CanisterInfo {
         let extras = canister_config.extras.clone();
 
         let output_root = build_root.join(name);
-        // todo needs to be in child "canisters" dir of canister_root
-        // let temp_dir = env.get_temp_dir();
-        let canisters_dir = canister_root.join("canisters");
-        std::fs::create_dir_all(&canisters_dir)?;
 
-        let manifest_path = canisters_dir.join("canister_manifest.json");
+        let manifest_path = config.get_manifest_path();
 
         let canister_type = canister_config
             .r#type
@@ -110,24 +107,33 @@ impl CanisterInfo {
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
     }
-    pub fn get_canister_id(&self) -> Option<CanisterId> {
-        if !self.get_manifest_path().exists() {
-            return Some(CanisterId::from_bytes(&[0, 1, 2, 3]));
-        }
+    pub fn get_canister_id(&self) -> DfxResult<CanisterId> {
+        let canister_id = self.canister_id.replace(None);
+        let cid = match canister_id {
+            Some(canister_id) => {
+                self.canister_id.replace(Some(canister_id.clone()));
+                Some(canister_id)
+            }
+            None => {
+                let manifest = CanisterManifest::load(&self.get_manifest_path())?;
 
-        let file = std::fs::File::open(&self.get_manifest_path()).unwrap();
-        let manifest: CanisterManifest = serde_json::from_reader(file).unwrap();
-        let serde_value = &manifest.canisters[&self.name.clone()];
-        let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
+                let serde_value = manifest.canisters.get(&self.name.clone()).ok_or_else(|| {
+                    DfxError::BuildError(BuildErrorKind::CanisterIdNotFound(self.name.clone()))
+                })?;
 
-        let canister_id = self
-            .canister_id
-            .replace(None)
-            .or_else(|| CanisterId::from_text(metadata.canister_id).ok());
+                let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
 
-        self.canister_id.replace(canister_id.clone());
+                let canister_id = self
+                    .canister_id
+                    .replace(None)
+                    .or_else(|| CanisterId::from_text(metadata.canister_id).ok());
 
-        canister_id
+                self.canister_id.replace(canister_id.clone());
+
+                canister_id
+            }
+        };
+        cid.ok_or_else(|| DfxError::Unknown(String::from("No canister id")))
     }
 
     pub fn get_extra_value(&self, name: &str) -> Option<serde_json::Value> {

@@ -57,6 +57,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     runtime
         .block_on(agent.ping(create_waiter()))
+        .map(|_| ())
         .map_err(DfxError::from)
 }
 
@@ -145,9 +146,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         }
     })?;
 
-    let bootstrap_dir = env
-        .get_cache()
-        .get_binary_command_path("js-user-library/dist/bootstrap")?;
+    let bootstrap_dir = env.get_cache().get_binary_command_path("bootstrap")?;
 
     // We have a long-lived replica process and a proxy. We use
     // currently a messaging pattern to supervise. This is going to
@@ -157,12 +156,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
+    let manifest_path = config.get_manifest_path();
+
     let proxy_config = ProxyConfig {
         logger: env.get_logger().clone(),
         client_api_port: address_and_port.port(),
         bind: address_and_port,
         serve_dir: bootstrap_dir,
         providers,
+        manifest_path,
     };
 
     let supervisor_actor_handle = CoordinateProxy {
@@ -274,9 +276,7 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
         .unwrap_or_else(|| {
             Ok(config
                 .get_config()
-                .get_defaults()
-                .get_start()
-                .get_binding_socket_addr("localhost:8000")
+                .get_local_bind_address("localhost:8000")
                 .expect("could not get socket_addr"))
         })
         .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;

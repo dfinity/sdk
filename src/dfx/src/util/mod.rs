@@ -1,7 +1,7 @@
 use crate::lib::error::{DfxError, DfxResult};
 use candid::parser::typing::{check_prog, ActorEnv, TypeEnv};
 use candid::types::Function;
-use candid::{Encode, IDLArgs, IDLProg};
+use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
 use ic_agent::Blob;
 
 pub mod assets;
@@ -39,46 +39,55 @@ pub fn blob_from_arguments(
     method_type: Option<(TypeEnv, Function)>,
 ) -> DfxResult<Blob> {
     let arg_type = arg_type.unwrap_or("idl");
-
-    if let Some(a) = arguments {
-        match arg_type {
-            "string" => Ok(Encode!(&a)?),
-            "number" => Ok(Encode!(&a.parse::<u64>().map_err(|e| {
-                DfxError::InvalidArgument(format!(
-                    "Argument is not a valid 64-bit unsigned integer: {}",
-                    e
-                ))
-            })?)?),
-            "raw" => Ok(hex::decode(&a).map_err(|e| {
+    match arg_type {
+        "raw" => {
+            let bytes = hex::decode(&arguments.unwrap_or("")).map_err(|e| {
                 DfxError::InvalidArgument(format!("Argument is not a valid hex string: {}", e))
-            })?),
-            "idl" => {
-                let args: IDLArgs = a
-                    .parse()
-                    .map_err(|e| DfxError::InvalidArgument(format!("Invalid IDL: {}", e)))?;
-                match method_type {
-                    None => {
-                        eprintln!(
-                            "cannot find method type, dfx will send message with inferred type"
-                        );
-                        Ok(args.to_bytes().map_err(|e| {
-                            DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
-                        })?)
-                    }
-                    Some((env, func)) => {
-                        Ok(args.to_bytes_with_types(&env, &func.args).map_err(|e| {
-                            DfxError::InvalidData(format!("Unable to convert IDL to bytes: {}", e))
-                        })?)
-                    }
+            })?;
+            Ok(bytes)
+        }
+        "idl" => {
+            let arguments = arguments.unwrap_or("()");
+            let args: DfxResult<IDLArgs> =
+                arguments.parse::<IDLArgs>().map_err(|e: candid::Error| {
+                    DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
+                });
+            let typed_args = match method_type {
+                None => {
+                    eprintln!("cannot find method type, dfx will send message with inferred type");
+                    args?.to_bytes()
+                }
+                Some((env, func)) => {
+                    // If parsing fails and method expects a single value, try parsing as IDLValue.
+                    // If it still fails, and method expects a text type, send arguments as text.
+                    let args = args.or_else(|e| {
+                        if func.args.len() == 1 {
+                            arguments
+                                .parse::<IDLValue>()
+                                .or_else(|e| {
+                                    if candid::types::Type::Text == func.args[0] {
+                                        Ok(IDLValue::Text(arguments.to_string()))
+                                    } else {
+                                        Err(DfxError::InvalidArgument(format!(
+                                            "Invalid Candid value: {}",
+                                            e
+                                        )))
+                                    }
+                                })
+                                .map(|v| IDLArgs::new(&[v]))
+                        } else {
+                            Err(e)
+                        }
+                    });
+                    args?.to_bytes_with_types(&env, &func.args)
                 }
             }
-            v => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
+            .map_err(|e| {
+                DfxError::InvalidData(format!("Unable to serialize Candid values: {}", e))
+            })?;
+            Ok(typed_args)
         }
-        .map(Blob::from)
-    } else {
-        match arg_type {
-            "raw" => Ok(Blob::empty()),
-            _ => Ok(Blob::from(Encode!()?)),
-        }
+        v => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
     }
+    .map(Blob::from)
 }

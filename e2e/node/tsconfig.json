@@ -12,9 +12,6 @@
     "tsBuildInfoFile": "./build_info.json",
     "strict": true,
     "baseUrl": "./",
-    "paths": {
-      "@dfinity/agent": ["src"]
-    },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   }

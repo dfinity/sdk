@@ -5,7 +5,9 @@ mod cache;
 
 pub use build::BuildErrorKind;
 pub use cache::CacheErrorKind;
+use serde::export::Formatter;
 use std::ffi::OsString;
+use std::fmt::Display;
 use std::path::PathBuf;
 
 // TODO: refactor this enum into a *Kind enum and a struct DfxError.
@@ -100,10 +102,84 @@ pub enum DfxError {
 
     /// A directory lies outside the workspace root, and t
     DirectoryIsOutsideWorkspaceRoot(PathBuf),
+
+    /// Could not parse an URL for some reason.
+    InvalidUrl(String, url::ParseError),
+
+    /// The value of the --network argument was not found in dfx.json.
+    ComputeNetworkNotFound(String),
+
+    /// The network was found in dfx.json, but its "providers" array is empty.
+    ComputeNetworkHasNoProviders(String),
+
+    /// The "local" network provider with a bind address was not found.
+    NoLocalNetworkProviderFound,
 }
 
 /// The result of running a DFX command.
 pub type DfxResult<T = ()> = Result<T, DfxError>;
+
+impl Display for DfxError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            DfxError::BuildError(err) => {
+                f.write_fmt(format_args!("Build failed. Reason:\n  {}", err))?;
+            }
+            DfxError::IdeError(msg) => {
+                f.write_fmt(format_args!(
+                    "The Motoko Language Server returned an error:\n{}",
+                    msg
+                ))?;
+            }
+            DfxError::UnknownCommand(command) => {
+                f.write_fmt(format_args!("Unknown command: {}", command))?;
+            }
+            DfxError::ProjectExists => {
+                f.write_fmt(format_args!(
+                    "Cannot create a new project because the directory already exists."
+                ))?;
+            }
+            DfxError::CommandMustBeRunInAProject => {
+                f.write_fmt(format_args!(
+                    "Command must be run in a project directory (with a dfx.json file)."
+                ))?;
+            }
+            DfxError::AgentError(AgentError::ReplicaError {
+                reject_code,
+                reject_message,
+            }) => {
+                f.write_fmt(format_args!(
+                    "Replica error (code {}): {}",
+                    reject_code, reject_message
+                ))?;
+            }
+            DfxError::Unknown(err) => {
+                f.write_fmt(format_args!("Unknown error: {}", err))?;
+            }
+            DfxError::ConfigPathDoesNotExist(config_path) => {
+                f.write_fmt(format_args!("Config path does not exist: {}", config_path))?;
+            }
+            DfxError::InvalidArgument(e) => {
+                f.write_fmt(format_args!("Invalid argument: {}", e))?;
+            }
+            DfxError::InvalidData(e) => {
+                f.write_fmt(format_args!("Invalid data: {}", e))?;
+            }
+            DfxError::LanguageServerFromATerminal => {
+                f.write_str(
+                    "The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.",
+                )?;
+            }
+            DfxError::NoLocalNetworkProviderFound => {
+                f.write_str("Expected there to be a local network with a bind address")?;
+            }
+            err => {
+                f.write_fmt(format_args!("An error occured:\n{:#?}", err))?;
+            }
+        }
+        Ok(())
+    }
+}
 
 impl From<clap::Error> for DfxError {
     fn from(err: clap::Error) -> DfxError {
@@ -152,3 +228,5 @@ impl From<walkdir::Error> for DfxError {
         DfxError::CouldNotWalkDirectory(err)
     }
 }
+
+impl actix_web::error::ResponseError for DfxError {}

@@ -3,6 +3,7 @@ use crate::agent::response::{Replied, RequestStatusResponse};
 use crate::{Agent, AgentConfig, AgentError, Blob, CanisterId};
 use delay::Delay;
 use mockito::mock;
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 #[test]
@@ -122,9 +123,9 @@ fn call() -> Result<(), AgentError> {
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
     let result = runtime.block_on(async {
         let request_id = agent
-            .call(&CanisterId::from_bytes(&[4u8]), "greet", &Blob::empty())
+            .call_raw(&CanisterId::from_bytes(&[4u8]), "greet", &Blob::empty())
             .await?;
-        agent.request_status(&request_id).await
+        agent.request_status_raw(&request_id).await
     });
 
     submit_mock.assert();
@@ -185,7 +186,7 @@ fn call_rejected() -> Result<(), AgentError> {
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
     let result: Result<Replied, AgentError> = runtime.block_on(async {
         let request_id = agent
-            .call(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
+            .call_raw(&CanisterId::from_bytes(&[6u8]), "greet", &Blob::empty())
             .await?;
         agent
             .request_status_and_wait(&request_id, Delay::timeout(Duration::from_millis(100)))
@@ -210,49 +211,12 @@ fn call_rejected() -> Result<(), AgentError> {
 }
 
 #[test]
-fn install() -> Result<(), AgentError> {
-    let canister_id = CanisterId::from_bytes(&[5u8]);
-    let module = Blob::from(&[1, 2]);
-
-    let blob = Blob(Vec::from("Hello World"));
-    let response = QueryResponse::Replied {
-        reply: CallReply { arg: blob.clone() },
-    };
-
-    let submit_mock = mock("POST", "/api/v1/submit").with_status(200).create();
-    let status_mock = mock("POST", "/api/v1/read")
+fn ping() -> Result<(), AgentError> {
+    let response = serde_cbor::Value::Map(BTreeMap::new());
+    let read_mock = mock("GET", "/api/v1/status")
         .with_status(200)
-        .with_header("content-type", "application/cbor")
         .with_body(serde_cbor::to_vec(&response)?)
         .create();
-
-    let agent = Agent::new(AgentConfig {
-        url: &mockito::server_url(),
-        ..AgentConfig::default()
-    })?;
-
-    let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async {
-        let request_id = agent.install(&canister_id, &module, &Blob::empty()).await?;
-        agent.request_status(&request_id).await
-    });
-
-    submit_mock.assert();
-    status_mock.assert();
-
-    assert_eq!(
-        result?,
-        RequestStatusResponse::Replied {
-            reply: Replied::CallReplied(blob)
-        }
-    );
-
-    Ok(())
-}
-
-#[test]
-fn ping() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
@@ -270,14 +234,18 @@ fn ping() -> Result<(), AgentError> {
 
 #[test]
 fn ping_okay() -> Result<(), AgentError> {
-    let read_mock = mock("GET", "/api/v1/status").with_status(200).create();
+    let response = serde_cbor::Value::Map(BTreeMap::new());
+    let read_mock = mock("GET", "/api/v1/status")
+        .with_status(200)
+        .with_body(serde_cbor::to_vec(&response)?)
+        .create();
 
     let agent = Agent::new(AgentConfig {
         url: &mockito::server_url(),
         ..AgentConfig::default()
     })?;
     let mut runtime = tokio::runtime::Runtime::new().expect("Unable to create a runtime");
-    let result = runtime.block_on(async { agent.ping(Delay::instant()).await });
+    let result = runtime.block_on(agent.ping(Delay::instant()));
 
     read_mock.assert();
 

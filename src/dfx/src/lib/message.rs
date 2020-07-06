@@ -43,6 +43,12 @@ user_message!(
     ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
     ArgumentValue => "Specifies the argument to pass to the method.",
 
+
+    // dfx canister create
+    CreateCanister => "Creates an empty canister on the Internet Computer and associates the Internet Computer assigned Canister ID to the canister name.",
+    CreateCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
+    CreateAll => "Creates all canisters configured in dfx.json.",
+
     // dfx canister install
     InstallCanister => "Installs compiled code as a canister on the replica.",
     InstallAll => "Install all canisters configured in dfx.json.",
@@ -65,7 +71,8 @@ user_message!(
     BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     SkipFrontend => "Skip building the frontend, only build the canisters.",
     BuildSkipManifest => "Skip creating a build manifest. This also skip creating canisters and contacting the replica.",
-    CanisterComputeProvider => "Override the compute provider to connect to. By default uses the address and port set in dfx configuration.",
+    CanisterComputeProvider => "Override the compute provider to connect to. By default uses the address and port set in dfx configuration for the local network.",
+    CanisterComputeNetwork => "Override the compute network to connect to.  By default uses the local network.",
 
     // dfx config
     ConfigureOptions => "Configures project options for your currently-selected project.",
@@ -78,6 +85,9 @@ user_message!(
     ProjectName => "Specifies the name of the project to create.",
     DryRun => "Provides a preview the directories and files to be created without adding them to the file system.",
     NewFrontend => "Install the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.",
+
+    // dfx ping
+    Ping => "Ping an Internet Computer and returns its status.",
 
     // dfx replica
     Replica => "Start a local replica.",

@@ -1,7 +1,7 @@
 use crate::config::cache::Cache;
 use crate::config::dfx_version;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, ManifestBuildOutput, WasmBuildOutput,
+    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
@@ -69,11 +69,12 @@ impl CanisterBuilder for AssetsBuilder {
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(AssetsBuilderExtra::try_from(info, pool)?.dependencies)
     }
+
     fn build(
         &self,
-        pool: &CanisterPool,
+        _pool: &CanisterPool,
         info: &CanisterInfo,
-        config: &BuildConfig,
+        _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let mut canister_assets = util::assets::assetstorage_canister()?;
         for file in canister_assets.entries()? {
@@ -87,11 +88,6 @@ impl CanisterBuilder for AssetsBuilder {
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
         delete_output_directory(&info, &assets_canister_info)?;
-        copy_assets(&assets_canister_info)?;
-
-        if !config.skip_frontend {
-            build_frontend(info.get_workspace_root(), pool.get_logger())?;
-        }
 
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
@@ -99,8 +95,23 @@ impl CanisterBuilder for AssetsBuilder {
             canister_id: info.get_canister_id().expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(wasm_path),
             idl: IdlBuildOutput::File(idl_path),
-            manifest: ManifestBuildOutput::File(info.get_manifest_path().to_path_buf()),
         })
+    }
+
+    fn postbuild(
+        &self,
+        pool: &CanisterPool,
+        info: &CanisterInfo,
+        config: &BuildConfig,
+    ) -> DfxResult {
+        if !config.skip_frontend {
+            build_frontend(info.get_workspace_root(), pool.get_logger())?;
+        }
+
+        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
+        assets_canister_info.assert_source_paths()?;
+        copy_assets(&assets_canister_info)?;
+        Ok(())
     }
 }
 
@@ -144,6 +155,13 @@ fn copy_assets(assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
                 .expect("cannot strip prefix");
 
             let destination = output_assets_path.join(relative);
+
+            // If the destination exists, we simply continue. We delete the output directory
+            // prior to building so the only way this exists is if it's an output to one
+            // of the build steps.
+            if destination.exists() {
+                continue;
+            }
 
             if entry.file_type().is_dir() {
                 fs::create_dir(destination)?;

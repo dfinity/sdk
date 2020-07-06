@@ -59,8 +59,13 @@ export interface QueryFields {
   methodName: string;
   arg: BinaryBlob;
 }
-export interface ResponseStatusFields {
+export interface RequestStatusFields {
   requestId: RequestId;
+}
+
+export interface CallFields {
+  methodName: string;
+  arg: BinaryBlob;
 }
 
 // The fields in a "call" submit request.
@@ -95,7 +100,11 @@ export enum SubmitRequestType {
 export type SubmitRequest = CallRequest | InstallCodeRequest | CreateCanisterRequest;
 export interface SubmitResponse {
   requestId: RequestId;
-  response: Response;
+  response: {
+    ok: boolean;
+    status: number;
+    statusText: string;
+  };
 }
 
 // An ADT that represents responses to a "query" read request.
@@ -145,13 +154,18 @@ export interface RequestStatusRequest extends Record<string, any> {
 
 // An ADT that represents responses to a "request_status" read request.
 export type RequestStatusResponse =
-  | RequestStatusResponsePending
+  | RequestStatusResponseReceived
+  | RequestStatusResponseProcessing
   | RequestStatusResponseReplied
   | RequestStatusResponseRejected
   | RequestStatusResponseUnknown;
 
-export interface RequestStatusResponsePending {
-  status: RequestStatusResponseStatus.Pending;
+export interface RequestStatusResponseReceived {
+  status: RequestStatusResponseStatus.Received;
+}
+
+export interface RequestStatusResponseProcessing {
+  status: RequestStatusResponseStatus.Processing;
 }
 
 export interface RequestStatusResponseReplied {
@@ -173,7 +187,8 @@ export interface RequestStatusResponseUnknown {
 }
 
 export enum RequestStatusResponseStatus {
-  Pending = 'pending',
+  Received = 'received',
+  Processing = 'processing',
   Replied = 'replied',
   Rejected = 'rejected',
   Unknown = 'unknown',

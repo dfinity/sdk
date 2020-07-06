@@ -17,6 +17,7 @@ teardown() {
     install_asset base
 
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install e2e_project
 
@@ -32,6 +33,7 @@ teardown() {
     dfx config defaults/build/packtool "echo"
 
     dfx_start
+    dfx canister create --all
     assert_command_fail dfx build
     assert_match 'import error, package "base" not defined'
 }

@@ -6,9 +6,12 @@ use crate::lib::message::UserMessage;
 use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::{Agent, Blob, CanisterAttributes, ComputeAllocation, RequestId};
+use ic_agent::{
+    Agent, Blob, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister, RequestId,
+};
 use slog::info;
 use std::convert::TryFrom;
+use std::str::FromStr;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -58,10 +61,11 @@ async fn install_canister(
     agent: &Agent,
     canister_info: &CanisterInfo,
     compute_allocation: Option<ComputeAllocation>,
-    mode: &str,
+    mode: InstallMode,
 ) -> DfxResult<RequestId> {
+    let mgr = ManagementCanister::new(agent);
     let log = env.get_logger();
-    let canister_id = canister_info.get_canister_id().ok_or_else(|| {
+    let canister_id = canister_info.get_canister_id().map_err(|_| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
 
@@ -77,10 +81,11 @@ async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    let result = agent
-        .install_with_attrs(
+    let result = mgr
+        .install_code(
+            create_waiter(),
             &canister_id,
-            &mode,
+            mode,
             &Blob::from(wasm),
             &Blob::empty(),
             &CanisterAttributes { compute_allocation },
@@ -120,7 +125,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .expect("Compute Allocation must be a percentage.")
     });
 
-    let mode = args.value_of("mode").unwrap();
+    let mode = InstallMode::from_str(args.value_of("mode").unwrap())?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
@@ -154,7 +159,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     &agent,
                     &canister_info,
                     compute_allocation,
-                    mode,
+                    mode.clone(),
                 ))?;
 
                 if args.is_present("async") {

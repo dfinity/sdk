@@ -77,8 +77,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         Err(_) => {
             let canister_info = CanisterInfo::load(&config, canister_name)?;
             match canister_info.get_canister_id() {
-                Some(id) => (id, canister_info.get_output_idl_path()),
-                None => return Err(DfxError::InvalidArgument("canister_name".to_string())),
+                Ok(id) => (id, canister_info.get_output_idl_path()),
+                Err(_) => return Err(DfxError::InvalidArgument("canister_name".to_string())),
             }
         }
     };
@@ -126,7 +126,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         print_idl_blob(&blob)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
-        let request_id = runtime.block_on(client.call(&canister_id, method_name, &arg_value))?;
+        let request_id =
+            runtime.block_on(client.call_raw(&canister_id, method_name, &arg_value))?;
 
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));

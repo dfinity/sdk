@@ -5,7 +5,7 @@ pub(crate) mod replica_api;
 pub(crate) mod response;
 
 pub(crate) mod public {
-    pub use super::agent_config::AgentConfig;
+    pub use super::agent_config::{AgentConfig, AgentRequestExecutor};
     pub use super::agent_error::AgentError;
     pub use super::nonce::NonceFactory;
     pub use super::response::{Replied, RequestStatusResponse};
@@ -17,37 +17,32 @@ mod agent_test;
 
 use crate::agent::replica_api::{AsyncContent, Envelope, SyncContent};
 use crate::identity::Identity;
-use crate::{to_request_id, Blob, CanisterAttributes, CanisterId, Principal, RequestId};
+use crate::{to_request_id, Blob, CanisterId, Principal, RequestId};
+use reqwest::Method;
+use serde::Serialize;
 
 use public::*;
-use reqwest::header::HeaderMap;
-use reqwest::{Client, Method};
-use std::convert::TryInto;
 
 pub struct Agent {
     url: reqwest::Url,
-    client: reqwest::Client,
     nonce_factory: NonceFactory,
+    request_executor: Box<dyn AgentRequestExecutor>,
     identity: Box<dyn Identity>,
+    default_waiter: delay::Delay,
 }
 
 impl Agent {
     pub fn new(config: AgentConfig<'_>) -> Result<Agent, AgentError> {
-        let mut default_headers = HeaderMap::new();
-        default_headers.insert(
-            reqwest::header::CONTENT_TYPE,
-            "application/cbor".parse().unwrap(),
-        );
-
         let url = config.url;
 
         Ok(Agent {
             url: reqwest::Url::parse(url)
                 .and_then(|url| url.join("api/v1/"))
                 .map_err(|_| AgentError::InvalidClientUrl(String::from(url)))?,
-            client: Client::builder().default_headers(default_headers).build()?,
+            request_executor: config.request_executor,
             nonce_factory: config.nonce_factory,
             identity: config.identity,
+            default_waiter: config.default_waiter,
         })
     }
 
@@ -56,15 +51,23 @@ impl Agent {
         endpoint: &str,
         envelope: Envelope<T>,
     ) -> Result<Vec<u8>, AgentError> {
-        let serialized_bytes = serde_cbor::to_vec(&envelope)?;
+        let mut serialized_bytes = Vec::new();
+        let mut serializer = serde_cbor::Serializer::new(&mut serialized_bytes);
+        serializer.self_describe()?;
+        envelope.serialize(&mut serializer)?;
+
         let url = self.url.join(endpoint)?;
 
         let mut http_request = reqwest::Request::new(Method::POST, url);
+        http_request.headers_mut().insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/cbor".parse().unwrap(),
+        );
         http_request
             .body_mut()
             .get_or_insert(reqwest::Body::from(serialized_bytes));
 
-        let response = self.client.execute(http_request).await?;
+        let response = self.request_executor.execute(http_request).await?;
         if response.status().is_client_error() || response.status().is_server_error() {
             Err(AgentError::ServerError {
                 status: response.status().into(),
@@ -108,9 +111,7 @@ impl Agent {
     async fn submit(&self, request: AsyncContent) -> Result<RequestId, AgentError> {
         let request_id = to_request_id(&request)?;
         let sender = match request.clone() {
-            AsyncContent::CreateCanisterRequest { sender, .. } => sender,
             AsyncContent::CallRequest { sender, .. } => sender,
-            AsyncContent::InstallCodeRequest { sender, .. } => sender,
         };
         let signature = self.identity.sign(&request_id, &sender)?;
         let _ = self
@@ -154,7 +155,12 @@ impl Agent {
         })
     }
 
-    pub async fn request_status(
+    pub async fn request_status(&self, request_id: &RequestId) -> Result<Replied, AgentError> {
+        self.request_status_and_wait(request_id, self.default_waiter.clone())
+            .await
+    }
+
+    pub async fn request_status_raw(
         &self,
         request_id: &RequestId,
     ) -> Result<RequestStatusResponse, AgentError> {
@@ -168,19 +174,13 @@ impl Agent {
                     replica_api::RequestStatusResponseReplied::CallReply(reply) => {
                         Replied::CallReplied(reply.arg)
                     }
-                    replica_api::RequestStatusResponseReplied::CreateCanisterReply(reply) => {
-                        Replied::CreateCanisterReplied(reply.canister_id)
-                    }
-                    replica_api::RequestStatusResponseReplied::InstallCodeReply(_) => {
-                        Replied::InstallCodeReplied
-                    }
                 };
 
                 RequestStatusResponse::Replied { reply }
             }
             replica_api::RequestStatusResponse::Unknown {} => RequestStatusResponse::Unknown,
-            replica_api::RequestStatusResponse::Received {} => RequestStatusResponse::Pending,
-            replica_api::RequestStatusResponse::Processing {} => RequestStatusResponse::Pending,
+            replica_api::RequestStatusResponse::Received {} => RequestStatusResponse::Received,
+            replica_api::RequestStatusResponse::Processing {} => RequestStatusResponse::Processing,
             replica_api::RequestStatusResponse::Rejected {
                 reject_code,
                 reject_message,
@@ -199,7 +199,7 @@ impl Agent {
         waiter.start();
 
         loop {
-            match self.request_status(request_id).await? {
+            match self.request_status_raw(request_id).await? {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
                     reject_code,
@@ -210,8 +210,9 @@ impl Agent {
                         reject_message,
                     })
                 }
-                RequestStatusResponse::Unknown {} => (),
-                RequestStatusResponse::Pending {} => (),
+                RequestStatusResponse::Unknown => (),
+                RequestStatusResponse::Received => (),
+                RequestStatusResponse::Processing => (),
             };
 
             waiter
@@ -227,7 +228,7 @@ impl Agent {
         arg: &Blob,
         waiter: W,
     ) -> Result<Blob, AgentError> {
-        let request_id = self.call(canister_id, method_name, arg).await?;
+        let request_id = self.call_raw(canister_id, method_name, arg).await?;
         match self.request_status_and_wait(&request_id, waiter).await? {
             Replied::CallReplied(arg) => Ok(arg),
             reply => Err(AgentError::UnexpectedReply(reply)),
@@ -235,6 +236,16 @@ impl Agent {
     }
 
     pub async fn call(
+        &self,
+        canister_id: &CanisterId,
+        method_name: &str,
+        arg: &Blob,
+    ) -> Result<Blob, AgentError> {
+        self.call_and_wait(canister_id, method_name, arg, self.default_waiter.clone())
+            .await
+    }
+
+    pub async fn call_raw(
         &self,
         canister_id: &CanisterId,
         method_name: &str,
@@ -250,111 +261,48 @@ impl Agent {
         .await
     }
 
-    pub async fn create_canister(&self) -> Result<RequestId, AgentError> {
-        self.create_canister_with_desired_id(None).await
-    }
-
-    pub async fn create_canister_with_desired_id(
-        &self,
-        desired_id: Option<CanisterId>,
-    ) -> Result<RequestId, AgentError> {
-        self.submit(AsyncContent::CreateCanisterRequest {
-            sender: self.identity.sender()?,
-            nonce: self.nonce_factory.generate().map(|b| b),
-            desired_id: desired_id.map(|id| id.as_bytes().try_into().unwrap()),
-        })
-        .await
-    }
-
-    pub async fn create_canister_and_wait<W: delay::Waiter>(
-        &self,
-        waiter: W,
-    ) -> Result<CanisterId, AgentError> {
-        let request_id = self.create_canister().await?;
-        match self.request_status_and_wait(&request_id, waiter).await? {
-            Replied::CreateCanisterReplied(id) => Ok(id),
-            reply => Err(AgentError::UnexpectedReply(reply)),
-        }
-    }
-
-    pub async fn install(
-        &self,
-        canister_id: &CanisterId,
-        module: &Blob,
-        arg: &Blob,
-    ) -> Result<RequestId, AgentError> {
-        self.install_with_attrs(canister_id, "", module, arg, &CanisterAttributes::default())
-            .await
-    }
-
-    pub async fn install_and_wait<W: delay::Waiter>(
-        &self,
-        canister_id: &CanisterId,
-        module: &Blob,
-        arg: &Blob,
-        waiter: W,
-    ) -> Result<(), AgentError> {
-        let request_id = self.install(canister_id, module, arg).await?;
-        match self.request_status_and_wait(&request_id, waiter).await? {
-            Replied::InstallCodeReplied => Ok(()),
-            reply => Err(AgentError::UnexpectedReply(reply)),
-        }
-    }
-
-    pub async fn install_with_attrs(
-        &self,
-        canister_id: &CanisterId,
-        mode: &str,
-        module: &Blob,
-        arg: &Blob,
-        attributes: &CanisterAttributes,
-    ) -> Result<RequestId, AgentError> {
-        let mode = match mode {
-            "install" => Some(mode.to_string()),
-            "reinstall" => Some(mode.to_string()),
-            "upgrade" => Some(mode.to_string()),
-            &_ => None,
-        };
-        self.submit(AsyncContent::InstallCodeRequest {
-            nonce: self.nonce_factory.generate().map(|b| b.as_slice().into()),
-            sender: self.identity.sender()?,
-            canister_id: canister_id.clone(),
-            module: module.clone(),
-            arg: arg.clone(),
-            compute_allocation: attributes.compute_allocation.map(|x| x.into()),
-            memory_allocation: None,
-            mode,
-        })
-        .await
-    }
-
-    pub async fn ping_once(&self) -> Result<(), AgentError> {
+    pub async fn ping_once(&self) -> Result<serde_cbor::Value, AgentError> {
         let url = self.url.join("status")?;
-        let http_request = reqwest::Request::new(Method::GET, url);
-        let response = self.client.execute(http_request).await?;
+        let mut http_request = reqwest::Request::new(Method::GET, url);
+        http_request.headers_mut().insert(
+            reqwest::header::CONTENT_TYPE,
+            "application/cbor".parse().unwrap(),
+        );
+        let response = self.request_executor.execute(http_request).await?;
 
-        if response.status().as_u16() == 200 {
-            Ok(())
+        if response.status().is_client_error() || response.status().is_server_error() {
+            Err(AgentError::ServerError {
+                status: response.status().into(),
+                content_type: response
+                    .headers()
+                    .get(reqwest::header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok())
+                    .map(|x| x.to_string()),
+                content: response.text().await?,
+            })
         } else {
-            // Verify the error is 2XX.
-            response
-                .error_for_status()
-                .map(|_| ())
-                .map_err(AgentError::from)
+            let bytes = response.bytes().await?.to_vec();
+            Ok(serde_cbor::from_slice(&bytes).map_err(AgentError::InvalidCborData)?)
         }
     }
 
-    pub async fn ping<W: delay::Waiter>(&self, mut waiter: W) -> Result<(), AgentError> {
+    pub async fn ping<W: delay::Waiter>(
+        &self,
+        mut waiter: W,
+    ) -> Result<serde_cbor::Value, AgentError> {
         waiter.start();
         loop {
-            if self.ping_once().await.is_ok() {
-                break;
+            // Break if the server/replica answered but was an error (compared to not being
+            // able to reach the server).
+            match self.ping_once().await {
+                Ok(x) => return Ok(x),
+                Err(AgentError::ReqwestError(_)) => {}
+                Err(x) => return Err(x),
             }
 
             waiter
                 .wait()
                 .map_err(|_| AgentError::TimeoutWaitingForResponse)?;
         }
-        Ok(())
     }
 }

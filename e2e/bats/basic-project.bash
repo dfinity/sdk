@@ -17,6 +17,7 @@ teardown() {
 @test "build + install + call + request-status -- greet_mo" {
     install_asset greet
     dfx_start
+    dfx canister create --all
     dfx build
     INSTALL_REQUEST_ID=$(dfx canister install hello --async)
     dfx canister request-status $INSTALL_REQUEST_ID
@@ -27,14 +28,11 @@ teardown() {
     assert_command dfx canister call hello greet --type raw '4449444c00017103e29883'
     assert_eq '("Hello, ☃!")'
 
-    assert_command dfx canister query hello greet '("Banzai")'
-    assert_match '\("Hello, Banzai!"\)'
-
     assert_command dfx canister call --query hello greet '("Bongalo")'
     assert_eq '("Hello, Bongalo!")'
 
     # Using call --async and request-status.
-    assert_command dfx canister call --async hello greet '("Blueberry")'
+    assert_command dfx canister call --async hello greet Blueberry
     # At this point $output is the request ID.
     assert_command dfx canister request-status $stdout
     assert_eq '("Hello, Blueberry!")'
@@ -43,6 +41,7 @@ teardown() {
 @test "build + install + call + request-status -- counter_mo" {
     install_asset counter
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install hello
 
@@ -71,7 +70,7 @@ teardown() {
     assert_command dfx canister request-status $stdout
 
     # Call write.
-    assert_command dfx canister call hello write '(1337)'
+    assert_command dfx canister call hello write 1337
     assert_eq "()"
 
     # Write has no return value. But we can _call_ read too.
@@ -83,6 +82,7 @@ teardown() {
 @test "build + install + call -- counter_idl_mo" {
     install_asset counter_idl
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install --all
 
@@ -93,6 +93,7 @@ teardown() {
 @test "build + install + call -- matrix_multiply_mo" {
     install_asset matrix_multiply
     dfx_start
+    dfx canister create --all
     dfx build
     dfx canister install --all
 

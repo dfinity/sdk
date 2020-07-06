@@ -9,11 +9,11 @@
     "build": {
       "output": "canisters/",
       "packtool": ""
-    },
-    "start": {
-      "address": "127.0.0.1",
-      "port": 8000,
-      "serve_root": "canisters/assetstorage/assets"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000"
     }
   },
   "version": 1

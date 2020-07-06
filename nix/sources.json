@@ -32,22 +32,21 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "master",
+        "ref": "release-2020-06-30.RC00",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "0d53b954840d2bf5721dc9eaea449fe2efd64bf5",
+        "rev": "38f207358b03d396affcdacb6383921cb11243e4",
         "type": "git"
     },
     "ic-ref": {
-        "branch": "legacy3",
-        "ref": "legacy3",
+        "ref": "release-0.8",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "6331356b20183bb9eda5589959ee18bf66becc06",
+        "rev": "d0166d45978b17e87f25a74f484ed872a897d8f9",
         "type": "git"
     },
     "motoko": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "41c45b09888907226585bdf293e6f426d2df7ac5",
+        "rev": "719ea2b3f54de4c4c867bd34a8284e52b49999a7",
         "type": "git"
     },
     "napalm": {

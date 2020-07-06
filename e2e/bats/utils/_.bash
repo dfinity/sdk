@@ -79,6 +79,7 @@ dfx_stop() {
         dfx stop
 
         # Verify that processes are killed.
-        ! ( ps | grep " [d]fx start" )
+        ! ( ps | grep "[/\s]dfx start" )
+        ! ( ps | grep "[/\s]replica" )
     fi
 }

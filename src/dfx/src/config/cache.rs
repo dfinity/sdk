@@ -3,6 +3,8 @@ use crate::lib::error::DfxError::CacheError;
 use crate::lib::error::{CacheErrorKind, DfxError, DfxResult};
 use crate::util;
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use semver::Version;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
@@ -88,16 +90,27 @@ pub fn get_profile_path() -> DfxResult<PathBuf> {
     Ok(p)
 }
 
-/// Return the binary cache root. It constructs it if not present
-/// already.
-pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
+pub fn get_cache_root() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
         .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
 
-    let p = PathBuf::from(home)
-        .join(".cache")
-        .join("dfinity")
-        .join("versions");
+    let p = PathBuf::from(home).join(".cache").join("dfinity");
+
+    if !p.exists() {
+        if let Err(e) = std::fs::create_dir_all(&p) {
+            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
+        }
+    } else if !p.is_dir() {
+        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+    }
+
+    Ok(p)
+}
+
+/// Return the binary cache root. It constructs it if not present
+/// already.
+pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
+    let p = get_cache_root()?.join("versions");
 
     if !p.exists() {
         if let Err(e) = std::fs::create_dir_all(&p) {
@@ -151,6 +164,10 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             None
         };
 
+        let rand_string: String = thread_rng().sample_iter(&Alphanumeric).take(12).collect();
+        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
+        std::fs::create_dir(&temp_p)?;
+
         let mut binary_cache_assets = util::assets::binary_cache()?;
         // Write binaries and set them to be executable.
         for file in binary_cache_assets.entries()? {
@@ -159,24 +176,36 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             if file.header().entry_type().is_dir() {
                 continue;
             }
-            file.unpack_in(p.as_path())?;
+            file.unpack_in(temp_p.as_path())?;
 
-            let full_path = p.join(file.path()?);
+            let full_path = temp_p.join(file.path()?);
             let mut perms = std::fs::metadata(full_path.as_path())?.permissions();
             perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
             std::fs::set_permissions(full_path.as_path(), perms)?;
         }
 
         // Copy our own binary in the cache.
-        let dfx = p.join("dfx");
+        let dfx = temp_p.join("dfx");
         std::fs::write(&dfx, std::fs::read(current_exe)?)?;
         // And make it executable.
         let mut perms = std::fs::metadata(&dfx)?.permissions();
         perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
         std::fs::set_permissions(&dfx, perms)?;
 
-        if let Some(b) = b {
-            b.finish_with_message(&format!("Version v{} installed successfully.", v));
+        // atomically install cache version into place
+        if force && p.exists() {
+            std::fs::remove_dir_all(&p)?;
+        }
+
+        if std::fs::rename(&temp_p, &p).is_ok() {
+            if let Some(b) = b {
+                b.finish_with_message(&format!("Version v{} installed successfully.", v));
+            }
+        } else {
+            std::fs::remove_dir_all(&temp_p)?;
+            if let Some(b) = b {
+                b.finish_with_message(&format!("Version v{} was already installed.", v));
+            }
         }
 
         Ok(p)
