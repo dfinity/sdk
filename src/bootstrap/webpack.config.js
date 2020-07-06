@@ -24,6 +24,9 @@ module.exports = {
   },
   target: 'web',
   output: {
+    // This is necessary to allow internal apps to bundle their own code with
+    // webpack which may conflict with us.
+    jsonpFunction: '__dfinityJsonp',
     path: path.resolve(__dirname, './dist'),
     filename: '[name].js',
   },
