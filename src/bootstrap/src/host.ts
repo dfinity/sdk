@@ -99,6 +99,10 @@ export class SiteInfo {
     public readonly subdomain = '',
   ) {}
 
+  public isUnknown() {
+    return this.kind === DomainKind.Unknown;
+  }
+
   public async getWorkerHost(): Promise<string> {
     if (this._isWorker) {
       return '';
@@ -178,7 +182,7 @@ async function getKeyPair(forceNewPair = false): Promise<KeyPair> {
 }
 
 export async function createAgent(site: SiteInfo): Promise<Agent> {
-  const workerHost = await site.getWorkerHost();
+  const workerHost = site.isUnknown() ? undefined : await site.getWorkerHost();
 
   if (!workerHost) {
     const keyPair = await getKeyPair();
