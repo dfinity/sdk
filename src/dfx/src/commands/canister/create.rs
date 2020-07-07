@@ -3,11 +3,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
+use crate::lib::progress_bar::ProgressBar;
 use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::ManagementCanister;
-use indicatif::{ProgressBar, ProgressDrawTarget};
 use serde_json::Map;
 use std::format;
 use tokio::runtime::Runtime;
@@ -32,12 +32,8 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-
     let message = format!("Creating canister {:?}...", canister_name);
-    b.set_message(&message);
-    b.enable_steady_tick(80);
+    let b = ProgressBar::new_spinner(&message);
 
     let config = env
         .get_config()
