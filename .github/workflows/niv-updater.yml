@@ -18,8 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: niv-updater-action
-        # TODO: move to v6 when @knl has had time to release.
-        uses: knl/niv-updater-action@master
+        uses: knl/niv-updater-action@v6
         with:
           whitelist: 'common,advisory-db,napalm'
           title_prefix: 'build: '
