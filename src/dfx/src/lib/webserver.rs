@@ -221,19 +221,36 @@ pub fn webserver(
     clients_api_uri: Vec<url::Url>,
     serve_dir: &Path,
     inform_parent: Sender<Server>,
-) -> std::io::Result<std::thread::JoinHandle<()>> {
-    std::thread::Builder::new().name("Frontend".into()).spawn({
-        let serve_dir = serve_dir.to_path_buf();
-        move || {
-            run_webserver(
-                logger,
-                manifest_path,
-                bind,
-                clients_api_uri,
-                serve_dir,
-                inform_parent,
-            )
-            .unwrap()
-        }
-    })
+) -> DfxResult<std::thread::JoinHandle<()>> {
+    // Verify that we cannot bind to a port that we forward to.
+    let bound_port = bind.port();
+    if clients_api_uri.iter().any(|url| {
+        Some(bound_port) == url.port()
+            && match url.host_str() {
+                Some(h) => h == "localhost" || h == "::1" || h == "127.0.0.1",
+                None => true,
+            }
+    }) {
+        return Err(DfxError::Unknown(
+            "Cannot forward API calls to the same bootstrap server.".to_string(),
+        ));
+    }
+
+    std::thread::Builder::new()
+        .name("Frontend".into())
+        .spawn({
+            let serve_dir = serve_dir.to_path_buf();
+            move || {
+                run_webserver(
+                    logger,
+                    manifest_path,
+                    bind,
+                    clients_api_uri,
+                    serve_dir,
+                    inform_parent,
+                )
+                .unwrap()
+            }
+        })
+        .map_err(DfxError::from)
 }
