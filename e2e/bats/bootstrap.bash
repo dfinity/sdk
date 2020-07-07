@@ -24,3 +24,13 @@ teardown() {
     assert_command curl http://localhost:8000/_/candid?canisterId="$ID"\&format=js -o ./web.txt
     assert_command diff canisters/hello/hello.did.js ./web.txt
 }
+
+@test "forbid starting webserver with a forwarded port" {
+    dfx replica &
+    echo $! > replica.pid # Use a local file for the replica.
+    sleep 5 # Wait for replica to be available.
+
+    assert_command_fail dfx bootstrap --port 8000
+    assert_match "Cannot forward API calls to the same bootstrap server"
+    kill -TERM `cat replica.pid`
+}
