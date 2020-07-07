@@ -376,10 +376,18 @@ impl ic_agent::AgentRequestExecutor for AgentClient {
 }
 
 fn create_agent(logger: Logger, url: &str, identity: PathBuf) -> Option<Agent> {
+    let mut cfg = rustls::ClientConfig::new();
+    // Advertise support for HTTP/2
+    cfg.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+    // Mozilla CA root store
+    cfg.root_store
+        .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+
     AgentClient::new(
         logger,
         url.to_string(),
         reqwest::Client::builder()
+            .use_preconfigured_tls(cfg)
             .build()
             .expect("Could not create HTTP client."),
     )
