@@ -25,7 +25,7 @@
   "networks": {
     "tungsten": {
       "providers": [
-        "https://gateway.dfinity.systems"
+        "https://gw.dfinity.network"
       ]
     },
     "local": {
