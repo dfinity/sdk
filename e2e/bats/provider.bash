@@ -35,3 +35,15 @@ teardown() {
   assert_command_fail dfx canister call --provider http://localhost:$PORT e2e_project greet '("Blueberry")'
   assert_command_fail dfx canister call e2e_project greet '("Blueberry")'
 }
+
+@test "uses local bind address if there is no local network" {
+  [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+  cat <<<$(jq 'del(.networks.local)' dfx.json) >dfx.json
+  dfx_start
+}
+
+@test "uses local bind address if there are no networks" {
+  [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+  cat <<<$(jq 'del(.networks)' dfx.json) >dfx.json
+  dfx_start
+}
