@@ -224,13 +224,14 @@ pub fn webserver(
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     // Verify that we cannot bind to a port that we forward to.
     let bound_port = bind.port();
-    if clients_api_uri.iter().any(|url| {
+    let bind_and_forward_on_same_port = clients_api_uri.iter().any(|url| {
         Some(bound_port) == url.port()
             && match url.host_str() {
                 Some(h) => h == "localhost" || h == "::1" || h == "127.0.0.1",
                 None => true,
             }
-    }) {
+    });
+    if bind_and_forward_on_same_port {
         return Err(DfxError::Unknown(
             "Cannot forward API calls to the same bootstrap server.".to_string(),
         ));
