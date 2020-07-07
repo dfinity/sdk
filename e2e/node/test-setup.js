@@ -7,6 +7,6 @@
 // Note that we can use webpack configuration to make some features available to
 // Node.js in a similar way.
 
-window.crypto = require("@trust/webcrypto");
-window.TextEncoder = require("text-encoding").TextEncoder;
-require("whatwg-fetch");
+window.crypto = require('@trust/webcrypto');
+window.TextEncoder = require('text-encoding').TextEncoder;
+window.fetch = require('node-fetch');

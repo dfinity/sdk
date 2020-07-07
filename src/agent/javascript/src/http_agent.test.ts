@@ -79,13 +79,14 @@ test('call', async () => {
   expect(calls.length).toBe(1);
   expect(requestId).toEqual(expectedRequestId);
 
-  expect(calls[0][0]).toBe('/api/v1/submit');
+  expect(calls[0][0]).toBe('http://localhost/api/v1/submit');
   expect(calls[0][1]).toEqual({
     method: 'POST',
     headers: {
       'Content-Type': 'application/cbor',
     },
     body: cbor.encode(expectedRequest),
+    credentials: 'include',
   });
 });
 
@@ -167,13 +168,14 @@ test('requestStatus', async () => {
   expect(responseArg?.equals(mockResponseArg)).toBe(true);
 
   expect(calls[0]).toEqual([
-    '/api/v1/read',
+    'http://localhost/api/v1/read',
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/cbor',
       },
       body: cbor.encode(expectedRequest),
+      credentials: 'include',
     },
   ]);
 });
