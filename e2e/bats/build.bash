@@ -49,13 +49,6 @@ teardown() {
   assert_command diff canisters/e2e_project/main.wasm ./old.wasm
 }
 
-@test "build outputs the canister manifest" {
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
-    [[ -f canisters/canister_manifest.json ]]
-}
-
 @test "build outputs warning" {
     install_asset warning
     dfx_start

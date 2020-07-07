@@ -3,6 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::message::UserMessage;
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -129,8 +130,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
+    let canister_id_store = CanisterIdStore::for_env(env)?;
+
     if let Some(canister_name) = args.value_of("canister_name") {
-        let canister_info = CanisterInfo::load(&config, canister_name)?;
+        let canister_info = CanisterInfo::load(&config, canister_name, Some(&canister_id_store))?;
         let request_id = runtime.block_on(install_canister(
             env,
             &agent,
@@ -153,7 +156,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                let canister_info = CanisterInfo::load(&config, canister_name)?;
+                let canister_info =
+                    CanisterInfo::load(&config, canister_name, Some(&canister_id_store))?;
                 let request_id = runtime.block_on(install_canister(
                     env,
                     &agent,

@@ -1,3 +1,4 @@
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 use actix_server::Server;
 use crossbeam::channel::{Receiver, Sender};
@@ -23,7 +24,7 @@ pub struct ProxyConfig {
     pub serve_dir: PathBuf,
     pub providers: Vec<url::Url>,
     pub logger: slog::Logger,
-    pub manifest_path: PathBuf,
+    pub network_descriptor: NetworkDescriptor,
 }
 
 #[derive(Clone, Debug)]
@@ -94,7 +95,7 @@ impl Proxy {
 
         run_webserver(
             self.config.logger.clone(),
-            self.config.manifest_path.clone(),
+            self.config.network_descriptor.clone(),
             self.config.bind,
             providers,
             self.config.serve_dir.clone(),

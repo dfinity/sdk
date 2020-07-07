@@ -2,7 +2,8 @@ use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::provider::get_provider_urls;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
@@ -55,17 +56,15 @@ pub fn construct() -> App<'static, 'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let logger = env.get_logger();
     let config = get_config(env, args)?;
-    let manifest_path = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?
-        .get_manifest_path();
-    let providers = get_providers(env, args)?;
+
+    let network_descriptor = get_network_descriptor(env, args)?;
+    let providers = get_providers(&network_descriptor)?;
 
     let (sender, receiver) = crossbeam::unbounded();
 
     webserver(
         logger.clone(),
-        manifest_path,
+        network_descriptor,
         SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
         providers
             .iter()
@@ -148,11 +147,10 @@ fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResul
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid port number: {}", err)))
 }
 
-/// Gets the list of compute provider API endpoints. First checks if the providers were specified
-/// on the command-line using --providers, otherwise checks if the providers were specified in the
-/// dfx configuration file, which in turn defaults to the local network.
-fn get_providers(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Vec<String>> {
-    get_provider_urls(env, args)?
+/// Gets the list of compute provider API endpoints.
+fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String>> {
+    network_descriptor
+        .providers
         .iter()
         .map(|url| Ok(format!("{}/api", url)))
         .collect()

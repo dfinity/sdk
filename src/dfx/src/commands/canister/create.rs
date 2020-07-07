@@ -2,13 +2,12 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::progress_bar::ProgressBar;
 use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::ManagementCanister;
-use serde_json::Map;
 use std::format;
 use tokio::runtime::Runtime;
 
@@ -44,50 +43,33 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
             .ok_or(DfxError::CommandMustBeRunInAProject)?,
     );
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    let info = CanisterInfo::load(&config, canister_name)?;
+    let info = CanisterInfo::load(&config, canister_name, None)?;
 
-    let manifest_path = info.get_manifest_path();
-    // check if the canister_manifest.json file exists
+    let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
-    if manifest_path.is_file() {
-        let mut manifest = CanisterManifest::load(manifest_path)?;
-
-        match manifest.canisters.get(info.get_name()) {
-            Some(serde_value) => {
-                let metadata: CanManMetadata =
-                    serde_json::from_value(serde_value.to_owned()).unwrap();
-                let message = format!(
-                    "{:?} canister was already created and has canister id: {:?}",
-                    canister_name, metadata.canister_id
-                );
-                b.finish_with_message(&message);
-            }
-            None => {
-                let cid = runtime.block_on(mgr.create_canister(create_waiter()))?;
-                info.set_canister_id(cid.clone())?;
-                let message = format!(
-                    "{:?} canister created with canister id: {:?}",
-                    canister_name,
-                    cid.to_text()
-                );
-                b.finish_with_message(&message);
-                manifest.add_entry(&info, cid)?;
-            }
+    match canister_id_store.find_canister_id(&canister_name) {
+        Some(canister_id) => {
+            let message = format!(
+                "{:?} canister was already created and has canister id: {:?}",
+                canister_name,
+                canister_id.to_text()
+            );
+            b.finish_with_message(&message);
+            Ok(())
         }
-    } else {
-        let cid = runtime.block_on(mgr.create_canister(create_waiter()))?;
-        info.set_canister_id(cid.clone())?;
-        let mut manifest = CanisterManifest {
-            canisters: Map::new(),
-        };
-        let message = format!(
-            "{:?} canister created with canister id: {:?}",
-            canister_name,
-            cid.to_text()
-        );
-        b.finish_with_message(&message);
-        manifest.add_entry(&info, cid)?;
-    }
+        None => {
+            let cid = runtime.block_on(mgr.create_canister(create_waiter()))?;
+            info.set_canister_id(cid.clone())?;
+            let canister_id = cid.to_text();
+            let message = format!(
+                "{:?} canister created with canister id: {:?}",
+                canister_name, canister_id
+            );
+            b.finish_with_message(&message);
+            canister_id_store.add_canister_id(&canister_name, canister_id)
+        }
+    }?;
+
     Ok(())
 }
 
