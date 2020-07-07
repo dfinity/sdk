@@ -6,7 +6,7 @@ use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
 use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::{CanisterId, ManagementCanister};
+use ic_agent::ManagementCanister;
 use serde_json::Map;
 use tokio::runtime::Runtime;
 
@@ -30,6 +30,7 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
+    let logger = env.get_logger();
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -51,11 +52,22 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
             Some(serde_value) => {
                 let metadata: CanManMetadata =
                     serde_json::from_value(serde_value.to_owned()).unwrap();
-                CanisterId::from_text(metadata.canister_id).ok();
+                slog::info!(
+                    logger,
+                    "{:?} canister was already created and has canister id: {:?}",
+                    canister_name,
+                    metadata.canister_id
+                );
             }
             None => {
                 let cid = runtime.block_on(mgr.create_canister(create_waiter()))?;
                 info.set_canister_id(cid.clone())?;
+                slog::info!(
+                    logger,
+                    "{:?} canister created with canister id: {:?}",
+                    canister_name,
+                    cid.to_text()
+                );
                 manifest.add_entry(&info, cid)?;
             }
         }
@@ -65,6 +77,12 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
         let mut manifest = CanisterManifest {
             canisters: Map::new(),
         };
+        slog::info!(
+            logger,
+            "{:?} canister created with canister id: {:?}",
+            canister_name,
+            cid.to_text()
+        );
         manifest.add_entry(&info, cid)?;
     }
     Ok(())
