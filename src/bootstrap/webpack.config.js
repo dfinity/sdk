@@ -5,16 +5,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
-// If we're in Nix, we need to let the resolution works normally.
-const agentPath = path.join(__dirname, '../agent/javascript/src');
-const resolve = fs.existsSync(agentPath)
-  ? {
-      alias: {
-        '@dfinity/agent': agentPath,
-      },
-    }
-  : {};
-
 module.exports = {
   mode: 'production',
   entry: {
