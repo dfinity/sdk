@@ -34,6 +34,8 @@ const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsRepli
     round_gas_limit: None,
 };
 
+const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
+
 /// A Canister configuration in the dfx.json config file.
 /// It only contains a type; everything else should be infered using the
 /// CanisterInfo type.
@@ -184,10 +186,17 @@ impl ConfigInterface {
         }
     }
 
-    pub fn get_network(&self, network: &str) -> Option<&ConfigNetwork> {
-        self.networks
+    pub fn get_network(&self, name: &str) -> Option<ConfigNetwork> {
+        let network = self
+            .networks
             .as_ref()
-            .and_then(|networks| networks.get(network))
+            .and_then(|networks| networks.get(name).cloned());
+        match (name, &network) {
+            ("local", None) => Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
+                bind: String::from(DEFAULT_LOCAL_BIND),
+            })),
+            _ => network,
+        }
     }
 
     pub fn get_local_bind_address(&self, default: &str) -> DfxResult<SocketAddr> {
@@ -380,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn config_no_local_network_address() {
+    fn config_returns_local_bind_address_if_no_local_network() {
         let config = Config::from_str(
             r#"{
             "networks": {
@@ -394,7 +403,24 @@ mod tests {
                 .get_config()
                 .get_local_bind_address("1.2.3.4:123")
                 .ok(),
-            to_socket_addr("1.2.3.4:123").ok()
+            to_socket_addr("127.0.0.1:8000").ok()
+        );
+    }
+
+    #[test]
+    fn config_returns_local_bind_address_if_no_networks() {
+        let config = Config::from_str(
+            r#"{
+        }"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            config
+                .get_config()
+                .get_local_bind_address("1.2.3.4:123")
+                .ok(),
+            to_socket_addr("127.0.0.1:8000").ok()
         );
     }
 }
