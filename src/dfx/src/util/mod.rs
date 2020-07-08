@@ -8,13 +8,23 @@ pub mod assets;
 pub mod clap;
 
 /// Deserialize and print return values from canister method.
-pub fn print_idl_blob(blob: &Blob) -> Result<(), candid::Error> {
-    let result = candid::IDLArgs::from_bytes(&(*blob.0));
-    if result.is_err() {
-        let hex_string = hex::encode(&(*blob.0));
-        eprintln!("Error deserializing blob 0x{}", hex_string);
+pub fn print_idl_blob(blob: &Blob, output_type: Option<&str>) -> DfxResult<()> {
+    let output_type = output_type.unwrap_or("idl");
+    match output_type {
+        "raw" => {
+            let hex_string = hex::encode(&(*blob.0));
+            println!("0x{}", hex_string);
+        }
+        "idl" => {
+            let result = candid::IDLArgs::from_bytes(&(*blob.0));
+            if result.is_err() {
+                let hex_string = hex::encode(&(*blob.0));
+                eprintln!("Error deserializing blob 0x{}", hex_string);
+            }
+            println!("{}", result?);
+        }
+        v => return Err(DfxError::Unknown(format!("Invalid output type: {}", v))),
     }
-    println!("{}", result?);
     Ok(())
 }
 
