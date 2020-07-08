@@ -41,7 +41,9 @@ dfx_start() {
         test -f port
         local port=$(cat port)
 
-        dfx bootstrap --port 8000 --providers http://127.0.0.1:${port}/api &
+        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${port}\" dfx.json) >dfx.json
+        cat dfx.json
+        dfx bootstrap --port 8000 &
         echo $! > dfx-bootstrap.pid
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
