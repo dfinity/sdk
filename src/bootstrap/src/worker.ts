@@ -28,8 +28,8 @@ async function bootstrap() {
       console.log(0, json);
       window.parent.postMessage('ready', '*');
     })
-    .catch(error => {
-      if (error.stack.indexOf('Code: 401') != -1) {
+    .catch((error: Error) => {
+      if (error.message.indexOf('Code: 401') != -1) {
         window.parent.postMessage('login', '*');
       } else {
         console.error(`Could not contact the network. Error:\n${error.stack}`);
