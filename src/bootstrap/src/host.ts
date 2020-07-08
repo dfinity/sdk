@@ -16,6 +16,7 @@ import localforage from 'localforage';
 const localStorageIdentityKey = 'dfinity-ic-user-identity';
 const localStorageCanisterIdKey = 'dfinity-ic-canister-id';
 const localStorageHostKey = 'dfinity-ic-host';
+const localStorageLoginKey = 'dfinity-ic-login';
 
 async function _getVariable(name: string, localStorageName: string): Promise<string | undefined>;
 async function _getVariable(
@@ -41,6 +42,15 @@ async function _getVariable(
   }
 
   return defaultValue;
+}
+
+export async function setLogin(username: string, password: string): Promise<void> {
+  await localforage.setItem(localStorageLoginKey, JSON.stringify([username, password]));
+}
+
+export async function getLogin(): Promise<[string, string] | undefined> {
+  const maybeCreds = await localforage.getItem<string>(localStorageLoginKey);
+  return maybeCreds !== undefined ? JSON.parse(maybeCreds) : undefined;
 }
 
 export enum DomainKind {
@@ -129,6 +139,7 @@ export class SiteInfo {
   public async getHost(): Promise<string> {
     // Figure out the host.
     let host = await _getVariable('host', localStorageHostKey, '');
+
     if (host) {
       try {
         host = JSON.parse(host);
@@ -139,11 +150,9 @@ export class SiteInfo {
           return '' + host;
         }
       } catch (_) {
-        host = '';
+        return host;
       }
-    }
-
-    if (!host) {
+    } else {
       const { port, protocol } = window.location;
 
       switch (this.kind) {
@@ -187,37 +196,48 @@ async function getKeyPair(forceNewPair = false): Promise<KeyPair> {
 
 export async function createAgent(site: SiteInfo): Promise<Agent> {
   const workerHost = site.isUnknown() ? undefined : await site.getWorkerHost();
+  const host = await site.getHost();
 
   if (!workerHost) {
     const keyPair = await getKeyPair();
-    const host = await site.getHost();
     const principal = Principal.selfAuthenticating(keyPair.publicKey);
-    const agent = new HttpAgent({ host, principal });
+    const creds = await getLogin();
+    const agent = new HttpAgent({
+      host,
+      principal,
+      ...(creds && { credentials: { name: creds[0], password: creds[1] } }),
+    });
     agent.addTransform(makeNonceTransform());
     agent.setAuthTransform(makeAuthTransform(keyPair));
 
     return agent;
   } else {
-    // Create the IFRAME.
-    let messageQueue: ProxyMessage[] | null = [];
-    let loaded = false;
-    const agent = new ProxyAgent((msg: ProxyMessage) => {
-      if (!loaded) {
-        if (!messageQueue) {
-          throw new Error('No Message Queue but need Queueing...');
-        }
-        messageQueue.push(msg);
-      } else {
-        iframeEl.contentWindow!.postMessage(msg, '*');
+    return createWorkerAgent(site, workerHost, host);
+  }
+}
+
+async function createWorkerAgent(site: SiteInfo, workerHost: string, host: string): Promise<Agent> {
+  // Create the IFRAME.
+  let messageQueue: ProxyMessage[] | null = [];
+  let loaded = false;
+  const agent = new ProxyAgent((msg: ProxyMessage) => {
+    if (!loaded) {
+      if (!messageQueue) {
+        throw new Error('No Message Queue but need Queueing...');
       }
-    });
+      messageQueue.push(msg);
+    } else {
+      iframeEl.contentWindow!.postMessage(msg, '*');
+    }
+  });
 
-    const iframeEl = document.createElement('iframe');
+  const iframeEl = document.createElement('iframe');
 
-    iframeEl.src = workerHost + '/worker.html';
-    window.addEventListener('message', ev => {
-      if (ev.origin === workerHost) {
-        if (ev.data === 'ready') {
+  iframeEl.src = `${workerHost}/worker.html?${host ? 'host=' + encodeURIComponent(host) : ''}`;
+  window.addEventListener('message', ev => {
+    if (ev.origin === workerHost) {
+      switch (ev.data) {
+        case 'ready':
           const q = messageQueue?.splice(0, messageQueue.length) || [];
           for (const msg of q) {
             iframeEl.contentWindow!.postMessage(msg, workerHost);
@@ -225,13 +245,25 @@ export async function createAgent(site: SiteInfo): Promise<Agent> {
 
           loaded = true;
           messageQueue = null;
-        } else {
-          agent.onmessage(ev.data);
-        }
-      }
-    });
+          break;
 
-    document.head.append(iframeEl);
-    return agent;
-  }
+        case 'login':
+          const url = new URL(workerHost);
+          url.pathname = '/login.html';
+          url.searchParams.append('redirect', '' + window.location);
+          window.location.replace('' + url);
+          break;
+
+        default:
+          if (typeof ev.data === 'object') {
+            agent.onmessage(ev.data);
+          } else {
+            throw new Error('Invalid message from worker: ' + JSON.stringify(ev.data));
+          }
+      }
+    }
+  });
+
+  document.head.append(iframeEl);
+  return agent;
 }

@@ -2,6 +2,7 @@ import {
   BinaryBlob,
   CallFields,
   CanisterId,
+  JsonObject,
   Principal,
   QueryFields,
   QueryResponse,
@@ -18,8 +19,10 @@ export enum ProxyMessageKind {
   QueryResponse = 'qr',
   Call = 'c',
   CallResponse = 'cr',
-  RequestStatus = 's',
-  RequestStatusResponse = 'sr',
+  RequestStatus = 'r',
+  RequestStatusResponse = 'rr',
+  Status = 's',
+  StatusResponse = 'sr',
 }
 
 export interface ProxyMessageBase {
@@ -62,6 +65,15 @@ export interface ProxyMessageRequestStatusResponse extends ProxyMessageBase {
   response: RequestStatusResponse;
 }
 
+export interface ProxyMessageStatus extends ProxyMessageBase {
+  type: ProxyMessageKind.Status;
+}
+
+export interface ProxyMessageStatusResponse extends ProxyMessageBase {
+  type: ProxyMessageKind.StatusResponse;
+  response: JsonObject;
+}
+
 export type ProxyMessage =
   | ProxyMessageError
   | ProxyMessageQueryResponse
@@ -69,7 +81,9 @@ export type ProxyMessage =
   | ProxyMessageRequestStatusResponse
   | ProxyMessageQuery
   | ProxyMessageCall
-  | ProxyMessageRequestStatus;
+  | ProxyMessageRequestStatus
+  | ProxyMessageStatus
+  | ProxyMessageStatusResponse;
 
 // A Stub Agent that forwards calls to another Agent implementation.
 export class ProxyStubAgent {
@@ -100,6 +114,15 @@ export class ProxyStubAgent {
           this._frontend({
             id: msg.id,
             type: ProxyMessageKind.RequestStatusResponse,
+            response,
+          });
+        });
+        break;
+      case ProxyMessageKind.Status:
+        this._agent.status().then(response => {
+          this._frontend({
+            id: msg.id,
+            type: ProxyMessageKind.StatusResponse,
             response,
           });
         });
@@ -166,6 +189,13 @@ export class ProxyAgent implements Agent {
 
   public createCanister(principal?: Principal): Promise<SubmitResponse> {
     throw new Error('unimplemented. This will be removed when we upgrade the spec to 0.8');
+  }
+
+  public status(): Promise<JsonObject> {
+    return this._sendAndWait({
+      id: this._nextId++,
+      type: ProxyMessageKind.Status,
+    }) as Promise<JsonObject>;
   }
 
   public install(

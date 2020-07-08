@@ -10,6 +10,7 @@ module.exports = {
   entry: {
     bootstrap: './src/index.ts',
     candid: './src/candid/candid.js',
+    login: './src/login.ts',
     worker: './src/worker.ts',
   },
   target: 'web',
@@ -70,6 +71,11 @@ module.exports = {
       // TODO: change candid.js to candid.ts, and make it a proper bootstrap, and
       //       change this chunk to candid.
       chunks: ['bootstrap'],
+    }),
+    new HtmlWebpackPlugin({
+      template: 'src/login.html',
+      filename: 'login.html',
+      chunks: ['login'],
     }),
     new CopyWebpackPlugin([
       {
