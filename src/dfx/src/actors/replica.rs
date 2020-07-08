@@ -242,6 +242,7 @@ fn replica_start_thread(
             &port.unwrap_or_default().to_string(),
             "--state-dir",
             config.state_manager.state_root.to_str().unwrap_or_default(),
+            "--require-valid-signatures",
         ]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
