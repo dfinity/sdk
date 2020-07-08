@@ -1,5 +1,5 @@
 use crate::lib::error::{DfxError, DfxResult};
-use candid::parser::typing::{check_prog, ActorEnv, TypeEnv};
+use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::Function;
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
 use ic_agent::Blob;
@@ -21,16 +21,16 @@ pub fn print_idl_blob(blob: &Blob) -> Result<(), candid::Error> {
 /// Parse IDL file into TypeEnv. This is a best effort function: it will succeed if
 /// the IDL file can be parsed and type checked in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.
-pub fn check_candid_file(idl_path: &std::path::Path) -> Option<(TypeEnv, ActorEnv)> {
+pub fn get_candid_type(
+    idl_path: &std::path::Path,
+    method_name: &str,
+) -> Option<(TypeEnv, Function)> {
     let idl_file = std::fs::read_to_string(idl_path).ok()?;
     let ast = idl_file.parse::<IDLProg>().ok()?;
     let mut env = TypeEnv::new();
-    let actor = check_prog(&mut env, &ast).ok()?;
-    if actor.is_empty() {
-        None
-    } else {
-        Some((env, actor))
-    }
+    let actor = check_prog(&mut env, &ast).ok()??;
+    let method = env.get_method(&actor, method_name).ok()?.clone();
+    Some((env, method))
 }
 
 pub fn blob_from_arguments(

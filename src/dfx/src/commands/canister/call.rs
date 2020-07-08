@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::waiter::create_waiter;
-use crate::util::{blob_from_arguments, check_candid_file, print_idl_blob};
+use crate::util::{blob_from_arguments, get_candid_type, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::CanisterId;
 use std::option::Option;
@@ -83,11 +83,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         }
     };
 
-    let method_type = maybe_candid_path.and_then(|path| {
-        let (env, actor) = check_candid_file(&path)?;
-        let f = actor.get(method_name)?;
-        Some((env, f.clone()))
-    });
+    let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = match &method_type {
         Some((_, f)) => Some(f.is_query()),
         None => None,
