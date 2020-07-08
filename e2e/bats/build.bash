@@ -91,12 +91,6 @@ teardown() {
   assert_command dfx canister call custom hashFromQuery
 }
 
-@test "build succeeds with correct provider URL" {
-    dfx_start
-    dfx canister --provider http://127.0.0.1:8000 create --all
-    assert_command dfx build --provider http://127.0.0.1:8000
-}
-
 @test "build succeeds with network parameter" {
     dfx_start
     dfx canister --network local create --all
