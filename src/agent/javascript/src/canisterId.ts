@@ -9,25 +9,28 @@ function getCrc(hex: string): string {
 export class CanisterId {
   public static fromText(text: string): CanisterId {
     if (text.startsWith('ic:')) {
-      text = text.toUpperCase();
-      const hex = text.slice(3);
-      if (hex.length >= 2 && hex.length % 2 === 0 && /^[0-9A-F]+$/.test(hex)) {
-        const id = hex.slice(0, -2);
-        const checksum = hex.slice(-2);
-        if (checksum !== getCrc(id)) {
-          throw new Error('Illegal CanisterId: ' + text);
-        }
-        return this.fromHex(id);
-      } else {
-        throw new Error('Cannot parse CanisterId: ' + text);
-      }
+      return this.fromHexWithChecksum(text.slice(3));
     } else {
       throw new Error('CanisterId is not a "ic:" url: ' + text);
     }
   }
 
+  public static fromHexWithChecksum(hexWithChecksum: string): CanisterId {
+    const hex = hexWithChecksum.toUpperCase();
+    if (hex.length >= 2 && hex.length % 2 === 0 && /^[0-9A-F]+$/.test(hex)) {
+      const id = hex.slice(0, -2);
+      const checksum = hex.slice(-2);
+      if (checksum !== getCrc(id)) {
+        throw new Error(`Invalid checksum for CanisterId: "ic:${hexWithChecksum}"`);
+      }
+      return new this(id);
+    } else {
+      throw new Error('Cannot parse CanisterId: ' + hexWithChecksum);
+    }
+  }
+
   public static fromHex(hex: string): CanisterId {
-    return new this(hex);
+    return new this(hex.toUpperCase());
   }
 
   public static fromBlob(blob: BinaryBlob): CanisterId {

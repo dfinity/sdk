@@ -73,17 +73,21 @@ export class SiteInfo {
     const subdomain = components.slice(0, -3).join('.');
 
     if (maybeIc0 === 'ic0' && maybeApp === 'app') {
-      return new SiteInfo(DomainKind.Ic0, CanisterId.fromHex(maybeCId), subdomain);
+      return new SiteInfo(DomainKind.Ic0, CanisterId.fromHexWithChecksum(maybeCId), subdomain);
     } else if (maybeIc0 === 'lvh' && maybeApp === 'me') {
-      return new SiteInfo(DomainKind.Lvh, CanisterId.fromHex(maybeCId), subdomain);
+      return new SiteInfo(DomainKind.Lvh, CanisterId.fromHexWithChecksum(maybeCId), subdomain);
     } else if (maybeIc0 === 'localhost' && maybeApp === undefined) {
       /// Allow subdomain of localhost.
-      return new SiteInfo(DomainKind.Localhost, CanisterId.fromHex(maybeCId), subdomain);
+      return new SiteInfo(
+        DomainKind.Localhost,
+        CanisterId.fromHexWithChecksum(maybeCId),
+        subdomain,
+      );
     } else if (maybeApp === 'localhost') {
       /// Allow subdomain of localhost, but maybeIc0 is the canister ID.
       return new SiteInfo(
         DomainKind.Localhost,
-        CanisterId.fromHex(maybeIc0),
+        CanisterId.fromHexWithChecksum(maybeIc0),
         `${maybeCId}.${subdomain}`,
       );
     } else {
