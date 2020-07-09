@@ -22,22 +22,9 @@ pub fn construct() -> App<'static, 'static> {
                 .help(UserMessage::BuildSkipManifest.to_str()),
         )
         .arg(
-            Arg::with_name("provider")
-                .help(UserMessage::CanisterComputeProvider.to_str())
-                .long("provider")
-                .conflicts_with("network")
-                .validator(|v| {
-                    reqwest::Url::parse(&v)
-                        .map(|_| ())
-                        .map_err(|_| "should be a valid URL.".to_string())
-                })
-                .takes_value(true),
-        )
-        .arg(
             Arg::with_name("network")
                 .help(UserMessage::CanisterComputeNetwork.to_str())
                 .long("network")
-                .conflicts_with("provider")
                 .takes_value(true),
         )
 }

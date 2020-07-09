@@ -2,9 +2,9 @@ use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::provider::{get_provider_urls, parse_provider_url};
+use crate::lib::provider::get_provider_urls;
 use crate::lib::webserver::webserver;
-use clap::{App, Arg, ArgMatches, SubCommand, Values};
+use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
 use std::default::Default;
 use std::fs;
@@ -32,17 +32,8 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("providers")
-                .help(UserMessage::BootstrapProviders.to_str())
-                .conflicts_with("network")
-                .long("providers")
-                .multiple(true)
-                .takes_value(true),
-        )
-        .arg(
             Arg::with_name("network")
                 .help(UserMessage::CanisterComputeNetwork.to_str())
-                .conflicts_with("providers")
                 .long("network")
                 .takes_value(true),
         )
@@ -161,18 +152,10 @@ fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResul
 /// on the command-line using --providers, otherwise checks if the providers were specified in the
 /// dfx configuration file, which in turn defaults to the local network.
 fn get_providers(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Vec<String>> {
-    let providers: Option<Values<'_>> = args.values_of("providers");
-    let provider_urls: Option<Result<Vec<String>, DfxError>> = providers.map(|providers| {
-        providers
-            .map(|provider| parse_provider_url(provider))
-            .collect::<Result<_, _>>()
-    });
-    provider_urls.unwrap_or_else(|| {
-        get_provider_urls(env, args)?
-            .iter()
-            .map(|url| Ok(format!("{}/api", url)))
-            .collect()
-    })
+    get_provider_urls(env, args)?
+        .iter()
+        .map(|url| Ok(format!("{}/api", url)))
+        .collect()
 }
 
 /// Gets the directory containing static assets served by the bootstrap server. First checks if the

@@ -32,12 +32,6 @@ teardown() {
     assert_match 'Failed to find canister id for e2e_project_assets'
 }
 
-@test "create fails with incorrect provider URL default project" {
-    dfx_start
-    assert_command_fail dfx canister --provider http://127.0.0.1:8765 create --all
-    assert_match "ConnectionRefused"
-}
-
 @test "create succeeds with network parameter" {
     dfx_start
     assert_command dfx canister --network local create --all

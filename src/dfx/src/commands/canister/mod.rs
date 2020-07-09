@@ -25,22 +25,9 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("canister")
         .about(UserMessage::ManageCanister.to_str())
         .arg(
-            Arg::with_name("provider")
-                .help(UserMessage::CanisterComputeProvider.to_str())
-                .long("provider")
-                .validator(|v| {
-                    reqwest::Url::parse(&v)
-                        .map(|_| ())
-                        .map_err(|_| "should be a valid URL.".to_string())
-                })
-                .conflicts_with("network")
-                .takes_value(true),
-        )
-        .arg(
             Arg::with_name("network")
                 .help(UserMessage::CanisterComputeNetwork.to_str())
                 .long("network")
-                .conflicts_with("provider")
                 .takes_value(true),
         )
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
