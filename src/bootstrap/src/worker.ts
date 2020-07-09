@@ -25,14 +25,12 @@ async function bootstrap() {
   agent
     .status()
     .then(json => {
-      console.log(0, json);
       window.parent.postMessage('ready', '*');
     })
     .catch((error: Error) => {
-      if (error.message.indexOf('Code: 401') != -1) {
+      if (error.message.includes('Code: 401')) {
         window.parent.postMessage('login', '*');
       } else {
-        console.error(`Could not contact the network. Error:\n${error.stack}`);
         throw error;
       }
     });
