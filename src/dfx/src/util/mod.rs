@@ -1,6 +1,6 @@
 use crate::lib::error::{DfxError, DfxResult};
 use candid::parser::typing::{check_prog, TypeEnv};
-use candid::types::Function;
+use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
 use ic_agent::Blob;
 
@@ -35,12 +35,18 @@ pub fn get_candid_type(
     idl_path: &std::path::Path,
     method_name: &str,
 ) -> Option<(TypeEnv, Function)> {
-    let idl_file = std::fs::read_to_string(idl_path).ok()?;
-    let ast = idl_file.parse::<IDLProg>().ok()?;
-    let mut env = TypeEnv::new();
-    let actor = check_prog(&mut env, &ast).ok()??;
+    let (env, ty) = check_candid_file(idl_path).ok()?;
+    let actor = ty?;
     let method = env.get_method(&actor, method_name).ok()?.clone();
     Some((env, method))
+}
+
+pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
+    let idl_file = std::fs::read_to_string(idl_path)?;
+    let ast = idl_file.parse::<IDLProg>()?;
+    let mut env = TypeEnv::new();
+    let actor = check_prog(&mut env, &ast)?;
+    Ok((env, actor))
 }
 
 pub fn blob_from_arguments(
