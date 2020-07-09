@@ -69,7 +69,7 @@ user_message!(
     // dfx build
     BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     SkipFrontend => "Skip building the frontend, only build the canisters.",
-    BuildSkipManifest => "Skip creating a build manifest. This also skip creating canisters and contacting the replica.",
+    BuildCheck => "Build canisters without creating them. This can be used to check that canisters build ok.",
     CanisterComputeNetwork => "Override the compute network to connect to.  By default uses the local network.",
 
     // dfx config
