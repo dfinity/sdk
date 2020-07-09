@@ -11,7 +11,7 @@ import {
   ProxyAgent,
   ProxyMessage,
 } from '@dfinity/agent';
-import localforage from 'localforage';
+import * as storage from './storage';
 
 const localStorageIdentityKey = 'dfinity-ic-user-identity';
 const localStorageCanisterIdKey = 'dfinity-ic-canister-id';
@@ -36,7 +36,7 @@ async function _getVariable(
     return maybeValue;
   }
 
-  const lsValue = await localforage.getItem<string>(localStorageName);
+  const lsValue = await storage.retrieve(localStorageName);
   if (lsValue) {
     return lsValue;
   }
@@ -45,12 +45,24 @@ async function _getVariable(
 }
 
 export async function setLogin(username: string, password: string): Promise<void> {
-  await localforage.setItem(localStorageLoginKey, JSON.stringify([username, password]));
+  await storage.store(localStorageLoginKey, JSON.stringify([username, password]));
 }
 
 export async function getLogin(): Promise<[string, string] | undefined> {
-  const maybeCreds = await localforage.getItem<string>(localStorageLoginKey);
+  const maybeCreds = await storage.retrieve(localStorageLoginKey);
   return maybeCreds !== undefined ? JSON.parse(maybeCreds) : undefined;
+}
+
+function getCanisterId(s: string | undefined): CanisterId | undefined {
+  if (s === undefined) {
+    return undefined;
+  } else {
+    try {
+      return CanisterId.fromHexWithChecksum(s);
+    } catch (_) {
+      return undefined;
+    }
+  }
 }
 
 export enum DomainKind {
@@ -83,21 +95,17 @@ export class SiteInfo {
     const subdomain = components.slice(0, -3).join('.');
 
     if (maybeIc0 === 'ic0' && maybeApp === 'app') {
-      return new SiteInfo(DomainKind.Ic0, CanisterId.fromHexWithChecksum(maybeCId), subdomain);
+      return new SiteInfo(DomainKind.Ic0, getCanisterId(maybeCId), subdomain);
     } else if (maybeIc0 === 'lvh' && maybeApp === 'me') {
-      return new SiteInfo(DomainKind.Lvh, CanisterId.fromHexWithChecksum(maybeCId), subdomain);
+      return new SiteInfo(DomainKind.Lvh, getCanisterId(maybeCId), subdomain);
     } else if (maybeIc0 === 'localhost' && maybeApp === undefined) {
       /// Allow subdomain of localhost.
-      return new SiteInfo(
-        DomainKind.Localhost,
-        CanisterId.fromHexWithChecksum(maybeCId),
-        subdomain,
-      );
+      return new SiteInfo(DomainKind.Localhost, getCanisterId(maybeCId), subdomain);
     } else if (maybeApp === 'localhost') {
       /// Allow subdomain of localhost, but maybeIc0 is the canister ID.
       return new SiteInfo(
         DomainKind.Localhost,
-        CanisterId.fromHexWithChecksum(maybeIc0),
+        getCanisterId(maybeIc0),
         `${maybeCId}.${subdomain}`,
       );
     } else {
@@ -185,7 +193,7 @@ async function getKeyPair(forceNewPair = false): Promise<KeyPair> {
     // leaking the key when constructing the string for
     // localStorage.
     if (!forceNewPair) {
-      await localforage.setItem(localStorageIdentityKey, JSON.stringify(kp));
+      await storage.store(localStorageIdentityKey, JSON.stringify(kp));
     }
 
     keyPair = kp;

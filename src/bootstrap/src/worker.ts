@@ -33,6 +33,7 @@ async function bootstrap() {
         window.parent.postMessage('login', '*');
       } else {
         console.error(`Could not contact the network. Error:\n${error.stack}`);
+        throw error;
       }
     });
 }
