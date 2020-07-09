@@ -9,7 +9,7 @@ import {
 } from '../http_agent_types';
 import * as IDL from '../idl';
 import { Principal } from '../principal';
-import { BinaryBlob } from '../types';
+import { BinaryBlob, JsonObject } from '../types';
 
 // An Agent able to make calls and queries to a Replica.
 export interface Agent {
@@ -25,6 +25,8 @@ export interface Agent {
   ): Promise<SubmitResponse>;
 
   createCanister(principal?: Principal): Promise<SubmitResponse>;
+
+  status(): Promise<JsonObject>;
 
   install(
     canisterId: CanisterId | string,
