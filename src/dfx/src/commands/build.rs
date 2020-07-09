@@ -19,7 +19,7 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("check")
                 .long("check")
                 .takes_value(false)
-                .help(UserMessage::BuildSkipManifest.to_str()),
+                .help(UserMessage::BuildCheck.to_str()),
         )
         .arg(
             Arg::with_name("network")
