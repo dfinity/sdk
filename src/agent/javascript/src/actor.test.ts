@@ -131,7 +131,6 @@ test('makeActor', async () => {
     'http://localhost/api/v1/submit',
     {
       method: 'POST',
-      credentials: 'include',
       headers: {
         'Content-Type': 'application/cbor',
       },
@@ -143,7 +142,6 @@ test('makeActor', async () => {
     'http://localhost/api/v1/read',
     {
       method: 'POST',
-      credentials: 'include',
       headers: {
         'Content-Type': 'application/cbor',
       },
@@ -163,7 +161,6 @@ test('makeActor', async () => {
   expect(calls[2][0]).toBe('http://localhost/api/v1/read');
   expect(calls[2][1]).toEqual({
     method: 'POST',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/cbor',
     },
@@ -182,7 +179,6 @@ test('makeActor', async () => {
   expect(calls[3][0]).toBe('http://localhost/api/v1/read');
   expect(calls[3][1]).toEqual({
     method: 'POST',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/cbor',
     },
@@ -201,7 +197,6 @@ test('makeActor', async () => {
   expect(calls[4][0]).toBe('http://localhost/api/v1/read');
   expect(calls[4][1]).toEqual({
     method: 'POST',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/cbor',
     },
