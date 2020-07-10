@@ -1,4 +1,6 @@
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::models::canister::CanisterManifest;
+use crate::util::check_candid_file;
 use actix::dev::Stream;
 use actix::System;
 use actix_cors::Cors;
@@ -32,26 +34,34 @@ struct CandidData {
 }
 
 #[derive(Deserialize)]
+enum Format {
+    #[serde(rename = "js")]
+    Javascript,
+}
+
+#[derive(Deserialize)]
 struct CandidRequest {
     #[serde(rename = "canisterId")]
     canister_id: String,
-    format: Option<String>,
+    format: Option<Format>,
 }
 
 fn candid(
     web::Query(info): web::Query<CandidRequest>,
     data: web::Data<Arc<CandidData>>,
 ) -> DfxResult<HttpResponse> {
-    use crate::lib::models::canister::CanisterManifest;
     let id = info.canister_id;
     let manifest = CanisterManifest::load(&data.manifest_path)?;
-    let mut candid_path = manifest
+    let candid_path = manifest
         .get_candid(&id)
         .ok_or_else(|| DfxError::Unknown("cannot find candid file".to_string()))?;
-    if info.format == Some("js".to_string()) {
-        candid_path.set_extension("did.js");
-    }
-    let content = std::fs::read_to_string(candid_path)?;
+    let content = match info.format {
+        None => std::fs::read_to_string(candid_path)?,
+        Some(Format::Javascript) => {
+            let (env, ty) = check_candid_file(&candid_path)?;
+            candid::bindings::javascript::compile(&env, &ty)
+        }
+    };
     let response = HttpResponse::Ok().body(content);
     Ok(response)
 }

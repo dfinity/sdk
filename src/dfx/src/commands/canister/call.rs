@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::waiter::create_waiter;
-use crate::util::{blob_from_arguments, check_candid_file, print_idl_blob};
+use crate::util::{blob_from_arguments, get_candid_type, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::CanisterId;
 use std::option::Option;
@@ -51,7 +51,15 @@ pub fn construct() -> App<'static, 'static> {
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
-                .possible_values(&["string", "number", "idl", "raw"]),
+                .possible_values(&["idl", "raw"]),
+        )
+        .arg(
+            Arg::with_name("output")
+                .help(UserMessage::OutputType.to_str())
+                .long("output")
+                .takes_value(true)
+                .conflicts_with("async")
+                .possible_values(&["idl", "raw"]),
         )
         .arg(
             Arg::with_name("argument")
@@ -83,11 +91,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         }
     };
 
-    let method_type = maybe_candid_path.and_then(|path| {
-        let (env, actor) = check_candid_file(&path)?;
-        let f = actor.get(method_name)?;
-        Some((env, f.clone()))
-    });
+    let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = match &method_type {
         Some((_, f)) => Some(f.is_query()),
         None => None,
@@ -95,6 +99,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let arguments: Option<&str> = args.value_of("argument");
     let arg_type: Option<&str> = args.value_of("type");
+    let output_type: Option<&str> = args.value_of("output");
     let is_query = if args.is_present("async") {
         false
     } else {
@@ -116,14 +121,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, arg_type, method_type)?;
+    let arg_value = blob_from_arguments(arguments, arg_type, &method_type)?;
     let client = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     if is_query {
         let blob = runtime.block_on(client.query(&canister_id, method_name, &arg_value))?;
-        print_idl_blob(&blob)
+        print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
         let request_id =
@@ -139,7 +144,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             create_waiter(),
         ))?;
 
-        print_idl_blob(&blob)
+        print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     }
 

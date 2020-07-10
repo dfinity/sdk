@@ -58,6 +58,9 @@ teardown() {
     assert_command dfx canister call hello read
     assert_eq "(2)"
 
+    assert_command dfx canister call hello read --output raw
+    assert_eq "4449444c00017d02"
+
     assert_command_fail dfx canister call --query hello inc
     assert_match "inc is not a query method"
 
@@ -87,7 +90,7 @@ teardown() {
     dfx canister install --all
 
     assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=null}}, variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })'
-    assert_eq "(43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { 1158359328 = 43; 1291237008 = opt record { 1158359328 = 44; 1291237008 = null; }; }, variant { 1103411697 = record { 0 = 43; 1 = variant { 1103411697 = record { 0 = 44; 1 = variant { 5493713 = null }; } }; } })"
+    assert_eq "(43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { head = 43; tail = opt record { head = 44; tail = null; }; }, variant { cons = record { 0 = 43; 1 = variant { cons = record { 0 = 44; 1 = variant { nil = null }; } }; } })"
 }
 
 @test "build + install + call -- matrix_multiply_mo" {
