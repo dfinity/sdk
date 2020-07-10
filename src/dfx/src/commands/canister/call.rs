@@ -121,14 +121,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, arg_type, method_type)?;
+    let arg_value = blob_from_arguments(arguments, arg_type, &method_type)?;
     let client = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     if is_query {
         let blob = runtime.block_on(client.query(&canister_id, method_name, &arg_value))?;
-        print_idl_blob(&blob, output_type)
+        print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
         let request_id =
@@ -144,7 +144,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             create_waiter(),
         ))?;
 
-        print_idl_blob(&blob, output_type)
+        print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     }
 

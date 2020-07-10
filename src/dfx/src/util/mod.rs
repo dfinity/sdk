@@ -8,15 +8,24 @@ pub mod assets;
 pub mod clap;
 
 /// Deserialize and print return values from canister method.
-pub fn print_idl_blob(blob: &Blob, output_type: Option<&str>) -> DfxResult<()> {
+pub fn print_idl_blob(
+    blob: &Blob,
+    output_type: Option<&str>,
+    method_type: &Option<(TypeEnv, Function)>,
+) -> DfxResult<()> {
     let output_type = output_type.unwrap_or("idl");
     match output_type {
         "raw" => {
             let hex_string = hex::encode(&(*blob.0));
-            println!("0x{}", hex_string);
+            println!("{}", hex_string);
         }
         "idl" => {
-            let result = candid::IDLArgs::from_bytes(&(*blob.0));
+            let result = match method_type {
+                None => candid::IDLArgs::from_bytes(&(*blob.0)),
+                Some((env, func)) => {
+                    candid::IDLArgs::from_bytes_with_types(&(*blob.0), &env, &func.rets)
+                }
+            };
             if result.is_err() {
                 let hex_string = hex::encode(&(*blob.0));
                 eprintln!("Error deserializing blob 0x{}", hex_string);
@@ -52,7 +61,7 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
 pub fn blob_from_arguments(
     arguments: Option<&str>,
     arg_type: Option<&str>,
-    method_type: Option<(TypeEnv, Function)>,
+    method_type: &Option<(TypeEnv, Function)>,
 ) -> DfxResult<Blob> {
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
