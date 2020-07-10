@@ -19,11 +19,13 @@ let
       mkdir -p $build_dir
       cp -R $source_root/* $build_dir
 
-      ( cd $build_dir ; DFX_ASSETS=${assets-minimal} ${dfx-minimal}/bin/dfx build --skip-manifest )
-
-      if [ -f override.wasm ]
-      then cp override.wasm canisters/$canister_name/$canister_name.wasm
-      fi
+      (
+        cd $build_dir
+        DFX_ASSETS=${assets-minimal} ${dfx-minimal}/bin/dfx build --skip-manifest
+        if [ -f override.wasm ]
+        then cp override.wasm canisters/$canister_name/$canister_name.wasm
+        fi
+      )
     done
   '';
 
