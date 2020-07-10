@@ -90,7 +90,7 @@ teardown() {
     dfx canister install --all
 
     assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=null}}, variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })'
-    assert_eq "(43, true, "uftu{[", vec { 2; 3; 4; }, opt record { head = 43; tail = opt record { head = 44; tail = null; }; }, variant { cons = record { 0 = 43; 1 = variant { cons = record { 0 = 44; 1 = variant { nil = null }; } }; } })"
+    assert_eq "(43, true, \"uftu{[\", vec { 2; 3; 4; }, opt record { head = 43; tail = opt record { head = 44; tail = null; }; }, variant { cons = record { 0 = 43; 1 = variant { cons = record { 0 = 44; 1 = variant { nil = null }; } }; } })"
 }
 
 @test "build + install + call -- matrix_multiply_mo" {
