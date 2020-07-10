@@ -79,6 +79,8 @@ dfx_stop() {
         rm -f dfx-bootstrap.pid
     else
         dfx stop
+        local dfx_root=.dfx/
+        rm -rf $dfx_root
 
         # Verify that processes are killed.
         ! ( ps | grep "[/\s]dfx start" )
