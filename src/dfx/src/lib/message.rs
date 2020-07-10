@@ -40,6 +40,7 @@ user_message!(
     MethodName => "Specifies the method name to call on the canister.",
     AsyncResult => "Do not wait for the result of the call to be returned by polling the replica. Instead return a response ID.",
     ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
+    OutputType => "Specifies the format for displaying the method's return result.",
     ArgumentValue => "Specifies the argument to pass to the method.",
 
 
