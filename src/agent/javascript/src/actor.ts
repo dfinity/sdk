@@ -51,7 +51,7 @@ export interface ActorConfig {
 export type ActorSubclass<T = Record<string, (...args: unknown[]) => Promise<unknown>>> = Actor & T;
 
 /**
- *
+ * The mode used when installing a canister.
  */
 export enum CanisterInstallMode {
   Install = 'install',
@@ -86,6 +86,10 @@ export class Actor {
     });
   }
 
+  /**
+   * Get the interface of an actor, in the form of an instance of a Service.
+   * @param actor The actor to get the interface of.
+   */
   public static interfaceOf(actor: Actor): IDL.ServiceClass {
     return actor[kMetadataSymbol].service;
   }
@@ -99,6 +103,8 @@ export class Actor {
       module: BinaryBlob;
       mode?: CanisterInstallMode;
       arg?: BinaryBlob;
+      computerAllocation?: number;
+      memoryAllocation?: number;
     },
     config: ActorConfig,
   ): Promise<void> {
@@ -111,14 +117,16 @@ export class Actor {
       typeof config.canisterId === 'string'
         ? CanisterId.fromText(config.canisterId)
         : config.canisterId;
+    const computerAllocation = fields.computerAllocation;
+    const memoryAllocation = fields.memoryAllocation;
 
     await this.getManagementCanister(config).install_code({
       mode: { [mode]: null },
       arg,
       wasm_module: wasmModule,
       canister_id: canisterId,
-      compute_allocation: [],
-      memory_allocation: [],
+      compute_allocation: computerAllocation !== undefined ? [computerAllocation] : [],
+      memory_allocation: memoryAllocation !== undefined ? [memoryAllocation] : undefined,
     });
   }
 
@@ -187,14 +195,6 @@ export class Actor {
   constructor(metadata: ActorMetadata) {
     this[kMetadataSymbol] = metadata;
   }
-
-  // __createCanister(options?: {
-  //   maxAttempts?: number;
-  //   throttleDurationInMSecs?: number;
-  // }): Promise<CanisterId>;
-  // __setCanisterId(cid: CanisterId): void;
-  // __canisterId(): string | undefined;
-  // __getAsset(path: string): Promise<Uint8Array>;
 }
 
 // IDL functions can have multiple return values, so decoding always
