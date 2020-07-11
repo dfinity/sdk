@@ -79,8 +79,11 @@ const kMetadataSymbol = Symbol();
  * return a promise. These functions are derived from the IDL definition.
  */
 export class Actor {
-  public static getManagementCanister(): ActorSubclass {
-    return kManagementCanister;
+  public static getManagementCanister(config: Omit<ActorConfig, 'canisterId'>): ActorSubclass {
+    return Actor.createActor(managementCanister, {
+      ...config,
+      canisterId: CanisterId.fromHex(''),
+    });
   }
 
   public static interfaceOf(actor: Actor): IDL.ServiceClass {
@@ -91,24 +94,31 @@ export class Actor {
     return actor[kMetadataSymbol].canisterId;
   }
 
-  public static async install(fields: {
-    canisterId: CanisterId | string;
-    module: BinaryBlob;
-    mode?: CanisterInstallMode;
-    arg?: BinaryBlob;
-  }): Promise<void> {
+  public static async install(
+    fields: {
+      module: BinaryBlob;
+      mode?: CanisterInstallMode;
+      arg?: BinaryBlob;
+    },
+    config: ActorConfig,
+  ): Promise<void> {
     const mode = fields.mode || CanisterInstallMode.Install;
-    const arg = fields.arg || IDL.encode([], []);
+    // Need to transform the arg into a number array.
+    const arg = fields.arg ? [...fields.arg] : [];
+    // Same for module.
+    const wasmModule = [...fields.module];
     const canisterId =
-      typeof fields.canisterId === 'string'
-        ? CanisterId.fromText(fields.canisterId)
-        : fields.canisterId;
+      typeof config.canisterId === 'string'
+        ? CanisterId.fromText(config.canisterId)
+        : config.canisterId;
 
-    await this.getManagementCanister().install_code({
-      mode,
-      canister_id: canisterId,
+    await this.getManagementCanister(config).install_code({
+      mode: { [mode]: null },
       arg,
-      wasm_module: fields.module,
+      wasm_module: wasmModule,
+      canister_id: canisterId,
+      compute_allocation: [],
+      memory_allocation: [],
     });
   }
 
@@ -120,13 +130,15 @@ export class Actor {
     },
     config?: Omit<ActorConfig, 'canisterId'>,
   ): Promise<ActorSubclass> {
-    const {
-      canister_id: canisterId,
-    } = (await this.getManagementCanister().create_canister()) as any;
-    await this.install({
-      ...fields,
-      canisterId,
-    });
+    const { canister_id: canisterId } = (await this.getManagementCanister(
+      config || {},
+    ).create_canister()) as any;
+    await this.install(
+      {
+        ...fields,
+      },
+      { ...config, canisterId },
+    );
 
     return this.createActor(interfaceFactory, { ...config, canisterId });
   }
@@ -337,7 +349,3 @@ export function makeActorFactory(actorInterfaceFactory: IDL.InterfaceFactory): A
     return Actor.createActor(actorInterfaceFactory, config);
   };
 }
-
-const kManagementCanister = Actor.createActor(managementCanister, {
-  canisterId: 'ic:00',
-});

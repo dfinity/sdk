@@ -21,7 +21,7 @@ const factory: IDL.InterfaceFactory = ({ IDL }) =>
 
 // TODO(hansl): Add a type to create an Actor interface from a IDL.Service definition.
 export async function counterFactory(): Promise<CounterActor> {
-  return (await Actor.createAndInstallCanister(
+  return ((await Actor.createAndInstallCanister(
     factory,
     {
       module: blobFromUint8Array(wasm),
@@ -29,5 +29,5 @@ export async function counterFactory(): Promise<CounterActor> {
     {
       agent: httpAgent,
     },
-  )) as CounterActor;
+  )) as unknown) as CounterActor;
 }
