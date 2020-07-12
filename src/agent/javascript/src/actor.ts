@@ -126,7 +126,7 @@ export class Actor {
       wasm_module: wasmModule,
       canister_id: canisterId,
       compute_allocation: computerAllocation !== undefined ? [computerAllocation] : [],
-      memory_allocation: memoryAllocation !== undefined ? [memoryAllocation] : undefined,
+      memory_allocation: memoryAllocation !== undefined ? [memoryAllocation] : [],
     });
   }
 
