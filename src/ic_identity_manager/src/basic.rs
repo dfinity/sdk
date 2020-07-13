@@ -45,6 +45,19 @@ fn generate(profile_path: &impl AsRef<Path>) -> Result<PathBuf> {
     let pem_file = profile_path.as_ref().join("creds.pem");
     fs::write(&pem_file, encode_pem_private_key(&(*pkcs8_bytes.as_ref())))?;
 
+    // Build permissions, depending on platform. On POSIX we set 400. On anything else we
+    // just don't do anything.
+    let mut permissions = fs::metadata(&pem_file)?.permissions();
+    permissions.set_readonly(true);
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        permissions.set_mode(0o400);
+    }
+
+    fs::set_permissions(&pem_file, permissions)?;
+
     assert_eq!(
         pem::parse(fs::read(&pem_file)?)?.contents,
         pkcs8_bytes.as_ref()
