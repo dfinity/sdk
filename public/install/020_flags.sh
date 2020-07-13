@@ -38,7 +38,7 @@ read_flags() {
     # Set values from command line.
     # shellcheck disable=SC2199
     # https://github.com/koalaman/shellcheck/wiki/SC2199
-    while [ -n "$@" ]; do
+    while [ -n "$*" ]; do
         local ARG=$1
         shift
 
