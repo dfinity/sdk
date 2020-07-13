@@ -117,17 +117,28 @@ export class Actor {
       typeof config.canisterId === 'string'
         ? CanisterId.fromText(config.canisterId)
         : config.canisterId;
-    const computerAllocation = fields.computerAllocation;
-    const memoryAllocation = fields.memoryAllocation;
+    const computerAllocation =
+      fields.computerAllocation !== undefined ? [fields.computerAllocation] : [];
+    const memoryAllocation = fields.memoryAllocation !== undefined ? [fields.memoryAllocation] : [];
 
     await this.getManagementCanister(config).install_code({
       mode: { [mode]: null },
       arg,
       wasm_module: wasmModule,
       canister_id: canisterId,
-      compute_allocation: computerAllocation !== undefined ? [computerAllocation] : [],
-      memory_allocation: memoryAllocation !== undefined ? [memoryAllocation] : [],
+      compute_allocation: computerAllocation,
+      memory_allocation: memoryAllocation,
     });
+  }
+
+  public static async createCanister(
+    config?: Omit<ActorConfig, 'canisterId'>,
+  ): Promise<CanisterId> {
+    const { canister_id: canisterId } = (await this.getManagementCanister(
+      config || {},
+    ).create_canister()) as any;
+
+    return canisterId;
   }
 
   public static async createAndInstallCanister(
@@ -138,9 +149,7 @@ export class Actor {
     },
     config?: Omit<ActorConfig, 'canisterId'>,
   ): Promise<ActorSubclass> {
-    const { canister_id: canisterId } = (await this.getManagementCanister(
-      config || {},
-    ).create_canister()) as any;
+    const canisterId = await this.createCanister(config);
     await this.install(
       {
         ...fields,
@@ -162,16 +171,16 @@ export class Actor {
       [x: string]: (...args: unknown[]) => Promise<unknown>;
 
       constructor(config: ActorConfig) {
-        const configWithDefaults = { ...DEFAULT_ACTOR_CONFIG, ...config };
+        const canisterId =
+          typeof config.canisterId === 'string'
+            ? CanisterId.fromText(config.canisterId)
+            : config.canisterId;
+
         super({
-          canisterId:
-            typeof configWithDefaults.canisterId === 'string'
-              ? CanisterId.fromText(configWithDefaults.canisterId)
-              : configWithDefaults.canisterId,
+          ...DEFAULT_ACTOR_CONFIG,
+          ...config,
+          canisterId,
           service,
-          agent: configWithDefaults.agent,
-          maxAttempts: configWithDefaults.maxAttempts,
-          throttleDurationInMSecs: configWithDefaults.throttleDurationInMSecs,
         });
       }
     }
@@ -192,7 +201,7 @@ export class Actor {
 
   private [kMetadataSymbol]: ActorMetadata;
 
-  constructor(metadata: ActorMetadata) {
+  protected constructor(metadata: ActorMetadata) {
     this[kMetadataSymbol] = metadata;
   }
 }
