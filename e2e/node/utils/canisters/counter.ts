@@ -8,6 +8,7 @@ const wasm = readFileSync(path.join(__dirname, 'counter.wasm'));
 type CounterActor = Actor & {
   read(): Promise<number>;
   inc_read(): Promise<number>;
+  inc(): Promise<void>;
   write(n: number): Promise<void>;
 };
 
