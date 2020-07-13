@@ -44,7 +44,7 @@ validate_install_dir() {
                 sudo mkdir -p "$dir"
             fi
         fi
-    fi      
+    fi
 
     ! [ -d "$dir" ] && return 1
     ! [ -w "$dir" ] && return 2
