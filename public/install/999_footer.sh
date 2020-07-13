@@ -45,7 +45,7 @@ validate_install_dir() {
             fi
         fi
     fi      
-        
+
     ! [ -d "$dir" ] && return 1
     ! [ -w "$dir" ] && return 2
 
