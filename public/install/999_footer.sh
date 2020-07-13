@@ -149,7 +149,7 @@ main() {
     mkdir -p "${_install_dir}" || true
 
     if [ -w "${_install_dir}" ]; then
-        MV=mv
+        MV="mv"
     else
         if ! type sudo >/dev/null; then
             err "Install directory '${_install_dir}' not writable and sudo command not found"
