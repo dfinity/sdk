@@ -60,7 +60,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     canister_pool.build_or_fail(
         BuildConfig::from_config(&config)
             .with_skip_frontend(args.is_present("skip-frontend"))
-            .with_skip_manifest(args.is_present("check")),
+            .with_build_mode_check(args.is_present("check")),
     )?;
 
     Ok(())
