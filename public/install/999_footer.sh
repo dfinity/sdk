@@ -36,6 +36,16 @@ validate_install_dir() {
     local dir="${1%/}"
 
     # We test it's a directory and writeable.
+
+    # Try to create the directory if it doesn't exist already
+    if ! [ -d "$dir" ]; then
+        if ! mkdir -p "$dir"; then
+            if type sudo >/dev/null; then
+                sudo mkdir -p "$dir"
+            fi
+        fi
+    fi
+
     ! [ -d "$dir" ] && return 1
     ! [ -w "$dir" ] && return 2
 
@@ -51,6 +61,7 @@ validate_install_dir() {
 sdk_install_dir() {
     if [ "${DFX_INSTALL_ROOT:-}" ]; then
         # If user specifies an actual dir, use that.
+        validate_install_dir "${DFX_INSTALL_ROOT}"
         printf %s "${DFX_INSTALL_ROOT}"
     elif validate_install_dir /usr/local/bin; then
         printf %s /usr/local/bin
@@ -59,7 +70,7 @@ sdk_install_dir() {
         # user is missing a /usr/local/bin we need to create it. Even if it is
         # not "writeable" we expect the user to have access to super user
         # privileges during the installation.
-        mkdir -p /usr/local/bin 2>/dev/null || sudo mkdir -p /usr/local/bin || true
+        validate_install_dir /usr/local/bin
         printf %s /usr/local/bin
     elif validate_install_dir /usr/bin; then
         printf %s /usr/bin
@@ -95,8 +106,6 @@ main() {
     need_cmd tar
     need_cmd gzip
     need_cmd touch
-    # For instance in Debian sudo can be missing.
-    need_cmd sudo
 
     if ! confirm_license; then
         echo "Please accept the license to continue."
@@ -139,7 +148,15 @@ main() {
     printf "%s\n" "Will install in: ${_install_dir}"
     mkdir -p "${_install_dir}" || true
 
-    mv "$_dfx_file" "${_install_dir}" 2>/dev/null || sudo mv "$_dfx_file" "${_install_dir}" \
+    if [ -w "${_install_dir}" ]; then
+        MV="mv"
+    else
+        if ! type sudo >/dev/null; then
+            err "Install directory '${_install_dir}' not writable and sudo command not found"
+        fi
+        MV="sudo mv"
+    fi
+    $MV "$_dfx_file" "${_install_dir}" 2>/dev/null \
         || err "Failed to install the DFINITY Development Kit: please check your permissions and try again."
 
     log "Installed $_install_dir/dfx"
