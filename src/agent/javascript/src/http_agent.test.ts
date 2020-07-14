@@ -143,7 +143,6 @@ test('requestStatus', async () => {
     content: {
       request_type: ReadRequestType.RequestStatus,
       request_id: requestId,
-      nonce,
       sender: principal.toBlob(),
     },
     sender_pubkey: senderPubKey,

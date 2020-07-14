@@ -152,7 +152,6 @@ test('makeActor', async () => {
         content: {
           request_type: 'request_status',
           request_id: expectedCallRequestId,
-          nonce: nonces[1],
           sender,
         },
         sender_pubkey: senderPubKey,
@@ -172,7 +171,6 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
-        nonce: nonces[2],
         sender,
       },
       sender_pubkey: senderPubKey,
@@ -191,7 +189,6 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
-        nonce: nonces[3],
         sender,
       },
       sender_pubkey: senderPubKey,
@@ -210,7 +207,6 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
-        nonce: nonces[4],
         sender,
       },
       sender_pubkey: senderPubKey,
