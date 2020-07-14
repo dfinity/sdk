@@ -57,9 +57,7 @@ fn candid(
     let store = CanisterIdStore::for_network(Some(&network_descriptor))?;
     let candid_path = store
         .get_canister_name(&id)
-        .map(|canister_name| {
-            canister_did_location( &canister_name )
-        })
+        .map(|canister_name| canister_did_location(&canister_name))
         .ok_or_else(|| {
             DfxError::CouldNotFindCanisterNameForNetwork(
                 id.to_string(),
