@@ -1,8 +1,7 @@
 import { Buffer } from 'buffer/';
 import { Agent } from './agent';
 import { CanisterId } from './canisterId';
-import assetCanister from './canisters/asset';
-import managementCanister from './canisters/management';
+import { getManagementCanister } from './canisters/management';
 import {
   QueryResponseStatus,
   RequestStatusResponseReplied,
@@ -35,13 +34,19 @@ function getDefaultAgent(): Agent {
 }
 
 /**
- * Configuration that can be passed to customize the Actor behaviour.
+ * Configuration to make calls to the Replica.
  */
-export interface ActorConfig {
-  canisterId: string | CanisterId;
+export interface CallConfig {
   agent?: Agent;
   maxAttempts?: number;
   throttleDurationInMSecs?: number;
+}
+
+/**
+ * Configuration that can be passed to customize the Actor behaviour.
+ */
+export interface ActorConfig extends CallConfig {
+  canisterId: string | CanisterId;
 }
 
 // TODO: move this to proper typing when Candid support TypeScript.
@@ -79,13 +84,6 @@ const kMetadataSymbol = Symbol();
  * return a promise. These functions are derived from the IDL definition.
  */
 export class Actor {
-  public static getManagementCanister(config: Omit<ActorConfig, 'canisterId'>): ActorSubclass {
-    return Actor.createActor(managementCanister, {
-      ...config,
-      canisterId: CanisterId.fromHex(''),
-    });
-  }
-
   /**
    * Get the interface of an actor, in the form of an instance of a Service.
    * @param actor The actor to get the interface of.
@@ -108,7 +106,7 @@ export class Actor {
     },
     config: ActorConfig,
   ): Promise<void> {
-    const mode = fields.mode || CanisterInstallMode.Install;
+    const mode = fields.mode === undefined ? CanisterInstallMode.Install : fields.mode;
     // Need to transform the arg into a number array.
     const arg = fields.arg ? [...fields.arg] : [];
     // Same for module.
@@ -117,12 +115,13 @@ export class Actor {
       typeof config.canisterId === 'string'
         ? CanisterId.fromText(config.canisterId)
         : config.canisterId;
-    const computerAllocation =
+    const computerAllocation: [number] | [] =
       fields.computerAllocation !== undefined ? [fields.computerAllocation] : [];
-    const memoryAllocation = fields.memoryAllocation !== undefined ? [fields.memoryAllocation] : [];
+    const memoryAllocation: [number] | [] =
+      fields.memoryAllocation !== undefined ? [fields.memoryAllocation] : [];
 
-    await this.getManagementCanister(config).install_code({
-      mode: { [mode]: null },
+    await getManagementCanister(config).install_code({
+      mode: { [mode]: null } as any,
       arg,
       wasm_module: wasmModule,
       canister_id: canisterId,
@@ -131,12 +130,8 @@ export class Actor {
     });
   }
 
-  public static async createCanister(
-    config?: Omit<ActorConfig, 'canisterId'>,
-  ): Promise<CanisterId> {
-    const { canister_id: canisterId } = (await this.getManagementCanister(
-      config || {},
-    ).create_canister()) as any;
+  public static async createCanister(config?: CallConfig): Promise<CanisterId> {
+    const { canister_id: canisterId } = await getManagementCanister(config || {}).create_canister();
 
     return canisterId;
   }
@@ -147,7 +142,7 @@ export class Actor {
       module: BinaryBlob;
       arg?: BinaryBlob;
     },
-    config?: Omit<ActorConfig, 'canisterId'>,
+    config?: CallConfig,
   ): Promise<ActorSubclass> {
     const canisterId = await this.createCanister(config);
     await this.install(
@@ -158,10 +153,6 @@ export class Actor {
     );
 
     return this.createActor(interfaceFactory, { ...config, canisterId });
-  }
-
-  public static createAssetCanisterActor(config: ActorConfig): ActorSubclass {
-    return this.createActor(assetCanister, config);
   }
 
   public static createActorClass(interfaceFactory: IDL.InterfaceFactory): ActorConstructor {
@@ -192,11 +183,12 @@ export class Actor {
     return CanisterActor;
   }
 
-  public static createActor(
-    interfaceFactory: IDL.InterfaceFactory,
-    configuration: ActorConfig,
-  ): ActorSubclass {
-    return new (this.createActorClass(interfaceFactory))(configuration);
+  public static createActor<
+    T = Record<string, Record<string, (...args: unknown[]) => Promise<unknown>>>
+  >(interfaceFactory: IDL.InterfaceFactory, configuration: ActorConfig): ActorSubclass<T> {
+    return (new (this.createActorClass(interfaceFactory))(
+      configuration,
+    ) as unknown) as ActorSubclass<T>;
   }
 
   private [kMetadataSymbol]: ActorMetadata;

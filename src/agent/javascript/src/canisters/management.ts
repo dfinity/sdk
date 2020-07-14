@@ -1,31 +1,28 @@
-/**
- * This file is generated from the candid for asset management.
- */
+import { Actor, ActorSubclass, CallConfig } from '../actor';
+import { CanisterId } from '../canisterId';
+import managementCanisterIdl from './management_idl';
+
 /* tslint:disable */
-// @ts-ignore
-export default ({ IDL }) => {
-  const canister_id = IDL.Principal;
-  const wasm_module = IDL.Vec(IDL.Nat8);
-  return IDL.Service({
-    create_canister: IDL.Func([], [IDL.Record({ canister_id: canister_id })], []),
-    install_code: IDL.Func(
-      [
-        IDL.Record({
-          mode: IDL.Variant({ install: IDL.Null, reinstall: IDL.Null, upgrade: IDL.Null }),
-          canister_id: canister_id,
-          wasm_module: wasm_module,
-          arg: IDL.Vec(IDL.Nat8),
-          compute_allocation: IDL.Opt(IDL.Nat),
-          memory_allocation: IDL.Opt(IDL.Nat),
-        }),
-      ],
-      [],
-      [],
-    ),
-    set_controller: IDL.Func(
-      [IDL.Record({ canister_id: canister_id, new_controller: IDL.Principal })],
-      [],
-      [],
-    ),
+export interface ManagementCanisterRecord {
+  create_canister(): Promise<{ canister_id: CanisterId }>;
+  install_code(arg0: {
+    mode: { install: null } | { reinstall: null } | { upgrade: null };
+    canister_id: CanisterId;
+    wasm_module: number[];
+    arg: number[];
+    compute_allocation: [] | [number];
+    memory_allocation: [] | [number];
+  }): Promise<void>;
+}
+/* tslint:enable */
+
+/**
+ * Create a management canister actor.
+ * @param config
+ */
+export function getManagementCanister(config: CallConfig) {
+  return Actor.createActor<ManagementCanisterRecord>(managementCanisterIdl, {
+    ...config,
+    canisterId: CanisterId.fromHex(''),
   });
-};
+}

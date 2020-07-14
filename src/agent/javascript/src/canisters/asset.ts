@@ -1,11 +1,18 @@
-/**
- * This file is generated from the candid for asset management.
- */
+import { Actor, ActorConfig, ActorSubclass, CallConfig } from '../actor';
+import { CanisterId } from '../canisterId';
+import assetCanister from './asset_idl';
+
 /* tslint:disable */
-// @ts-ignore
-export default ({ IDL }) => {
-  return IDL.Service({
-    retrieve: IDL.Func([IDL.Text], [IDL.Vec(IDL.Nat8)], ['query']),
-    store: IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [], []),
-  });
-};
+export interface AssetCanisterRecord {
+  store(path: string, content: number[]): Promise<void>;
+  retrieve(path: string): Promise<number[]>;
+}
+/* tslint:enable */
+
+/**
+ * Create a management canister actor.
+ * @param config
+ */
+export function createAssetCanisterActor(config: ActorConfig) {
+  return Actor.createActor<AssetCanisterRecord>(assetCanister, config);
+}
