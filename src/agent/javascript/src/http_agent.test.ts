@@ -62,7 +62,7 @@ test('call', async () => {
   };
 
   const mockPartialsRequestId = await requestIdOf(mockPartialRequest);
-  const senderSig = sign(keyPair.secretKey)(mockPartialsRequestId);
+  const senderSig = sign(mockPartialsRequestId, keyPair.secretKey);
   // Just sanity checking our life.
   expect(verify(mockPartialsRequestId, senderSig, keyPair.publicKey)).toBe(true);
 
@@ -124,7 +124,7 @@ test('requestStatus', async () => {
     principal,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonce));
-  httpAgent.setAuthTransform(makeAuthTransform(keyPair, () => () => Buffer.from([0]) as SenderSig));
+  httpAgent.setAuthTransform(makeAuthTransform(keyPair, () => Buffer.from([0]) as SenderSig));
 
   const requestId = await requestIdOf({
     request_type: SubmitRequestType.Call,

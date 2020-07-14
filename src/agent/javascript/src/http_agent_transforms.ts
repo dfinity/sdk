@@ -3,6 +3,8 @@ import { makeNonce, Nonce } from './types';
 
 export function makeNonceTransform(nonceFn: () => Nonce = makeNonce): HttpAgentRequestTransformFn {
   return async (request: HttpAgentRequest) => {
-    request.body.nonce = nonceFn();
+    if (request.endpoint !== Endpoint.Read) {
+      request.body.nonce = nonceFn();
+    }
   };
 }

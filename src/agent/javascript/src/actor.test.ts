@@ -115,7 +115,8 @@ test('makeActor', async () => {
         publicKey: senderPubKey,
         secretKey: senderSecretKey,
       },
-      () => () => Buffer.from([0]) as SenderSig,
+
+      () => Buffer.from([0]) as SenderSig,
     ),
   );
 
