@@ -77,7 +77,7 @@ interface ActorMetadata {
   throttleDurationInMSecs: number;
 }
 
-const kMetadataSymbol = Symbol();
+const metadataSymbol = Symbol();
 
 /**
  * An actor base class. An actor is an object containing only functions that will
@@ -89,11 +89,11 @@ export class Actor {
    * @param actor The actor to get the interface of.
    */
   public static interfaceOf(actor: Actor): IDL.ServiceClass {
-    return actor[kMetadataSymbol].service;
+    return actor[metadataSymbol].service;
   }
 
   public static canisterIdOf(actor: Actor): CanisterId {
-    return actor[kMetadataSymbol].canisterId;
+    return actor[metadataSymbol].canisterId;
   }
 
   public static async install(
@@ -191,10 +191,10 @@ export class Actor {
     ) as unknown) as ActorSubclass<T>;
   }
 
-  private [kMetadataSymbol]: ActorMetadata;
+  private [metadataSymbol]: ActorMetadata;
 
   protected constructor(metadata: ActorMetadata) {
-    this[kMetadataSymbol] = metadata;
+    this[metadataSymbol] = metadata;
   }
 }
 
@@ -228,8 +228,8 @@ function _createActorMethod(
 ): (...args: unknown[]) => Promise<unknown> {
   if (func.annotations.includes('query')) {
     return async function (this: Actor, ...args: unknown[]) {
-      const agent = this[kMetadataSymbol].agent || getDefaultAgent();
-      const cid = this[kMetadataSymbol].canisterId;
+      const agent = this[metadataSymbol].agent || getDefaultAgent();
+      const cid = this[metadataSymbol].canisterId;
       const arg = IDL.encode(func.argTypes, args) as BinaryBlob;
 
       const result = await agent.query(cid, { methodName, arg });
@@ -248,10 +248,10 @@ function _createActorMethod(
     };
   } else {
     return async function (this: Actor, ...args: unknown[]) {
-      const agent = this[kMetadataSymbol].agent || getDefaultAgent();
-      const cid = this[kMetadataSymbol].canisterId;
+      const agent = this[metadataSymbol].agent || getDefaultAgent();
+      const cid = this[metadataSymbol].canisterId;
 
-      const { maxAttempts, throttleDurationInMSecs } = this[kMetadataSymbol];
+      const { maxAttempts, throttleDurationInMSecs } = this[metadataSymbol];
       const arg = IDL.encode(func.argTypes, args) as BinaryBlob;
       const { requestId, response } = await agent.call(cid, { methodName, arg });
 
