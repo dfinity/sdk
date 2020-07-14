@@ -20,6 +20,7 @@
     "max-line-length": [true, 100],
     "quotemark": [true, "single"],
     "arrow-parens": [true, "ban-single-arg-parens"],
+    "space-before-function-paren": [false],
     "variable-name": {
       "options": [
         "ban-keywords",

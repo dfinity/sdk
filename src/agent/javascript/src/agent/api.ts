@@ -1,4 +1,4 @@
-import { ActorConstructor } from '../actor';
+import { ActorFactory } from '../actor';
 import { CanisterId } from '../canisterId';
 import {
   QueryFields,
@@ -43,7 +43,5 @@ export interface Agent {
     principal?: Principal,
   ): Promise<QueryResponse>;
 
-  makeActorFactory(
-    actorInterfaceFactory: (_: { IDL: typeof IDL }) => IDL.ServiceClass,
-  ): ActorConstructor;
+  makeActorFactory(actorInterfaceFactory: IDL.InterfaceFactory): ActorFactory;
 }

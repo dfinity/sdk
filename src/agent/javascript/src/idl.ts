@@ -1468,6 +1468,45 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   return output;
 }
 
+/**
+ * An Interface Factory, normally provided by a Candid code generation.
+ */
+export type InterfaceFactory = (idl: {
+  IDL: {
+    Empty: EmptyClass;
+    Bool: BoolClass;
+    Null: NullClass;
+    Text: TextClass;
+    Int: IntClass;
+    Nat: NatClass;
+
+    Float32: FloatClass;
+    Float64: FloatClass;
+
+    Int8: FixedIntClass;
+    Int16: FixedIntClass;
+    Int32: FixedIntClass;
+    Int64: FixedIntClass;
+
+    Nat8: FixedNatClass;
+    Nat16: FixedNatClass;
+    Nat32: FixedNatClass;
+    Nat64: FixedNatClass;
+
+    Principal: PrincipalClass;
+
+    Tuple: typeof Tuple;
+    Vec: typeof Vec;
+    Opt: typeof Opt;
+    Record: typeof Record;
+    Variant: typeof Variant;
+    Rec: typeof Rec;
+    Func: typeof Func;
+
+    Service(t: Record<string, FuncClass>): ServiceClass;
+  };
+}) => ServiceClass;
+
 // Export Types instances.
 export const Empty = new EmptyClass();
 export const Bool = new BoolClass();

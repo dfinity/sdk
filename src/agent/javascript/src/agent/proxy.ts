@@ -1,4 +1,5 @@
 import {
+  ActorFactory,
   BinaryBlob,
   CallFields,
   CanisterId,
@@ -11,6 +12,7 @@ import {
   SubmitResponse,
 } from '@dfinity/agent';
 import * as actor from '../actor';
+import * as IDL from '../idl';
 import { Agent } from './api';
 
 export enum ProxyMessageKind {
@@ -221,8 +223,8 @@ export class ProxyAgent implements Agent {
     }) as Promise<QueryResponse>;
   }
 
-  public get makeActorFactory() {
-    return actor.makeActorFactory;
+  public makeActorFactory(actorInterfaceFactory: IDL.InterfaceFactory): ActorFactory {
+    return actor.makeActorFactory(actorInterfaceFactory);
   }
 
   private async _sendAndWait(msg: ProxyMessage): Promise<unknown> {
