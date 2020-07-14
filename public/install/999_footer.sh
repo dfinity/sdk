@@ -235,7 +235,7 @@ EOF
     assert_nz "${HOME}"
     uninstall_file_path="${HOME}/.cache/dfinity/uninstall.sh"
     log "uninstall path=${uninstall_file_path}"
-    rm "${uninstall_file_path}"
+    rm -f "${uninstall_file_path}"
     printf "%s" "$uninstall_script" >"${uninstall_file_path}"
     ensure chmod u+x "${uninstall_file_path}"
 }
