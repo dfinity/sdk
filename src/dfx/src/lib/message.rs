@@ -22,7 +22,6 @@ user_message!(
     BootstrapCommand => "Starts the bootstrap server.",
     BootstrapIP => "IP address that the bootstrap server listens on. Defaults to 127.0.0.1.",
     BootstrapPort => "Port number that the bootstrap server listens on. Defaults to 8081.",
-    BootstrapProviders => "List of compute provider API endpoints. Defaults to http://127.0.0.1:8080/api.",
     BootstrapRoot => "Directory containing static assets served by the bootstrap server. Defaults to $HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap.",
     BootstrapTimeout => "Maximum amount of time, in seconds, the bootstrap server will wait for upstream requests to complete. Defaults to 30.",
 
@@ -41,6 +40,7 @@ user_message!(
     MethodName => "Specifies the method name to call on the canister.",
     AsyncResult => "Do not wait for the result of the call to be returned by polling the replica. Instead return a response ID.",
     ArgumentType => "Specifies the data type for the argument when making the call using an argument.",
+    OutputType => "Specifies the format for displaying the method's return result.",
     ArgumentValue => "Specifies the argument to pass to the method.",
 
 
@@ -70,8 +70,7 @@ user_message!(
     // dfx build
     BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     SkipFrontend => "Skip building the frontend, only build the canisters.",
-    BuildSkipManifest => "Skip creating a build manifest. This also skip creating canisters and contacting the replica.",
-    CanisterComputeProvider => "Override the compute provider to connect to. By default uses the address and port set in dfx configuration for the local network.",
+    BuildCheck => "Build canisters without creating them. This can be used to check that canisters build ok.",
     CanisterComputeNetwork => "Override the compute network to connect to.  By default uses the local network.",
 
     // dfx config

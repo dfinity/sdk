@@ -86,7 +86,6 @@ test('call', async () => {
       'Content-Type': 'application/cbor',
     },
     body: cbor.encode(expectedRequest),
-    credentials: 'include',
   });
 });
 
@@ -173,7 +172,6 @@ test('requestStatus', async () => {
         'Content-Type': 'application/cbor',
       },
       body: cbor.encode(expectedRequest),
-      credentials: 'include',
     },
   ]);
 });

@@ -69,7 +69,7 @@ impl Canister {
         self.info.get_canister_id().unwrap()
     }
 
-    // this function is only ever used when build_config.skip_manifest is true
+    // this function is only ever used when build_config.build_mode_check is true
     pub fn generate_and_set_canister_id(&self) -> DfxResult {
         let mut rng = thread_rng();
         let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
@@ -256,7 +256,7 @@ impl CanisterPool {
 
     fn step_prebuild_all(&self, build_config: &BuildConfig) -> DfxResult<()> {
         for canister in &self.canisters {
-            if build_config.skip_manifest {
+            if build_config.build_mode_check {
                 canister.generate_and_set_canister_id()?;
             } else if !canister.info.get_manifest_path().exists() {
                 return Err(DfxError::BuildError(BuildErrorKind::NoManifestError(

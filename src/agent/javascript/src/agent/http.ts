@@ -27,7 +27,7 @@ import {
 import * as IDL from '../idl';
 import { Principal } from '../principal';
 import { requestIdOf } from '../request_id';
-import { BinaryBlob, blobFromHex } from '../types';
+import { BinaryBlob, blobFromHex, JsonObject } from '../types';
 
 const API_VERSION = 'v1';
 
@@ -47,6 +47,11 @@ export interface HttpAgentOptions {
   // The principal used to send messages. This cannot be empty at the request
   // time (will throw).
   principal?: Principal | Promise<Principal>;
+
+  credentials?: {
+    name: string;
+    password?: string;
+  };
 }
 
 declare const window: Window & { fetch: typeof fetch };
@@ -85,6 +90,7 @@ export class HttpAgent implements Agent {
   private readonly _fetch: typeof fetch;
   private readonly _host: URL;
   private readonly _principal: Promise<Principal> | null = null;
+  private readonly _credentials: string | undefined;
 
   constructor(options: HttpAgentOptions = {}) {
     if (options.source) {
@@ -108,6 +114,10 @@ export class HttpAgent implements Agent {
     }
     if (options.principal) {
       this._principal = Promise.resolve(options.principal);
+    }
+    if (options.credentials) {
+      const { name, password } = options.credentials;
+      this._credentials = `${name}${password ? ':' + password : ''}`;
     }
   }
 
@@ -216,6 +226,30 @@ export class HttpAgent implements Agent {
     }) as Promise<RequestStatusResponse>;
   }
 
+  public async status(): Promise<JsonObject> {
+    const headers: Record<string, string> = this._credentials
+      ? {
+          Authorization: 'Basic ' + btoa(this._credentials),
+        }
+      : {};
+
+    const response = await this._fetch(
+      '' + new URL(`/api/${API_VERSION}/${Endpoint.Status}`, this._host),
+      { headers },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Server returned an error:\n` +
+          `  Code: ${response.status} (${response.statusText}\n)` +
+          `  Body: ${await response.text()}\n`,
+      );
+    }
+
+    const buffer = await response.arrayBuffer();
+    return cbor.decode(new Uint8Array(buffer));
+  }
+
   public get makeActorFactory() {
     return actor.makeActorFactory;
   }
@@ -243,6 +277,7 @@ export class HttpAgent implements Agent {
         method: 'POST',
         headers: {
           'Content-Type': 'application/cbor',
+          ...(this._credentials ? { Authorization: 'Basic ' + btoa(this._credentials) } : {}),
         },
       },
       endpoint: Endpoint.Submit,
@@ -257,7 +292,6 @@ export class HttpAgent implements Agent {
       this._fetch('' + new URL(`/api/${API_VERSION}/${Endpoint.Submit}`, this._host), {
         ...transformedRequest.request,
         body,
-        credentials: 'include',
       }),
       requestIdOf(submit),
     ]);
@@ -265,7 +299,7 @@ export class HttpAgent implements Agent {
     if (!response.ok) {
       throw new Error(
         `Server returned an error:\n` +
-          `  Code: ${response.status} (${response.statusText}\n` +
+          `  Code: ${response.status} (${response.statusText}\n)` +
           `  Body: ${await response.text()}\n`,
       );
     }
@@ -286,6 +320,7 @@ export class HttpAgent implements Agent {
         method: 'POST',
         headers: {
           'Content-Type': 'application/cbor',
+          ...(this._credentials ? { Authorization: 'Basic ' + btoa(this._credentials) } : {}),
         },
       },
       endpoint: Endpoint.Read,
@@ -299,14 +334,13 @@ export class HttpAgent implements Agent {
       {
         ...transformedRequest.request,
         body,
-        credentials: 'include',
       },
     );
 
     if (!response.ok) {
       throw new Error(
         `Server returned an error:\n` +
-          `  Code: ${response.status} (${response.statusText}\n` +
+          `  Code: ${response.status} (${response.statusText}\n)` +
           `  Body: ${await response.text()}\n`,
       );
     }

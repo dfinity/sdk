@@ -33,26 +33,6 @@ teardown() {
     assert_match "Installing code for canister e2e_project"
 }
 
-@test "install succeeds with provider URL" {
-    dfx_start
-    dfx canister create --all
-    dfx build
-
-    assert_command dfx canister --provider http://127.0.0.1:8000 install --all
-
-    assert_match "Installing code for canister e2e_project"
-}
-
-@test "install fails with incorrect provider URL" {
-    dfx_start
-    dfx canister create --all
-    dfx build
-
-    assert_command_fail dfx canister --provider http://127.0.0.1:8765 install --all
-
-    assert_match "Installing code for canister e2e_project"
-}
-
 @test "install succeeds with network name" {
     dfx_start
     dfx canister create --all

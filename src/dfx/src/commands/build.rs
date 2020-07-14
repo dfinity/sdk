@@ -16,28 +16,15 @@ pub fn construct() -> App<'static, 'static> {
                 .help(UserMessage::SkipFrontend.to_str()),
         )
         .arg(
-            Arg::with_name("skip-manifest")
-                .long("skip-manifest")
+            Arg::with_name("check")
+                .long("check")
                 .takes_value(false)
-                .help(UserMessage::BuildSkipManifest.to_str()),
-        )
-        .arg(
-            Arg::with_name("provider")
-                .help(UserMessage::CanisterComputeProvider.to_str())
-                .long("provider")
-                .conflicts_with("network")
-                .validator(|v| {
-                    reqwest::Url::parse(&v)
-                        .map(|_| ())
-                        .map_err(|_| "should be a valid URL.".to_string())
-                })
-                .takes_value(true),
+                .help(UserMessage::BuildCheck.to_str()),
         )
         .arg(
             Arg::with_name("network")
                 .help(UserMessage::CanisterComputeNetwork.to_str())
                 .long("network")
-                .conflicts_with("provider")
                 .takes_value(true),
         )
 }
@@ -60,10 +47,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let canister_pool = CanisterPool::load(&env)?;
 
     // Create canisters on the replica and associate canister ids locally.
-    if args.is_present("skip-manifest") {
+    if args.is_present("check") {
         slog::warn!(
             env.get_logger(),
-            "Skipping the build manifest. Canister IDs might be hard coded."
+            "Building canisters to check they build ok. Canister IDs might be hard coded."
         );
     }
 
@@ -73,7 +60,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     canister_pool.build_or_fail(
         BuildConfig::from_config(&config)
             .with_skip_frontend(args.is_present("skip-frontend"))
-            .with_skip_manifest(args.is_present("skip-manifest")),
+            .with_build_mode_check(args.is_present("check")),
     )?;
 
     Ok(())

@@ -7,6 +7,7 @@ import { BinaryBlob } from './types';
 export const enum Endpoint {
   Read = 'read',
   Submit = 'submit',
+  Status = 'status',
 }
 
 // An HttpAgent request, before it gets encoded and sent to the server.

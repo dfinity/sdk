@@ -9,34 +9,28 @@ pub fn get_provider_urls<'a>(
     env: &'a (dyn Environment + 'a),
     args: &ArgMatches<'_>,
 ) -> DfxResult<Vec<String>> {
-    args.value_of("provider")
-        .map_or_else::<DfxResult<Vec<String>>, _, _>(
-            || {
-                let network_name = args.value_of("network").unwrap_or("local");
-                let config = env
-                    .get_config()
-                    .ok_or(DfxError::CommandMustBeRunInAProject)?;
-                let config = config.as_ref().get_config();
-                match config.get_network(&network_name) {
-                    Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
-                        match &network_provider.providers {
-                            providers if !providers.is_empty() => Ok(providers.to_vec()),
-                            _ => Err(DfxError::ComputeNetworkHasNoProviders(
-                                network_name.to_string(),
-                            )),
-                        }
-                    }
-                    Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
-                        Ok(vec![format!("http://{}", local_provider.bind)])
-                    }
-                    None => Err(DfxError::ComputeNetworkNotFound(network_name.to_string())),
-                }?
-                .iter()
-                .map(|provider| parse_provider_url(provider))
-                .collect::<Result<_, _>>()
-            },
-            |provider| command_line_provider_to_url(&provider).map(|url| vec![url]),
-        )
+    let network_name = args.value_of("network").unwrap_or("local");
+    let config = env
+        .get_config()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let config = config.as_ref().get_config();
+    match config.get_network(&network_name) {
+        Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
+            match &network_provider.providers {
+                providers if !providers.is_empty() => Ok(providers.to_vec()),
+                _ => Err(DfxError::ComputeNetworkHasNoProviders(
+                    network_name.to_string(),
+                )),
+            }
+        }
+        Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
+            Ok(vec![format!("http://{}", local_provider.bind)])
+        }
+        None => Err(DfxError::ComputeNetworkNotFound(network_name.to_string())),
+    }?
+    .iter()
+    .map(|provider| parse_provider_url(provider))
+    .collect::<Result<_, _>>()
 }
 
 pub fn get_first_agent_url<'a>(

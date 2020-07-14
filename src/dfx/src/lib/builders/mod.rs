@@ -77,7 +77,7 @@ pub trait CanisterBuilder {
 pub struct BuildConfig {
     profile: Profile,
     pub skip_frontend: bool,
-    pub skip_manifest: bool,
+    pub build_mode_check: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
@@ -92,7 +92,7 @@ impl BuildConfig {
         BuildConfig {
             profile: config.profile.unwrap_or(Profile::Debug),
             skip_frontend: false,
-            skip_manifest: false,
+            build_mode_check: false,
             idl_root: build_root.join("idl/"),
         }
     }
@@ -104,9 +104,9 @@ impl BuildConfig {
         }
     }
 
-    pub fn with_skip_manifest(self, skip_manifest: bool) -> Self {
+    pub fn with_build_mode_check(self, build_mode_check: bool) -> Self {
         Self {
-            skip_manifest,
+            build_mode_check,
             ..self
         }
     }
