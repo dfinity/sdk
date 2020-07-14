@@ -224,7 +224,6 @@ export class HttpAgent implements Agent {
     return this.read({
       request_type: ReadRequestType.RequestStatus,
       request_id: fields.requestId,
-      sender: p.toBlob(),
     }) as Promise<RequestStatusResponse>;
   }
 

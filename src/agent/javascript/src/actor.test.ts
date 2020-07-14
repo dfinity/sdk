@@ -115,7 +115,8 @@ test('makeActor', async () => {
         publicKey: senderPubKey,
         secretKey: senderSecretKey,
       },
-      () => () => Buffer.from([0]) as SenderSig,
+
+      () => Buffer.from([0]) as SenderSig,
     ),
   );
 
@@ -149,8 +150,6 @@ test('makeActor', async () => {
         content: {
           request_type: 'request_status',
           request_id: expectedCallRequestId,
-          nonce: nonces[1],
-          sender,
         },
         sender_pubkey: senderPubKey,
         sender_sig: senderSig,
@@ -168,8 +167,6 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
-        nonce: nonces[2],
-        sender,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
@@ -186,8 +183,6 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
-        nonce: nonces[3],
-        sender,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
@@ -204,8 +199,6 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
-        nonce: nonces[4],
-        sender,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,

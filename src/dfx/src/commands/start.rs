@@ -339,6 +339,7 @@ fn start_client(
             .unwrap_or_default(),
         "--state-dir",
         config.state_manager.state_root.to_str().unwrap_or_default(),
+        "--require-valid-signatures",
     ]);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
