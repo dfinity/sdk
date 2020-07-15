@@ -48,7 +48,7 @@ impl CanisterInfo {
     ) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
-        let network_name = get_network_context().ok_or_else(|| DfxError::ComputeNetworkNotSet)?;
+        let network_name = get_network_context()?;
         let build_root = config.get_temp_path().join(network_name);
         let build_root = build_root.join(build_defaults.get_output());
         std::fs::create_dir_all(&build_root)?;

@@ -18,8 +18,12 @@ fn set_network_context(args: &ArgMatches<'_>) {
     *n = Some(name);
 }
 
-pub fn get_network_context() -> Option<String> {
-    NETWORK_CONTEXT.read().unwrap().clone()
+pub fn get_network_context() -> DfxResult<String> {
+    NETWORK_CONTEXT
+        .read()
+        .unwrap()
+        .clone()
+        .ok_or_else(|| DfxError::ComputeNetworkNotSet)
 }
 
 // always returns at least one url
@@ -32,7 +36,7 @@ pub fn get_network_descriptor<'a>(
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let config = config.as_ref().get_config();
-    let network_name = get_network_context().ok_or_else(|| DfxError::ComputeNetworkNotSet)?;
+    let network_name = get_network_context()?;
     match config.get_network(&network_name) {
         Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
             let provider_urls = match &network_provider.providers {

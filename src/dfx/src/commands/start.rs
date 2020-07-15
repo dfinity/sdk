@@ -159,7 +159,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let network_descriptor = get_network_descriptor(env, args)?;
 
-    let network_name = &get_network_context().ok_or_else(|| DfxError::ComputeNetworkNotSet)?;
+    let network_name = get_network_context()?;
 
     let build_root = config.get_config().get_defaults().get_build().get_output();
 

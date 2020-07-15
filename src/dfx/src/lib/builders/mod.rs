@@ -1,7 +1,7 @@
 use crate::config::dfinity::{Config, Profile};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::get_network_context;
@@ -88,7 +88,7 @@ pub struct BuildConfig {
 impl BuildConfig {
     pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
-        let network_name = get_network_context().ok_or_else(|| DfxError::ComputeNetworkNotSet)?;
+        let network_name = get_network_context()?;
         let build_root = config.get_temp_path().join(network_name);
         let build_root = build_root.join(config_intf.get_defaults().get_build().get_output());
 
