@@ -45,13 +45,5 @@ teardown() {
 
     assert_command dfx canister call --update e2e_project_assets store '("AA", vec { 100; 107; 62; 9; })'
 
-    # Keys are the same, but should be different
-    pwd
-    echo $HOME
-    cat $HOME/.dfinity/identity/creds.pem
-    ls -lah .
-    HOME=. dfx canister call --update e2e_project_assets store '("test", vec { 100; 107; 62; 9; })'
-    cat .dfinity/identity/creds.pem
-    exit 1
-
+    HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '("index.js", vec { 1; 2; 3; })'
 }
