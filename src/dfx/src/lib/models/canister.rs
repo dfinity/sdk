@@ -10,12 +10,11 @@ use crate::util::assets;
 use ic_agent::{Blob, CanisterId};
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
-use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
@@ -88,14 +87,6 @@ pub struct CanisterPool {
     canisters: Vec<Arc<Canister>>,
     logger: Logger,
     cache: Arc<dyn Cache>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CanManMetadata {
-    pub timestamp: String,
-    pub canister_id: String,
-    pub wasm_path: PathBuf,
-    pub candid_path: PathBuf,
 }
 
 impl CanisterPool {
