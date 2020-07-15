@@ -69,11 +69,11 @@ impl Canister {
     }
 
     // this function is only ever used when build_config.build_mode_check is true
-    pub fn generate_and_set_canister_id(&self) -> DfxResult {
+    pub fn generate_random_canister_id() -> CanisterId {
         let mut rng = thread_rng();
         let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
         rng.fill_bytes(v.as_mut_slice());
-        self.info.set_canister_id(CanisterId::from(Blob(v)))
+        CanisterId::from(Blob(v))
     }
 
     /// Get the build output of a build process. If the output isn't known at this time,
@@ -99,7 +99,10 @@ pub struct CanManMetadata {
 }
 
 impl CanisterPool {
-    pub fn load(env: &dyn Environment) -> DfxResult<Self> {
+    pub fn load(
+        env: &dyn Environment,
+        provide_random_canister_id_if_missing: bool,
+    ) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
@@ -114,12 +117,15 @@ impl CanisterPool {
         let canister_id_store = CanisterIdStore::for_env(env)?;
 
         for (key, _value) in canisters.iter() {
-            let info = CanisterInfo::load(&config, &key, None)?;
-
-            let maybe_canister_id = canister_id_store.find(&info.get_name());
-            if let Some(canister_id) = maybe_canister_id {
-                info.set_canister_id(canister_id)?;
+            let canister_id = match canister_id_store.find(key) {
+                Some(canister_id) => Some(canister_id),
+                None if provide_random_canister_id_if_missing => {
+                    Some(Canister::generate_random_canister_id())
+                }
+                _ => None,
             };
+
+            let info = CanisterInfo::load(&config, &key, canister_id)?;
 
             if let Some(builder) = builder_pool.get(&info) {
                 canisters_map.push(Arc::new(Canister::new(info, builder)));
@@ -210,12 +216,7 @@ impl CanisterPool {
         }
     }
 
-    fn step_prebuild_all(&self, build_config: &BuildConfig) -> DfxResult<()> {
-        for canister in &self.canisters {
-            if build_config.build_mode_check {
-                canister.generate_and_set_canister_id()?;
-            }
-        }
+    fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
         Ok(())
     }
 

@@ -84,8 +84,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             (id, None)
         }
         Err(_) => {
-            let canister_store = CanisterIdStore::for_env(env)?;
-            let canister_info = CanisterInfo::load(&config, canister_name, Some(&canister_store))?;
+            let canister_id = CanisterIdStore::get_for_env(env, canister_name)?;
+
+            let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
             (
                 canister_info.get_canister_id()?,
                 canister_info.get_output_idl_path(),

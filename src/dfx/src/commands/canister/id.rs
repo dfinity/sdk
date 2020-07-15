@@ -20,7 +20,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     env.get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let canister_name = args.value_of("canister_name").unwrap();
-    let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
+    let canister_id = CanisterIdStore::get_for_env(env, canister_name)?;
 
     println!("{}", CanisterId::to_text(&canister_id));
     Ok(())

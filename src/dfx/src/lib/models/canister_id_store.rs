@@ -44,6 +44,11 @@ impl CanisterIdStore {
         })
     }
 
+    pub fn get_for_env(env: &dyn Environment, name: &str) -> DfxResult<CanisterId> {
+        let canister_store = CanisterIdStore::for_env(env)?;
+        canister_store.get(name)
+    }
+
     pub fn get_name(&self, canister_id: &str) -> Option<&String> {
         self.ids
             .iter()

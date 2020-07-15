@@ -133,7 +133,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     if let Some(canister_name) = args.value_of("canister_name") {
-        let canister_info = CanisterInfo::load(&config, canister_name, Some(&canister_id_store))?;
+        let canister_id = canister_id_store.get(canister_name)?;
+
+        let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
         let request_id = runtime.block_on(install_canister(
             env,
             &agent,
@@ -156,8 +158,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                let canister_info =
-                    CanisterInfo::load(&config, canister_name, Some(&canister_id_store))?;
+                let canister_id = canister_id_store.get(canister_name)?;
+
+                let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
                 let request_id = runtime.block_on(install_canister(
                     env,
                     &agent,

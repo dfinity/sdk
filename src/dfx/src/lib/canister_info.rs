@@ -4,9 +4,7 @@ use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use ic_agent::CanisterId;
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -34,7 +32,7 @@ pub struct CanisterInfo {
     output_root: PathBuf,
     canister_root: PathBuf,
 
-    canister_id: RefCell<Option<CanisterId>>,
+    canister_id: Option<CanisterId>,
 
     packtool: Option<String>,
 
@@ -45,7 +43,7 @@ impl CanisterInfo {
     pub fn load(
         config: &Config,
         name: &str,
-        canister_id_store: Option<&CanisterIdStore>,
+        canister_id: Option<CanisterId>,
     ) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
@@ -71,8 +69,6 @@ impl CanisterInfo {
             .cloned()
             .unwrap_or_else(|| "motoko".to_owned());
 
-        let canister_id = canister_id_store.map(|store| store.get(name)).transpose()?;
-
         Ok(CanisterInfo {
             name: name.to_string(),
             canister_type,
@@ -82,7 +78,7 @@ impl CanisterInfo {
             output_root,
             canister_root,
 
-            canister_id: RefCell::new(canister_id),
+            canister_id,
 
             packtool: build_defaults.get_packtool(),
             extras,
@@ -105,12 +101,8 @@ impl CanisterInfo {
         &self.output_root
     }
     pub fn get_canister_id(&self) -> DfxResult<CanisterId> {
-        let canister_id = self.canister_id.replace(None);
-        match canister_id {
-            Some(canister_id) => {
-                self.canister_id.replace(Some(canister_id.clone()));
-                Ok(canister_id)
-            }
+        match &self.canister_id {
+            Some(canister_id) => Ok(canister_id.clone()),
             None => {
                 // If we get here, it means there is a logic error in the code.
                 // It's not because the user did anything in the wrong order.
@@ -190,11 +182,6 @@ impl CanisterInfo {
         } else {
             None
         }
-    }
-
-    pub fn set_canister_id(&self, canister_id: CanisterId) -> DfxResult {
-        self.canister_id.replace(Some(canister_id));
-        Ok(())
     }
 
     pub fn as_info<T: CanisterInfoFactory>(&self) -> DfxResult<T> {
