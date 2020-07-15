@@ -32,6 +32,7 @@ struct ForwardActixData {
 }
 
 struct CandidData {
+    pub build_output_root: PathBuf,
     pub network_descriptor: NetworkDescriptor,
 }
 
@@ -57,7 +58,7 @@ fn candid(
     let store = CanisterIdStore::for_network(Some(&network_descriptor))?;
     let candid_path = store
         .get_canister_name(&id)
-        .map(|canister_name| canister_did_location(&canister_name))
+        .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
         .ok_or_else(|| {
             DfxError::CouldNotFindCanisterNameForNetwork(
                 id.to_string(),
@@ -175,6 +176,7 @@ fn forward(
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
+    build_output_root: PathBuf,
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     providers: Vec<url::Url>,
@@ -202,7 +204,10 @@ pub fn run_webserver(
         logger: logger.clone(),
         counter: 0,
     }));
-    let candid_data = Arc::new(CandidData { network_descriptor });
+    let candid_data = Arc::new(CandidData {
+        build_output_root,
+        network_descriptor,
+    });
 
     let handler = HttpServer::new(move || {
         App::new()
@@ -238,6 +243,7 @@ pub fn run_webserver(
 
 pub fn webserver(
     logger: Logger,
+    build_output_root: PathBuf,
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
@@ -266,6 +272,7 @@ pub fn webserver(
             move || {
                 run_webserver(
                     logger,
+                    build_output_root,
                     network_descriptor,
                     bind,
                     clients_api_uri,

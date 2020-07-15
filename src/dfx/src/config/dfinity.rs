@@ -126,7 +126,7 @@ pub enum Profile {
     Release,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaults {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,

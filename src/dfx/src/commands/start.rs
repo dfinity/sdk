@@ -157,6 +157,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
+    let build_output_root =
+        PathBuf::from(config.get_config().get_defaults().get_build().get_output());
+
     let network_descriptor = get_network_descriptor(env, args)?;
 
     let proxy_config = ProxyConfig {
@@ -165,6 +168,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         bind: address_and_port,
         serve_dir: bootstrap_dir,
         providers,
+        build_output_root,
         network_descriptor,
     };
 

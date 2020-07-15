@@ -1,4 +1,4 @@
-use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::config::dfinity::{ConfigDefaults, ConfigDefaultsBootstrap};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -55,8 +55,11 @@ pub fn construct() -> App<'static, 'static> {
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let logger = env.get_logger();
-    let config = get_config(env, args)?;
+    let config_defaults = get_config_defaults_from_file(env);
+    let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
+    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, args)?;
 
+    let build_output_root = PathBuf::from(config_defaults.get_build().get_output());
     let network_descriptor = get_network_descriptor(env, args)?;
     let providers = get_providers(&network_descriptor)?;
 
@@ -64,13 +67,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     webserver(
         logger.clone(),
+        build_output_root,
         network_descriptor,
-        SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
+        SocketAddr::new(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap()),
         providers
             .iter()
             .map(|uri| Url::from_str(uri).unwrap())
             .collect(),
-        &config.root.unwrap(),
+        &config_bootstrap.root.unwrap(),
         sender,
     )?
     .join()
@@ -95,8 +99,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
-fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ConfigDefaultsBootstrap> {
-    let config = get_config_from_file(env);
+fn apply_arguments(
+    config: &ConfigDefaultsBootstrap,
+    env: &dyn Environment,
+    args: &ArgMatches<'_>,
+) -> DfxResult<ConfigDefaultsBootstrap> {
     let ip = get_ip(&config, args)?;
     let port = get_port(&config, args)?;
     let root = get_root(&config, env, args)?;
@@ -111,13 +118,9 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ConfigD
 
 /// Gets the configuration options for the bootstrap server as they were specified in the dfx
 /// configuration file.
-fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsBootstrap {
+fn get_config_defaults_from_file(env: &dyn Environment) -> ConfigDefaults {
     env.get_config().map_or(Default::default(), |config| {
-        config
-            .get_config()
-            .get_defaults()
-            .get_bootstrap()
-            .to_owned()
+        config.get_config().get_defaults().to_owned()
     })
 }
 

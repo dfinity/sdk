@@ -24,6 +24,7 @@ pub struct ProxyConfig {
     pub serve_dir: PathBuf,
     pub providers: Vec<url::Url>,
     pub logger: slog::Logger,
+    pub build_output_root: PathBuf,
     pub network_descriptor: NetworkDescriptor,
 }
 
@@ -95,6 +96,7 @@ impl Proxy {
 
         run_webserver(
             self.config.logger.clone(),
+            self.config.build_output_root.clone(),
             self.config.network_descriptor.clone(),
             self.config.bind,
             providers,
