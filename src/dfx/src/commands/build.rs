@@ -63,7 +63,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         }
     }
 
-    // slog::info!(logger, "Building canisters...");
+    slog::info!(logger, "Building canisters...");
 
     canister_pool.build_or_fail(
         BuildConfig::from_config(&config)?
