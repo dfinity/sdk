@@ -4,6 +4,7 @@ use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::provider::get_network_context;
 use ic_agent::CanisterId;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -47,7 +48,9 @@ impl CanisterInfo {
     ) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
-        let build_root = workspace_root.join(build_defaults.get_output());
+        let network_name = get_network_context()?;
+        let build_root = config.get_temp_path().join(network_name);
+        let build_root = build_root.join(build_defaults.get_output());
         std::fs::create_dir_all(&build_root)?;
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
