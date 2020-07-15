@@ -33,8 +33,7 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
     let message = format!("Creating canister {:?}...", canister_name);
     let b = ProgressBar::new_spinner(&message);
 
-    env
-        .get_config()
+    env.get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     let mgr = ManagementCanister::new(

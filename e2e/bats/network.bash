@@ -62,3 +62,17 @@ teardown() {
     assert_match $(cat canister_ids.json | jq -r .e2e_project.local)
 }
 
+@test "failure message does not include network if for local network" {
+    dfx_start
+    assert_command_fail dfx build --network local
+    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_assets'"
+}
+
+@test "failure message does include network if for non-local network" {
+    dfx_start
+
+    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+
+    assert_command_fail dfx build --network tungsten
+    assert_match "Cannot find canister id. Please issue 'dfx canister --network tungsten create e2e_project_assets'"
+}

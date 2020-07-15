@@ -186,9 +186,14 @@ impl Display for DfxError {
                 f.write_str("Expected there to be a local network with a bind address")?;
             }
             DfxError::CouldNotFindCanisterIdForNetwork(canister, network) => {
+                let non_default_network = if network == "local" {
+                    format!("")
+                } else {
+                    format!("--network {} ", network)
+                };
                 f.write_fmt(format_args!(
-                    "Cannot find canister id.  Please issue 'dfx canister --network {} create {}'.",
-                    network, canister
+                    "Cannot find canister id.  Please issue 'dfx canister {}create {}'.",
+                    non_default_network, canister
                 ))?;
             }
             DfxError::CouldNotFindCanisterNameForNetwork(canister_id, network) => {
