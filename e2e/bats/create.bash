@@ -19,17 +19,23 @@ teardown() {
     assert_command dfx canister create --all
 }
 
+@test "create generates the canister_ids.json" {
+    dfx_start
+    assert_command dfx canister create --all
+    [[ -f .dfx/canister_ids.json ]]
+}
+
 @test "build fails without create" {
     dfx_start
     assert_command_fail dfx build
-    assert_match 'Failed to find canister manifest'
+    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project'"
 }
 
 @test "build fails if all canisters in project are not created" {
     dfx_start
     assert_command dfx canister create e2e_project
     assert_command_fail dfx build
-    assert_match 'Failed to find canister id for e2e_project_assets'
+    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_assets'"
 }
 
 @test "create succeeds with network parameter" {

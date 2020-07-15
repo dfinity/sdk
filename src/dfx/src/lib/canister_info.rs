@@ -3,10 +3,8 @@ use crate::config::dfinity::Config;
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
-use crate::lib::models::canister::{CanManMetadata, CanisterManifest};
+use crate::lib::error::{DfxError, DfxResult};
 use ic_agent::CanisterId;
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -34,9 +32,7 @@ pub struct CanisterInfo {
     output_root: PathBuf,
     canister_root: PathBuf,
 
-    canister_id: RefCell<Option<CanisterId>>,
-
-    manifest_path: PathBuf,
+    canister_id: Option<CanisterId>,
 
     packtool: Option<String>,
 
@@ -44,7 +40,11 @@ pub struct CanisterInfo {
 }
 
 impl CanisterInfo {
-    pub fn load(config: &Config, name: &str) -> DfxResult<CanisterInfo> {
+    pub fn load(
+        config: &Config,
+        name: &str,
+        canister_id: Option<CanisterId>,
+    ) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
         let build_root = workspace_root.join(build_defaults.get_output());
@@ -63,8 +63,6 @@ impl CanisterInfo {
 
         let output_root = build_root.join(name);
 
-        let manifest_path = config.get_manifest_path();
-
         let canister_type = canister_config
             .r#type
             .as_ref()
@@ -80,9 +78,7 @@ impl CanisterInfo {
             output_root,
             canister_root,
 
-            canister_id: RefCell::new(None),
-
-            manifest_path,
+            canister_id,
 
             packtool: build_defaults.get_packtool(),
             extras,
@@ -101,39 +97,20 @@ impl CanisterInfo {
     pub fn get_build_root(&self) -> &Path {
         &self.build_root
     }
-    pub fn get_manifest_path(&self) -> &Path {
-        self.manifest_path.as_path()
-    }
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
     }
     pub fn get_canister_id(&self) -> DfxResult<CanisterId> {
-        let canister_id = self.canister_id.replace(None);
-        let cid = match canister_id {
-            Some(canister_id) => {
-                self.canister_id.replace(Some(canister_id.clone()));
-                Some(canister_id)
-            }
+        match &self.canister_id {
+            Some(canister_id) => Ok(canister_id.clone()),
             None => {
-                let manifest = CanisterManifest::load(&self.get_manifest_path())?;
-
-                let serde_value = manifest.canisters.get(&self.name.clone()).ok_or_else(|| {
-                    DfxError::BuildError(BuildErrorKind::CanisterIdNotFound(self.name.clone()))
-                })?;
-
-                let metadata: CanManMetadata = serde_json::from_value(serde_value.clone()).unwrap();
-
-                let canister_id = self
-                    .canister_id
-                    .replace(None)
-                    .or_else(|| CanisterId::from_text(metadata.canister_id).ok());
-
-                self.canister_id.replace(canister_id.clone());
-
-                canister_id
+                // If we get here, it means there is a logic error in the code.
+                // It's not because the user did anything in the wrong order.
+                // We need the network type (ephemeral/persistent) in order to load
+                // the canister id, so we can't load it here.
+                panic!("It is only valid to call get_canister_id after setting the canister id.");
             }
-        };
-        cid.ok_or_else(|| DfxError::Unknown(String::from("No canister id")))
+        }
     }
 
     pub fn get_extra_value(&self, name: &str) -> Option<serde_json::Value> {
@@ -205,11 +182,6 @@ impl CanisterInfo {
         } else {
             None
         }
-    }
-
-    pub fn set_canister_id(&self, canister_id: CanisterId) -> DfxResult {
-        self.canister_id.replace(Some(canister_id));
-        Ok(())
     }
 
     pub fn as_info<T: CanisterInfoFactory>(&self) -> DfxResult<T> {

@@ -2,6 +2,7 @@ use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::provider::get_network_descriptor;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
@@ -156,7 +157,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
-    let manifest_path = config.get_manifest_path();
+    let build_output_root =
+        PathBuf::from(config.get_config().get_defaults().get_build().get_output());
+
+    let network_descriptor = get_network_descriptor(env, args)?;
 
     let proxy_config = ProxyConfig {
         logger: env.get_logger().clone(),
@@ -164,7 +168,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         bind: address_and_port,
         serve_dir: bootstrap_dir,
         providers,
-        manifest_path,
+        build_output_root,
+        network_descriptor,
     };
 
     let supervisor_actor_handle = CoordinateProxy {

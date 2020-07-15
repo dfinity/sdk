@@ -68,17 +68,50 @@ pub struct ConfigDefaultsReplica {
     pub round_gas_limit: Option<u64>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NetworkType {
+    // We store ephemeral canister ids in .dfx/canister_ids.json
+    Ephemeral,
+
+    // We store persistent canister ids in canister_ids.json (adjacent to dfx.json)
+    Persistent,
+}
+
+impl Default for NetworkType {
+    // This is just needed for the Default trait on NetworkType,
+    // but nothing will ever call it, due to field defaults.
+    fn default() -> Self {
+        NetworkType::Ephemeral
+    }
+}
+
+impl NetworkType {
+    fn ephemeral() -> Self {
+        NetworkType::Ephemeral
+    }
+    fn persistent() -> Self {
+        NetworkType::Persistent
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ConfigNetworkProvider {
     pub providers: Vec<String>,
+
+    #[serde(default = "NetworkType::persistent")]
+    pub r#type: NetworkType,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ConfigLocalProvider {
     pub bind: String,
+
+    #[serde(default = "NetworkType::ephemeral")]
+    pub r#type: NetworkType,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ConfigNetwork {
     ConfigNetworkProvider(ConfigNetworkProvider),
@@ -93,7 +126,7 @@ pub enum Profile {
     Release,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaults {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
@@ -194,6 +227,7 @@ impl ConfigInterface {
         match (name, &network) {
             ("local", None) => Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
                 bind: String::from(DEFAULT_LOCAL_BIND),
+                r#type: NetworkType::Ephemeral,
             })),
             _ => network,
         }
@@ -297,12 +331,6 @@ impl Config {
         self.path.parent().expect(
             "An incorrect configuration path was set with no parent, i.e. did not include root",
         )
-    }
-    pub fn get_manifest_path(&self) -> PathBuf {
-        let build_dir = self.get_config().get_defaults().get_build().get_output();
-        self.get_project_root()
-            .join(build_dir)
-            .join("canister_manifest.json")
     }
 
     pub fn save(&self) -> DfxResult {
@@ -421,6 +449,100 @@ mod tests {
                 .get_local_bind_address("1.2.3.4:123")
                 .ok(),
             to_socket_addr("127.0.0.1:8000").ok()
+        );
+    }
+
+    #[test]
+    fn local_defaults_to_ephemeral() {
+        let config = Config::from_str(
+            r#"{
+            "networks": {
+                "local": {
+                    "bind": "localhost:8000"
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        let network = config.get_config().get_network("local").unwrap();
+        if let ConfigNetwork::ConfigLocalProvider(local_network) = network {
+            assert_eq!(local_network.r#type, NetworkType::Ephemeral);
+        } else {
+            panic!("not a local provider");
+        }
+    }
+
+    #[test]
+    fn local_can_override_to_persistent() {
+        let config = Config::from_str(
+            r#"{
+            "networks": {
+                "local": {
+                    "bind": "localhost:8000",
+                    "type": "persistent"
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        let network = config.get_config().get_network("local").unwrap();
+        if let ConfigNetwork::ConfigLocalProvider(local_network) = network {
+            assert_eq!(local_network.r#type, NetworkType::Persistent);
+        } else {
+            panic!("not a local provider");
+        }
+    }
+
+    #[test]
+    fn network_defaults_to_persistent() {
+        let config = Config::from_str(
+            r#"{
+            "networks": {
+                "somewhere": {
+                    "providers": [ "https://1.2.3.4:5000" ]
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        let network = config.get_config().get_network("somewhere").unwrap();
+        if let ConfigNetwork::ConfigNetworkProvider(network_provider) = network {
+            assert_eq!(network_provider.r#type, NetworkType::Persistent);
+        } else {
+            panic!("not a network provider");
+        }
+    }
+
+    #[test]
+    fn network_can_override_to_ephemeral() {
+        let config = Config::from_str(
+            r#"{
+            "networks": {
+                "staging": {
+                    "providers": [ "https://1.2.3.4:5000" ],
+                    "type": "ephemeral"
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        let network = config.get_config().get_network("staging").unwrap();
+        if let ConfigNetwork::ConfigNetworkProvider(network_provider) = network {
+            assert_eq!(network_provider.r#type, NetworkType::Ephemeral);
+        } else {
+            panic!("not a network provider");
+        }
+
+        assert_eq!(
+            config.get_config().get_network("staging").unwrap(),
+            ConfigNetwork::ConfigNetworkProvider(ConfigNetworkProvider {
+                providers: vec![String::from("https://1.2.3.4:5000")],
+                r#type: NetworkType::Ephemeral,
+            })
         );
     }
 }
