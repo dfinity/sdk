@@ -314,6 +314,9 @@ impl Config {
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
+    pub fn get_temp_path(&self) -> PathBuf {
+        self.get_path().parent().unwrap().join(".dfx")
+    }
     pub fn get_json(&self) -> &Value {
         &self.json
     }

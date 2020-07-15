@@ -106,6 +106,9 @@ pub enum DfxError {
     /// Could not parse an URL for some reason.
     InvalidUrl(String, url::ParseError),
 
+    /// The value of the --network argument was not set.
+    ComputeNetworkNotSet,
+
     /// The value of the --network argument was not found in dfx.json.
     ComputeNetworkNotFound(String),
 
@@ -181,6 +184,9 @@ impl Display for DfxError {
                 f.write_str(
                     "The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.",
                 )?;
+            }
+            DfxError::ComputeNetworkNotSet => {
+                f.write_str("Expected to find a network context, but found none")?;
             }
             DfxError::NoLocalNetworkProviderFound => {
                 f.write_str("Expected there to be a local network with a bind address")?;

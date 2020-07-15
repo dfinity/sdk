@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
-use crate::lib::provider::get_network_descriptor;
+use crate::lib::provider::{get_network_context, get_network_descriptor};
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
@@ -55,12 +55,22 @@ pub fn construct() -> App<'static, 'static> {
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let logger = env.get_logger();
+    let config = env
+        .get_config()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
     let config_bootstrap = apply_arguments(&base_config_bootstrap, env, args)?;
 
-    let build_output_root = PathBuf::from(config_defaults.get_build().get_output());
     let network_descriptor = get_network_descriptor(env, args)?;
+
+    let network_name = get_network_context().ok_or_else(|| DfxError::ComputeNetworkNotSet)?;
+
+    let build_root = config_defaults.get_build().get_output();
+
+    let build_output_root = config.get_temp_path().join(network_name);
+    let build_output_root = build_output_root.join(build_root);
+
     let providers = get_providers(&network_descriptor)?;
 
     let (sender, receiver) = crossbeam::unbounded();

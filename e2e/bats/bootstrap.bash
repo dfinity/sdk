@@ -20,10 +20,10 @@ teardown() {
     ID=$(dfx canister id hello)
 
     assert_command curl http://localhost:8000/_/candid?canisterId="$ID" -o ./web.txt
-    assert_command diff canisters/hello/hello.did ./web.txt
+    assert_command diff .dfx/local/canisters/hello/hello.did ./web.txt
     assert_command curl http://localhost:8000/_/candid?canisterId="$ID"\&format=js -o ./web.txt
     # Relax diff as it's produced by two different compilers.
-    assert_command diff --ignore-all-space --ignore-blank-lines canisters/hello/hello.did.js ./web.txt
+    assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello/hello.did.js ./web.txt
 }
 
 @test "forbid starting webserver with a forwarded port" {

@@ -3,18 +3,36 @@ use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use clap::ArgMatches;
+use lazy_static::lazy_static;
+use std::sync::{Arc, RwLock};
 use url::Url;
+
+lazy_static! {
+    static ref NETWORK_CONTEXT: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
+}
+
+fn set_network_context(args: &ArgMatches<'_>) {
+    let name = args.value_of("network").unwrap_or("local").to_string();
+
+    let mut n = NETWORK_CONTEXT.write().unwrap();
+    *n = Some(name);
+}
+
+pub fn get_network_context() -> Option<String> {
+    NETWORK_CONTEXT.read().unwrap().clone()
+}
 
 // always returns at least one url
 pub fn get_network_descriptor<'a>(
     env: &'a (dyn Environment + 'a),
     args: &ArgMatches<'_>,
 ) -> DfxResult<NetworkDescriptor> {
-    let network_name = args.value_of("network").unwrap_or("local");
+    set_network_context(args);
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let config = config.as_ref().get_config();
+    let network_name = get_network_context().ok_or_else(|| DfxError::ComputeNetworkNotSet)?;
     match config.get_network(&network_name) {
         Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
             let provider_urls = match &network_provider.providers {
