@@ -55,8 +55,7 @@ impl CanisterIdStore {
         let content = std::fs::read_to_string(path).map_err(|err| {
             DfxError::CouldNotLoadCanisterIds(path.to_string_lossy().to_string(), err)
         })?;
-        let ids = serde_json::from_str(&content)?;
-        Ok(ids)
+        serde_json::from_str(&content)
     }
 
     pub fn save_ids(&self) -> DfxResult {
