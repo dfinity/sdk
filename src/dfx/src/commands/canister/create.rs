@@ -1,4 +1,3 @@
-use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -34,7 +33,7 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
     let message = format!("Creating canister {:?}...", canister_name);
     let b = ProgressBar::new_spinner(&message);
 
-    let config = env
+    env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
@@ -43,7 +42,6 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
             .ok_or(DfxError::CommandMustBeRunInAProject)?,
     );
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    let info = CanisterInfo::load(&config, canister_name, None)?;
 
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
@@ -59,7 +57,6 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
         }
         None => {
             let cid = runtime.block_on(mgr.create_canister(create_waiter()))?;
-            info.set_canister_id(cid.clone())?;
             let canister_id = cid.to_text();
             let message = format!(
                 "{:?} canister created with canister id: {:?}",
