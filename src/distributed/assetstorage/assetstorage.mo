@@ -27,8 +27,6 @@ actor {
 
     public query func retrieve(path : Path) : async Contents {
         O.get(A.find<Path, Contents>(db, path, eq), {
-            // more than 8 chars treated as invalid UTF-8
-            // TODO: https://github.com/dfinity-lab/sdk/issues/701
             throw P.error("not found")
         });
     };
