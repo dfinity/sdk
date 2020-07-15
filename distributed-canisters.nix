@@ -1,39 +1,32 @@
 { pkgs ? import ./nix {}
-, assets-minimal ? import ./assets-minimal.nix { inherit pkgs; }
-, dfx-minimal ? import ./dfx-minimal.nix { inherit pkgs assets-minimal; }
 }:
 let
   distributed = lib.noNixFiles (lib.gitOnlySource ./. ./src/distributed);
   lib = pkgs.lib;
 
-  workspace = pkgs.runCommandNoCC "distributed-canisters-workspace" {} ''
-    # We want $HOME/.cache to be in a writable temporary directory.
-    export HOME=$(mktemp -d -t dfx-distributed-canisters-home-XXXX)
-
-    mkdir -p $out
-
-    for source_root in ${distributed}/*; do
-      canister_name=$(basename $source_root)
-
-      build_dir=$out/$canister_name
-      mkdir -p $build_dir
-      cp -R $source_root/* $build_dir
-
-      ( cd $build_dir ; DFX_ASSETS=${assets-minimal} ${dfx-minimal}/bin/dfx build --check )
-    done
-  '';
-
 in
-pkgs.runCommandNoCCLocal "distributed-canisters" {} ''
-  for canister_root in ${workspace}/*; do
-    canister_name=$(basename $canister_root)
+pkgs.runCommandNoCCLocal "distributed-canisters" {
+  inherit (pkgs.motoko) didc rts;
+  moc = pkgs.motoko.moc-bin;
+  base = pkgs.motoko.base-src;
+} ''
+  mkdir -p $out
 
-    output_dir=$out/$canister_name
-    mkdir -p $output_dir
+  for canister_mo in ${distributed}/*.mo; do
+    canister_name=$(basename -s .mo $canister_mo)
 
-    for ext in did wasm
-    do
-      cp $canister_root/.dfx/local/canisters/$canister_name/$canister_name.$ext $output_dir
-    done
+    build_dir=$out/$canister_name
+    mkdir -p $build_dir
+
+    $moc/bin/moc \
+       $canister_mo \
+       -o $build_dir/$canister_name.did \
+       --idl \
+       --package base $base
+    MOC_RTS=$rts/rts/mo-rts.wasm $moc/bin/moc \
+       $canister_mo \
+       -o $build_dir/$canister_name.wasm \
+       -c --debug \
+       --package base $base
   done
 ''
