@@ -71,9 +71,7 @@ impl CanisterInfo {
             .cloned()
             .unwrap_or_else(|| "motoko".to_owned());
 
-        let canister_id = canister_id_store
-            .map(|store| store.get_canister_id(name))
-            .transpose()?;
+        let canister_id = canister_id_store.map(|store| store.get(name)).transpose()?;
 
         Ok(CanisterInfo {
             name: name.to_string(),

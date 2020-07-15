@@ -116,7 +116,7 @@ impl CanisterPool {
         for (key, _value) in canisters.iter() {
             let info = CanisterInfo::load(&config, &key, None)?;
 
-            let maybe_canister_id = canister_id_store.find_canister_id(&info.get_name());
+            let maybe_canister_id = canister_id_store.find(&info.get_name());
             if let Some(canister_id) = maybe_canister_id {
                 info.set_canister_id(canister_id)?;
             };

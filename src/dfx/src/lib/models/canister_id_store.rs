@@ -44,7 +44,7 @@ impl CanisterIdStore {
         })
     }
 
-    pub fn get_canister_name(&self, canister_id: &str) -> Option<&String> {
+    pub fn get_name(&self, canister_id: &str) -> Option<&String> {
         self.ids
             .iter()
             .find(|(_, nn)| nn.get(&self.network_descriptor.name) == Some(&canister_id.to_string()))
@@ -55,7 +55,8 @@ impl CanisterIdStore {
         let content = std::fs::read_to_string(path).map_err(|err| {
             DfxError::CouldNotLoadCanisterIds(path.to_string_lossy().to_string(), err)
         })?;
-        serde_json::from_str(&content)
+        let ids = serde_json::from_str(&content)?;
+        Ok(ids)
     }
 
     pub fn save_ids(&self) -> DfxResult {
@@ -65,7 +66,7 @@ impl CanisterIdStore {
         })
     }
 
-    pub fn find_canister_id(&self, canister_name: &str) -> Option<CanisterId> {
+    pub fn find(&self, canister_name: &str) -> Option<CanisterId> {
         self.ids
             .get(canister_name)
             .and_then(|network_name_to_canister_id| {
@@ -74,8 +75,8 @@ impl CanisterIdStore {
             .and_then(|s| CanisterId::from_text(s).ok())
     }
 
-    pub fn get_canister_id(&self, canister_name: &str) -> DfxResult<CanisterId> {
-        self.find_canister_id(canister_name).ok_or_else(|| {
+    pub fn get(&self, canister_name: &str) -> DfxResult<CanisterId> {
+        self.find(canister_name).ok_or_else(|| {
             DfxError::CouldNotFindCanisterIdForNetwork(
                 canister_name.to_string(),
                 self.network_descriptor.name.to_string(),
@@ -83,7 +84,7 @@ impl CanisterIdStore {
         })
     }
 
-    pub fn add_canister_id(&mut self, canister_name: &str, canister_id: String) -> DfxResult<()> {
+    pub fn add(&mut self, canister_name: &str, canister_id: String) -> DfxResult<()> {
         let network_name = &self.network_descriptor.name;
         match self.ids.get_mut(canister_name) {
             Some(network_name_to_canister_id) => {

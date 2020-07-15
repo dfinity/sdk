@@ -58,7 +58,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         // This is just to display an error if trying to build before creating the canister.
         let store = CanisterIdStore::for_env(&env)?;
         for canister in canister_pool.get_canister_list() {
-            store.get_canister_id(canister.get_name())?;
+            store.get(canister.get_name())?;
         }
     }
 

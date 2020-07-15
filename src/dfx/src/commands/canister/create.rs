@@ -47,7 +47,7 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
 
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
-    match canister_id_store.find_canister_id(&canister_name) {
+    match canister_id_store.find(&canister_name) {
         Some(canister_id) => {
             let message = format!(
                 "{:?} canister was already created and has canister id: {:?}",
@@ -66,7 +66,7 @@ fn create_canister(env: &dyn Environment, canister_name: &str) -> DfxResult {
                 canister_name, canister_id
             );
             b.finish_with_message(&message);
-            canister_id_store.add_canister_id(&canister_name, canister_id)
+            canister_id_store.add(&canister_name, canister_id)
         }
     }?;
 
