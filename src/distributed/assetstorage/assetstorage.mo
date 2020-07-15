@@ -1,6 +1,5 @@
 import A "mo:base/AssocList";
 import L "mo:base/List";
-import O "mo:base/Option";
 import P "mo:prim";
 
 actor {
@@ -26,8 +25,10 @@ actor {
     };
 
     public query func retrieve(path : Path) : async Contents {
-        O.get(A.find<Path, Contents>(db, path, eq), {
-            throw P.error("not found")
-        });
+        let result = A.find<Path, Contents>(db, path, eq);
+        switch result {
+            case null throw P.error("not found");
+            case (?contents) contents;
+        };
     };
 };
