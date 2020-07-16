@@ -96,7 +96,7 @@ impl BuildConfig {
         let build_root = build_root.join(config_intf.get_defaults().get_build().get_output());
 
         Ok(BuildConfig {
-            network_name: network_name.clone(),
+            network_name,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             skip_frontend: false,
             build_mode_check: false,
