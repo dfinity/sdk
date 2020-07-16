@@ -26,7 +26,7 @@ pkgs.runCommandNoCCLocal "distributed-canisters" {
     MOC_RTS=$rts/rts/mo-rts.wasm $moc/bin/moc \
        $canister_mo \
        -o $build_dir/$canister_name.wasm \
-       -c --debug \
+       -c --release \
        --package base $base
   done
 ''
