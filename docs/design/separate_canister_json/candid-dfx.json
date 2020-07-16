@@ -1,0 +1,52 @@
+{
+  "canisters": {
+    "dht": {
+      "type": "motoko",
+      "main": "vendor/dht/app/Main.mo"
+    },
+    "bigmap": {
+      "type": "custom",
+      "candid": "vendor/bigmap-rs/src/bigmap_index.did",
+      "wasm": "vendor/bigmap-rs/target/wasm32-unknown-unknown/release/bigmap_index.wasm",
+      "build": "./vendor/bigmap-rs/build"
+    },
+    "bigmap_data_0": {
+      "type": "custom",
+      "candid": "vendor/bigmap-rs/src/bigmap_data.did",
+      "wasm": "vendor/bigmap-rs/target/wasm32-unknown-unknown/release/bigmap_data.wasm",
+      "build": "./vendor/bigmap-rs/build"
+    },
+    "bigmap_data_1": {
+      "type": "custom",
+      "candid": "vendor/bigmap-rs/src/bigmap_data.did",
+      "wasm": "vendor/bigmap-rs/target/wasm32-unknown-unknown/release/bigmap_data.wasm",
+      "build": "./vendor/bigmap-rs/build"
+    },
+    "bigmap_data_2": {
+      "type": "custom",
+      "candid": "vendor/bigmap-rs/src/bigmap_data.did",
+      "wasm": "vendor/bigmap-rs/target/wasm32-unknown-unknown/release/bigmap_data.wasm",
+      "build": "./vendor/bigmap-rs/build"
+    },
+    "cancan_ui": {
+      "type": "assets",
+      "frontend": {
+        "entrypoint": "www/index.tsx",
+        "output": "canisters/cancan_ui/assets"
+      },
+      "dependencies": ["bigmap"]
+    }
+  },
+  "defaults": {
+    "build": {
+      "output": "canisters",
+      "packtool": ""
+    },
+    "start": {
+      "address": "0.0.0.0",
+      "port": 8080,
+      "serve_root": "canisters/cancan_ui/assets"
+    }
+  },
+  "dfx": "0.5.8"
+}

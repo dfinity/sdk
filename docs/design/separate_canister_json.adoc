@@ -1,0 +1,424 @@
+= Separate Canister JSON Design Doc
+// Author field:
+Eric Swanson <ericswanson@dfinity.org>
+v0.1, 2020-07-16
+:draft:
+:toc:
+
+== Overview
+////
+:required:
+
+In a few sentences, describe the key objectives. Why do we need this feature?
+What are we trying to accomplish?
+
+Just a few sentences.
+////
+
+Keep from concentrating too much configuration in dfx.json
+
+Reduce repetition in paths in configuration
+
+Make it so canister definitions are self-contained.
+
+== Background
+////
+:required:
+
+Include as much information as necessary here to understand the design. Include
+glossary if necessary in this section. Links to examples, related projects
+or other design docs. Any previous/current version of this feature.
+
+Do not write ideas about how to solve the problem here.
+////
+
+`dfx.json` currently directly holds the configuration for all canisters.
+
+The `dfx config` command displays or changes this configuration.
+
+Glossary:
+
+* The *project root* is the directory that contains `dfx.json` and
+the rest of the files in the project.
+
+
+Here is a `dfx.json` file from a newly-created sample project.
+
+[source,json]
+----
+include::separate_canister_json/new-project-dfx.json[]
+----
+
+Here is the `dfx.json` file for CanCan:
+
+[source,json]
+----
+include::separate_canister_json/candid-dfx.json[]
+----
+
+=== Problem Statement
+////
+:required:
+
+State the problem this design solves, in a concise way. A few sentences, not more.
+////
+
+Addition of canisters will concentrate a lot of configuration in one file.
+
+Also, there is some duplication of project names in paths:
+
+* Notice redundancies in the sample project's `dfx.json`:
+** `sample` occurs in two places
+** `sample_assets` in four places
+** `src/sample_assets` occurs in two places
+* Notice redundancies in CanCan's `dfx.json`:
+** `dht` occurs in two places.
+** `vendor/bigmap-rs` occurs in 12 places.
+** `cancan_ui` occurs in two places.
+** `bigmap_data_0`, `bigmap_data_1', and `bigmap_data_2` are identical (though this may be rare special case?)
+
+=== Requirements
+
+////
+:optional:
+
+State which requirements are necessary to consider this problem solved. This is in
+relation to the solution, not the problem.
+////
+
+Representable / enforceable by JSON Schema
+
+== Expected User/Developer Experience
+////
+:required: Either User and/or Developer experience should be explained.
+
+Describe what
+////
+
+The user can define their canisters independently from each other.
+
+== Prior Art
+////
+:optional: But recommended.
+
+Link to other products available as comparatives to this design. For example,
+if another tool has a similar feature, list pros/cons/shortcomings of that tool.
+////
+
+* link:https://lerna.js.org/[Lerna]
+
+== Detailed Design
+////
+:required:
+
+Full design on how to implement the feature. Use this section to also describe
+why some simpler approaches did not work. Mention other things to watch out
+for during implementation.
+
+Keep in mind that you might not be the person implementing the design.
+////
+
+* Change `canisters` in `dfx.json` to be an array of directory globs
+for locating canisters.
+* Search those directories for files named `canister.json`
+* For those found, `parent directory` is the canister name, `canister.json` defines the rest.
+* Remove the `dfx config` command.
+
+Rules for paths within a canister.json file are as follows:
+
+* relative paths are relative to the file's parent directory
+* absolute paths are relative to the parent directory of `dfx.json`
+* this applies to custom build steps as well
+
+The canister.json file contains fields that are current stored in
+the value portion of the canisters object in `dfx.json`.
+
+All relative paths must resolve to a canonical path contained within the *project root*, for security.
+
+An option: the `canister.json` file could also contain an `aliases` field that is an array of alternate names.
+
+Example `dfx.json` for a new project:
+
+[source,json]
+----
+{
+  "canisters": [ "canisters/*" ],
+  ...
+}
+----
+
+Example `canisters/sample/canister.json`:
+
+[source,json]
+----
+{
+  "main": "main.mo",
+  "type": "motoko"
+}
+----
+
+Example `canisters/sample_assets/canister.json`:
+
+[source,json]
+----
+{
+  "dependencies": [
+    "sample"
+  ],
+  "frontend": {
+    "entrypoint": "public/index.js"
+  },
+  "source": [
+    "assets",
+    "/dist/sample_assets/"
+  ],
+  "type": "assets"
+}
+----
+
+Example for CanCan:
+
+This doesn't work for CanCan, because it requires three copies of the same canister.
+
+Since this is a workaround, it is not duplicated here.
+
+* Contents of `dfx.json`:
+
+[source,json]
+----
+{
+  "canisters": [
+    "vendor/dht",
+    "vendor/bigmap-rs/index",
+    "vendor/bigmap-rs/data",
+    "cancan_ui"
+  ],
+  ...
+}
+----
+
+* Contents of `vendor/dht/canister.json`:
+
+[source,json]
+----
+{
+  "type": "motoko",
+  "main": "app/Main.mo"
+}
+----
+
+Note that this would live in the linked repository.
+
+
+* Contents of `vendor/bigmap-rs/index/canister.json`:
+
+[source,json]
+----
+{
+  "type": "custom",
+  "candid": "src/bigmap_index.did",
+  "wasm": "target/wasm32-unknown-unknown/release/bigmap_index.wasm",
+  "build": "./build"
+}
+
+----
+
+* Contents of `vendor/bigmap-rs/data/canister.json`:
+
+[source,json]
+----
+{
+  "type": "custom",
+  "candid": "src/bigmap_data.did",
+  "wasm": "target/wasm32-unknown-unknown/release/bigmap_data.wasm",
+  "build": "./build"
+}
+----
+
+* Contents of `cancan_ui/canister.json`:
+
+[source,json]
+----
+{
+  "type": "assets",
+  "frontend": {
+    "entrypoint": "/www/index.tsx",
+    "output": "assets"
+  },
+  "dependencies": ["bigmap"]
+}
+----
+
+
+=== Considered Solutions
+////
+:required:
+
+What solutions were considered, with a list of pros and cons of each solutions.
+////
+
+* Leave it the same as now (single dfx.json)
+** pro: No additional work
+** con: Not future-friendly for projects with lots of canisters
+* `canisters` as a JSON object (map) with name=canister name, value=(path | canister config)
+** no pros
+** con: Some canister config (the name) in `dfx.json`, some elsewhere
+
+=== Recommended Solution
+
+////
+:required:
+
+What solution from the above are you recommending, and most importantly, WHY?
+////
+
+Adoption of this proposal, and for simplicity's sake WITHOUT:
+
+* canister name aliases
+* any facility for also allowing canister configuration directly in `dfx.json`
+
+=== Public API
+
+////
+:optional: Required if there is any public API changes
+
+List any new or current API changes. List traits, methods, arguments and any
+types. A good way is to paste an example of the API in the language it will be
+implemented, for example (with Rust):
+
+[source,rust]
+----
+/// Confabulate the splines using reverse polarity. Can return an error if
+/// the space is asynchronously stochastic.
+pub fn confabulate(spline: &mut [&Spline], polarity: bool) -> Result<(), Error> {}
+----
+
+
+It's important to avoid implementations here and speak in general terms.
+////
+
+
+=== Prototype
+////
+:optional:
+
+If a proof of concept is available, include a link to the files here (even if
+it's in the same PR).
+////
+
+=== Security Considerations
+////
+:optional:
+
+How will this feature impact security, and what needs to be done to keep it
+secure. Considerations should include:
+  - User input sanitization
+  - Existing security protocols and standards
+  - Permissions, Access Control and capabilities
+  - Privacy, GDPR considerations, etc.
+  - Anything else that can affect security and privacy.
+////
+
+* relative paths must resolve within the *project root*, to avoid things like
+publishing the contents of /etc in an assets canister, or launching an
+arbitrary executable as part of a custom build step.
+* Custom build type canisters define a build step (shell command).  Moving that definition
+out of `dfx.json` into a `canister.json` that may come from another repo (see
+git submodule links used by CanCan, for example) marginally decreases the visibility of those
+custom build steps.
+
+=== Performance Considerations
+////
+:optional:
+
+How will the feature affect speed and performance. Will there be a need to
+benchmark the feature (and if so, how)? Is there any considerations to keep
+in mind for avoiding and preventing future regressions?
+////
+
+== Breaking Changes
+////
+:optional:
+
+Does this feature create or require breaking changes?
+////
+
+This is a breaking change to the `dfx.json` format.
+
+=== Deprecation
+////
+:optional:
+
+Does this feature deprecates any existing APIs?
+////
+
+== Documentation
+////
+:required:
+
+How will this feature be documented? Which people need to be involved?
+////
+
+It will be necessary to update all of the docs and tutorials
+that reference canister configuration in `dfx.json`.
+
+== Lifecycle
+
+=== Integration Plan
+////
+:optional: Required if there are interactions with other tools.
+
+How will this feature interact with other tools? Is there any changes outside
+of the SDK that are required to make this feature work? Does this feature
+have integration with `dfx`?
+////
+
+=== Publishing Plan
+////
+:optional: Required if there are new packages.
+
+Explain which new packages will be released and published with this feature.
+Include any changes to current released packages.
+////
+
+=== Rollout / Migration
+////
+:optional:
+
+How can we minimize impact to users? How do we maximize adoption?
+////
+
+=== Rollback Plan
+////
+:optional:
+
+How do you plan to rollback the change if a major issue is found?
+////
+
+=== Maintenance Plan
+////
+:required:
+
+How do you plan to maintain this feature for the next years? Can the
+APIs be cleanly evolved? Can Breaking Changes in the future be avoided?
+
+If this is a service, what is the update and monitoring strategy?
+
+If this is a package, how do we plan to publish and deploy it? This includes
+version numbering.
+////
+
+== Work Breakdown
+////
+:required:
+
+Description of the various phases and milestones. This is supposed to be a
+bullet point list of high level stories and tasks. It is not meant to be a
+1:1 ratio of PRs.
+////
+
+* Remove `dfx config`
+* Update "new project" files
+* Alter config loader
+* Deal with  canister name aliases, if allowed
+* Update e2e tests
