@@ -80,22 +80,27 @@ pub struct BuildConfig {
     profile: Profile,
     pub skip_frontend: bool,
     pub build_mode_check: bool,
+    pub network_name: String,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
+    /// The root for all build files.
+    pub build_root: PathBuf,
 }
 
 impl BuildConfig {
     pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = get_network_context()?;
-        let build_root = config.get_temp_path().join(network_name);
+        let build_root = config.get_temp_path().join(&network_name);
         let build_root = build_root.join(config_intf.get_defaults().get_build().get_output());
 
         Ok(BuildConfig {
+            network_name: network_name.clone(),
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             skip_frontend: false,
             build_mode_check: false,
+            build_root: build_root.clone(),
             idl_root: build_root.join("idl/"),
         })
     }

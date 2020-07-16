@@ -262,28 +262,35 @@ fn scaffold_frontend_code(
         let mut config_json: Value =
             serde_json::from_slice(&content).map_err(std::io::Error::from)?;
 
-        let frontend_value: serde_json::Map<String, Value> = [
-            (
-                "entrypoint".to_string(),
-                ("src/".to_owned() + project_name_str + "_assets/public/index.js").into(),
-            ),
-            (
-                "output".to_string(),
-                ("canisters/".to_owned() + project_name_str + "_assets/assets").into(),
-            ),
-        ]
+        let frontend_value: serde_json::Map<String, Value> = [(
+            "entrypoint".to_string(),
+            ("src/".to_owned() + project_name_str + "_assets/public/index.js").into(),
+        )]
         .iter()
         .cloned()
         .collect();
 
         // Only update the dfx.json and install node dependencies if we're not running in dry run.
         if !dry_run {
-            let p = config_json
+            let assets_canister_json = config_json
                 .pointer_mut(("/canisters/".to_owned() + project_name_str + "_assets").as_str())
                 .unwrap();
-            p.as_object_mut()
+            assets_canister_json
+                .as_object_mut()
                 .unwrap()
                 .insert("frontend".to_string(), Value::from(frontend_value));
+
+            assets_canister_json
+                .as_object_mut()
+                .unwrap()
+                .get_mut("source")
+                .unwrap()
+                .as_array_mut()
+                .unwrap()
+                .push(Value::from(
+                    "dist/".to_owned() + project_name_str + "_assets/",
+                ));
+
             let pretty = serde_json::to_string_pretty(&config_json).or_else(|e| {
                 Err(DfxError::InvalidData(format!(
                     "Failed to serialize dfx.json: {}",

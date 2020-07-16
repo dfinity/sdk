@@ -105,7 +105,31 @@ impl CanisterBuilder for AssetsBuilder {
         config: &BuildConfig,
     ) -> DfxResult {
         if !config.skip_frontend {
-            build_frontend(info.get_workspace_root(), pool.get_logger())?;
+            let deps = match info.get_extra_value("dependencies") {
+                None => vec![],
+                Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
+                    DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
+                })?,
+            };
+            let dependencies = deps
+                .iter()
+                .map(|name| {
+                    pool.get_first_canister_with_name(name)
+                        .map(|c| c.canister_id())
+                        .map_or_else(
+                            || Err(DfxError::UnknownCanisterNamed(name.clone())),
+                            DfxResult::Ok,
+                        )
+                })
+                .collect::<DfxResult<Vec<CanisterId>>>()?;
+
+            build_frontend(
+                pool.get_logger(),
+                info.get_workspace_root(),
+                &config.network_name,
+                dependencies,
+                pool,
+            )?;
         }
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
@@ -173,7 +197,13 @@ fn copy_assets(assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
     Ok(())
 }
 
-fn build_frontend(project_root: &Path, logger: &slog::Logger) -> DfxResult {
+fn build_frontend(
+    logger: &slog::Logger,
+    project_root: &Path,
+    network_name: &str,
+    dependencies: Vec<CanisterId>,
+    pool: &CanisterPool,
+) -> DfxResult {
     let build_frontend = project_root.join("package.json").exists();
     // If there is not a package.json, we don't have a frontend and can quit early.
 
@@ -184,7 +214,23 @@ fn build_frontend(project_root: &Path, logger: &slog::Logger) -> DfxResult {
         cmd.arg("run")
             .arg("build")
             .env("DFX_VERSION", &format!("{}", dfx_version()))
-            .current_dir(project_root)
+            .env("DFX_NETWORK", &network_name);
+
+        for deps in &dependencies {
+            let canister = pool.get_canister(deps).unwrap();
+            if let Some(output) = canister.get_build_output() {
+                let candid_path = match &output.idl {
+                    IdlBuildOutput::File(p) => p.as_os_str(),
+                };
+
+                cmd.env(
+                    format!("CANISTER_CANDID_{}", canister.get_name()),
+                    candid_path,
+                );
+            }
+        }
+
+        cmd.current_dir(project_root)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
         slog::debug!(logger, "Running {:?}...", cmd);

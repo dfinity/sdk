@@ -3,18 +3,18 @@ import './candid.css';
 
 export function render(id, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
-  for (const [name, func] of Object.entries(canister.__actorInterface())) {
-    renderMethod(name, func, canister[name]);
+  for (const [name, func] of Object.entries(Actor.interfaceOf(canister)._fields)) {
+    renderMethod(canister, name, func, canister[name]);
   }
-  const console = document.createElement("div");
+  const console = document.createElement('div');
   console.className = 'console';
   document.body.appendChild(console);
 }
 
-function renderMethod(name, idl_func, f) {
-  const item = document.createElement("li");
+function renderMethod(canister, name, idl_func, f) {
+  const item = document.createElement('li');
 
-  const sig = document.createElement("div");
+  const sig = document.createElement('div');
   sig.className = 'signature';
   sig.innerHTML = `${name}: ${idl_func.display()}`;
   item.appendChild(sig);
@@ -26,7 +26,7 @@ function renderMethod(name, idl_func, f) {
     inputbox.render(item);
   });
 
-  const button = document.createElement("button");
+  const button = document.createElement('button');
   button.className = 'btn';
   if (idl_func.annotations.includes('query')) {
     button.innerText = 'Query';
@@ -35,40 +35,40 @@ function renderMethod(name, idl_func, f) {
   }
   item.appendChild(button);
 
-  const random = document.createElement("button");
+  const random = document.createElement('button');
   random.className = 'btn';
   random.innerText = 'Lucky';
   item.appendChild(random);
 
-  const result_div = document.createElement("div");
+  const result_div = document.createElement('div');
   result_div.className = 'result';
-  const left = document.createElement("span");
+  const left = document.createElement('span');
   left.className = 'left';
-  const right = document.createElement("span");
+  const right = document.createElement('span');
   right.className = 'right';
   result_div.appendChild(left);
   result_div.appendChild(right);
   item.appendChild(result_div);
 
-  const list = document.getElementById("methods");
+  const list = document.getElementById('methods');
   list.append(item);
 
-  async function call(args) {
+  async function call(actor, args) {
     left.className = 'left';
     left.innerText = 'Waiting...';
-    right.innerText = ''
+    right.innerText = '';
     result_div.style.display = 'block';
 
     const t_before = Date.now();
-    const result = await f.apply(null, args);
-    const duration = (Date.now() - t_before)/1000;
+    const result = await f.apply(actor, args);
+    const duration = (Date.now() - t_before) / 1000;
     right.innerText = `(${duration}s)`;
     return result;
   }
 
-  function callAndRender(args) {
+  function callAndRender(actor, args) {
     (async () => {
-      const call_result = await call(args);
+      const call_result = await call(actor, args);
       let result;
       if (idl_func.retTypes.length === 0) {
         result = [];
@@ -115,34 +115,34 @@ function renderMethod(name, idl_func, f) {
       left.className += ' error';
       left.innerText = err.message;
       throw err;
-    })
+    });
   }
 
-  random.addEventListener("click", function() {
+  random.addEventListener('click', function () {
     const args = inputs.map(arg => arg.parse({ random: true }));
     const isReject = inputs.some(arg => arg.isRejected());
     if (isReject) {
       return;
     }
-    callAndRender(args);
+    callAndRender(canister, args);
   });
 
-  button.addEventListener("click", function() {
+  button.addEventListener('click', function () {
     const args = inputs.map(arg => arg.parse());
     const isReject = inputs.some(arg => arg.isRejected());
     if (isReject) {
       return;
     }
-    callAndRender(args);
+    callAndRender(canister, args);
   });
 }
 
 function encodeStr(str) {
   const escapeChars = {
-    ' ' : '&nbsp;',
-    '<' : '&lt;',
-    '>' : '&gt;',
-    '\n' : '<br>',
+    ' ': '&nbsp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '\n': '<br>',
   };
   const regex = new RegExp('[ <>\n]', 'g');
   return str.replace(regex, m => {
@@ -151,8 +151,8 @@ function encodeStr(str) {
 }
 
 function log(content) {
-  const console = document.getElementsByClassName("console")[0];
-  const line = document.createElement("div");
+  const console = document.getElementsByClassName('console')[0];
+  const line = document.createElement('div');
   line.className = 'console-line';
   if (content instanceof Element) {
     line.appendChild(content);

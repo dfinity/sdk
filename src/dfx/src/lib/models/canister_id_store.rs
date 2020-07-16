@@ -23,13 +23,18 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
         let network_descriptor = env.get_network_descriptor().expect("no network descriptor");
-        CanisterIdStore::for_network(Some(network_descriptor))
+        CanisterIdStore::for_network(network_descriptor)
     }
 
-    pub fn for_network(network_descriptor: Option<&NetworkDescriptor>) -> DfxResult<Self> {
-        let path = match network_descriptor.map(|x| x.r#type) {
-            Some(NetworkType::Persistent) => PathBuf::from("canister_ids.json"),
-            _ => PathBuf::from(".dfx/canister_ids.json"),
+    pub fn for_network(network_descriptor: &NetworkDescriptor) -> DfxResult<Self> {
+        let path = match network_descriptor {
+            NetworkDescriptor {
+                r#type: NetworkType::Persistent,
+                ..
+            } => PathBuf::from("canister_ids.json"),
+            NetworkDescriptor { name, .. } => {
+                PathBuf::from(&format!(".dfx/{}/canister_ids.json", name))
+            }
         };
         let ids = if path.is_file() {
             CanisterIdStore::load_ids(&path)?
@@ -38,7 +43,7 @@ impl CanisterIdStore {
         };
 
         Ok(CanisterIdStore {
-            network_descriptor: network_descriptor.unwrap().clone(),
+            network_descriptor: network_descriptor.clone(),
             path,
             ids,
         })
@@ -60,6 +65,11 @@ impl CanisterIdStore {
 
     pub fn save_ids(&self) -> DfxResult {
         let content = serde_json::to_string_pretty(&self.ids)?;
+        let parent = self.path.parent().unwrap();
+        if !parent.exists() {
+            std::fs::create_dir_all(parent)?;
+        }
+
         std::fs::write(&self.path, content).map_err(|err| {
             DfxError::CouldNotSaveCanisterIds(self.path.to_string_lossy().to_string(), err)
         })

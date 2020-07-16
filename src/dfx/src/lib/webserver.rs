@@ -55,7 +55,7 @@ fn candid(
 ) -> DfxResult<HttpResponse> {
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
-    let store = CanisterIdStore::for_network(Some(&network_descriptor))?;
+    let store = CanisterIdStore::for_network(&network_descriptor)?;
     let candid_path = store
         .get_name(&id)
         .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
