@@ -133,8 +133,14 @@ impl CanisterBuilder for AssetsBuilder {
         }
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        assets_canister_info.assert_source_paths()?;
-        copy_assets(&assets_canister_info)?;
+        if !config.skip_frontend {
+            assets_canister_info.assert_source_paths()?;
+        }
+        copy_assets(
+            pool.get_logger(),
+            &assets_canister_info,
+            config.skip_frontend,
+        )?;
         Ok(())
     }
 }
@@ -164,11 +170,26 @@ fn delete_output_directory(
     Ok(())
 }
 
-fn copy_assets(assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
+fn copy_assets(
+    logger: &slog::Logger,
+    assets_canister_info: &AssetsCanisterInfo,
+    skip_frontend: bool,
+) -> DfxResult {
     let source_paths = assets_canister_info.get_source_paths();
     let output_assets_path = assets_canister_info.get_output_assets_path();
 
     for source_path in source_paths {
+        // If we skip-frontend and the source doesn't exist, we ignore it.
+        if skip_frontend && !source_path.exists() {
+            slog::warn!(
+                logger,
+                r#"Skip copying "{}" because --skip-frontend was used."#,
+                source_path.to_string_lossy()
+            );
+
+            continue;
+        }
+
         let input_assets_path = source_path.as_path();
         let walker = WalkDir::new(input_assets_path).into_iter();
         for entry in walker.filter_entry(|e| !is_hidden(e)) {
@@ -224,7 +245,7 @@ fn build_frontend(
                 };
 
                 cmd.env(
-                    format!("CANISTER_CANDID_{}", canister.get_name()),
+                    format!("CANISTER_CANDID_PATH_{}", canister.get_name()),
                     candid_path,
                 );
             }
