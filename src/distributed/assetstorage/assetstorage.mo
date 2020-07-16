@@ -1,7 +1,6 @@
 import AssocList "mo:base/AssocList";
-import Debug "mo:base/Debug";
+import Error "mo:base/Error";
 import List "mo:base/List";
-import Prelude "mo:base/Prelude";
 import Prim "mo:prim";
 
 actor {
@@ -18,10 +17,9 @@ actor {
         return a == b;
     };
 
-    public shared { caller } func store(path : Path, contents : Contents) {
+    public shared { caller } func store(path : Path, contents : Contents) : async () {
         if (caller != initializer) {
-            Debug.print("not authorized");
-            Prelude.unreachable();
+            throw Error.reject("not authorized");
         } else {
             db := AssocList.replace<Path, Contents>(db, path, eq, ?contents).0;
         };
@@ -31,8 +29,7 @@ actor {
         let result = AssocList.find<Path, Contents>(db, path, eq);
         switch result {
             case null {
-                Debug.print("not found");
-                Prelude.unreachable();
+                throw Error.reject("not found");
             };
             case (?contents) contents;
         };
