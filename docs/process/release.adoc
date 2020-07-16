@@ -31,6 +31,8 @@ the operation of how to get a new release out.
 *** `Cargo.lock` (can also run `cargo build`)
 ** Update manifest to include new version; *Ensure* latest remains the same
 ** Create a pull request with the above 2 changes and get the validator to approve it
+*** `git switch -c <name>/<version>`
+*** `git commit -m "chore: release <version>`
 ** Apply `automerge-squash` label and wait for pull request to get merged.
 ** Switch to stable branch `git switch stable` and `git pull origin stable`
 ** Run `git pull origin master --ff-only`
