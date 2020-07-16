@@ -983,7 +983,7 @@ dependencies = [
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hotwatch 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ic-agent 0.5.12",
- "ic-identity-manager 0.5.11",
+ "ic-identity-manager 0.5.12",
  "indicatif 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy-init 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1576,7 +1576,7 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-manager"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "ic-agent 0.5.12",
  "openssl 0.10.28 (registry+https://github.com/rust-lang/crates.io-index)",
