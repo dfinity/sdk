@@ -42,5 +42,6 @@ teardown() {
     assert_eq '(vec { 88; 87; 86; })'
 
     assert_command_fail dfx canister call --query e2e_project_assets retrieve '("C")'
-}
 
+    HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '("index.js", vec { 1; 2; 3; })'
+}

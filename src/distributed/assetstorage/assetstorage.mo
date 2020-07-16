@@ -1,31 +1,37 @@
-import A "mo:base/AssocList";
-import L "mo:base/List";
+import AssocList "mo:base/AssocList";
+import Error "mo:base/Error";
+import List "mo:base/List";
 import Prim "mo:prim";
 
 actor {
+
     public type Path = Text;
+
     public type Contents = Blob;
 
-    var stored: A.AssocList<Path, Contents> = L.nil<(Path, Contents)>();
+    private let initializer : Principal = Prim.caller();
 
-    func pathEq(a: Path, b: Path): Bool {
+    private stable var db: AssocList.AssocList<Path, Contents> = List.nil();
+
+    func eq(a: Path, b: Path): Bool {
         return a == b;
     };
 
-    public func store(path : Path, contents: Contents) : async () {
-        let (newStored, _) = A.replace<Path, Contents>(stored, path, pathEq, ?contents);
-        stored := newStored;
+    public shared { caller } func store(path : Path, contents : Contents) : async () {
+        if (caller != initializer) {
+            throw Error.reject("not authorized");
+        } else {
+            db := AssocList.replace<Path, Contents>(db, path, eq, ?contents).0;
+        };
     };
 
-    public query func retrieve(path: Path): async Contents {
-        let result = A.find<Path, Contents>(stored, path, pathEq);
+    public query func retrieve(path : Path) : async Contents {
+        let result = AssocList.find<Path, Contents>(db, path, eq);
         switch result {
             case null {
-                // more than 8 chars treated as invalid UTF-8
-                // TODO: https://github.com/dfinity-lab/sdk/issues/701
-                throw Prim.error("notfound")
+                throw Error.reject("not found");
             };
-            case (?contents) { contents };
-        }
+            case (?contents) contents;
+        };
     };
 };
