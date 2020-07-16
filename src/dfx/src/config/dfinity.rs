@@ -71,7 +71,7 @@ pub struct ConfigDefaultsReplica {
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
-    // We store ephemeral canister ids in .dfx/canister_ids.json
+    // We store ephemeral canister ids in .dfx/{network}/canister_ids.json
     Ephemeral,
 
     // We store persistent canister ids in canister_ids.json (adjacent to dfx.json)

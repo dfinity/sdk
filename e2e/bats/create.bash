@@ -22,7 +22,7 @@ teardown() {
 @test "create generates the canister_ids.json" {
     dfx_start
     assert_command dfx canister create --all
-    [[ -f .dfx/canister_ids.json ]]
+    [[ -f .dfx/local/canister_ids.json ]]
 }
 
 @test "build fails without create" {

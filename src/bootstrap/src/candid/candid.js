@@ -1,9 +1,9 @@
-import { IDL, UI } from '@dfinity/agent';
+import { Actor, IDL, UI } from '@dfinity/agent';
 import './candid.css';
 
 export function render(id, canister) {
   document.getElementById('title').innerText = `Service ${id}`;
-  for (const [name, func] of Object.entries(Actor.interfaceOf(canister)._fields)) {
+  for (const [name, func] of Actor.interfaceOf(canister)._fields) {
     renderMethod(canister, name, func, canister[name]);
   }
   const console = document.createElement('div');
