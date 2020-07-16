@@ -5,18 +5,16 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::assets;
-use chrono::Utc;
 use ic_agent::{Blob, CanisterId};
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
-use serde::{Deserialize, Serialize};
-use serde_json::Map;
 use slog::Logger;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
@@ -69,12 +67,12 @@ impl Canister {
         self.info.get_canister_id().unwrap()
     }
 
-    // this function is only ever used when build_config.skip_manifest is true
-    pub fn generate_and_set_canister_id(&self) -> DfxResult {
+    // this function is only ever used when build_config.build_mode_check is true
+    pub fn generate_random_canister_id() -> CanisterId {
         let mut rng = thread_rng();
         let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
         rng.fill_bytes(v.as_mut_slice());
-        self.info.set_canister_id(CanisterId::from(Blob(v)))
+        CanisterId::from(Blob(v))
     }
 
     /// Get the build output of a build process. If the output isn't known at this time,
@@ -91,66 +89,11 @@ pub struct CanisterPool {
     cache: Arc<dyn Cache>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CanisterManifest {
-    pub canisters: Map<String, serde_json::value::Value>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CanManMetadata {
-    pub timestamp: String,
-    pub canister_id: String,
-    pub wasm_path: PathBuf,
-    pub candid_path: PathBuf,
-}
-
-impl CanisterManifest {
-    pub fn load(path: &Path) -> DfxResult<Self> {
-        let content = std::fs::read_to_string(path).map_err(|_| {
-            DfxError::BuildError(BuildErrorKind::NoManifestError(
-                path.to_str().unwrap().to_string(),
-            ))
-        })?;
-        serde_json::from_str(&content).map_err(DfxError::from)
-    }
-
-    pub fn save(&self, path: &Path) -> DfxResult<()> {
-        let content =
-            serde_json::to_string_pretty(self).map_err(DfxError::CouldNotSerializeConfiguration)?;
-        std::fs::write(path, content).map_err(DfxError::from)
-    }
-
-    pub fn add_entry(&mut self, info: &CanisterInfo, cid: CanisterId) -> DfxResult<()> {
-        let now = Utc::now();
-        let timestamp = now.to_rfc2822();
-
-        let metadata = CanManMetadata {
-            timestamp,
-            canister_id: cid.to_text(),
-            wasm_path: info.get_build_wasm_path(),
-            candid_path: info.get_build_idl_path(),
-        };
-        self.canisters.insert(
-            info.get_name().to_string(),
-            serde_json::to_value(metadata).expect("Could not serialize metadata"),
-        );
-
-        self.save(info.get_manifest_path())
-    }
-    pub fn get_candid(&self, cid: &str) -> Option<PathBuf> {
-        for (_, v) in self.canisters.iter() {
-            let id = v.get("canister_id")?.as_str()?;
-            if id == cid {
-                let path = v.get("candid_path")?.as_str()?;
-                return Some(PathBuf::from(path));
-            }
-        }
-        None
-    }
-}
-
 impl CanisterPool {
-    pub fn load(env: &dyn Environment) -> DfxResult<Self> {
+    pub fn load(
+        env: &dyn Environment,
+        provide_random_canister_id_if_missing: bool,
+    ) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
@@ -162,8 +105,18 @@ impl CanisterPool {
         let builder_pool = BuilderPool::new(env)?;
         let mut canisters_map = Vec::new();
 
+        let canister_id_store = CanisterIdStore::for_env(env)?;
+
         for (key, _value) in canisters.iter() {
-            let info = CanisterInfo::load(&config, &key)?;
+            let canister_id = match canister_id_store.find(key) {
+                Some(canister_id) => Some(canister_id),
+                None if provide_random_canister_id_if_missing => {
+                    Some(Canister::generate_random_canister_id())
+                }
+                _ => None,
+            };
+
+            let info = CanisterInfo::load(&config, &key, canister_id)?;
 
             if let Some(builder) = builder_pool.get(&info) {
                 canisters_map.push(Arc::new(Canister::new(info, builder)));
@@ -254,21 +207,7 @@ impl CanisterPool {
         }
     }
 
-    fn step_prebuild_all(&self, build_config: &BuildConfig) -> DfxResult<()> {
-        for canister in &self.canisters {
-            if build_config.skip_manifest {
-                canister.generate_and_set_canister_id()?;
-            } else if !canister.info.get_manifest_path().exists() {
-                return Err(DfxError::BuildError(BuildErrorKind::NoManifestError(
-                    canister
-                        .info
-                        .get_manifest_path()
-                        .to_str()
-                        .unwrap()
-                        .to_string(),
-                )));
-            }
-        }
+    fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
         Ok(())
     }
 

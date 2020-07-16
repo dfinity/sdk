@@ -62,7 +62,7 @@ test('call', async () => {
   };
 
   const mockPartialsRequestId = await requestIdOf(mockPartialRequest);
-  const senderSig = sign(keyPair.secretKey)(mockPartialsRequestId);
+  const senderSig = sign(mockPartialsRequestId, keyPair.secretKey);
   // Just sanity checking our life.
   expect(verify(mockPartialsRequestId, senderSig, keyPair.publicKey)).toBe(true);
 
@@ -123,7 +123,7 @@ test('requestStatus', async () => {
     principal,
   });
   httpAgent.addTransform(makeNonceTransform(() => nonce));
-  httpAgent.setAuthTransform(makeAuthTransform(keyPair, () => () => Buffer.from([0]) as SenderSig));
+  httpAgent.setAuthTransform(makeAuthTransform(keyPair, () => Buffer.from([0]) as SenderSig));
 
   const requestId = await requestIdOf({
     request_type: SubmitRequestType.Call,
@@ -142,8 +142,6 @@ test('requestStatus', async () => {
     content: {
       request_type: ReadRequestType.RequestStatus,
       request_id: requestId,
-      nonce,
-      sender: principal.toBlob(),
     },
     sender_pubkey: senderPubKey,
     sender_sig: Buffer.from([0]) as SenderSig,
@@ -176,4 +174,71 @@ test('requestStatus', async () => {
       body: cbor.encode(expectedRequest),
     },
   ]);
+});
+
+test('queries with the same content should have the same signature', async () => {
+  const mockResponse = {
+    status: 'replied',
+    reply: { arg: Buffer.from([]) as BinaryBlob },
+  };
+
+  const mockFetch: jest.Mock = jest.fn((resource, init) => {
+    const body = cbor.encode(mockResponse);
+    return Promise.resolve(
+      new Response(body, {
+        status: 200,
+      }),
+    );
+  });
+
+  const canisterIdent = 'ic:000000000000000107';
+  const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
+
+  // prettier-ignore
+  const seed = Buffer.from([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+  ]);
+  const keyPair = createKeyPairFromSeed(seed);
+  const senderPubKey = keyPair.publicKey;
+  const principal = await Principal.selfAuthenticating(senderPubKey);
+
+  const httpAgent = new HttpAgent({
+    fetch: mockFetch,
+    principal,
+  });
+  httpAgent.addTransform(makeNonceTransform(() => nonce));
+  httpAgent.setAuthTransform(makeAuthTransform(keyPair));
+
+  const methodName = 'greet';
+  const arg = Buffer.from([]) as BinaryBlob;
+
+  const requestId = await requestIdOf({
+    request_type: SubmitRequestType.Call,
+    nonce,
+    canister_id: CanisterId.fromText(canisterIdent),
+    method_name: methodName,
+    arg,
+    sender: principal.toBlob(),
+  });
+
+  const response1 = await httpAgent.requestStatus({
+    requestId,
+  });
+
+  const response2 = await httpAgent.requestStatus({
+    requestId,
+  });
+
+  const response3 = await httpAgent.query(canisterIdent, { arg, methodName });
+  const response4 = await httpAgent.query(canisterIdent, { methodName, arg });
+
+  const { calls } = mockFetch.mock;
+  expect(calls.length).toBe(4);
+
+  expect(calls[0]).toEqual(calls[1]);
+  expect(response1).toEqual(response2);
+
+  expect(calls[2]).toEqual(calls[3]);
+  expect(response3).toEqual(response4);
 });

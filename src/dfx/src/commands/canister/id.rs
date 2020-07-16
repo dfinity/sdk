@@ -1,7 +1,7 @@
-use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::CanisterId;
 
@@ -17,14 +17,11 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let config = env
-        .get_config()
+    env.get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let canister_name = args.value_of("canister_name").unwrap();
-    let canister_info = CanisterInfo::load(&config, canister_name)?;
-    let canister_id = canister_info.get_canister_id().map_err(|_| {
-        DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
-    })?;
+    let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
+
     println!("{}", CanisterId::to_text(&canister_id));
     Ok(())
 }

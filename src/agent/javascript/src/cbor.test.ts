@@ -28,7 +28,7 @@ test('round trip', () => {
     g: new BigNumber('0xffffffffffffffff'),
   };
 
-  const output = decode<Data>(encode(input)) as Data;
+  const output = decode<Data>(encode(input));
 
   // Some values don't decode exactly to the value that was encoded,
   // but their hexadecimal representions are the same.
@@ -39,6 +39,20 @@ test('round trip', () => {
   expect(blobToHex(outputC)).toBe(blobToHex(inputC));
   expect(buf2hex((outputE as any) as Uint8Array).toUpperCase()).toBe(inputE.toHex());
   expect(outputRest).toEqual(inputRest);
+});
+
+test('empty canister ID', () => {
+  const input: { a: CanisterId } = {
+    a: CanisterId.fromText('ic:00'),
+  };
+
+  const output = decode<typeof input>(encode(input));
+
+  const inputA = input.a;
+  const outputA = output.a;
+
+  expect(buf2hex((outputA as any) as Uint8Array)).toBe(inputA.toHex());
+  expect(CanisterId.fromBlob(outputA as any).toText()).toBe('ic:00');
 });
 
 function buf2hex(buffer: Uint8Array) {

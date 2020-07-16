@@ -1,5 +1,6 @@
 import { fromByteArray } from 'base64-js';
 import { Buffer } from 'buffer/';
+import { ActorFactory } from '../actor';
 import * as actor from '../actor';
 import { Agent } from '../agent';
 import { CanisterId } from '../canisterId';
@@ -223,7 +224,6 @@ export class HttpAgent implements Agent {
     return this.read({
       request_type: ReadRequestType.RequestStatus,
       request_id: fields.requestId,
-      sender: p.toBlob(),
     }) as Promise<RequestStatusResponse>;
   }
 
@@ -251,8 +251,8 @@ export class HttpAgent implements Agent {
     return cbor.decode(new Uint8Array(buffer));
   }
 
-  public get makeActorFactory() {
-    return actor.makeActorFactory;
+  public makeActorFactory(actorInterfaceFactory: IDL.InterfaceFactory): ActorFactory {
+    return actor.makeActorFactory(actorInterfaceFactory);
   }
 
   protected _transform(

@@ -40,6 +40,9 @@ export class CanisterId {
   public readonly _isCanisterId = true;
   protected constructor(private _idHex: string) {}
 
+  public toBlob() {
+    return blobFromHex(this._idHex);
+  }
   public toHash() {
     return blobFromHex(this._idHex);
   }

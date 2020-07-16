@@ -2,7 +2,9 @@ use crate::config::dfinity::{Config, Profile};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::provider::get_network_context;
 use ic_agent::CanisterId;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -77,24 +79,25 @@ pub trait CanisterBuilder {
 pub struct BuildConfig {
     profile: Profile,
     pub skip_frontend: bool,
-    pub skip_manifest: bool,
+    pub build_mode_check: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
 }
 
 impl BuildConfig {
-    pub fn from_config(config: &Config) -> Self {
-        let workspace_root = config.get_path().parent().unwrap();
-        let config = config.get_config();
-        let build_root = workspace_root.join(config.get_defaults().get_build().get_output());
+    pub fn from_config(config: &Config) -> DfxResult<Self> {
+        let config_intf = config.get_config();
+        let network_name = get_network_context()?;
+        let build_root = config.get_temp_path().join(network_name);
+        let build_root = build_root.join(config_intf.get_defaults().get_build().get_output());
 
-        BuildConfig {
-            profile: config.profile.unwrap_or(Profile::Debug),
+        Ok(BuildConfig {
+            profile: config_intf.profile.unwrap_or(Profile::Debug),
             skip_frontend: false,
-            skip_manifest: false,
+            build_mode_check: false,
             idl_root: build_root.join("idl/"),
-        }
+        })
     }
 
     pub fn with_skip_frontend(self, skip_frontend: bool) -> Self {
@@ -104,9 +107,9 @@ impl BuildConfig {
         }
     }
 
-    pub fn with_skip_manifest(self, skip_manifest: bool) -> Self {
+    pub fn with_build_mode_check(self, build_mode_check: bool) -> Self {
         Self {
-            skip_manifest,
+            build_mode_check,
             ..self
         }
     }

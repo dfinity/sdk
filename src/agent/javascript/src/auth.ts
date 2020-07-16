@@ -1,5 +1,5 @@
 import { Buffer } from 'buffer/';
-import { sign as naclSign } from 'tweetnacl';
+import * as tweetnacl from 'tweetnacl';
 import {
   AuthHttpAgentRequestTransformFn,
   HttpAgentRequest,
@@ -17,21 +17,21 @@ export interface KeyPair {
   secretKey: SenderSecretKey;
 }
 
-export const sign = (secretKey: SenderSecretKey) => (requestId: RequestId): SenderSig => {
-  const signature = naclSign.detached(requestId, secretKey);
+export function sign(requestId: RequestId, secretKey: SenderSecretKey): SenderSig {
+  const signature = tweetnacl.sign.detached(requestId, secretKey);
   return Buffer.from(signature) as SenderSig;
-};
+}
 
 export function verify(
   requestId: RequestId,
   senderSig: SenderSig,
   senderPubKey: SenderPubKey,
 ): boolean {
-  return naclSign.detached.verify(requestId, senderSig, senderPubKey);
+  return tweetnacl.sign.detached.verify(requestId, senderSig, senderPubKey);
 }
 
 export const createKeyPairFromSeed = (seed: Uint8Array): KeyPair => {
-  const { publicKey, secretKey } = naclSign.keyPair.fromSeed(seed);
+  const { publicKey, secretKey } = tweetnacl.sign.keyPair.fromSeed(seed);
   return {
     publicKey: Buffer.from(publicKey),
     secretKey: Buffer.from(secretKey),
@@ -41,7 +41,7 @@ export const createKeyPairFromSeed = (seed: Uint8Array): KeyPair => {
 // TODO/Note/XXX(eftychis): Unused for the first pass. This provides
 // us with key generation for the client.
 export function generateKeyPair(): KeyPair {
-  const { publicKey, secretKey } = naclSign.keyPair();
+  const { publicKey, secretKey } = tweetnacl.sign.keyPair();
   return makeKeyPair(publicKey, secretKey);
 }
 
@@ -52,16 +52,13 @@ export function makeKeyPair(publicKey: Uint8Array, secretKey: Uint8Array): KeyPa
   } as KeyPair;
 }
 
-export type SigningConstructedFn = (
-  secretKey: SenderSecretKey,
-) => (requestId: RequestId) => SenderSig;
+export type SigningConstructedFn = (requestId: RequestId, secretKey: SenderSecretKey) => SenderSig;
 
 export function makeAuthTransform(
   keyPair: KeyPair,
   senderSigFn: SigningConstructedFn = sign,
 ): AuthHttpAgentRequestTransformFn {
   const { publicKey, secretKey } = keyPair;
-  const signFn = senderSigFn(secretKey);
 
   const fn = async (r: HttpAgentRequest) => {
     const { body, ...fields } = r;
@@ -71,7 +68,7 @@ export function makeAuthTransform(
       body: {
         content: body,
         sender_pubkey: publicKey,
-        sender_sig: signFn(requestId),
+        sender_sig: senderSigFn(requestId, secretKey),
       },
     } as SignedHttpAgentRequest;
   };

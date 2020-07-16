@@ -1,8 +1,9 @@
-use crate::config::dfinity::ConfigDefaultsBootstrap;
+use crate::config::dfinity::{ConfigDefaults, ConfigDefaultsBootstrap};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::provider::get_provider_urls;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::provider::{get_network_context, get_network_descriptor};
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
@@ -54,24 +55,36 @@ pub fn construct() -> App<'static, 'static> {
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let logger = env.get_logger();
-    let config = get_config(env, args)?;
-    let manifest_path = env
+    let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?
-        .get_manifest_path();
-    let providers = get_providers(env, args)?;
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let config_defaults = get_config_defaults_from_file(env);
+    let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
+    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, args)?;
+
+    let network_descriptor = get_network_descriptor(env, args)?;
+
+    let network_name = get_network_context()?;
+
+    let build_root = config_defaults.get_build().get_output();
+
+    let build_output_root = config.get_temp_path().join(network_name);
+    let build_output_root = build_output_root.join(build_root);
+
+    let providers = get_providers(&network_descriptor)?;
 
     let (sender, receiver) = crossbeam::unbounded();
 
     webserver(
         logger.clone(),
-        manifest_path,
-        SocketAddr::new(config.ip.unwrap(), config.port.unwrap()),
+        build_output_root,
+        network_descriptor,
+        SocketAddr::new(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap()),
         providers
             .iter()
             .map(|uri| Url::from_str(uri).unwrap())
             .collect(),
-        &config.root.unwrap(),
+        &config_bootstrap.root.unwrap(),
         sender,
     )?
     .join()
@@ -96,8 +109,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
-fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ConfigDefaultsBootstrap> {
-    let config = get_config_from_file(env);
+fn apply_arguments(
+    config: &ConfigDefaultsBootstrap,
+    env: &dyn Environment,
+    args: &ArgMatches<'_>,
+) -> DfxResult<ConfigDefaultsBootstrap> {
     let ip = get_ip(&config, args)?;
     let port = get_port(&config, args)?;
     let root = get_root(&config, env, args)?;
@@ -112,13 +128,9 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ConfigD
 
 /// Gets the configuration options for the bootstrap server as they were specified in the dfx
 /// configuration file.
-fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsBootstrap {
+fn get_config_defaults_from_file(env: &dyn Environment) -> ConfigDefaults {
     env.get_config().map_or(Default::default(), |config| {
-        config
-            .get_config()
-            .get_defaults()
-            .get_bootstrap()
-            .to_owned()
+        config.get_config().get_defaults().to_owned()
     })
 }
 
@@ -148,11 +160,10 @@ fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResul
         .map_err(|err| DfxError::InvalidArgument(format!("Invalid port number: {}", err)))
 }
 
-/// Gets the list of compute provider API endpoints. First checks if the providers were specified
-/// on the command-line using --providers, otherwise checks if the providers were specified in the
-/// dfx configuration file, which in turn defaults to the local network.
-fn get_providers(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Vec<String>> {
-    get_provider_urls(env, args)?
+/// Gets the list of compute provider API endpoints.
+fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String>> {
+    network_descriptor
+        .providers
         .iter()
         .map(|url| Ok(format!("{}/api", url)))
         .collect()

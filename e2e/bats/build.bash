@@ -44,16 +44,9 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  cp canisters/e2e_project/main.wasm ./old.wasm
+  cp .dfx/local/canisters/e2e_project/main.wasm ./old.wasm
   assert_command dfx build
-  assert_command diff canisters/e2e_project/main.wasm ./old.wasm
-}
-
-@test "build outputs the canister manifest" {
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
-    [[ -f canisters/canister_manifest.json ]]
+  assert_command diff .dfx/local/canisters/e2e_project/main.wasm ./old.wasm
 }
 
 @test "build outputs warning" {
@@ -104,3 +97,21 @@ teardown() {
     assert_command dfx canister --network tungsten create --all
     assert_command dfx build --network tungsten
 }
+
+@test "build output for local network is in expected directory" {
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
+  assert_command ls .dfx/local/canisters/e2e_project/
+  assert_command ls .dfx/local/canisters/e2e_project/main.wasm
+}
+
+@test "build output for non-local network is in expected directory" {
+  dfx_start
+  assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+  dfx canister --network tungsten create --all
+  assert_command dfx build --network tungsten
+  assert_command ls .dfx/tungsten/canisters/e2e_project/
+  assert_command ls .dfx/tungsten/canisters/e2e_project/main.wasm
+}
+
