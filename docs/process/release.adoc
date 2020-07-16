@@ -19,7 +19,9 @@ the operation of how to get a new release out.
 ** Validator
 ** CI (system up)
 * Is master green?
+** `https://github.com/dfinity-lab/sdk/commits/master`
 * Was master red recently or flaky?
+** `https://github.com/dfinity-lab/sdk/commits/master`
 * Follow process:
 ** Update versions
 *** `dfx/Cargo.toml`
@@ -29,7 +31,8 @@ the operation of how to get a new release out.
 *** `Cargo.lock` (can also run `cargo build`)
 ** Update manifest to include new version; *Ensure* latest remains the same
 ** Create a pull request with the above 2 changes and get the validator to approve it
-** Switch to stable branch and `git pull origin stable`
+** Apply `automerge-squash` label and wait for pull request to get merged.
+** Switch to stable branch `git switch stable` and `git pull origin stable`
 ** Run `git pull origin master --ff-only`
 ** Create tags with `git tag -a version -m " Release: version"`
 ** Double check the tag points correctly and is an annotated one: `git log` and  `git describe --always`
