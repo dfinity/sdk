@@ -370,7 +370,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .to_str()
         .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
 
-    let is_dirty = dfx_version_str().contains("-");
+    // Any version that contains a `-` is a local build.
+    // TODO: when adding alpha/beta, take that into account.
+    // TODO: move this to a Version type.
+    let is_dirty = dfx_version_str().contains('-');
 
     let js_agent_version = if is_dirty {
         env.get_cache()
