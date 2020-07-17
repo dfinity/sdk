@@ -1,5 +1,5 @@
 import { Actor, IDL, UI } from '@dfinity/agent';
-import { InputBox } from '../../../agent/javascript/src/candid/candid-core';
+import { InputBox } from '@dfinity/agent/candid/candid-core';
 import './candid.css';
 
 class CanisterActor extends Actor {

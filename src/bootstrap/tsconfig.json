@@ -15,7 +15,11 @@
         "@dfinity/agent": [
             "../../src/agent/javascript/src",
             "node_modules/@dfinity/agent"
-        ]
+        ],
+        "@dfinity/agent/*": [
+          "../../src/agent/javascript/src/*",
+          "node_modules/@dfinity/agent/*"
+      ]
     },
     "baseUrl": "./",
     "esModuleInterop": true,
