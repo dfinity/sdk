@@ -36,17 +36,17 @@ teardown() {
 
     # canister creates writes to a spinner (stderr), not stdout
     assert_command dfx canister --network tungsten id e2e_project
-    assert_match $(cat .dfx/canister_ids.json | jq -r .e2e_project.tungsten)
+    assert_match $(cat .dfx/tungsten/canister_ids.json | jq -r .e2e_project.tungsten)
 }
 
-@test "create stores canister ids for default-ephemeral local networks in .dfx/canister_ids.json" {
+@test "create stores canister ids for default-ephemeral local networks in .dfx/{network}canister_ids.json" {
     dfx_start
 
     assert_command dfx canister --network local create --all
 
     # canister creates writes to a spinner (stderr), not stdout
     assert_command dfx canister --network local id e2e_project
-    assert_match $(cat .dfx/canister_ids.json | jq -r .e2e_project.local)
+    assert_match $(cat .dfx/local/canister_ids.json | jq -r .e2e_project.local)
 }
 
 

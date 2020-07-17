@@ -25,6 +25,10 @@ the operation of how to get a new release out.
 *** `dfx/Cargo.toml`
 *** `public/manifest.json` (only adding the version to the list)
 *** `src/agent/javascript/package.json` (`version` key)
+*** `src/agent/javascript/package-lock.json`
+*** `sdk/src/bootstrap/package-lock.json`
+*** `sdk/src/bootstrap/package.json`
+*** `src/ic_identity_manager/Cargo.toml`
 *** `src/agent/rust/Cargo.toml`
 *** `Cargo.lock` (can also run `cargo build`)
 ** Update manifest to include new version; *Ensure* latest remains the same
