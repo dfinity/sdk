@@ -959,7 +959,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "actix 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-cors 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -982,8 +982,8 @@ dependencies = [
  "futures 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hotwatch 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "ic-agent 0.5.12",
- "ic-identity-manager 0.5.12",
+ "ic-agent 0.5.13",
+ "ic-identity-manager 0.5.13",
  "indicatif 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy-init 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1552,7 +1552,7 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "async-trait 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1576,9 +1576,9 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-manager"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
- "ic-agent 0.5.12",
+ "ic-agent 0.5.13",
  "openssl 0.10.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "pem 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ring 0.16.14 (registry+https://github.com/rust-lang/crates.io-index)",
