@@ -32,7 +32,7 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "joachim/spec-0.9",
+        "ref": "spec-0.9",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
         "rev": "8e2823813d0e17bbd39066554a7b2a196a938804",
         "type": "git"
