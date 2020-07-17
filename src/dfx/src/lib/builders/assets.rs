@@ -105,12 +105,42 @@ impl CanisterBuilder for AssetsBuilder {
         config: &BuildConfig,
     ) -> DfxResult {
         if !config.skip_frontend {
-            build_frontend(info.get_workspace_root(), pool.get_logger())?;
+            let deps = match info.get_extra_value("dependencies") {
+                None => vec![],
+                Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
+                    DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
+                })?,
+            };
+            let dependencies = deps
+                .iter()
+                .map(|name| {
+                    pool.get_first_canister_with_name(name)
+                        .map(|c| c.canister_id())
+                        .map_or_else(
+                            || Err(DfxError::UnknownCanisterNamed(name.clone())),
+                            DfxResult::Ok,
+                        )
+                })
+                .collect::<DfxResult<Vec<CanisterId>>>()?;
+
+            build_frontend(
+                pool.get_logger(),
+                info.get_workspace_root(),
+                &config.network_name,
+                dependencies,
+                pool,
+            )?;
         }
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        assets_canister_info.assert_source_paths()?;
-        copy_assets(&assets_canister_info)?;
+        if !config.skip_frontend {
+            assets_canister_info.assert_source_paths()?;
+        }
+        copy_assets(
+            pool.get_logger(),
+            &assets_canister_info,
+            config.skip_frontend,
+        )?;
         Ok(())
     }
 }
@@ -140,11 +170,26 @@ fn delete_output_directory(
     Ok(())
 }
 
-fn copy_assets(assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
+fn copy_assets(
+    logger: &slog::Logger,
+    assets_canister_info: &AssetsCanisterInfo,
+    skip_frontend: bool,
+) -> DfxResult {
     let source_paths = assets_canister_info.get_source_paths();
     let output_assets_path = assets_canister_info.get_output_assets_path();
 
     for source_path in source_paths {
+        // If we skip-frontend and the source doesn't exist, we ignore it.
+        if skip_frontend && !source_path.exists() {
+            slog::warn!(
+                logger,
+                r#"Skip copying "{}" because --skip-frontend was used."#,
+                source_path.to_string_lossy()
+            );
+
+            continue;
+        }
+
         let input_assets_path = source_path.as_path();
         let walker = WalkDir::new(input_assets_path).into_iter();
         for entry in walker.filter_entry(|e| !is_hidden(e)) {
@@ -173,7 +218,13 @@ fn copy_assets(assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
     Ok(())
 }
 
-fn build_frontend(project_root: &Path, logger: &slog::Logger) -> DfxResult {
+fn build_frontend(
+    logger: &slog::Logger,
+    project_root: &Path,
+    network_name: &str,
+    dependencies: Vec<CanisterId>,
+    pool: &CanisterPool,
+) -> DfxResult {
     let build_frontend = project_root.join("package.json").exists();
     // If there is not a package.json, we don't have a frontend and can quit early.
 
@@ -184,7 +235,23 @@ fn build_frontend(project_root: &Path, logger: &slog::Logger) -> DfxResult {
         cmd.arg("run")
             .arg("build")
             .env("DFX_VERSION", &format!("{}", dfx_version()))
-            .current_dir(project_root)
+            .env("DFX_NETWORK", &network_name);
+
+        for deps in &dependencies {
+            let canister = pool.get_canister(deps).unwrap();
+            if let Some(output) = canister.get_build_output() {
+                let candid_path = match &output.idl {
+                    IdlBuildOutput::File(p) => p.as_os_str(),
+                };
+
+                cmd.env(
+                    format!("CANISTER_CANDID_PATH_{}", canister.get_name()),
+                    candid_path,
+                );
+            }
+        }
+
+        cmd.current_dir(project_root)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
         slog::debug!(logger, "Running {:?}...", cmd);

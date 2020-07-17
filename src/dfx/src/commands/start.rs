@@ -88,6 +88,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         // directory itself. N.B. This does NOT follow symbolic links -- and I
         // hope we do not need to.
         fs::remove_dir_all(state_root.clone()).map_err(DfxError::CleanState)?;
+        fs::remove_dir_all(temp_dir.join("local")).map_err(DfxError::CleanState)?;
     }
 
     let client_configuration_dir = temp_dir.join("client-configuration");

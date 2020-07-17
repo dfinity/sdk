@@ -17,5 +17,5 @@ teardown() {
     dfx canister create --all
     dfx build
     assert_command dfx canister id e2e_project
-    assert_match $(cat .dfx/canister_ids.json | jq -r .e2e_project.local)
+    assert_match $(cat .dfx/local/canister_ids.json | jq -r .e2e_project.local)
 }
