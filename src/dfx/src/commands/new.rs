@@ -1,5 +1,6 @@
 use super::upgrade::{get_latest_version, is_upgrade_necessary};
 use crate::config::dfinity::CONFIG_FILE_NAME;
+use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -369,11 +370,19 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .to_str()
         .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
 
-    let js_agent_version = env
-        .get_cache()
-        .get_binary_command_path("js-user-library")?
-        .to_string_lossy()
-        .to_string();
+    // Any version that contains a `-` is a local build.
+    // TODO: when adding alpha/beta, take that into account.
+    // TODO: move this to a Version type.
+    let is_dirty = dfx_version_str().contains('-');
+
+    let js_agent_version = if is_dirty {
+        env.get_cache()
+            .get_binary_command_path("js-user-library")?
+            .to_string_lossy()
+            .to_string()
+    } else {
+        dfx_version_str().to_owned()
+    };
 
     let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),

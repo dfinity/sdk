@@ -2,7 +2,6 @@
 # that are.
 **
 
-!dist/**
 !src/**/*.d.ts
 !src/**/*.js
 !types/**/*.d.ts
