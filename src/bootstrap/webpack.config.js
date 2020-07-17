@@ -68,8 +68,7 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: 'src/candid/index.html',
       filename: 'candid/index.html',
-      // TODO: change candid.js to candid.ts, and make it a proper bootstrap, and
-      //       change this chunk to candid.
+      // TODO: make it a proper bootstrap, and change this chunk to candid.
       chunks: ['bootstrap'],
     }),
     new HtmlWebpackPlugin({
