@@ -9,7 +9,7 @@ module.exports = {
   mode: 'production',
   entry: {
     bootstrap: './src/index.ts',
-    candid: './src/candid/candid.js',
+    candid: './src/candid/candid.ts',
     login: './src/login.ts',
     worker: './src/worker.ts',
   },
