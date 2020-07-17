@@ -2,7 +2,7 @@ use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::provider::{get_network_context, get_network_descriptor};
+use crate::lib::provider::get_network_descriptor;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
@@ -159,13 +159,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let providers = Vec::new();
 
     let network_descriptor = get_network_descriptor(env, args)?;
-
-    let network_name = get_network_context()?;
-
-    let build_root = config.get_config().get_defaults().get_build().get_output();
-
-    let build_output_root = config.get_temp_path().join(network_name);
-    let build_output_root = build_output_root.join(build_root);
+    let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
+    let build_output_root = build_output_root.join("build");
 
     let proxy_config = ProxyConfig {
         logger: env.get_logger().clone(),

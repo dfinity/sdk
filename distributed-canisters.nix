@@ -33,7 +33,7 @@ pkgs.runCommandNoCCLocal "distributed-canisters" {} ''
 
     for ext in did wasm
     do
-      cp $canister_root/.dfx/local/canisters/$canister_name/$canister_name.$ext $output_dir
+      cp $canister_root/.dfx/local/build/$canister_name/$canister_name.$ext $output_dir
     done
   done
 ''
