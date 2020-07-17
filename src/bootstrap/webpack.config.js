@@ -66,10 +66,9 @@ module.exports = {
       chunks: ['worker'],
     }),
     new HtmlWebpackPlugin({
-      template: 'src/candid/index.html',
+      template: 'src/candid/candid.html',
       filename: 'candid/index.html',
-      // TODO: make it a proper bootstrap, and change this chunk to candid.
-      chunks: ['bootstrap'],
+      chunks: ['candid'],
     }),
     new HtmlWebpackPlugin({
       template: 'src/login.html',

@@ -1,27 +1,22 @@
-import { Actor, IDL, UI } from '@dfinity/agent';
-import { InputBox } from '@dfinity/agent/candid/candid-core';
 import './candid.css';
+// tslint:disable-next-line:ordered-imports
+import { Actor, CanisterId, IDL, InputBox, UI } from '@dfinity/agent';
 
 class CanisterActor extends Actor {
   [x: string]: (...args: unknown[]) => Promise<unknown>;
 }
 
-export function render(id: string, canister: CanisterActor) {
+export function render(id: CanisterId, canister: CanisterActor) {
   document.getElementById('title')!.innerText = `Service ${id}`;
   for (const [name, func] of Actor.interfaceOf(canister)._fields) {
-    renderMethod(canister, name, func, canister[name]);
+    renderMethod(canister, name, func);
   }
   const consoleEl = document.createElement('div');
   consoleEl.className = 'console';
   document.body.appendChild(consoleEl);
 }
 
-function renderMethod(
-  canister: Actor,
-  name: string,
-  idlFunc: IDL.FuncClass,
-  f: (...args: any[]) => {},
-) {
+function renderMethod(canister: CanisterActor, name: string, idlFunc: IDL.FuncClass) {
   const item = document.createElement('li');
 
   const sig = document.createElement('div');
@@ -70,7 +65,7 @@ function renderMethod(
     resultDiv.style.display = 'block';
 
     const tStart = Date.now();
-    const result = f.apply(actor, args);
+    const result = canister[name].apply(actor, args);
     const duration = (Date.now() - tStart) / 1000;
     right.innerText = `(${duration}s)`;
     return result;
@@ -79,7 +74,7 @@ function renderMethod(
   function callAndRender(actor: Actor, args: any[]) {
     (async () => {
       const callResult = await call(actor, args);
-      let result: any[] | any;
+      let result: any;
       if (idlFunc.retTypes.length === 0) {
         result = [];
       } else if (idlFunc.retTypes.length === 1) {
