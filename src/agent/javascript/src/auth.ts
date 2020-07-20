@@ -8,6 +8,8 @@ import {
 import { RequestId, requestIdOf } from './request_id';
 import { BinaryBlob } from './types';
 
+const domainSeparator = Buffer.from('0Aic-request', 'hex');
+
 export type SenderPubKey = BinaryBlob & { __senderPubKey__: void };
 export type SenderSecretKey = BinaryBlob & { __senderSecretKey__: void };
 export type SenderSig = BinaryBlob & { __senderSig__: void };
@@ -18,7 +20,8 @@ export interface KeyPair {
 }
 
 export function sign(requestId: RequestId, secretKey: SenderSecretKey): SenderSig {
-  const signature = tweetnacl.sign.detached(requestId, secretKey);
+  const bufA = Buffer.concat([domainSeparator, requestId]);
+  const signature = tweetnacl.sign.detached(bufA, secretKey);
   return Buffer.from(signature) as SenderSig;
 }
 
@@ -27,7 +30,8 @@ export function verify(
   senderSig: SenderSig,
   senderPubKey: SenderPubKey,
 ): boolean {
-  return tweetnacl.sign.detached.verify(requestId, senderSig, senderPubKey);
+  const bufA = Buffer.concat([domainSeparator, requestId]);
+  return tweetnacl.sign.detached.verify(bufA, senderSig, senderPubKey);
 }
 
 export const createKeyPairFromSeed = (seed: Uint8Array): KeyPair => {
