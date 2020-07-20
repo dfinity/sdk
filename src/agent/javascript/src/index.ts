@@ -15,6 +15,8 @@ export * from './http_agent_types';
 export * from './principal';
 export * from './types';
 
+export * from './candid';
+
 import { Agent, HttpAgent } from './agent';
 import * as IDL from './idl';
 export { IDL };
