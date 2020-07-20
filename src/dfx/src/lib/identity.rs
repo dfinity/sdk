@@ -22,10 +22,21 @@ impl ic_agent::Identity for Identity {
         Ok(self.0.sender())
     }
 
-    fn sign(&self, request_id: &RequestId, _: &Principal) -> Result<Signature, AgentError> {
+    fn sign(
+        &self,
+        domain_separator: &[u8],
+        request_id: &RequestId,
+        _: &Principal,
+    ) -> Result<Signature, AgentError> {
+        let msg = {
+            let mut buf = vec![];
+            buf.extend_from_slice(domain_separator);
+            buf.extend_from_slice(Blob::from(*request_id).as_slice());
+            buf
+        };
         let signature_tuple = self
             .0
-            .sign(Blob::from(*request_id).as_slice())
+            .sign(&msg)
             .map_err(|e| AgentError::SigningError(e.to_string()))?;
 
         let signature = Blob::from(signature_tuple.signature.clone());
@@ -46,11 +57,14 @@ mod test {
     #[test]
     fn request_id_identity() {
         let dir = tempdir().unwrap();
+        let domain_separator: &[u8] = b"\x0Aic-request";
         let request_id = RequestId::new(&[4; 32]);
 
         let signer = super::Identity::new(dir.into_path());
         let sender = signer.sender().expect("Failed to get the sender.");
-        let signature = signer.sign(&request_id, &sender).expect("Failed to sign.");
+        let signature = signer
+            .sign(&domain_separator, &request_id, &sender)
+            .expect("Failed to sign.");
 
         // Assert the principal is used for the public key.
         assert_eq!(

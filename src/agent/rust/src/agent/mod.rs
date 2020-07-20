@@ -23,6 +23,8 @@ use serde::Serialize;
 
 use public::*;
 
+const DOMAIN_SEPARATOR: &[u8; 11] = b"\x0Aic-request";
+
 pub struct Agent {
     url: reqwest::Url,
     nonce_factory: NonceFactory,
@@ -93,7 +95,7 @@ impl Agent {
             SyncContent::QueryRequest { sender, .. } => sender,
             SyncContent::RequestStatusRequest { .. } => &anonymous,
         };
-        let signature = self.identity.sign(&request_id, &sender)?;
+        let signature = self.identity.sign(DOMAIN_SEPARATOR, &request_id, &sender)?;
         let bytes = self
             .execute(
                 "read",
@@ -113,7 +115,7 @@ impl Agent {
         let sender = match request.clone() {
             AsyncContent::CallRequest { sender, .. } => sender,
         };
-        let signature = self.identity.sign(&request_id, &sender)?;
+        let signature = self.identity.sign(DOMAIN_SEPARATOR, &request_id, &sender)?;
         let _ = self
             .execute(
                 "submit",

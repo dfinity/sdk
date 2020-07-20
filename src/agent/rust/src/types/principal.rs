@@ -1,5 +1,5 @@
 use crate::Blob;
-use openssl::sha::sha256;
+use openssl::sha::sha224;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
@@ -34,7 +34,7 @@ impl Principal {
     /// as the public key.
     pub fn self_authenticating(public_key: impl AsRef<[u8]>) -> Self {
         let mut bytes = Vec::with_capacity(ID_SELF_AUTHENTICATING_LEN);
-        let hash = sha256(public_key.as_ref());
+        let hash = sha224(public_key.as_ref());
         bytes.extend(&hash);
         // Now add a suffix denoting the identifier as representing a
         // self-authenticating principal.

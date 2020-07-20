@@ -9,7 +9,12 @@ impl Identity for DummyIdentity {
         Ok(Principal::anonymous())
     }
 
-    fn sign(&self, _request: &RequestId, _principal: &Principal) -> Result<Signature, AgentError> {
+    fn sign(
+        &self,
+        _domain_separator: &[u8],
+        _request: &RequestId,
+        _principal: &Principal,
+    ) -> Result<Signature, AgentError> {
         Ok(Signature {
             signature: Blob::from(vec![1; 32]),
             public_key: Blob::from(vec![2; 32]),
