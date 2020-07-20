@@ -1,13 +1,13 @@
 import * as cbor from 'simple-cbor';
 import { SenderPubKey } from './auth';
 import { BinaryBlob, blobFromUint8Array } from './types';
-import { sha256 } from './utils/sha256';
+import { sha224 } from './utils/sha224';
 
 const SELF_AUTHENTICATING_SUFFIX = 2;
 
 export class Principal {
-  public static async selfAuthenticating(publicKey: SenderPubKey): Promise<Principal> {
-    const sha = await sha256(publicKey);
+  public static selfAuthenticating(publicKey: SenderPubKey): Principal {
+    const sha = sha224(publicKey);
     return new Principal(blobFromUint8Array(new Uint8Array([...sha, 2])));
   }
 
