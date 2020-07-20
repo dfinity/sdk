@@ -10,6 +10,7 @@ use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 use ic_agent::CanisterId;
+use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
@@ -18,12 +19,16 @@ use std::process::Output;
 use std::sync::Arc;
 
 pub struct MotokoBuilder {
+    logger: slog::Logger,
     cache: Arc<dyn Cache>,
 }
 
 impl MotokoBuilder {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(MotokoBuilder {
+            logger: env.get_logger().new(o! {
+                "module" => "motoko"
+            }),
             cache: env.get_cache(),
         })
     }
@@ -123,14 +128,13 @@ impl CanisterBuilder for MotokoBuilder {
         let params = MotokoParams {
             build_target: BuildTarget::IDL,
             surpress_warning: false,
-            verbose: false,
             input: &input_path,
             package_arguments: &package_arguments,
             output: &output_idl_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
         };
-        motoko_compile(cache.as_ref(), &params)?;
+        motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
         // Generate wasm
         let params = MotokoParams {
@@ -140,14 +144,13 @@ impl CanisterBuilder for MotokoBuilder {
             },
             // Surpress the warnings the second time we call moc
             surpress_warning: true,
-            verbose: false,
             input: &input_path,
             package_arguments: &package_arguments,
             output: &output_wasm_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
         };
-        motoko_compile(cache.as_ref(), &params)?;
+        motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
         Ok(BuildOutput {
             canister_id: canister_info
@@ -176,7 +179,6 @@ struct MotokoParams<'a> {
     input: &'a Path,
     // The following fields are control flags for dfx and will not be used by self.to_args()
     surpress_warning: bool,
-    verbose: bool,
 }
 
 impl MotokoParams<'_> {
@@ -199,12 +201,12 @@ impl MotokoParams<'_> {
 }
 
 /// Compile a motoko file.
-fn motoko_compile(cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
+fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
     let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
     params.to_args(&mut cmd);
     let cmd = cmd.env("MOC_RTS", mo_rts_path.as_path());
-    run_command(cmd, params.verbose, params.surpress_warning)?;
+    run_command(logger, cmd, params.surpress_warning)?;
     Ok(())
 }
 
@@ -274,13 +276,12 @@ impl TryFrom<&str> for MotokoImport {
 }
 
 fn run_command(
+    logger: &slog::Logger,
     cmd: &mut std::process::Command,
-    verbose: bool,
     surpress_warning: bool,
 ) -> DfxResult<Output> {
-    if verbose {
-        println!("{:?}", cmd);
-    }
+    trace!(logger, r#"Running {}..."#, format!("{:?}", cmd));
+
     let output = cmd.output()?;
     if !output.status.success() {
         Err(DfxError::BuildError(BuildErrorKind::CompilerError(
@@ -289,8 +290,11 @@ fn run_command(
             String::from_utf8_lossy(&output.stderr).to_string(),
         )))
     } else {
+        if !output.stdout.is_empty() {
+            info!(logger, "{}", String::from_utf8_lossy(&output.stdout));
+        }
         if !surpress_warning && !output.stderr.is_empty() {
-            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+            warn!(logger, "{}", String::from_utf8_lossy(&output.stderr));
         }
         Ok(output)
     }
