@@ -118,7 +118,7 @@ Use this checklist to prepare a release candidate.
 
 * [ ] Prepare a PR for the manifest.
 
-* [ ] Verify all build are done.
+* [ ] Verify all builds are done.
 +
 [width="80%",cols="2,<68%", frame=none]
 |===
