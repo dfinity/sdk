@@ -32,9 +32,9 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "release-2020-06-30.RC00",
+        "ref": "dfx-test-cleanup-changes",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "38f207358b03d396affcdacb6383921cb11243e4",
+        "rev": "80e6447a9c32c52bdb26cf976df363f4703cbb67",
         "type": "git"
     },
     "ic-ref": {
