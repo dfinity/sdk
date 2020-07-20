@@ -16,58 +16,135 @@ Our goal is to update this document with the latest information as we iterate to
 
 == Checklist
 
+Use this checklist to prepare a release candidate.
+
+=== Participants:
+
 [%interactive]
-[ ] Participants:
-** Driver
-** Validator
-** CI (system up)
-[ ] Is master green?
-** `https://github.com/dfinity-lab/sdk/commits/master`
-[ ] Was master red recently or flaky?
-** `https://github.com/dfinity-lab/sdk/commits/master`
 
-[ ] Follow this process:
-* [ ] Update versions
-** [ ] `dfx/Cargo.toml`
-** [ ] `public/manifest.json` (add the new version to the list)
-** [ ] `src/agent/javascript/package.json` (update `version` key)
-** [ ] `src/agent/rust/Cargo.toml`
-** [ ] `Cargo.lock` (can also run `cargo build`)
+* [ ] Driver
+* [ ] Validator
 
-* [ ] Update manifest to include new version. *Ensure* `latest` remains the same.
+=== Process
+
+[%interactive]
+
+* [ ] Is the CI system up?
+
+* [ ] Is master green? See link:https://github.com/dfinity-lab/sdk/commits/master[].
+
+* [ ] Was master red recently or flaky? See link:https://github.com/dfinity-lab/sdk/commits/master[].
+
+* [ ] Update version information
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+
+| |`dfx/Cargo.toml`
+
+| |`public/manifest.json` (add the new version to the list)
+
+| | `src/agent/javascript/package.json` (update `version` key)
+
+| | `src/agent/rust/Cargo.toml`
+
+| | `Cargo.lock` (can also run `cargo build`)
+
+|===
+
+* [ ] Update manifest to include new version. 
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+
+| | *Ensure* `latest` remains the same.
+
+|===
 
 * [ ] Create a pull request with the above changes and get the validator to approve it.
-** [ ] `git switch -c <name>/<version>`
-** [ ] `git commit -m "chore: release <version>`
-** [ ] Apply `automerge-squash` label and wait for pull request to get merged.
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | `git switch -c <name>/<version>`
+| | `git commit -m "chore: release <version>`
+| | Apply `automerge-squash` label and wait for pull request to get merged.
+|===
 
 * [ ] Switch to stable branch by running `git switch stable`, then run `git pull origin stable`.
+
 * [ ] Run `git pull origin master --ff-only`.
+
 * [ ] Create a tag by running `git tag -a <version> -m " Release: <version>"`.
-* [ ] Double-check the tag points to the correct version and that the tag has an annotation using `git log` and  `git describe --always` commands.
-* [ ] Push the tag first to avoid triggering hydra CI incorrectly by running the `git push origin <version>` command.
+
+* [ ] Verify the tag points to the correct version and includes annotation.
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | `git log`
+| | `git describe --always`
+|===
+
+
+* [ ] Push the tag by running the `git push origin <version>` command.
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | You should push the tag before the branch to avoid triggering CI incorrectly.
+|===
+
 * [ ] Push the `stable` branch by running the `git push origin stable` command.
+
 * [ ] Check hydra CI for a successful build.
-* [ ] Notify team members that the new build is ready for manual installation and testing using the `DFX_VERSION=<version>` environment variable.
+
+* [ ] Notify team members that the new build is ready for manual installation and testing.
+
+* [ ] Install the build using the `DFX_VERSION=<version>` environment variable.
+
 * [ ] Run through the _Quick start_ steps.
+
 * [ ] Update release notes and documentation based on the Go/No-go list of merged PRs.
 
-Before promoting the release to `+latest+`:
+=== Before promoting the release to latest
+
+[%interactive]
+
 * [ ] Verify that the hello project can be built, deployed, called in a terminal, and viewed in a browser.
+
 * [ ] Verify that release notes and documentation are ready for public consumption.
 
-Promote the release:
-* [ ] Prepare a PR for the manifest.
-* [ ] Update the manifest once all builds are done (see https://blobules.dfinity.systems/sdk-release/ and https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release)
-** [ ] Linux
-** [ ] Darwin
+=== Promote the release
 
+[%interactive]
+
+* [ ] Prepare a PR for the manifest.
+
+* [ ] Verify all build are done.
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | link:https://blobules.dfinity.systems/sdk-release/[]
+| | link:https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release[]
+|===
+
+* [ ] Update the manifest.
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | Linux
+| | Darwin
+|===
++
 Note: We assume *upstream* is `origin`.
 
-* [ ] Release documentation:
-** [ ] Tag the documentation using `git tag -a <version> -m <documentation-archive-message>`.
-** [ ] Publish the tag on the remote server using `git push origin <tagname>`.
-** [ ] Deploy updated documentation using Netlify.
+=== Release documentation
+
+[%interactive]
+
+* [ ] Tag the documentation using `git tag -a <version> -m <documentation-archive-message>`.
+
+* [ ] Publish the tag on the remote server using `git push origin <tagname>`.
+
+* [ ] Deploy updated documentation using Netlify.
 
 == Requirements and properties
 
