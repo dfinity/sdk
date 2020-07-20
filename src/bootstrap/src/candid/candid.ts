@@ -58,22 +58,22 @@ function renderMethod(canister: CanisterActor, name: string, idlFunc: IDL.FuncCl
   const list = document.getElementById('methods')!;
   list.append(item);
 
-  async function call(actor: Actor, args: any[]) {
+  async function call(args: any[]) {
     left.className = 'left';
     left.innerText = 'Waiting...';
     right.innerText = '';
     resultDiv.style.display = 'block';
 
     const tStart = Date.now();
-    const result = canister[name].apply(actor, args);
+    const result = canister[name](...args);
     const duration = (Date.now() - tStart) / 1000;
     right.innerText = `(${duration}s)`;
     return result;
   }
 
-  function callAndRender(actor: Actor, args: any[]) {
+  function callAndRender(args: any[]) {
     (async () => {
-      const callResult = await call(actor, args);
+      const callResult = await call(args);
       let result: any;
       if (idlFunc.retTypes.length === 0) {
         result = [];
@@ -129,7 +129,7 @@ function renderMethod(canister: CanisterActor, name: string, idlFunc: IDL.FuncCl
     if (isReject) {
       return;
     }
-    callAndRender(canister, args);
+    callAndRender(args);
   });
 
   button.addEventListener('click', () => {
@@ -138,7 +138,7 @@ function renderMethod(canister: CanisterActor, name: string, idlFunc: IDL.FuncCl
     if (isReject) {
       return;
     }
-    callAndRender(canister, args);
+    callAndRender(args);
   });
 }
 
