@@ -89,13 +89,19 @@ Use this checklist to prepare a release candidate.
 |===
 
 
-* [ ] Push the `stable` branch by running the `git push origin stable` command.
-
 * [ ] Push the tag by running the `git push origin <version>` command.
 +
 [width="80%",cols="2,<68%", frame=none]
 |===
 | | CI will only publish dfx from the latest commit from the stable branch when that commit is tagged with a version.
+|===
+
+* [ ] Push the `stable` branch by running the `git push origin stable` command.
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | Pushing the branch second is an optimization.
+Hydra will spur into action when stable advances so if the branch is already tagged it won't require a second fetch.
 |===
 
 * [ ] Wait for the automatic slack message to
