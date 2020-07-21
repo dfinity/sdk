@@ -9,7 +9,7 @@ async function _loadJs(
   filename: string,
   onload = async () => {},
 ): Promise<any> {
-  const idlFn = ({ IDL: idl }: any) => {
+  const idlFn: IDL.InterfaceFactory = ({ IDL: idl }) => {
     return idl.Service({
       retrieve: idl.Func([idl.Text], [idl.Vec(idl.Nat8)], ['query']),
     });
@@ -65,8 +65,7 @@ async function _main() {
       // Load candid.did.js from endpoint.
       const candid = await _loadCandid(canisterId);
       const canister = window.ic.agent.makeActorFactory(candid.default)({ canisterId });
-      // @ts-ignore: Could not find a declaration file for module
-      const render: any = await import('./candid/candid.js');
+      const render = await import('./candid/candid');
       render.render(canisterId, canister);
     } else {
       // Load index.js from the canister and execute it.
