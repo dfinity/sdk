@@ -1,5 +1,5 @@
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use std::path::{Path, PathBuf};
 
 pub struct MotokoCanisterInfo {
@@ -64,13 +64,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
 
         let input_path = workspace_root.join(&main_path);
         let output_root = build_root.join(name);
-        let output_wasm_path = output_root
-            .join(
-                main_path
-                    .file_name()
-                    .ok_or_else(|| DfxError::Unknown("Main is not a file path.".to_string()))?,
-            )
-            .with_extension("wasm");
+        let output_wasm_path = output_root.join(name).with_extension("wasm");
         let output_idl_path = output_wasm_path.with_extension("did");
         let output_did_js_path = output_wasm_path.with_extension("did.js");
         let output_canister_js_path = output_wasm_path.with_extension("js");
