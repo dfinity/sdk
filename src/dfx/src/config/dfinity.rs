@@ -23,10 +23,7 @@ const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsB
     timeout: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
-    output: None,
-    packtool: None,
-};
+const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { packtool: None };
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
     message_gas_limit: None,
@@ -57,7 +54,6 @@ pub struct ConfigDefaultsBootstrap {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {
-    pub output: Option<String>,
     pub packtool: Option<String>,
 }
 
@@ -159,12 +155,6 @@ pub fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
 }
 
 impl ConfigDefaultsBuild {
-    pub fn get_output(&self) -> String {
-        self.output
-            .to_owned()
-            .unwrap_or_else(|| "build/".to_string())
-    }
-
     pub fn get_packtool(&self) -> Option<String> {
         match &self.packtool {
             Some(v) if !v.is_empty() => self.packtool.to_owned(),

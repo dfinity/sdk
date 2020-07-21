@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
-use crate::lib::provider::{get_network_context, get_network_descriptor};
+use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::webserver;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
@@ -63,13 +63,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config_bootstrap = apply_arguments(&base_config_bootstrap, env, args)?;
 
     let network_descriptor = get_network_descriptor(env, args)?;
-
-    let network_name = get_network_context()?;
-
-    let build_root = config_defaults.get_build().get_output();
-
-    let build_output_root = config.get_temp_path().join(network_name);
-    let build_output_root = build_output_root.join(build_root);
+    let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
+    let build_output_root = build_output_root.join("canisters");
 
     let providers = get_providers(&network_descriptor)?;
 

@@ -10,20 +10,13 @@ setup() {
 }
 
 @test "dfx config -- read/write" {
-    assert_command dfx config defaults/build/output
-    assert_eq '"canisters/"'
+    assert_command_fail dfx config defaults/build/output
 
-    assert_command dfx config defaults.build.output
-    assert_eq '"canisters/"'
-
-    assert_command dfx config defaults/build/output "other/"
+    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
     assert_eq ""
 
-    assert_command dfx config defaults/build/output
-    assert_eq '"other/"'
-
-    assert_command dfx config --format json
-    assert_match '"output": "other/"'
+    assert_command dfx config networks.tungsten.providers
+    assert_eq '[ "http://127.0.0.1:8000" ]'
 
     assert_command_fail dfx config non_existent
 
