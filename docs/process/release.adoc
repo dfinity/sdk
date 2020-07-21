@@ -89,16 +89,18 @@ Use this checklist to prepare a release candidate.
 |===
 
 
+* [ ] Push the `stable` branch by running the `git push origin stable` command.
+
 * [ ] Push the tag by running the `git push origin <version>` command.
 +
 [width="80%",cols="2,<68%", frame=none]
 |===
-| | You should push the tag before the branch to avoid triggering CI incorrectly.
+| | CI will only publish dfx from the latest commit from the stable branch when that commit is tagged with a version.
 |===
 
-* [ ] Push the `stable` branch by running the `git push origin stable` command.
-
-* [ ] Check hydra CI for a successful build.
+* [ ] Wait for the automatic slack message to
+link:https://dfinity.slack.com/archives/CUXGQBABF/p1594954197000100[_#build-notifications_]
+about the successful publishing of the dfx tarballs
 
 * [ ] Notify team members that the new build is ready for manual installation and testing.
 
@@ -126,7 +128,8 @@ Use this checklist to prepare a release candidate.
 +
 [width="80%",cols="2,<68%", frame=none]
 |===
-| | link:https://blobules.dfinity.systems/sdk-release/[]
+| | link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-linux/dfx-{DFX_VERSION}.tar.gz[]
+| | link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-darwin/dfx-{DFX_VERSION}.tar.gz[]
 | | link:https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release[]
 |===
 
