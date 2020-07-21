@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "incremental": true,
+    "allowJs": false,
     "outDir": "ts-out/",
     "target": "ES2017",
     "module": "commonjs",
