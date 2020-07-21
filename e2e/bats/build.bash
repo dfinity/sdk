@@ -44,9 +44,9 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  cp .dfx/local/build/e2e_project/main.wasm ./old.wasm
+  cp .dfx/local/canisters/e2e_project/main.wasm ./old.wasm
   assert_command dfx build
-  assert_command diff .dfx/local/build/e2e_project/main.wasm ./old.wasm
+  assert_command diff .dfx/local/canisters/e2e_project/main.wasm ./old.wasm
 }
 
 @test "build outputs warning" {
@@ -102,8 +102,8 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  assert_command ls .dfx/local/build/e2e_project/
-  assert_command ls .dfx/local/build/e2e_project/main.wasm
+  assert_command ls .dfx/local/canisters/e2e_project/
+  assert_command ls .dfx/local/canisters/e2e_project/main.wasm
 }
 
 @test "build output for non-local network is in expected directory" {

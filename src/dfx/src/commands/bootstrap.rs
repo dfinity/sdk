@@ -64,7 +64,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let network_descriptor = get_network_descriptor(env, args)?;
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
-    let build_output_root = build_output_root.join("build");
+    let build_output_root = build_output_root.join("canisters");
 
     let providers = get_providers(&network_descriptor)?;
 

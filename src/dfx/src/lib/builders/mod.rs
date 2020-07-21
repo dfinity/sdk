@@ -93,7 +93,7 @@ impl BuildConfig {
         let config_intf = config.get_config();
         let network_name = get_network_context()?;
         let build_root = config.get_temp_path().join(&network_name);
-        let build_root = build_root.join("build");
+        let build_root = build_root.join("canisters");
 
         Ok(BuildConfig {
             network_name,

@@ -50,7 +50,7 @@ impl CanisterInfo {
         let build_defaults = config.get_config().get_defaults().get_build();
         let network_name = get_network_context()?;
         let build_root = config.get_temp_path().join(network_name);
-        let build_root = build_root.join("build");
+        let build_root = build_root.join("canisters");
         std::fs::create_dir_all(&build_root)?;
 
         let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
