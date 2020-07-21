@@ -8,7 +8,7 @@ import {
 import { RequestId, requestIdOf } from './request_id';
 import { BinaryBlob } from './types';
 
-const domainSeparator = Buffer.from('0Aic-request', 'hex');
+const domainSeparator = Buffer.from('\x0Aic-request');
 
 export type SenderPubKey = BinaryBlob & { __senderPubKey__: void };
 export type SenderSecretKey = BinaryBlob & { __senderSecretKey__: void };
