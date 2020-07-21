@@ -48,9 +48,9 @@ Use this checklist to prepare a release candidate.
 
 | | `Cargo.lock` (can also run `cargo build`)
 
-| | `src/bootstrap/package.json` (update `version` key)
+| | `src/bootstrap/package.json` (update `version` key, run `npm install`)
 
-| | `src/agent/javascript/package.json` (update `version` key)
+| | `src/agent/javascript/package.json` (update `version` key, run `npm install`)
 
 | | `public/manifest.json` (add the new version to the list)
 
