@@ -1,5 +1,6 @@
 use super::upgrade::{get_latest_version, is_upgrade_necessary};
 use crate::config::dfinity::CONFIG_FILE_NAME;
+use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
@@ -262,28 +263,35 @@ fn scaffold_frontend_code(
         let mut config_json: Value =
             serde_json::from_slice(&content).map_err(std::io::Error::from)?;
 
-        let frontend_value: serde_json::Map<String, Value> = [
-            (
-                "entrypoint".to_string(),
-                ("src/".to_owned() + project_name_str + "_assets/public/index.js").into(),
-            ),
-            (
-                "output".to_string(),
-                ("canisters/".to_owned() + project_name_str + "_assets/assets").into(),
-            ),
-        ]
+        let frontend_value: serde_json::Map<String, Value> = [(
+            "entrypoint".to_string(),
+            ("src/".to_owned() + project_name_str + "_assets/public/index.js").into(),
+        )]
         .iter()
         .cloned()
         .collect();
 
         // Only update the dfx.json and install node dependencies if we're not running in dry run.
         if !dry_run {
-            let p = config_json
+            let assets_canister_json = config_json
                 .pointer_mut(("/canisters/".to_owned() + project_name_str + "_assets").as_str())
                 .unwrap();
-            p.as_object_mut()
+            assets_canister_json
+                .as_object_mut()
                 .unwrap()
                 .insert("frontend".to_string(), Value::from(frontend_value));
+
+            assets_canister_json
+                .as_object_mut()
+                .unwrap()
+                .get_mut("source")
+                .unwrap()
+                .as_array_mut()
+                .unwrap()
+                .push(Value::from(
+                    "dist/".to_owned() + project_name_str + "_assets/",
+                ));
+
             let pretty = serde_json::to_string_pretty(&config_json).or_else(|e| {
                 Err(DfxError::InvalidData(format!(
                     "Failed to serialize dfx.json: {}",
@@ -362,11 +370,19 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .to_str()
         .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
 
-    let js_agent_version = env
-        .get_cache()
-        .get_binary_command_path("js-user-library")?
-        .to_string_lossy()
-        .to_string();
+    // Any version that contains a `-` is a local build.
+    // TODO: when adding alpha/beta, take that into account.
+    // TODO: move this to a Version type.
+    let is_dirty = dfx_version_str().contains('-');
+
+    let js_agent_version = if is_dirty {
+        env.get_cache()
+            .get_binary_command_path("js-user-library")?
+            .to_string_lossy()
+            .to_string()
+    } else {
+        dfx_version_str().to_owned()
+    };
 
     let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
