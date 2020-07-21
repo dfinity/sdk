@@ -26,6 +26,7 @@ Use this checklist to prepare a release candidate.
 * [ ] Validator
 
 === Process
+==== Preliminary Validation
 
 [%interactive]
 
@@ -34,7 +35,23 @@ Use this checklist to prepare a release candidate.
 * [ ] Is master green? See link:https://github.com/dfinity-lab/sdk/commits/master[].
 
 * [ ] Was master red recently or flaky? See link:https://github.com/dfinity-lab/sdk/commits/master[].
+[%interactive]
+* [ ] Verify that the `+hello+` project can be built, deployed, called in a terminal, and viewed in a browser.
+  . `+nix-build ./dfx.nix -A build+` to build the dfx binary
++
+(_for the rest of these instructions, assume that `+dfx+` is a reference to `result/bin/dfx or wherever the binary was built with this command`_)
++
+. `dfx new {name}` to generate default new project
+. `dfx start`
+. In a new terminal
+    .. `+dfx canister create --all+`
+    .. `+dfx build+`
+    .. `+dfx canister install --all+`
+. Open candid ui (e.g. replica running at port 8000: http://localhost:8000/candid?canisterId=12345)
+    ** [ ] verify UI loads
+    ** [ ] verify no errors in console
 
+==== Updating Version
 * [ ] Update version information
 +
 [width="80%",cols="2,<68%", frame=none]
@@ -64,6 +81,8 @@ Use this checklist to prepare a release candidate.
 | | *Ensure* `latest` remains the same.
 
 |===
+
+==== Tagging and Creating a Pull Request
 
 * [ ] Create a pull request with the above changes and get the validator to approve it.
 +
@@ -104,6 +123,8 @@ Use this checklist to prepare a release candidate.
 Hydra will spur into action when stable advances so if the branch is already tagged it won't require a second fetch.
 |===
 
+==== Notifying and Post-build Validation
+
 * [ ] Wait for the automatic slack message to
 link:https://dfinity.slack.com/archives/CUXGQBABF/p1594954197000100[_#build-notifications_]
 about the successful publishing of the dfx tarballs
@@ -116,30 +137,10 @@ about the successful publishing of the dfx tarballs
 
 * [ ] Update release notes and documentation based on the Go/No-go list of merged PRs.
 
-=== Before promoting the release to latest
-
-[%interactive]
-
-* [ ] Verify that the `+hello+` project can be built, deployed, called in a terminal, and viewed in a browser.
-  . `+nix-build ./dfx.nix -A build+` to build the dfx binary
-+
-(_for the rest of these instructions, assume that `+dfx+` is a reference to `result/bin/dfx or wherever the binary was built with this command`_)
-+
-. `dfx new {name}` to generate default new project
-. `dfx start`
-. In a new terminal
-    .. `+dfx canister create --all+`
-    .. `+dfx build+`
-    .. `+dfx canister install --all+`
-. Open candid ui (e.g. replica running at port 8000: http://localhost:8000/candid?canisterId=12345)
-    ** [ ] verify UI loads
-    ** [ ] verify no errors in console
-* [ ] Verify that release notes and documentation are ready for public consumption.
-
 === Promote the release
 
+* [ ] Verify that release notes and documentation are ready for public consumption.
 [%interactive]
-
 * [ ] Prepare a PR for the manifest.
 
 * [ ] Verify all builds are done.
