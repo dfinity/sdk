@@ -9,10 +9,10 @@ After reviewing the list of fixes and features, the team will decide whether to 
 
 If the new release is given the Go green light, two people who are familiar with the process—a *driver* and a *validator*—use the checklist in this document to stage or promote a release candidate.
 
-The *validator* should be the person most familiar with the process and be able to assist with debugging or resolving issues if the *driver* building the release runs into trouble. 
+The *validator* should be the person most familiar with the process and be able to assist with debugging or resolving issues if the *driver* building the release runs into trouble.
 
 A successful release is the result of coordination between automation, manual steps performed by team members, and a validation process.
-Our goal is to update this document with the latest information as we iterate to improve the release process. 
+Our goal is to update this document with the latest information as we iterate to improve the release process.
 
 == Checklist
 
@@ -40,19 +40,23 @@ Use this checklist to prepare a release candidate.
 [width="80%",cols="2,<68%", frame=none]
 |===
 
-| |`dfx/Cargo.toml`
-
-| |`public/manifest.json` (add the new version to the list)
-
-| | `src/agent/javascript/package.json` (update `version` key)
+| | `src/dfx/Cargo.toml`
 
 | | `src/agent/rust/Cargo.toml`
 
+| | `src/ic_identity_manager/Cargo.toml`
+
 | | `Cargo.lock` (can also run `cargo build`)
+
+| | `src/bootstrap/package.json` (update `version` key)
+
+| | `src/agent/javascript/package.json` (update `version` key)
+
+| | `public/manifest.json` (add the new version to the list)
 
 |===
 
-* [ ] Update manifest to include new version. 
+* [ ] Update manifest to include new version.
 +
 [width="80%",cols="2,<68%", frame=none]
 |===
@@ -160,8 +164,8 @@ link:https://github.com/dfinity/docs[Documentation repo]
 == Build mechanism
 
 Our build process is described in the `release.nix` derivation.
-The `release.nix` derivation mainly invokes the `dfx-release` derivation passing the annotated tag on HEAD (which happens right now to be the stable branch). 
-The `dfx-release` derivation builds the release binaries and files for each platform and generates a manifest for S3 that includes the tag name. 
+The `release.nix` derivation mainly invokes the `dfx-release` derivation passing the annotated tag on HEAD (which happens right now to be the stable branch).
+The `dfx-release` derivation builds the release binaries and files for each platform and generates a manifest for S3 that includes the tag name.
 The release tag allows us to keep a directory structure with all past and upcoming releases in S3.
 
 ==  CI
@@ -173,8 +177,8 @@ CI release-related operation is split into two jobsets:
 
 ==  Manifest
 
-We utilize a manifest to indicate to users (and in particular to our installer and dfx executable) available and supported versions for download. 
-The manifest allows us to rollback a release or remove a release from the list of supported releases. 
+We utilize a manifest to indicate to users (and in particular to our installer and dfx executable) available and supported versions for download.
+The manifest allows us to rollback a release or remove a release from the list of supported releases.
 See link:../specification/version_management{outfilesuffix}[Version Management] for details on the format of the manifest.
 
 The manifest is generated when a patch is applied on master by the CI.
@@ -185,17 +189,17 @@ The installer is generated when a patch is applied on the `master` branch by the
 
 ==  Changelog
 
-A candidate changelog is generated automatically using the respective tool (under scripts directory). 
+A candidate changelog is generated automatically using the respective tool (under scripts directory).
 Currently, the release notes are updated manually in github.
 
 == Publishing of artifacts
 
-We now summarize the release process. 
+We now summarize the release process.
 Our first step is to ensure the proper and valid state of the `master` branch.
-Next, we update `cargo` and the manifest accordingly. 
+Next, we update `cargo` and the manifest accordingly.
 We then create and push an annotated tag on the `stable` branch, generate the changelog.
 The product and SDK team members can then inspect, clarify, and develop the changelog to ensure it is appropriate for public
-consumption. 
+consumption.
 After ensuring the proper artifacts are available in S3, we can now publish them by updating the manifest.
 
 == TODOs and improvements
