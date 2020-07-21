@@ -78,7 +78,7 @@ Use this checklist to prepare a release candidate.
 
 * [ ] Run `git pull origin master --ff-only`.
 
-* [ ] Create a tag by running `git tag -a <version> -m " Release: <version>"`.
+* [ ] Create a tag by running `git tag -a <version> -m "Release: <version>"`.
 
 * [ ] Verify the tag points to the correct version and includes annotation.
 +
