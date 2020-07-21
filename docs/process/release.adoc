@@ -25,11 +25,13 @@ Use this checklist to prepare a release candidate.
 * [ ] Driver
 * [ ] Validator
 
-=== Process
+=== Releasing a New Version
 ==== Preliminary Validation
 
-[%interactive]
+* For the `HEAD` on `master`
 
+
+[%interactive]
 * [ ] Is the CI system up?
 
 * [ ] Is master green? See link:https://github.com/dfinity-lab/sdk/commits/master[].
@@ -65,9 +67,9 @@ Use this checklist to prepare a release candidate.
 
 | | `Cargo.lock` (can also run `cargo build`)
 
-| | Update `+@dfinity/agent+`: `cd src/bootstrap/package.json && npm version {new_version}+`
+| | Update `+@dfinity/agent+`: `cd src/bootstrap/package.json && npm version {DFX_VERSION}+`
 
-| | Update `+@dfinity/bootstrap+`: `cd src/bootstrap/package.json && npm version {new_version}+`
+| | Update `+@dfinity/bootstrap+`: `cd src/bootstrap/package.json && npm version {DFX_VERSION}+`
 
 | | `public/manifest.json` (add the new version to the list)
 
@@ -77,9 +79,7 @@ Use this checklist to prepare a release candidate.
 +
 [width="80%",cols="2,<68%", frame=none]
 |===
-
 | | *Ensure* `latest` remains the same.
-
 |===
 
 ==== Tagging and Creating a Pull Request
@@ -137,7 +137,7 @@ about the successful publishing of the dfx tarballs
 
 * [ ] Update release notes and documentation based on the Go/No-go list of merged PRs.
 
-=== Promote the release
+=== Promoting a Released Version to Latest
 
 * [ ] Verify that release notes and documentation are ready for public consumption.
 [%interactive]
