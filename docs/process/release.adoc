@@ -22,7 +22,7 @@ the operation of how to get a new release out.
 * Was master red recently or flaky?
 * Follow process:
 ** Update versions
-*** `dfx/Cargo.toml`
+*** `src/dfx/Cargo.toml`
 *** `public/manifest.json` (only adding the version to the list)
 *** `src/agent/javascript/package.json` (`version` key)
 *** `src/agent/javascript/package-lock.json`
