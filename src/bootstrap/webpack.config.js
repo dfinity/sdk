@@ -9,7 +9,7 @@ module.exports = {
   mode: 'production',
   entry: {
     bootstrap: './src/index.ts',
-    candid: './src/candid/candid.js',
+    candid: './src/candid/candid.ts',
     login: './src/login.ts',
     worker: './src/worker.ts',
   },
@@ -66,11 +66,9 @@ module.exports = {
       chunks: ['worker'],
     }),
     new HtmlWebpackPlugin({
-      template: 'src/candid/index.html',
+      template: 'src/candid/candid.html',
       filename: 'candid/index.html',
-      // TODO: change candid.js to candid.ts, and make it a proper bootstrap, and
-      //       change this chunk to candid.
-      chunks: ['bootstrap'],
+      chunks: ['candid'],
     }),
     new HtmlWebpackPlugin({
       template: 'src/login.html',
