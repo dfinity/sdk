@@ -46,7 +46,7 @@ Use this checklist to prepare a release candidate.
 .. `dfx canister create --all`
 .. `dfx build`
 .. `dfx canister install --all`
-. Open candid ui (e.g. replica running at port 8000: http://localhost:8000/candid?canisterId=12345)
+. Open candid ui (e.g. replica running at port 8000: http://localhost:8000/candid?canisterId=ic:02000000000000000000000000000000000153)
 ** [ ] verify UI loads
 ** [ ] verify no errors in console
 
