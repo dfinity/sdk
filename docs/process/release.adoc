@@ -27,52 +27,41 @@ Use this checklist to prepare a release candidate.
 
 === Releasing a New Version
 ==== Preliminary Validation
-
 * For the `HEAD` on `master`
-
 
 [%interactive]
 * [ ] Is the CI system up?
-
 * [ ] Is master green? See link:https://github.com/dfinity-lab/sdk/commits/master[].
-
 * [ ] Was master red recently or flaky? See link:https://github.com/dfinity-lab/sdk/commits/master[].
 [%interactive]
-* [ ] Verify that the `+hello+` project can be built, deployed, called in a terminal, and viewed in a browser.
-  . `+nix-build ./dfx.nix -A build+` to build the dfx binary
+* [ ] Verify that the `hello` project can be built, deployed, called in a terminal, and viewed in a browser.
+. `nix-build ./dfx.nix -A build` to build the dfx binary
 +
-(_for the rest of these instructions, assume that `+dfx+` is a reference to `result/bin/dfx or wherever the binary was built with this command`_)
+(_for the rest of these instructions, assume that `dfx` is a reference to
+`result/bin/dfx or wherever the binary was built with this command`_)
 +
 . `dfx new {name}` to generate default new project
 . `dfx start`
 . In a new terminal
-    .. `+dfx canister create --all+`
-    .. `+dfx build+`
-    .. `+dfx canister install --all+`
+.. `dfx canister create --all`
+.. `dfx build`
+.. `dfx canister install --all`
 . Open candid ui (e.g. replica running at port 8000: http://localhost:8000/candid?canisterId=12345)
-    ** [ ] verify UI loads
-    ** [ ] verify no errors in console
+** [ ] verify UI loads
+** [ ] verify no errors in console
 
 ==== Updating Version
 * [ ] Update version information
 +
 [width="80%",cols="2,<68%", frame=none]
 |===
-
 | | `src/dfx/Cargo.toml`
-
 | | `src/agent/rust/Cargo.toml`
-
 | | `src/ic_identity_manager/Cargo.toml`
-
 | | `Cargo.lock` (can also run `cargo build`)
-
-| | Update `+@dfinity/agent+`: `cd src/bootstrap/package.json && npm version {DFX_VERSION}+`
-
-| | Update `+@dfinity/bootstrap+`: `cd src/bootstrap/package.json && npm version {DFX_VERSION}+`
-
+| | Update `@dfinity/agent`: `cd src/bootstrap/package.json && npm version {DFX_VERSION}`
+| | Update `@dfinity/bootstrap`: `cd src/bootstrap/package.json && npm version {DFX_VERSION}`
 | | `public/manifest.json` (add the new version to the list)
-
 |===
 
 * [ ] Update manifest to include new version.
