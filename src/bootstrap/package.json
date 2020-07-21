@@ -1,6 +1,6 @@
 {
   "name": "@dfinity/bootstrap",
-  "version": "0.5.13",
+  "version": "0.5.14",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "bundle": "npm run build && webpack",
@@ -36,6 +36,7 @@
     "worker-plugin": "^4.0.3"
   },
   "dependencies": {
+    "bignumber.js": "^9.0.0",
     "buffer": "5.6.0",
     "localforage": "^1.7.4",
     "ts-loader": "7.0.5",
