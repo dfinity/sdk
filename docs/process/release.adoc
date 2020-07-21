@@ -100,7 +100,7 @@ Use this checklist to prepare a release candidate.
 
 * [ ] Install the build using the `DFX_VERSION=<version>` environment variable.
 
-* [ ] Run through the _Quick start_ steps.
+* [ ] Run through the link:https://staging--eloquent-poitras-af14f0.netlify.app/docs/index.html[_Quick start_] steps.
 
 * [ ] Update release notes and documentation based on the Go/No-go list of merged PRs.
 
@@ -108,7 +108,7 @@ Use this checklist to prepare a release candidate.
 
 [%interactive]
 
-* [ ] Verify that the hello project can be built, deployed, called in a terminal, and viewed in a browser.
+* [ ] Verify that the `+hello+` project can be built, deployed, called in a terminal, and viewed in a browser.
 
 * [ ] Verify that release notes and documentation are ready for public consumption.
 
@@ -137,6 +137,8 @@ Use this checklist to prepare a release candidate.
 Note: We assume *upstream* is `origin`.
 
 === Release documentation
+
+link:https://github.com/dfinity/docs[Documentation repo]
 
 [%interactive]
 
