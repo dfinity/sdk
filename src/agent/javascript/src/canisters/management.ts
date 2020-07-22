@@ -1,13 +1,13 @@
-import { Actor, ActorSubclass, CallConfig } from '../actor';
-import { CanisterId } from '../canisterId';
+import { Actor, CallConfig } from '../actor';
 import managementCanisterIdl from './management_idl';
+import { Principal } from 'src/principal';
 
 /* tslint:disable */
 export interface ManagementCanisterRecord {
-  create_canister(): Promise<{ canister_id: CanisterId }>;
+  create_canister(): Promise<{ canister_id: Principal }>;
   install_code(arg0: {
     mode: { install: null } | { reinstall: null } | { upgrade: null };
-    canister_id: CanisterId;
+    canister_id: Principal;
     wasm_module: number[];
     arg: number[];
     compute_allocation: [] | [number];
@@ -23,6 +23,6 @@ export interface ManagementCanisterRecord {
 export function getManagementCanister(config: CallConfig) {
   return Actor.createActor<ManagementCanisterRecord>(managementCanisterIdl, {
     ...config,
-    canisterId: CanisterId.fromHex(''),
+    canisterId: Principal.fromHexWithChecksum(''),
   });
 }

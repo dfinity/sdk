@@ -2,7 +2,6 @@ import { Buffer } from 'buffer/';
 import { makeActorFactory } from './actor';
 import { HttpAgent } from './agent';
 import { makeAuthTransform, SenderPubKey, SenderSecretKey, SenderSig } from './auth';
-import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
 import { makeNonceTransform } from './http_agent_transforms';
 import { CallRequest, Signed, SubmitRequestType } from './http_agent_types';
@@ -72,7 +71,7 @@ test('makeActor', async () => {
 
   const arg = blobFromHex(IDL.encode([IDL.Text], [argValue]).toString('hex'));
 
-  const canisterId: CanisterId = CanisterId.fromText('ic:000000000000000107');
+  const canisterId = Principal.fromText('ic:000000000000000107');
   const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
   const senderSecretKey = Buffer.alloc(32, 0) as SenderSecretKey;
   const senderSig = Buffer.from([0]) as SenderSig;

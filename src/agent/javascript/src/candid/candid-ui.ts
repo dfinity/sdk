@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
-import { CanisterId } from '../canisterId';
 import * as IDL from '../idl';
 import * as UI from './candid-core';
+import { Principal } from 'src/principal';
 
 // tslint:disable:max-classes-per-file
 type InputBox = UI.InputBox;
@@ -121,15 +121,15 @@ class Parse extends IDL.Visitor<string, any> {
   public visitNumber(t: IDL.PrimitiveType, v: string): BigNumber {
     return new BigNumber(v);
   }
-  public visitPrincipal(t: IDL.PrincipalClass, v: string): CanisterId {
-    return CanisterId.fromText(v);
+  public visitPrincipal(t: IDL.PrincipalClass, v: string): Principal {
+    return Principal.fromText(v);
   }
-  public visitService(t: IDL.ServiceClass, v: string): CanisterId {
-    return CanisterId.fromText(v);
+  public visitService(t: IDL.ServiceClass, v: string): Principal {
+    return Principal.fromText(v);
   }
-  public visitFunc(t: IDL.FuncClass, v: string): [CanisterId, string] {
+  public visitFunc(t: IDL.FuncClass, v: string): [Principal, string] {
     const x = v.split('.', 2);
-    return [CanisterId.fromText(x[0]), x[1]];
+    return [Principal.fromText(x[0]), x[1]];
   }
 }
 
