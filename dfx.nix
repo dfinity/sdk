@@ -33,6 +33,10 @@ let
       # both needed for bindgen, used by rocksdb-sys, zstd-sys, lmdb-sys, etc
       LIBCLANG_PATH = "${pkgs.llvmPackages.libclang}/lib";
       CLANG_PATH = "${pkgs.llvmPackages.clang}/bin/clang";
+
+      OPENSSL_STATIC = true;
+      OPENSSL_LIB_DIR = "${pkgs.pkgsStatic.openssl.out}/lib";
+      OPENSSL_INCLUDE_DIR = "${pkgs.pkgsStatic.openssl.dev}/include";
     };
   };
 

@@ -17,6 +17,10 @@ let
     cargoTestCommands = _: [];
     override = oldAttrs: {
       DFX_ASSETS = assets-minimal;
+
+      OPENSSL_STATIC = true;
+      OPENSSL_LIB_DIR = "${pkgs.pkgsStatic.openssl.out}/lib";
+      OPENSSL_INCLUDE_DIR = "${pkgs.pkgsStatic.openssl.dev}/include";
     };
   };
 
