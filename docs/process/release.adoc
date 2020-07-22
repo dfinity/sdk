@@ -37,18 +37,30 @@ Use this checklist to prepare a release candidate.
 * [ ] Verify that the `hello` project can be built, deployed, called in a terminal, and viewed in a browser.
 . `nix-build ./dfx.nix -A build` to build the dfx binary
 +
-(_for the rest of these instructions, assume that `dfx` is a reference to
-`result/bin/dfx or wherever the binary was built with this command`_)
+_For the rest of these instructions, assume that `dfx` is a reference to
+`result/bin/dfx` or wherever the binary was built with this command._
 +
-. `dfx new {name}` to generate default new project
+. `dfx new hello` to generate a default new project.
 . `dfx start`
-. In a new terminal
+. In a new terminal:
 .. `dfx canister create --all`
 .. `dfx build`
 .. `dfx canister install --all`
-. Open candid ui (e.g. replica running at port 8000: http://localhost:8000/candid?canisterId=ic:02000000000000000000000000000000000153)
-** [ ] verify UI loads
-** [ ] verify no errors in console
+.. `dfx canister call hello greet everyone`
+
+. Verify the default front-end in a browser.
+.. Open a browser and navigate to the default localhost address and port 8000 (specified in the `+dfx.json+` configuration file).
+.. Append `?canisterId=ic:<YOUR-CANISTER-IDENTIFIER>` with the canister identifier for the `+hello_assets+` canister to the URL (for example, `+http://localhost:8000/?canisterId=ic:05000000000000000000000000000000000185+`).
+.. Verify that you are prompted to type a greeting in a prompt window.
+.. Type a greeting, then click *OK* to return the greeting in an alert window.
+.. Click *OK* to close the pop-up alert window.
+.. Verify there are no errors in the console.
+
+. Verify the Candid UI.
+.. Open a browser and navigate to the default local network, for example, with replica running on `localhost` at port 8000: 
+.. Append the `+candid+` endpoint and `canisterId` for the `+hello+` canister to the URL (for example, `+http://localhost:8000/candid?canisterId=ic:0100000000000000000000000000000000012D+`).
+** [ ] Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*, 
+** [ ] Verify there are no errors in the console.
 
 ==== Updating Version
 * [ ] Update version information
