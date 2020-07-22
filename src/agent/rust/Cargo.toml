@@ -1,6 +1,6 @@
 [package]
 name = "ic-agent"
-version = "0.5.14"
+version = "0.5.15"
 authors = ["Hans Larsen <hans.larsen@dfinity.org>"]
 edition = "2018"
 
