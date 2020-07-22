@@ -1,0 +1,116 @@
+= SDK Multi Repo Integration
+// Author field:
+Hans Larsen <hans@dfinity.org>
+v0.1, 2020-01-01
+:draft:
+:toc:
+
+== Overview
+This design document explore how to setup and integrate the different repositories that
+make the SDK.
+
+== Background
+There are currently multiple repos that the SDK team manages every day;
+
+. The SDK itself (dfx);
+. Documentation
+. Examples
+. Rust CDK
+
+This does not include the repositories that are covered by sub-teams or with collaboration
+with the Language team, like Candid, Cancan and LinkedUp.
+
+Also, Rust and JavaScript agents are going to move to their own repositories, as well as
+the bootstrap code.
+
+The SDK repo will become the DFX repo, and run the integration with other repos.
+
+== Expected User/Developer Experience
+Developers on the SDK should be able to focus on the repo they work in, without having
+multiple technologies and tools that take a lot of cognitive load or time to work.
+
+== Detailed Design
+=== Dependency Graph
+The most important aspect of splitting the SDK into multiple repos is to have a clear
+dependency graph between repositories. Given how we want to separate the main SDK repo
+in the short term future, this graph could look like this:
+
+[graphviz, dependency_graph, svg]
+----
+digraph D {
+
+    graph [ bgcolor = transparent ]
+
+    node [
+        shape = box,
+        style = filled,
+        fillcolor = white,
+        fontname = Helvetica,
+        fontsize = 12,
+        width = 1.5,
+    ]
+
+    examples [label="Examples\n(various)"]
+    sdk [label="SDK\n(nix)"]
+    docs [label="Documentation\n(adoc)"]
+    agent_ts [label = "JavaScript Agent\n(ts)"]
+    types_js [label = "Type Library\n(ts)"]
+    agent_rs [label = "Rust Agent\n(rust)"]
+    types_rs [label = "Type Library\n(rust)"]
+    cdk_rs [label = "CDK\n(rust)"]
+    bootstrap [label = "Bootstrap\n(HTML+ts)"]
+    canisters [label = "D. Canisters\n(Motoko/Rust)"]
+
+    docs -> sdk
+    examples -> sdk
+
+    sdk -> bootstrap -> agent_ts
+    sdk -> agent_rs
+    sdk -> types_rs
+    sdk -> canisters
+
+    agent_ts -> types_js
+    agent_rs -> types_rs
+    cdk_rs -> types_rs
+
+}
+----
+
+We can emerge from this clear leaf nodes. These leafs don't benefit from using a
+complex CI/CD and build system; they're mono-languistic, focused and simple libraries
+used by more complex products. And distributed using their own package managers
+(npm for JavaScript, crates.io for Rust).
+
+=== Tests
+Following a few principles:
+
+. Each repo should test their own code using unit tests.
+. Each repo should not allow PRs to be merged if unit tests are failing.
+. Repos should NOT test their dependencies' code using unit tests (this is currently
+  not the case).
+. Each repos should have a set of integration tests with the
+. True end-to-end tests become clearly the responsibility of source nodes; Docs
+  (testing of their tutorials), Examples and SDK (current e2e suite).
+. Ideally, each repos should have a set of tests for preventing (or deliberately
+  allowing) breaking changes. Such tests could include integration testing with the
+  downstream repository.
+
+== Documentation
+CONTRIBUTING docs should be maintained in sync between repos. The master repo for
+these templates should be either Docs, Common or a new repo for organization
+specific documentation.
+
+== Work Breakdown
+The first step would be separate the different repos and validate
+
+The current best repos to do this would be (in order):
+
+. Rust Agent. This will validate that we can still use Hydra and Nix with a crate
+  dependency that depends on a github repo.
+. JavaScript Agent into 1 repo 2 packages; types and agent. This will straighten
+  up the dependencies between DFX, the Agent and the packages we publish.
+. Bootstrap. This will remove the direct link from DFX -> JavaScript Agent. This
+  will also be a good point to add browser tests to the Bootstrap repo.
+
+At this point this design will be validated as viable. New repos can be added, but
+the current repos should remain mostly the same.
