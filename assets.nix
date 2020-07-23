@@ -1,6 +1,5 @@
 { pkgs ? import ./nix {}
-, agent-js ? import ./src/agent/javascript { inherit pkgs; }
-, bootstrap-js ? import ./src/bootstrap { inherit pkgs agent-js; }
+, bootstrap-js ? import ./src/bootstrap { inherit pkgs; }
 , distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs; }
 }:
 pkgs.runCommandNoCCLocal "assets" {} ''
