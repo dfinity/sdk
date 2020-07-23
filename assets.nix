@@ -14,11 +14,6 @@ pkgs.runCommandNoCCLocal "assets" {} ''
   cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
   cp ${pkgs.motoko.moc}/bin/moc $out
 
-  # Install agent
-  mkdir $out/js-user-library
-  tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $out/js-user-library
-  cp -R ${agent-js.lib}/node_modules $out/js-user-library
-
   # Install bootstrap
   mkdir $out/bootstrap
   cp -R ${bootstrap-js.out}/* $out/bootstrap/
