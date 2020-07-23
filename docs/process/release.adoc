@@ -146,15 +146,28 @@ dfx canister create --all
 dfx build
 dfx canister install --all
 ----
-. In a new incognito or private window
-.. Open the candid ui:
-link:http://localhost:8000/candid?canisterId=ic:02000000000000000000000000000000000153[_Candid UI endpoint for replica on port 8000_]
-.. Open the canister ui:
-link:http://localhost:8000/?canisterId=ic:02000000000000000000000000000000000153[_Canister UI endpoint for replica on port 8000_]
-. For both endpoints
-.. Verify the UI loads
-.. Verify no errors in console (Right-click > Inspect > Console)
-.. Enter sample data and interact with the webpages
+. Call the canister and verify it answers as expected
++
+[source, bash]
+----
+dfx canister call hello_world greet everyone
+----
+. Verify the default front-end in a browser.
+.. In a new incognito or private window navigate to the default localhost address and port `8000`
+(specified in the `dfx.json` configuration file).
+.. Append `?canisterId=ic:<YOUR-CANISTER-IDENTIFIER>` with the canister identifier for the
+`hello_world_assets` canister to the URL (for example, `http://localhost:8000/?canisterId=ic:02000000000000000000000000000000000153`).
+.. Verify that you are prompted to type a greeting in a prompt window.
+.. Type a greeting, then click *OK* to return the greeting in an alert window.
+.. Verify there are no errors in the console. (Right-click > Inspect > Console)
+
+. Verify the Candid UI.
+.. In a new incognito or private window navigate to the default localhost address and port `8000`
+(specified in the `dfx.json` configuration file).
+.. Append the `candid` endpoint and `canisterId` for the `hello_world` canister to the URL (for example, `http://localhost:8000/candid?canisterId=ic:02000000000000000000000000000000000153`).
+.. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
+.. Verify there are no errors in the console. (Right-click > Inspect > Console)
+
 . Stop the replica
 +
 [source, bash]
@@ -401,6 +414,35 @@ CI release-related operation is split into two jobsets:
 ==  Manifest
 
 We utilize a manifest to indicate to users (and in particular to our installer and dfx executable) available and supported versions for download.
+The manifest allows us to rollback a release or remove a release from the list of supported releases.
+See link:../specification/version_management{outfilesuffix}[Version Management] for details on the format of the manifest.
+
+The manifest is generated when a patch is applied on master by the CI.
+
+== Installer
+
+The installer is generated when a patch is applied on the `master` branch by the CI.
+
+==  Changelog
+
+A candidate changelog is generated automatically using the respective tool (under scripts directory).
+Currently, the release notes are updated manually in github.
+
+== Publishing of artifacts
+
+We now summarize the release process.
+Our first step is to ensure the proper and valid state of the `master` branch.
+Next, we update `cargo` and the manifest accordingly.
+We then create and push an annotated tag on the `stable` branch, generate the changelog.
+The product and SDK team members can then inspect, clarify, and develop the changelog to ensure it is appropriate for public
+consumption.
+After ensuring the proper artifacts are available in S3, we can now publish them by updating the manifest.
+
+== TODOs and improvements
+. version from the tag
+. release stress tests
+. valid json test for the manifest
+and supported versions for download.
 The manifest allows us to rollback a release or remove a release from the list of supported releases.
 See link:../specification/version_management{outfilesuffix}[Version Management] for details on the format of the manifest.
 
