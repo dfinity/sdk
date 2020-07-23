@@ -81,6 +81,9 @@ complex CI/CD and build system; they're mono-languistic, focused and simple libr
 used by more complex products. And distributed using their own package managers
 (npm for JavaScript, crates.io for Rust).
 
+=== Conventional Commits
+All repos should follow (and enforce) conventional commits.
+
 === Tests
 Following a few principles:
 
@@ -88,7 +91,8 @@ Following a few principles:
 . Each repo should not allow PRs to be merged if unit tests are failing.
 . Repos should NOT test their dependencies' code using unit tests (this is currently
   not the case).
-. Each repos should have a set of integration tests with the
+. Each repos should have a set of integration tests with their immediate upstream
+  dependency.
 . True end-to-end tests become clearly the responsibility of source nodes; Docs
   (testing of their tutorials), Examples and SDK (current e2e suite).
 . Ideally, each repos should have a set of tests for preventing (or deliberately
