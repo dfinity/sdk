@@ -5,9 +5,10 @@ export type Identity = Actor & {
   hashFromQuery(): Promise<number>;
 };
 
-export const factory: IDL.InterfaceFactory = ({ IDL }) => {
+const factory: IDL.InterfaceFactory = ({ IDL }: any) => {
   return IDL.Service({
     hashFromCall: IDL.Func([], [IDL.Nat], []),
     hashFromQuery: IDL.Func([], [IDL.Nat], ['query']),
   });
 };
+export default factory;
