@@ -14,7 +14,8 @@ export * from './http_agent_transforms';
 export * from './http_agent_types';
 export * from './principal';
 export * from './types';
-
+export * from './canisters/asset';
+export * from './canisters/management';
 export * from './candid';
 
 import { Agent, HttpAgent } from './agent';
