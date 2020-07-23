@@ -1,0 +1,22 @@
+bfe6bdc refactor: separate assets into two derivations  (#658)
+b361c26 build:  niv common: update 027bda4a -> 05c44edd (#671)
+8b0badd feat: rename --client parameter to --provider (#646)
+1c2db2f build: Set the build environment for cargo build (OPS-91) (#660)
+c2eb2e9 feat: Call canister by identifier (#651)
+f8dfb03 chore: Update the mergify configuration (#657)
+33efea5 feat: Add subcommand to print canister identifers. (#654)
+239bdce refactor: move all motoko specific info to motoko info (#649)
+c199ed1 Add instructions for debugging dfx on OSX with IDEA Ultimate or CLion
+fecc8ff This is because other file types in addition to *.mo go into these directories.  This way, the directory name matches the `e2e/*.bash` name.
+65d2001 docs: Add WebCrypto Design proposal (#578)
+f13393d refactor: use candid from crates.io (#637)
+8b66f8a Add field to dfx.json: defaults/build/packtool (string)
+b2d914e feat: add a canister type to select a canister builder (#639)
+ec0ffc8 fix: CPU was using 100% on bootstrap (#638)
+7794e89 feat: add a HTTP server error type that contains the body (#635)
+45386da feat: Store identity information globally (#615)
+fe114e6 refactor: rework the replica_api and ic_agent public API (#632)
+e502da7 chore: promote 0.5.7 to latest (#626)
+53e7498 docs: add workflow examples for iterative build/test and running e2e tests. (#631)
+0f346c6 fix: change strings containing "client" to instead refer to "replica" (#629)
+ad81116 build: prevent the nix-shell from breaking once common is upgraded
