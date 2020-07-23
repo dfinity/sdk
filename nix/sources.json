@@ -32,9 +32,9 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "release-2020-06-30.RC00",
+        "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "38f207358b03d396affcdacb6383921cb11243e4",
+        "rev": "5759a8409f2f4e76bbf0518e1c07a732d62f28f1",
         "type": "git"
     },
     "ic-ref": {
