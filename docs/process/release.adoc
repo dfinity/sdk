@@ -17,15 +17,16 @@ Our goal is to update this document with the latest information as we iterate to
 == Checklist
 Use this checklist to prepare a release candidate.
 
-=== Participants:
+=== Participants
 - Driver
 - Validator
 
-=== Setup:
-. Connect to
-https://www.notion.so/How-to-get-VPN-access-to-our-data-center-services-1c9b123152d740508eec25e7ac982259[Pritunl VPN]
-. `cd` into the `sdk` repo
-. Checkout to the `master` branch and pull from remote.
+=== Setup
+. Connect to VPN.
++
+If you don't have a VPN connection set up for your computer, you'll need to follow the instructions in link:https://www.notion.so/How-to-get-VPN-access-to-our-data-center-services-1c9b123152d740508eec25e7ac982259[How to get VPN access to our data center services].
+. Open a terminal and `cd` into your local copy of the `sdk` repo.
+. Checkout the `master` branch and pull from remote.
 +
 [source, bash]
 ----
