@@ -38,7 +38,6 @@ git checkout master && git pull
 ==== Preliminary Validation
 . Use this link:https://github.com/dfinity-lab/sdk/commits/master[link]
 to verify:
-.. Is the CI system up?
 .. Is `master` green?
 .. Was master red recently or flaky?
 
