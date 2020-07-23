@@ -1,9 +1,9 @@
 import {
-  CanisterId,
   createAssetCanisterActor,
   GlobalInternetComputer,
   HttpAgent,
   IDL,
+  Principal,
 } from '@dfinity/agent';
 import { createAgent } from './host';
 import { SiteInfo } from './site';
@@ -12,7 +12,7 @@ declare const window: GlobalInternetComputer & Window;
 
 // Retrieve and execute a JavaScript file from the server.
 async function _loadJs(
-  canisterId: CanisterId,
+  canisterId: Principal,
   filename: string,
   onload = async () => {},
 ): Promise<any> {
@@ -30,7 +30,7 @@ async function _loadJs(
   return eval(js); // tslint:disable-line
 }
 
-async function _loadCandid(canisterId: CanisterId): Promise<any> {
+async function _loadCandid(canisterId: Principal): Promise<any> {
   const origin = window.location.origin;
   const url = `${origin}/_/candid?canisterId=${canisterId.toText()}&format=js`;
   const response = await fetch(url);

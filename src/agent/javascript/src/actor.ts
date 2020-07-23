@@ -8,9 +8,9 @@ import {
 } from './http_agent_types';
 import * as IDL from './idl';
 import { GlobalInternetComputer } from './index';
+import { Principal } from './principal';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
-import { Principal } from './principal';
 
 declare const window: GlobalInternetComputer;
 declare const global: GlobalInternetComputer;

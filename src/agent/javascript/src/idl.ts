@@ -2,11 +2,11 @@
 import BigNumber from 'bignumber.js';
 import Pipe = require('buffer-pipe');
 import { Buffer } from 'buffer/';
+import { Principal as PrincipalClassRoot } from './principal';
 import { JsonValue } from './types';
 import { idlLabelToId } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
 import { readIntLE, readUIntLE, writeIntLE, writeUIntLE } from './utils/leb128';
-import { Principal as PrincipalClassRoot } from './principal';
 
 // tslint:disable:max-line-length
 /**
@@ -1049,8 +1049,7 @@ function decodePrincipalId(b: Pipe): PrincipalClassRoot {
   }
   const len = lebDecode(b).toNumber();
   const hex = b.read(len).toString('hex').toUpperCase();
-  // NB: need to verify this is ok
-  return PrincipalClassRoot.fromHexWithChecksum(hex);
+  return PrincipalClassRoot.fromHex(hex);
 }
 
 /**

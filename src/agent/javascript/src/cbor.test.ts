@@ -1,8 +1,8 @@
 import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer/';
 import { decode, encode } from './cbor';
-import { BinaryBlob, blobToHex } from './types';
 import { Principal } from './principal';
+import { BinaryBlob, blobToHex } from './types';
 
 test('round trip', () => {
   interface Data {
@@ -37,7 +37,8 @@ test('round trip', () => {
   const { c: outputC, e: outputE, f: outputF, ...outputRest } = output;
 
   expect(blobToHex(outputC)).toBe(blobToHex(inputC));
-  expect(buf2hex((outputE as any) as Uint8Array).toUpperCase()).toBe(inputE.toHex());
+  // https://docs.dfinity.systems/public/v/0.9.1/#textual-ids re: lower case
+  expect(buf2hex((outputE as any) as Uint8Array)).toBe(inputE.toHex());
   expect(outputRest).toEqual(inputRest);
 });
 

@@ -1,6 +1,6 @@
 import { Actor, CallConfig } from '../actor';
+import { Principal } from '../principal';
 import managementCanisterIdl from './management_idl';
-import { Principal } from 'src/principal';
 
 /* tslint:disable */
 export interface ManagementCanisterRecord {

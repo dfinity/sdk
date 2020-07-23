@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import * as IDL from '../idl';
+import { Principal } from '../principal';
 import * as UI from './candid-core';
-import { Principal } from 'src/principal';
 
 // tslint:disable:max-classes-per-file
 type InputBox = UI.InputBox;

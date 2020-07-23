@@ -1,5 +1,4 @@
 import {
-  CanisterId,
   HttpAgent,
   Principal,
   generateKeyPair,
@@ -15,7 +14,7 @@ httpAgent.addTransform(makeNonceTransform());
 httpAgent.setAuthTransform(makeAuthTransform(keyPair));
 
 export function canisterIdFactory() {
-  const counterCanisterIdHex = (+new Date() % 0xFFFFFF).toString(16)
-    + (Math.floor(Math.random() * 256)).toString(16);
-  return CanisterId.fromHex(counterCanisterIdHex);
+  const counterCanisterIdHex =
+    (+new Date() % 0xffffff).toString(16) + Math.floor(Math.random() * 256).toString(16);
+  return Principal.fromHex(counterCanisterIdHex);
 }

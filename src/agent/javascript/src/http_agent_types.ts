@@ -1,7 +1,7 @@
+import { Principal } from './principal';
 import { RejectCode } from './reject_code';
 import { RequestId } from './request_id';
 import { BinaryBlob } from './types';
-import { Principal } from './principal';
 
 export const enum Endpoint {
   Read = 'read',
