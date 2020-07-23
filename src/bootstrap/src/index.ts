@@ -1,4 +1,10 @@
-import { CanisterId, GlobalInternetComputer, HttpAgent, IDL } from '@dfinity/agent';
+import {
+  CanisterId,
+  GlobalInternetComputer,
+  HttpAgent,
+  IDL,
+  createAssetCanisterActor,
+} from '@dfinity/agent';
 import { createAgent, SiteInfo } from './host';
 
 declare const window: GlobalInternetComputer & Window;
@@ -9,17 +15,8 @@ async function _loadJs(
   filename: string,
   onload = async () => {},
 ): Promise<any> {
-  const idlFn: IDL.InterfaceFactory = ({ IDL: idl }) => {
-    return idl.Service({
-      retrieve: idl.Func([idl.Text], [idl.Vec(idl.Nat8)], ['query']),
-    });
-  };
-
-  const actor = window.ic.agent.makeActorFactory(idlFn)({
-    canisterId,
-  });
-
-  const content = (await actor.retrieve(filename)) as number[];
+  const actor = createAssetCanisterActor({ canisterId });
+  const content = await actor.retrieve(filename);
   const js = new TextDecoder().decode(new Uint8Array(content));
   // const dataUri = new Function(js);
 
