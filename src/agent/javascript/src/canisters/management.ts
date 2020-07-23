@@ -23,6 +23,6 @@ export interface ManagementCanisterRecord {
 export function getManagementCanister(config: CallConfig) {
   return Actor.createActor<ManagementCanisterRecord>(managementCanisterIdl, {
     ...config,
-    canisterId: Principal.fromHexWithChecksum(''),
+    canisterId: Principal.fromHex(''),
   });
 }
