@@ -106,6 +106,9 @@ pub enum DfxError {
     /// Could not parse an URL for some reason.
     InvalidUrl(String, url::ParseError),
 
+    /// The value of the --network argument was not set.
+    ComputeNetworkNotSet,
+
     /// The value of the --network argument was not found in dfx.json.
     ComputeNetworkNotFound(String),
 
@@ -114,6 +117,18 @@ pub enum DfxError {
 
     /// The "local" network provider with a bind address was not found.
     NoLocalNetworkProviderFound,
+
+    /// The canister id was not found for the network
+    CouldNotFindCanisterIdForNetwork(String, String),
+
+    /// The canister name (when looked up by id) was not found for the network
+    CouldNotFindCanisterNameForNetwork(String, String),
+
+    /// Could not load the contents of the file
+    CouldNotLoadCanisterIds(String, std::io::Error),
+
+    /// Could not save the contents of the file
+    CouldNotSaveCanisterIds(String, std::io::Error),
 }
 
 /// The result of running a DFX command.
@@ -170,9 +185,36 @@ impl Display for DfxError {
                     "The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag.",
                 )?;
             }
+            DfxError::ComputeNetworkNotSet => {
+                f.write_str("Expected to find a network context, but found none")?;
+            }
             DfxError::NoLocalNetworkProviderFound => {
                 f.write_str("Expected there to be a local network with a bind address")?;
             }
+            DfxError::CouldNotFindCanisterIdForNetwork(canister, network) => {
+                let non_default_network = if network == "local" {
+                    format!("")
+                } else {
+                    format!("--network {} ", network)
+                };
+                f.write_fmt(format_args!(
+                    "Cannot find canister id.  Please issue 'dfx canister {}create {}'.",
+                    non_default_network, canister
+                ))?;
+            }
+            DfxError::CouldNotFindCanisterNameForNetwork(canister_id, network) => {
+                f.write_fmt(format_args!(
+                    "Cannot find canister id {} in network '{}'.",
+                    canister_id, network
+                ))?;
+            }
+            DfxError::CouldNotLoadCanisterIds(path, error) => {
+                f.write_fmt(format_args!("Failed to load {} due to: {}", path, error))?;
+            }
+            DfxError::CouldNotSaveCanisterIds(path, error) => {
+                f.write_fmt(format_args!("Failed to save {} due to: {}", path, error))?;
+            }
+
             err => {
                 f.write_fmt(format_args!("An error occured:\n{:#?}", err))?;
             }

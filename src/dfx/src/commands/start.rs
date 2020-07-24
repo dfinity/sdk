@@ -2,6 +2,7 @@ use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::provider::get_network_descriptor;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
@@ -87,6 +88,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         // directory itself. N.B. This does NOT follow symbolic links -- and I
         // hope we do not need to.
         fs::remove_dir_all(state_root.clone()).map_err(DfxError::CleanState)?;
+        fs::remove_dir_all(temp_dir.join("local")).map_err(DfxError::CleanState)?;
     }
 
     let client_configuration_dir = temp_dir.join("client-configuration");
@@ -156,7 +158,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
-    let manifest_path = config.get_manifest_path();
+    let network_descriptor = get_network_descriptor(env, args)?;
+    let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
+    let build_output_root = build_output_root.join("canisters");
 
     let proxy_config = ProxyConfig {
         logger: env.get_logger().clone(),
@@ -164,7 +168,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         bind: address_and_port,
         serve_dir: bootstrap_dir,
         providers,
-        manifest_path,
+        build_output_root,
+        network_descriptor,
     };
 
     let supervisor_actor_handle = CoordinateProxy {

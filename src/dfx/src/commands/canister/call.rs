@@ -2,6 +2,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::create_waiter;
 use crate::util::{blob_from_arguments, get_candid_type, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -83,11 +84,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             (id, None)
         }
         Err(_) => {
-            let canister_info = CanisterInfo::load(&config, canister_name)?;
-            match canister_info.get_canister_id() {
-                Ok(id) => (id, canister_info.get_output_idl_path()),
-                Err(_) => return Err(DfxError::InvalidArgument("canister_name".to_string())),
-            }
+            let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
+
+            let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+            (
+                canister_info.get_canister_id()?,
+                canister_info.get_output_idl_path(),
+            )
         }
     };
 
