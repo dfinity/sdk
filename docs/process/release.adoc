@@ -1,110 +1,473 @@
-= Release Process
+= Release process
 
-This document describes the release process for DFINITY SDK. We review the
-mechanism, the automation provided and the checklist process.
+This document describes the release process for the DFINITY SDK, with step-by-step instructions, information about automation, and a checklist.
 
 == Overview
 
-Releases are done following the checklist rule: preferrably by two people
-familiar with the process, i.e. 1 driver 1 validator. The validator should be
-the person most familiar with the process. A successful release is the result of
-coordination between automation, manual labor and validation. We should improve
-the release process continuously. In the following mechanism section we describe
-the operation of how to get a new release out.
+Before starting the release process, the team should conduct a brief Go/No-Go release review to evaluate the current state of fixes and features ready to be included in a release candidate.
+After reviewing the list of fixes and features, the team will decide whether to proceed with staging a build.
+
+If the new release is given the Go green light, two people who are familiar with the process—a *driver* and a *validator*—use the checklist in this document to stage or promote a release candidate.
+
+The *validator* should be the person most familiar with the process and be able to assist with debugging or resolving issues if the *driver* building the release runs into trouble.
+
+A successful release is the result of coordination between automation, manual steps performed by team members, and a validation process.
+Our goal is to update this document with the latest information as we iterate to improve the release process.
 
 == Checklist
+Use this checklist to prepare a release candidate.
 
-* Participants
-** Driver
-** Validator
-** CI (system up)
-* Is master green?
-* Was master red recently or flaky?
-* Follow process:
-** Update versions
-*** `dfx/Cargo.toml`
-*** `public/manifest.json` (only adding the version to the list)
-*** `src/agent/javascript/package.json` (`version` key)
-*** `src/agent/rust/Cargo.toml`
-*** `Cargo.lock` (can also run `cargo build`)
-** Update manifest to include new version; *Ensure* latest remains the same
-** Create a pull request with the above 2 changes and get the validator to approve it
-** Switch to stable branch and `git pull origin stable`
-** Run `git pull origin master --ff-only`
-** Create tags with `git tag -a version -m " Release: version"`
-** Double check the tag points correctly and is an annotated one: `git log` and  `git describe --always`
-** Push tag first to avoid triggering hydra incorrectly `git push origin version`
-** Push the stable branch now `git push origin stable`
-** Check hydra
-** Prepare PR for manifest
-** Update release notes
-** Update manifest once all builds are done (see https://blobules.dfinity.systems/sdk-release/ and https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release)
-***  Linux
-***  Darwin
+=== Participants
+- Driver
+- Validator
 
-Notes: We assume *upstream* is `origin`.
+=== Setup
+. Connect to VPN.
++
+If you don't have a VPN connection set up for your computer, you'll need to follow the instructions in link:https://www.notion.so/How-to-get-VPN-access-to-our-data-center-services-1c9b123152d740508eec25e7ac982259[How to get VPN access to our data center services].
+. Open a terminal and `cd` into your local copy of the `sdk` repo.
+. Checkout the `master` branch and pull from remote.
++
+[source, bash]
+----
+git checkout master && git pull
+----
 
+=== Releasing a New Version
 
-== Requirements & Properties
+==== Preliminary Validation
+. Use this link:https://github.com/dfinity-lab/sdk/commits/master[link]
+to verify:
+.. Is `master` green?
+.. Was master red recently or flaky?
+
+==== Validate the Build and UI
+
+===== Verify that the default `hello_world` project can be built, deployed, called in a terminal, and viewed in a browser.
+. Build the `dfx` binary
++
+[source, bash]
+----
+nix-build ./dfx.nix -A build --option extra-binary-caches https://nix.dfinity.systems
+----
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | The above command will print logs to the console.
+The last line printed is the directory of build output i.e.
+`/nix/store/7qsrb3pikzam301h6khjzwpg35ry7miz-dfinity-sdk-rust-unknown`
+|===
+// (_for the rest of these instructions, assume that `dfx` is a reference to
+// `result/bin/dfx or wherever the binary was built with this command`_)
+. Create a temporary `alias` for the binary to use in succesive steps by appending `/bin/dfx` to the above path
+*(Replace the path below with the one from your console)*
++
+[source, bash]
+----
+alias dfx=/nix/store/7qsrb3pikzam301h6khjzwpg35ry7miz-dfinity-sdk-rust-unknown/bin/dfx
+----
+. Verify the binary version.
++
+[source, bash]
+----
+dfx --version
+----
+. Delete the existing dfx cache to ensure you're not using a stale binary.
++
+[source, bash]
+----
+dfx cache delete
+----
+. Build the javascript agent
++
+[source, bash]
+----
+nix-build . -A agent-js --option extra-binary-caches https://nix.dfinity.systems
+----
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | The above command will print logs to the console.
+The last line printed is the directory of build output i.e.
+`/nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js`
+|===
+. List the files in that path *(Replace the path below with the one from your console)*
++
+[source, bash]
+----
+ls -l /nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js
+----
+.. You should see output like:
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | total 64
+| |-r--r--r--  1 username  admin  30439 Dec 31  1969 dfinity-agent-0.5.14.tgz
+| |dr-xr-xr-x  4 username  admin    128 Dec 31  1969 nix-support
+|===
+. Append the nix store path with the `.tgz` file and
+store the path in a temporary environment variable *(Replace the path below with the one from your console)*
++
+[source, bash]
+----
+export JS_AGENT_PATH=/nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js/dfinity-agent-0.5.14.tgz
+----
+. Ensure `dfx` and `replica` are not running in the background, and if they are, `kill` them.
++
+[source, bash]
+----
+ps -ef | grep replica
+ps -ef | grep dfx
+----
+. Generate default new project
++
+[source, bash]
+----
+dfx new hello_world
+cd hello_world
+----
+. Install the locally built javascript agent for the new project
++
+[source, bash]
+----
+npm install ${JS_AGENT_PATH}
+----
+. Start the local `replica` as a background process.
++
+[source, bash]
+----
+dfx start --background
+----
+. Create, build, and install canisters.
++
+[source, bash]
+----
+dfx canister create --all
+dfx build
+dfx canister install --all
+----
+. Call the canister and verify it answers as expected
++
+[source, bash]
+----
+dfx canister call hello_world greet everyone
+----
+. Verify the default front-end in a browser.
+.. In a new incognito or private window navigate to the default localhost address and port `8000`
+(specified in the `dfx.json` configuration file).
+.. Append `?canisterId=ic:<YOUR-CANISTER-IDENTIFIER>` with the canister identifier for the
+`hello_world_assets` canister to the URL (for example, `http://localhost:8000/?canisterId=ic:02000000000000000000000000000000000153`).
+.. Verify that you are prompted to type a greeting in a prompt window.
+.. Type a greeting, then click *OK* to return the greeting in an alert window.
+.. Verify there are no errors in the console. (Right-click > Inspect > Console)
+
+. Verify the Candid UI.
+.. In a new incognito or private window navigate to the default localhost address and port `8000`
+(specified in the `dfx.json` configuration file).
+.. Append the `candid` endpoint and `canisterId` for the `hello_world` canister to the URL (for example, `http://localhost:8000/candid?canisterId=ic:02000000000000000000000000000000000153`).
+.. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
+.. Verify there are no errors in the console. (Right-click > Inspect > Console)
+
+. Stop the replica
++
+[source, bash]
+----
+dfx stop
+----
+. Delete the test project
++
+[source, bash]
+----
+cd ..
+rm -rf hello_world
+----
+
+==== Update the Version
+. `cd` back into the `sdk` repo
+. Enter the sdk `nix` development environment:
++
+[source, bash]
+----
+nix-shell
+----
+. Update the `version` field for the files
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | `src/dfx/Cargo.toml`
+| | `src/agent/rust/Cargo.toml`
+| | `src/ic_identity_manager/Cargo.toml`
+|===
+. Apply these changes to `Cargo.lock` by running:
++
+[source, nix-shell]
+----
+cargo build
+----
+. Set the new version in a temporary environment variable
++
+[source, nix-shell]
+----
+export NEW_DFX_VERSION=<THE NEW VERSION NUM HERE>
+----
+. Update the `@dfinity/agent` and `@dfinity/bootstrap` javascript packages by doing:
++
+[source, nix-shell]
+----
+cd src/agent/javascript/ && npm version ${NEW_DFX_VERSION}
+----
++
+[source, nix-shell]
+----
+cd src/bootstrap/ && npm version ${NEW_DFX_VERSION}
+----
+. Append the new version to `public/manifest.json` by adding it to the `versions` list
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | *Ensure* `latest` remains the same.
+|===
+
+==== Tag and Create a Pull Request
+
+. Create a pull request with the above changes
++
+[source, bash]
+----
+git switch -c <YOUR_NAME>/NEW_DFX_VERSION
+git add --all
+git commit --signoff --message "chore: release NEW_DFX_VERSION"
+git push origin <YOUR_NAME>/NEW_DFX_VERSION
+----
+. Have the validator review and approve
+. Apply `automerge-squash` label and wait for pull request to get merged
+. Switch to stable branch by running
++
+[source, bash]
+----
+git switch stable
+git pull origin stable
+----
+. Pull the merged changes into `stable`
++
+[source, bash]
+----
+git pull origin master --ff-only
+----
+. Create a tag by running
++
+[source, bash]
+----
+git tag --annotate ${NEW_DFX_VERSION} --message "Release: <NEW_DFX_VERSION>"
+----
+. Verify the tag points to the correct version and includes annotation.
++
+[source, bash]
+----
+git log
+git describe --always
+----
+. Push the tag by running:
++
+[source, bash]
+----
+git push origin ${NEW_DFX_VERSION}
+----
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | CI will only publish dfx from the latest commit from the stable branch when that commit is tagged with a version.
+|===
+
+. Push the `stable` branch by running:
++
+[source, bash]
+----
+git push origin stable
+----
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | Pushing the branch second is an optimization.
+Hydra will spur into action when stable advances so if the branch is already tagged it won't require a second fetch.
+|===
+
+==== Publish Javascript Agent to NPM
+. `cd` into the javascript agent directory and clean it
++
+[source, nix-shell]
+----
+cd src/agent/javascript
+git clean -dfx .
+----
+. Make sure you have latest version of node modules and don't have stale files
++
+[source, nix-shell]
+----
+npm install
+----
+. Build files
++
+[source, nix-shell]
+----
+npm run build
+----
+. Verify `Success` is printed for the following command (which checks that
+every `.js` has a `.d.ts` assigned and that every `.js` and `.d.ts` has a source file that is not a test) by running:
++
+[source, nix-shell]
+----
+diff <(find types src \( -name \*.d.ts -o -name \*.js \) -a \! -name \*.test.\* | sort) <(npm publish --dry-run 2>&1 | egrep 'npm notice [0-9.]*k?B' | awk '{ print $4 }' | grep -v package.json | grep -v README.md | sort) && echo Success
+----
+. Login to npm
++
+[source, nix-shell]
+----
+npm login
+----
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | Note: You need an `npm` account and be a member of the `dfinity` organization. To get access
+contact Hans or Stanley.
+|===
+. Publish to npm
++
+[source, nix-shell]
+----
+npm publish
+----
+. Logout
++
+[source, nix-shell]
+----
+npm logout
+----
+ifdef::env-github[]
+:tada:
+endif::[]
+
+==== Notifying and Post-build Validation
+
+. Wait for the automatic slack message to
+link:https://dfinity.slack.com/archives/CUXGQBABF/p1594954197000100[_#build-notifications_]
+about the successful publishing of the dfx tarballs
+
+. Install the build using the `DFX_VERSION=<version>` environment variable.
+. Run through the link:https://staging--eloquent-poitras-af14f0.netlify.app/docs/quickstart/quickstart.html[_Quick start_] steps.
+. Notify team members that the new build is ready for manual installation and testing.
+. Update link:https://docs.google.com/spreadsheets/d/1pIblGqIeqapzptOtDb4h0LjJKDFIYXRxJrX9VaphfjA/edit#gid=725289684[_release notes_] and documentation based on the Go/No-go list of merged PRs.
+
+=== Promoting a Released Version to Latest
+
+. Verify that release notes and documentation are ready for public consumption.
+. Prepare a PR for the manifest.
+. Verify all builds are done.
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-linux/dfx-{DFX_VERSION}.tar.gz[]
+| | link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-darwin/dfx-{DFX_VERSION}.tar.gz[]
+| | link:https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release[]
+|===
+. Update the manifest.
++
+[width="80%",cols="2,<68%", frame=none]
+|===
+| | Linux
+| | Darwin
+|===
++
+Note: We assume *upstream* is `origin`.
+
+=== Release documentation
+
+link:https://github.com/dfinity/docs[Documentation repo]
+
+. Tag the documentation using `git tag -a <version> -m <documentation-archive-message>`.
+. Publish the tag on the remote server using `git push origin <tagname>`.
+. Deploy updated documentation using Netlify.
+
+== Requirements and properties
 
  - Semi-automation
  - Consistent delivery
  - Validation
  - Rollback
- - Railguards
- - Flexibity
+ - Guardrails
+ - Flexibility
 
-== Mechanism
+== Build mechanism
 
-===  Build
+Our build process is described in the `release.nix` derivation.
+The `release.nix` derivation mainly invokes the `dfx-release` derivation passing the annotated tag on HEAD (which happens right now to be the stable branch).
+The `dfx-release` derivation builds the release binaries and files for each platform and generates a manifest for S3 that includes the tag name.
+The release tag allows us to keep a directory structure with all past and upcoming releases in S3.
 
-Our build process is described in the nix derivation release.nix. This
-mainly invokes the dfx-release derivation passing the annotated tag on HEAD
-(which happens right now to be the stable branch). Along with building release
-binaries and files for each platform, it generates a manifest for S3 providing
-it with the tag name. This allows us to keep a directory structure with all past
-and upcoming releases in S3.
-
-===  CI
+==  CI
 
 CI release-related operation is split into two jobsets:
 
- - Generation and publishing of 'install.sh' and 'manifest.json'
- - Tagging of a commit to release, building publishing necessary executables and files for supported platforms
+ - Generation and publishing of 'install.sh' and 'manifest.json'.
+ - Tagging of a commit to release, building and publishing the necessary executables and files for supported platforms.
 
+==  Manifest
 
-===  Manifest
-
-We utilize a manifest to indicate to users (and in particular to our installer
-and dfx) available and supported versions for download. This allows us to
-rollback a release or remove a release from the list of supported releases. See
-link:../specification/version_management{outfilesuffix}[Version Management] for
-details on the format of the manifest.
+We utilize a manifest to indicate to users (and in particular to our installer and dfx executable) available and supported versions for download.
+The manifest allows us to rollback a release or remove a release from the list of supported releases.
+See link:../specification/version_management{outfilesuffix}[Version Management] for details on the format of the manifest.
 
 The manifest is generated when a patch is applied on master by the CI.
 
-=== Installer
+== Installer
 
-The installer is generated when a patch is applied on master by the CI.
+The installer is generated when a patch is applied on the `master` branch by the CI.
 
-===  Changelog
+==  Changelog
 
-A candidate changelog is generated automatically using the respective tool
-(under scripts directory). Right now the release notes need to be updated
-manually in github.
+A candidate changelog is generated automatically using the respective tool (under scripts directory).
+Currently, the release notes are updated manually in github.
 
-=== Publishing of Artifacts
+== Publishing of artifacts
 
-=== Process
+We now summarize the release process.
+Our first step is to ensure the proper and valid state of the `master` branch.
+Next, we update `cargo` and the manifest accordingly.
+We then create and push an annotated tag on the `stable` branch, generate the changelog.
+The product and SDK team members can then inspect, clarify, and develop the changelog to ensure it is appropriate for public
+consumption.
+After ensuring the proper artifacts are available in S3, we can now publish them by updating the manifest.
 
-We now summarize the release process. Our first step is to ensure the proper and
-valid state of master branch. Then we update cargo and the manifest
-accordingly. We create and push an annotated tag on stable. Meanwhile, we
-generate the changelog, inspect, clarify and develop it appropriately for public
-purview. Ensuring the proper artifacts are available in S3, we can now publish
-them, by updating the manifest.
+== TODOs and improvements
+. version from the tag
+. release stress tests
+. valid json test for the manifest
+and supported versions for download.
+The manifest allows us to rollback a release or remove a release from the list of supported releases.
+See link:../specification/version_management{outfilesuffix}[Version Management] for details on the format of the manifest.
 
-== TODOs and Improvements
+The manifest is generated when a patch is applied on master by the CI.
+
+== Installer
+
+The installer is generated when a patch is applied on the `master` branch by the CI.
+
+==  Changelog
+
+A candidate changelog is generated automatically using the respective tool (under scripts directory).
+Currently, the release notes are updated manually in github.
+
+== Publishing of artifacts
+
+We now summarize the release process.
+Our first step is to ensure the proper and valid state of the `master` branch.
+Next, we update `cargo` and the manifest accordingly.
+We then create and push an annotated tag on the `stable` branch, generate the changelog.
+The product and SDK team members can then inspect, clarify, and develop the changelog to ensure it is appropriate for public
+consumption.
+After ensuring the proper artifacts are available in S3, we can now publish them by updating the manifest.
+
+== TODOs and improvements
 . version from the tag
 . release stress tests
 . valid json test for the manifest

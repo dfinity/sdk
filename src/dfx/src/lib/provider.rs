@@ -1,53 +1,87 @@
 use crate::config::dfinity::ConfigNetwork;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use clap::ArgMatches;
+use lazy_static::lazy_static;
+use std::sync::{Arc, RwLock};
 use url::Url;
 
+lazy_static! {
+    static ref NETWORK_CONTEXT: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
+}
+
+fn set_network_context(args: &ArgMatches<'_>) {
+    let name = args.value_of("network").unwrap_or("local").to_string();
+
+    let mut n = NETWORK_CONTEXT.write().unwrap();
+    *n = Some(name);
+}
+
+pub fn get_network_context() -> DfxResult<String> {
+    NETWORK_CONTEXT
+        .read()
+        .unwrap()
+        .clone()
+        .ok_or_else(|| DfxError::ComputeNetworkNotSet)
+}
+
 // always returns at least one url
-pub fn get_provider_urls<'a>(
+pub fn get_network_descriptor<'a>(
     env: &'a (dyn Environment + 'a),
     args: &ArgMatches<'_>,
-) -> DfxResult<Vec<String>> {
-    let network_name = args.value_of("network").unwrap_or("local");
+) -> DfxResult<NetworkDescriptor> {
+    set_network_context(args);
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let config = config.as_ref().get_config();
+    let network_name = get_network_context()?;
     match config.get_network(&network_name) {
         Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
-            match &network_provider.providers {
-                providers if !providers.is_empty() => Ok(providers.to_vec()),
+            let provider_urls = match &network_provider.providers {
+                providers if !providers.is_empty() => {
+                    let provider_urls = providers.to_vec();
+
+                    Ok(provider_urls)
+                }
                 _ => Err(DfxError::ComputeNetworkHasNoProviders(
                     network_name.to_string(),
                 )),
-            }
+            }?;
+            let validated_urls = provider_urls
+                .iter()
+                .map(|provider| parse_provider_url(provider))
+                .collect::<Result<_, _>>();
+            validated_urls.map(|provider_urls| NetworkDescriptor {
+                name: network_name.to_string(),
+                providers: provider_urls,
+                r#type: network_provider.r#type,
+            })
         }
         Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
-            Ok(vec![format!("http://{}", local_provider.bind)])
+            let provider_urls = vec![format!("http://{}", local_provider.bind)];
+            let validated_urls = provider_urls
+                .iter()
+                .map(|provider| parse_provider_url(provider))
+                .collect::<Result<_, _>>();
+            validated_urls.map(|provider_urls| NetworkDescriptor {
+                name: network_name.to_string(),
+                providers: provider_urls,
+                r#type: local_provider.r#type,
+            })
         }
         None => Err(DfxError::ComputeNetworkNotFound(network_name.to_string())),
-    }?
-    .iter()
-    .map(|provider| parse_provider_url(provider))
-    .collect::<Result<_, _>>()
-}
-
-pub fn get_first_agent_url<'a>(
-    env: &'a (dyn Environment + 'a),
-    args: &ArgMatches<'_>,
-) -> DfxResult<String> {
-    let urls = get_provider_urls(env, args);
-    urls.map(|urls| urls.first().unwrap().to_string())
+    }
 }
 
 pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
     args: &ArgMatches<'_>,
 ) -> DfxResult<AgentEnvironment<'a>> {
-    let agent_url = get_first_agent_url(env, args)?;
+    let network_descriptor = get_network_descriptor(env, args)?;
 
-    Ok(AgentEnvironment::new(env, &agent_url))
+    Ok(AgentEnvironment::new(env, network_descriptor))
 }
 
 pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {

@@ -3,6 +3,7 @@ use crate::config::dfinity::Config;
 use crate::config::{cache, dfx_version};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::Identity;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
 use async_trait::async_trait;
@@ -35,6 +36,9 @@ pub trait Environment {
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
     fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
+
+    #[allow(clippy::needless_lifetimes)]
+    fn get_network_descriptor<'a>(&'a self) -> Option<&'a NetworkDescriptor>;
 
     fn get_logger(&self) -> &slog::Logger;
     fn new_spinner(&self, message: &str) -> ProgressBar;
@@ -151,7 +155,13 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_agent(&self) -> Option<&Agent> {
-        // create an AgentEnvironment explicitly, in order to specify provider/network
+        // create an AgentEnvironment explicitly, in order to specify network and agent.
+        // See install, build for examples.
+        None
+    }
+
+    fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
+        // create an AgentEnvironment explicitly, in order to specify network and agent.
         // See install, build for examples.
         None
     }
@@ -178,15 +188,18 @@ impl Environment for EnvironmentImpl {
 pub struct AgentEnvironment<'a> {
     backend: &'a dyn Environment,
     agent: Agent,
+    network_descriptor: NetworkDescriptor,
 }
 
 impl<'a> AgentEnvironment<'a> {
-    pub fn new(backend: &'a dyn Environment, agent_url: &str) -> Self {
+    pub fn new(backend: &'a dyn Environment, network_descriptor: NetworkDescriptor) -> Self {
         let identity = get_profile_path().expect("Failed to access profile");
+        let agent_url = network_descriptor.providers.first().unwrap();
         AgentEnvironment {
             backend,
             agent: create_agent(backend.get_logger().clone(), agent_url, identity)
                 .expect("Failed to construct agent."),
+            network_descriptor,
         }
     }
 }
@@ -218,6 +231,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_agent(&self) -> Option<&Agent> {
         Some(&self.agent)
+    }
+
+    fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
+        Some(&self.network_descriptor)
     }
 
     fn get_logger(&self) -> &slog::Logger {

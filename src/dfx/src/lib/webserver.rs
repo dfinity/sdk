@@ -1,5 +1,7 @@
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::models::canister::CanisterManifest;
+use crate::lib::locations::canister_did_location;
+use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
 use actix::dev::Stream;
 use actix::System;
@@ -30,7 +32,8 @@ struct ForwardActixData {
 }
 
 struct CandidData {
-    pub manifest_path: PathBuf,
+    pub build_output_root: PathBuf,
+    pub network_descriptor: NetworkDescriptor,
 }
 
 #[derive(Deserialize)]
@@ -51,10 +54,20 @@ fn candid(
     data: web::Data<Arc<CandidData>>,
 ) -> DfxResult<HttpResponse> {
     let id = info.canister_id;
-    let manifest = CanisterManifest::load(&data.manifest_path)?;
-    let candid_path = manifest
-        .get_candid(&id)
-        .ok_or_else(|| DfxError::Unknown("cannot find candid file".to_string()))?;
+    let network_descriptor = &data.network_descriptor;
+    let store = CanisterIdStore::for_network(&network_descriptor)?;
+    let candid_path = store
+        .get_name(&id)
+        .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
+        .ok_or_else(|| {
+            DfxError::CouldNotFindCanisterNameForNetwork(
+                id.to_string(),
+                network_descriptor.name.clone(),
+            )
+        })?
+        .canonicalize()
+        .map_err(|_e| DfxError::Unknown("cannot find candid file".to_string()))?;
+
     let content = match info.format {
         None => std::fs::read_to_string(candid_path)?,
         Some(Format::Javascript) => {
@@ -163,7 +176,8 @@ fn forward(
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
-    manifest_path: PathBuf,
+    build_output_root: PathBuf,
+    network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
@@ -190,7 +204,10 @@ pub fn run_webserver(
         logger: logger.clone(),
         counter: 0,
     }));
-    let candid_data = Arc::new(CandidData { manifest_path });
+    let candid_data = Arc::new(CandidData {
+        build_output_root,
+        network_descriptor,
+    });
 
     let handler = HttpServer::new(move || {
         App::new()
@@ -226,7 +243,8 @@ pub fn run_webserver(
 
 pub fn webserver(
     logger: Logger,
-    manifest_path: PathBuf,
+    build_output_root: PathBuf,
+    network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
     serve_dir: &Path,
@@ -254,7 +272,8 @@ pub fn webserver(
             move || {
                 run_webserver(
                     logger,
-                    manifest_path,
+                    build_output_root,
+                    network_descriptor,
                     bind,
                     clients_api_uri,
                     serve_dir,
