@@ -1,4 +1,4 @@
-use crate::lib::environment::Environment;
+use crate::lib::environment::{rustls_client_config, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use indicatif::{ProgressBar, ProgressDrawTarget};
@@ -104,7 +104,9 @@ pub fn get_latest_version(
         None => reqwest::blocking::Client::builder(),
     };
 
-    let client = client.build()?;
+    let client = client
+        .use_preconfigured_tls(rustls_client_config())
+        .build()?;
     let response = client.get(manifest_url).send().map_err(DfxError::Reqwest)?;
     let status_code = response.status();
     b.finish_and_clear();
