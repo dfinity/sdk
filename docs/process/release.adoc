@@ -36,17 +36,29 @@ If you don't have a VPN connection set up for your computer, you'll need to foll
 
 - You must have Nix installed and configured.
 +
-For information about how to install and configure Nix for DFINITY repositories and projects, see link:
-+
 NOTE: If you are installing Nix for the first time, building the cache can take hours and might timeout depending on the reliability of your network connection.
 
 - You must have a registered NPM account.
 +
 If you don't have an account, you can go to the link:https://www.npmjs.com/[NPMJS] website and click *Sign Up* to create one using your `firstname.lastname@dfinity.org` email address.
 +
-You will need to verify your email address and accept an invitation to complete the registration process.
+You will need to verify your email address to complete the registration process.
+For your account to be added to the `dfinity` organization, contact Hans or Stanley.
 
-=== Setup
+=== Preliminary validation
+
+Verify the general stability of the master branch before attempting to create a release candidate.
+
+. Use this link:https://github.com/dfinity-lab/sdk/commits/master[link]
+to verify:
+.. Is `master` green?
+.. Was `master` red recently or flaky?
++
+
+image:is-master-green.png[]
+
+=== Start preparing a new release
+
 . Connect to VPN.
 
 . Open a terminal and `cd` into your local copy of the `sdk` repo.
@@ -57,20 +69,10 @@ You will need to verify your email address and accept an invitation to complete 
 git checkout master && git pull
 ----
 
-=== Releasing a New Version
+=== Build DFX and the JavaScript agent binaries
 
-==== Preliminary Validation
-. Use this link:https://github.com/dfinity-lab/sdk/commits/master[link]
-to verify:
-.. Is `master` green?
-.. Was `master` red recently or flaky?
-+
+Verify that you can build DFX and the JavaScript agent without errors.
 
-image:is-master-green.png[]
-
-==== Validate the Build and UI
-
-===== Verify that the default `hello_world` project can be built, deployed, called in a terminal, and viewed in a browser.
 . Build the `dfx` binary by running the following command:
 +
 [source, bash]
@@ -78,13 +80,12 @@ image:is-master-green.png[]
 nix-build ./dfx.nix -A build --option extra-binary-caches https://nix.dfinity.systems
 ----
 +
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | The above command will print logs to the console.
-The last line printed is the directory of build output. For example, you should see a path similar to this:
+This command prints logs to the console.
+The last line printed is the build output directory. 
++
+For example, you should see a path similar to this:
 +
 `/nix/store/7qsrb3pikzam301h6khjzwpg35ry7miz-dfinity-sdk-rust-unknown`
-|===
 // (_for the rest of these instructions, assume that `dfx` is a reference to
 // `result/bin/dfx or wherever the binary was built with this command`_)
 . Create a temporary `alias` for the binary to use in successive steps by appending `/bin/dfx` to the above path.
@@ -96,7 +97,7 @@ For example, copy and paste the last line from the `nix-build` output, then add 
 alias dfx=/nix/store/7qsrb3pikzam301h6khjzwpg35ry7miz-dfinity-sdk-rust-unknown/bin/dfx
 ----
 +
-*Replace the `/nix/store/` part of the path with the path from your console*
+NOTE: Replace the `/nix/store/` part of the path with the path from your console.
 
 . Verify the binary version by running the following command:
 +
@@ -117,37 +118,39 @@ dfx cache delete
 nix-build . -A agent-js --option extra-binary-caches https://nix.dfinity.systems
 ----
 +
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | The above command will print logs to the console.
-The last line printed is the directory of build output. For example, you should see a path similar to this:
+This command prints logs to the console.
+The last line printed is the build output directory. 
++
+For example, you should see a path similar to the following:
 +
 `/nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js`
-|===
 . List the files in that path by running the following command:
 +
 [source, bash]
 ----
 ls -l /nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js
 ----
-*Replace the `/nix/store/` part of the path with the path from your console*
-.. You should see output similar to the following:
 +
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | total 64
-| |-r--r--r--  1 username  admin  30439 Dec 31  1969 dfinity-agent-0.6.0.tgz
-| |dr-xr-xr-x  4 username  admin    128 Dec 31  1969 nix-support
-|===
+NOTE: Replace the `/nix/store/` part of the path with the path from your console.
+
++
+You should see output similar to the following:
++
+....
+total 64
+-r--r--r--  1 username  admin  30439 Dec 31  1969 dfinity-agent-0.6.0.tgz
+dr-xr-xr-x  4 username  admin    128 Dec 31  1969 nix-support
+....
 . Append the `/nix/store/` path with the `dfinity-agent-n.n.n.tgz` file name and
-store the full path to the archive file in a temporary environment variable by running a command similar to the following:
+store the full path to the archive (`.tgz`) file in a temporary environment variable by running a command similar to the following:
 +
 [source, bash]
 ----
 export JS_AGENT_PATH=/nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js/dfinity-agent-0.6.0.tgz
 ----
 +
- *Replace the `/nix/store/` and `dfinity-agent` parts of the path with the strings displayed on your console)*
+NOTE: Replace the `/nix/store/` and `dfinity-agent` parts of the path with the strings displayed on your console.
+
 . Ensure `dfx` and `replica` are not running in the background by running the following commands:
 +
 [source, bash]
@@ -158,6 +161,11 @@ ps -ef | grep dfx
 +
 These commands should only list `+grep+` as a running process. 
 If there are any `replica` or `dfx` processes running, use the `kill` command to terminate them.
+
+=== Validate the default project
+
+Verify that you can build, deploy, and call the default `hello_world` project without errors.
+
 . Generate a default new project.
 +
 [source, bash]
@@ -165,7 +173,7 @@ If there are any `replica` or `dfx` processes running, use the `kill` command to
 dfx new hello_world
 cd hello_world
 ----
-. Install the locally built JavaScript agent for the new project.
+. Install the locally-built JavaScript agent for the new project.
 +
 [source, bash]
 ----
@@ -177,7 +185,7 @@ npm install ${JS_AGENT_PATH}
 ----
 dfx start --background
 ----
-. Create, build, and install canisters.
+. Create, build, and install canisters by running the following commands:
 +
 [source, bash]
 ----
@@ -185,7 +193,7 @@ dfx canister create --all
 dfx build
 dfx canister install --all
 ----
-. Call the canister and verify it answers as expected.
+. Call the canister and verify the result.
 +
 [source, bash]
 ----
@@ -215,7 +223,7 @@ In the browser, right-click > Inspect > Console.
 ----
 dfx stop
 ----
-. Delete the test project by running the following command:
+. Delete the test project by running the following commands:
 +
 [source, bash]
 ----
@@ -223,7 +231,8 @@ cd ..
 rm -rf hello_world
 ----
 
-==== Update the Version
+==== Update the version
+
 . Navigate back to the top-level of the `sdk` repo.
 . Enter the sdk `nix` development environment by running the following command:
 +
@@ -233,12 +242,11 @@ nix-shell
 ----
 . Update the `version` field for the following files:
 +
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | `src/dfx/Cargo.toml`
-| | `src/agent/rust/Cargo.toml`
-| | `src/ic_identity_manager/Cargo.toml`
-|===
+....
+`src/dfx/Cargo.toml`
+`src/agent/rust/Cargo.toml`
+`src/ic_identity_manager/Cargo.toml`
+....
 . Apply these changes to `Cargo.lock` by running the following command:
 +
 [source, nix-shell]
@@ -280,21 +288,20 @@ For example:
     ]
 }
 ----
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | *Ensure* `latest` remains the same.
-|===
++
+*Ensure* `latest` remains the same.
 
-==== Tag and Create a Pull Request
+
+==== Create a pull request and tag 
 
 . Create a pull request with the above changes by running the following commands:
 +
 [source, bash]
 ----
-git switch -c <YOUR_NAME>/NEW_DFX_VERSION
+git switch -c <YOUR_NAME>/<BRANCH-FOR-NEW_DFX_VERSION>
 git add --all
 git commit --signoff --message "chore: release NEW_DFX_VERSION"
-git push origin <YOUR_NAME>/NEW_DFX_VERSION
+git push origin <YOUR_NAME>/<BRANCH-FOR-NEW_DFX_VERSION>
 ----
 . After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
 . Have the validator review and approve the PR.
@@ -344,11 +351,7 @@ git describe --always
 git push origin ${NEW_DFX_VERSION}
 ----
 +
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | CI will only publish `dfx` from the latest commit from the `stable` branch when that commit is tagged with a version.
-|===
-
+CI will only publish `dfx` from the latest commit from the `stable` branch when that commit is tagged with a version.
 . Push the `stable` branch by running the following command:
 +
 [source, bash]
@@ -356,14 +359,12 @@ git push origin ${NEW_DFX_VERSION}
 git push origin stable
 ----
 +
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | Pushing the branch second is an optimization.
+Pushing the branch second is an optimization.
 Hydra will spur into action when `stable` advances, so if the branch is already tagged, it won't require a second fetch.
-|===
 . After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
 
-==== Publish Javascript Agent to NPM
+==== Publish Javascript agent to NPM
+
 . Change to the `javascript` agent directory and clean it by running the following commands:
 +
 [source, nix-shell]
@@ -398,10 +399,8 @@ You should see `Success` displayed in the terminal after running this command.
 npm login
 ----
 +
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | Note: Logging in requires you to have an `npm` account and to be a member of the `dfinity` organization. To get access, contact Hans or Stanley.
-|===
+NOTE: Logging in requires you to have an `npm` account and to be a member of the `dfinity` organization. To get access, contact Hans or Stanley.
+
 . Publish to npm by running the following command:
 +
 [source, nix-shell]
@@ -418,7 +417,7 @@ ifdef::env-github[]
 :tada:
 endif::[]
 
-==== Notifying and Post-build Validation
+==== Notification and post-build validation
 
 . Wait for the automatic slack message to
 link:https://dfinity.slack.com/archives/CUXGQBABF/p1594954197000100[_#build-notifications_]
@@ -429,13 +428,14 @@ about the successful publishing of the dfx tarballs.
 . Notify link:https://app.slack.com/client/T43F9UHS5/CGA566TPV[#eng-sdk] team members that the new build is ready for manual installation and testing.
 . Update the link:https://docs.google.com/spreadsheets/d/1pIblGqIeqapzptOtDb4h0LjJKDFIYXRxJrX9VaphfjA/edit#gid=725289684[_release notes_] spreadsheet and documentation based on the Go/No-go list of merged PRs.
 
-=== Promoting a Released Version to Latest
+=== Promoting a released version to Latest
 
 . Verify that release notes and documentation are ready for public consumption.
 . Open the `public/manifest.json` file in a text editor.
 . Under the `tags` key, change the version number associated with the `latest` key.
 +
 For example:
++
 [source,json]
 ----
 {
@@ -457,15 +457,17 @@ git push origin <YOUR_NAME>/update-n.n.n-latest
 . Have the validator review and approve the PR, then merge to `master`.
 . Verify the Linux and Darwin (macOS) builds are available for download from https://download.dfinity.systems/sdk/dfx.
 +
-[width="80%",cols="2,<68%", frame=none]
-|===
-| | Linux—Replace {DFX_VERSION} with the new version number:
-| | link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-linux/dfx-{DFX_VERSION}.tar.gz[]
-| | Darwin (macOS)—Replace {DFX_VERSION} with the new version number:
-| | link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-darwin/dfx-{DFX_VERSION}.tar.gz[]
-| | CI Hydra:
-| | link:https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release[]
-|===
+Linux—Replace {DFX_VERSION} with the new version number:
++
+link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-linux/dfx-{DFX_VERSION}.tar.gz[]
++
+Darwin (macOS)—Replace {DFX_VERSION} with the new version number:
++
+link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-darwin/dfx-{DFX_VERSION}.tar.gz[]
++
+CI Hydra:
++
+link:https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release[]
 
 Note: We assume *upstream* is `origin`.
 
