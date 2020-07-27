@@ -260,12 +260,19 @@ For example, replace `<n.n.n>` with a specific version number:
 ----
 export NEW_DFX_VERSION=<n.n.n>
 ----
-. Update the `@dfinity/agent` and `@dfinity/bootstrap` JavaScript packages by running the following command:
+. Update the `@dfinity/agent` JavaScript package by running the following command:
 +
 [source, nix-shell]
 ----
 cd src/agent/javascript/ && npm version ${NEW_DFX_VERSION}
 ----
+. Navigate back to the root of sdk repo by running the following command: 
++
+[source, nix-shell]
+----
+cd ../../..
+----
+. Update the `@dfinity/bootstrap` JavaScript package by running the following command:
 +
 [source, nix-shell]
 ----
@@ -468,8 +475,6 @@ link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-darwin/dfx-{D
 CI Hydra:
 +
 link:https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release[]
-
-Note: We assume *upstream* is `origin`.
 
 === Release documentation
 
