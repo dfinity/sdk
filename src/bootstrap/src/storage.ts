@@ -1,4 +1,4 @@
-function parse(): Record<string, string> {
+async function parse(): Promise<Record<string, string>> {
   const cookie = document.cookie;
   const result = Object(null);
 
@@ -25,5 +25,5 @@ export async function store(name: string, value: string): Promise<void> {
 }
 
 export async function retrieve(name: string): Promise<string | undefined> {
-  return parse()[name] || undefined;
+  return (await parse())[name] || undefined;
 }
