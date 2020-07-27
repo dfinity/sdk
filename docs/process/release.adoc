@@ -256,6 +256,7 @@ cargo build
 . Set the new version in a temporary environment variable.
 +
 For example, replace `<n.n.n>` with a specific version number:
++
 [source, nix-shell]
 ----
 export NEW_DFX_VERSION=<n.n.n>
