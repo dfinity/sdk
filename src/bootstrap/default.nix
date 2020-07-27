@@ -21,7 +21,6 @@ pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./
   # of the nix derivation.
   npmCommands = [
     "npm install"
-
     (
       pkgs.writeScript "include-agent.sh" ''
         #!${pkgs.stdenv.shell}
@@ -34,6 +33,7 @@ pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./
         cp -R ${agent-js.lib}/node_modules .
       ''
     )
+    "npm run ci"
     "npm run bundle"
   ];
 

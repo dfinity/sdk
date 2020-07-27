@@ -1,5 +1,6 @@
 import { ProxyMessageKind, ProxyStubAgent } from '@dfinity/agent';
-import { createAgent, SiteInfo } from './host';
+import { createAgent } from './host';
+import { SiteInfo } from './site';
 
 async function bootstrap() {
   const agent = await createAgent(await SiteInfo.worker());
@@ -24,7 +25,7 @@ async function bootstrap() {
   // message to tell the parent we need to login.
   agent
     .status()
-    .then(json => {
+    .then(_json => {
       window.parent.postMessage('ready', '*');
     })
     .catch((error: Error) => {
