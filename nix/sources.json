@@ -40,7 +40,7 @@
     "ic-ref": {
         "ref": "release-0.8",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "d0166d45978b17e87f25a74f484ed872a897d8f9",
+        "rev": "eb3fd27a3c91818afabd306ddb9be0dfbf5f2792",
         "type": "git"
     },
     "motoko": {
