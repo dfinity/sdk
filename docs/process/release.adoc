@@ -536,32 +536,3 @@ After ensuring the proper artifacts are available in S3, we can now publish them
 . version from the tag
 . release stress tests
 . valid json test for the manifest
-and supported versions for download.
-The manifest allows us to rollback a release or remove a release from the list of supported releases.
-See link:../specification/version_management{outfilesuffix}[Version Management] for details on the format of the manifest.
-
-The manifest is generated when a patch is applied on master by the CI.
-
-== Installer
-
-The installer is generated when a patch is applied on the `master` branch by the CI.
-
-==  Changelog
-
-A candidate changelog is generated automatically using the respective tool (under scripts directory).
-Currently, the release notes are updated manually in github.
-
-== Publishing of artifacts
-
-We now summarize the release process.
-Our first step is to ensure the proper and valid state of the `master` branch.
-Next, we update `cargo` and the manifest accordingly.
-We then create and push an annotated tag on the `stable` branch, generate the changelog.
-The product and SDK team members can then inspect, clarify, and develop the changelog to ensure it is appropriate for public
-consumption.
-After ensuring the proper artifacts are available in S3, we can now publish them by updating the manifest.
-
-== TODOs and improvements
-. version from the tag
-. release stress tests
-. valid json test for the manifest
