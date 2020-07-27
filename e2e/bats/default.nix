@@ -4,47 +4,58 @@
 , use_ic_ref ? false
 }:
 let
-  e2e = lib.noNixFiles (lib.gitOnlySource ../../. ./.);
-  lib = pkgs.lib;
-  sources = pkgs.sources;
+  inherit (pkgs) lib;
 
-  inputs = with pkgs; [
-    bats
-    bash
-    coreutils
-    diffutils
-    curl
-    findutils
-    gnugrep
-    gnutar
-    gzip
-    jq
-    netcat
-    ps
-    python3
-    procps
-    which
-    dfx.standalone
-  ] ++ lib.optional use_ic_ref ic-ref;
+  isBatsTest = fileName: type: lib.hasSuffix ".bash" fileName && type == "regular";
+
+  here = ./.;
+
+  mkBatsTest = fileName:
+    let
+      name = lib.removeSuffix ".bash" fileName;
+    in
+      lib.nameValuePair name (
+        pkgs.runCommandNoCC name {
+          nativeBuildInputs = with pkgs; [
+            bats
+            diffutils
+            curl
+            findutils
+            gnugrep
+            gnutar
+            gzip
+            jq
+            netcat
+            ps
+            python3
+            procps
+            which
+            dfx.standalone
+          ] ++ lib.optional use_ic_ref ic-ref;
+          BATSLIB = pkgs.sources.bats-support;
+          USE_IC_REF = use_ic_ref;
+        } ''
+          # We want $HOME/.cache to be in a new temporary directory.
+          export HOME=$(mktemp -d -t dfx-e2e-home-XXXX)
+
+          ln -s ${./utils} utils
+          ln -s ${./assets} assets
+          ln -s ${here + "/${fileName}"} ${fileName} 
+
+          # Timeout of 10 minutes is enough for now. Reminder; CI might be running with
+          # less resources than a dev's computer, so e2e might take longer.
+          timeout --preserve-status 3600 bats ${fileName} | tee $out
+        ''
+      );
 in
-
-builtins.derivation {
-  name = "e2e-tests";
-  system = pkgs.stdenv.system;
-  PATH = pkgs.lib.makeSearchPath "bin" inputs;
-  BATSLIB = sources.bats-support;
-  builder =
-    pkgs.writeScript "builder.sh" ''
-      #!${pkgs.stdenv.shell}
-      set -eo pipefail
-
-      # We want $HOME/.cache to be in a new temporary directory.
-      export HOME=$(mktemp -d -t dfx-e2e-home-XXXX)
-
-      export USE_IC_REF=${if use_ic_ref then "1" else ""}
-
-      # Timeout of 10 minutes is enough for now. Reminder; CI might be running with
-      # less resources than a dev's computer, so e2e might take longer.
-      timeout --preserve-status 3600 bats --recursive ${e2e}/* | tee $out
-    '';
-} // { meta = {}; }
+builtins.listToAttrs
+  (
+    builtins.map mkBatsTest
+      (
+        lib.attrNames
+          (
+            lib.filterAttrs isBatsTest
+              (builtins.readDir here)
+          )
+      )
+  )
