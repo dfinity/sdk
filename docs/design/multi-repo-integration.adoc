@@ -84,6 +84,15 @@ used by more complex products. And distributed using their own package managers
 === Conventional Commits
 All repos should follow (and enforce) conventional commits.
 
+=== Branching
+Three branches should exist in every new repository;
+
+. `next` which is the next major version, can have breaking changes.
+. `minor` which is the next minor version, cannot have breaking changes but can add
+  new features. This branch is optional
+. `x.y` which is the stable release (e.g. `0.5`) and may only contain patches deemed
+  important to the current or previous version (e.g. security fixes).
+
 === Tests
 Following a few principles:
 
