@@ -405,9 +405,6 @@ You should see `Success` displayed in the terminal after running this command.
 ----
 npm login
 ----
-+
-NOTE: Logging in requires you to have an `npm` account and to be a member of the `dfinity` organization. To get access, contact Hans or Stanley.
-
 . Publish to npm by running the following command:
 +
 [source, nix-shell]
