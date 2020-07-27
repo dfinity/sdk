@@ -33,7 +33,7 @@ erased-serde = "0.3.10"
 flate2 = "1.0.11"
 futures = "0.1.28"
 hex = "0.3.2"
-ic-agent = { path = "../agent/rust" }
+ic-agent = { git = "https://github.com/dfinity-lab/rust-agent.git", branch = "master" }
 ic-identity-manager = { path = "../ic_identity_manager" }
 indicatif = "0.13.0"
 lazy-init = "0.3.0"
@@ -64,7 +64,6 @@ toml = "0.5.5"
 tokio = "0.2.10"
 url = "2.1.0"
 webpki-roots = "0.19.0"
-wabt = "0.9.2"
 walkdir = "2.2.9"
 wasmparser = "0.45.0"
 

@@ -26,14 +26,8 @@ let
       "^.cargo/config$"
     ];
     cargoTestCommands = _: [
-      ''cargo $cargo_options test $cargo_test_options --workspace --exclude ic-agent''
-      ''RUST_TEST_THREADS=1 cargo $cargo_options test $cargo_test_options -p ic-agent''
+      ''cargo $cargo_options test $cargo_test_options --workspace''
     ];
-    override = oldAttrs: {
-      # both needed for bindgen, used by rocksdb-sys, zstd-sys, lmdb-sys, etc
-      LIBCLANG_PATH = "${pkgs.llvmPackages.libclang}/lib";
-      CLANG_PATH = "${pkgs.llvmPackages.clang}/bin/clang";
-    };
   };
 
   # add extra executables used when linting
@@ -109,6 +103,12 @@ let
           shellHook = ''
             # Set CARGO_HOME to minimize interaction with any environment outside nix
             export CARGO_HOME=${if pkgs.lib.isHydra then "." else toString ./.}/.cargo-home
+
+            if [ ! -d "$CARGO_HOME" ]; then
+                mkdir -p $CARGO_HOME
+                echo "[net]
+                      git-fetch-with-cli = true" > $CARGO_HOME/config
+            fi
 
             # Set environment variable for debug version.
             export DFX_TIMESTAMP_DEBUG_MODE_ONLY=$(date +%s)
