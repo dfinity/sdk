@@ -67,8 +67,4 @@ export class Principal {
   public toString(): string {
     return this.toText();
   }
-
-  public toString(): string {
-    return this.toText();
-  }
 }
