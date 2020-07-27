@@ -34,24 +34,6 @@ class PrincipalEncoder implements CborEncoder<Principal> {
   }
 }
 
-// class CanisterIdEncoder implements CborEncoder<Principal> {
-//   public get name() {
-//     return 'Principal';
-//   }
-
-//   public get priority() {
-//     return 0;
-//   }
-
-//   public match(value: any): boolean {
-//     return value && value._isCanisterId === true;
-//   }
-
-//   public encode(v: Principal): cbor.CborValue {
-//     return cbor.value.bytes(v.toBlob());
-//   }
-// }
-
 class BufferEncoder implements CborEncoder<Buffer> {
   public get name() {
     return 'Buffer';
