@@ -76,6 +76,22 @@ in
       EOI
     ''
   );
+  check-dfx = pkgs.lib.linuxOnly (
+    pkgs.lib.writeCheckedShellScriptBin "activate" [] ''
+      set -eu
+      PATH="${pkgs.lib.makeBinPath [ pkgs.curl pkgs.diffutils slack ]}"
+      v="${v}"
+      curl -Ls https://sdk.dfinity.org/downloads/x86_64-linux/dfx-$v.tar.gz -o dfx-$v.tar.gz
+      if ! cmp -s ${mkDfxTarball dfx.x86_64-linux} dfx-$v.tar.gz; then
+        slack "$SLACK_CHANNEL_SECURITY_WEBHOOK" <<-EOI
+        Possible security breach detected!
+
+        https://sdk.dfinity.org/downloads/x86_64-linux/dfx-$v.tar.gz
+        is different than the vesion built by CI.
+      EOI
+      fi
+    ''
+  );
   install-sh = pkgs.lib.linuxOnly (
     pkgs.lib.writeCheckedShellScriptBin "activate" [] ''
       set -eu
