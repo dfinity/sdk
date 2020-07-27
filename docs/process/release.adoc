@@ -296,6 +296,7 @@ git add --all
 git commit --signoff --message "chore: release NEW_DFX_VERSION"
 git push origin <YOUR_NAME>/NEW_DFX_VERSION
 ----
+. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
 . Have the validator review and approve the PR.
 . Apply the `automerge-squash` label.
 +
@@ -360,6 +361,7 @@ git push origin stable
 | | Pushing the branch second is an optimization.
 Hydra will spur into action when `stable` advances, so if the branch is already tagged, it won't require a second fetch.
 |===
+. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
 
 ==== Publish Javascript Agent to NPM
 . Change to the `javascript` agent directory and clean it by running the following commands:
@@ -451,6 +453,8 @@ git add --all
 git commit --message "chore: Update the manifest latest to n.n.n "
 git push origin <YOUR_NAME>/update-n.n.n-latest
 ----
+. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
+. Have the validator review and approve the PR, then merge to `master`.
 . Verify the Linux and Darwin (macOS) builds are available for download from https://download.dfinity.systems/sdk/dfx.
 +
 [width="80%",cols="2,<68%", frame=none]
