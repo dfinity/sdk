@@ -40,13 +40,13 @@
     "ic-ref": {
         "ref": "release-0.8",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "d0166d45978b17e87f25a74f484ed872a897d8f9",
+        "rev": "eb3fd27a3c91818afabd306ddb9be0dfbf5f2792",
         "type": "git"
     },
     "motoko": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "92c745ec76967802d15d87b8c5d14596650d552d",
+        "rev": "a86a1b9d307f58d2a55714dfb6632829794a78cc",
         "type": "git"
     },
     "napalm": {
