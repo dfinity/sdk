@@ -100,6 +100,7 @@ Following a few principles:
   downstream repository.
 
 ==== API Regression Testing
+===== Rust
 There is currently a proposal to have RustDoc outputs JSON (see
 https://github.com/rust-lang/rfcs/pull/2963[here]) as a backend. This proposal would
 allow us to setup an API extractor that works as a backward-compatiblity test, similar
@@ -107,7 +108,14 @@ in spirit to https://github.com/rust-dev-tools/rust-semverver[semverver] but mor
 standard and better supported (semverver hasn't been working consistently for
 months).
 
-This would also allow us to make automated release notes better.
+===== TypeScript
+Microsoft has been publishing API-Extractor for a while. This generates a JSON file
+that can be used to validate any API changes.
+
+===== Other
+Other languages should have a way to export or test their API, depending on the
+language itself. For example, a list of expected APIs in a linked object if the
+language does not have good support for API extraction (e.g. C++).
 
 == Documentation
 CONTRIBUTING docs should be maintained in sync between repos. The master repo for
