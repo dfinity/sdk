@@ -1,7 +1,7 @@
 { pkgs ? import ./nix {}
 }:
 let
-  distributed = lib.noNixFiles (lib.gitOnlySource ./. ./src/distributed);
+  distributed = lib.noNixFiles (lib.gitOnlySource ./src/distributed);
   lib = pkgs.lib;
 
 in

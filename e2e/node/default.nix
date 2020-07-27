@@ -3,7 +3,7 @@
 , dfx ? import ../../dfx.nix { inherit pkgs; }
 , agent-js ? import ../../src/agent/javascript { inherit pkgs; }
 }:
-pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.)) {
+pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ./.)) {
   root = ./.;
   name = "node-e2e-tests";
   buildInputs = [ dfx.standalone agent-js ];
