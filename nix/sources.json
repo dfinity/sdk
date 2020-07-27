@@ -32,21 +32,21 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "release-2020-06-30.RC00",
+        "ref": "release-2020-07-24.RC00",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "38f207358b03d396affcdacb6383921cb11243e4",
+        "rev": "863732a2c0a1b2814e6550a21f36e0f1ec23d604",
         "type": "git"
     },
     "ic-ref": {
         "ref": "release-0.8",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "d0166d45978b17e87f25a74f484ed872a897d8f9",
+        "rev": "eb3fd27a3c91818afabd306ddb9be0dfbf5f2792",
         "type": "git"
     },
     "motoko": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "92c745ec76967802d15d87b8c5d14596650d552d",
+        "rev": "a86a1b9d307f58d2a55714dfb6632829794a78cc",
         "type": "git"
     },
     "napalm": {
