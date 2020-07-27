@@ -77,7 +77,7 @@ interface ActorMetadata {
   throttleDurationInMSecs: number;
 }
 
-const metadataSymbol = Symbol();
+const metadataSymbol = Symbol.for('ic-agent-metadata');
 
 /**
  * An actor base class. An actor is an object containing only functions that will
