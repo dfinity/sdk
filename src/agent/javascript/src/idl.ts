@@ -1161,7 +1161,7 @@ export class FuncClass extends ConstructType<[PrincipalId, string]> {
   }
 
   public valueToString([principal, str]: [PrincipalId, string]) {
-    return `func "${principal.toText()}".${str}"`;
+    return `func "${principal.toText()}".${str}`;
   }
 
   public display(): string {
