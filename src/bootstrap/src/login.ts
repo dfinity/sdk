@@ -1,4 +1,4 @@
-import { SiteInfo } from "./site";
+import { SiteInfo } from './site';
 
 const loginEl = document.getElementById('login')!;
 const usernameEl = document.getElementById('username')! as HTMLInputElement;

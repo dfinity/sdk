@@ -7,7 +7,7 @@ import {
   ProxyAgent,
   ProxyMessage,
 } from '@dfinity/agent';
-import { SiteInfo } from "./site";
+import { SiteInfo } from './site';
 
 export async function createAgent(site: SiteInfo): Promise<Agent> {
   const workerHost = site.isUnknown() ? undefined : await site.getWorkerHost();

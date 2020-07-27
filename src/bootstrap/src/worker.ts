@@ -1,6 +1,6 @@
 import { ProxyMessageKind, ProxyStubAgent } from '@dfinity/agent';
 import { createAgent } from './host';
-import { SiteInfo } from "./site";
+import { SiteInfo } from './site';
 
 async function bootstrap() {
   const agent = await createAgent(await SiteInfo.worker());

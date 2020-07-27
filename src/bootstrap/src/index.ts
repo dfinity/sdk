@@ -1,12 +1,12 @@
 import {
   CanisterId,
+  createAssetCanisterActor,
   GlobalInternetComputer,
   HttpAgent,
   IDL,
-  createAssetCanisterActor,
 } from '@dfinity/agent';
 import { createAgent } from './host';
-import { SiteInfo } from "./site";
+import { SiteInfo } from './site';
 
 declare const window: GlobalInternetComputer & Window;
 

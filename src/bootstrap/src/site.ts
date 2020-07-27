@@ -1,6 +1,6 @@
-import { CanisterId, generateKeyPair, KeyPair, makeKeyPair } from "@dfinity/agent";
-import localforage from "localforage";
-import * as storage from "./storage";
+import { CanisterId, generateKeyPair, KeyPair, makeKeyPair } from '@dfinity/agent';
+import localforage from 'localforage';
+import * as storage from './storage';
 
 const localStorageCanisterIdKey = 'dfinity-ic-canister-id';
 const localStorageHostKey = 'dfinity-ic-host';
@@ -90,20 +90,6 @@ export class SiteInfo {
       );
     } else {
       return this.unknown();
-    }
-  }
-
-  private async store(name: string, value: string): Promise<void> {
-    await localforage.setItem(name, value);
-    await storage.store(name, value);
-  }
-
-  private async retrieve(name: string): Promise<string | undefined> {
-    const maybeValue = await storage.retrieve(name);
-    if (maybeValue === undefined) {
-      return localforage.getItem<string>(name);
-    } else {
-      return maybeValue;
     }
   }
 
@@ -197,5 +183,19 @@ export class SiteInfo {
     }
 
     return host || '';
+  }
+
+  private async store(name: string, value: string): Promise<void> {
+    await localforage.setItem(name, value);
+    await storage.store(name, value);
+  }
+
+  private async retrieve(name: string): Promise<string | undefined> {
+    const maybeValue = await storage.retrieve(name);
+    if (maybeValue === undefined) {
+      return localforage.getItem<string>(name);
+    } else {
+      return maybeValue;
+    }
   }
 }
