@@ -99,10 +99,30 @@ Following a few principles:
   allowing) breaking changes. Such tests could include integration testing with the
   downstream repository.
 
+==== API Regression Testing
+There is currently a proposal to have RustDoc outputs JSON (see
+https://github.com/rust-lang/rfcs/pull/2963[here]) as a backend. This proposal would
+allow us to setup an API extractor that works as a backward-compatiblity test, similar
+in spirit to https://github.com/rust-dev-tools/rust-semverver[semverver] but more
+standard and better supported (semverver hasn't been working consistently for
+months).
+
+This would also allow us to make automated release notes better.
+
 == Documentation
 CONTRIBUTING docs should be maintained in sync between repos. The master repo for
 these templates should be either Docs, Common or a new repo for organization
 specific documentation.
+
+=== Releases
+Each packages would be released on their own package manager on a different (but
+hopefully in sync) schedule as the other packages. For example, JavaScript code should
+be released on NPM, while Rust code on crates.io.
+
+Each releases should be tagged on GitHub and could be automated easily compared to DFX
+itself. Since each repos should follow conventional commits, release notes could be
+automated for each repos, with the major SDK repo being the grab all overview of all
+documented releases.
 
 == Work Breakdown
 The first step would be separate the different repos and validate
