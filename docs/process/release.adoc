@@ -236,7 +236,7 @@ nix-shell
 ----
 . Create a new branch for your changes by running the following commands:
 +
-[source, bash]
+[source, nix-shell]
 ----
 git switch -c <YOUR_NAME>/<BRANCH-FOR-NEW_DFX_VERSION>
 ----
