@@ -348,7 +348,7 @@ git pull origin master --ff-only
 +
 [source, bash]
 ----
-git tag --annotate ${NEW_DFX_VERSION} --message "Release: `NEW_DFX_VERSION`"
+git tag --annotate ${NEW_DFX_VERSION} --message "Release: `${NEW_DFX_VERSION}`"
 ----
 . Verify the tag points to the correct version and includes annotation by running the following commands:
 +
