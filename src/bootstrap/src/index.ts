@@ -50,7 +50,7 @@ async function _main() {
   window.ic = { agent, HttpAgent, IDL };
 
   // Find the canister ID. Allow override from the url with 'canister_id=1234..'
-  const canisterId = site.canisterId;
+  const canisterId = site.principal;
   if (!canisterId) {
     // Show an error.
     const div = document.createElement('div');
