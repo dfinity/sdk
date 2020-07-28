@@ -436,6 +436,9 @@ about the successful publishing of the dfx tarballs.
 . Run through the link:https://staging--eloquent-poitras-af14f0.netlify.app/docs/quickstart/quickstart.html[_Quick start_] steps.
 . Notify link:https://app.slack.com/client/T43F9UHS5/CGA566TPV[#eng-sdk] team members that the new build is ready for manual installation and testing.
 . Update the link:https://docs.google.com/spreadsheets/d/1pIblGqIeqapzptOtDb4h0LjJKDFIYXRxJrX9VaphfjA/edit#gid=725289684[_release notes_] spreadsheet and documentation based on the Go/No-go list of merged PRs.
++
+The driver only needs to add a tab to the spreadsheet.
+The DX Product team will walk through the list of merged PRs and work with the team to generate release note content.
 
 === Promoting a released version to Latest
 
