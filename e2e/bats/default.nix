@@ -15,7 +15,7 @@ let
       name = lib.removeSuffix ".bash" fileName;
     in
       lib.nameValuePair name (
-        pkgs.runCommandNoCC name {
+        pkgs.runCommandNoCC "e2e-test-${name}${lib.optionalString use_ic_ref "-use_ic_ref"}" {
           nativeBuildInputs = with pkgs; [
             bats
             diffutils
@@ -34,17 +34,19 @@ let
           ] ++ lib.optional use_ic_ref ic-ref;
           BATSLIB = pkgs.sources.bats-support;
           USE_IC_REF = use_ic_ref;
+          utils = lib.gitOnlySource ../../. ./utils;
+          assets = lib.gitOnlySource ../../. ./assets;
+          test = here + "/${fileName}";
         } ''
-          # We want $HOME/.cache to be in a new temporary directory.
-          export HOME=$(mktemp -d -t dfx-e2e-home-XXXX)
+          export HOME=$(pwd)
 
-          ln -s ${./utils} utils
-          ln -s ${./assets} assets
-          ln -s ${here + "/${fileName}"} ${fileName} 
+          ln -s $utils utils
+          ln -s $assets assets
+          ln -s $test test
 
           # Timeout of 10 minutes is enough for now. Reminder; CI might be running with
           # less resources than a dev's computer, so e2e might take longer.
-          timeout --preserve-status 3600 bats ${fileName} | tee $out
+          timeout --preserve-status 3600 bats test | tee $out
         ''
       );
 in
