@@ -47,6 +47,25 @@ sdk $ nix-shell -A e2e-tests-ic-ref default.nix
 [nix-shell:~/d/sdk]$ USE_IC_REF=1 bats *.bash
 ----
 
+==== Build `dfx`, then use it to create and build a new dfx project
+
+In order to build locally, you will have to install the javascript agent.
+(It doesn't seem right that this is required, though).
+
+[source,bash]
+----
+sdk $ cd ~/w
+w $ dfx new abc
+w $ cd abc
+abc $ dfx canister create --all
+abc $ dfx build                   # (fails)
+abc $ npm install ~/d/sdk/src/agent/javascript
+abc $ dfx build                   # (fails - webpack missing)
+abc $ npm install
+abc $ dfx build                   # (succeeds)
+----
+
+
 ==== Running `dfx` in a Debugger
 
 While there are many OS/IDE variants where this can work, this document provides
