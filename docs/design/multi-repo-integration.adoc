@@ -136,7 +136,7 @@ Each package would be released on their own package manager on a different (but
 hopefully in sync) schedule as the other packages. For example, JavaScript code should
 be released on NPM, while Rust code on crates.io.
 
-Each releases should be tagged on GitHub and could be automated easily compared to DFX
+Each release should be tagged on GitHub and could be automated easily compared to DFX
 itself. Since each repos should follow conventional commits, release notes could be
 automated for each repos, with the major SDK repo being the grab all overview of all
 documented releases.
