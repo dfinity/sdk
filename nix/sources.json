@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "33aaadd1fd1ccd5e9872332152fea69c467b14ae",
-        "sha256": "1njgzddpcf0wyxkqbhzz3pb3pnwr61rf5m6ks47aq56ad3gxpy1k",
+        "rev": "ca4219e11d7c6edabf5c4d5003eea245868af6f0",
+        "sha256": "0xnja0lx1x4ph6d38kkcw87q2px317hnvcvchjhq420v0z65hhp5",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/33aaadd1fd1ccd5e9872332152fea69c467b14ae.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/ca4219e11d7c6edabf5c4d5003eea245868af6f0.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "bats-support": {
@@ -34,19 +34,19 @@
     "dfinity": {
         "ref": "joachim-spec-0.9-all",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "e6f72b266dc0f33be870d6758a92213b7983f509",
+        "rev": "a12d96f1652cc8411e27fce9c7efe7ca5dff1e89",
         "type": "git"
     },
     "ic-ref": {
         "ref": "release-0.9",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "6f28f71919954d39b362d6bb21bd6405b87cf94c",
+        "rev": "14a8170db56db7ea3c902415ed23d7706f6e7c00",
         "type": "git"
     },
     "motoko": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "92c745ec76967802d15d87b8c5d14596650d552d",
+        "rev": "e62d449e11b5852901f1c9cd1b7706fc63a51ef4",
         "type": "git"
     },
     "napalm": {

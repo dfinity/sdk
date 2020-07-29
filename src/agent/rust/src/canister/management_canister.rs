@@ -5,7 +5,7 @@ use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 use candid::{Decode, Encode};
 use std::str::FromStr;
 
-const MANAGEMENT_CANISTER_ID: &str = "ic:00";
+const MANAGEMENT_CANISTER_ID: &str = "aaaaa-aa";
 const CREATE_METHOD_NAME: &str = "create_canister";
 const INSTALL_METHOD_NAME: &str = "install_code";
 
