@@ -37,7 +37,6 @@ test('round trip', () => {
   const { c: outputC, e: outputE, f: outputF, ...outputRest } = output;
 
   expect(blobToHex(outputC)).toBe(blobToHex(inputC));
-  // https://docs.dfinity.systems/public/v/0.8.2/#textual-ids
   expect(buf2hex((outputE as any) as Uint8Array).toUpperCase()).toBe(inputE.toHex());
   expect(outputRest).toEqual(inputRest);
 });
