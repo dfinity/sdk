@@ -137,7 +137,7 @@ hopefully in sync) schedule as the other packages. For example, JavaScript code 
 be released on NPM, while Rust code on crates.io.
 
 Each release should be tagged on GitHub and could be automated easily compared to DFX
-itself. Since each repos should follow conventional commits, release notes could be
+itself. Since each repo should follow conventional commits, release notes could be
 automated for each repo, with the major SDK repo being the grab all overview of all
 documented releases.
 
