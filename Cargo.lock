@@ -951,7 +951,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "actix 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-cors 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -975,7 +975,7 @@ dependencies = [
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hotwatch 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ic-agent 0.6.0 (git+ssh://git@github.com/dfinity-lab/rust-agent.git)",
- "ic-identity-manager 0.6.0",
+ "ic-identity-manager 0.6.1",
  "indicatif 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy-init 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1560,7 +1560,7 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-manager"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "ic-agent 0.6.0 (git+ssh://git@github.com/dfinity-lab/rust-agent.git)",
  "openssl 0.10.28 (registry+https://github.com/rust-lang/crates.io-index)",
