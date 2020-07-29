@@ -71,7 +71,7 @@ git checkout master && git pull
 
 === Build DFX and the JavaScript agent binaries
 
-Verify that you can build DFX and the JavaScript agent without errors.
+Verify that you can build DFX and the JavaScript agent from the `+master+` branch without errors.
 
 . Build the `dfx` binary by running the following command:
 +
@@ -86,19 +86,17 @@ The last line printed is the build output directory.
 For example, you should see a path similar to this:
 +
 `/nix/store/7qsrb3pikzam301h6khjzwpg35ry7miz-dfinity-sdk-rust-unknown`
+. Copy the `/nix/store/...-dfinity-sdk-rust-unknown` path displayed in the console.
 // (_for the rest of these instructions, assume that `dfx` is a reference to
 // `result/bin/dfx or wherever the binary was built with this command`_)
-. Create a temporary `alias` for the binary to use in successive steps by appending `/bin/dfx` to the above path.
+. Create a temporary `alias` for the binary to use in successive steps by appending `/bin/dfx` to the `/nix/store/...-dfinity-sdk-rust-unknown` path.
 +
-For example, copy and paste the last line from the `nix-build` output, then add `/bin/dfx` so that you have an alias similar to the following: 
+For example, add `/bin/dfx` to the `/nix/store/...-dfinity-sdk-rust-unknown` path to create an alias by running a command similar to the following: 
 +
 [source, bash]
 ----
 alias dfx=/nix/store/7qsrb3pikzam301h6khjzwpg35ry7miz-dfinity-sdk-rust-unknown/bin/dfx
 ----
-+
-NOTE: Replace the `/nix/store/` part of the path with the path from your console.
-
 . Verify the binary version by running the following command:
 +
 [source, bash]
@@ -124,15 +122,13 @@ The last line printed is the build output directory.
 For example, you should see a path similar to the following:
 +
 `/nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js`
-. List the files in that path by running the following command:
+. Copy the `/nix/store/...-dfinity-sdk-agent-js` path displayed in the console.
+. List the files in the `/nix/store/...-dfinity-sdk-agent-js` path by running a command similar to the following:
 +
 [source, bash]
 ----
 ls -l /nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js
 ----
-+
-NOTE: Replace the `/nix/store/` part of the path with the path from your console.
-
 +
 You should see output similar to the following:
 +
@@ -148,9 +144,6 @@ store the full path to the archive (`.tgz`) file in a temporary environment vari
 ----
 export JS_AGENT_PATH=/nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js/dfinity-agent-0.6.0.tgz
 ----
-+
-NOTE: Replace the `/nix/store/` and `dfinity-agent` parts of the path with the strings displayed on your console.
-
 . Ensure `dfx` and `replica` are not running in the background by running the following commands:
 +
 [source, bash]
@@ -205,18 +198,19 @@ dfx canister call hello_world greet everyone
 `hello_world_assets` canister to the URL (for example, `http://localhost:8000/?canisterId=ic:02000000000000000000000000000000000153`).
 .. Verify that you are prompted to type a greeting in a prompt window.
 .. Type a greeting, then click *OK* to return the greeting in an alert window.
-.. Verify there are no errors in the console.
+.. Verify there are no errors in the console by opening the Developer Tools.
 +
-In the browser, right-click > Inspect > Console.
+For example, in the browser, right-click>, then click Inspect and select Console to check for errors and warnings. 
+Warnings can be ignored.
 
 . Verify the Candid UI.
 .. In a new incognito or private window, navigate to the default localhost address and port `8000` as specified in the `dfx.json` configuration file.
-.. Append the `candid` endpoint and `canisterId` for the `hello_world` canister to the URL (for example, `http://localhost:8000/candid?canisterId=ic:02000000000000000000000000000000000153`).
+.. Append the `candid` endpoint and `canisterId` for the `hello_world` canister to the URL (for example, `http://localhost:8000/candid?canisterId=ic:0100000000000000000000000000000000012D`).
 .. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
-.. Verify there are no errors in the console.
+.. Verify there are no errors in the console by opening the Developer Tools.
 +
-In the browser, right-click > Inspect > Console.
-
+For example, in the browser, right-click>, then click Inspect and select Console to check for errors and warnings. 
+Warnings can be ignored.
 . Stop the replica by running the following command:
 +
 [source, bash]
@@ -239,6 +233,12 @@ rm -rf hello_world
 [source, bash]
 ----
 nix-shell
+----
+. Create a new branch for your changes by running the following commands:
++
+[source, nix-shell]
+----
+git switch -c <YOUR_NAME>/<BRANCH-FOR-NEW_DFX_VERSION>
 ----
 . Update the `version` field for the following files:
 +
@@ -279,6 +279,12 @@ cd ../../..
 ----
 cd src/bootstrap/ && npm version ${NEW_DFX_VERSION}
 ----
+. Navigate back to the root of sdk repo by running the following command: 
++
+[source, nix-shell]
+----
+cd ../..
+----
 . Append the new version to `public/manifest.json` by adding it to the `versions` list.
 +
 For example:
@@ -306,9 +312,8 @@ For example:
 +
 [source, bash]
 ----
-git switch -c <YOUR_NAME>/<BRANCH-FOR-NEW_DFX_VERSION>
 git add --all
-git commit --signoff --message "chore: release NEW_DFX_VERSION"
+git commit --signoff --message "chore: Release `NEW_DFX_VERSION`"
 git push origin <YOUR_NAME>/<BRANCH-FOR-NEW_DFX_VERSION>
 ----
 . After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
@@ -343,7 +348,7 @@ git pull origin master --ff-only
 +
 [source, bash]
 ----
-git tag --annotate ${NEW_DFX_VERSION} --message "Release: <NEW_DFX_VERSION>"
+git tag --annotate ${NEW_DFX_VERSION} --message "Release: `${NEW_DFX_VERSION}`"
 ----
 . Verify the tag points to the correct version and includes annotation by running the following commands:
 +
@@ -369,7 +374,6 @@ git push origin stable
 +
 Pushing the branch second is an optimization.
 Hydra will spur into action when `stable` advances, so if the branch is already tagged, it won't require a second fetch.
-. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
 
 ==== Publish Javascript agent to NPM
 
@@ -432,6 +436,9 @@ about the successful publishing of the dfx tarballs.
 . Run through the link:https://staging--eloquent-poitras-af14f0.netlify.app/docs/quickstart/quickstart.html[_Quick start_] steps.
 . Notify link:https://app.slack.com/client/T43F9UHS5/CGA566TPV[#eng-sdk] team members that the new build is ready for manual installation and testing.
 . Update the link:https://docs.google.com/spreadsheets/d/1pIblGqIeqapzptOtDb4h0LjJKDFIYXRxJrX9VaphfjA/edit#gid=725289684[_release notes_] spreadsheet and documentation based on the Go/No-go list of merged PRs.
++
+The driver only needs to add a tab to the spreadsheet.
+The DX Product team will walk through the list of merged PRs and work with the team to generate release note content.
 
 === Promoting a released version to Latest
 
