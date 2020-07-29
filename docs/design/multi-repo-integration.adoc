@@ -132,7 +132,7 @@ these templates should be either Docs, Common or a new repo for organization
 specific documentation.
 
 === Releases
-Each packages would be released on their own package manager on a different (but
+Each package would be released on their own package manager on a different (but
 hopefully in sync) schedule as the other packages. For example, JavaScript code should
 be released on NPM, while Rust code on crates.io.
 
