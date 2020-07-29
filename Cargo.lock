@@ -453,6 +453,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "base32"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "base64"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1555,9 +1560,11 @@ name = "ic-agent"
 version = "0.6.1"
 dependencies = [
  "async-trait 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base32 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "candid 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "candid_derive 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crc32fast 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "crc8 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "delay 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3852,6 +3859,7 @@ dependencies = [
 "checksum awc 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "5e995283278dd3bf0449e7534e77184adb1570c0de8b6a50bf7c9d01ad8db8c4"
 "checksum backtrace 0.3.38 (registry+https://github.com/rust-lang/crates.io-index)" = "690a62be8920ccf773ee00ef0968649b0e724cda8bd5b12286302b4ae955fdf5"
 "checksum backtrace-sys 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)" = "82a830b4ef2d1124a711c71d263c5abdc710ef8e907bd508c88be475cebc422b"
+"checksum base32 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "23ce669cd6c8588f79e15cf450314f9638f967fc5770ff1c7c1deb0925ea7cfa"
 "checksum base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)" = "0b25d992356d2eb0ed82172f5248873db5560c4721f564b13cb5193bda5e668e"
 "checksum base64 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
 "checksum bit-set 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e84c238982c4b1e1ee668d136c510c67a13465279c0cb367ea6baf6310620a80"
