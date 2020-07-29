@@ -93,6 +93,13 @@ Three branches should exist in every new repository;
 . `x.y` which is the stable release (e.g. `0.5`) and may only contain patches deemed
   important to the current or previous version (e.g. security fixes).
 
+=== Versioning
+Repos should fit whatever versioning scheme seems to fit.
+
+The only constraints would be with Agents, as they should version with the spec they follow
+in mind, as they'll be more or less changed with spec changes. So an Agent following spec
+0.8 should have version 0.8.0, then increment patch numbers with each releases.
+
 === Tests
 Following a few principles:
 
