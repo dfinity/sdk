@@ -60,7 +60,7 @@ impl<'agent> ManagementCanister<'agent> {
         waiter: W,
     ) -> Result<CanisterId, AgentError> {
         // candid encoding of () i.e. no arguments
-        let bytes: Vec<u8> = candid::Encode!(&()).unwrap();
+        let bytes: Vec<u8> = candid::Encode!().unwrap();
         let request_id = self
             .agent
             .call_raw(
