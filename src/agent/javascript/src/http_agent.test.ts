@@ -1,7 +1,6 @@
 import { Buffer } from 'buffer/';
 import { HttpAgent } from './agent';
 import { createKeyPairFromSeed, makeAuthTransform, SenderSig, sign, verify } from './auth';
-import { CanisterId } from './canisterId';
 import * as cbor from './cbor';
 import { makeNonceTransform } from './http_agent_transforms';
 import {
@@ -25,7 +24,7 @@ test('call', async () => {
     );
   });
 
-  const canisterId: CanisterId = CanisterId.fromText('ic:000000000000000107');
+  const canisterId: Principal = Principal.fromText('ic:000000000000000107');
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
   // prettier-ignore
   const seed = Buffer.from([
@@ -128,7 +127,7 @@ test('requestStatus', async () => {
   const requestId = await requestIdOf({
     request_type: SubmitRequestType.Call,
     nonce,
-    canister_id: CanisterId.fromText(canisterIdent),
+    canister_id: Principal.fromText(canisterIdent),
     method_name: 'greet',
     arg: Buffer.from([]),
     sender: principal.toBlob(),
@@ -216,7 +215,7 @@ test('queries with the same content should have the same signature', async () =>
   const requestId = await requestIdOf({
     request_type: SubmitRequestType.Call,
     nonce,
-    canister_id: CanisterId.fromText(canisterIdent),
+    canister_id: Principal.fromText(canisterIdent),
     method_name: methodName,
     arg,
     sender: principal.toBlob(),
