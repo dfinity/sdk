@@ -9,6 +9,7 @@ export class Principal {
   public static selfAuthenticating(publicKey: SenderPubKey): Principal {
     const sha = sha224(publicKey);
     return new this(blobFromUint8Array(new Uint8Array([...sha, 2])));
+  }
 
   public static fromHex(hexNoChecksum: string): Principal {
     return new this(blobFromHex(hexNoChecksum));
