@@ -13,7 +13,7 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("ping")
         .about(UserMessage::Ping.to_str())
         .arg(
-            Arg::with_name("provider")
+            Arg::with_name("network")
                 .help("The provider to use.")
                 .takes_value(true),
         )

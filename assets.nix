@@ -1,18 +1,19 @@
 { pkgs ? import ./nix {}
 , agent-js ? import ./src/agent/javascript { inherit pkgs; }
 , bootstrap-js ? import ./src/bootstrap { inherit pkgs agent-js; }
-, assets-minimal ? import ./assets-minimal.nix { inherit pkgs; }
-, distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs assets-minimal; }
+, distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs; }
 }:
 pkgs.runCommandNoCCLocal "assets" {} ''
   mkdir -p $out
 
-  cp -R ${assets-minimal}/* $out
-
   cp ${pkgs.dfinity.ic-replica}/bin/replica $out
   cp ${pkgs.dfinity.ic-starter}/bin/ic-starter $out
-  cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
+  cp -R ${pkgs.motoko.base-src} $out/base
+  cp ${pkgs.motoko.didc}/bin/didc $out
   cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
+  cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
+  cp ${pkgs.motoko.moc-bin}/bin/moc $out
+  cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
 
   # Install agent
   mkdir $out/js-user-library
