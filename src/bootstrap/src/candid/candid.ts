@@ -1,12 +1,11 @@
+import { Actor, IDL, InputBox, Principal, UI } from '@dfinity/agent';
 import './candid.css';
-// tslint:disable-next-line:ordered-imports
-import { Actor, CanisterId, IDL, InputBox, UI } from '@dfinity/agent';
 
 class CanisterActor extends Actor {
   [x: string]: (...args: unknown[]) => Promise<unknown>;
 }
 
-export function render(id: CanisterId, canister: CanisterActor) {
+export function render(id: Principal, canister: CanisterActor) {
   document.getElementById('title')!.innerText = `Service ${id}`;
   for (const [name, func] of Actor.interfaceOf(canister)._fields) {
     renderMethod(canister, name, func);

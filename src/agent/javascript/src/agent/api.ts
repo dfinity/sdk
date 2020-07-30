@@ -1,5 +1,4 @@
 import { ActorFactory } from '../actor';
-import { CanisterId } from '../canisterId';
 import {
   QueryFields,
   QueryResponse,
@@ -16,7 +15,7 @@ export interface Agent {
   requestStatus(fields: RequestStatusFields, principal?: Principal): Promise<RequestStatusResponse>;
 
   call(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: {
       methodName: string;
       arg: BinaryBlob;
@@ -29,7 +28,7 @@ export interface Agent {
   status(): Promise<JsonObject>;
 
   install(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: {
       module: BinaryBlob;
       arg?: BinaryBlob;
@@ -38,7 +37,7 @@ export interface Agent {
   ): Promise<SubmitResponse>;
 
   query(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: QueryFields,
     principal?: Principal,
   ): Promise<QueryResponse>;
