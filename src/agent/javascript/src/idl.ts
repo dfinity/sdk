@@ -2,7 +2,7 @@
 import BigNumber from 'bignumber.js';
 import Pipe = require('buffer-pipe');
 import { Buffer } from 'buffer/';
-import { CanisterId } from './canisterId';
+import { Principal as PrincipalId } from './principal';
 import { JsonValue } from './types';
 import { idlLabelToId } from './utils/hash';
 import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
@@ -1042,29 +1042,29 @@ export class RecClass<T = any> extends ConstructType<T> {
   }
 }
 
-function decodePrincipalId(b: Pipe): CanisterId {
+function decodePrincipalId(b: Pipe): PrincipalId {
   const x = b.read(1).toString('hex');
   if (x !== '01') {
     throw new Error('Cannot decode principal');
   }
   const len = lebDecode(b).toNumber();
   const hex = b.read(len).toString('hex').toUpperCase();
-  return CanisterId.fromHex(hex);
+  return PrincipalId.fromHex(hex);
 }
 
 /**
  * Represents an IDL principal reference
  */
-export class PrincipalClass extends PrimitiveType<CanisterId> {
+export class PrincipalClass extends PrimitiveType<PrincipalId> {
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
     return v.visitPrincipal(this, d);
   }
 
-  public covariant(x: any): x is CanisterId {
-    return x && x._isCanisterId;
+  public covariant(x: any): x is PrincipalId {
+    return x && x._isPrincipal;
   }
 
-  public encodeValue(x: CanisterId): Buffer {
+  public encodeValue(x: PrincipalId): Buffer {
     const hex = x.toHex();
     const buf = Buffer.from(hex, 'hex');
     const len = lebEncode(buf.length);
@@ -1075,7 +1075,7 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
     return slebEncode(IDLTypeIds.Principal);
   }
 
-  public decodeValue(b: Pipe, t: Type): CanisterId {
+  public decodeValue(b: Pipe, t: Type): PrincipalId {
     this.checkType(t);
     return decodePrincipalId(b);
   }
@@ -1083,8 +1083,8 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
   get name() {
     return 'principal';
   }
-  public valueToString(x: CanisterId) {
-    return x.toText();
+  public valueToString(x: PrincipalId) {
+    return `${this.name} "${x.toText()}"`;
   }
 }
 
@@ -1094,7 +1094,7 @@ export class PrincipalClass extends PrimitiveType<CanisterId> {
  * @param retTypes Return types.
  * @param annotations Function annotations.
  */
-export class FuncClass extends ConstructType<[CanisterId, string]> {
+export class FuncClass extends ConstructType<[PrincipalId, string]> {
   public static argsToString(types: Type[], v: any[]) {
     if (types.length !== v.length) {
       throw new Error('arity mismatch');
@@ -1109,13 +1109,13 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
     return v.visitFunc(this, d);
   }
-  public covariant(x: any): x is [CanisterId, string] {
+  public covariant(x: any): x is [PrincipalId, string] {
     return (
-      Array.isArray(x) && x.length === 2 && x[0] && x[0]._isCanisterId && typeof x[1] === 'string'
+      Array.isArray(x) && x.length === 2 && x[0] && x[0]._isPrincipal && typeof x[1] === 'string'
     );
   }
 
-  public encodeValue(x: [CanisterId, string]): Buffer {
+  public encodeValue(x: [PrincipalId, string]): Buffer {
     const hex = x[0].toHex();
     const buf = Buffer.from(hex, 'hex');
     const len = lebEncode(buf.length);
@@ -1141,7 +1141,7 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
     T.add(this, Buffer.concat([opCode, argLen, args, retLen, rets, annLen, anns]));
   }
 
-  public decodeValue(b: Pipe): [CanisterId, string] {
+  public decodeValue(b: Pipe): [PrincipalId, string] {
     const x = b.read(1).toString('hex');
     if (x !== '01') {
       throw new Error('Cannot decode function reference');
@@ -1160,8 +1160,8 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
     return `(${args}) -> (${rets})${annon}`;
   }
 
-  public valueToString(x: [CanisterId, string]) {
-    return x[0].toText() + '.' + x[1];
+  public valueToString([principal, str]: [PrincipalId, string]) {
+    return `func "${principal.toText()}".${str}`;
   }
 
   public display(): string {
@@ -1182,7 +1182,7 @@ export class FuncClass extends ConstructType<[CanisterId, string]> {
   }
 }
 
-export class ServiceClass extends ConstructType<CanisterId> {
+export class ServiceClass extends ConstructType<PrincipalId> {
   public readonly _fields: Array<[string, FuncClass]>;
   constructor(fields: Record<string, FuncClass>) {
     super();
@@ -1191,11 +1191,11 @@ export class ServiceClass extends ConstructType<CanisterId> {
   public accept<D, R>(v: Visitor<D, R>, d: D): R {
     return v.visitService(this, d);
   }
-  public covariant(x: any): x is CanisterId {
-    return x && x._isCanisterId;
+  public covariant(x: any): x is PrincipalId {
+    return x && x._isPrincipal;
   }
 
-  public encodeValue(x: CanisterId): Buffer {
+  public encodeValue(x: PrincipalId): Buffer {
     const hex = x.toHex();
     const buf = Buffer.from(hex, 'hex');
     const len = lebEncode(buf.length);
@@ -1215,7 +1215,7 @@ export class ServiceClass extends ConstructType<CanisterId> {
     T.add(this, Buffer.concat([opCode, len, Buffer.concat(meths)]));
   }
 
-  public decodeValue(b: Pipe): CanisterId {
+  public decodeValue(b: Pipe): PrincipalId {
     return decodePrincipalId(b);
   }
   get name() {
@@ -1223,8 +1223,8 @@ export class ServiceClass extends ConstructType<CanisterId> {
     return `service {${fields.join('; ')}}`;
   }
 
-  public valueToString(x: CanisterId) {
-    return x.toText();
+  public valueToString(x: PrincipalId) {
+    return `service "${x.toText()}"`;
   }
 }
 

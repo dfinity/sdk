@@ -47,7 +47,6 @@ can be seen in `utils/canisters/counter.ts`.
 
 = TODOs
 
-- [ ] Adding linting and prettier to standardize syntax.
 - [ ] Add a dfx project derivation which generates the WASM and IDL through Nix
       so it doesn't have to be checked in.
 - [ ] Also, reuse canister IDs exposed by the dfx project derivation above instead
