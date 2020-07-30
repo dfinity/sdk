@@ -1565,7 +1565,6 @@ dependencies = [
  "candid 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "candid_derive 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "crc32fast 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "crc8 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "delay 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "leb128 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",

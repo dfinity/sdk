@@ -1,12 +1,7 @@
 use crate::types::blob::Blob;
-// use crc8::Crc8;
-// use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{fmt, str};
 use std::fmt::Write as FmtWrite;
-
-/// Prefix for [textual form of ID](https://docs.dfinity.systems/spec/public/#textual-ids)
-// const CANISTER_ID_TEXT_PREFIX: &str = "ic:";
+use std::{fmt, str};
 
 /// A Canister ID.
 ///
@@ -20,7 +15,7 @@ pub struct CanisterId(Blob);
 pub enum TextualCanisterIdError {
     TooShort,
     NotBase32,
-    Wrong,
+    Wrong { expected: String },
 }
 
 impl CanisterId {
@@ -33,39 +28,33 @@ impl CanisterId {
         CanisterId(Blob::from(bytes.as_ref()))
     }
 
-    /// Parse the text format for canister IDs (e.g., `ic:010840FFAD`).
+    /// Parse the text format for canister IDs (e.g., `jkies-sibbb-ap6`).
     ///
     /// The text format follows this
     /// [section of our public spec doc](https://docs.dfinity.systems/spec/public/#textual-ids).
-    pub fn from_text<S: std::string::ToString + AsRef<[u8]>>(text: S) -> Result<CanisterId, TextualCanisterIdError> {
-        if text.as_ref().len() < 4 {
-            Err(TextualCanisterIdError::TooShort)
-        } else {
-            // Strategy: Parse very liberally, then pretty-print and compare output
-            // This is both simpler and yields better error messages
+    pub fn from_text<S: std::string::ToString + AsRef<[u8]>>(
+        text: S,
+    ) -> Result<CanisterId, TextualCanisterIdError> {
+        // Strategy: Parse very liberally, then pretty-print and compare output
+        // This is both simpler and yields better error messages
 
-            let mut s = text.to_string();
-            s.make_ascii_lowercase();
-            s.retain(|c| c.is_ascii_alphanumeric());
-            match base32::decode(base32::Alphabet::RFC4648 { padding: false }, &s) {
-                Some(mut bytes) => {
-                    if bytes.len() < 4 {
-                        return Err(TextualCanisterIdError::TooShort);
-                    }
-                    let result = CanisterId::from_bytes(bytes.split_off(4));
-                    let result_str = result.to_text();
-                    // let expected = format!("{}", result);
-
-                    // if text.to_string() != result_str {
-                    //     // return Err(TextualCanisterIdError::Wrong { expected });
-                    //     return Err(TextualCanisterIdError::Wrong);
-                    // }
-                    Ok(result)
+        let mut s = text.to_string();
+        s.make_ascii_lowercase();
+        s.retain(|c| c.is_ascii_alphanumeric());
+        match base32::decode(base32::Alphabet::RFC4648 { padding: false }, &s) {
+            Some(mut bytes) => {
+                if bytes.len() < 4 {
+                    return Err(TextualCanisterIdError::TooShort);
                 }
-                None => Err(TextualCanisterIdError::NotBase32),
+                let result = CanisterId::from_bytes(bytes.split_off(4));
+                let expected = format!("{}", result);
+
+                if text.to_string() != expected {
+                    return Err(TextualCanisterIdError::Wrong { expected });
+                }
+                Ok(result)
             }
-
-
+            None => Err(TextualCanisterIdError::NotBase32),
         }
     }
 
@@ -85,15 +74,16 @@ impl CanisterId {
         let mut s = base32::encode(base32::Alphabet::RFC4648 { padding: false }, &bytes);
         s.make_ascii_lowercase();
 
+        let mut string_format = String::new();
         // write out string with dashes
         while s.len() > 5 {
             // to bad split_off does not work the other way
             let rest = s.split_off(5);
-            let mut f = String::new();
-            write!(f, "{}-", s);
+            write!(&mut string_format, "{}-", s).unwrap();
             s = rest;
         }
-        format!("{}", s)
+        write!(string_format, "{}", s).unwrap();
+        string_format
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -160,33 +150,81 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn check_serialize_deserialize() {
-    //     let id = CanisterId::from_text("ic:ABCD01A7").unwrap();
+    #[test]
+    fn parse_management_canister_to_text_ok() {
+        assert_eq!(
+            CanisterId::from_text("aaaaa-aa").unwrap().to_text(),
+            CanisterId(Blob::empty()).to_text()
+        );
+    }
 
-    //     // Use cbor serialization.
-    //     let vec = serde_cbor::to_vec(&id).unwrap();
-    //     let value = serde_cbor::from_slice(vec.as_slice()).unwrap();
+    #[test]
+    fn create_managment_cid_from_empty_blob_ok() {
+        assert_eq!("aaaaa-aa", CanisterId(Blob::empty()).to_text());
+    }
 
-    //     assert_eq!(id, value);
-    // }
+    #[test]
+    fn create_managment_cid_from_text_ok() {
+        assert_eq!(
+            "aaaaa-aa",
+            CanisterId::from_text("aaaaa-aa").unwrap().to_text()
+        );
+    }
 
-    // #[test]
-    // fn text_form_matches_public_spec() {
-    //     // See example here: https://docs.dfinity.systems/spec/public/#textual-ids
-    //     let textid = "ic:ABCD01A7";
-    //     match CanisterId::from_text(textid) {
-    //         Ok(ref cid) => assert_eq!(CanisterId::to_text(cid), textid),
-    //         Err(_) => unreachable!(),
-    //     }
-    // }
+    #[test]
+    fn display_canister_id() {
+        assert_eq!(
+            "2chl6-4hpzw-vqaaa-aaaaa-c",
+            CanisterId::from_bytes(vec![0xef, 0xcd, 0xab, 0, 0, 0, 0, 0, 1]).to_text()
+        );
+    }
 
-    // #[test]
-    // fn text_form() {
-    //     let cid: CanisterId = CanisterId::from(Blob::from(vec![1, 8, 64, 255].as_slice()));
-    //     let text = cid.to_text();
-    //     let cid2 = CanisterId::from_text(&text).unwrap();
-    //     assert_eq!(cid, cid2);
-    //     assert_eq!(text, "ic:010840FFEF");
-    // }
+    #[test]
+    fn display_canister_id_from_bytes_as_bytes() {
+        assert_eq!(
+            vec![0xef, 0xcd, 0xab, 0, 0, 0, 0, 0, 1],
+            CanisterId::from_bytes(vec![0xef, 0xcd, 0xab, 0, 0, 0, 0, 0, 1]).as_bytes()
+        );
+    }
+
+    #[test]
+    fn display_canister_id_from_blob_as_bytes() {
+        assert_eq!(
+            vec![0xef, 0xcd, 0xab, 0, 0, 0, 0, 0, 1],
+            CanisterId::from(Blob::from(
+                vec![0xef, 0xcd, 0xab, 0, 0, 0, 0, 0, 1].as_slice()
+            ))
+            .as_bytes()
+        );
+    }
+
+    #[test]
+    fn display_canister_id_from_text_as_bytes() {
+        assert_eq!(
+            vec![0xef, 0xcd, 0xab, 0, 0, 0, 0, 0, 1],
+            CanisterId::from_text("2chl6-4hpzw-vqaaa-aaaaa-c")
+                .unwrap()
+                .as_bytes()
+        );
+    }
+
+    #[test]
+    fn check_serialize_deserialize() {
+        let id = CanisterId::from_text("2chl6-4hpzw-vqaaa-aaaaa-c").unwrap();
+
+        // Use cbor serialization.
+        let vec = serde_cbor::to_vec(&id).unwrap();
+        let value = serde_cbor::from_slice(vec.as_slice()).unwrap();
+
+        assert_eq!(id, value);
+    }
+
+    #[test]
+    fn text_form() {
+        let cid: CanisterId = CanisterId::from(Blob::from(vec![1, 8, 64, 255].as_slice()));
+        let text = cid.to_text();
+        let cid2 = CanisterId::from_text(&text).unwrap();
+        assert_eq!(cid, cid2);
+        assert_eq!(text, "jkies-sibbb-ap6");
+    }
 }
