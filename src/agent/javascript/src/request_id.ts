@@ -1,7 +1,6 @@
 import borc from 'borc';
 import { Buffer } from 'buffer/';
-import { CanisterId } from './canisterId';
-import { BinaryBlob, blobFromHex, blobToHex } from './types';
+import { BinaryBlob, blobToHex } from './types';
 import { lebEncode } from './utils/leb128';
 
 export type RequestId = BinaryBlob & { __requestId__: void };

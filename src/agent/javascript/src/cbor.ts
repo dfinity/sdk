@@ -6,7 +6,6 @@ import borc from 'borc';
 import { Buffer } from 'buffer/';
 import * as cbor from 'simple-cbor';
 import { CborEncoder, SelfDescribeCborSerializer } from 'simple-cbor';
-import { CanisterId } from './canisterId';
 import { Principal } from './principal';
 import { BinaryBlob } from './types';
 
@@ -19,7 +18,7 @@ import { BinaryBlob } from './types';
 
 class PrincipalEncoder implements CborEncoder<Principal> {
   public get name() {
-    return 'CanisterId';
+    return 'Principal';
   }
 
   public get priority() {
@@ -31,24 +30,6 @@ class PrincipalEncoder implements CborEncoder<Principal> {
   }
 
   public encode(v: Principal): cbor.CborValue {
-    return cbor.value.bytes(v.toBlob());
-  }
-}
-
-class CanisterIdEncoder implements CborEncoder<CanisterId> {
-  public get name() {
-    return 'CanisterId';
-  }
-
-  public get priority() {
-    return 0;
-  }
-
-  public match(value: any): boolean {
-    return value && value._isCanisterId === true;
-  }
-
-  public encode(v: CanisterId): cbor.CborValue {
     return cbor.value.bytes(v.toBlob());
   }
 }
@@ -73,7 +54,6 @@ class BufferEncoder implements CborEncoder<Buffer> {
 
 const serializer = SelfDescribeCborSerializer.withDefaultEncoders(true);
 serializer.addEncoder(new PrincipalEncoder());
-serializer.addEncoder(new CanisterIdEncoder());
 serializer.addEncoder(new BufferEncoder());
 
 export enum CborTag {
@@ -94,7 +74,7 @@ export function decode<T>(input: Uint8Array): T {
   });
   const result = decoder.decodeFirst(input);
   if (result.hasOwnProperty('canister_id')) {
-    result.canister_id = CanisterId.fromText(result.canister_id.toString(16));
+    result.canister_id = Principal.fromText(result.canister_id.toString(16));
   }
   return result;
 }
