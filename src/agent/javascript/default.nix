@@ -2,8 +2,7 @@
 , system ? builtins.currentSystem
 }:
 let
-  repoRoot = ../../..;
-  src = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource repoRoot ./.);
+  src = pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ./.);
 in
 pkgs.napalm.buildPackage src {
   root = ./.;
