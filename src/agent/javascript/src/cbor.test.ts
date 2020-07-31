@@ -2,9 +2,8 @@ import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer/';
 import { decode, encode } from './cbor';
 import { Principal } from './principal';
-import { BinaryBlob, blobToHex, blobFromHex, blobFromUint8Array } from './types';
+import { BinaryBlob, blobFromHex, blobFromUint8Array, blobToHex } from './types';
 import { getCrc32 } from './utils/getCrc';
-var base32 = require('base32.js');
 
 test('round trip', () => {
   interface Data {
