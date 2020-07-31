@@ -1,4 +1,5 @@
-import { crc8 } from 'crc';
-export function getCrc(hex: string): string {
-  return crc8(Buffer.from(hex, 'hex')).toString(16).toUpperCase().padStart(2, '0');
+import { crc32 } from 'crc';
+
+export function getCrc32(hex: string): number {
+  return crc32(Buffer.from(hex, 'hex'));
 }
