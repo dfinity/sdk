@@ -13,7 +13,7 @@
     "test": "jest --verbose"
   },
   "dependencies": {
-    "base32.js": "0.1.0",
+    "base32.js": "^0.1.0",
     "bignumber.js": "^9.0.0",
     "borc": "^2.1.1",
     "buffer": "^5.4.3",

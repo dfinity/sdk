@@ -1,4 +1,3 @@
-// @ts-ignore
 import base32 from 'base32.js';
 import { SenderPubKey } from './auth';
 import { BinaryBlob, blobFromHex, blobFromUint8Array, blobToHex } from './types';
