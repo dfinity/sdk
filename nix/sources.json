@@ -44,9 +44,9 @@
         "type": "git"
     },
     "motoko": {
-        "ref": "stable",
+        "ref": "release",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "d9333168fe703fc364aecb4360a6bb15fa005554",
+        "rev": "4be86d0336c0c3de5c1556e5de485ca55c992e13",
         "type": "git"
     },
     "napalm": {
