@@ -44,9 +44,9 @@
         "type": "git"
     },
     "motoko": {
-        "ref": "release",
+        "ref": "candid-import",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "4be86d0336c0c3de5c1556e5de485ca55c992e13",
+        "rev": "29d417313fb7bad202c86454b486895a94eda561",
         "type": "git"
     },
     "napalm": {
