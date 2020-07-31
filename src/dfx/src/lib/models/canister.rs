@@ -260,7 +260,7 @@ impl CanisterPool {
         let idl_root = &build_config.idl_root;
         let canister_id = canister.canister_id();
         let idl_file_path = idl_root
-            .join(canister_id.to_text().split_off(3))
+            .join(canister_id.to_text())
             .with_extension("did");
 
         std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
