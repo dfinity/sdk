@@ -1,6 +1,4 @@
-use ic_agent::Principal;
-use ic_agent::{AgentError, Signature};
-use ic_agent::Blob;
+use ic_agent::{AgentError, Blob, Principal, Signature};
 use std::path::PathBuf;
 
 pub struct Identity(ic_identity_manager::Identity);
@@ -49,7 +47,7 @@ mod test {
 
         let signer = super::Identity::new(dir.into_path());
         let sender = signer.sender().expect("Failed to get the sender.");
-        let sender_sig = {
+        let msg = {
             let domain_separator: &[u8] = b"\x0Aic-request";
             let request_id = RequestId::new(&[4; 32]);
             let mut buf = vec![];
@@ -57,9 +55,7 @@ mod test {
             buf.extend_from_slice(Blob::from(request_id).as_slice());
             buf
         };
-        let signature = signer
-            .sign(&sender_sig, &sender)
-            .expect("Failed to sign.");
+        let signature = signer.sign(&msg, &sender).expect("Failed to sign.");
 
         // Assert the principal is used for the public key.
         assert_eq!(

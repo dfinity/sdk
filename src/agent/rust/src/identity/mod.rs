@@ -22,7 +22,7 @@ pub trait Identity: Send + Sync {
     /// Only one sender can be used per request.
     fn sender(&self) -> Result<Principal, AgentError>;
 
-    /// Sign a concatenation of the domain separator & request ID,
+    /// Sign a blob, the concatenation of the domain separator & request ID,
     /// creating the sender signature, with the principal passed in.
     /// The principal should be
     /// the same returned by the call to `sender()`.

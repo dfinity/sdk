@@ -48,7 +48,7 @@ impl Agent {
         })
     }
 
-    fn create_sender_sig(&self, request_id: &RequestId) -> Vec<u8> {
+    fn construct_message(&self, request_id: &RequestId) -> Vec<u8> {
         let mut buf = vec![];
         buf.extend_from_slice(DOMAIN_SEPARATOR);
         buf.extend_from_slice(Blob::from(*request_id).as_slice());
@@ -102,8 +102,8 @@ impl Agent {
             SyncContent::QueryRequest { sender, .. } => sender,
             SyncContent::RequestStatusRequest { .. } => &anonymous,
         };
-        let sender_sig = self.create_sender_sig(&request_id);
-        let signature = self.identity.sign(&sender_sig, &sender)?;
+        let msg = self.construct_message(&request_id);
+        let signature = self.identity.sign(&msg, &sender)?;
         let bytes = self
             .execute(
                 "read",
@@ -123,8 +123,8 @@ impl Agent {
         let sender = match request.clone() {
             AsyncContent::CallRequest { sender, .. } => sender,
         };
-        let sender_sig = self.create_sender_sig(&request_id);
-        let signature = self.identity.sign(&sender_sig, &sender)?;
+        let msg = self.construct_message(&request_id);
+        let signature = self.identity.sign(&msg, &sender)?;
         let _ = self
             .execute(
                 "submit",
