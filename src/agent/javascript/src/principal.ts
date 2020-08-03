@@ -13,28 +13,24 @@ export class Principal {
   }
 
   public static fromHex(hexNoChecksum: string): Principal {
-    // return this.fromHexMaybeChecksum(hexNoChecksum, false);
     return new this(blobFromHex(hexNoChecksum));
   }
 
   public static fromText(text: string): Principal {
-    return this.fromHexMaybeChecksum(text, true);
+    return this.fromHexWithChecksum(text);
   }
 
   public static fromBlob(blob: BinaryBlob): Principal {
     return new this(blob);
   }
 
-  private static fromHexMaybeChecksum(hexWithChecksum: string, hasChecksum: boolean): Principal {
+  private static fromHexWithChecksum(hexWithChecksum: string): Principal {
     const canisterIdNoDash = hexWithChecksum.toLowerCase().replace(/-/g, '');
 
     const decoder = new base32.Decoder({ type: 'rfc4648', lc: false });
     const result = decoder.write(canisterIdNoDash).finalize();
     let arr = new Uint8Array(result);
-
-    if (hasChecksum) {
-      arr = arr.slice(4, arr.length);
-    }
+    arr = arr.slice(4, arr.length);
 
     return new this(blobFromUint8Array(arr));
   }

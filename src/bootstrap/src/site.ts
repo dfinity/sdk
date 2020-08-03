@@ -38,7 +38,7 @@ function getCanisterId(s: string | undefined): Principal | undefined {
     return undefined;
   } else {
     try {
-      return Principal.fromText(`ic:${s}`);
+      return Principal.fromText(s);
     } catch (_) {
       return undefined;
     }
@@ -61,7 +61,7 @@ export class SiteInfo {
   }
 
   public static async unknown(): Promise<SiteInfo> {
-    const principal = await _getVariable('Principal', localStorageCanisterIdKey);
+    const principal = await _getVariable('canisterId', localStorageCanisterIdKey);
     return new SiteInfo(
       DomainKind.Unknown,
       principal !== undefined ? Principal.fromText(principal) : undefined,

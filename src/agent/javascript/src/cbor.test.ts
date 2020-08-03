@@ -3,7 +3,6 @@ import { Buffer } from 'buffer/';
 import { decode, encode } from './cbor';
 import { Principal } from './principal';
 import { BinaryBlob, blobFromHex, blobFromUint8Array, blobToHex } from './types';
-import { getCrc32 } from './utils/getCrc';
 
 test('round trip', () => {
   interface Data {
