@@ -58,6 +58,7 @@ export class Principal {
 
     const encoder = new base32.Encoder({ type: 'rfc4648', lc: false });
     const result = encoder.write(array).finalize().toLowerCase();
-    return result.match(/.{1,5}/g).join('-');
+    const matches = result.match(/.{1,5}/g);
+    return matches ? matches.join('-') : '';
   }
 }
