@@ -467,15 +467,15 @@ git push origin <YOUR_NAME>/update-n.n.n-latest
 ----
 . After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
 . Have the validator review and approve the PR, then merge to `master`.
-. Verify the Linux and Darwin (macOS) builds are available for download from https://download.dfinity.systems/sdk/dfx.
+. Verify the Linux and Darwin (macOS) builds are available for download from \https://download.dfinity.systems/sdk/dfx/n.n.n/architecture/dfx-n.n.n.tar.gz.
 +
-Linux—Replace {DFX_VERSION} with the new version number:
+Linux—Replace _n.n.n_ with the new version number and _architecture_ with `x86_64-linux`. For example, the following link would download version 0.6.1 for Linux:
 +
-link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-linux/dfx-{DFX_VERSION}.tar.gz[]
+\https://download.dfinity.systems/sdk/dfx/0.6.1/x86_64-linux/dfx-0.6.1.tar.gz[]
 +
-Darwin (macOS)—Replace {DFX_VERSION} with the new version number:
+Darwin (macOS)—Replace _n.n.n_  with the new version number and _architecture_ with `x86_64-darwin`. For example, the following link would download version 0.6.1 for macOS:
 +
-link:https://download.dfinity.systems/sdk/dfx/{DFX_VERSION}/x86_64-darwin/dfx-{DFX_VERSION}.tar.gz[]
+\https://download.dfinity.systems/sdk/dfx/0.6.1/x86_64-darwin/dfx-0.6.1.tar.gz[]
 +
 CI Hydra:
 +
