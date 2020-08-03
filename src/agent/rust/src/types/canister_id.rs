@@ -40,7 +40,7 @@ impl CanisterId {
 
         let mut s = text.to_string();
         s.make_ascii_lowercase();
-        s.retain(|c| c.is_ascii_alphanumeric());
+        s.retain(|c| c != '-');
         match base32::decode(base32::Alphabet::RFC4648 { padding: false }, &s) {
             Some(mut bytes) => {
                 if bytes.len() < 4 {

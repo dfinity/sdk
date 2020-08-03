@@ -12,20 +12,12 @@ export class Principal {
     return new this(blobFromUint8Array(new Uint8Array([...sha, 2])));
   }
 
-  public static fromHex(hexNoChecksum: string): Principal {
-    return new this(blobFromHex(hexNoChecksum));
+  public static fromHex(hex: string): Principal {
+    return new this(blobFromHex(hex));
   }
 
   public static fromText(text: string): Principal {
-    return this.fromHexWithChecksum(text);
-  }
-
-  public static fromBlob(blob: BinaryBlob): Principal {
-    return new this(blob);
-  }
-
-  private static fromHexWithChecksum(hexWithChecksum: string): Principal {
-    const canisterIdNoDash = hexWithChecksum.toLowerCase().replace(/-/g, '');
+    const canisterIdNoDash = text.toLowerCase().replace(/-/g, '');
 
     const decoder = new base32.Decoder({ type: 'rfc4648', lc: false });
     const result = decoder.write(canisterIdNoDash).finalize();
@@ -33,6 +25,10 @@ export class Principal {
     arr = arr.slice(4, arr.length);
 
     return new this(blobFromUint8Array(arr));
+  }
+
+  public static fromBlob(blob: BinaryBlob): Principal {
+    return new this(blob);
   }
 
   public readonly _isPrincipal = true;
@@ -63,9 +59,5 @@ export class Principal {
     const encoder = new base32.Encoder({ type: 'rfc4648', lc: false });
     const result = encoder.write(array).finalize().toLowerCase();
     return result.match(/.{1,5}/g).join('-');
-  }
-
-  public toString(): string {
-    return this.toText();
   }
 }

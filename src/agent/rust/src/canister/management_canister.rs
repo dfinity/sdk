@@ -76,7 +76,6 @@ impl<'agent> ManagementCanister<'agent> {
         {
             Replied::CallReplied(blob) => {
                 let cid = Decode!(blob.as_slice(), CreateResult)?;
-                println!("create response id {:?}", cid.canister_id.to_text());
                 Ok(CanisterId::from_text(cid.canister_id.to_text())?)
             }
             reply => Err(AgentError::UnexpectedReply(reply)),
