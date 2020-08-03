@@ -1,4 +1,8 @@
 use crate::types::blob::Blob;
+<<<<<<< HEAD
+=======
+use crc8::Crc8;
+>>>>>>> 3589ed0050b15d9a14d1222d42b7c4f13cc41a3e
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Write as FmtWrite;
 use std::{fmt, str};

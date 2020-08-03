@@ -2,7 +2,7 @@
 , system ? builtins.currentSystem
 , agent-js ? import ../agent/javascript { inherit pkgs; }
 }:
-pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ../../. ./.)) {
+pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ./.)) {
   root = ./.;
   name = "bootstrap-js";
   buildInputs = [ agent-js ];

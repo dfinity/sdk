@@ -152,7 +152,6 @@ impl CanisterInfo {
             .join(PathBuf::from(&self.name))
             .join(&self.name)
             .with_extension("wasm")
-            .to_path_buf()
     }
 
     pub fn get_build_idl_path(&self) -> PathBuf {
@@ -160,7 +159,6 @@ impl CanisterInfo {
             .join(PathBuf::from(&self.name))
             .join(&self.name)
             .with_extension("did")
-            .to_path_buf()
     }
 
     pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
