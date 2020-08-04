@@ -32,9 +32,9 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "joachim-spec-0.9-all",
+        "ref": "release-2020-08-04.RC00",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "a12d96f1652cc8411e27fce9c7efe7ca5dff1e89",
+        "rev": "72eafca6f1b27f323ed9d16e8284152a2335bc98",
         "type": "git"
     },
     "ic-ref": {
