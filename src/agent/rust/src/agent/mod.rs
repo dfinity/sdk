@@ -23,6 +23,8 @@ use serde::Serialize;
 
 use public::*;
 
+const DOMAIN_SEPARATOR: &[u8; 11] = b"\x0Aic-request";
+
 pub struct Agent {
     url: reqwest::Url,
     nonce_factory: NonceFactory,
@@ -44,6 +46,13 @@ impl Agent {
             identity: config.identity,
             default_waiter: config.default_waiter,
         })
+    }
+
+    fn construct_message(&self, request_id: &RequestId) -> Vec<u8> {
+        let mut buf = vec![];
+        buf.extend_from_slice(DOMAIN_SEPARATOR);
+        buf.extend_from_slice(Blob::from(*request_id).as_slice());
+        buf
     }
 
     async fn execute<T: std::fmt::Debug + serde::Serialize>(
@@ -93,7 +102,8 @@ impl Agent {
             SyncContent::QueryRequest { sender, .. } => sender,
             SyncContent::RequestStatusRequest { .. } => &anonymous,
         };
-        let signature = self.identity.sign(&request_id, &sender)?;
+        let msg = self.construct_message(&request_id);
+        let signature = self.identity.sign(&msg, &sender)?;
         let bytes = self
             .execute(
                 "read",
@@ -113,7 +123,8 @@ impl Agent {
         let sender = match request.clone() {
             AsyncContent::CallRequest { sender, .. } => sender,
         };
-        let signature = self.identity.sign(&request_id, &sender)?;
+        let msg = self.construct_message(&request_id);
+        let signature = self.identity.sign(&msg, &sender)?;
         let _ = self
             .execute(
                 "submit",

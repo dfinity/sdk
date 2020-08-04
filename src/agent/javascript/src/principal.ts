@@ -1,45 +1,34 @@
+import base32 from 'base32.js';
 import { SenderPubKey } from './auth';
 import { BinaryBlob, blobFromHex, blobFromUint8Array, blobToHex } from './types';
-import { getCrc } from './utils/getCrc';
-import { sha256 } from './utils/sha256';
+import { getCrc32 } from './utils/getCrc';
+import { sha224 } from './utils/sha224';
 
 const SELF_AUTHENTICATING_SUFFIX = 2;
 
 export class Principal {
-  public static async selfAuthenticating(publicKey: SenderPubKey): Promise<Principal> {
-    const sha = await sha256(publicKey);
+  public static selfAuthenticating(publicKey: SenderPubKey): Principal {
+    const sha = sha224(publicKey);
     return new this(blobFromUint8Array(new Uint8Array([...sha, 2])));
   }
 
-  public static fromHex(hexNoChecksum: string): Principal {
-    return new this(blobFromHex(hexNoChecksum));
+  public static fromHex(hex: string): Principal {
+    return new this(blobFromHex(hex));
   }
 
   public static fromText(text: string): Principal {
-    if (text.startsWith('ic:')) {
-      return this.fromHexWithChecksum(text.slice(3));
-    } else {
-      throw new Error('PrincipalId is not a "ic:" url: ' + text);
-    }
+    const canisterIdNoDash = text.toLowerCase().replace(/-/g, '');
+
+    const decoder = new base32.Decoder({ type: 'rfc4648', lc: false });
+    const result = decoder.write(canisterIdNoDash).finalize();
+    let arr = new Uint8Array(result);
+    arr = arr.slice(4, arr.length);
+
+    return new this(blobFromUint8Array(arr));
   }
 
   public static fromBlob(blob: BinaryBlob): Principal {
     return new this(blob);
-  }
-
-  private static fromHexWithChecksum(hexWithChecksum: string): Principal {
-    const hex = hexWithChecksum.toUpperCase();
-    if (hex.length >= 2 && hex.length % 2 === 0 && /^[0-9A-F]+$/.test(hex)) {
-      const id = hex.slice(0, -2);
-      const checksum = hex.slice(-2);
-      const crc = getCrc(id);
-      if (checksum !== crc) {
-        throw new Error(`Invalid checksum for PrincipalId: "ic:${hexWithChecksum}"`);
-      }
-      return new this(blobFromHex(id));
-    } else {
-      throw new Error('Cannot parse PrincipalId: ' + hexWithChecksum);
-    }
   }
 
   public readonly _isPrincipal = true;
@@ -59,12 +48,17 @@ export class Principal {
   }
 
   public toText(): string {
-    const token = this.toHex().toUpperCase();
-    const crc = getCrc(token);
-    return `ic:${token}${crc}`;
-  }
+    const checksumArrayBuf = new ArrayBuffer(4);
+    const view = new DataView(checksumArrayBuf);
+    view.setUint32(0, getCrc32(this.toHex().toLowerCase()), false);
+    const checksum = Uint8Array.from(Buffer.from(checksumArrayBuf));
 
-  public toString(): string {
-    return this.toText();
+    const bytes = Uint8Array.from(this._blob);
+    const array = new Uint8Array([...checksum, ...bytes]);
+
+    const encoder = new base32.Encoder({ type: 'rfc4648', lc: false });
+    const result = encoder.write(array).finalize().toLowerCase();
+    const matches = result.match(/.{1,5}/g);
+    return matches ? matches.join('-') : '';
   }
 }
