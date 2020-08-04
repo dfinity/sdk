@@ -32,21 +32,21 @@
         "type": "git"
     },
     "dfinity": {
-        "ref": "spec-0.9",
+        "ref": "joachim-spec-0.9-all",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "8e2823813d0e17bbd39066554a7b2a196a938804",
+        "rev": "a12d96f1652cc8411e27fce9c7efe7ca5dff1e89",
         "type": "git"
     },
     "ic-ref": {
         "ref": "release-0.9",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "10436261c6c1b26d991f10d1a2adfdd4a4567b75",
+        "rev": "14a8170db56db7ea3c902415ed23d7706f6e7c00",
         "type": "git"
     },
     "motoko": {
-        "ref": "master",
+        "ref": "release",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "a86a1b9d307f58d2a55714dfb6632829794a78cc",
+        "rev": "cbe4016040a5b0b286ea015c5abe61f60619d43e",
         "type": "git"
     },
     "napalm": {

@@ -71,7 +71,7 @@ test('makeActor', async () => {
 
   const arg = blobFromHex(IDL.encode([IDL.Text], [argValue]).toString('hex'));
 
-  const canisterId = Principal.fromText('ic:000000000000000107');
+  const canisterId = Principal.fromText('2chl6-4hpzw-vqaaa-aaaaa-c');
   const senderPubKey = Buffer.alloc(32, 0) as SenderPubKey;
   const senderSecretKey = Buffer.alloc(32, 0) as SenderSecretKey;
   const senderSig = Buffer.from([0]) as SenderSig;

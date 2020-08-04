@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer/';
 import { decode, encode } from './cbor';
 import { Principal } from './principal';
-import { BinaryBlob, blobToHex } from './types';
+import { BinaryBlob, blobFromHex, blobFromUint8Array, blobToHex } from './types';
 
 test('round trip', () => {
   interface Data {
@@ -43,7 +43,7 @@ test('round trip', () => {
 
 test('empty canister ID', () => {
   const input: { a: Principal } = {
-    a: Principal.fromText('ic:00'),
+    a: Principal.fromText('aaaaa-aa'),
   };
 
   const output = decode<typeof input>(encode(input));
@@ -52,7 +52,7 @@ test('empty canister ID', () => {
   const outputA = output.a;
 
   expect(buf2hex((outputA as any) as Uint8Array)).toBe(inputA.toHex());
-  expect(Principal.fromBlob(outputA as any).toText()).toBe('ic:00');
+  expect(Principal.fromBlob(outputA as any).toText()).toBe('aaaaa-aa');
 });
 
 function buf2hex(buffer: Uint8Array) {

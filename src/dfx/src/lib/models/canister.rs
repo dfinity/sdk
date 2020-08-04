@@ -259,9 +259,7 @@ impl CanisterPool {
         // And then create an canisters/IDL folder with canister DID files per canister ID.
         let idl_root = &build_config.idl_root;
         let canister_id = canister.canister_id();
-        let idl_file_path = idl_root
-            .join(canister_id.to_text().split_off(3))
-            .with_extension("did");
+        let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
 
         std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
         std::fs::copy(&build_idl_path, &idl_file_path)
@@ -283,9 +281,7 @@ impl CanisterPool {
         for canister in &self.canisters {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id();
-            let idl_file_path = idl_root
-                .join(canister_id.to_text().split_off(3))
-                .with_extension("did");
+            let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
 
             // Ignore errors (e.g. File Not Found).
             let _ = std::fs::remove_file(idl_file_path);

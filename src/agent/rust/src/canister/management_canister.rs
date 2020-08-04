@@ -5,7 +5,7 @@ use crate::{Blob, CanisterAttributes, CanisterId, RequestId};
 use candid::{Decode, Encode};
 use std::str::FromStr;
 
-const MANAGEMENT_CANISTER_ID: &str = "ic:00";
+const MANAGEMENT_CANISTER_ID: &str = "aaaaa-aa";
 const CREATE_METHOD_NAME: &str = "create_canister";
 const INSTALL_METHOD_NAME: &str = "install_code";
 
@@ -60,7 +60,7 @@ impl<'agent> ManagementCanister<'agent> {
         waiter: W,
     ) -> Result<CanisterId, AgentError> {
         // candid encoding of () i.e. no arguments
-        let bytes: Vec<u8> = candid::Encode!(&()).unwrap();
+        let bytes: Vec<u8> = candid::Encode!().unwrap();
         let request_id = self
             .agent
             .call_raw(

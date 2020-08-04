@@ -24,7 +24,7 @@ test('call', async () => {
     );
   });
 
-  const canisterId: Principal = Principal.fromText('ic:000000000000000107');
+  const canisterId: Principal = Principal.fromText('2chl6-4hpzw-vqaaa-aaaaa-c');
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
   // prettier-ignore
   const seed = Buffer.from([
@@ -105,7 +105,7 @@ test('requestStatus', async () => {
     );
   });
 
-  const canisterIdent = 'ic:000000000000000107';
+  const canisterIdent = '2chl6-4hpzw-vqaaa-aaaaa-c';
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
 
   // prettier-ignore
@@ -190,7 +190,7 @@ test('queries with the same content should have the same signature', async () =>
     );
   });
 
-  const canisterIdent = 'ic:000000000000000107';
+  const canisterIdent = '2chl6-4hpzw-vqaaa-aaaaa-c';
   const nonce = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7]) as Nonce;
 
   // prettier-ignore
