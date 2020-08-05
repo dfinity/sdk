@@ -82,17 +82,16 @@ async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    mgr
-        .install_code(
-            create_waiter(),
-            &canister_id,
-            mode,
-            &Blob::from(wasm),
-            &Blob::empty(),
-            &CanisterAttributes { compute_allocation },
-        )
-        .await
-        .map_err(DfxError::from)?;
+    mgr.install_code(
+        create_waiter(),
+        &canister_id,
+        mode,
+        &Blob::from(wasm),
+        &Blob::empty(),
+        &CanisterAttributes { compute_allocation },
+    )
+    .await
+    .map_err(DfxError::from)?;
 
     if canister_info.get_type() == "assets" {
         post_install_store_assets(&canister_info, &agent).await?;
