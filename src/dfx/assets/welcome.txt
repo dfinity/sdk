@@ -7,15 +7,15 @@
 
 To learn more before you start coding, see the documentation available online:
 
-- Quick Start:        https://sdk.dfinity.org/developers-guide/quickstart.html
-- Developer's Guide:  https://sdk.dfinity.org/developers-guide
-- Language Reference: https://sdk.dfinity.org/language-guide
+- Quick Start: https://sdk.dfinity.org/docs/quickstart/quickstart.html
+- SDK Developer Tools: https://sdk.dfinity.org/docs/developers-guide/sdk-guide.html
+- Motoko Language Guide: https://sdk.dfinity.org/docs/language-guide/motoko.html
+- Motoko Quick Reference: https://sdk.dfinity.org/docs/language-guide/language-manual.html
 
 If you want to work on programs right away, try the following commands to get started:
 
     cd {2}
     dfx help
     dfx new --help
-    dfx config --help
 
 ===============================================================================
