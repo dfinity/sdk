@@ -1,4 +1,4 @@
-import { CanisterId, generateKeyPair, KeyPair, makeKeyPair } from '@dfinity/agent';
+import { generateKeyPair, KeyPair, makeKeyPair, Principal } from '@dfinity/agent';
 import localforage from 'localforage';
 import * as storage from './storage';
 
@@ -33,12 +33,12 @@ async function _getVariable(
   return defaultValue;
 }
 
-function getCanisterId(s: string | undefined): CanisterId | undefined {
+function getCanisterId(s: string | undefined): Principal | undefined {
   if (s === undefined) {
     return undefined;
   } else {
     try {
-      return CanisterId.fromHexWithChecksum(s);
+      return Principal.fromText(s);
     } catch (_) {
       return undefined;
     }
@@ -61,10 +61,10 @@ export class SiteInfo {
   }
 
   public static async unknown(): Promise<SiteInfo> {
-    const canisterId = await _getVariable('canisterId', localStorageCanisterIdKey);
+    const principal = await _getVariable('canisterId', localStorageCanisterIdKey);
     return new SiteInfo(
       DomainKind.Unknown,
-      canisterId !== undefined ? CanisterId.fromText(canisterId) : undefined,
+      principal !== undefined ? Principal.fromText(principal) : undefined,
     );
   }
 
@@ -97,7 +97,7 @@ export class SiteInfo {
 
   constructor(
     public readonly kind: DomainKind,
-    public readonly canisterId?: CanisterId,
+    public readonly principal?: Principal,
     public readonly subdomain = '',
   ) {}
 
@@ -179,10 +179,10 @@ export class SiteInfo {
           return `${protocol}//r.lvh.me${port ? ':' + port : ''}`;
         case DomainKind.Localhost:
           return `${protocol}//r.localhost${port ? ':' + port : ''}`;
+        default:
+          return host || '';
       }
     }
-
-    return host || '';
   }
 
   private async store(name: string, value: string): Promise<void> {

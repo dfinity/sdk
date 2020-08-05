@@ -4,7 +4,7 @@
 , use_ic_ref ? false
 }:
 let
-  e2e = lib.noNixFiles (lib.gitOnlySource ../../. ./.);
+  e2e = lib.noNixFiles (lib.gitOnlySource ./.);
   lib = pkgs.lib;
   sources = pkgs.sources;
 

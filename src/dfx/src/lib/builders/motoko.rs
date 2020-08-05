@@ -203,10 +203,8 @@ impl MotokoParams<'_> {
 /// Compile a motoko file.
 fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
-    let mo_rts_path = cache.get_binary_command_path("mo-rts.wasm")?;
     params.to_args(&mut cmd);
-    let cmd = cmd.env("MOC_RTS", mo_rts_path.as_path());
-    run_command(logger, cmd, params.surpress_warning)?;
+    run_command(logger, &mut cmd, params.surpress_warning)?;
     Ok(())
 }
 

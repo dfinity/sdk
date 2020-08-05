@@ -1,9 +1,7 @@
-import { fromByteArray } from 'base64-js';
 import { Buffer } from 'buffer/';
 import { ActorFactory } from '../actor';
 import * as actor from '../actor';
 import { Agent } from '../agent';
-import { CanisterId } from '../canisterId';
 import * as cbor from '../cbor';
 import {
   AuthHttpAgentRequestTransformFn,
@@ -14,7 +12,6 @@ import {
   HttpAgentSubmitRequest,
   QueryFields,
   QueryResponse,
-  QueryResponseStatus,
   ReadRequest,
   ReadRequestType,
   ReadResponse,
@@ -133,7 +130,7 @@ export class HttpAgent implements Agent {
   }
 
   public async call(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: {
       methodName: string;
       arg: BinaryBlob;
@@ -148,7 +145,7 @@ export class HttpAgent implements Agent {
 
     return this.submit({
       request_type: SubmitRequestType.Call,
-      canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
+      canister_id: typeof canisterId === 'string' ? Principal.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
       sender: p.toBlob(),
@@ -156,7 +153,7 @@ export class HttpAgent implements Agent {
   }
 
   public async install(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: {
       module: BinaryBlob;
       arg?: BinaryBlob;
@@ -171,7 +168,7 @@ export class HttpAgent implements Agent {
 
     return this.submit({
       request_type: SubmitRequestType.InstallCode,
-      canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
+      canister_id: typeof canisterId === 'string' ? Principal.fromText(canisterId) : canisterId,
       module: fields.module,
       arg: fields.arg || blobFromHex(''),
       sender: p.toBlob(),
@@ -192,7 +189,7 @@ export class HttpAgent implements Agent {
   }
 
   public async query(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: QueryFields,
     principal?: Principal,
   ): Promise<QueryResponse> {
@@ -204,7 +201,7 @@ export class HttpAgent implements Agent {
 
     return this.read({
       request_type: ReadRequestType.Query,
-      canister_id: typeof canisterId === 'string' ? CanisterId.fromText(canisterId) : canisterId,
+      canister_id: typeof canisterId === 'string' ? Principal.fromText(canisterId) : canisterId,
       method_name: fields.methodName,
       arg: fields.arg,
       sender: p.toBlob(),

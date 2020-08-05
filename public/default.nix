@@ -5,7 +5,7 @@
 let
   install =
     pkgs.runCommandNoCC "install.sh.template" {
-      src = pkgs.lib.gitOnlySource ../. ./install;
+      src = pkgs.lib.gitOnlySource ./install;
       preferLocalBuild = true;
       allowSubstitutes = false;
       nativeBuildInputs = [ pkgs.shfmt pkgs.shellcheck ];

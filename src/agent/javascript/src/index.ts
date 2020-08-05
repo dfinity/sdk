@@ -9,7 +9,6 @@ export {
   makeAuthTransform,
   makeKeyPair,
 } from './auth';
-export * from './canisterId';
 export * from './http_agent_transforms';
 export * from './http_agent_types';
 export * from './principal';
