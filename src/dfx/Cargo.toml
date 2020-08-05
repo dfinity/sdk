@@ -70,5 +70,5 @@ wasmparser = "0.45.0"
 [dev-dependencies]
 env_logger = "0.6"
 proptest = "0.9.5"
-mockito = "0.20.0"
+mockito = "0.27.0"
 tempfile = "3.1.0"
