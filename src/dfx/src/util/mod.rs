@@ -83,23 +83,24 @@ pub fn blob_from_arguments(
                     args?.to_bytes()
                 }
                 Some((env, func)) => {
+                    let first_char = arguments.chars().next();
+                    let is_candid_format = first_char.map_or(false, |c| c == '(');
                     // If parsing fails and method expects a single value, try parsing as IDLValue.
                     // If it still fails, and method expects a text type, send arguments as text.
                     let args = args.or_else(|e| {
-                        if func.args.len() == 1 {
-                            arguments
-                                .parse::<IDLValue>()
-                                .or_else(|e| {
-                                    if candid::types::Type::Text == func.args[0] {
-                                        Ok(IDLValue::Text(arguments.to_string()))
-                                    } else {
-                                        Err(DfxError::InvalidArgument(format!(
-                                            "Invalid Candid value: {}",
-                                            e
-                                        )))
-                                    }
+                        if func.args.len() == 1 && !is_candid_format {
+                            let is_quote = first_char.map_or(false, |c| c == '"');
+                            if candid::types::Type::Text == func.args[0] && !is_quote {
+                                Ok(IDLValue::Text(arguments.to_string()))
+                            } else {
+                                arguments.parse::<IDLValue>().map_err(|e| {
+                                    DfxError::InvalidArgument(format!(
+                                        "Invalid Candid values: {}",
+                                        e
+                                    ))
                                 })
-                                .map(|v| IDLArgs::new(&[v]))
+                            }
+                            .map(|v| IDLArgs::new(&[v]))
                         } else {
                             Err(e)
                         }
