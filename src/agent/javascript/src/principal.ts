@@ -61,4 +61,8 @@ export class Principal {
     const matches = result.match(/.{1,5}/g);
     return matches ? matches.join('-') : '';
   }
+
+  public toString() {
+    return this.toText();
+  }
 }
