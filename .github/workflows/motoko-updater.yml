@@ -11,8 +11,8 @@ on:
     types: niv-updater-nudge
   schedule:
     # * is a special character in YAML so you have to quote this string
-    # Run every monday
-    - cron:  '0 0 * * 1'
+    # Run every hour
+    - cron:  '0 * * * *'
 jobs:
   niv-updater:
     name: 'Check for Motoko updates'
