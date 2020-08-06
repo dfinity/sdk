@@ -1011,7 +1011,7 @@ dependencies = [
  "url 2.1.1",
  "walkdir",
  "wasmparser",
- "webpki-roots",
+ "webpki-roots 0.19.0",
 ]
 
 [[package]]
@@ -1630,7 +1630,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.6.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?tag=v0.6.2#7d18fe54cb24025cec75d2892601af10ae18363e"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=hansl/update_rustls#51fa491050ceb0cdf86b8cae4f68a7024b594802"
 dependencies = [
  "async-trait",
  "base32",
@@ -1644,10 +1644,12 @@ dependencies = [
  "rand 0.7.3",
  "reqwest",
  "ring",
+ "rustls 0.18.0",
  "serde",
  "serde_bytes",
  "serde_cbor 0.11.1",
  "url 2.1.1",
+ "webpki-roots 0.20.0",
 ]
 
 [[package]]
@@ -2875,7 +2877,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "webpki-roots",
+ "webpki-roots 0.19.0",
  "winreg 0.7.0",
 ]
 
@@ -4023,6 +4025,15 @@ name = "webpki-roots"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8eff4b7516a57307f9349c64bf34caa34b940b66fed4b2fb3136cb7386e5739"
+dependencies = [
+ "webpki",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f20dea7535251981a9670857150d571846545088359b28e4951d350bdaf179f"
 dependencies = [
  "webpki",
 ]

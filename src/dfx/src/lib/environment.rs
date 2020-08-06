@@ -406,7 +406,7 @@ fn create_agent(logger: Logger, url: &str, identity: PathBuf) -> Option<Agent> {
         reqwest::Client::builder()
             .use_preconfigured_tls(cfg)
             .build()
-            .expect("Could not create HTTP client."),
+            .expect("Could not create HTTP client"),
     )
     .ok()
     .and_then(|executor| {
