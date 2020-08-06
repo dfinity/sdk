@@ -3,9 +3,13 @@ use ic_types::principal::PrincipalError;
 
 mod build;
 mod cache;
+mod config;
+mod identity;
 
 pub use build::BuildErrorKind;
 pub use cache::CacheErrorKind;
+pub use config::ConfigErrorKind;
+pub use identity::IdentityErrorKind;
 use serde::export::Formatter;
 use std::ffi::OsString;
 use std::fmt::Display;
@@ -20,6 +24,11 @@ pub enum DfxError {
 
     /// An error happened while managing the cache.
     CacheError(CacheErrorKind),
+
+    ConfigError(ConfigErrorKind),
+
+    /// An error happened doing something with identities.
+    IdentityError(IdentityErrorKind),
 
     IdeError(String),
 
@@ -146,6 +155,12 @@ impl Display for DfxError {
             DfxError::BuildError(err) => {
                 f.write_fmt(format_args!("Build failed. Reason:\n  {}", err))?;
             }
+            DfxError::ConfigError(err) => {
+                f.write_fmt(format_args!("Config error:\n  {}", err))?;
+            }
+            DfxError::IdentityError(err) => {
+                f.write_fmt(format_args!("Identity error:\n  {}", err))?;
+            }
             DfxError::IdeError(msg) => {
                 f.write_fmt(format_args!(
                     "The Motoko Language Server returned an error:\n{}",
@@ -220,7 +235,6 @@ impl Display for DfxError {
             DfxError::CouldNotSaveCanisterIds(path, error) => {
                 f.write_fmt(format_args!("Failed to save {} due to: {}", path, error))?;
             }
-
             err => {
                 f.write_fmt(format_args!("An error occured:\n{:#?}", err))?;
             }

@@ -69,27 +69,6 @@ impl Cache for DiskBasedCache {
     }
 }
 
-/// Provides a profile for the user. This is located outside the
-/// ephemeral cache as the data here need to be persisted and strictly
-/// a user expects to clear the .cache directory with minimal
-/// consequences.
-pub fn get_profile_path() -> DfxResult<PathBuf> {
-    let home = std::env::var("HOME")
-        .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
-
-    let p = PathBuf::from(home).join(".dfinity").join("identity");
-
-    if !p.exists() {
-        if let Err(e) = std::fs::create_dir_all(&p) {
-            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
-        }
-    } else if !p.is_dir() {
-        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
-    }
-
-    Ok(p)
-}
-
 pub fn get_cache_root() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
         .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;

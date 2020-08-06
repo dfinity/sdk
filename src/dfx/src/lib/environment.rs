@@ -1,12 +1,12 @@
-use crate::config::cache::{get_profile_path, Cache, DiskBasedCache};
+use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::{cache, dfx_version};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::identity::Identity;
+use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
-use ic_agent::{Agent, AgentConfig};
+use ic_agent::{Agent, AgentConfig, Identity};
 use semver::Version;
 use slog::{Logger, Record};
 use std::collections::BTreeMap;
@@ -31,6 +31,8 @@ pub trait Environment {
     /// Return the directory where state for replica(s) is kept.
     fn get_state_dir(&self) -> PathBuf;
     fn get_version(&self) -> &Version;
+
+    fn get_identity_override(&self) -> &Option<String>;
 
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
@@ -60,6 +62,8 @@ pub struct EnvironmentImpl {
 
     logger: Option<slog::Logger>,
     progress: bool,
+
+    identity_override: Option<String>,
 }
 
 impl EnvironmentImpl {
@@ -114,6 +118,7 @@ impl EnvironmentImpl {
             version: version.clone(),
             logger: None,
             progress: true,
+            identity_override: None,
         })
     }
 
@@ -124,6 +129,11 @@ impl EnvironmentImpl {
 
     pub fn with_progress_bar(mut self, progress: bool) -> Self {
         self.progress = progress;
+        self
+    }
+
+    pub fn with_identity_override(mut self, identity: Option<String>) -> Self {
+        self.identity_override = identity;
         self
     }
 }
@@ -151,6 +161,10 @@ impl Environment for EnvironmentImpl {
 
     fn get_version(&self) -> &Version {
         &self.version
+    }
+
+    fn get_identity_override(&self) -> &Option<String> {
+        &self.identity_override
     }
 
     fn get_agent(&self) -> Option<&Agent> {
@@ -191,15 +205,19 @@ pub struct AgentEnvironment<'a> {
 }
 
 impl<'a> AgentEnvironment<'a> {
-    pub fn new(backend: &'a dyn Environment, network_descriptor: NetworkDescriptor) -> Self {
-        let identity = get_profile_path().expect("Failed to access profile");
+    pub fn new(
+        backend: &'a dyn Environment,
+        network_descriptor: NetworkDescriptor,
+    ) -> DfxResult<Self> {
+        let identity = IdentityManager::new(backend)?.instantiate_selected_identity()?;
+
         let agent_url = network_descriptor.providers.first().unwrap();
-        AgentEnvironment {
+        Ok(AgentEnvironment {
             backend,
             agent: create_agent(backend.get_logger().clone(), agent_url, identity)
                 .expect("Failed to construct agent."),
             network_descriptor,
-        }
+        })
     }
 }
 
@@ -226,6 +244,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_version(&self) -> &Version {
         self.backend.get_version()
+    }
+
+    fn get_identity_override(&self) -> &Option<String> {
+        self.backend.get_identity_override()
     }
 
     fn get_agent(&self) -> Option<&Agent> {
@@ -383,13 +405,13 @@ impl ic_agent::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent(logger: Logger, url: &str, identity: PathBuf) -> Option<Agent> {
+fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity>) -> Option<Agent> {
     AgentClient::new(logger, url.to_string())
         .ok()
         .and_then(|executor| {
             Agent::new(AgentConfig {
                 url: url.to_string(),
-                identity: Box::new(Identity::new(identity)),
+                identity,
                 password_manager: Some(Box::new(executor)),
                 ..AgentConfig::default()
             })

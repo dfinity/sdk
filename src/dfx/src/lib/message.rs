@@ -99,6 +99,27 @@ user_message!(
     OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
 
+    // dfx identity mod
+    ManageIdentity => "Manages identities used to communicate with the replica.",
+
+    // dfx identity new
+    NewIdentity => "Create a new identity.",
+
+    // dfx identity list
+    ListIdentities => "List identities.",
+
+    // dfx identity remove
+    RemoveIdentity => "Remove an identity.",
+
+    // dfx identity rename
+    RenameIdentity => "Rename an identity.",
+
+    // dfx identity use
+    UseIdentity => "Use an identity.",
+
+    // dfx identity whoami
+    ShowIdentity => "Show name of current identity.",
+
     // dfx new
     CreateProject => "Creates a new project.",
     ProjectName => "Specifies the name of the project to create.",
