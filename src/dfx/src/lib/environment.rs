@@ -335,65 +335,6 @@ impl AgentClient {
         Ok(p)
     }
 }
-//
-// #[async_trait]
-// impl ic_agent::AgentRequestExecutor for AgentClient {
-//     async fn execute(
-//         &self,
-//         mut request: reqwest::Request,
-//     ) -> Result<reqwest::Response, ic_agent::AgentError> {
-//         loop {
-//             // Support for HTTP Auth if necessary (tries to contact first, then do the HTTP Auth
-//             // flow).
-//             if let Some(auth) = self.auth.lock().unwrap().as_ref() {
-//                 request.headers_mut().insert(
-//                     reqwest::header::AUTHORIZATION,
-//                     format!("Basic {}", auth).parse().unwrap(),
-//                 );
-//             }
-//
-//             let response = self
-//                 .client
-//                 .execute(request.try_clone().unwrap())
-//                 .await
-//                 .map_err(ic_agent::AgentError::from)?;
-//
-//             // 401 is HTTP Authentication unauthorized access.
-//             if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-//                 if !self.is_secure() {
-//                     return Ok(response);
-//                 }
-//
-//                 eprintln!("Unauthorized HTTP Access... Please enter credentials:");
-//                 let username = dialoguer::Input::<String>::new()
-//                     .with_prompt("Username")
-//                     .interact()
-//                     .unwrap();
-//                 let password = dialoguer::Password::new()
-//                     .with_prompt("Password")
-//                     .interact()
-//                     .unwrap();
-//
-//                 let auth = format!("{}:{}", username, password);
-//                 let auth = base64::encode(&auth);
-//
-//                 self.auth.lock().unwrap().replace(auth.clone());
-//
-//                 if let Some(h) = &self.url.host() {
-//                     if let Ok(p) = self.save_http_auth(&h.to_string(), &auth) {
-//                         slog::info!(
-//                             self.logger,
-//                             "Saved HTTP credentials to {}.",
-//                             p.to_string_lossy()
-//                         );
-//                     }
-//                 }
-//             } else {
-//                 return Ok(response);
-//             }
-//         }
-//     }
-// }
 
 impl ic_agent::PasswordManager for AgentClient {
     fn cached(&self, _url: &str) -> Result<Option<(String, String)>, String> {

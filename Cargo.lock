@@ -962,7 +962,6 @@ dependencies = [
  "actix-files",
  "actix-server",
  "actix-web",
- "async-trait",
  "atty",
  "base64 0.11.0",
  "candid",
@@ -1628,7 +1627,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.6.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=hansl/update_rustls#de2d84a8c9ac972e298dfb6bcba7d0a0fc91a205"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=hansl/update_rustls#4ac0bc3b8894685a2b68f1f5f2133f3cc5da1665"
 dependencies = [
  "async-trait",
  "base32",
