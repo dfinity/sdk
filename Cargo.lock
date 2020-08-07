@@ -991,7 +991,6 @@ dependencies = [
  "rand 0.7.3",
  "regex",
  "reqwest",
- "rustls 0.17.0",
  "semver",
  "serde",
  "serde_bytes",
@@ -1011,7 +1010,6 @@ dependencies = [
  "url 2.1.1",
  "walkdir",
  "wasmparser",
- "webpki-roots 0.19.0",
 ]
 
 [[package]]
@@ -1608,7 +1606,7 @@ dependencies = [
  "futures-util",
  "hyper",
  "log",
- "rustls 0.18.0",
+ "rustls",
  "tokio",
  "tokio-rustls",
  "webpki",
@@ -1630,10 +1628,11 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.6.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=hansl/update_rustls#51fa491050ceb0cdf86b8cae4f68a7024b594802"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=hansl/update_rustls#de2d84a8c9ac972e298dfb6bcba7d0a0fc91a205"
 dependencies = [
  "async-trait",
  "base32",
+ "base64 0.12.3",
  "byteorder",
  "candid",
  "crc32fast",
@@ -1644,7 +1643,7 @@ dependencies = [
  "rand 0.7.3",
  "reqwest",
  "ring",
- "rustls 0.18.0",
+ "rustls",
  "serde",
  "serde_bytes",
  "serde_cbor 0.11.1",
@@ -2866,7 +2865,7 @@ dependencies = [
  "native-tls",
  "percent-encoding 2.1.0",
  "pin-project-lite",
- "rustls 0.18.0",
+ "rustls",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -2937,19 +2936,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
  "semver",
-]
-
-[[package]]
-name = "rustls"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0d4a31f5d68413404705d6982529b0e11a9aacd4839d1d6222ee3b8cb4015e1"
-dependencies = [
- "base64 0.11.0",
- "log",
- "ring",
- "sct",
- "webpki",
 ]
 
 [[package]]
@@ -3562,7 +3548,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "228139ddd4fea3fa345a29233009635235833e52807af7ea6448ead03890d6a9"
 dependencies = [
  "futures-core",
- "rustls 0.18.0",
+ "rustls",
  "tokio",
  "webpki",
 ]
