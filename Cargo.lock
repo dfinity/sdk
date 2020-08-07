@@ -1627,7 +1627,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.6.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?tag=v0.6.3#5b2fab20e1902f8709d1b09fcb6f5ee9feb0084e"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=0.6#5b2fab20e1902f8709d1b09fcb6f5ee9feb0084e"
 dependencies = [
  "async-trait",
  "base32",
