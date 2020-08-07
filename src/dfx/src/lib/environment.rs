@@ -308,9 +308,12 @@ impl AgentClient {
                     );
                         Ok(None)
                     } else {
+                        // For backward compatibility with previous versions of DFX, we still
+                        // store the base64 encoding of `username:password`, but we decode it
+                        // since the Agent requires username and password as separate fields.
                         let pair = base64::decode(&token).unwrap();
                         let v: Vec<String> = String::from_utf8_lossy(pair.as_slice())
-                            .split(":")
+                            .split(':')
                             .take(2)
                             .map(|s| s.to_owned())
                             .collect();
