@@ -36,19 +36,19 @@ let
       lint = ws.lint.overrideAttrs (
         oldAttrs: {
           nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
-            pkgs.cargo-graph
+            pkgs.cargo-deps
             pkgs.graphviz
           ];
 
           postDoc = oldAttrs.postDoc + ''
             pushd src/dfx
-            cargo graph | dot -Tsvg > \
-              ../../target/$CARGO_BUILD_TARGET/doc/dfx/cargo-graph.svg
+            cargo deps | dot -Tsvg > \
+              ../../target/$CARGO_BUILD_TARGET/doc/dfx/cargo-deps.svg
             popd
           '';
 
           postInstall = oldAttrs.postInstall + ''
-            echo "report cargo-graph-dfx $doc dfx/cargo-graph.svg" >> \
+            echo "report cargo-graph-dfx $doc dfx/cargo-deps.svg" >> \
               $doc/nix-support/hydra-build-products
           '';
         }
