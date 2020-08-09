@@ -2,7 +2,6 @@ import {
   ActorFactory,
   BinaryBlob,
   CallFields,
-  CanisterId,
   JsonObject,
   Principal,
   QueryFields,
@@ -178,7 +177,7 @@ export class ProxyAgent implements Agent {
   }
 
   public call(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: CallFields,
     principal?: Principal,
   ): Promise<SubmitResponse> {
@@ -201,7 +200,7 @@ export class ProxyAgent implements Agent {
   }
 
   public install(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: {
       module: BinaryBlob;
       arg?: BinaryBlob;
@@ -212,7 +211,7 @@ export class ProxyAgent implements Agent {
   }
 
   public query(
-    canisterId: CanisterId | string,
+    canisterId: Principal | string,
     fields: QueryFields,
     principal?: Principal,
   ): Promise<QueryResponse> {

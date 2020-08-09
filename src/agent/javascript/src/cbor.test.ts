@@ -1,8 +1,8 @@
 import BigNumber from 'bignumber.js';
 import { Buffer } from 'buffer/';
-import { CanisterId } from './canisterId';
 import { decode, encode } from './cbor';
-import { BinaryBlob, blobToHex } from './types';
+import { Principal } from './principal';
+import { BinaryBlob, blobFromHex, blobFromUint8Array, blobToHex } from './types';
 
 test('round trip', () => {
   interface Data {
@@ -10,7 +10,7 @@ test('round trip', () => {
     b: string;
     c: BinaryBlob;
     d: { four: string };
-    e: CanisterId;
+    e: Principal;
     f: BinaryBlob;
     g: BigNumber;
   }
@@ -23,7 +23,7 @@ test('round trip', () => {
     b: 'two',
     c: Buffer.from([3]) as BinaryBlob,
     d: { four: 'four' },
-    e: CanisterId.fromText('ic:FfFfFfFfFfFfFfFfd7'),
+    e: Principal.fromText('ic:FfFfFfFfFfFfFfFfd7'),
     f: Buffer.from([]) as BinaryBlob,
     g: new BigNumber('0xffffffffffffffff'),
   };
@@ -42,8 +42,8 @@ test('round trip', () => {
 });
 
 test('empty canister ID', () => {
-  const input: { a: CanisterId } = {
-    a: CanisterId.fromText('ic:00'),
+  const input: { a: Principal } = {
+    a: Principal.fromText('aaaaa-aa'),
   };
 
   const output = decode<typeof input>(encode(input));
@@ -52,7 +52,7 @@ test('empty canister ID', () => {
   const outputA = output.a;
 
   expect(buf2hex((outputA as any) as Uint8Array)).toBe(inputA.toHex());
-  expect(CanisterId.fromBlob(outputA as any).toText()).toBe('ic:00');
+  expect(Principal.fromBlob(outputA as any).toText()).toBe('aaaaa-aa');
 });
 
 function buf2hex(buffer: Uint8Array) {

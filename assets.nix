@@ -12,8 +12,7 @@ pkgs.runCommandNoCCLocal "assets" {} ''
   cp ${pkgs.motoko.didc}/bin/didc $out
   cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
   cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
-  cp ${pkgs.motoko.moc-bin}/bin/moc $out
-  cp ${pkgs.motoko.rts}/rts/mo-rts.wasm $out
+  cp ${pkgs.motoko.moc}/bin/moc $out
 
   # Install agent
   mkdir $out/js-user-library

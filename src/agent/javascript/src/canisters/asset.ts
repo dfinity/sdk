@@ -1,5 +1,4 @@
 import { Actor, ActorConfig, ActorSubclass, CallConfig } from '../actor';
-import { CanisterId } from '../canisterId';
 import assetCanister from './asset_idl';
 
 /* tslint:disable */

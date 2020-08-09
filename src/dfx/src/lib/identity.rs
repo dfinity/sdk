@@ -1,6 +1,4 @@
-use ic_agent::Principal;
-use ic_agent::{AgentError, Signature};
-use ic_agent::{Blob, RequestId};
+use ic_agent::{AgentError, Blob, Principal, Signature};
 use std::path::PathBuf;
 
 pub struct Identity(ic_identity_manager::Identity);
@@ -22,10 +20,10 @@ impl ic_agent::Identity for Identity {
         Ok(self.0.sender())
     }
 
-    fn sign(&self, request_id: &RequestId, _: &Principal) -> Result<Signature, AgentError> {
+    fn sign(&self, blob: &[u8], _: &Principal) -> Result<Signature, AgentError> {
         let signature_tuple = self
             .0
-            .sign(Blob::from(*request_id).as_slice())
+            .sign(blob)
             .map_err(|e| AgentError::SigningError(e.to_string()))?;
 
         let signature = Blob::from(signature_tuple.signature.clone());
@@ -40,17 +38,24 @@ impl ic_agent::Identity for Identity {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ic_agent::Identity;
+    use ic_agent::{Identity, RequestId};
     use tempfile::tempdir;
 
     #[test]
     fn request_id_identity() {
         let dir = tempdir().unwrap();
-        let request_id = RequestId::new(&[4; 32]);
 
         let signer = super::Identity::new(dir.into_path());
         let sender = signer.sender().expect("Failed to get the sender.");
-        let signature = signer.sign(&request_id, &sender).expect("Failed to sign.");
+        let msg = {
+            let domain_separator: &[u8] = b"\x0Aic-request";
+            let request_id = RequestId::new(&[4; 32]);
+            let mut buf = vec![];
+            buf.extend_from_slice(domain_separator);
+            buf.extend_from_slice(Blob::from(request_id).as_slice());
+            buf
+        };
+        let signature = signer.sign(&msg, &sender).expect("Failed to sign.");
 
         // Assert the principal is used for the public key.
         assert_eq!(

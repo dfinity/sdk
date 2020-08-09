@@ -1,5 +1,4 @@
-import { Buffer } from 'buffer';
-import { CanisterId } from './canisterId';
+import { Principal } from './principal';
 import { RejectCode } from './reject_code';
 import { RequestId } from './request_id';
 import { BinaryBlob } from './types';
@@ -73,14 +72,14 @@ export interface CallFields {
 // tslint:disable:camel-case
 export interface CallRequest extends Record<string, any> {
   request_type: SubmitRequestType.Call;
-  canister_id: CanisterId;
+  canister_id: Principal;
   method_name: string;
   arg: BinaryBlob;
   sender: BinaryBlob;
 }
 export interface InstallCodeRequest extends Record<string, any> {
   request_type: SubmitRequestType.InstallCode;
-  canister_id: CanisterId;
+  canister_id: Principal;
   module: BinaryBlob;
   arg?: BinaryBlob;
   sender: BinaryBlob;
@@ -140,7 +139,7 @@ export const enum ReadRequestType {
 // The fields in a "query" read request.
 export interface QueryRequest extends Record<string, any> {
   request_type: ReadRequestType.Query;
-  canister_id: CanisterId;
+  canister_id: Principal;
   method_name: string;
   arg: BinaryBlob;
   sender: BinaryBlob;

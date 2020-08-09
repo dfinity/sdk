@@ -26,16 +26,17 @@ let
     sha256 = "007bgq4zy1mjnnkbmaaxvvn4kgpla9wkm0d3lfrz3y1pa3wp9ha1";
   };
 
-  pkgs = import commonSrc {
+  pkgs = import (commonSrc + "/pkgs") {
     inherit system;
+    extraSources = sources;
+    repoRoot = ../.;
     overlays = [
       (
         self: super:
           let
-            nixFmt = self.lib.nixFmt { root = ../.; };
+            nixFmt = self.lib.nixFmt {};
           in
             {
-              sources = super.sources // sources;
 
               # The RustSec-advisory-db used by cargo-audit.nix.
               # Hydra injects the latest RustSec-advisory-db, otherwise we piggy

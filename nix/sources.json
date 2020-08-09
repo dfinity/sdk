@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "ca4219e11d7c6edabf5c4d5003eea245868af6f0",
-        "sha256": "0xnja0lx1x4ph6d38kkcw87q2px317hnvcvchjhq420v0z65hhp5",
+        "rev": "ee840d4a4dedca66c9f37e82bf3dacc6452bf8fe",
+        "sha256": "0pa1ia3ghrgv2wy7r1653ipy1fnz9ccgcy29yr0zlaj8fcbvj54f",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/ca4219e11d7c6edabf5c4d5003eea245868af6f0.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/ee840d4a4dedca66c9f37e82bf3dacc6452bf8fe.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "bats-support": {
@@ -28,25 +28,25 @@
     "common": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "05c44eddb864464c06c27295460eabcf923bc2e9",
+        "rev": "b0fb6fd07826e20ec0d484c7de8d94846ff4b45d",
         "type": "git"
     },
     "dfinity": {
-        "ref": "release-2020-07-24.RC00",
+        "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "863732a2c0a1b2814e6550a21f36e0f1ec23d604",
+        "rev": "c4bf03c11e89dbe773822d6e128203588808d652",
         "type": "git"
     },
     "ic-ref": {
-        "ref": "release-0.8",
+        "ref": "release-0.9",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "eb3fd27a3c91818afabd306ddb9be0dfbf5f2792",
+        "rev": "14a8170db56db7ea3c902415ed23d7706f6e7c00",
         "type": "git"
     },
     "motoko": {
-        "ref": "master",
+        "ref": "release",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "a86a1b9d307f58d2a55714dfb6632829794a78cc",
+        "rev": "cbe4016040a5b0b286ea015c5abe61f60619d43e",
         "type": "git"
     },
     "napalm": {

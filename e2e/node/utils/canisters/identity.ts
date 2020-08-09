@@ -9,7 +9,7 @@ const wasm = readFileSync(path.join(__dirname, 'identity/main.wasm'));
 // TODO(hansl): Add a type to create an Actor interface from a IDL.Service definition.
 export async function identityFactory(): Promise<Identity> {
   return ((await Actor.createAndInstallCanister(
-    factory as IDL.InterfaceFactory,
+    factory,
     {
       module: blobFromUint8Array(wasm),
     },

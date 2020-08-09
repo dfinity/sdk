@@ -1,13 +1,13 @@
 { pkgs ? import ./nix {}
 }:
 let
-  distributed = lib.noNixFiles (lib.gitOnlySource ./. ./src/distributed);
+  distributed = lib.noNixFiles (lib.gitOnlySource ./src/distributed);
   lib = pkgs.lib;
 
 in
 pkgs.runCommandNoCCLocal "distributed-canisters" {
   inherit (pkgs.motoko) didc rts;
-  moc = pkgs.motoko.moc-bin;
+  moc = pkgs.motoko.moc;
   base = pkgs.motoko.base-src;
 } ''
   mkdir -p $out
@@ -23,7 +23,7 @@ pkgs.runCommandNoCCLocal "distributed-canisters" {
        -o $build_dir/$canister_name.did \
        --idl \
        --package base $base
-    MOC_RTS=$rts/rts/mo-rts.wasm $moc/bin/moc \
+    $moc/bin/moc \
        $canister_mo \
        -o $build_dir/$canister_name.wasm \
        -c --release \

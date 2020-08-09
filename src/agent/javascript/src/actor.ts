@@ -1,6 +1,5 @@
 import { Buffer } from 'buffer/';
 import { Agent } from './agent';
-import { CanisterId } from './canisterId';
 import { getManagementCanister } from './canisters/management';
 import {
   QueryResponseStatus,
@@ -9,6 +8,7 @@ import {
 } from './http_agent_types';
 import * as IDL from './idl';
 import { GlobalInternetComputer } from './index';
+import { Principal } from './principal';
 import { RequestId, toHex as requestIdToHex } from './request_id';
 import { BinaryBlob } from './types';
 
@@ -46,7 +46,7 @@ export interface CallConfig {
  * Configuration that can be passed to customize the Actor behaviour.
  */
 export interface ActorConfig extends CallConfig {
-  canisterId: string | CanisterId;
+  canisterId: string | Principal;
 }
 
 // TODO: move this to proper typing when Candid support TypeScript.
@@ -67,10 +67,10 @@ export enum CanisterInstallMode {
 /**
  * Internal metadata for actors. It's an enhanced version of ActorConfig with
  * some fields marked as required (as they are defaulted) and canisterId as
- * a CanisterId type.
+ * a Principal type.
  */
 interface ActorMetadata {
-  canisterId: CanisterId;
+  canisterId: Principal;
   service: IDL.ServiceClass;
   agent?: Agent;
   maxAttempts: number;
@@ -92,7 +92,7 @@ export class Actor {
     return actor[metadataSymbol].service;
   }
 
-  public static canisterIdOf(actor: Actor): CanisterId {
+  public static canisterIdOf(actor: Actor): Principal {
     return actor[metadataSymbol].canisterId;
   }
 
@@ -113,7 +113,7 @@ export class Actor {
     const wasmModule = [...fields.module];
     const canisterId =
       typeof config.canisterId === 'string'
-        ? CanisterId.fromText(config.canisterId)
+        ? Principal.fromText(config.canisterId)
         : config.canisterId;
     const computerAllocation: [number] | [] =
       fields.computerAllocation !== undefined ? [fields.computerAllocation] : [];
@@ -130,7 +130,7 @@ export class Actor {
     });
   }
 
-  public static async createCanister(config?: CallConfig): Promise<CanisterId> {
+  public static async createCanister(config?: CallConfig): Promise<Principal> {
     const { canister_id: canisterId } = await getManagementCanister(config || {}).create_canister();
 
     return canisterId;
@@ -164,7 +164,7 @@ export class Actor {
       constructor(config: ActorConfig) {
         const canisterId =
           typeof config.canisterId === 'string'
-            ? CanisterId.fromText(config.canisterId)
+            ? Principal.fromText(config.canisterId)
             : config.canisterId;
 
         super({

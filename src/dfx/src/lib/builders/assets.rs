@@ -162,7 +162,7 @@ fn delete_output_directory(
         let output_assets_path = output_assets_path.canonicalize()?;
         if !output_assets_path.starts_with(info.get_workspace_root()) {
             return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
-                output_assets_path.to_path_buf(),
+                output_assets_path,
             ));
         }
         fs::remove_dir_all(output_assets_path)?;
