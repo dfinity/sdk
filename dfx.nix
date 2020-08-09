@@ -30,31 +30,6 @@ let
     ];
   };
 
-  # add extra executables used when linting
-  addLintInputs = ws:
-    ws // {
-      lint = ws.lint.overrideAttrs (
-        oldAttrs: {
-          nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
-            pkgs.cargo-deps
-            pkgs.graphviz
-          ];
-
-          postDoc = oldAttrs.postDoc + ''
-            pushd src/dfx
-            cargo deps | dot -Tsvg > \
-              ../../target/$CARGO_BUILD_TARGET/doc/dfx/cargo-deps.svg
-            popd
-          '';
-
-          postInstall = oldAttrs.postInstall + ''
-            echo "report cargo-graph-dfx $doc dfx/cargo-deps.svg" >> \
-              $doc/nix-support/hydra-build-products
-          '';
-        }
-      );
-    };
-
   # set DFX_ASSETS for the builds and shells
   addAssets = ws:
   # override all derivations and add DFX_ASSETS as an environment variable
