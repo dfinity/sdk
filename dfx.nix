@@ -34,8 +34,7 @@ let
   addLintInputs = ws:
     ws // {
       lint = ws.lint.overrideAttrs (
-        oldAttrs: {
-        }
+        oldAttrs: {}
       );
     };
 
