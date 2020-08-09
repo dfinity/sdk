@@ -30,6 +30,13 @@ let
     ];
   };
 
+  # add extra executables used when linting
+  addLintInputs = ws:
+    ws // {
+      lint = ws.lint.overrideAttrs (
+      );
+    };
+
   # set DFX_ASSETS for the builds and shells
   addAssets = ws:
   # override all derivations and add DFX_ASSETS as an environment variable
