@@ -26,40 +26,9 @@ let
       "^.cargo/config$"
     ];
     cargoTestCommands = _: [
-      ''cargo $cargo_options test $cargo_test_options --workspace --exclude ic-agent''
-      ''RUST_TEST_THREADS=1 cargo $cargo_options test $cargo_test_options -p ic-agent''
+      ''cargo $cargo_options test $cargo_test_options --workspace''
     ];
-    override = oldAttrs: {
-      # both needed for bindgen, used by rocksdb-sys, zstd-sys, lmdb-sys, etc
-      LIBCLANG_PATH = "${pkgs.llvmPackages.libclang}/lib";
-      CLANG_PATH = "${pkgs.llvmPackages.clang}/bin/clang";
-    };
   };
-
-  # add extra executables used when linting
-  addLintInputs = ws:
-    ws // {
-      lint = ws.lint.overrideAttrs (
-        oldAttrs: {
-          nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
-            pkgs.cargo-graph
-            pkgs.graphviz
-          ];
-
-          postDoc = oldAttrs.postDoc + ''
-            pushd src/dfx
-            cargo graph | dot -Tsvg > \
-              ../../target/$CARGO_BUILD_TARGET/doc/dfx/cargo-graph.svg
-            popd
-          '';
-
-          postInstall = oldAttrs.postInstall + ''
-            echo "report cargo-graph-dfx $doc dfx/cargo-graph.svg" >> \
-              $doc/nix-support/hydra-build-products
-          '';
-        }
-      );
-    };
 
   # set DFX_ASSETS for the builds and shells
   addAssets = ws:
@@ -110,6 +79,12 @@ let
             # Set CARGO_HOME to minimize interaction with any environment outside nix
             export CARGO_HOME=${if pkgs.lib.isHydra then "." else toString ./.}/.cargo-home
 
+            if [ ! -d "$CARGO_HOME" ]; then
+                mkdir -p $CARGO_HOME
+                echo "[net]
+                      git-fetch-with-cli = true" > $CARGO_HOME/config
+            fi
+
             # Set environment variable for debug version.
             export DFX_TIMESTAMP_DEBUG_MODE_ONLY=$(date +%s)
           '';
@@ -118,6 +93,6 @@ let
 
 in
 fixShell (
-  addStandalone ((addLintInputs (addAssets workspace)))
+  addStandalone (addAssets workspace)
     (throw "this argument is used to trigger the functor and shouldn't actually be evaluated.")
 )

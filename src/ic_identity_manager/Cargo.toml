@@ -11,8 +11,12 @@ openssl = "0.10.28"
 pem = "0.7.0"
 ring = "0.16.11"
 serde = { version = "1.0", features = ["derive"] }
-ic-agent = { path = "../agent/rust" }
 
+[dependencies.ic-agent]
+version = "0.6"
+git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
+branch = "0.6"
+rev = "5b2fab20e1902f8709d1b09fcb6f5ee9feb0084e"
 
 [dev-dependencies]
 serde_cbor = "0.10"

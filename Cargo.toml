@@ -1,6 +1,5 @@
 [workspace]
 members = [
     "src/dfx",
-    "src/agent/rust",
     "src/ic_identity_manager",
 ]

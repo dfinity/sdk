@@ -8,7 +8,7 @@ use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::{
-    Agent, Blob, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister, RequestId,
+    Agent, Blob, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister,
 };
 use slog::info;
 use std::convert::TryFrom;
@@ -63,7 +63,7 @@ async fn install_canister(
     canister_info: &CanisterInfo,
     compute_allocation: Option<ComputeAllocation>,
     mode: InstallMode,
-) -> DfxResult<RequestId> {
+) -> DfxResult {
     let mgr = ManagementCanister::new(agent);
     let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().map_err(|_| {
@@ -82,26 +82,22 @@ async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    let result = mgr
-        .install_code(
-            create_waiter(),
-            &canister_id,
-            mode,
-            &Blob::from(wasm),
-            &Blob::empty(),
-            &CanisterAttributes { compute_allocation },
-        )
-        .await
-        .map_err(DfxError::from)?;
+    mgr.install_code(
+        create_waiter(),
+        &canister_id,
+        mode,
+        &Blob::from(wasm),
+        &Blob::empty(),
+        &CanisterAttributes { compute_allocation },
+    )
+    .await
+    .map_err(DfxError::from)?;
 
     if canister_info.get_type() == "assets" {
-        agent
-            .request_status_and_wait(&result, create_waiter())
-            .await?;
         post_install_store_assets(&canister_info, &agent).await?;
     }
 
-    Ok(result)
+    Ok(())
 }
 
 fn compute_allocation_validator(compute_allocation: String) -> Result<(), String> {
@@ -114,7 +110,6 @@ fn compute_allocation_validator(compute_allocation: String) -> Result<(), String
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let log = env.get_logger();
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -136,24 +131,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         let canister_id = canister_id_store.get(canister_name)?;
 
         let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
-        let request_id = runtime.block_on(install_canister(
+        runtime.block_on(install_canister(
             env,
             &agent,
             &canister_info,
             compute_allocation,
             mode,
         ))?;
-
-        if args.is_present("async") {
-            info!(log, "Request ID: ");
-            println!("0x{}", String::from(request_id));
-            Ok(())
-        } else {
-            runtime
-                .block_on(agent.request_status_and_wait(&request_id, create_waiter()))
-                .map(|_| ())
-                .map_err(DfxError::from)
-        }
+        Ok(())
     } else if args.is_present("all") {
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
@@ -161,21 +146,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 let canister_id = canister_id_store.get(canister_name)?;
 
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
-                let request_id = runtime.block_on(install_canister(
+                runtime.block_on(install_canister(
                     env,
                     &agent,
                     &canister_info,
                     compute_allocation,
                     mode.clone(),
                 ))?;
-
-                if args.is_present("async") {
-                    info!(log, "Request ID: ");
-                    println!("0x{}", String::from(request_id));
-                } else {
-                    runtime
-                        .block_on(agent.request_status_and_wait(&request_id, create_waiter()))?;
-                }
             }
         }
         Ok(())

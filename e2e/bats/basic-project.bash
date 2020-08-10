@@ -19,8 +19,9 @@ teardown() {
     dfx_start
     dfx canister create --all
     dfx build
-    INSTALL_REQUEST_ID=$(dfx canister install hello --async)
-    dfx canister request-status $INSTALL_REQUEST_ID
+    # INSTALL_REQUEST_ID=$(dfx canister install hello --async)
+    # dfx canister request-status $INSTALL_REQUEST_ID
+    dfx canister install hello
 
     assert_command dfx canister call hello greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'

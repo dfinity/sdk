@@ -6,7 +6,6 @@ use crate::lib::identity::Identity;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
-use async_trait::async_trait;
 use ic_agent::{Agent, AgentConfig};
 use semver::Version;
 use slog::{Logger, Record};
@@ -252,20 +251,18 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
 pub struct AgentClient {
     logger: Logger,
-    client: reqwest::Client,
     url: reqwest::Url,
 
-    // The auth `username:password`, base64 encoded.
-    auth: Arc<Mutex<Option<String>>>,
+    // The auth `(username, password)`.
+    auth: Arc<Mutex<Option<(String, String)>>>,
 }
 
 impl AgentClient {
-    pub fn new(logger: Logger, url: String, client: reqwest::Client) -> DfxResult<AgentClient> {
+    pub fn new(logger: Logger, url: String) -> DfxResult<AgentClient> {
         let url = reqwest::Url::parse(&url).map_err(|e| DfxError::InvalidUrl(url, e))?;
 
         let result = Self {
             logger,
-            client,
             url,
             auth: Arc::new(Mutex::new(None)),
         };
@@ -298,7 +295,7 @@ impl AgentClient {
         )
     }
 
-    fn read_http_auth(&self) -> DfxResult<Option<String>> {
+    fn read_http_auth(&self) -> DfxResult<Option<(String, String)>> {
         match self.url.host() {
             None => Ok(None),
             Some(h) => {
@@ -311,7 +308,16 @@ impl AgentClient {
                     );
                         Ok(None)
                     } else {
-                        Ok(Some(token.clone()))
+                        // For backward compatibility with previous versions of DFX, we still
+                        // store the base64 encoding of `username:password`, but we decode it
+                        // since the Agent requires username and password as separate fields.
+                        let pair = base64::decode(&token).unwrap();
+                        let v: Vec<String> = String::from_utf8_lossy(pair.as_slice())
+                            .split(':')
+                            .take(2)
+                            .map(|s| s.to_owned())
+                            .collect();
+                        Ok(Some((v[0].to_owned(), v[1].to_owned())))
                     }
                 } else {
                     Ok(None)
@@ -333,89 +339,60 @@ impl AgentClient {
     }
 }
 
-#[async_trait]
-impl ic_agent::AgentRequestExecutor for AgentClient {
-    async fn execute(
-        &self,
-        mut request: reqwest::Request,
-    ) -> Result<reqwest::Response, ic_agent::AgentError> {
-        loop {
-            // Support for HTTP Auth if necessary (tries to contact first, then do the HTTP Auth
-            // flow).
-            if let Some(auth) = self.auth.lock().unwrap().as_ref() {
-                request.headers_mut().insert(
-                    reqwest::header::AUTHORIZATION,
-                    format!("Basic {}", auth).parse().unwrap(),
+impl ic_agent::PasswordManager for AgentClient {
+    fn cached(&self, _url: &str) -> Result<Option<(String, String)>, String> {
+        // Support for HTTP Auth if necessary (tries to contact first, then do the HTTP Auth
+        // flow).
+        if let Some(auth) = self.auth.lock().unwrap().as_ref() {
+            Ok(Some(auth.clone()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn required(&self, _url: &str) -> Result<(String, String), String> {
+        eprintln!("Unauthorized HTTP Access... Please enter credentials:");
+        let username = dialoguer::Input::<String>::new()
+            .with_prompt("Username")
+            .interact()
+            .unwrap();
+        let password = dialoguer::Password::new()
+            .with_prompt("Password")
+            .interact()
+            .unwrap();
+
+        let auth = format!("{}:{}", username, password);
+        let auth = base64::encode(&auth);
+
+        self.auth
+            .lock()
+            .unwrap()
+            .replace((username.clone(), password.clone()));
+
+        if let Some(h) = &self.url.host() {
+            if let Ok(p) = self.save_http_auth(&h.to_string(), &auth) {
+                slog::info!(
+                    self.logger,
+                    "Saved HTTP credentials to {}.",
+                    p.to_string_lossy()
                 );
             }
-
-            let response = self
-                .client
-                .execute(request.try_clone().unwrap())
-                .await
-                .map_err(ic_agent::AgentError::from)?;
-
-            // 401 is HTTP Authentication unauthorized access.
-            if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-                if !self.is_secure() {
-                    return Ok(response);
-                }
-
-                eprintln!("Unauthorized HTTP Access... Please enter credentials:");
-                let username = dialoguer::Input::<String>::new()
-                    .with_prompt("Username")
-                    .interact()
-                    .unwrap();
-                let password = dialoguer::Password::new()
-                    .with_prompt("Password")
-                    .interact()
-                    .unwrap();
-
-                let auth = format!("{}:{}", username, password);
-                let auth = base64::encode(&auth);
-
-                self.auth.lock().unwrap().replace(auth.clone());
-
-                if let Some(h) = &self.url.host() {
-                    if let Ok(p) = self.save_http_auth(&h.to_string(), &auth) {
-                        slog::info!(
-                            self.logger,
-                            "Saved HTTP credentials to {}.",
-                            p.to_string_lossy()
-                        );
-                    }
-                }
-            } else {
-                return Ok(response);
-            }
         }
+
+        Ok((username, password))
     }
 }
 
 fn create_agent(logger: Logger, url: &str, identity: PathBuf) -> Option<Agent> {
-    let mut cfg = rustls::ClientConfig::new();
-    // Advertise support for HTTP/2
-    cfg.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
-    // Mozilla CA root store
-    cfg.root_store
-        .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-
-    AgentClient::new(
-        logger,
-        url.to_string(),
-        reqwest::Client::builder()
-            .use_preconfigured_tls(cfg)
-            .build()
-            .expect("Could not create HTTP client."),
-    )
-    .ok()
-    .and_then(|executor| {
-        Agent::new(AgentConfig {
-            url,
-            identity: Box::new(Identity::new(identity)),
-            request_executor: Box::new(executor),
-            ..AgentConfig::default()
-        })
+    AgentClient::new(logger, url.to_string())
         .ok()
-    })
+        .and_then(|executor| {
+            Agent::new(AgentConfig {
+                url,
+                identity: Box::new(Identity::new(identity)),
+                password_manager: Some(Box::new(executor)),
+                ..AgentConfig::default()
+            })
+            .ok()
+        })
 }
