@@ -30,14 +30,6 @@ let
     ];
   };
 
-  # add extra executables used when linting
-  addLintInputs = ws:
-    ws // {
-      lint = ws.lint.overrideAttrs (
-        oldAttrs: {}
-      );
-    };
-
   # set DFX_ASSETS for the builds and shells
   addAssets = ws:
   # override all derivations and add DFX_ASSETS as an environment variable
@@ -101,6 +93,6 @@ let
 
 in
 fixShell (
-  addStandalone ((addLintInputs (addAssets workspace)))
+  addStandalone (addAssets workspace)
     (throw "this argument is used to trigger the functor and shouldn't actually be evaluated.")
 )
