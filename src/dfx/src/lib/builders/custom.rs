@@ -177,7 +177,12 @@ fn run_command(
         }
     }
 
-    let output = cmd.output().expect("Could not run custom tool.");
+    let output = cmd.output().unwrap_or_else(|_| {
+        panic!(
+            "Could not run custom tool. The failing command was:\n\t{:?}",
+            cmd
+        )
+    });
     if output.status.success() {
         Ok(())
     } else {
