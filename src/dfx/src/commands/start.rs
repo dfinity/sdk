@@ -87,8 +87,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         // Clean the contents of the provided directory including the
         // directory itself. N.B. This does NOT follow symbolic links -- and I
         // hope we do not need to.
-        fs::remove_dir_all(state_root.clone()).map_err(DfxError::CleanState)?;
-        fs::remove_dir_all(temp_dir.join("local")).map_err(DfxError::CleanState)?;
+        if state_root.is_dir() {
+            fs::remove_dir_all(state_root.clone()).map_err(DfxError::CleanState)?;
+        }
+        let local_dir = temp_dir.join("local");
+        if local_dir.is_dir() {
+            fs::remove_dir_all(local_dir).map_err(DfxError::CleanState)?;
+        }
     }
 
     let client_configuration_dir = temp_dir.join("client-configuration");
