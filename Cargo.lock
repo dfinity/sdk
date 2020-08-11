@@ -955,7 +955,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1652,7 +1652,7 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-manager"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "ic-agent",
  "openssl",
