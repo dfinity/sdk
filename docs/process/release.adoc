@@ -234,25 +234,6 @@ rm -rf hello_world
 ----
 nix-shell
 ----
-. Create a new branch for your changes by running the following commands:
-+
-[source, nix-shell]
-----
-git switch -c <YOUR_NAME>/<BRANCH-FOR-NEW_DFX_VERSION>
-----
-. Update the `version` field for the following files:
-+
-....
-`src/dfx/Cargo.toml`
-`src/agent/rust/Cargo.toml`
-`src/ic_identity_manager/Cargo.toml`
-....
-. Apply these changes to `Cargo.lock` by running the following command:
-+
-[source, nix-shell]
-----
-cargo build
-----
 . Set the new version in a temporary environment variable.
 +
 For example, replace `<n.n.n>` with a specific version number:
@@ -261,11 +242,29 @@ For example, replace `<n.n.n>` with a specific version number:
 ----
 export NEW_DFX_VERSION=<n.n.n>
 ----
+. Create a new branch for your changes by running the following commands:
++
+[source, nix-shell]
+----
+git switch -c $USER/release-$NEW_DFX_VERSION
+----
+. Update the `version` field for the following files:
++
+....
+`src/dfx/Cargo.toml`
+`src/ic_identity_manager/Cargo.toml`
+....
+. Apply these changes to `Cargo.lock` by running the following command:
++
+[source, nix-shell]
+----
+cargo build
+----
 . Update the `@dfinity/agent` JavaScript package by running the following command:
 +
 [source, nix-shell]
 ----
-cd src/agent/javascript/ && npm version ${NEW_DFX_VERSION}
+cd src/agent/javascript/ && npm version $NEW_DFX_VERSION
 ----
 . Navigate back to the root of sdk repo by running the following command: 
 +
@@ -277,7 +276,7 @@ cd ../../..
 +
 [source, nix-shell]
 ----
-cd src/bootstrap/ && npm version ${NEW_DFX_VERSION}
+cd src/bootstrap/ && npm version $NEW_DFX_VERSION
 ----
 . Navigate back to the root of sdk repo by running the following command: 
 +
@@ -313,8 +312,8 @@ For example:
 [source, bash]
 ----
 git add --all
-git commit --signoff --message "chore: Release `NEW_DFX_VERSION`"
-git push origin <YOUR_NAME>/<BRANCH-FOR-NEW_DFX_VERSION>
+git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
+git push origin $USER/release-$NEW_DFX_VERSION
 ----
 . After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
 . Have the validator review and approve the PR.
@@ -348,7 +347,7 @@ git pull origin master --ff-only
 +
 [source, bash]
 ----
-git tag --annotate ${NEW_DFX_VERSION} --message "Release: `${NEW_DFX_VERSION}`"
+git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
 ----
 . Verify the tag points to the correct version and includes annotation by running the following commands:
 +
@@ -361,7 +360,7 @@ git describe --always
 +
 [source, bash]
 ----
-git push origin ${NEW_DFX_VERSION}
+git push origin $NEW_DFX_VERSION
 ----
 +
 CI will only publish `dfx` from the latest commit from the `stable` branch when that commit is tagged with a version.
