@@ -7,6 +7,7 @@ use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::lib::waiter::create_waiter;
+use crate::util::get_reusable_socket_addr;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
@@ -14,7 +15,6 @@ use crossbeam::unbounded;
 use futures::future::Future;
 use ic_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
-use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
@@ -72,12 +72,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
+    let temp_dir = env.get_temp_dir();
+
     let (frontend_url, address_and_port) = frontend_address(args, &config)?;
+    let webserver_port_path = temp_dir.join("webserver-port");
+    std::fs::write(&webserver_port_path, "")?;
+    std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let client_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
 
-    let temp_dir = env.get_temp_dir();
     let state_root = env.get_state_dir();
 
     let pid_file_path = temp_dir.join("pid");
@@ -292,25 +296,12 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
         })
         .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;
 
-    // The user can pass in port "0" i.e. "127.0.0.1:0" or "[::1]:0", thus,
-    // we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
-    // TcpBuilder is used with reuse_address and reuse_port set to "true" because
-    // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
     if !args.is_present("background") {
-        address_and_port = match address_and_port.is_ipv4() {
-            true => TcpBuilder::new_v4()?
-                .bind(address_and_port)?
-                .reuse_address(true)?
-                .reuse_port(true)?
-                .to_tcp_listener()?
-                .local_addr()?,
-            false => TcpBuilder::new_v6()?
-                .bind(address_and_port)?
-                .reuse_address(true)?
-                .reuse_port(true)?
-                .to_tcp_listener()?
-                .local_addr()?,
-        };
+        // Since the user may have provided port "0", we need to grab a dynamically
+        // allocated port and construct a resuable SocketAddr which the actix
+        // HttpServer will bind to
+        address_and_port =
+            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
     }
     let ip = match address_and_port.is_ipv6() {
         true => format!("[{}]", address_and_port.ip()),
