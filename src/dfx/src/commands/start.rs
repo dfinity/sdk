@@ -114,7 +114,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     if args.is_present("background") {
         send_background()?;
-        return ping_and_wait(&frontend_url);
+        return Ok(());
     }
 
     // Start the client.
@@ -281,7 +281,7 @@ fn send_background() -> DfxResult<()> {
 }
 
 fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String, SocketAddr)> {
-    let address_and_port = args
+    let mut address_and_port = args
         .value_of("host")
         .and_then(|host| Option::from(host.parse()))
         .unwrap_or_else(|| {
@@ -296,25 +296,28 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
     // we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
     // TcpBuilder is used with reuse_address and reuse_port set to "true" because
     // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
-    let address_and_port = match address_and_port.is_ipv4() {
-        true => TcpBuilder::new_v4()?
-            .bind(address_and_port)?
-            .reuse_address(true)?
-            .reuse_port(true)?
-            .to_tcp_listener()?
-            .local_addr()?,
-        false => TcpBuilder::new_v6()?
-            .bind(address_and_port)?
-            .reuse_address(true)?
-            .reuse_port(true)?
-            .to_tcp_listener()?
-            .local_addr()?,
-    };
+    if !args.is_present("background") {
+        address_and_port = match address_and_port.is_ipv4() {
+            true => TcpBuilder::new_v4()?
+                .bind(address_and_port)?
+                .reuse_address(true)?
+                .reuse_port(true)?
+                .to_tcp_listener()?
+                .local_addr()?,
+            false => TcpBuilder::new_v6()?
+                .bind(address_and_port)?
+                .reuse_address(true)?
+                .reuse_port(true)?
+                .to_tcp_listener()?
+                .local_addr()?,
+        };
+    }
     let ip = match address_and_port.is_ipv6() {
         true => format!("[{}]", address_and_port.ip()),
         false => address_and_port.ip().to_string(),
     };
     let frontend_url = format!("http://{}:{}", ip, address_and_port.port());
+    println!("frontend_url {:?}", frontend_url);
     Ok((frontend_url, address_and_port))
 }
 
