@@ -17,9 +17,6 @@ teardown() {
     assert_command_fail dfx ping
 }
 
-@test "dfx start succeeds" {
-    dfx_start
-}
 
 @test "dfx ping succeeds if replica is running" {
     dfx_start
@@ -30,7 +27,8 @@ teardown() {
 
 @test "dfx ping succeeds by specific host:post" {
     dfx_start
-    assert_command dfx ping http://127.0.0.1:8000
+    webserver_port=$(cat .dfx/webserver-port)
+    assert_command dfx ping http://127.0.0.1:"$webserver_port"
 
     assert_match "\"ic_api_version\""
 }
@@ -44,7 +42,8 @@ teardown() {
 
 @test "dfx ping succeeds by network name if network bind address is host:port format" {
     dfx_start
-    assert_command dfx config networks.local.bind '"127.0.0.1:8000"'
+    webserver_port=$(cat .dfx/webserver-port)
+    assert_command dfx config networks.local.bind '"127.0.0.1:'$webserver_port'"'
     assert_command dfx ping local
 
     assert_match "\"ic_api_version\""

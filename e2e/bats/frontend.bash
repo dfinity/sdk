@@ -19,7 +19,8 @@ teardown() {
     dfx build --skip-frontend
 
     sleep 1
-    assert_command curl http://localhost:8000 # 8000 = default port.
+    PORT=$(cat .dfx/webserver-port)
+    assert_command curl http://localhost:"$PORT"
     assert_match "<html>"
 }
 
@@ -33,7 +34,7 @@ teardown() {
     dfx canister create --all
     dfx build --skip-frontend
 
-    assert_command curl http://localhost:12345 # 8000 = default port.
+    assert_command curl http://localhost:12345
     assert_match "<html>"
 
     assert_command_fail curl http://localhost:8000

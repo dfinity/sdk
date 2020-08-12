@@ -43,21 +43,31 @@ dfx_start() {
 
         cat <<<$(jq .networks.local.bind=\"127.0.0.1:${port}\" dfx.json) >dfx.json
         cat dfx.json
-        dfx bootstrap --port 8000 &
+        dfx bootstrap --port 0 & # Start on random port for parallel test execution
+        local webserver_port=$(cat .dfx/webserver-port)
         echo $! > dfx-bootstrap.pid
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
-        dfx start --background "$@" 3>&-
+        if [[ "$@" == "" ]]; then
+            dfx start --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
+        else
+            dfx start --background "$@" 3>&- # Start on random port for parallel test execution
+        fi
         local project_dir=${pwd}
         local dfx_config_root=.dfx/client-configuration
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f ${dfx_config_root}/client-1.port
         local port=$(cat ${dfx_config_root}/client-1.port)
+
+        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
+        local webserver_port=$(cat .dfx/webserver-port)
+        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${webserver_port}\" dfx.json) >dfx.json
     fi
 
     printf "Replica Configured Port: %s\n" "${port}"
+    printf "Webserver Configured Port: %s\n" "${webserver_port}"
 
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
