@@ -53,12 +53,13 @@ dfx_start() {
         if [[ "$@" == "" ]]; then
             dfx start --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
         else
-            dfx start --background "$@" 3>&- # Start on random port for parallel test execution
+            dfx start --background "$@" 3>&-
         fi
         local project_dir=${pwd}
         local dfx_config_root=.dfx/client-configuration
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f ${dfx_config_root}/client-1.port
+        sleep 3
         local port=$(cat ${dfx_config_root}/client-1.port)
 
         # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
