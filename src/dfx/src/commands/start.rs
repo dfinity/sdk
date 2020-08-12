@@ -6,6 +6,7 @@ use crate::lib::provider::get_network_descriptor;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
+use crate::util::get_reusable_socket_addr;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
@@ -19,9 +20,9 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::Duration;
+
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 use tokio::runtime::Runtime;
-
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
 pub fn construct() -> App<'static, 'static> {
@@ -75,12 +76,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
+    let temp_dir = env.get_temp_dir();
+
     let (frontend_url, address_and_port) = frontend_address(args, &config)?;
+    let webserver_port_path = temp_dir.join("webserver-port");
+    std::fs::write(&webserver_port_path, "")?;
+    std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let client_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
 
-    let temp_dir = env.get_temp_dir();
     let state_root = env.get_state_dir();
 
     let pid_file_path = temp_dir.join("pid");
@@ -117,7 +122,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     if args.is_present("background") {
         send_background()?;
-        return ping_and_wait(&frontend_url);
+        return Ok(());
     }
 
     // Start the client.
@@ -284,7 +289,7 @@ fn send_background() -> DfxResult<()> {
 }
 
 fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String, SocketAddr)> {
-    let address_and_port = args
+    let mut address_and_port = args
         .value_of("host")
         .and_then(|host| Option::from(host.parse()))
         .unwrap_or_else(|| {
@@ -294,12 +299,21 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
                 .expect("could not get socket_addr"))
         })
         .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;
-    let frontend_url = format!(
-        "http://{}:{}",
-        address_and_port.ip(),
-        address_and_port.port()
-    );
 
+    if !args.is_present("background") {
+        // Since the user may have provided port "0", we need to grab a dynamically
+        // allocated port and construct a resuable SocketAddr which the actix
+        // HttpServer will bind to
+        address_and_port =
+            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
+    }
+    let ip = if address_and_port.is_ipv6() {
+        format!("[{}]", address_and_port.ip())
+    } else {
+        address_and_port.ip().to_string()
+    };
+    let frontend_url = format!("http://{}:{}", ip, address_and_port.port());
+    println!("frontend_url {:?}", frontend_url);
     Ok((frontend_url, address_and_port))
 }
 

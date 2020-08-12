@@ -1018,6 +1018,7 @@ dependencies = [
  "libflate",
  "mockall",
  "mockito",
+ "net2",
  "petgraph",
  "proptest",
  "rand 0.7.3",

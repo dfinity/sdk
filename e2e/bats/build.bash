@@ -93,7 +93,8 @@ teardown() {
 @test "build succeeds when requested network is configured" {
     dfx_start
 
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+    webserver_port=$(cat .dfx/webserver-port)
+    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
     assert_command dfx canister --network tungsten create --all
     assert_command dfx build --network tungsten
 }
@@ -108,7 +109,8 @@ teardown() {
 
 @test "build output for non-local network is in expected directory" {
   dfx_start
-  assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+  webserver_port=$(cat .dfx/webserver-port)
+  assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
   dfx canister --network tungsten create --all
   assert_command dfx build --network tungsten
   assert_command ls .dfx/tungsten/canisters/e2e_project/
