@@ -14,15 +14,16 @@ use crossbeam::unbounded;
 use futures::future::Future;
 use ic_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::Duration;
+
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 use tokio::runtime::Runtime;
-
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
 pub fn construct() -> App<'static, 'static> {
@@ -290,12 +291,30 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
                 .expect("could not get socket_addr"))
         })
         .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;
-    let frontend_url = format!(
-        "http://{}:{}",
-        address_and_port.ip(),
-        address_and_port.port()
-    );
 
+    // The user can pass in port "0" i.e. "127.0.0.1:0" or "[::1]:0", thus,
+    // we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
+    // TcpBuilder is used with reuse_address and reuse_port set to "true" because
+    // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
+    let address_and_port = match address_and_port.is_ipv4() {
+        true => TcpBuilder::new_v4()?
+            .bind(address_and_port)?
+            .reuse_address(true)?
+            .reuse_port(true)?
+            .to_tcp_listener()?
+            .local_addr()?,
+        false => TcpBuilder::new_v6()?
+            .bind(address_and_port)?
+            .reuse_address(true)?
+            .reuse_port(true)?
+            .to_tcp_listener()?
+            .local_addr()?,
+    };
+    let ip = match address_and_port.is_ipv6() {
+        true => format!("[{}]", address_and_port.ip()),
+        false => address_and_port.ip().to_string(),
+    };
+    let frontend_url = format!("http://{}:{}", ip, address_and_port.port());
     Ok((frontend_url, address_and_port))
 }
 
