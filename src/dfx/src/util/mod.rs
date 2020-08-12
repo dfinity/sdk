@@ -14,9 +14,10 @@ pub mod clap;
 // TcpBuilder is used with reuse_address and reuse_port set to "true" because
 // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
-    let tcp_builder = match ip.is_ipv4() {
-        true => TcpBuilder::new_v4()?,
-        false => TcpBuilder::new_v6()?,
+    let tcp_builder = if ip.is_ipv4() {
+        TcpBuilder::new_v4()?
+    } else {
+        TcpBuilder::new_v6()?
     };
     Ok(tcp_builder
         .bind(SocketAddr::new(ip, port))?

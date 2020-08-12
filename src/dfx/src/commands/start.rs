@@ -303,9 +303,10 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
         address_and_port =
             get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
     }
-    let ip = match address_and_port.is_ipv6() {
-        true => format!("[{}]", address_and_port.ip()),
-        false => address_and_port.ip().to_string(),
+    let ip = if address_and_port.is_ipv6() {
+        format!("[{}]", address_and_port.ip())
+    } else {
+        address_and_port.ip().to_string()
     };
     let frontend_url = format!("http://{}:{}", ip, address_and_port.port());
     println!("frontend_url {:?}", frontend_url);
