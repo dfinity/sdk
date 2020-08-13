@@ -64,7 +64,7 @@ function renderMethod(canister: CanisterActor, name: string, idlFunc: IDL.FuncCl
     resultDiv.style.display = 'block';
 
     const tStart = Date.now();
-    const result = canister[name](...args);
+    const result = await canister[name](...args);
     const duration = (Date.now() - tStart) / 1000;
     right.innerText = `(${duration}s)`;
     return result;
