@@ -43,7 +43,11 @@ dfx_start() {
 
         cat <<<$(jq .networks.local.bind=\"127.0.0.1:${port}\" dfx.json) >dfx.json
         cat dfx.json
-        dfx bootstrap --port 0 & # Start on random port for parallel test execution
+        if [[ "$@" == "" ]]; then
+            dfx bootstrap --port 0 & # Start on random port for parallel test execution
+        else
+            dfx bootstrap --port "$@" &
+        fi
         local webserver_port=$(cat .dfx/webserver-port)
         echo $! > dfx-bootstrap.pid
     else
