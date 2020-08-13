@@ -46,7 +46,7 @@ dfx_start() {
         if [[ "$@" == "" ]]; then
             dfx bootstrap --port 0 & # Start on random port for parallel test execution
         else
-            dfx bootstrap --port "$@" &
+            dfx bootstrap --port 8000 &
         fi
         local webserver_port=$(cat .dfx/webserver-port)
         echo $! > dfx-bootstrap.pid
