@@ -364,6 +364,7 @@ git push origin $NEW_DFX_VERSION
 ----
 +
 CI will only publish `dfx` from the latest commit from the `stable` branch when that commit is tagged with a version.
+. Make sure the release tag is visible https://github.com/dfinity-lab/sdk/releases[here].
 . Push the `stable` branch by running the following command:
 +
 [source, bash]
