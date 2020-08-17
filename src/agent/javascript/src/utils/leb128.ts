@@ -10,6 +10,13 @@ import BigNumber from 'bignumber.js';
 import Pipe = require('buffer-pipe');
 import { Buffer } from 'buffer/';
 
+export function safeRead(pipe: Pipe, num: number): Buffer {
+  if (pipe.buffer.length < num) {
+    throw new Error('unexpected end of buffer');
+  }
+  return pipe.read(num);
+}
+
 export function lebEncode(value: number | BigNumber): Buffer {
   if (typeof value === 'number') {
     value = new BigNumber(value);
@@ -40,7 +47,7 @@ export function lebDecode(pipe: Pipe): BigNumber {
   let byte;
 
   do {
-    byte = pipe.read(1)[0];
+    byte = safeRead(pipe, 1)[0];
     value = value.plus(new BigNumber(byte & 0x7f).multipliedBy(new BigNumber(2).pow(shift)));
     shift += 7;
   } while (byte >= 0x80);
@@ -96,7 +103,7 @@ export function slebDecode(pipe: Pipe): BigNumber {
     }
   }
 
-  const bytes = new Uint8Array(pipe.read(len + 1));
+  const bytes = new Uint8Array(safeRead(pipe, len + 1));
   let value = new BigNumber(0);
   for (let i = bytes.byteLength - 1; i >= 0; i--) {
     value = value.times(0x80).plus(0x80 - (bytes[i] & 0x7f) - 1);
@@ -134,12 +141,12 @@ export function writeIntLE(value: BigNumber | number, byteLength: number): Buffe
 }
 
 export function readUIntLE(pipe: Pipe, byteLength: number): BigNumber {
-  let val = new BigNumber(pipe.read(1)[0]);
+  let val = new BigNumber(safeRead(pipe, 1)[0]);
   let mul = new BigNumber(1);
   let i = 0;
   while (++i < byteLength) {
     mul = mul.times(256);
-    const byte = pipe.read(1)[0];
+    const byte = safeRead(pipe, 1)[0];
     val = val.plus(mul.times(byte));
   }
   return val;

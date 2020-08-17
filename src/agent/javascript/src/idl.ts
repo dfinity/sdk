@@ -5,14 +5,14 @@ import { Buffer } from 'buffer/';
 import { Principal as PrincipalId } from './principal';
 import { JsonValue } from './types';
 import { idlLabelToId } from './utils/hash';
-import { lebDecode, lebEncode, slebDecode, slebEncode } from './utils/leb128';
+import { lebDecode, lebEncode, safeRead, slebDecode, slebEncode } from './utils/leb128';
 import { readIntLE, readUIntLE, writeIntLE, writeUIntLE } from './utils/leb128';
 
 // tslint:disable:max-line-length
 /**
  * This module provides a combinator library to create serializers/deserializers
  * between JavaScript values and IDL used by canisters on the Internet Computer,
- * as documented at https://github.com/dfinity-lab/motoko/blob/2f71cfc9590741425db752a029e0758f94284e79/design/IDL.md
+ * as documented at https://github.com/dfinity/candid/blob/119703ba342d2fef6ab4972d2541b9fe36ae8e36/spec/Candid.md
  */
 // tslint:enable:max-line-length
 
@@ -296,8 +296,14 @@ export class BoolClass extends PrimitiveType<boolean> {
 
   public decodeValue(b: Pipe, t: Type) {
     this.checkType(t);
-    const x = b.read(1).toString('hex');
-    return x === '01';
+    const x = safeRead(b, 1).toString('hex');
+    if (x === '00') {
+      return false;
+    } else if (x === '01') {
+      return true;
+    } else {
+      throw new Error('Boolean value out of range');
+    }
   }
 
   get name() {
@@ -335,6 +341,10 @@ export class NullClass extends PrimitiveType<null> {
   }
 }
 
+function isValidUTF8(buf: Buffer): boolean {
+  return Buffer.compare(new Buffer(buf.toString(), 'utf8'), buf) === 0;
+}
+
 /**
  * Represents an IDL Text
  */
@@ -360,7 +370,11 @@ export class TextClass extends PrimitiveType<string> {
   public decodeValue(b: Pipe, t: Type) {
     this.checkType(t);
     const len = lebDecode(b).toNumber();
-    return b.read(len).toString('utf8');
+    const buf = safeRead(b, len);
+    if (!isValidUTF8(buf)) {
+      throw new Error('Not valid UTF8 text');
+    }
+    return buf.toString('utf8');
   }
 
   get name() {
@@ -482,7 +496,7 @@ export class FloatClass extends PrimitiveType<number> {
 
   public decodeValue(b: Pipe, t: Type) {
     this.checkType(t);
-    const x = b.read(this._bits / 8);
+    const x = safeRead(b, this._bits / 8);
     if (this._bits === 32) {
       return x.readFloatLE(0);
     } else {
@@ -699,7 +713,7 @@ export class OptClass<T> extends ConstructType<[T] | []> {
     if (!(opt instanceof OptClass)) {
       throw new Error('Not an option type');
     }
-    const len = b.read(1).toString('hex');
+    const len = safeRead(b, 1).toString('hex');
     if (len === '00') {
       return [];
     } else {
@@ -1043,12 +1057,12 @@ export class RecClass<T = any> extends ConstructType<T> {
 }
 
 function decodePrincipalId(b: Pipe): PrincipalId {
-  const x = b.read(1).toString('hex');
+  const x = safeRead(b, 1).toString('hex');
   if (x !== '01') {
     throw new Error('Cannot decode principal');
   }
   const len = lebDecode(b).toNumber();
-  const hex = b.read(len).toString('hex').toUpperCase();
+  const hex = safeRead(b, len).toString('hex').toUpperCase();
   return PrincipalId.fromHex(hex);
 }
 
@@ -1142,14 +1156,14 @@ export class FuncClass extends ConstructType<[PrincipalId, string]> {
   }
 
   public decodeValue(b: Pipe): [PrincipalId, string] {
-    const x = b.read(1).toString('hex');
+    const x = safeRead(b, 1).toString('hex');
     if (x !== '01') {
       throw new Error('Cannot decode function reference');
     }
     const canister = decodePrincipalId(b);
 
     const mLen = lebDecode(b).toNumber();
-    const method = b.read(mLen).toString('utf8');
+    const method = safeRead(b, mLen).toString('utf8');
     return [canister, method];
   }
 
@@ -1269,7 +1283,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
   if (bytes.byteLength < magicNumber.length) {
     throw new Error('Message length smaller than magic number');
   }
-  const magic = b.read(magicNumber.length).toString();
+  const magic = safeRead(b, magicNumber.length).toString();
   if (magic !== magicNumber) {
     throw new Error('Wrong magic number: ' + magic);
   }
@@ -1321,7 +1335,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
             }
           }
           const annLen = lebDecode(pipe).toNumber();
-          pipe.read(annLen);
+          safeRead(pipe, annLen);
           typeTable.push([ty, undefined]);
           break;
         }
@@ -1329,7 +1343,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
           let servLength = lebDecode(pipe).toNumber();
           while (servLength--) {
             const l = lebDecode(pipe).toNumber();
-            pipe.read(l);
+            safeRead(pipe, l);
             slebDecode(pipe);
           }
           typeTable.push([ty, undefined]);
