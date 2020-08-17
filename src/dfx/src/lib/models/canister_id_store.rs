@@ -2,7 +2,7 @@ use crate::config::dfinity::NetworkType;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 

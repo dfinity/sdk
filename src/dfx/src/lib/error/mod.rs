@@ -1,4 +1,5 @@
 use ic_agent::AgentError;
+use ic_types::principal::PrincipalError;
 
 mod build;
 mod cache;
@@ -45,6 +46,9 @@ pub enum DfxError {
 
     /// The agent returned an error (normally from the client).
     AgentError(AgentError),
+
+    ///
+    CouldNotGenerateRandomPrincipal(PrincipalError),
 
     /// This option is used when the source/cause of the error is
     /// ambiguous. If the cause is known use or add a new option.
@@ -233,6 +237,12 @@ impl From<clap::Error> for DfxError {
 impl From<AgentError> for DfxError {
     fn from(err: AgentError) -> DfxError {
         DfxError::AgentError(err)
+    }
+}
+
+impl From<PrincipalError> for DfxError {
+    fn from(err: PrincipalError) -> DfxError {
+        DfxError::CouldNotGenerateRandomPrincipal(err)
     }
 }
 

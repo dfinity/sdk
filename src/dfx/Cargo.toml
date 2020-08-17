@@ -66,8 +66,14 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.6"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "0.6"
-rev = "5b2fab20e1902f8709d1b09fcb6f5ee9feb0084e"
+branch = "next"
+rev = "4b8871323718d8f67b7e42df4ee176eb708fff71"
+
+[dependencies.ic-types]
+version = "0.1.0"
+git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
+branch = "next"
+rev = "4b8871323718d8f67b7e42df4ee176eb708fff71"
 
 [dev-dependencies]
 env_logger = "0.6"

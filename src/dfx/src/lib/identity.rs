@@ -1,4 +1,5 @@
-use ic_agent::{AgentError, Blob, Principal, Signature};
+use ic_agent::{AgentError, Blob, Signature};
+use ic_types::principal::Principal;
 use std::path::PathBuf;
 
 pub struct Identity(ic_identity_manager::Identity);

@@ -23,7 +23,7 @@ use crate::crypto_error::Error;
 use crate::crypto_error::Result;
 use crate::types::Signature;
 
-use ic_agent::Principal;
+use ic_types::principal::Principal;
 use std::path::PathBuf;
 
 /// An identity is a construct that denotes the set of claims of an

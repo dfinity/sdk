@@ -7,12 +7,13 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::assets;
-use ic_agent::{Blob, CanisterId};
+use ic_types::principal::Principal as CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
 use slog::Logger;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
@@ -72,7 +73,7 @@ impl Canister {
         let mut rng = thread_rng();
         let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
         rng.fill_bytes(v.as_mut_slice());
-        CanisterId::from(Blob(v))
+        CanisterId::try_from(v).unwrap()
     }
 
     /// Get the build output of a build process. If the output isn't known at this time,

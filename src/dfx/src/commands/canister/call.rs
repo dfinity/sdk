@@ -6,7 +6,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::create_waiter;
 use crate::util::{blob_from_arguments, get_candid_type, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
 use tokio::runtime::Runtime;
 

@@ -5,7 +5,7 @@ use crate::lib::error::DfxResult;
 
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::get_network_context;
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 use std::path::PathBuf;
 use std::sync::Arc;
 

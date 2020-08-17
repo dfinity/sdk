@@ -1,4 +1,4 @@
-use ic_agent::Principal;
+use ic_types::principal::Principal;
 
 // Note perhaps in the future we will need to indicate the schema
 // type.
