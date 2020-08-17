@@ -376,8 +376,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let is_dirty = dfx_version_str().contains('-');
 
     let js_agent_version = if is_dirty {
-        env.get_cache()
-            .get_binary_command_path("js-user-library")?
+        // file!() returns a path like `src/dfx/src/commands/new.rs`, but since we are
+        // running from a directory outside the source tree, this does not help.
+        let agent_path = std::env::current_exe()?
+            .parent()
+            .unwrap()
+            .join("../../src/agent/javascript");
+        agent_path
+            .canonicalize()
+            .map_err(|e|DfxError::IoAtPath(e, agent_path))?
             .to_string_lossy()
             .to_string()
     } else {
