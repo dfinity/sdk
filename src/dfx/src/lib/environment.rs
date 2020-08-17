@@ -388,7 +388,7 @@ fn create_agent(logger: Logger, url: &str, identity: PathBuf) -> Option<Agent> {
         .ok()
         .and_then(|executor| {
             Agent::new(AgentConfig {
-                url,
+                url: url.to_string(),
                 identity: Box::new(Identity::new(identity)),
                 password_manager: Some(Box::new(executor)),
                 ..AgentConfig::default()

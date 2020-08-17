@@ -2,7 +2,7 @@ use crate::config::dfinity::NetworkType;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
@@ -105,6 +105,15 @@ impl CanisterIdStore {
                 self.ids
                     .insert(canister_name.to_string(), network_name_to_canister_id);
             }
+        }
+        self.save_ids()
+    }
+
+    pub fn remove(&mut self, canister_name: &str) -> DfxResult<()> {
+        let network_name = &self.network_descriptor.name;
+        if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
+            network_name_to_canister_id.remove(&network_name.to_string());
+            self.ids.remove(&canister_name.to_string());
         }
         self.save_ids()
     }

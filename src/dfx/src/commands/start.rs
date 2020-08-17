@@ -6,7 +6,6 @@ use crate::lib::provider::get_network_descriptor;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
-use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
@@ -52,12 +51,17 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     let agent = Agent::new(AgentConfig {
-        url: frontend_url,
+        url: frontend_url.to_string(),
         ..AgentConfig::default()
     })?;
 
+    // wait for frontend to come up
+    use std::{thread, time};
+    let three_secs = time::Duration::from_secs(3);
+    thread::sleep(three_secs);
+
     runtime
-        .block_on(agent.ping(create_waiter()))
+        .block_on(agent.status())
         .map(|_| ())
         .map_err(DfxError::from)
 }

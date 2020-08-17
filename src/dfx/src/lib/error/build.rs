@@ -1,5 +1,5 @@
 use crate::lib::error::DfxError;
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 use std::fmt;
 use std::io::Error;
 use std::process::ExitStatus;

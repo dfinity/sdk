@@ -59,6 +59,26 @@ user_message!(
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network replica.",
 
+    // dfx canister delete
+    DeleteCanister => "Delete a canister on the replica.",
+    DeleteCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
+    DeleteAll => "Deletes all canisters configured in dfx.json.",
+
+    // dfx canister status
+    CanisterStatus => "Returns the current status of the canister on the replica: Running, Stopping, or Stopped.",
+    StatusCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
+    StatusAll => "Returns status of all canisters configured in dfx.json.",
+
+    // dfx canister start
+    StartCanister => "Starts a canister on the replica.",
+    StartCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
+    StartAll => "Starts all canisters configured in dfx.json.",
+
+    // dfx canister stop
+    StopCanister => "Stops a canister on the replica.",
+    StopCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
+    StopAll => "Stops all canisters configured in dfx.json.",
+
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",
     UpdateCanisterArg => "Sends an update request to a canister. This is the default if the method is not a query method.",

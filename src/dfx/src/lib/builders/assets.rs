@@ -9,7 +9,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
