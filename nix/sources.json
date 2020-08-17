@@ -32,6 +32,7 @@
         "type": "git"
     },
     "dfinity": {
+        "description": "delete me",
         "ref": "release-2020-08-17.RC00",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
         "rev": "4402d73e4470e8eccbe6b69b6218a9c098f4beb1",
