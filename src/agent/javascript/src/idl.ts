@@ -24,6 +24,7 @@ const enum IDLTypeIds {
   Float32 = -13,
   Float64 = -14,
   Text = -15,
+  Reserved = -16,
   Empty = -17,
   Opt = -18,
   Vector = -19,
@@ -102,6 +103,9 @@ export abstract class Visitor<D, R> {
     return this.visitPrimitive(t, data);
   }
   public visitNull(t: NullClass, data: D): R {
+    return this.visitPrimitive(t, data);
+  }
+  public visitReserved(t: ReservedClass, data: D): R {
     return this.visitPrimitive(t, data);
   }
   public visitText(t: TextClass, data: D): R {
@@ -338,6 +342,38 @@ export class NullClass extends PrimitiveType<null> {
 
   get name() {
     return 'null';
+  }
+}
+
+/**
+ * Represents an IDL Reserved
+ */
+export class ReservedClass extends PrimitiveType<any> {
+  public accept<D, R>(v: Visitor<D, R>, d: D): R {
+    return v.visitReserved(this, d);
+  }
+
+  public covariant(x: any): x is any {
+    return true;
+  }
+
+  public encodeValue() {
+    return Buffer.alloc(0);
+  }
+
+  public encodeType() {
+    return slebEncode(IDLTypeIds.Reserved);
+  }
+
+  public decodeValue(b: Pipe, t: Type) {
+    if (t.name !== this.name) {
+      t.decodeValue(b, t);
+    }
+    return null;
+  }
+
+  get name() {
+    return 'reserved';
   }
 }
 
@@ -1404,7 +1440,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
         case -15:
           return Text;
         case -16:
-          return Empty; // TODO: fix reversed
+          return Reserved;
         case -17:
           return Empty;
         case -24:
@@ -1488,6 +1524,7 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
 export type InterfaceFactory = (idl: {
   IDL: {
     Empty: EmptyClass;
+    Reserved: ReservedClass;
     Bool: BoolClass;
     Null: NullClass;
     Text: TextClass;
@@ -1523,6 +1560,7 @@ export type InterfaceFactory = (idl: {
 
 // Export Types instances.
 export const Empty = new EmptyClass();
+export const Reserved = new ReservedClass();
 export const Bool = new BoolClass();
 export const Null = new NullClass();
 export const Text = new TextClass();
