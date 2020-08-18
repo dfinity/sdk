@@ -384,7 +384,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .join("../../src/agent/javascript");
         agent_path
             .canonicalize()
-            .map_err(|e| DfxError::IoAtPath(e, agent_path))?
+            .map_err(|e| DfxError::IoWithPath(e, agent_path))?
             .to_string_lossy()
             .to_string()
     } else {

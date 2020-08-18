@@ -24,7 +24,7 @@ pub enum DfxError {
 
     Clap(clap::Error),
     Io(std::io::Error),
-    IoAtPath(std::io::Error, std::path::PathBuf),
+    IoWithPath(std::io::Error, std::path::PathBuf),
     Reqwest(reqwest::Error),
 
     CanisterNameMissing(),
