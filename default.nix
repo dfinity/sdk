@@ -20,7 +20,7 @@ rec {
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
 
-  assets = import ./assets.nix { inherit pkgs agent-js bootstrap-js distributed-canisters; };
+  assets = import ./assets.nix { inherit pkgs bootstrap-js distributed-canisters; };
 
   distributed-canisters = import ./distributed-canisters.nix { inherit pkgs; };
 
