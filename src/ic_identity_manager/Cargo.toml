@@ -1,6 +1,6 @@
 [package]
 name = "ic-identity-manager"
-version = "0.6.3"
+version = "0.6.4"
 authors = ["DFINITY Stiftung"]
 edition = "2018"
 
