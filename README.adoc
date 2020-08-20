@@ -50,16 +50,16 @@ The SDK is released in two steps:
    jobset on Hydra tracks the `stable` branch and starts evaluating shortly
    after `stable` advances.
 
-3. As you can see it only has the single job `publish.dfx.x86_64-linux` which is
+3. As you can see it only has the single job `publish.dfx` which is
    defined https://github.com/dfinity-lab/sdk/blob/stable/ci/release.nix[here]
    in terms of the
    https://github.com/dfinity-lab/sdk/blob/stable/publish.nix[`dfx`] job. Note
-   that the `publish.dfx.x86_64-linux` job only exists when the revision has a
+   that the `publish.dfx` job only exists when the revision has a
    proper version tag. This prevents publishing of untagged revisions.
 
 4. Our CD system running at `deployer.dfinity.systems` is configured with the
    https://github.com/dfinity-lab/infra/blob/1fe63e06135be206d064a74461f739c4fafec3c7/services/nix/publish-sdk-release.nix#L39:L47[`publish-sdk-dfx-release`]
-   job. It will monitor the aforementioned `publish.dfx.x86_64-linux` job for
+   job. It will monitor the aforementioned `publish.dfx` job for
    new builds, whenever there's a new build it will download the output (the CD
    script) and execute it.
 
