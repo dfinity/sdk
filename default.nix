@@ -2,7 +2,7 @@
 , src ? builtins.fetchGit ./.
 , releaseVersion ? "latest"
 , RustSec-advisory-db ? pkgs.sources.advisory-db
-, pkgs ? import ./nix { inherit system RustSec-advisory-db; }
+, pkgs ? import ./nix { inherit system; }
 , jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
 }:
 rec {
