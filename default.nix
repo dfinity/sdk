@@ -1,7 +1,7 @@
 { system ? builtins.currentSystem
 , src ? builtins.fetchGit ./.
 , releaseVersion ? "latest"
-, RustSec-advisory-db ? null
+, RustSec-advisory-db ? pkgs.sources.advisory-db
 , pkgs ? import ./nix { inherit system RustSec-advisory-db; }
 , jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
 }:
@@ -18,7 +18,7 @@ rec {
   # Bootstrap frontend.
   bootstrap-js = import ./src/bootstrap { inherit pkgs agent-js; };
 
-  cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
+  cargo-audit = import ./cargo-audit.nix { inherit pkgs RustSec-advisory-db; };
 
   assets = import ./assets.nix { inherit pkgs bootstrap-js distributed-canisters; };
 

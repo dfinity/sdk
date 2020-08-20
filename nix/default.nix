@@ -1,7 +1,6 @@
 # Returns the nixpkgs set overridden and extended with DFINITY specific
 # packages.
 { system ? builtins.currentSystem
-, RustSec-advisory-db ? null
 }:
 let
   # The `common` repo provides code (mostly Nix) that is used in the
@@ -37,15 +36,6 @@ let
             nixFmt = self.lib.nixFmt {};
           in
             {
-
-              # The RustSec-advisory-db used by cargo-audit.nix.
-              # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
-              # back on the one defined in sources.json.
-              RustSec-advisory-db =
-                if ! isNull RustSec-advisory-db
-                then RustSec-advisory-db
-                else self.sources.advisory-db;
-
               motoko = import self.sources.motoko { inherit (self) system; };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {
@@ -68,7 +58,6 @@ let
                   if supportedSystem == system
                   then self
                   else import ./. {
-                    inherit RustSec-advisory-db;
                     system = supportedSystem;
                   }
               );
