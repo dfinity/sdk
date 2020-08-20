@@ -3,7 +3,6 @@
 , releaseVersion ? "latest"
 , RustSec-advisory-db ? pkgs.sources.advisory-db
 , pkgs ? import ./nix { inherit system; }
-, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
 }:
 rec {
   dfx = import ./dfx.nix { inherit pkgs agent-js assets; };
@@ -39,11 +38,5 @@ rec {
 
   licenses = {
     dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
-  };
-
-  publish = import ./publish.nix {
-    inherit pkgs releaseVersion;
-    inherit (jobset) install;
-    dfx = jobset.dfx.standalone;
   };
 }

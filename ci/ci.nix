@@ -8,10 +8,21 @@
 
 , pkgs ? import ../nix { inherit system; }
 }:
-pkgs.lib.mk-jobset {
-  inherit supportedSystems;
-  inherit (src) rev;
-  mkJobsetSpec = { system, pkgs, jobset }: import ../. {
-    inherit system pkgs jobset RustSec-advisory-db releaseVersion src;
+let
+  jobset =
+    pkgs.lib.mk-jobset {
+      inherit supportedSystems;
+      inherit (src) rev;
+      mkJobsetSpec = { system, pkgs, ... }: import ../. {
+        inherit system pkgs RustSec-advisory-db releaseVersion src;
+      };
+    };
+
+  publish = import ./publish.nix {
+    inherit pkgs releaseVersion;
+    inherit (jobset) install;
+    dfx = jobset.dfx.standalone;
   };
-}
+
+in
+jobset // { inherit publish; } # todo: change CD job to publish.dfx
