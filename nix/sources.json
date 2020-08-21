@@ -32,15 +32,15 @@
         "type": "git"
     },
     "dfinity": {
-        "branch": "release-2020-08-17.RC00",
+        "tag": "release-2020-08-17.RC00",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
         "rev": "4402d73e4470e8eccbe6b69b6218a9c098f4beb1",
         "type": "git"
     },
     "ic-ref": {
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "14a8170db56db7ea3c902415ed23d7706f6e7c00",
         "tag": "release-0.9",
+        "rev": "493f0862ddd9970b8fb09e4e97f95fab1764b18e",
         "type": "git"
     },
     "motoko": {
