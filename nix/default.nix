@@ -21,8 +21,8 @@ let
   sources = import sourcesnix { sourcesFile = ./sources.json; inherit pkgs; };
 
   sourcesnix = builtins.fetchurl {
-    url = https://raw.githubusercontent.com/nmattia/niv/506b896788d9705899592a303de95d8819504c55/nix/sources.nix;
-    sha256 = "007bgq4zy1mjnnkbmaaxvvn4kgpla9wkm0d3lfrz3y1pa3wp9ha1";
+    url = https://raw.githubusercontent.com/nmattia/niv/d13bf5ff11850f49f4282d59b25661c45a851936/nix/sources.nix;
+    sha256 = "0a2rhxli7ss4wixppfwks0hy3zpazwm9l3y2v9krrnyiska3qfrw";
   };
 
   pkgs = import (commonSrc + "/pkgs") {
