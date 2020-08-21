@@ -1,8 +1,10 @@
 { system ? builtins.currentSystem
+, pkgs ? import ./nix { inherit system isMaster labels; }
 , src ? builtins.fetchGit ./.
 , releaseVersion ? "latest"
 , RustSec-advisory-db ? pkgs.sources.advisory-db
-, pkgs ? import ./nix { inherit system; }
+, isMaster ? true
+, labels ? {}
 }:
 rec {
   dfx = import ./dfx.nix { inherit pkgs agent-js assets; };
