@@ -66,14 +66,14 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "pshahi/add-new-mgmt-methods"
-rev = "de733d70056bda80600367bfe7359ebdd0950580"
+branch = "next"
+rev = "e443ef550c102a3956a024800aa98c82466d6f31"
 
 [dependencies.ic-types]
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "pshahi/add-new-mgmt-methods"
-rev = "de733d70056bda80600367bfe7359ebdd0950580"
+branch = "next"
+rev = "e443ef550c102a3956a024800aa98c82466d6f31"
 
 
 [dev-dependencies]

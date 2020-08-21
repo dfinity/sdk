@@ -1673,7 +1673,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/add-new-mgmt-methods#de733d70056bda80600367bfe7359ebdd0950580"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#e443ef550c102a3956a024800aa98c82466d6f31"
 dependencies = [
  "async-trait",
  "base32",
@@ -1685,6 +1685,7 @@ dependencies = [
  "ic-types",
  "leb128",
  "openssl",
+ "pem 0.8.1",
  "rand 0.7.3",
  "reqwest",
  "ring",
@@ -1704,7 +1705,7 @@ dependencies = [
  "ic-agent",
  "ic-types",
  "openssl",
- "pem",
+ "pem 0.7.0",
  "ring",
  "serde",
  "serde_cbor 0.10.2",
@@ -1713,7 +1714,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/add-new-mgmt-methods#de733d70056bda80600367bfe7359ebdd0950580"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#e443ef550c102a3956a024800aa98c82466d6f31"
 dependencies = [
  "base32",
  "crc32fast",
@@ -2437,6 +2438,17 @@ checksum = "a1581760c757a756a41f0ee3ff01256227bdf64cb752839779b95ffb01c59793"
 dependencies = [
  "base64 0.11.0",
  "lazy_static",
+ "regex",
+]
+
+[[package]]
+name = "pem"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59698ea79df9bf77104aefd39cc3ec990cb9693fb59c3b0a70ddf2646fdffb4b"
+dependencies = [
+ "base64 0.12.3",
+ "once_cell",
  "regex",
 ]
 
