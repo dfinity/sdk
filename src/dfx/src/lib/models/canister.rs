@@ -69,11 +69,11 @@ impl Canister {
     }
 
     // this function is only ever used when build_config.build_mode_check is true
-    pub fn generate_random_canister_id() -> CanisterId {
+    pub fn generate_random_canister_id() -> DfxResult<CanisterId> {
         let mut rng = thread_rng();
         let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
         rng.fill_bytes(v.as_mut_slice());
-        CanisterId::try_from(v).unwrap()
+        Ok(CanisterId::try_from(v)?)
     }
 
     /// Get the build output of a build process. If the output isn't known at this time,
@@ -112,7 +112,7 @@ impl CanisterPool {
             let canister_id = match canister_id_store.find(key) {
                 Some(canister_id) => Some(canister_id),
                 None if provide_random_canister_id_if_missing => {
-                    Some(Canister::generate_random_canister_id())
+                    Some(Canister::generate_random_canister_id()?)
                 }
                 _ => None,
             };

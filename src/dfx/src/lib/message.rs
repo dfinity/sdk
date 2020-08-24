@@ -60,24 +60,24 @@ user_message!(
     ManageCanister => "Manages canisters deployed on a network replica.",
 
     // dfx canister delete
-    DeleteCanister => "Delete a canister on the replica.",
-    DeleteCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
-    DeleteAll => "Deletes all canisters configured in dfx.json.",
+    DeleteCanister => "Deletes a canister on the Internet Computer network.",
+    DeleteCanisterName => "Specifies the name of the canister to delete. You must specify either a canister name or the --all flag.",
+    DeleteAll => "Deletes all of the canisters configured in the dfx.json file.",
 
     // dfx canister status
-    CanisterStatus => "Returns the current status of the canister on the replica: Running, Stopping, or Stopped.",
-    StatusCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
-    StatusAll => "Returns status of all canisters configured in dfx.json.",
+    CanisterStatus => "Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.",
+    StatusCanisterName => "Specifies the name of the canister to return information for. You must specify either a canister name or the --all flag.",
+    StatusAll => "Returns status information for all of the canisters configured in the dfx.json file.",
 
     // dfx canister start
-    StartCanister => "Starts a canister on the replica.",
-    StartCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
-    StartAll => "Starts all canisters configured in dfx.json.",
+    StartCanister => "Starts a canister on the Internet Computer network.",
+    StartCanisterName => "Specifies the name of the canister to start. You must specify either a canister name or the --all flag.",
+    StartAll => "Starts all of the canisters configured in the dfx.json file.",
 
     // dfx canister stop
-    StopCanister => "Stops a canister on the replica.",
-    StopCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
-    StopAll => "Stops all canisters configured in dfx.json.",
+    StopCanister => "Stops a canister that is currently running on the Internet Computer network.",
+    StopCanisterName => "Specifies the name of the canister to stop. You must specify either a canister name or the --all flag.",
+    StopAll => "Stops all of the canisters configured in the dfx.json file.",
 
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",

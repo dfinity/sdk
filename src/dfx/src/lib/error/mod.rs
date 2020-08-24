@@ -47,7 +47,8 @@ pub enum DfxError {
     /// The agent returned an error (normally from the client).
     AgentError(AgentError),
 
-    ///
+    /// Could not generate a random principal for the purposes of
+    /// building project in --check mode.
     CouldNotGenerateRandomPrincipal(PrincipalError),
 
     /// This option is used when the source/cause of the error is
