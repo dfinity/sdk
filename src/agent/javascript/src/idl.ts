@@ -168,7 +168,6 @@ export abstract class Visitor<D, R> {
  */
 export abstract class Type<T = any> {
   public abstract readonly name: string;
-
   public abstract accept<D, R>(v: Visitor<D, R>, d: D): R;
 
   /* Display type name */
@@ -752,8 +751,10 @@ export class OptClass<T> extends ConstructType<[T] | []> {
     const len = safeRead(b, 1).toString('hex');
     if (len === '00') {
       return [];
-    } else {
+    } else if (len === '01') {
       return [this._type.decodeValue(b, opt._type)];
+    } else {
+      throw new Error('Not an option value');
     }
   }
 
@@ -911,7 +912,16 @@ export class TupleClass<T extends any[]> extends RecordClass {
     if (tuple._components.length < this._components.length) {
       throw new Error('tuple mismatch');
     }
-    return this._components.map((c, i) => c.decodeValue(b, tuple._components[i])) as T;
+    const res = [];
+    for (const [i, wireType] of tuple._components.entries()) {
+      if (i >= this._components.length) {
+        // skip value
+        wireType.decodeValue(b, wireType);
+      } else {
+        res.push(this._components[i].decodeValue(b, wireType));
+      }
+    }
+    return res as T;
   }
 
   public display() {
@@ -1199,7 +1209,11 @@ export class FuncClass extends ConstructType<[PrincipalId, string]> {
     const canister = decodePrincipalId(b);
 
     const mLen = lebDecode(b).toNumber();
-    const method = safeRead(b, mLen).toString('utf8');
+    const buf = safeRead(b, mLen);
+    if (!isValidUTF8(buf)) {
+      throw new Error('Not valid UTF8 method name');
+    }
+    const method = buf.toString('utf8');
     return [canister, method];
   }
 
@@ -1331,32 +1345,26 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     for (let i = 0; i < len; i++) {
       const ty = slebDecode(pipe).toNumber();
       switch (ty) {
-        case IDLTypeIds.Opt: {
-          const t = slebDecode(pipe).toNumber();
-          typeTable.push([ty, t]);
-          break;
-        }
+        case IDLTypeIds.Opt:
         case IDLTypeIds.Vector: {
           const t = slebDecode(pipe).toNumber();
           typeTable.push([ty, t]);
           break;
         }
-        case IDLTypeIds.Record: {
-          const fields = [];
-          let objectLength = lebDecode(pipe).toNumber();
-          while (objectLength--) {
-            const hash = lebDecode(pipe).toNumber();
-            const t = slebDecode(pipe).toNumber();
-            fields.push([hash, t]);
-          }
-          typeTable.push([ty, fields]);
-          break;
-        }
+        case IDLTypeIds.Record:
         case IDLTypeIds.Variant: {
           const fields = [];
-          let variantLength = lebDecode(pipe).toNumber();
-          while (variantLength--) {
+          let objectLength = lebDecode(pipe).toNumber();
+          let prevHash;
+          while (objectLength--) {
             const hash = lebDecode(pipe).toNumber();
+            if (hash >= Math.pow(2, 32)) {
+              throw new Error('field id out of 32-bit range');
+            }
+            if (typeof prevHash === 'number' && prevHash >= hash) {
+              throw new Error('field id collision or not sorted');
+            }
+            prevHash = hash;
             const t = slebDecode(pipe).toNumber();
             fields.push([hash, t]);
           }
