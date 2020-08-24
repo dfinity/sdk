@@ -34,8 +34,8 @@ let
           ] ++ lib.optional use_ic_ref ic-ref;
           BATSLIB = pkgs.sources.bats-support;
           USE_IC_REF = use_ic_ref;
-          utils = lib.gitOnlySource ../../. ./utils;
-          assets = lib.gitOnlySource ../../. ./assets;
+          utils = lib.gitOnlySource ./utils;
+          assets = lib.gitOnlySource ./assets;
           test = here + "/${fileName}";
         } ''
           export HOME=$(pwd)
