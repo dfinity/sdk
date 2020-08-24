@@ -160,6 +160,28 @@ What that means is your PR title should start with one of the following prefix:
 
 https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfx.doc.x86_64-linux/dfx/index.html[Latest cargo docs].
 
+== Building without Nix
+
+The build script in this repo requires an environment variable to point to the asset directory
+that is to be bundled. That asset directory is normally built as a nix dependency to building
+DFX.
+
+If you aren't changing the assets themselves (ie. you're just fixing a bug in dfx), and you
+already have the latest DFX installed, it's probably safe (but not always) to use the cache
+folder installed on your computer as the asset directory.
+
+You can do this with the follow command:
+
+[source,bash]
+----
+export DFX_ASSETS=$(dfx cache show)
+cargo build
+----
+
+Please note that this will work, but result in a bigger output (dfx itself is part of the cache
+but not the asset), and that if the installed cache is out of sync with your branch it might
+result in incompatibilities. This is normally enough to run unit tests and compilation though.
+
 == CI
 
 To run the CI job manually run either:
@@ -172,12 +194,3 @@ nix-build ci/ci.nix -A dfx[.x86_64-linux|.x86_64-darwin]
 === Licenses
 
 https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/licenses.dfx.x86_64-linux/licenses.dfinity-sdk-dfx.html[Latest licenses of all dependencies of dfx (build for x86_64-linux)].
-
-=== Visualization
-
-https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/dfx.x86_64-linux/dfx/cargo-graph.svg[Access the latest graph of dependencies between crates of the `dfx` crate (build for x86_64-linux)].
-
-To build and visualize this graph locally run:
-
-[source,bash]
-open $(nix-build -A dfx.doc)/dfx/cargo-graph.svg
