@@ -64,10 +64,17 @@ walkdir = "2.2.9"
 wasmparser = "0.45.0"
 
 [dependencies.ic-agent]
-version = "0.6"
+version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "0.6"
-rev = "5b2fab20e1902f8709d1b09fcb6f5ee9feb0084e"
+branch = "next"
+rev = "e443ef550c102a3956a024800aa98c82466d6f31"
+
+[dependencies.ic-types]
+version = "0.1.0"
+git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
+branch = "next"
+rev = "e443ef550c102a3956a024800aa98c82466d6f31"
+
 
 [dev-dependencies]
 env_logger = "0.6"

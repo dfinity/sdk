@@ -59,6 +59,26 @@ user_message!(
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network replica.",
 
+    // dfx canister delete
+    DeleteCanister => "Deletes a canister on the Internet Computer network.",
+    DeleteCanisterName => "Specifies the name of the canister to delete. You must specify either a canister name or the --all flag.",
+    DeleteAll => "Deletes all of the canisters configured in the dfx.json file.",
+
+    // dfx canister status
+    CanisterStatus => "Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.",
+    StatusCanisterName => "Specifies the name of the canister to return information for. You must specify either a canister name or the --all flag.",
+    StatusAll => "Returns status information for all of the canisters configured in the dfx.json file.",
+
+    // dfx canister start
+    StartCanister => "Starts a canister on the Internet Computer network.",
+    StartCanisterName => "Specifies the name of the canister to start. You must specify either a canister name or the --all flag.",
+    StartAll => "Starts all of the canisters configured in the dfx.json file.",
+
+    // dfx canister stop
+    StopCanister => "Stops a canister that is currently running on the Internet Computer network.",
+    StopCanisterName => "Specifies the name of the canister to stop. You must specify either a canister name or the --all flag.",
+    StopAll => "Stops all of the canisters configured in the dfx.json file.",
+
     // dfx canister query
     QueryCanister => "Sends a query request to a canister.",
     UpdateCanisterArg => "Sends an update request to a canister. This is the default if the method is not a query method.",

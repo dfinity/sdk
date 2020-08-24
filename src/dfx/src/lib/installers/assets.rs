@@ -28,7 +28,7 @@ pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> Df
             let canister_id = info.get_canister_id().expect("Could not find canister ID.");
             let method_name = String::from("store");
             agent
-                .call_and_wait(&canister_id, &method_name, &blob, create_waiter())
+                .update_and_wait(&canister_id, &method_name, &blob, create_waiter())
                 .await?;
         }
     }

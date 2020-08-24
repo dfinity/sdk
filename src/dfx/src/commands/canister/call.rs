@@ -6,7 +6,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::create_waiter;
 use crate::util::{blob_from_arguments, get_candid_type, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
 use tokio::runtime::Runtime;
 
@@ -135,12 +135,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
         let request_id =
-            runtime.block_on(client.call_raw(&canister_id, method_name, &arg_value))?;
+            runtime.block_on(client.update_raw(&canister_id, method_name, &arg_value))?;
 
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
     } else {
-        let blob = runtime.block_on(client.call_and_wait(
+        let blob = runtime.block_on(client.update_and_wait(
             &canister_id,
             method_name,
             &arg_value,

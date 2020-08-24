@@ -5,7 +5,7 @@ use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::provider::get_network_context;
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
