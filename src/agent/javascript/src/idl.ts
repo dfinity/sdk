@@ -167,10 +167,6 @@ export abstract class Visitor<D, R> {
  * Represents an IDL type.
  */
 export abstract class Type<T = any> {
-  public static decodeTypeTableLength = 0;
-  // record_nesting_depth should be bounded by type_table_length to avoid stack overflow.
-  public static decodeRecordNestingDepth = 0;
-
   public abstract readonly name: string;
   public abstract accept<D, R>(v: Visitor<D, R>, d: D): R;
 
@@ -220,7 +216,6 @@ export abstract class PrimitiveType<T = any> extends Type<T> {
     if (this.name !== t.name) {
       throw new Error(`type mismatch: type on the wire ${t.name}, expect type ${this.name}`);
     }
-    Type.decodeRecordNestingDepth = 0;
     return t;
   }
   public _buildTypeTableImpl(typeTable: TypeTable): void {
@@ -235,14 +230,6 @@ export abstract class ConstructType<T = any> extends Type<T> {
       const ty = t.getType();
       if (typeof ty === 'undefined') {
         throw new Error('type mismatch with uninitialized type');
-      }
-      if (ty instanceof RecordClass || ty instanceof TupleClass) {
-        if (Type.decodeRecordNestingDepth > Type.decodeTypeTableLength) {
-          throw new Error('infinite record type');
-        }
-        Type.decodeRecordNestingDepth++;
-      } else {
-        Type.decodeRecordNestingDepth = 0;
       }
       return ty;
     }
@@ -1521,7 +1508,6 @@ export function decode(retTypes: Type[], bytes: Buffer): JsonValue[] {
     const t = buildType(entry);
     table[i].fill(t);
   });
-  Type.decodeTypeTableLength = table.length;
 
   const types = rawTypes.map(t => getType(t));
   const output = retTypes.map((t, i) => {
