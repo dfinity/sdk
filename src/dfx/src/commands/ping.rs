@@ -45,7 +45,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let status = runtime.block_on(agent.status())?;
-    println!("{:?}", status);
+    println!("{}", status);
 
     Ok(())
 }
