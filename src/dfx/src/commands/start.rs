@@ -58,7 +58,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     // wait for frontend to come up
     use std::{thread, time};
-    let three_secs = time::Duration::from_secs(3);
+    let three_secs = time::Duration::from_secs(5);
     thread::sleep(three_secs);
 
     runtime
