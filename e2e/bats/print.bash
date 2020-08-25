@@ -14,8 +14,7 @@ teardown() {
 }
 
 @test "print_mo" {
-    skip "skip test to debug"
-    # [ "$USE_IC_REF" ] && skip "printing from mo not specified"
+    [ "$USE_IC_REF" ] && skip "printing from mo not specified"
 
     install_asset print
     dfx_start 2>stderr.txt
@@ -25,5 +24,5 @@ teardown() {
     dfx canister install e2e_project
     dfx canister call e2e_project hello
     run tail -2 stderr.txt
-    assert_match "[Canister ${ID}] Hello, World! from DFINITY"
+    assert_match "Hello, World! from DFINITY"
 }
