@@ -19,9 +19,10 @@ teardown() {
     install_asset print
     dfx_start 2>stderr.txt
     dfx canister create --all
+    ID=$(dfx canister id e2e_project)
     dfx build
     dfx canister install e2e_project
     dfx canister call e2e_project hello
-    run cat stderr.txt
-    assert_match "debug.print: Hello, World! from DFINITY"
+    run tail -2 stderr.txt
+    assert_match "[Canister ${ID}] Hello, World! from DFINITY "
 }
