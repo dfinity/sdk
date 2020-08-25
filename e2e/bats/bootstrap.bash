@@ -15,7 +15,7 @@ teardown() {
 @test "bootstrap fetches candid file" {
     dfx_start
     dfx canister create --all
-    dfx build
+    dfx build --all
     dfx canister install hello
     ID=$(dfx canister id hello)
 

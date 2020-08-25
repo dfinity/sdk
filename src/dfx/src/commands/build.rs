@@ -11,6 +11,19 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
         .about(UserMessage::BuildCanister.to_str())
         .arg(
+            Arg::with_name("canister_name")
+                .takes_value(true)
+                .help(UserMessage::CreateCanisterName.to_str())
+                .required(false),
+        )
+        .arg(
+            Arg::with_name("all")
+                .long("all")
+                .required_unless("canister_name")
+                .help(UserMessage::CreateAll.to_str())
+                .takes_value(false),
+        )
+        .arg(
             Arg::with_name("skip-frontend")
                 .long("skip-frontend")
                 .takes_value(false)
@@ -45,8 +58,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     env.get_cache().install()?;
 
     let build_mode_check = args.is_present("check");
-    // First build.
-    let canister_pool = CanisterPool::load(&env, build_mode_check)?;
+
+    // Option can be None in which case --all was specified
+    let some_canister = args.value_of("canister_name");
+
+    // Get whole pool of canisters configured in dfx.json
+    let canister_pool = CanisterPool::load(&env, build_mode_check, some_canister)?;
 
     // Create canisters on the replica and associate canister ids locally.
     if args.is_present("check") {

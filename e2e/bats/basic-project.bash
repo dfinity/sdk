@@ -18,7 +18,7 @@ teardown() {
     install_asset greet
     dfx_start
     dfx canister create --all
-    dfx build
+    dfx build --all
     # INSTALL_REQUEST_ID=$(dfx canister install hello --async)
     # dfx canister request-status $INSTALL_REQUEST_ID
     dfx canister install hello
@@ -43,7 +43,7 @@ teardown() {
     install_asset counter
     dfx_start
     dfx canister create --all
-    dfx build
+    dfx build --all
     dfx canister install hello
 
     assert_command dfx canister call hello read
@@ -87,7 +87,7 @@ teardown() {
     install_asset counter_idl
     dfx_start
     dfx canister create --all
-    dfx build
+    dfx build --all
     dfx canister install --all
 
     assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=null}}, variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })'
@@ -98,7 +98,7 @@ teardown() {
     install_asset matrix_multiply
     dfx_start
     dfx canister create --all
-    dfx build
+    dfx build --all
     dfx canister install --all
 
     assert_command dfx canister call hello multiply '(vec{vec{1;2};vec{3;4};vec{5;6}},vec{vec{1;2;3};vec{4;5;6}})'

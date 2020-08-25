@@ -17,7 +17,7 @@ teardown() {
     install_asset identity
     dfx_start
     dfx canister create --all
-    assert_command dfx build
+    assert_command dfx build --all
     assert_command dfx canister install --all
 
     ID_CALL=$(dfx canister call e2e_project fromCall)

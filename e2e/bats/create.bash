@@ -27,14 +27,14 @@ teardown() {
 
 @test "build fails without create" {
     dfx_start
-    assert_command_fail dfx build
+    assert_command_fail dfx build --all
     assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project'"
 }
 
 @test "build fails if all canisters in project are not created" {
     dfx_start
     assert_command dfx canister create e2e_project
-    assert_command_fail dfx build
+    assert_command_fail dfx build --all
     assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_assets'"
 }
 

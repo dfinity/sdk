@@ -24,12 +24,12 @@ teardown() {
     # Make sure we're in an empty directory.
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
 
-    assert_command_fail dfx build
+    assert_command_fail dfx build --all
     assert_match "must be run in a project"
 
     dfx new t --no-frontend
     cd t
     dfx_start
     dfx canister create --all
-    assert_command dfx build
+    assert_command dfx build --all
 }

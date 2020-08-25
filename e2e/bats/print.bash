@@ -19,7 +19,7 @@ teardown() {
     install_asset print
     dfx_start 2>stderr.txt
     dfx canister create --all
-    dfx build
+    dfx build --all
     dfx canister install e2e_project
     dfx canister call e2e_project hello
     run cat stderr.txt

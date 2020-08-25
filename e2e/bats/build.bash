@@ -18,7 +18,7 @@ teardown() {
     install_asset invalid
     dfx_start
     dfx canister create --all
-    assert_command_fail dfx build
+    assert_command_fail dfx build --all
     assert_match "syntax error"
 }
 
@@ -26,7 +26,7 @@ teardown() {
     install_asset import
     dfx_start
     dfx canister create --all
-    assert_command dfx build
+    assert_command dfx build --all
     dfx canister install --all
     assert_command dfx canister call e2e_project greet World
     assert_match "10World"
@@ -35,7 +35,7 @@ teardown() {
 @test "build succeeds on default project" {
     dfx_start
     dfx canister create --all
-    assert_command dfx build
+    assert_command dfx build --all
 }
 
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
@@ -43,9 +43,9 @@ teardown() {
 @test "build twice produces the same wasm binary" {
   dfx_start
   dfx canister create --all
-  assert_command dfx build
+  assert_command dfx build --all
   cp .dfx/local/canisters/e2e_project/e2e_project.wasm ./old.wasm
-  assert_command dfx build
+  assert_command dfx build --all
   assert_command diff .dfx/local/canisters/e2e_project/e2e_project.wasm ./old.wasm
 }
 
@@ -53,7 +53,7 @@ teardown() {
     install_asset warning
     dfx_start
     dfx canister create --all
-    assert_command dfx build
+    assert_command dfx build --all
     assert_match "warning, this pattern consuming type"
 }
 
@@ -61,7 +61,7 @@ teardown() {
     install_asset import_error
     dfx_start
     dfx canister create --all
-    assert_command_fail dfx build
+    assert_command_fail dfx build --all
     assert_match 'import error, canister alias "random" not defined'
 }
 
@@ -69,7 +69,7 @@ teardown() {
   dfx_start
   dfx config canisters.e2e_project.type unknown_canister_type
   dfx canister create --all
-  assert_command_fail dfx build
+  assert_command_fail dfx build --all
   assert_match "CouldNotFindBuilderForCanister"
 }
 
@@ -77,7 +77,7 @@ teardown() {
   dfx_start
   install_asset custom_canister
   dfx canister create --all
-  assert_command dfx build
+  assert_command dfx build --all
   assert_match "CUSTOM_CANISTER_BUILD_DONE"
 
   dfx canister install --all
@@ -87,7 +87,7 @@ teardown() {
 @test "build succeeds with network parameter" {
     dfx_start
     dfx canister --network local create --all
-    assert_command dfx build --network local
+    assert_command dfx build --network local --all
 }
 
 @test "build succeeds when requested network is configured" {
@@ -95,13 +95,13 @@ teardown() {
 
     assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
     assert_command dfx canister --network tungsten create --all
-    assert_command dfx build --network tungsten
+    assert_command dfx build --network tungsten --all
 }
 
 @test "build output for local network is in expected directory" {
   dfx_start
   dfx canister create --all
-  assert_command dfx build
+  assert_command dfx build --all
   assert_command ls .dfx/local/canisters/e2e_project/
   assert_command ls .dfx/local/canisters/e2e_project/e2e_project.wasm
 }
@@ -110,7 +110,7 @@ teardown() {
   dfx_start
   assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
   dfx canister --network tungsten create --all
-  assert_command dfx build --network tungsten
+  assert_command dfx build --network tungsten --all
   assert_command ls .dfx/tungsten/canisters/e2e_project/
   assert_command ls .dfx/tungsten/canisters/e2e_project/e2e_project.wasm
 }
