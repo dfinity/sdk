@@ -24,5 +24,5 @@ teardown() {
     dfx canister install e2e_project
     dfx canister call e2e_project hello
     run tail -2 stderr.txt
-    assert_match "[Canister ${ID}] Hello, World! from DFINITY "
+    assert_match "[Canister ${ID}] Hello, World! from DFINITY"
 }
