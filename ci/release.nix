@@ -11,5 +11,5 @@ let
   ci = import ./ci.nix { inherit src releaseVersion; };
 in
 if !doRelease then {} else {
-  publish.dfx.x86_64-linux = ci.publish.dfx.x86_64-linux;
+  publish.dfx = ci.publish.dfx;
 }
