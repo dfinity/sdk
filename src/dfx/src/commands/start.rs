@@ -21,6 +21,7 @@ use std::process::Command;
 use std::time::Duration;
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 use tokio::runtime::Runtime;
+use delay::{Delay, Waiter};
 
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
@@ -56,14 +57,22 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     })?;
 
     // wait for frontend to come up
-    use std::{thread, time};
-    let three_secs = time::Duration::from_secs(3);
-    thread::sleep(three_secs);
+    let mut waiter = Delay::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .throttle(std::time::Duration::from_secs(1))
+        .build();
 
-    runtime
-        .block_on(agent.status())
-        .map(|_| ())
-        .map_err(DfxError::from)
+    runtime.block_on(async {
+        waiter.start();
+        loop {
+            let status = agent.status().await;
+            if status.is_ok() {
+                break;
+            }
+            waiter.wait().map_err(|_|DfxError::AgentError(status.unwrap_err()))?;
+        }
+        Ok(())
+    })
 }
 
 // TODO(eftychis)/In progress: Rename to replica.
