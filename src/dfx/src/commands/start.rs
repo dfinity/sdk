@@ -10,6 +10,7 @@ use crate::lib::replica_config::ReplicaConfig;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
+use delay::{Delay, Waiter};
 use futures::future::Future;
 use ic_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
@@ -21,7 +22,6 @@ use std::process::Command;
 use std::time::Duration;
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 use tokio::runtime::Runtime;
-use delay::{Delay, Waiter};
 
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
@@ -69,7 +69,9 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
             if status.is_ok() {
                 break;
             }
-            waiter.wait().map_err(|_|DfxError::AgentError(status.unwrap_err()))?;
+            waiter
+                .wait()
+                .map_err(|_| DfxError::AgentError(status.unwrap_err()))?;
         }
         Ok(())
     })
