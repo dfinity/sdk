@@ -3,6 +3,7 @@
 { system ? builtins.currentSystem
 , isMaster ? true
 , labels ? {}
+, sources ? import ./sources.nix { inherit system; }
 }:
 let
   # The `common` repo provides code (mostly Nix) that is used in the
@@ -20,13 +21,6 @@ let
       then localCommonSrc
       else sources.common;
 
-  sources = import sourcesnix { sourcesFile = ./sources.json; inherit pkgs; };
-
-  sourcesnix = builtins.fetchurl {
-    url = https://raw.githubusercontent.com/nmattia/niv/d13bf5ff11850f49f4282d59b25661c45a851936/nix/sources.nix;
-    sha256 = "0a2rhxli7ss4wixppfwks0hy3zpazwm9l3y2v9krrnyiska3qfrw";
-  };
-
   pkgs = import (commonSrc + "/pkgs") {
     inherit system isMaster labels;
     extraSources = sources;
@@ -43,6 +37,7 @@ let
               napalm = self.callPackage self.sources.napalm {
                 pkgs = self // { nodejs = self.nodejs-12_x; };
               };
+
               ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref;
 
               nix-fmt = nixFmt.fmt;

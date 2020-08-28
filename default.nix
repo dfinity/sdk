@@ -13,15 +13,18 @@ rec {
   e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
   node-e2e-tests = import ./e2e/node { inherit pkgs dfx; };
 
+  agent-js-monorepo = import ./nix/agent-js/agent-js-monorepo.nix { inherit system pkgs; };
+
   # Agents in varous languages
-  agent-js = import ./src/agent/javascript { inherit pkgs; };
+  # agent-js = pkgs.agent-js;
 
   # Bootstrap frontend.
-  bootstrap-js = import ./src/bootstrap { inherit pkgs agent-js; };
+  bootstrap-js = import ./nix/agent-js/bootstrap-js.nix { inherit system pkgs; };
+  agent-js = import ./nix/agent-js/agent-js.nix { inherit system pkgs; };
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs RustSec-advisory-db; };
 
-  assets = import ./assets.nix { inherit pkgs bootstrap-js distributed-canisters; };
+  assets = import ./assets.nix { inherit pkgs distributed-canisters; };
 
   distributed-canisters = import ./distributed-canisters.nix { inherit pkgs; };
 
