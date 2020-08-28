@@ -13,6 +13,7 @@ setup() {
     dfx_start
 }
 
+
 teardown() {
     dfx_stop
     rm -rf home-for-test
