@@ -10,7 +10,10 @@ pkgs.stdenv.mkDerivation {
     "lib"
   ];
   buildPhase = ''
-    npm run build --if-present
+    # Don't run `npm run build` here, which will call `tsc -b`.
+    # `tsc -b` will use typescrpit project references to build things,
+    # which may try to read from other packages. But nix will error on read from those dirs.
+    # Let all building happen on the monorepo package.
   '';
   installPhase = ''
     mkdir -p $out
