@@ -19,6 +19,7 @@ pkgs.stdenv.mkDerivation {
     # without this, npm install will try to write to ~/.npm, which isn't writable in nix
     export NPM_CONFIG_CACHE=.npm-cache;
     npm install;
+    npx lerna bootstrap --nohoist '*';
   '';
   installPhase = ''
     mkdir -p $out

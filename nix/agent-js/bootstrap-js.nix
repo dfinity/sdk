@@ -6,6 +6,7 @@
 pkgs.stdenv.mkDerivation {
   name = "bootstrap-js";
   src = "${monorepo}/packages/bootstrap/";
+  buildInputs = [ pkgs.nodejs ];
   outputs = [
     "out"
     "lib"
