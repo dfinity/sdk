@@ -16,11 +16,10 @@ rec {
   agent-js-monorepo = import ./nix/agent-js/agent-js-monorepo.nix { inherit system pkgs; };
 
   # Agents in varous languages
-  # agent-js = pkgs.agent-js;
+  agent-js = import ./nix/agent-js/agent-js.nix { inherit system pkgs; };
 
   # Bootstrap frontend.
   bootstrap-js = import ./nix/agent-js/bootstrap-js.nix { inherit system pkgs; };
-  agent-js = import ./nix/agent-js/agent-js.nix { inherit system pkgs; };
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs RustSec-advisory-db; };
 

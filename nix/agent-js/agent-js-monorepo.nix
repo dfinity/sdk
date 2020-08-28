@@ -6,17 +6,13 @@ let
   src = sources.agent-js-monorepo;
 in
 
-pkgs.stdenv.mkDerivation {
+# This does not work. napalm doesn't like how `npm install` triggers lerna bootstrap.
+pkgs.napalm.buildPackage src {
   name = "agent-js-monorepo";
-  src = src;
-  outputs = [
-    "out"
-    "lib"
+  outputs = [ "out" "lib" ];
+  npmCommands = [
+    "npm install"
   ];
-  buildPhase = ''
-    # # npm is not found :(
-    # npm install;
-  '';
   installPhase = ''
     mkdir -p $out
 
@@ -24,26 +20,6 @@ pkgs.stdenv.mkDerivation {
 
     # Copy node_modules to be reused elsewhere.
     mkdir -p $lib
-    # cp -R node_modules $lib
+    test -d node_modules && cp -R node_modules $lib || true
   '';
 }
-
-# # This does not work. napalm doesn't like how `npm install` triggers lerna bootstrap.
-# pkgs.napalm.buildPackage src {
-#   name = "agent-js-monorepo";
-#   outputs = [ "out" "lib" ];
-#   # ci script now does everything CI should do. Bundle is needed because it's the output
-#   # of the nix derivation.
-#   npmCommands = [
-#     "npm install"
-#   ];
-#   installPhase = ''
-#     mkdir -p $out
-
-#     cp -R ./* $out/
-
-#     # Copy node_modules to be reused elsewhere.
-#     mkdir -p $lib
-#     cp -R node_modules $lib
-#   '';
-# }
