@@ -6,13 +6,20 @@ let
   src = sources.agent-js-monorepo;
 in
 
-# This does not work. napalm doesn't like how `npm install` triggers lerna bootstrap.
-pkgs.napalm.buildPackage src {
+pkgs.stdenv.mkDerivation {
   name = "agent-js-monorepo";
-  outputs = [ "out" "lib" ];
-  npmCommands = [
-    "npm install"
+  src = src;
+  buildInputs = [ pkgs.nodejs ];
+  outputs = [
+    "out"
+    "lib"
   ];
+  buildPhase = ''
+    mkdir -p .npm-cache
+    # without this, npm install will try to write to ~/.npm, which isn't writable in nix
+    export NPM_CONFIG_CACHE=.npm-cache;
+    npm install;
+  '';
   installPhase = ''
     mkdir -p $out
 

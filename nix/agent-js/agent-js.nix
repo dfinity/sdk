@@ -6,11 +6,13 @@
 pkgs.stdenv.mkDerivation {
   name = "agent-js";
   src = "${monorepo}/packages/agent/";
+  buildInputs = [ pkgs.nodejs ];
   outputs = [
     "out"
     "lib"
   ];
   buildPhase = ''
+    npm run build --if-present
   '';
   installPhase = ''
     mkdir -p $out

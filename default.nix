@@ -13,8 +13,6 @@ rec {
   e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
   node-e2e-tests = import ./e2e/node { inherit pkgs dfx; };
 
-  agent-js-monorepo = import ./nix/agent-js/agent-js-monorepo.nix { inherit system pkgs; };
-
   # Agents in varous languages
   agent-js = import ./nix/agent-js/agent-js.nix { inherit system pkgs; };
 

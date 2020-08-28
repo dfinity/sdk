@@ -11,6 +11,7 @@ pkgs.stdenv.mkDerivation {
     "lib"
   ];
   buildPhase = ''
+    npm run build --if-present
   '';
   installPhase = ''
     mkdir -p $out
