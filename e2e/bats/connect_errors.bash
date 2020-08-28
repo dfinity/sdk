@@ -11,8 +11,8 @@ setup() {
 
     dfx_new
     dfx_start
+    # 3
 }
-
 
 teardown() {
     dfx_stop
