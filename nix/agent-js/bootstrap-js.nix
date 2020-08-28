@@ -1,11 +1,9 @@
 { pkgs ? import ../. { inherit system; }
 , system ? builtins.currentSystem
-, sources ? import ../sources.nix { inherit system; }
-, monorepo ? import ./agent-js-monorepo.nix { inherit system pkgs; }
 }:
 pkgs.stdenv.mkDerivation {
   name = "bootstrap-js";
-  src = "${monorepo}/packages/bootstrap/";
+  src = "${pkgs.agent-js-monorepo}/packages/bootstrap/";
   buildInputs = [ pkgs.nodejs ];
   outputs = [
     "out"

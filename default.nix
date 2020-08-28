@@ -21,7 +21,7 @@ rec {
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs RustSec-advisory-db; };
 
-  assets = import ./assets.nix { inherit pkgs distributed-canisters; };
+  assets = import ./assets.nix { inherit pkgs bootstrap-js distributed-canisters; };
 
   distributed-canisters = import ./distributed-canisters.nix { inherit pkgs; };
 

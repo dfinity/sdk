@@ -1,11 +1,9 @@
 { pkgs ? import ../. { inherit system; }
 , system ? builtins.currentSystem
-, sources ? import ../sources.nix { inherit system; }
-, monorepo ? import ./agent-js-monorepo.nix { inherit system pkgs; }
 }:
 pkgs.stdenv.mkDerivation {
   name = "agent-js";
-  src = "${monorepo}/packages/agent/";
+  src = "${pkgs.agent-js-monorepo}/packages/agent/";
   buildInputs = [ pkgs.nodejs ];
   outputs = [
     "out"

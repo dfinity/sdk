@@ -1,11 +1,11 @@
 { pkgs ? import ../. { inherit system; }
 , system ? builtins.currentSystem
-, sources ? import ../sources.nix { inherit system; }
+# This should be via sourcesnix for the git monorepo
+, agent-js-monorepo-src
 }:
 let
-  src = sources.agent-js-monorepo;
+  src = agent-js-monorepo-src;
 in
-
 pkgs.stdenv.mkDerivation {
   name = "agent-js-monorepo";
   src = src;
@@ -18,7 +18,7 @@ pkgs.stdenv.mkDerivation {
     mkdir -p .npm-cache
     # without this, npm install will try to write to ~/.npm, which isn't writable in nix
     export NPM_CONFIG_CACHE=.npm-cache;
-    npm install;
+    # npm install;
     npx lerna bootstrap --nohoist '*';
   '';
   installPhase = ''
