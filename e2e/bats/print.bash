@@ -22,6 +22,6 @@ teardown() {
     dfx build
     dfx canister install e2e_project
     dfx canister call e2e_project hello
-    run cat stderr.txt
-    assert_match "debug.print: Hello, World! from DFINITY"
+    run tail -2 stderr.txt
+    assert_match "Hello, World! from DFINITY"
 }
