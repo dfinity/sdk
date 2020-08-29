@@ -27,7 +27,7 @@ pub enum DfxError {
 
     ConfigError(ConfigErrorKind),
 
-    /// An error happened doing something with identities.
+    /// An error happened while managing identities.
     IdentityError(IdentityErrorKind),
 
     IdeError(String),
