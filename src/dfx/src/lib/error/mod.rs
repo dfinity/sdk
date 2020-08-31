@@ -1,4 +1,5 @@
 use ic_agent::AgentError;
+use ic_types::principal::PrincipalError;
 
 mod build;
 mod cache;
@@ -45,6 +46,10 @@ pub enum DfxError {
 
     /// The agent returned an error (normally from the client).
     AgentError(AgentError),
+
+    /// Could not generate a random principal for the purposes of
+    /// building project in --check mode.
+    CouldNotGenerateRandomPrincipal(PrincipalError),
 
     /// This option is used when the source/cause of the error is
     /// ambiguous. If the cause is known use or add a new option.
@@ -236,6 +241,12 @@ impl From<AgentError> for DfxError {
     }
 }
 
+impl From<PrincipalError> for DfxError {
+    fn from(err: PrincipalError) -> DfxError {
+        DfxError::CouldNotGenerateRandomPrincipal(err)
+    }
+}
+
 impl From<reqwest::Error> for DfxError {
     fn from(err: reqwest::Error) -> DfxError {
         DfxError::Reqwest(err)
@@ -273,3 +284,9 @@ impl From<walkdir::Error> for DfxError {
 }
 
 impl actix_web::error::ResponseError for DfxError {}
+
+impl From<std::string::String> for DfxError {
+    fn from(err: std::string::String) -> DfxError {
+        DfxError::Unknown(err)
+    }
+}

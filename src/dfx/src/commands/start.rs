@@ -6,11 +6,11 @@ use crate::lib::provider::get_network_descriptor;
 use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
-use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
+use delay::{Delay, Waiter};
 use futures::future::Future;
 use ic_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
@@ -52,14 +52,29 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     let agent = Agent::new(AgentConfig {
-        url: frontend_url,
+        url: frontend_url.to_string(),
         ..AgentConfig::default()
     })?;
 
-    runtime
-        .block_on(agent.ping(create_waiter()))
-        .map(|_| ())
-        .map_err(DfxError::from)
+    // wait for frontend to come up
+    let mut waiter = Delay::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .throttle(std::time::Duration::from_secs(1))
+        .build();
+
+    runtime.block_on(async {
+        waiter.start();
+        loop {
+            let status = agent.status().await;
+            if status.is_ok() {
+                break;
+            }
+            waiter
+                .wait()
+                .map_err(|_| DfxError::AgentError(status.unwrap_err()))?;
+        }
+        Ok(())
+    })
 }
 
 // TODO(eftychis)/In progress: Rename to replica.

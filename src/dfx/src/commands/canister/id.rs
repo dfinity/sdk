@@ -3,7 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::CanisterId;
+use ic_types::principal::Principal as CanisterId;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("id")

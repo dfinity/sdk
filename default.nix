@@ -1,9 +1,10 @@
 { system ? builtins.currentSystem
+, pkgs ? import ./nix { inherit system isMaster labels; }
 , src ? builtins.fetchGit ./.
 , releaseVersion ? "latest"
-, RustSec-advisory-db ? null
-, pkgs ? import ./nix { inherit system RustSec-advisory-db; }
-, jobset ? import ./ci/ci.nix { inherit system releaseVersion RustSec-advisory-db pkgs src; }
+, RustSec-advisory-db ? pkgs.sources.advisory-db
+, isMaster ? true
+, labels ? {}
 }:
 rec {
   dfx = import ./dfx.nix { inherit pkgs agent-js assets; };
@@ -18,7 +19,7 @@ rec {
   # Bootstrap frontend.
   bootstrap-js = import ./src/bootstrap { inherit pkgs agent-js; };
 
-  cargo-audit = import ./cargo-audit.nix { inherit pkgs; };
+  cargo-audit = import ./cargo-audit.nix { inherit pkgs RustSec-advisory-db; };
 
   assets = import ./assets.nix { inherit pkgs bootstrap-js distributed-canisters; };
 
@@ -39,11 +40,5 @@ rec {
 
   licenses = {
     dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
-  };
-
-  publish = import ./publish.nix {
-    inherit pkgs releaseVersion;
-    inherit (jobset) install;
-    dfx = jobset.dfx.standalone;
   };
 }

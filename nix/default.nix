@@ -1,7 +1,8 @@
 # Returns the nixpkgs set overridden and extended with DFINITY specific
 # packages.
 { system ? builtins.currentSystem
-, RustSec-advisory-db ? null
+, isMaster ? true
+, labels ? {}
 }:
 let
   # The `common` repo provides code (mostly Nix) that is used in the
@@ -22,12 +23,12 @@ let
   sources = import sourcesnix { sourcesFile = ./sources.json; inherit pkgs; };
 
   sourcesnix = builtins.fetchurl {
-    url = https://raw.githubusercontent.com/nmattia/niv/506b896788d9705899592a303de95d8819504c55/nix/sources.nix;
-    sha256 = "007bgq4zy1mjnnkbmaaxvvn4kgpla9wkm0d3lfrz3y1pa3wp9ha1";
+    url = https://raw.githubusercontent.com/nmattia/niv/d13bf5ff11850f49f4282d59b25661c45a851936/nix/sources.nix;
+    sha256 = "0a2rhxli7ss4wixppfwks0hy3zpazwm9l3y2v9krrnyiska3qfrw";
   };
 
   pkgs = import (commonSrc + "/pkgs") {
-    inherit system;
+    inherit system isMaster labels;
     extraSources = sources;
     repoRoot = ../.;
     overlays = [
@@ -37,15 +38,6 @@ let
             nixFmt = self.lib.nixFmt {};
           in
             {
-
-              # The RustSec-advisory-db used by cargo-audit.nix.
-              # Hydra injects the latest RustSec-advisory-db, otherwise we piggy
-              # back on the one defined in sources.json.
-              RustSec-advisory-db =
-                if ! isNull RustSec-advisory-db
-                then RustSec-advisory-db
-                else self.sources.advisory-db;
-
               motoko = import self.sources.motoko { inherit (self) system; };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {
@@ -53,12 +45,8 @@ let
               };
               ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref;
 
-              inherit (nixFmt) nix-fmt;
+              nix-fmt = nixFmt.fmt;
               nix-fmt-check = nixFmt.check;
-
-              lib = super.lib // {
-                mk-jobset = import ./mk-jobset.nix self;
-              };
 
               # An attribute set mapping every supported system to a nixpkgs evaluated for
               # that system. Special care is taken not to reevaluate nixpkgs for the current
@@ -68,7 +56,6 @@ let
                   if supportedSystem == system
                   then self
                   else import ./. {
-                    inherit RustSec-advisory-db;
                     system = supportedSystem;
                   }
               );

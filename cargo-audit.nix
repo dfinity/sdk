@@ -6,10 +6,11 @@
 # audit` will run.
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
+, RustSec-advisory-db ? pkgs.sources.advisory-db
 }:
 pkgs.lib.cargo-security-audit {
   name = "dfinity-sdk";
   cargoLock = ./Cargo.lock;
-  db = pkgs.RustSec-advisory-db;
+  db = RustSec-advisory-db;
   ignores = [];
 }

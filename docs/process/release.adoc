@@ -195,7 +195,7 @@ dfx canister call hello_world greet everyone
 . Verify the default front-end in a browser.
 .. In a new incognito or private window, navigate to the default localhost address and port `8000` as specified in the `dfx.json` configuration file.
 .. Append `?canisterId=ic:<YOUR-CANISTER-IDENTIFIER>` with the canister identifier for the
-`hello_world_assets` canister to the URL (for example, `http://localhost:8000/?canisterId=ic:02000000000000000000000000000000000153`).
+`hello_world_assets` canister to the URL (for example, `http://localhost:8000/?canisterId=cxeji-wacaa-aaaaa-aaaaa-aaaaa-aaaaa-aaaaa-q`).
 .. Verify that you are prompted to type a greeting in a prompt window.
 .. Type a greeting, then click *OK* to return the greeting in an alert window.
 .. Verify there are no errors in the console by opening the Developer Tools.
@@ -205,7 +205,7 @@ Warnings can be ignored.
 
 . Verify the Candid UI.
 .. In a new incognito or private window, navigate to the default localhost address and port `8000` as specified in the `dfx.json` configuration file.
-.. Append the `candid` endpoint and `canisterId` for the `hello_world` canister to the URL (for example, `http://localhost:8000/candid?canisterId=ic:0100000000000000000000000000000000012D`).
+.. Append the `candid` endpoint and `canisterId` for the `hello_world` canister to the URL (for example, `http://localhost:8000/candid?canisterId=75hes-oqbaa-aaaaa-aaaaa-aaaaa-aaaaa-aaaaa-q`).
 .. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
 .. Verify there are no errors in the console by opening the Developer Tools.
 +
@@ -232,7 +232,7 @@ rm -rf hello_world
 +
 [source, bash]
 ----
-nix-shell
+nix-shell --option extra-binary-caches https://nix.dfinity.systems
 ----
 . Set the new version in a temporary environment variable.
 +
