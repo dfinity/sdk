@@ -77,8 +77,15 @@ teardown() {
     install_asset transitive_deps_canisters
     dfx_start
     dfx canister create --all
-    assert_command dfx build canister_e
-    assert_match "Possible circular dependency detected during evaluation of canister_d's dependency on canister_e."
+    assert_command_fail dfx build canister_e
+    assert_match " There is a dependency cycle between canisters found at canister canister_e -> canister_d -> canister_e"
+}
+
+@test "multiple non-cyclic dependency paths to the same canister are ok" {
+    install_asset transitive_deps_canisters
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build canister_f
 }
 
 @test "the all flag builds everything" {

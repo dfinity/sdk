@@ -23,6 +23,21 @@
       "dependencies": ["canister_d"],
       "main": "./e/main.mo",
       "type": "motoko"
+    },
+    "canister_f": {
+      "dependencies": ["canister_g", "canister_h"],
+      "main": "./f/main.mo",
+      "type": "motoko"
+    },
+    "canister_g": {
+      "dependencies": ["canister_a"],
+      "main": "./g/main.mo",
+      "type": "motoko"
+    },
+    "canister_h": {
+      "dependencies": ["canister_a"],
+      "main": "./h/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {

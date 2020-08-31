@@ -100,6 +100,10 @@ user_message!(
     OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
 
+    // dfx deploy
+    DeployCanister => "Deployes all or specific canisters from the code in your project. By default, all canisters are deployed.",
+    DeployCanisterName => "Specifies the canister name.  If none specified, deploys all canisters.",
+
     // dfx identity mod
     ManageIdentity => "Manages identities used to communicate with the Internet Computer network. Setting an identity enables you to test user-based access controls.",
 

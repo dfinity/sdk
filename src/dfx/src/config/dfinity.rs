@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::default::Default;
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
@@ -238,6 +238,70 @@ impl ConfigInterface {
     pub fn get_dfx(&self) -> Option<String> {
         self.dfx.to_owned()
     }
+
+    /// Return the names of the specified canister and all of its dependencies.
+    /// If none specified, return the names of all canisters.
+    pub fn get_canister_names_with_dependencies(
+        &self,
+        some_canister: Option<&str>,
+    ) -> DfxResult<Vec<String>> {
+        let canister_map = (&self.canisters).as_ref().ok_or_else(|| {
+            DfxError::Unknown("No canisters in the configuration file.".to_string())
+        })?;
+
+        let canister_names = match some_canister {
+            Some(specific_canister) => {
+                let mut names = HashSet::new();
+                let mut path = vec![];
+                add_dependencies(canister_map, &mut names, &mut path, specific_canister)?;
+                names.into_iter().collect()
+            }
+            None => canister_map.keys().cloned().collect(),
+        };
+
+        Ok(canister_names)
+    }
+}
+
+fn add_dependencies(
+    all_canisters: &BTreeMap<String, ConfigCanistersCanister>,
+    names: &mut HashSet<String>,
+    path: &mut Vec<String>,
+    canister_name: &str,
+) -> DfxResult {
+    let inserted = names.insert(String::from(canister_name));
+
+    if !inserted {
+        return if path.contains(&String::from(canister_name)) {
+            path.push(String::from(canister_name));
+            Err(DfxError::BuildError(BuildErrorKind::CircularDependency(
+                path.join(" -> "),
+            )))
+        } else {
+            Ok(())
+        };
+    }
+
+    let canister_config = all_canisters
+        .get(canister_name)
+        .ok_or_else(|| DfxError::CannotFindCanisterName(canister_name.to_string()))?;
+
+    let deps = match canister_config.extras.get("dependencies") {
+        None => vec![],
+        Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
+            DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
+        })?,
+    };
+
+    path.push(String::from(canister_name));
+
+    for canister in deps {
+        add_dependencies(all_canisters, names, path, &canister)?;
+    }
+
+    path.pop();
+
+    Ok(())
 }
 
 #[derive(Clone)]
