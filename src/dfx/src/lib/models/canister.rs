@@ -327,8 +327,6 @@ impl CanisterPool {
         &self,
         build_config: BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildErrorKind>>> {
-        // check for canister ids before building
-        // THIS DOES NOTHING
         self.step_prebuild_all(&build_config).map_err(|e| {
             DfxError::BuildError(BuildErrorKind::PrebuildAllStepFailed(Box::new(e)))
         })?;
