@@ -34,13 +34,13 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "01f876edfbafbaa2b4740489a3a179ebddda062e",
+        "rev": "2a0a8ef1f7591300ad6cfc807548376734660ace",
         "type": "git"
     },
     "dfinity": {
-        "tag": "release-2020-08-28.RC00",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
         "rev": "9091dc6baa1bde728e96229294043650680dee33",
+        "tag": "release-2020-08-28.RC00",
         "type": "git"
     },
     "ic-ref": {
