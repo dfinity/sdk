@@ -104,7 +104,7 @@ impl CanisterBuilder for AssetsBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult {
-        if !config.skip_frontend {
+        // if !config.skip_frontend {
             let deps = match info.get_extra_value("dependencies") {
                 None => vec![],
                 Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
@@ -130,16 +130,16 @@ impl CanisterBuilder for AssetsBuilder {
                 dependencies,
                 pool,
             )?;
-        }
+        // }
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        if !config.skip_frontend {
+        // if !config.skip_frontend {
             assets_canister_info.assert_source_paths()?;
-        }
+        // }
         copy_assets(
             pool.get_logger(),
             &assets_canister_info,
-            config.skip_frontend,
+            // config.skip_frontend,
         )?;
         Ok(())
     }
@@ -173,14 +173,15 @@ fn delete_output_directory(
 fn copy_assets(
     logger: &slog::Logger,
     assets_canister_info: &AssetsCanisterInfo,
-    skip_frontend: bool,
+    // skip_frontend: bool,
 ) -> DfxResult {
     let source_paths = assets_canister_info.get_source_paths();
     let output_assets_path = assets_canister_info.get_output_assets_path();
 
     for source_path in source_paths {
-        // If we skip-frontend and the source doesn't exist, we ignore it.
-        if skip_frontend && !source_path.exists() {
+        // If the source doesn't exist, we ignore it.
+        // if skip_frontend && !source_path.exists() {
+        if !source_path.exists() {
             slog::warn!(
                 logger,
                 r#"Skip copying "{}" because --skip-frontend was used."#,

@@ -13,21 +13,15 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("canister_name")
                 .takes_value(true)
-                .help(UserMessage::CreateCanisterName.to_str())
+                .help(UserMessage::BuildCanisterName.to_str())
                 .required(false),
         )
         .arg(
             Arg::with_name("all")
                 .long("all")
                 .required_unless("canister_name")
-                .help(UserMessage::CreateAll.to_str())
+                .help(UserMessage::BuildAll.to_str())
                 .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("skip-frontend")
-                .long("skip-frontend")
-                .takes_value(false)
-                .help(UserMessage::SkipFrontend.to_str()),
         )
         .arg(
             Arg::with_name("check")
@@ -84,7 +78,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     canister_pool.build_or_fail(
         BuildConfig::from_config(&config)?
-            .with_skip_frontend(args.is_present("skip-frontend"))
             .with_build_mode_check(build_mode_check),
     )?;
 
