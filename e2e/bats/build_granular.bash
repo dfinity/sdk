@@ -24,6 +24,20 @@ teardown() {
     assert_command dfx canister call e2e_project greet World
 }
 
+@test "transitive dependencies are built" {
+    install_asset transitive_deps_canisters
+    dfx_start
+    dfx canister create --all
+    #install of tertiary dependency canister will fail since its not built
+    assert_command_fail dfx canister install canister_a
+    #specify build for primary canister 
+    dfx build canister_c
+
+    #validate tertiary transitive dependency is built and callable
+    assert_command dfx canister install canister_a
+    assert_command dfx canister call canister_a greet World
+    assert_match '("Namaste, World!")'
+}
 
 @test "unspecified dependencies are not built" {
     dfx_start

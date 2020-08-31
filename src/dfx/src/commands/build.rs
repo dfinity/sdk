@@ -13,6 +13,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("canister_name")
                 .takes_value(true)
+                .required_unless("all")
                 .help(UserMessage::BuildCanisterName.to_str())
                 .required(false),
         )
@@ -56,7 +57,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // Option can be None in which case --all was specified
     let some_canister = args.value_of("canister_name");
 
-    // Get whole pool of canisters configured in dfx.json
+    // Get pool of canisters to build
     let canister_pool = CanisterPool::load(&env, build_mode_check, some_canister)?;
 
     // Create canisters on the replica and associate canister ids locally.

@@ -1,4 +1,5 @@
 use crate::config::cache::Cache;
+use crate::config::dfinity::Config;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -91,34 +92,56 @@ pub struct CanisterPool {
     cache: Arc<dyn Cache>,
 }
 
-impl CanisterPool {
-    fn insert(
-        env: &dyn Environment,
-        generate_cid: bool,
-        canister_name: &str,
-        canisters_map: &mut Vec<Arc<Canister>>,
-    ) -> DfxResult<()> {
-        let builder_pool = BuilderPool::new(env)?;
-        let canister_id_store = CanisterIdStore::for_env(env)?;
-        let config = env
-            .get_config()
-            .ok_or(DfxError::CommandMustBeRunInAProject)?;
+struct PoolConstructHelper<'a> {
+    config: &'a Config,
+    builder_pool: BuilderPool,
+    canister_id_store: CanisterIdStore,
+    generate_cid: bool,
+    canisters_map: &'a mut Vec<Arc<Canister>>,
+}
 
-        let canister_id = match canister_id_store.find(canister_name) {
+impl CanisterPool {
+    fn insert(canister_name: &str, pool_helper: &mut PoolConstructHelper<'_>) -> DfxResult<()> {
+        let canister_id = match pool_helper.canister_id_store.find(canister_name) {
             Some(canister_id) => Some(canister_id),
-            None if generate_cid => Some(Canister::generate_random_canister_id()?),
+            None if pool_helper.generate_cid => Some(Canister::generate_random_canister_id()?),
             _ => None,
         };
-        let info = CanisterInfo::load(&config, canister_name, canister_id)?;
+        let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
 
-        if let Some(builder) = builder_pool.get(&info) {
-            canisters_map.insert(0, Arc::new(Canister::new(info, builder)));
+        if let Some(builder) = pool_helper.builder_pool.get(&info) {
+            pool_helper
+                .canisters_map
+                .insert(0, Arc::new(Canister::new(info, builder)));
             Ok(())
         } else {
             Err(DfxError::CouldNotFindBuilderForCanister(
                 info.get_name().to_string(),
             ))
         }
+    }
+
+    fn insert_with_dependencies(
+        canister_name: &str,
+        pool_helper: &mut PoolConstructHelper<'_>,
+    ) -> DfxResult<()> {
+        //insert this canister
+        CanisterPool::insert(canister_name, pool_helper)?;
+
+        // recursively fetch direct and transitive dependencies
+        let canister_id = pool_helper.canister_id_store.get(canister_name)?;
+        let info = CanisterInfo::load(pool_helper.config, canister_name, Some(canister_id))?;
+        let deps = match info.get_extra_value("dependencies") {
+            None => vec![],
+            Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
+                DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
+            })?,
+        };
+
+        for canister in deps.iter() {
+            CanisterPool::insert_with_dependencies(canister, pool_helper)?;
+        }
+        Ok(())
     }
 
     pub fn load(
@@ -133,29 +156,23 @@ impl CanisterPool {
 
         let mut canisters_map = Vec::new();
 
+        let mut pool_helper = PoolConstructHelper {
+            config: &config,
+            builder_pool: BuilderPool::new(env)?,
+            canister_id_store: CanisterIdStore::for_env(env)?,
+            generate_cid,
+            canisters_map: &mut canisters_map,
+        };
+
         if let Some(canister_name) = some_canister {
-            CanisterPool::insert(env, generate_cid, canister_name, &mut canisters_map)?;
-
-            // get direct dependencies
-            let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
-            let info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
-            let deps = match info.get_extra_value("dependencies") {
-                None => vec![],
-                Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-                    DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
-                })?,
-            };
-
-            for canister in deps.iter() {
-                CanisterPool::insert(env, generate_cid, canister, &mut canisters_map)?;
-            }
+            CanisterPool::insert_with_dependencies(canister_name, &mut pool_helper)?;
         } else {
             // insert all canisters configured in dfx.json
             let canisters = config.get_config().canisters.as_ref().ok_or_else(|| {
                 DfxError::Unknown("No canisters in the configuration file.".to_string())
             })?;
             for (key, _value) in canisters.iter() {
-                CanisterPool::insert(env, generate_cid, key, &mut canisters_map)?;
+                CanisterPool::insert(key, &mut pool_helper)?;
             }
         }
 

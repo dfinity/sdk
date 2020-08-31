@@ -1,0 +1,28 @@
+{
+  "canisters": {
+    "canister_a": {
+      "main": "./a/main.mo",
+      "type": "motoko"
+    },
+    "canister_b": {
+      "dependencies": ["canister_a"],
+      "main": "./b/main.mo",
+      "type": "motoko"
+    },
+    "canister_c": {
+      "dependencies": ["canister_b"],
+      "main": "./c/main.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000"
+    }
+  }
+}
