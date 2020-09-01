@@ -7,7 +7,7 @@ use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
@@ -205,8 +205,8 @@ impl IdentityManager {
 
 fn initialize(
     logger: &Logger,
-    identity_json_path: &PathBuf,
-    identity_root_path: &PathBuf,
+    identity_json_path: &Path,
+    identity_root_path: &Path,
 ) -> DfxResult<Configuration> {
     let identity_dir = identity_root_path.join(DEFAULT_IDENTITY_NAME);
     let identity_pem_path = identity_dir.join("identity.pem");
@@ -247,19 +247,19 @@ fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
         .join("creds.pem"))
 }
 
-fn read_configuration(path: &PathBuf) -> DfxResult<Configuration> {
+fn read_configuration(path: &Path) -> DfxResult<Configuration> {
     let content =
-        std::fs::read_to_string(&path).map_err(|e| DfxError::IoWithPath(e, path.clone()))?;
+        std::fs::read_to_string(&path).map_err(|e| DfxError::IoWithPath(e, PathBuf::from(path)))?;
     serde_json::from_str(&content).map_err(DfxError::from)
 }
 
-fn write_configuration(path: &PathBuf, config: &Configuration) -> DfxResult {
+fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
     let content = serde_json::to_string_pretty(&config)?;
 
-    std::fs::write(&path, content).map_err(|err| DfxError::IoWithPath(err, path.clone()))
+    std::fs::write(&path, content).map_err(|err| DfxError::IoWithPath(err, PathBuf::from(path)))
 }
 
-fn generate_key(pem_file: &PathBuf) -> DfxResult {
+fn generate_key(pem_file: &Path) -> DfxResult {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
         .map_err(|x| DfxError::IdentityError(IdentityErrorKind::CouldNotGenerateKey(x)))?;
