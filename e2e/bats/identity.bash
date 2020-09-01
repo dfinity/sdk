@@ -42,7 +42,7 @@ teardown() {
     install_asset identity
     dfx_start
     assert_command dfx ping
-    assert_match 'Created the "default" identity.' "$stderr"
+    assert_match 'Creating the "default" identity.' "$stderr"
     assert_match "ic_api_version" "$stdout"
 }
 
@@ -50,7 +50,7 @@ teardown() {
     install_asset identity
     dfx_start
     assert_command dfx canister create e2e_project
-    assert_match 'Created the "default" identity.' "$stderr"
+    assert_match 'Creating the "default" identity.' "$stderr"
 }
 
 @test "after using a specific identity while creating a canister, that identity is the initializer" {

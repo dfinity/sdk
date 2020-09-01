@@ -219,6 +219,8 @@ fn initialize(
     identity_json_path: &Path,
     identity_root_path: &Path,
 ) -> DfxResult<Configuration> {
+    slog::info!(logger, r#"Creating the "default" identity."#);
+
     let identity_dir = identity_root_path.join(DEFAULT_IDENTITY_NAME);
     let identity_pem_path = identity_dir.join("identity.pem");
     if !identity_pem_path.exists() {
@@ -233,10 +235,28 @@ fn initialize(
 
         let creds_pem_path = get_legacy_creds_pem_path()?;
         if creds_pem_path.exists() {
+            slog::info!(
+                logger,
+                "  - migrating key from {} to {}",
+                creds_pem_path.display(),
+                identity_pem_path.display()
+            );
             fs::copy(creds_pem_path, identity_pem_path)?;
         } else {
+            slog::info!(
+                logger,
+                "  - generating new key at {}",
+                identity_pem_path.display()
+            );
             generate_key(&identity_pem_path)?;
         }
+    } else {
+        slog::info!(
+                logger,
+                "  - usig key already in place at {}",
+                identity_pem_path.display()
+            );
+
     }
 
     let config = Configuration {
@@ -244,7 +264,6 @@ fn initialize(
     };
     write_configuration(&identity_json_path, &config)?;
 
-    slog::info!(logger, r#"Created the "default" identity."#);
     Ok(config)
 }
 

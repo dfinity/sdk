@@ -37,7 +37,7 @@ teardown() {
 @test "identity list: shows the default identity" {
     assert_command dfx identity list
     assert_match 'default' "$stdout"
-    assert_match 'Created the "default" identity.' "$stderr"
+    assert_match 'Creating the "default" identity.' "$stderr"
 }
 
 ##
@@ -208,7 +208,7 @@ teardown() {
     # Just an example.  All the identity commands do this.
     assert_command dfx identity whoami
     assert_eq 'default' "$stdout"
-    assert_eq 'Created the "default" identity.' "$stderr"
+    assert_match 'Creating the "default" identity.' "$stderr"
 }
 
 @test "identity whoami: shows the current identity" {
@@ -247,4 +247,24 @@ teardown() {
     assert_eq 'alice'
     assert_command dfx identity whoami
     assert_eq 'charlie'
+}
+
+##
+## Identity key migration
+##
+@test "identity manager copies existing key from ~/.dfinity/identity/creds.pem" {
+    assert_command dfx identity whoami
+    assert_command mkdir -p $TEMPORARY_HOME/.dfinity/identity
+    assert_command mv $TEMPORARY_HOME/.config/dfx/identity/default/identity.pem $TEMPORARY_HOME/.dfinity/identity/creds.pem
+    ORIGINAL_KEY=$(cat $TEMPORARY_HOME/.dfinity/identity/creds.pem)
+    assert_command rmdir $TEMPORARY_HOME/.config/dfx/identity/default
+    assert_command rmdir $TEMPORARY_HOME/.config/dfx/identity
+    assert_command rm $TEMPORARY_HOME/.config/dfx/identity.json
+    assert_command rmdir $TEMPORARY_HOME/.config/dfx
+    assert_command rmdir $TEMPORARY_HOME/.config
+
+    assert_command dfx identity whoami
+
+    assert_match "migrating key from"
+    assert_eq "$(cat $TEMPORARY_HOME/.config/dfx/identity/default/identity.pem)" "$ORIGINAL_KEY"
 }
