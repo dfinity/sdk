@@ -80,3 +80,17 @@ teardown() {
     assert_command dfx build canister_e
     assert_match "Possible circular dependency detected during evaluation of canister_d's dependency on canister_e."
 }
+
+@test "the all flag builds everything" {
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build --all
+    assert_command dfx canister install --all
+}
+
+
+@test "the all flags conflicts with canister name" {
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx build e2e_project --all
+}

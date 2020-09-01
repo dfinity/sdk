@@ -88,6 +88,7 @@ user_message!(
     RequestId => "Specifies the request identifier. The request identifier is an hexadecimal string starting with 0x.",
 
     // dfx build
+    BuildAll => "Builds all canisters configured in dfx.json.",
     BuildCanisterName => "Specifies the canister name. Either this or the --all flag are required.",
     BuildCanister => "Builds all or specific canisters from the code in your project. By default, all canisters are built.",
     BuildCheck => "Build canisters without creating them. This can be used to check that canisters build ok.",

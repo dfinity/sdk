@@ -13,8 +13,16 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("canister_name")
                 .takes_value(true)
+                .conflicts_with("all")
                 .help(UserMessage::BuildCanisterName.to_str())
                 .required(false),
+        )
+        .arg(
+            Arg::with_name("all")
+                .long("all")
+                .conflicts_with("canister_name")
+                .help(UserMessage::BuildAll.to_str())
+                .takes_value(false),
         )
         .arg(
             Arg::with_name("check")
