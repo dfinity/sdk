@@ -15,7 +15,7 @@ teardown() {
     install_asset greet
     dfx_start
     dfx canister create --all
-    dfx build --all
+    dfx build
     dfx canister install hello
     assert_command dfx canister status hello
     assert_match "Canister hello's status is Running."

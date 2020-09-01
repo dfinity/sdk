@@ -18,7 +18,7 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    dfx build --all
+    dfx build
     dfx canister install e2e_project_assets
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("binary/noise.txt")'

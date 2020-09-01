@@ -26,7 +26,7 @@ teardown() {
 @test "install succeeds when --all is provided" {
     dfx_start
     dfx canister create --all
-    dfx build --all
+    dfx build
 
     assert_command dfx canister install --all
 
@@ -36,7 +36,7 @@ teardown() {
 @test "install succeeds with network name" {
     dfx_start
     dfx canister create --all
-    dfx build --all
+    dfx build
 
     assert_command dfx canister --network local install --all
 
@@ -46,7 +46,7 @@ teardown() {
 @test "install fails with network name that is not in dfx.json" {
     dfx_start
     dfx canister create --all
-    dfx build --all
+    dfx build
 
     assert_command_fail dfx canister --network nosuch install --all
 

@@ -18,7 +18,7 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command_fail dfx build --all
+    assert_command_fail dfx build
     assert_match 'import error, package "(rate|describe)" not defined'
 }
 
@@ -28,7 +28,7 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    dfx build --all
+    dfx build
 }
 
 @test "project calls dependencies made available by packtool" {
@@ -37,7 +37,7 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    dfx build --all
+    dfx build
     dfx canister install e2e_project
 
     assert_command dfx canister call e2e_project rate '("rust")'
@@ -53,7 +53,7 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command_fail dfx build --all
+    assert_command_fail dfx build
     assert_match 'Failed to invoke the package tool'
     assert_match 'no-such-command.*that.*command.*cannot.*be.*invoked'
     assert_match 'No such file or directory \(os error 2\)'
@@ -65,7 +65,7 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command_fail dfx build --all
+    assert_command_fail dfx build
     assert_match 'Package tool.*reported an error'
     assert_match 'sh.*command-that-fails.bash'
     assert_match 'exit code: 3'

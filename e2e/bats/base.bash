@@ -18,7 +18,7 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    dfx build --all
+    dfx build
     dfx canister install e2e_project
 
     assert_command dfx canister call --query e2e_project is_digit '("5")'
@@ -34,6 +34,6 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command_fail dfx build --all
+    assert_command_fail dfx build
     assert_match 'import error, package "base" not defined'
 }

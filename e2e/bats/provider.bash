@@ -19,7 +19,7 @@ teardown() {
 # flakiness (replica start time).
 @test "provider flag can be passed in" {
   skip "refactor this test to replace client.bash"
-  dfx build --all
+  dfx build
 
   # Start a replica manually on a specific port.
   $(dfx cache show)/replica --config '
