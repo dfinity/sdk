@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
+const IDENTITY_PEM: &str = "identity.pem";
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Configuration {
@@ -93,7 +94,7 @@ impl IdentityManager {
             ))
         })?;
 
-        let pem_file = identity_dir.join("identity.pem");
+        let pem_file = identity_dir.join(IDENTITY_PEM);
         generate_key(&pem_file)
     }
 
@@ -176,7 +177,7 @@ impl IdentityManager {
     }
 
     /// Select an identity by name to use by default
-    pub fn r#use(&self, name: &str) -> DfxResult {
+    pub fn use_identity_named(&self, name: &str) -> DfxResult {
         self.require_identity_exists(name)?;
         self.write_default_identity(name)
     }
@@ -205,7 +206,7 @@ impl IdentityManager {
     }
 
     fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
-        self.get_identity_dir_path(identity).join("identity.pem")
+        self.get_identity_dir_path(identity).join(IDENTITY_PEM)
     }
 
     fn get_selected_identity_pem_path(&self) -> PathBuf {
