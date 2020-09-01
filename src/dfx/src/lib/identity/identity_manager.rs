@@ -7,7 +7,7 @@ use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::fs;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
