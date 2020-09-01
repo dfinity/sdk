@@ -1,7 +1,5 @@
-{ system ? builtins.currentSystem
-, pkgs ? import ./nix {}
-, bootstrap-js ? import ./nix/agent-js/bootstrap-js.nix { inherit system pkgs; }
-, agent-js ? import ./nix/agent-js/agent-js.nix { inherit system pkgs; }
+{ pkgs ? import ./nix {}
+, bootstrap-js ? import ./src/bootstrap { inherit pkgs; }
 , distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs; }
 }:
 pkgs.runCommandNoCCLocal "assets" {} ''
@@ -18,9 +16,6 @@ pkgs.runCommandNoCCLocal "assets" {} ''
   # Install bootstrap
   mkdir $out/bootstrap
   cp -R ${bootstrap-js.out}/* $out/bootstrap/
-
-  mkdir $out/agent-js
-  cp -R ${agent-js.out}/* $out/agent-js/
 
   cp -R ${distributed-canisters} $out/canisters
 ''
