@@ -25,7 +25,7 @@ teardown() {
     assert_match 'alice bob dan default frank'
     assert_command dfx identity new charlie
     assert_command dfx identity list
-    assert_eq 'alice bob charlie dan default frank'
+    assert_match 'alice bob charlie dan default frank'
 }
 
 @test "identity list: shows the anonymous identity" {
