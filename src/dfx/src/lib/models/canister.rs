@@ -10,7 +10,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::assets;
 use ic_types::principal::Principal as CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
-use rand::{thread_rng, RngCore};
+use rand::{thread_rng, Rng, RngCore};
 use serde::Deserialize;
 use slog::Logger;
 use std::cell::RefCell;
@@ -98,6 +98,8 @@ struct PoolConstructHelper<'a> {
     canister_id_store: CanisterIdStore,
     generate_cid: bool,
     canisters_map: &'a mut Vec<Arc<Canister>>,
+    visited_map: BTreeMap<String, u32>,
+    logger: &'a Logger,
 }
 
 impl CanisterPool {
@@ -113,6 +115,9 @@ impl CanisterPool {
             pool_helper
                 .canisters_map
                 .insert(0, Arc::new(Canister::new(info, builder)));
+            pool_helper
+                .visited_map
+                .insert(canister_name.to_owned(), thread_rng().gen::<u32>());
             Ok(())
         } else {
             Err(DfxError::CouldNotFindBuilderForCanister(
@@ -139,7 +144,16 @@ impl CanisterPool {
         };
 
         for canister in deps.iter() {
-            CanisterPool::insert_with_dependencies(canister, pool_helper)?;
+            if !pool_helper.visited_map.contains_key(&canister.to_owned()) {
+                CanisterPool::insert_with_dependencies(canister, pool_helper)?;
+            } else {
+                slog::warn!(
+                    pool_helper.logger,
+                    "Possible circular dependency detected during evaluation of {}'s dependency on {}.",
+                    &canister_name.to_owned(),
+                    &canister.to_owned(),
+                );
+            }
         }
         Ok(())
     }
@@ -162,6 +176,8 @@ impl CanisterPool {
             canister_id_store: CanisterIdStore::for_env(env)?,
             generate_cid,
             canisters_map: &mut canisters_map,
+            visited_map: BTreeMap::new(),
+            logger: env.get_logger(),
         };
 
         if let Some(canister_name) = some_canister {

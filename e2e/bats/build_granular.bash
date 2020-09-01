@@ -72,3 +72,11 @@ teardown() {
     assert_eq '(vec { 99; 104; 101; 114; 114; 105; 101; 115; 10; 105; 116; 39; 115; 32; 99; 104; 101; 114; 114; 121; 32; 115; 101; 97; 115; 111; 110; 10; 67; 72; 69; 82; 82; 73; 69; 83; })'
 
 }
+
+@test "cyclic dependencies are detected" {
+    install_asset transitive_deps_canisters
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build canister_e
+    assert_match "Possible circular dependency detected during evaluation of canister_d's dependency on canister_e."
+}
