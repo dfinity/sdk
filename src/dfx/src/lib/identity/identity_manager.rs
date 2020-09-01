@@ -61,7 +61,7 @@ impl IdentityManager {
         Ok(mgr)
     }
 
-    pub fn instantiate_selected_identity(self: &IdentityManager) -> DfxResult<Box<dyn Identity>> {
+    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity>> {
         let pem_path = self.get_selected_identity_pem_path();
         let basic = BasicIdentity::from_pem_file(&pem_path).map_err(|e| {
             DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone()))
@@ -71,7 +71,7 @@ impl IdentityManager {
         Ok(b)
     }
 
-    pub fn create_new_identity(self: &IdentityManager, name: &str) -> DfxResult {
+    pub fn create_new_identity(&self, name: &str) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::IdentityError(
                 IdentityErrorKind::CannotCreateAnonymousIdentity(),
@@ -95,7 +95,7 @@ impl IdentityManager {
         IdentityManager::generate_key(&pem_file)
     }
 
-    pub fn get_identity_names(self: &IdentityManager) -> DfxResult<Vec<String>> {
+    pub fn get_identity_names(&self) -> DfxResult<Vec<String>> {
         let mut names = self
             .identity_root_path
             .read_dir()?
@@ -116,11 +116,11 @@ impl IdentityManager {
         Ok(names)
     }
 
-    pub fn get_selected_identity_name(self: &IdentityManager) -> &String {
+    pub fn get_selected_identity_name(&self) -> &String {
         &self.selected_identity
     }
 
-    pub fn remove(self: &IdentityManager, name: &str) -> DfxResult {
+    pub fn remove(&self, name: &str) -> DfxResult {
         self.require_identity_exists(name)?;
 
         if self.configuration.default == name {
@@ -135,7 +135,7 @@ impl IdentityManager {
         std::fs::remove_dir(&dir).map_err(|e| DfxError::IoWithPath(e, dir))
     }
 
-    pub fn rename(self: &IdentityManager, from: &str, to: &str) -> DfxResult<bool> {
+    pub fn rename(&self, from: &str, to: &str) -> DfxResult<bool> {
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::IdentityError(
                 IdentityErrorKind::CannotCreateAnonymousIdentity(),
@@ -166,7 +166,7 @@ impl IdentityManager {
         }
     }
 
-    pub fn r#use(self: &IdentityManager, name: &str) -> DfxResult {
+    pub fn r#use(&self, name: &str) -> DfxResult {
         self.require_identity_exists(name)?;
         self.write_default_identity(name)
     }
@@ -205,14 +205,14 @@ impl IdentityManager {
         Ok(config)
     }
 
-    fn write_default_identity(self: &IdentityManager, name: &str) -> DfxResult {
+    fn write_default_identity(&self, name: &str) -> DfxResult {
         let config = Configuration {
             default: String::from(name),
         };
         IdentityManager::write_configuration(&self.identity_json_path, &config)
     }
 
-    fn require_identity_exists(self: &IdentityManager, name: &str) -> DfxResult {
+    fn require_identity_exists(&self, name: &str) -> DfxResult {
         let identity_pem_path = self.get_identity_pem_path(name);
 
         if !identity_pem_path.exists() {
@@ -224,15 +224,15 @@ impl IdentityManager {
         }
     }
 
-    fn get_identity_dir_path(self: &IdentityManager, identity: &str) -> PathBuf {
+    fn get_identity_dir_path(&self, identity: &str) -> PathBuf {
         self.identity_root_path.join(&identity)
     }
 
-    fn get_identity_pem_path(self: &IdentityManager, identity: &str) -> PathBuf {
+    fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join("identity.pem")
     }
 
-    fn get_selected_identity_pem_path(self: &IdentityManager) -> PathBuf {
+    fn get_selected_identity_pem_path(&self) -> PathBuf {
         self.get_identity_pem_path(&self.selected_identity)
     }
 
