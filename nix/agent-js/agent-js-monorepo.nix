@@ -20,6 +20,8 @@ let
       pkgs.darwin.apple_sdk.frameworks.CoreServices;
     outputs = [
       "out"
+      "agent"
+      "bootstrap"
       "lib"
     ];
     # HUSKY_DEBUG = "1";
@@ -35,6 +37,14 @@ let
       # Copy node_modules to be reused elsewhere.
       mkdir -p $lib
       test -d node_modules && cp -R node_modules $lib || true
+
+      mkdir -p $agent
+      cp -R node_modules $agent/
+      cp -R ./packages/agent/* $agent/
+
+      mkdir -p $bootstrap
+      cp -R node_modules $bootstrap/
+      cp -R ./packages/bootstrap/* $bootstrap/
     '';
   };
 in
