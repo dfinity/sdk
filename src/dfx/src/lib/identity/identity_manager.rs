@@ -252,11 +252,10 @@ fn initialize(
         }
     } else {
         slog::info!(
-                logger,
-                "  - using key already in place at {}",
-                identity_pem_path.display()
-            );
-
+            logger,
+            "  - using key already in place at {}",
+            identity_pem_path.display()
+        );
     }
 
     let config = Configuration {
