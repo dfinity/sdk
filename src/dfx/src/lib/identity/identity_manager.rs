@@ -253,7 +253,7 @@ fn initialize(
     } else {
         slog::info!(
                 logger,
-                "  - usig key already in place at {}",
+                "  - using key already in place at {}",
                 identity_pem_path.display()
             );
 
