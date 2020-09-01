@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "c341943a3c52a20ae5ca4c103d3a075e28d35106",
-        "sha256": "0l1iw3pgszc4k2g8plgcql45rqav890y93mz8mp8fjyzhgl137dw",
+        "rev": "68e0e1f7c0ea65eb8e306522a7aac5fc428020b5",
+        "sha256": "03xykmwip8sz9w6r88l4kx9439cxdgjzqqv989q6gz67mj1p654c",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/c341943a3c52a20ae5ca4c103d3a075e28d35106.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/68e0e1f7c0ea65eb8e306522a7aac5fc428020b5.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "bats-support": {
@@ -56,10 +56,10 @@
         "homepage": "",
         "owner": "nmattia",
         "repo": "napalm",
-        "rev": "47e8d246cba57a346db15f6a33ba61c54d3b5c05",
-        "sha256": "1dxj8jqi0292s1xalis0mr1p3ck3zxqxx0xwlvx856kcnp317x8b",
+        "rev": "3b687c6b0190559d484d0602e7a28ab00eb6e212",
+        "sha256": "0c85v8cjb4x3xfizywv8087ch9f5b9bw2ykc819zf6b0d9zjvviw",
         "type": "tarball",
-        "url": "https://github.com/nmattia/napalm/archive/47e8d246cba57a346db15f6a33ba61c54d3b5c05.tar.gz",
+        "url": "https://github.com/nmattia/napalm/archive/3b687c6b0190559d484d0602e7a28ab00eb6e212.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
