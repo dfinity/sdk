@@ -14,6 +14,7 @@ rec {
   node-e2e-tests = import ./e2e/node { inherit pkgs dfx; };
 
   # Agents in varous languages
+  agent-js-monorepo = pkgs.agent-js-monorepo;
   agent-js = import ./nix/agent-js/agent-js.nix { inherit system pkgs; };
 
   # Bootstrap frontend.
