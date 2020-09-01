@@ -32,6 +32,8 @@ pub trait Environment {
     fn get_state_dir(&self) -> PathBuf;
     fn get_version(&self) -> &Version;
 
+    /// This is value of the name passed to dfx `--identity <name>`
+    /// Notably, it is _not_ the name of the default identity or selected identity
     fn get_identity_override(&self) -> &Option<String>;
 
     // Explicit lifetimes are actually needed for mockall to work properly.
