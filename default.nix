@@ -35,7 +35,6 @@ rec {
   # `shell.nix` in the root to provide an environment which is the composition
   # of all the shells here.
   shells = {
-    js-user-library = import ./src/agent/javascript/shell.nix { inherit pkgs agent-js; };
     rust-workspace = dfx.shell;
   };
 
