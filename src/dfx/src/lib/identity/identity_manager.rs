@@ -37,9 +37,9 @@ impl IdentityManager {
         let identity_json_path = config_dfx_dir_path.join("identity.json");
 
         let configuration = if identity_json_path.exists() {
-            IdentityManager::read_configuration(&identity_json_path)
+            read_configuration(&identity_json_path)
         } else {
-            IdentityManager::initialize(env.get_logger(), &identity_json_path, &identity_root_path)
+            initialize(env.get_logger(), &identity_json_path, &identity_root_path)
         }?;
 
         let identity_override = env.get_identity_override();
@@ -92,7 +92,7 @@ impl IdentityManager {
         })?;
 
         let pem_file = identity_dir.join("identity.pem");
-        IdentityManager::generate_key(&pem_file)
+        generate_key(&pem_file)
     }
 
     pub fn get_identity_names(&self) -> DfxResult<Vec<String>> {
@@ -171,45 +171,11 @@ impl IdentityManager {
         self.write_default_identity(name)
     }
 
-    fn initialize(
-        logger: &Logger,
-        identity_json_path: &PathBuf,
-        identity_root_path: &PathBuf,
-    ) -> DfxResult<Configuration> {
-        let identity_dir = identity_root_path.join(DEFAULT_IDENTITY_NAME);
-        let identity_pem_path = identity_dir.join("identity.pem");
-        if !identity_pem_path.exists() {
-            if !identity_dir.exists() {
-                std::fs::create_dir_all(&identity_dir).map_err(|e| {
-                    DfxError::IdentityError(IdentityErrorKind::CouldNotCreateIdentityDirectory(
-                        identity_dir.clone(),
-                        e,
-                    ))
-                })?;
-            }
-
-            let creds_pem_path = IdentityManager::get_legacy_creds_pem_path()?;
-            if creds_pem_path.exists() {
-                fs::copy(creds_pem_path, identity_pem_path)?;
-            } else {
-                IdentityManager::generate_key(&identity_pem_path)?;
-            }
-        }
-
-        let config = Configuration {
-            default: String::from(DEFAULT_IDENTITY_NAME),
-        };
-        IdentityManager::write_configuration(&identity_json_path, &config)?;
-
-        slog::info!(logger, r#"Created the "default" identity."#);
-        Ok(config)
-    }
-
     fn write_default_identity(&self, name: &str) -> DfxResult {
         let config = Configuration {
             default: String::from(name),
         };
-        IdentityManager::write_configuration(&self.identity_json_path, &config)
+        write_configuration(&self.identity_json_path, &config)
     }
 
     fn require_identity_exists(&self, name: &str) -> DfxResult {
@@ -235,57 +201,90 @@ impl IdentityManager {
     fn get_selected_identity_pem_path(&self) -> PathBuf {
         self.get_identity_pem_path(&self.selected_identity)
     }
+}
 
-    fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
-        let home = std::env::var("HOME").map_err(|_| {
-            DfxError::IdentityError(IdentityErrorKind::CannotFindUserHomeDirectory())
-        })?;
-
-        Ok(PathBuf::from(home)
-            .join(".dfinity")
-            .join("identity")
-            .join("creds.pem"))
-    }
-
-    fn read_configuration(path: &PathBuf) -> DfxResult<Configuration> {
-        let content =
-            std::fs::read_to_string(&path).map_err(|e| DfxError::IoWithPath(e, path.clone()))?;
-        serde_json::from_str(&content).map_err(DfxError::from)
-    }
-
-    fn write_configuration(path: &PathBuf, config: &Configuration) -> DfxResult {
-        let content = serde_json::to_string_pretty(&config)?;
-
-        std::fs::write(&path, content).map_err(|err| DfxError::IoWithPath(err, path.clone()))
-    }
-
-    fn generate_key(pem_file: &PathBuf) -> DfxResult {
-        let rng = rand::SystemRandom::new();
-        let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
-            .map_err(|x| DfxError::IdentityError(IdentityErrorKind::CouldNotGenerateKey(x)))?;
-
-        let encoded_pem = IdentityManager::encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
-        fs::write(&pem_file, encoded_pem)?;
-
-        let mut permissions = fs::metadata(&pem_file)?.permissions();
-        permissions.set_readonly(true);
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            permissions.set_mode(0o400);
+fn initialize(
+    logger: &Logger,
+    identity_json_path: &PathBuf,
+    identity_root_path: &PathBuf,
+) -> DfxResult<Configuration> {
+    let identity_dir = identity_root_path.join(DEFAULT_IDENTITY_NAME);
+    let identity_pem_path = identity_dir.join("identity.pem");
+    if !identity_pem_path.exists() {
+        if !identity_dir.exists() {
+            std::fs::create_dir_all(&identity_dir).map_err(|e| {
+                DfxError::IdentityError(IdentityErrorKind::CouldNotCreateIdentityDirectory(
+                    identity_dir.clone(),
+                    e,
+                ))
+            })?;
         }
 
-        fs::set_permissions(&pem_file, permissions)?;
-
-        Ok(())
+        let creds_pem_path = get_legacy_creds_pem_path()?;
+        if creds_pem_path.exists() {
+            fs::copy(creds_pem_path, identity_pem_path)?;
+        } else {
+            generate_key(&identity_pem_path)?;
+        }
     }
 
-    fn encode_pem_private_key(key: &[u8]) -> String {
-        let pem = Pem {
-            tag: "PRIVATE KEY".to_owned(),
-            contents: key.to_vec(),
-        };
-        encode(&pem)
+    let config = Configuration {
+        default: String::from(DEFAULT_IDENTITY_NAME),
+    };
+    write_configuration(&identity_json_path, &config)?;
+
+    slog::info!(logger, r#"Created the "default" identity."#);
+    Ok(config)
+}
+
+fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
+    let home = std::env::var("HOME")
+        .map_err(|_| DfxError::IdentityError(IdentityErrorKind::CannotFindUserHomeDirectory()))?;
+
+    Ok(PathBuf::from(home)
+        .join(".dfinity")
+        .join("identity")
+        .join("creds.pem"))
+}
+
+fn read_configuration(path: &PathBuf) -> DfxResult<Configuration> {
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| DfxError::IoWithPath(e, path.clone()))?;
+    serde_json::from_str(&content).map_err(DfxError::from)
+}
+
+fn write_configuration(path: &PathBuf, config: &Configuration) -> DfxResult {
+    let content = serde_json::to_string_pretty(&config)?;
+
+    std::fs::write(&path, content).map_err(|err| DfxError::IoWithPath(err, path.clone()))
+}
+
+fn generate_key(pem_file: &PathBuf) -> DfxResult {
+    let rng = rand::SystemRandom::new();
+    let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
+        .map_err(|x| DfxError::IdentityError(IdentityErrorKind::CouldNotGenerateKey(x)))?;
+
+    let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
+    fs::write(&pem_file, encoded_pem)?;
+
+    let mut permissions = fs::metadata(&pem_file)?.permissions();
+    permissions.set_readonly(true);
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        permissions.set_mode(0o400);
     }
+
+    fs::set_permissions(&pem_file, permissions)?;
+
+    Ok(())
+}
+
+fn encode_pem_private_key(key: &[u8]) -> String {
+    let pem = Pem {
+        tag: "PRIVATE KEY".to_owned(),
+        contents: key.to_vec(),
+    };
+    encode(&pem)
 }
