@@ -61,6 +61,7 @@ impl IdentityManager {
         Ok(mgr)
     }
 
+    /// Create an Identity instance for use with an Agent
     pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity>> {
         let pem_path = self.get_selected_identity_pem_path();
         let basic = BasicIdentity::from_pem_file(&pem_path).map_err(|e| {
@@ -71,6 +72,7 @@ impl IdentityManager {
         Ok(b)
     }
 
+    /// Create a new identity (name -> generated key)
     pub fn create_new_identity(&self, name: &str) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::IdentityError(
@@ -95,6 +97,7 @@ impl IdentityManager {
         generate_key(&pem_file)
     }
 
+    /// Return a sorted list of all available identity names
     pub fn get_identity_names(&self) -> DfxResult<Vec<String>> {
         let mut names = self
             .identity_root_path
@@ -116,10 +119,13 @@ impl IdentityManager {
         Ok(names)
     }
 
+    /// Return the name of the currently selected (active) identity
     pub fn get_selected_identity_name(&self) -> &String {
         &self.selected_identity
     }
 
+    /// Remove a named identity.
+    /// Removing the selected identity is not allowed.
     pub fn remove(&self, name: &str) -> DfxResult {
         self.require_identity_exists(name)?;
 
@@ -135,6 +141,9 @@ impl IdentityManager {
         std::fs::remove_dir(&dir).map_err(|e| DfxError::IoWithPath(e, dir))
     }
 
+    /// Rename an identity.
+    /// If renaming the selected (default) identity, changes that
+    /// to refer to the new identity name.
     pub fn rename(&self, from: &str, to: &str) -> DfxResult<bool> {
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::IdentityError(
@@ -166,6 +175,7 @@ impl IdentityManager {
         }
     }
 
+    /// Select an identity by name to use by default
     pub fn r#use(&self, name: &str) -> DfxResult {
         self.require_identity_exists(name)?;
         self.write_default_identity(name)
