@@ -104,43 +104,36 @@ impl CanisterBuilder for AssetsBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult {
-        if !config.skip_frontend {
-            let deps = match info.get_extra_value("dependencies") {
-                None => vec![],
-                Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-                    DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
-                })?,
-            };
-            let dependencies = deps
-                .iter()
-                .map(|name| {
-                    pool.get_first_canister_with_name(name)
-                        .map(|c| c.canister_id())
-                        .map_or_else(
-                            || Err(DfxError::UnknownCanisterNamed(name.clone())),
-                            DfxResult::Ok,
-                        )
-                })
-                .collect::<DfxResult<Vec<CanisterId>>>()?;
+        let deps = match info.get_extra_value("dependencies") {
+            None => vec![],
+            Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
+                DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
+            })?,
+        };
+        let dependencies = deps
+            .iter()
+            .map(|name| {
+                pool.get_first_canister_with_name(name)
+                    .map(|c| c.canister_id())
+                    .map_or_else(
+                        || Err(DfxError::UnknownCanisterNamed(name.clone())),
+                        DfxResult::Ok,
+                    )
+            })
+            .collect::<DfxResult<Vec<CanisterId>>>()?;
 
-            build_frontend(
-                pool.get_logger(),
-                info.get_workspace_root(),
-                &config.network_name,
-                dependencies,
-                pool,
-            )?;
-        }
+        build_frontend(
+            pool.get_logger(),
+            info.get_workspace_root(),
+            &config.network_name,
+            dependencies,
+            pool,
+        )?;
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        if !config.skip_frontend {
-            assets_canister_info.assert_source_paths()?;
-        }
-        copy_assets(
-            pool.get_logger(),
-            &assets_canister_info,
-            config.skip_frontend,
-        )?;
+        assets_canister_info.assert_source_paths()?;
+
+        copy_assets(pool.get_logger(), &assets_canister_info)?;
         Ok(())
     }
 }
@@ -170,20 +163,16 @@ fn delete_output_directory(
     Ok(())
 }
 
-fn copy_assets(
-    logger: &slog::Logger,
-    assets_canister_info: &AssetsCanisterInfo,
-    skip_frontend: bool,
-) -> DfxResult {
+fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
     let source_paths = assets_canister_info.get_source_paths();
     let output_assets_path = assets_canister_info.get_output_assets_path();
 
     for source_path in source_paths {
-        // If we skip-frontend and the source doesn't exist, we ignore it.
-        if skip_frontend && !source_path.exists() {
+        // If the source doesn't exist, we ignore it.
+        if !source_path.exists() {
             slog::warn!(
                 logger,
-                r#"Skip copying "{}" because --skip-frontend was used."#,
+                r#"Source path "{}" does not exist."#,
                 source_path.to_string_lossy()
             );
 
