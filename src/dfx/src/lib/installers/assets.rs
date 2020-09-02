@@ -4,7 +4,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::waiter::create_waiter;
 use candid::Encode;
 use ic_agent::Agent;
-use ic_agent::Blob;
 use std::path::Path;
 use walkdir::WalkDir;
 
@@ -23,12 +22,13 @@ pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> Df
             let content = &std::fs::read(&source)?;
             let path = relative.to_string_lossy().to_string();
             let blob = candid::Encode!(&path, &content)?;
-            let blob = Blob::from(&blob);
 
             let canister_id = info.get_canister_id().expect("Could not find canister ID.");
             let method_name = String::from("store");
             agent
-                .update_and_wait(&canister_id, &method_name, &blob, create_waiter())
+                .update(&canister_id, &method_name)
+                .with_arg(&blob)
+                .call_and_wait(create_waiter())
                 .await?;
         }
     }

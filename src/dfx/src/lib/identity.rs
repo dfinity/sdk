@@ -1,4 +1,4 @@
-use ic_agent::{Blob, Signature};
+use ic_agent::Signature;
 use ic_types::principal::Principal;
 use std::path::PathBuf;
 
@@ -24,8 +24,8 @@ impl ic_agent::Identity for Identity {
     fn sign(&self, blob: &[u8], _: &Principal) -> Result<Signature, String> {
         let signature_tuple = self.0.sign(blob).map_err(|e| e.to_string())?;
 
-        let signature = Blob::from(signature_tuple.signature.clone());
-        let public_key = Blob::from(signature_tuple.public_key);
+        let signature = signature_tuple.signature;
+        let public_key = signature_tuple.public_key;
         Ok(Signature {
             public_key,
             signature,
@@ -50,7 +50,7 @@ mod test {
             let request_id = RequestId::new(&[4; 32]);
             let mut buf = vec![];
             buf.extend_from_slice(domain_separator);
-            buf.extend_from_slice(Blob::from(request_id).as_slice());
+            buf.extend_from_slice(request_id.as_slice());
             buf
         };
         let signature = signer.sign(&msg, &sender).expect("Failed to sign.");

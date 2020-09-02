@@ -16,13 +16,13 @@ serde = { version = "1.0", features = ["derive"] }
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "next"
-rev = "e443ef550c102a3956a024800aa98c82466d6f31"
+rev = "e61e646c7a810c13c1b3d898d1d2ed7366b67a0a"
 
 [dependencies.ic-types]
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "next"
-rev = "e443ef550c102a3956a024800aa98c82466d6f31"
+rev = "e61e646c7a810c13c1b3d898d1d2ed7366b67a0a"
 
 [dev-dependencies]
 serde_cbor = "0.10"
