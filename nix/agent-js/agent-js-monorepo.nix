@@ -6,16 +6,33 @@
 , agentJsMonorepoTools ? import ./monorepo-tools.nix { inherit pkgs system; }
 }:
 let
+  npmEnvironmentBuildInput = (pkgs.stdenv.mkDerivation {
+    name = "agent-js-monorepo-env";
+    src = agent-js-monorepo-src;
+    # Without this unsetting HOME, npm might try to write to default HOME=/homeless-shelter
+    HOME = "";
+    installPhase = ''
+      mkdir -p $out
+    '';
+  });
   monorepo = pkgs.napalm.buildPackage agent-js-monorepo-src {
     name = "agent-js-monorepo";
     propagatedBuildInputs = [
       (agentJsMonorepoTools agent-js-monorepo-src)
+      npmEnvironmentBuildInput
+    ];
+    buildInputs = [
+      npmEnvironmentBuildInput
     ];
     outputs = [
       "out"
       "lib"
       "agent"
       "bootstrap"
+    ];
+    # HOME = "";
+    npmCommands = [
+      "npm install"
     ];
     installPhase = ''
       # $out: Everything!
