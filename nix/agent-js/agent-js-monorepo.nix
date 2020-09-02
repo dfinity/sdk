@@ -3,35 +3,13 @@
   # This should be a fs path to a checked-out agent-js git repo.
   # e.g. via niv at `nix-instantiate nix -A sources.agent-js-monorepo --eval`
 , agent-js-monorepo-src
+, agentJsMonorepoTools ? import ./monorepo-tools.nix { inherit pkgs system; }
 }:
 let
-  src = agent-js-monorepo-src;
-  agentPackagePath = (src + "/packages/agent");
-  # derivation that has all system dependencies required to build the npm monorepo:
-  # * npm requires python3 to build with gyp
-  # * on mac, npm may try to use fsevents
-  monorepoSystemRequirements = pkgs.stdenv.mkDerivation {
-    inherit src;
-    name = "agent-js-monorepo-systemRequirements";
-    propagatedNativeBuildInputs = [
-      # Required by node-gyp
-      pkgs.python3
-    ];
-    propagatedBuildInputs = [
-      (
-        pkgs.lib.optional pkgs.stdenv.isDarwin
-          # Required by fsevents
-          pkgs.darwin.apple_sdk.frameworks.CoreServices
-      )
-    ];
-    installPhase = ''
-      mkdir -p $out
-    '';
-  };
-  monorepo = pkgs.napalm.buildPackage src {
+  monorepo = pkgs.napalm.buildPackage agent-js-monorepo-src {
     name = "agent-js-monorepo";
     propagatedBuildInputs = [
-      monorepoSystemRequirements
+      (agentJsMonorepoTools agent-js-monorepo-src)
     ];
     outputs = [
       "out"

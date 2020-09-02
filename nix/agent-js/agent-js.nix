@@ -20,6 +20,10 @@ pkgs.stdenv.mkDerivation {
     mkdir -p $out
     cp -R ./* $out/
 
+    # back compat required for ../../e2e/node/default.nix: https://github.com/dfinity-lab/sdk/blob/20f051aad0f37d16f040a2c9a54e79db7378492d/src/agent/javascript/default.nix#L33
+    npm pack
+    cp dfinity-*.tgz $out
+
     # $lib/node_modules: node_modules dir that must be resolvable by npm
     #   for future build steps to work (e.g. at ../../node_modules)
     mkdir -p $lib

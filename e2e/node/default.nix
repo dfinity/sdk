@@ -2,12 +2,18 @@
 , system ? builtins.currentSystem
 , dfx ? import ../../dfx.nix { inherit pkgs; }
 , agent-js ? import ../../nix/agent-js/agent-js.nix { inherit pkgs; }
+, agentJsMonorepoTools ? import ../../nix/agent-js/monorepo-tools.nix { inherit pkgs system; }
+, src ? (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ./.))
 }:
-pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ./.)) {
+pkgs.napalm.buildPackage src {
   root = ./.;
   name = "node-e2e-tests";
-  buildInputs = [ dfx.standalone agent-js ];
-
+  buildInputs = [
+    dfx.standalone
+    agent-js
+    pkgs.python3
+    (agentJsMonorepoTools src)
+  ];
   npmCommands = [
     "npm install"
 
@@ -21,7 +27,7 @@ pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ./.)) {
 
         agent_node_modules="node_modules/@dfinity/agent"
         mkdir -p $agent_node_modules
-
+        
         tar xvzf ${agent-js.out}/dfinity-*.tgz --strip-component 1 --directory $agent_node_modules/
         cp -R ${agent-js.lib}/node_modules .
       ''

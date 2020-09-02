@@ -15,7 +15,7 @@
     "agent-js-monorepo": {
         "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/agent-js",
-        "rev": "6da3e0a71a500965a901b01e1311581bcca88a95",
+        "rev": "38d47f8c0f20c5ab827edb7c27029736659d34f4",
         "type": "git"
     },
     "bats-support": {
