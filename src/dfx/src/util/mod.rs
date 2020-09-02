@@ -2,32 +2,29 @@ use crate::lib::error::{DfxError, DfxResult};
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
-use ic_agent::Blob;
 
 pub mod assets;
 pub mod clap;
 
 /// Deserialize and print return values from canister method.
 pub fn print_idl_blob(
-    blob: &Blob,
+    blob: &[u8],
     output_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
 ) -> DfxResult<()> {
     let output_type = output_type.unwrap_or("idl");
     match output_type {
         "raw" => {
-            let hex_string = hex::encode(&(*blob.0));
+            let hex_string = hex::encode(blob);
             println!("{}", hex_string);
         }
         "idl" => {
             let result = match method_type {
-                None => candid::IDLArgs::from_bytes(&(*blob.0)),
-                Some((env, func)) => {
-                    candid::IDLArgs::from_bytes_with_types(&(*blob.0), &env, &func.rets)
-                }
+                None => candid::IDLArgs::from_bytes(blob),
+                Some((env, func)) => candid::IDLArgs::from_bytes_with_types(blob, &env, &func.rets),
             };
             if result.is_err() {
-                let hex_string = hex::encode(&(*blob.0));
+                let hex_string = hex::encode(blob);
                 eprintln!("Error deserializing blob 0x{}", hex_string);
             }
             println!("{}", result?);
@@ -62,7 +59,7 @@ pub fn blob_from_arguments(
     arguments: Option<&str>,
     arg_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
-) -> DfxResult<Blob> {
+) -> DfxResult<Vec<u8>> {
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
         "raw" => {
@@ -115,5 +112,4 @@ pub fn blob_from_arguments(
         }
         v => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
     }
-    .map(Blob::from)
 }
