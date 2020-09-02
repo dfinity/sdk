@@ -1,7 +1,7 @@
 { pkgs ? import ../../nix { inherit system; }
 , system ? builtins.currentSystem
 , dfx ? import ../../dfx.nix { inherit pkgs; }
-, agent-js ? import ../../src/agent/javascript { inherit pkgs; }
+, agent-js ? import ../../nix/agent-js/agent-js.nix { inherit pkgs; }
 }:
 pkgs.napalm.buildPackage (pkgs.lib.noNixFiles (pkgs.lib.gitOnlySource ./.)) {
   root = ./.;
