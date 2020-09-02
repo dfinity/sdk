@@ -100,7 +100,7 @@ user_message!(
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
 
     // dfx identity mod
-    ManageIdentity => "Manages identities used to communicate with the replica.",
+    ManageIdentity => "Manages identities used to communicate with the Internet Computer network. Setting an identity enables to test user-based access controls",
 
     // dfx identity new
     NewIdentity => "Create a new identity.",
@@ -115,10 +115,10 @@ user_message!(
     RenameIdentity => "Rename an identity.",
 
     // dfx identity use
-    UseIdentity => "Use an identity.",
+    UseIdentity => "Specify the identity to use.",
 
     // dfx identity whoami
-    ShowIdentity => "Show name of current identity.",
+    ShowIdentity => "Show the name of the current identity.",
 
     // dfx new
     CreateProject => "Creates a new project.",
