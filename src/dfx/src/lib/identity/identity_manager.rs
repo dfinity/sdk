@@ -222,7 +222,7 @@ fn initialize(
     slog::info!(logger, r#"Creating the "default" identity."#);
 
     let identity_dir = identity_root_path.join(DEFAULT_IDENTITY_NAME);
-    let identity_pem_path = identity_dir.join("identity.pem");
+    let identity_pem_path = identity_dir.join(IDENTITY_PEM);
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
             std::fs::create_dir_all(&identity_dir).map_err(|e| {
