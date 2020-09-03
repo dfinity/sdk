@@ -1721,7 +1721,6 @@ dependencies = [
 name = "ic-types"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37a55e41f39608ff7aeec547c5e216da5eb5af51d689589fa68b0cbaf269ca9b"
 dependencies = [
  "base32",
  "crc32fast",
