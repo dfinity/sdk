@@ -70,6 +70,7 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "next"
+rev = "2fa51b424d990902ba4c276bdb3aca7ad30d554b"
 
 [dev-dependencies]
 env_logger = "0.6"
