@@ -81,7 +81,7 @@ pub fn create_agent_environment<'a>(
 ) -> DfxResult<AgentEnvironment<'a>> {
     let network_descriptor = get_network_descriptor(env, args)?;
 
-    Ok(AgentEnvironment::new(env, network_descriptor))
+    AgentEnvironment::new(env, network_descriptor)
 }
 
 pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {

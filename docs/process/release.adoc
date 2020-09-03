@@ -248,11 +248,10 @@ export NEW_DFX_VERSION=<n.n.n>
 ----
 git switch -c $USER/release-$NEW_DFX_VERSION
 ----
-. Update the `version` field for the following files:
+. Update the `version` field in this file:
 +
 ....
 `src/dfx/Cargo.toml`
-`src/ic_identity_manager/Cargo.toml`
 ....
 . Apply these changes to `Cargo.lock` by running the following command:
 +
