@@ -16,13 +16,13 @@ serde = { version = "1.0", features = ["derive"] }
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "pshahi/ingress-expiry"
-rev = "03652a4b0c085daf610aef8dac935f87b437f773"
+rev = "c802682f1a50008eb6181af4237ed30e3c0bee34"
 
 [dependencies.ic-types]
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "pshahi/ingress-expiry"
-rev = "03652a4b0c085daf610aef8dac935f87b437f773"
+rev = "c802682f1a50008eb6181af4237ed30e3c0bee34"
 
 [dev-dependencies]
 serde_cbor = "0.10"

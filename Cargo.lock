@@ -987,7 +987,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.6.6"
+version = "0.6.5"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1675,7 +1675,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/ingress-expiry#03652a4b0c085daf610aef8dac935f87b437f773"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/ingress-expiry#c802682f1a50008eb6181af4237ed30e3c0bee34"
 dependencies = [
  "async-trait",
  "base32",
@@ -1703,7 +1703,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/ingress-expiry#03652a4b0c085daf610aef8dac935f87b437f773"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/ingress-expiry#c802682f1a50008eb6181af4237ed30e3c0bee34"
 dependencies = [
  "base32",
  "crc32fast",
