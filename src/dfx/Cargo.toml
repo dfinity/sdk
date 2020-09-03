@@ -21,7 +21,7 @@ actix-server = "0.6.1"
 actix-web = { version = "1.0.8", features = [ "default", "openssl", "ssl" ] }
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = "0.5.2"
+candid = "0.5.4"
 chrono = "0.4.9"
 clap = "2.33.0"
 console = "0.7.7"
@@ -33,6 +33,7 @@ flate2 = "1.0.11"
 futures = "0.1.28"
 hex = "0.4.2"
 ic-identity-manager = { path = "../ic_identity_manager" }
+ic-types = "0.1.1"
 indicatif = "0.13.0"
 lazy-init = "0.3.0"
 lazy_static = "1.4.0"
@@ -66,15 +67,8 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "e61e646c7a810c13c1b3d898d1d2ed7366b67a0a"
-
-[dependencies.ic-types]
-version = "0.1.0"
-git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "e61e646c7a810c13c1b3d898d1d2ed7366b67a0a"
-
+branch = "candid"
+rev = "f748c62cae9155a30047bfb88b66449b9016d63b"
 
 [dev-dependencies]
 env_logger = "0.6"
