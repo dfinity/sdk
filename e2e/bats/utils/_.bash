@@ -33,7 +33,7 @@ dfx_new() {
 dfx_start() {
     if [ "$USE_IC_REF" ]
     then
-        /Users/prithvishahi/dev/ic-ref/impl/dist-newstyle/build/x86_64-osx/ghc-8.6.5/ic-ref-0.0.1/x/ic-ref/build/ic-ref/ic-ref --pick-port --write-port-to port 3>&- &
+        ic-ref --pick-port --write-port-to port 3>&- &
         echo $! > ic-ref.pid
 
         sleep 5
