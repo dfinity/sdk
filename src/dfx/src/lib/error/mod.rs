@@ -144,6 +144,10 @@ pub enum DfxError {
 
     /// Could not save the contents of the file
     CouldNotSaveCanisterIds(String, std::io::Error),
+
+    HumanizeParseError(humanize_rs::ParseError),
+
+    ExpiryDurationTooLong(std::num::TryFromIntError),
 }
 
 /// The result of running a DFX command.
@@ -302,5 +306,11 @@ impl actix_web::error::ResponseError for DfxError {}
 impl From<std::string::String> for DfxError {
     fn from(err: std::string::String) -> DfxError {
         DfxError::Unknown(err)
+    }
+}
+
+impl From<humanize_rs::ParseError> for DfxError {
+    fn from(err: humanize_rs::ParseError) -> DfxError {
+        DfxError::HumanizeParseError(err)
     }
 }

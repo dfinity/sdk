@@ -2,9 +2,32 @@ use crate::lib::error::{DfxError, DfxResult};
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
+use humanize_rs::duration::parse;
+use std::convert::TryFrom;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub mod assets;
 pub mod clap;
+
+pub fn expiry_duration_and_nanos(
+    timeout: Option<&str>,
+) -> DfxResult<(DfxResult<Duration>, DfxResult<u64>)> {
+    let dur = match timeout {
+        Some(expiry_duration) => parse(expiry_duration),
+        None => Ok(Duration::from_secs(60 * 5)), // 5 minutes is max ingress timeout
+    }?;
+    let permitted_drift = Duration::from_secs(60);
+    // TODO: once replica exposes time in the status endpoint, will need to read that
+    let start = SystemTime::now();
+    let since_epoch = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time wrapped around");
+    let valid_until = since_epoch + dur - permitted_drift;
+    Ok((
+        Ok(dur),
+        Ok(u64::try_from(valid_until.as_nanos()).map_err(DfxError::ExpiryDurationTooLong)?),
+    ))
+}
 
 /// Deserialize and print return values from canister method.
 pub fn print_idl_blob(
@@ -12,13 +35,13 @@ pub fn print_idl_blob(
     output_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
 ) -> DfxResult<()> {
-    let output_type = output_type.unwrap_or("idl");
+    let output_type = output_type.unwrap_or("pp");
     match output_type {
         "raw" => {
             let hex_string = hex::encode(blob);
             println!("{}", hex_string);
         }
-        "idl" => {
+        "idl" | "pp" => {
             let result = match method_type {
                 None => candid::IDLArgs::from_bytes(blob),
                 Some((env, func)) => candid::IDLArgs::from_bytes_with_types(blob, &env, &func.rets),
@@ -27,7 +50,14 @@ pub fn print_idl_blob(
                 let hex_string = hex::encode(blob);
                 eprintln!("Error deserializing blob 0x{}", hex_string);
             }
-            println!("{}", result?);
+            if output_type == "idl" {
+                println!(
+                    "{}",
+                    candid::parser::value::pretty::pp_args(&result?).pretty(usize::MAX)
+                );
+            } else {
+                println!("{}", result?);
+            }
         }
         v => return Err(DfxError::Unknown(format!("Invalid output type: {}", v))),
     }
@@ -49,7 +79,7 @@ pub fn get_candid_type(
 
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
     let idl_file = std::fs::read_to_string(idl_path)?;
-    let ast = idl_file.parse::<IDLProg>()?;
+    let ast = candid::pretty_parse::<IDLProg>(&idl_path.to_string_lossy(), &idl_file)?;
     let mut env = TypeEnv::new();
     let actor = check_prog(&mut env, &ast)?;
     Ok((env, actor))
@@ -70,39 +100,37 @@ pub fn blob_from_arguments(
         }
         "idl" => {
             let arguments = arguments.unwrap_or("()");
-            let args: DfxResult<IDLArgs> =
-                arguments.parse::<IDLArgs>().map_err(|e: candid::Error| {
-                    DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
-                });
             let typed_args = match method_type {
                 None => {
                     eprintln!("cannot find method type, dfx will send message with inferred type");
-                    args?.to_bytes()
+                    candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
+                        .map_err(|e| {
+                            DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
+                        })?
+                        .to_bytes()
                 }
                 Some((env, func)) => {
                     let first_char = arguments.chars().next();
                     let is_candid_format = first_char.map_or(false, |c| c == '(');
                     // If parsing fails and method expects a single value, try parsing as IDLValue.
                     // If it still fails, and method expects a text type, send arguments as text.
-                    let args = args.or_else(|e| {
+                    let args = arguments.parse::<IDLArgs>().or_else(|_| {
                         if func.args.len() == 1 && !is_candid_format {
                             let is_quote = first_char.map_or(false, |c| c == '"');
                             if candid::types::Type::Text == func.args[0] && !is_quote {
                                 Ok(IDLValue::Text(arguments.to_string()))
                             } else {
-                                arguments.parse::<IDLValue>().map_err(|e| {
-                                    DfxError::InvalidArgument(format!(
-                                        "Invalid Candid values: {}",
-                                        e
-                                    ))
-                                })
+                                candid::pretty_parse::<IDLValue>("Candid argument", &arguments)
                             }
                             .map(|v| IDLArgs::new(&[v]))
                         } else {
-                            Err(e)
+                            candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
                         }
                     });
-                    args?.to_bytes_with_types(&env, &func.args)
+                    args.map_err(|e| {
+                        DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
+                    })?
+                    .to_bytes_with_types(&env, &func.args)
                 }
             }
             .map_err(|e| {

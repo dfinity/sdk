@@ -4,6 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::provider::create_agent_environment;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use humanize_rs::duration::parse;
 
 mod call;
 mod create;
@@ -38,7 +39,21 @@ pub fn construct() -> App<'static, 'static> {
                 .long("network")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("expiry-duration")
+                .long("expiry-duration")
+                .help(UserMessage::CreateAll.to_str())
+                .takes_value(true)
+                .validator(expiry_duration_validator),
+        )
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
+}
+
+fn expiry_duration_validator(expiry_duration: String) -> Result<(), String> {
+    if let Ok(_ed) = parse(&expiry_duration) {
+        return Ok(());
+    }
+    Err("Invalid input.".to_string())
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {

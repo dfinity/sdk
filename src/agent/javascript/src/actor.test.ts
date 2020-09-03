@@ -10,6 +10,14 @@ import { Principal } from './principal';
 import { requestIdOf } from './request_id';
 import { blobFromHex, Nonce } from './types';
 
+const RealDate = Date.now;
+beforeAll(() => {
+  global.Date.now = jest.fn(() => new Date('1970-01-01T10:20:30Z').getTime());
+});
+afterAll(() => {
+  global.Date.now = RealDate;
+});
+
 test('makeActor', async () => {
   const actorInterface = () => {
     return IDL.Service({
@@ -94,6 +102,7 @@ test('makeActor', async () => {
       arg,
       nonce: nonces[0],
       sender,
+      ingress_expiry: (new Date('1970-01-01T10:20:30Z').valueOf() + 300000) * 1000000,
     },
     sender_pubkey: senderPubKey,
     sender_sig: senderSig,
@@ -149,6 +158,7 @@ test('makeActor', async () => {
         content: {
           request_type: 'request_status',
           request_id: expectedCallRequestId,
+          ingress_expiry: (new Date('1970-01-01T10:20:30Z').valueOf() + 300000) * 1000000,
         },
         sender_pubkey: senderPubKey,
         sender_sig: senderSig,
@@ -166,6 +176,7 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
+        ingress_expiry: (new Date('1970-01-01T10:20:30Z').valueOf() + 300000) * 1000000,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
@@ -182,6 +193,7 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
+        ingress_expiry: (new Date('1970-01-01T10:20:30Z').valueOf() + 300000) * 1000000,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,
@@ -198,6 +210,7 @@ test('makeActor', async () => {
       content: {
         request_type: 'request_status',
         request_id: expectedCallRequestId,
+        ingress_expiry: (new Date('1970-01-01T10:20:30Z').valueOf() + 300000) * 1000000,
       },
       sender_pubkey: senderPubKey,
       sender_sig: senderSig,

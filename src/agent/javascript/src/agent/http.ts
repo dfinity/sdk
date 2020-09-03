@@ -149,6 +149,7 @@ export class HttpAgent implements Agent {
       method_name: fields.methodName,
       arg: fields.arg,
       sender: p.toBlob(),
+      ingress_expiry: (Date.now().valueOf() + 300000) * 1000000,
     });
   }
 
@@ -172,6 +173,7 @@ export class HttpAgent implements Agent {
       module: fields.module,
       arg: fields.arg || blobFromHex(''),
       sender: p.toBlob(),
+      ingress_expiry: (Date.now().valueOf() + 300000) * 1000000,
     });
   }
 
@@ -185,6 +187,7 @@ export class HttpAgent implements Agent {
     return this.submit({
       request_type: SubmitRequestType.CreateCanister,
       sender: p.toBlob(),
+      ingress_expiry: (Date.now().valueOf() + 300000) * 1000000,
     });
   }
 
@@ -205,6 +208,7 @@ export class HttpAgent implements Agent {
       method_name: fields.methodName,
       arg: fields.arg,
       sender: p.toBlob(),
+      ingress_expiry: (Date.now().valueOf() + 300000) * 1000000,
     }) as Promise<QueryResponse>;
   }
 
@@ -221,6 +225,7 @@ export class HttpAgent implements Agent {
     return this.read({
       request_type: ReadRequestType.RequestStatus,
       request_id: fields.requestId,
+      ingress_expiry: (Date.now().valueOf() + 300000) * 1000000,
     }) as Promise<RequestStatusResponse>;
   }
 
