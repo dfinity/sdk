@@ -68,14 +68,14 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "e61e646c7a810c13c1b3d898d1d2ed7366b67a0a"
+branch = "pshahi/ingress-expiry"
+rev = "03652a4b0c085daf610aef8dac935f87b437f773"
 
 [dependencies.ic-types]
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "e61e646c7a810c13c1b3d898d1d2ed7366b67a0a"
+branch = "pshahi/ingress-expiry"
+rev = "03652a4b0c085daf610aef8dac935f87b437f773"
 
 
 [dev-dependencies]
