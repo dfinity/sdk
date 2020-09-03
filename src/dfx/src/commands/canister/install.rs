@@ -86,7 +86,10 @@ async fn install_canister(
         mode,
         &wasm,
         &[],
-        &CanisterAttributes { compute_allocation, memory_allocation: None },
+        &CanisterAttributes {
+            compute_allocation,
+            memory_allocation: None,
+        },
     )
     .await
     .map_err(DfxError::from)?;
