@@ -1010,7 +1010,6 @@ dependencies = [
  "hex",
  "hotwatch",
  "ic-agent",
- "ic-identity-manager",
  "ic-types",
  "indicatif",
  "lazy-init",
@@ -1018,15 +1017,17 @@ dependencies = [
  "libflate",
  "mockall",
  "mockito",
+ "pem 0.7.0",
  "petgraph",
  "proptest",
  "rand 0.7.3",
  "regex",
  "reqwest",
+ "ring",
  "semver",
  "serde",
  "serde_bytes",
- "serde_cbor 0.11.1",
+ "serde_cbor",
  "serde_json",
  "serde_repr",
  "shell-words",
@@ -1037,6 +1038,7 @@ dependencies = [
  "sysinfo",
  "tar",
  "tempfile",
+ "thiserror",
  "tokio",
  "toml",
  "url 2.1.1",
@@ -1692,23 +1694,10 @@ dependencies = [
  "rustls",
  "serde",
  "serde_bytes",
- "serde_cbor 0.11.1",
+ "serde_cbor",
  "thiserror",
  "url 2.1.1",
  "webpki-roots 0.20.0",
-]
-
-[[package]]
-name = "ic-identity-manager"
-version = "0.6.6"
-dependencies = [
- "ic-agent",
- "ic-types",
- "openssl",
- "pem 0.7.0",
- "ring",
- "serde",
- "serde_cbor 0.10.2",
 ]
 
 [[package]]
@@ -3121,17 +3110,6 @@ version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16ae07dd2f88a366f15bd0632ba725227018c69a1c8550a927324f8eb8368bb9"
 dependencies = [
- "serde",
-]
-
-[[package]]
-name = "serde_cbor"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7081ed758ec726a6ed8ee7e92f5d3f6e6f8c3901b1f972e3a4a2f2599fad14f"
-dependencies = [
- "byteorder",
- "half",
  "serde",
 ]
 
