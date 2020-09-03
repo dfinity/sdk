@@ -12,13 +12,13 @@ pub fn print_idl_blob(
     output_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
 ) -> DfxResult<()> {
-    let output_type = output_type.unwrap_or("idl");
+    let output_type = output_type.unwrap_or("pp");
     match output_type {
         "raw" => {
             let hex_string = hex::encode(blob);
             println!("{}", hex_string);
         }
-        "idl" => {
+        "idl" | "pp" => {
             let result = match method_type {
                 None => candid::IDLArgs::from_bytes(blob),
                 Some((env, func)) => candid::IDLArgs::from_bytes_with_types(blob, &env, &func.rets),
@@ -27,7 +27,14 @@ pub fn print_idl_blob(
                 let hex_string = hex::encode(blob);
                 eprintln!("Error deserializing blob 0x{}", hex_string);
             }
-            println!("{}", result?);
+            if output_type == "idl" {
+                println!(
+                    "{}",
+                    candid::parser::value::pretty::pp_args(&result?).pretty(usize::MAX)
+                );
+            } else {
+                println!("{}", result?);
+            }
         }
         v => return Err(DfxError::Unknown(format!("Invalid output type: {}", v))),
     }
