@@ -32,7 +32,6 @@ erased-serde = "0.3.10"
 flate2 = "1.0.11"
 futures = "0.1.28"
 hex = "0.4.2"
-ic-types = "0.1.1"
 indicatif = "0.13.0"
 lazy-init = "0.3.0"
 lazy_static = "1.4.0"
@@ -68,6 +67,12 @@ wasmparser = "0.45.0"
 
 [dependencies.ic-agent]
 version = "0.1.0"
+git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
+branch = "next"
+rev = "2fa51b424d990902ba4c276bdb3aca7ad30d554b"
+
+[dependencies.ic-types]
+version = "0.1.1"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "next"
 rev = "2fa51b424d990902ba4c276bdb3aca7ad30d554b"
