@@ -56,7 +56,7 @@ pub fn get_candid_type(
 
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
     let idl_file = std::fs::read_to_string(idl_path)?;
-    let ast = candid::pretty_parse::<IDLProg>(idl_path.to_str().unwrap(), &idl_file)?;
+    let ast = candid::pretty_parse::<IDLProg>(&idl_path.to_string_lossy(), &idl_file)?;
     let mut env = TypeEnv::new();
     let actor = check_prog(&mut env, &ast)?;
     Ok((env, actor))
