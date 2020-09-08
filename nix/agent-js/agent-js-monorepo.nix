@@ -17,6 +17,9 @@ let
       "agent"
       "bootstrap"
     ];
+    configureScript = (builtins.toFile "tmp-nix-configure.sh" ''
+      export HOME=$(mktemp -d)
+    '');
     installPhase = ''
       # $out: Everything!
       mkdir -p $out
