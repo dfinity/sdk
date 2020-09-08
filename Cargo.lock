@@ -509,6 +509,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
 
 [[package]]
+name = "beef"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "474a626a67200bd107d44179bb3d4fc61891172d11696609264589be6a0e6a43"
+
+[[package]]
 name = "bit-set"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -626,18 +632,19 @@ checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
 name = "candid"
-version = "0.5.2"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3928acd8e9b66774a2eb21ad675e827f6723058163347f18b1d967e02637d86"
+checksum = "15f6e879d53af7853a2d8ec7fd7d786bbf363a1535296542b957e67592f229dc"
 dependencies = [
- "base32",
  "byteorder",
  "candid_derive",
- "crc32fast",
+ "codespan-reporting",
  "hex",
+ "ic-types",
  "lalrpop",
  "lalrpop-util",
  "leb128",
+ "logos",
  "num-bigint",
  "num-traits",
  "num_enum",
@@ -648,9 +655,9 @@ dependencies = [
 
 [[package]]
 name = "candid_derive"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a51d65ed24b5b03624aefc86967af49039882d63161a67aef0dd4306f7251330"
+checksum = "ab31ccaf3ab1184bab4a139afb0d23c3aa54144d4a92ef0d0de7653cad4f679f"
 dependencies = [
  "proc-macro2 1.0.19",
  "quote 1.0.7",
@@ -723,6 +730,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4344512281c643ae7638bbabc3af17a11307803ec8f0fcad9fae512a8bf36467"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "codespan-reporting"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e0762455306b1ed42bc651ef6a2197aabda5e1d4a43c34d5eab5c1a3634e81d"
+dependencies = [
+ "termcolor",
+ "unicode-width",
 ]
 
 [[package]]
@@ -1675,7 +1692,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#e61e646c7a810c13c1b3d898d1d2ed7366b67a0a"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#35a0f9851cf8cceea34acf405ba50c84ab5fbc5e"
 dependencies = [
  "async-trait",
  "base32",
@@ -1702,8 +1719,8 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#e61e646c7a810c13c1b3d898d1d2ed7366b67a0a"
+version = "0.1.1"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#35a0f9851cf8cceea34acf405ba50c84ab5fbc5e"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1962,6 +1979,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fabed175da42fed1fa0746b0ea71f412aa9d35e76e95e59b192c64b9dc2bf8b"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "logos"
+version = "0.11.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b91c49573597a5d6c094f9031617bb1fed15c0db68c81e6546d313414ce107e4"
+dependencies = [
+ "logos-derive",
+]
+
+[[package]]
+name = "logos-derive"
+version = "0.11.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "797b1f8a0571b331c1b47e7db245af3dc634838da7a92b3bef4e30376ae1c347"
+dependencies = [
+ "beef",
+ "fnv",
+ "proc-macro2 1.0.19",
+ "quote 1.0.7",
+ "regex-syntax",
+ "syn 1.0.38",
+ "utf8-ranges",
 ]
 
 [[package]]
@@ -3895,6 +3936,12 @@ dependencies = [
  "matches",
  "percent-encoding 2.1.0",
 ]
+
+[[package]]
+name = "utf8-ranges"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4ae116fef2b7fea257ed6440d3cfcff7f190865f170cdad00bb6465bf18ecba"
 
 [[package]]
 name = "v_escape"

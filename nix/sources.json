@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "95868762d326e2ea2d343d0f8ad972162191640d",
-        "sha256": "177qspkkjrk005f8mayrav6vvz8r64cxhn97nn63y978npcbkwid",
+        "rev": "49dba073a8966457720ac568c68d332a53fd1717",
+        "sha256": "0fqhpmmpqq2hkkfr1z7q3w6c4fhbaspys4jil5imbdmnvqmanv00",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/95868762d326e2ea2d343d0f8ad972162191640d.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/49dba073a8966457720ac568c68d332a53fd1717.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "bats-support": {
@@ -33,8 +33,8 @@
     },
     "dfinity": {
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "9091dc6baa1bde728e96229294043650680dee33",
-        "tag": "release-2020-08-28.RC00",
+        "rev": "70434f1ecac5227dc8e5d30635f7aceb7c257e3f",
+        "tag": "release-2020-09-04.RC00",
         "type": "git"
     },
     "ic-ref": {

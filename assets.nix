@@ -8,7 +8,6 @@ pkgs.runCommandNoCCLocal "assets" {} ''
   cp ${pkgs.dfinity.ic-replica}/bin/replica $out
   cp ${pkgs.dfinity.ic-starter}/bin/ic-starter $out
   cp -R ${pkgs.motoko.base-src} $out/base
-  cp ${pkgs.motoko.didc}/bin/didc $out
   cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
   cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
   cp ${pkgs.motoko.moc}/bin/moc $out
