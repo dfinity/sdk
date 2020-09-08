@@ -39,8 +39,8 @@
     },
     "dfinity": {
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "9091dc6baa1bde728e96229294043650680dee33",
-        "tag": "release-2020-08-28.RC00",
+        "rev": "70434f1ecac5227dc8e5d30635f7aceb7c257e3f",
+        "tag": "release-2020-09-04.RC00",
         "type": "git"
     },
     "ic-ref": {
