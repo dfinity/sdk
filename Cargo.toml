@@ -2,3 +2,6 @@
 members = [
     "src/dfx",
 ]
+
+[patch.crates-io]
+ic-types = { git = "ssh://git@github.com/dfinity-lab/agent-rust.git", branch = "next", version = "0.1.1" }
