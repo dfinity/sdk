@@ -1,14 +1,9 @@
-{ pkgs ? import ../. { inherit system; }
-, system ? builtins.currentSystem
-}:
+{ pkgs ? import ../. { inherit system; }, system ? builtins.currentSystem }:
 pkgs.stdenv.mkDerivation {
   name = "agent-js-monorepo-package-bootstrap";
-  src = "${pkgs.agent-js-monorepo}/packages/bootstrap/";
+  src = "${pkgs.agent-js-monorepo}";
   buildInputs = [ pkgs.nodejs ];
-  outputs = [
-    "out"
-    "lib"
-  ];
+  outputs = [ "out" "lib" ];
   buildPhase = ''
     # Don't run `npm run build` here, which will call `tsc -b`.
     # `tsc -b` will use typescript project references to build things,
@@ -16,6 +11,8 @@ pkgs.stdenv.mkDerivation {
     # We expect pkgs.agent-js-monorepo to have already taken care of the `npm install` part of fetching deps.
   '';
   installPhase = ''
+    cd packages/bootstrap
+
     # $out: everything
     mkdir -p $out
     cp -R ./* $out/

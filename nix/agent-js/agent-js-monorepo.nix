@@ -8,18 +8,11 @@
 let
   monorepo = pkgs.napalm.buildPackage agent-js-monorepo-src {
     name = "agent-js-monorepo";
-    propagatedBuildInputs = [
-      (agentJsMonorepoTools agent-js-monorepo-src)
-    ];
-    outputs = [
-      "out"
-      "lib"
-      "agent"
-      "bootstrap"
-    ];
-    configureScript = (builtins.toFile "tmp-nix-configure.sh" ''
+    propagatedBuildInputs = [ (agentJsMonorepoTools agent-js-monorepo-src) ];
+    outputs = [ "out" "lib" "agent" "bootstrap" ];
+    configureScript = builtins.toFile "tmp-nix-configure.sh" ''
       export HOME=$(mktemp -d)
-    '');
+    '';
     installPhase = ''
       # $out: Everything!
       mkdir -p $out
