@@ -654,6 +654,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "candid"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15f6e879d53af7853a2d8ec7fd7d786bbf363a1535296542b957e67592f229dc"
+dependencies = [
+ "byteorder",
+ "candid_derive",
+ "codespan-reporting",
+ "hex",
+ "ic-types",
+ "lalrpop",
+ "lalrpop-util",
+ "leb128",
+ "logos",
+ "num-bigint",
+ "num-traits",
+ "num_enum",
+ "paste",
+ "pretty",
+ "serde",
+]
+
+[[package]]
 name = "candid_derive"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1013,7 +1036,7 @@ dependencies = [
  "actix-web",
  "atty",
  "base64 0.11.0",
- "candid",
+ "candid 0.6.0",
  "chrono",
  "clap",
  "console 0.7.7",
@@ -1698,7 +1721,7 @@ dependencies = [
  "base32",
  "base64 0.12.3",
  "byteorder",
- "candid",
+ "candid 0.5.4",
  "delay",
  "hex",
  "ic-types",
@@ -1720,7 +1743,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.1"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#2fa51b424d990902ba4c276bdb3aca7ad30d554b"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#35a0f9851cf8cceea34acf405ba50c84ab5fbc5e"
 dependencies = [
  "base32",
  "crc32fast",
