@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::install_canister::install_canister;
+use crate::lib::operations::canister::install_canister;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::{ComputeAllocation, InstallMode};
