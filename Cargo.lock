@@ -632,29 +632,6 @@ checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
 name = "candid"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ce199442195970318ccd0d8f94c7e2b2bf60c1bf23ed7be2b2ae91c2d8dff3a"
-dependencies = [
- "byteorder",
- "candid_derive",
- "codespan-reporting",
- "hex",
- "ic-types",
- "lalrpop",
- "lalrpop-util",
- "leb128",
- "logos",
- "num-bigint",
- "num-traits",
- "num_enum",
- "paste",
- "pretty",
- "serde",
-]
-
-[[package]]
-name = "candid"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "15f6e879d53af7853a2d8ec7fd7d786bbf363a1535296542b957e67592f229dc"
@@ -1036,7 +1013,7 @@ dependencies = [
  "actix-web",
  "atty",
  "base64 0.11.0",
- "candid 0.6.0",
+ "candid",
  "chrono",
  "clap",
  "console 0.7.7",
@@ -1715,13 +1692,13 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#2fa51b424d990902ba4c276bdb3aca7ad30d554b"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#35a0f9851cf8cceea34acf405ba50c84ab5fbc5e"
 dependencies = [
  "async-trait",
  "base32",
  "base64 0.12.3",
  "byteorder",
- "candid 0.5.4",
+ "candid",
  "delay",
  "hex",
  "ic-types",
