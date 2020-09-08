@@ -1,5 +1,6 @@
 pub mod builders;
 pub mod canister_info;
+pub mod config;
 pub mod environment;
 pub mod error;
 pub mod identity;

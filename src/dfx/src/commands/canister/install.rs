@@ -7,9 +7,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::create_waiter;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::{
-    Agent, Blob, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister,
-};
+use ic_agent::{Agent, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister};
 use slog::info;
 use std::convert::TryFrom;
 use std::str::FromStr;
@@ -86,8 +84,8 @@ async fn install_canister(
         create_waiter(),
         &canister_id,
         mode,
-        &Blob::from(wasm),
-        &Blob::empty(),
+        &wasm,
+        &[],
         &CanisterAttributes { compute_allocation },
     )
     .await
