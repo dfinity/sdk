@@ -69,7 +69,6 @@ pub enum DfxError {
     /// Argument provided is invalid.
     InvalidArgument(String),
 
-    #[allow(dead_code)]
     /// Configuration provided is invalid.
     InvalidConfiguration(String),
     /// Method called invalid.
@@ -197,6 +196,9 @@ impl Display for DfxError {
             }
             DfxError::InvalidArgument(e) => {
                 f.write_fmt(format_args!("Invalid argument: {}", e))?;
+            }
+            DfxError::InvalidConfiguration(e) => {
+                f.write_fmt(format_args!("Invalid configuration: {}", e))?;
             }
             DfxError::InvalidData(e) => {
                 f.write_fmt(format_args!("Invalid data: {}", e))?;

@@ -246,7 +246,7 @@ impl ConfigInterface {
         some_canister: Option<&str>,
     ) -> DfxResult<Vec<String>> {
         let canister_map = (&self.canisters).as_ref().ok_or_else(|| {
-            DfxError::Unknown("No canisters in the configuration file.".to_string())
+            DfxError::InvalidConfiguration("No canisters in the configuration file.".to_string())
         })?;
 
         let canister_names = match some_canister {
@@ -289,7 +289,7 @@ fn add_dependencies(
     let deps = match canister_config.extras.get("dependencies") {
         None => vec![],
         Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-            DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
+            DfxError::InvalidConfiguration(String::from("Field 'dependencies' is of the wrong type"))
         })?,
     };
 
