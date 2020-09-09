@@ -101,7 +101,7 @@ user_message!(
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
 
     // dfx deploy
-    DeployCanister => "Deployes all or specific canisters from the code in your project. By default, all canisters are deployed.",
+    DeployCanister => "Deploys all or specific canisters from the code in your project. By default, all canisters are deployed.",
     DeployCanisterName => "Specifies the canister name.  If none specified, deploys all canisters.",
 
     // dfx identity mod
