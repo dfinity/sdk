@@ -12,6 +12,12 @@
         "url": "https://github.com/RustSec/advisory-db/archive/49dba073a8966457720ac568c68d332a53fd1717.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "agent-js-monorepo": {
+        "ref": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/agent-js",
+        "rev": "5799552008dff90ee2fcc4de06206a0fa2ee77d1",
+        "type": "git"
+    },
     "bats-support": {
         "branch": "v0.3.0",
         "builtin": false,
