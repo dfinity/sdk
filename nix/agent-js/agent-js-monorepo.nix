@@ -13,6 +13,14 @@ let
     configureScript = builtins.toFile "tmp-nix-configure.sh" ''
       export HOME=$(mktemp -d)
     '';
+    npmCommands = [
+      # Do this with --ignore-scripts to ensure we fetch deps, but don't trigger any npm scripts.
+      # This is to allow for npm scripts that depend on dep's npm bin scripts.
+      # Those scripts may have shebangs in them, and nix can only patchShebangs after each command.
+      # So we fetch deps, let it patchShebangs, and then npm install again w/ postinstall scripts
+      "npm install --ignore-scripts"
+      "npm install"
+    ];
     installPhase = ''
       # $out: Everything!
       mkdir -p $out
