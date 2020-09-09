@@ -10,6 +10,7 @@ pub mod logger;
 pub mod message;
 pub mod models;
 pub mod network;
+pub mod operations;
 pub mod package_arguments;
 pub mod progress_bar;
 pub mod provider;
