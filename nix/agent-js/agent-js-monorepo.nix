@@ -29,7 +29,8 @@ let
 
       # $bootstrap: npm subpackage @dfinity/bootstrap
       mkdir -p $bootstrap
-      cp -R node_modules $bootstrap/
+      cp -R $out/node_modules $bootstrap/
+      cp -R node_modules/* $bootstrap/node_modules/
       cp -R ./packages/bootstrap/* $bootstrap/
     '';
   };

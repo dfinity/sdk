@@ -2,26 +2,43 @@
 pkgs.stdenv.mkDerivation {
   name = "agent-js-monorepo-package-bootstrap";
   src = "${pkgs.agent-js-monorepo}";
-  buildInputs = [ pkgs.nodejs ];
-  outputs = [ "out" "lib" ];
+  buildInputs = [
+    pkgs.agent-js-monorepo
+    pkgs.nodejs
+  ];
+  outputs = [
+    "out"
+    "lib"
+    "dist"
+  ];
+  configurePhase = ''
+    export HOME=$(mktemp -d)
+  '';
+  unpackPhase = ''
+    mkdir bootstrap-bundle
+    cp -R ${pkgs.agent-js-monorepo}/* bootstrap-bundle/
+  '';
   buildPhase = ''
-    # Don't run `npm run build` here, which will call `tsc -b`.
-    # `tsc -b` will use typescript project references to build things,
-    # which may try to read from other packages, which will fail due to writing in an external nix store.
-    # We expect pkgs.agent-js-monorepo to have already taken care of the `npm install` part of fetching deps.
   '';
   installPhase = ''
-    cd packages/bootstrap
-
     # $out: everything
     mkdir -p $out
-    cp -R ./* $out/
+    cp -R ${pkgs.agent-js-monorepo.bootstrap}/* $out/
 
     # $lib/node_modules: node_modules dir that must be resolvable by npm
     #   for future build steps to work (e.g. at ../../node_modules)
     mkdir -p $lib
     if test -d node_modules; then
       cp -R node_modules $lib;
+    fi
+    
+    # $dist: Store src files as outputed from typescript compiler
+    mkdir -p $dist
+    ls -alh
+    dist_src="bootstrap-bundle/packages/bootstrap/ts-out/src"
+    ls -alh  $dist_src
+    if test -d "$dist_src"; then
+      cp -R $dist_src/* $dist/
     fi
   '';
 }

@@ -14,7 +14,7 @@ pkgs.runCommandNoCCLocal "assets" {} ''
 
   # Install bootstrap
   mkdir $out/bootstrap
-  cp -R ${bootstrap-js.out}/* $out/bootstrap/
+  cp -R ${bootstrap-js.dist}/* $out/bootstrap/
 
   cp -R ${distributed-canisters} $out/canisters
 ''
