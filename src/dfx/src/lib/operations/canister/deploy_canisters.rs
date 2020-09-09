@@ -17,15 +17,9 @@ pub fn deploy_canisters(env: &dyn Environment, some_canister: Option<&str>) -> D
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
-    let mut canister_names = config
-        .get_config()
-        .get_canister_names_with_dependencies(some_canister)?;
-    canister_names.sort();
-    let canister_names = canister_names;
-
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
+    let canister_names = canisters_to_deploy(&config, some_canister)?;
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canister_names.join(" "));
     } else {
@@ -41,6 +35,14 @@ pub fn deploy_canisters(env: &dyn Environment, some_canister: Option<&str>) -> D
     info!(log, "Deployed canisters.");
 
     Ok(())
+}
+
+fn canisters_to_deploy(config: &Config, some_canister: Option<&str>) -> DfxResult<Vec<String>> {
+    let mut canister_names = config
+        .get_config()
+        .get_canister_names_with_dependencies(some_canister)?;
+    canister_names.sort();
+    Ok(canister_names)
 }
 
 fn register_canisters(
