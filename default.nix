@@ -14,7 +14,6 @@ rec {
 
   # Agents in varous languages
   agent-js-monorepo = pkgs.agent-js-monorepo;
-  agent-js = import ./nix/agent-js/agent-js.nix { inherit system pkgs; };
 
   # Bootstrap frontend.
   bootstrap-js = import ./nix/agent-js/bootstrap-js.nix { inherit system pkgs; };
