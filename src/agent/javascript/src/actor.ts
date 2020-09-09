@@ -303,6 +303,7 @@ async function _requestStatusAndLoop<T>(
       return decoder(status);
     }
 
+    case RequestStatusResponseStatus.Done:
     case RequestStatusResponseStatus.Unknown:
     case RequestStatusResponseStatus.Received:
     case RequestStatusResponseStatus.Processing:

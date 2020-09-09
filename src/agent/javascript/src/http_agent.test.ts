@@ -58,6 +58,7 @@ test('call', async () => {
     arg,
     nonce,
     sender: principal.toBlob(),
+    ingress_expiry: 300,
   };
 
   const mockPartialsRequestId = await requestIdOf(mockPartialRequest);
@@ -69,6 +70,7 @@ test('call', async () => {
     content: mockPartialRequest,
     sender_pubkey: keyPair.publicKey,
     sender_sig: senderSig,
+    // ingress_expiry: 300,
   } as Signed<CallRequest>;
 
   const expectedRequestId = await requestIdOf(expectedRequest.content);
@@ -141,6 +143,7 @@ test('requestStatus', async () => {
     content: {
       request_type: ReadRequestType.RequestStatus,
       request_id: requestId,
+      ingress_expiry: 300,
     },
     sender_pubkey: senderPubKey,
     sender_sig: Buffer.from([0]) as SenderSig,

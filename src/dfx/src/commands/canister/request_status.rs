@@ -1,13 +1,13 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::waiter::create_waiter;
 use crate::util::clap::validators;
-use crate::util::print_idl_blob;
+use crate::util::{expiry_duration_and_nanos, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use delay::Waiter;
+use delay::{Delay, Waiter};
 use ic_agent::{AgentError, Replied, RequestId, RequestStatusResponse};
 use std::str::FromStr;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -35,13 +35,24 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let mut waiter = create_waiter();
+    let timeout = args.value_of("expiry_duration");
+
+    let (valid_until, v_nanos) = expiry_duration_and_nanos(timeout)?;
+    let valid_until_as_nanos = v_nanos?;
+
+    let mut waiter = Delay::builder()
+        .timeout(valid_until?)
+        .throttle(Duration::from_secs(1))
+        .build();
 
     let Replied::CallReplied(blob) = runtime
         .block_on(async {
             waiter.start();
             loop {
-                match agent.request_status_raw(&request_id).await? {
+                match agent
+                    .request_status_raw(&request_id, valid_until_as_nanos)
+                    .await?
+                {
                     RequestStatusResponse::Replied { reply } => return Ok(reply),
                     RequestStatusResponse::Rejected {
                         reject_code,
@@ -55,6 +66,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     RequestStatusResponse::Unknown => (),
                     RequestStatusResponse::Received => (),
                     RequestStatusResponse::Processing => (),
+                    RequestStatusResponse::Done => (),
                 };
 
                 waiter

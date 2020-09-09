@@ -2,9 +2,32 @@ use crate::lib::error::{DfxError, DfxResult};
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
+use humanize_rs::duration::parse;
+use std::convert::TryFrom;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub mod assets;
 pub mod clap;
+
+pub fn expiry_duration_and_nanos(
+    timeout: Option<&str>,
+) -> DfxResult<(DfxResult<Duration>, DfxResult<u64>)> {
+    let dur = match timeout {
+        Some(expiry_duration) => parse(expiry_duration),
+        None => Ok(Duration::from_secs(60 * 5)), // 5 minutes is max ingress timeout
+    }?;
+    let permitted_drift = Duration::from_secs(60);
+    // TODO: once replica exposes time in the status endpoint, will need to read that
+    let start = SystemTime::now();
+    let since_epoch = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time wrapped around");
+    let valid_until = since_epoch + dur - permitted_drift;
+    Ok((
+        Ok(valid_until),
+        Ok(u64::try_from(valid_until.as_nanos()).map_err(DfxError::ExpiryDurationTooLong)?),
+    ))
+}
 
 /// Deserialize and print return values from canister method.
 pub fn print_idl_blob(

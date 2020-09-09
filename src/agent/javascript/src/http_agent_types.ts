@@ -76,6 +76,7 @@ export interface CallRequest extends Record<string, any> {
   method_name: string;
   arg: BinaryBlob;
   sender: BinaryBlob;
+  ingress_expiry: number;
 }
 export interface InstallCodeRequest extends Record<string, any> {
   request_type: SubmitRequestType.InstallCode;
@@ -143,12 +144,14 @@ export interface QueryRequest extends Record<string, any> {
   method_name: string;
   arg: BinaryBlob;
   sender: BinaryBlob;
+  ingress_expiry: number;
 }
 
 // The fields in a "request_status" read request.
 export interface RequestStatusRequest extends Record<string, any> {
   request_type: ReadRequestType.RequestStatus;
   request_id: RequestId;
+  ingress_expiry: number;
 }
 
 // An ADT that represents responses to a "request_status" read request.
@@ -157,7 +160,8 @@ export type RequestStatusResponse =
   | RequestStatusResponseProcessing
   | RequestStatusResponseReplied
   | RequestStatusResponseRejected
-  | RequestStatusResponseUnknown;
+  | RequestStatusResponseUnknown
+  | RequestStatusResponseDone;
 
 export interface RequestStatusResponseReceived {
   status: RequestStatusResponseStatus.Received;
@@ -185,12 +189,17 @@ export interface RequestStatusResponseUnknown {
   status: RequestStatusResponseStatus.Unknown;
 }
 
+export interface RequestStatusResponseDone {
+  status: RequestStatusResponseStatus.Done;
+}
+
 export enum RequestStatusResponseStatus {
   Received = 'received',
   Processing = 'processing',
   Replied = 'replied',
   Rejected = 'rejected',
   Unknown = 'unknown',
+  Done = 'done',
 }
 
 export type ReadRequest = QueryRequest | RequestStatusRequest;
