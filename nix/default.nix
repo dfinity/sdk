@@ -43,6 +43,10 @@ let
               napalm = self.callPackage self.sources.napalm {
                 pkgs = self // { nodejs = self.nodejs-12_x; };
               };
+              agent-js-monorepo = import ./agent-js/agent-js-monorepo.nix {
+                inherit system pkgs;
+                agent-js-monorepo-src = self.sources.agent-js-monorepo;
+              };
               ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref;
 
               nix-fmt = nixFmt.fmt;

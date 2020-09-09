@@ -91,3 +91,4 @@ make sure the installer actually downloads and installs the new DFX release the
    job which will monitor the aforementioned `publish.install-sh.x86_64-linux`
    job for new builds, whenever there's a new build it will download the output
    (the CD script) and execute it.
+

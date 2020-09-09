@@ -8,7 +8,6 @@
 
 { pkgs ? import ./nix { inherit system; }
 , system ? builtins.currentSystem
-, agent-js ? import ./src/agent/javascript { inherit pkgs; }
 , assets ? import ./assets.nix { inherit pkgs; }
 }:
 let

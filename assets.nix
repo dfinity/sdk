@@ -1,5 +1,5 @@
 { pkgs ? import ./nix {}
-, bootstrap-js ? import ./src/bootstrap { inherit pkgs; }
+, bootstrap-js ? import ./nix/agent-js/bootstrap-js.nix { inherit pkgs; }
 , distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs; }
 }:
 pkgs.runCommandNoCCLocal "assets" {} ''
@@ -14,7 +14,7 @@ pkgs.runCommandNoCCLocal "assets" {} ''
 
   # Install bootstrap
   mkdir $out/bootstrap
-  cp -R ${bootstrap-js.out}/* $out/bootstrap/
+  cp -R ${bootstrap-js.dist}/* $out/bootstrap/
 
   cp -R ${distributed-canisters} $out/canisters
 ''
