@@ -18,8 +18,6 @@ pkgs.stdenv.mkDerivation {
     mkdir bootstrap-bundle
     cp -R ${pkgs.agent-js-monorepo}/* bootstrap-bundle/
   '';
-  buildPhase = ''
-  '';
   installPhase = ''
     # $out: everything
     mkdir -p $out
@@ -34,9 +32,7 @@ pkgs.stdenv.mkDerivation {
     
     # $dist: Store src files as outputed from typescript compiler
     mkdir -p $dist
-    ls -alh
-    dist_src="bootstrap-bundle/packages/bootstrap/ts-out/src"
-    ls -alh  $dist_src
+    dist_src="bootstrap-bundle/packages/bootstrap/dist"
     if test -d "$dist_src"; then
       cp -R $dist_src/* $dist/
     fi
