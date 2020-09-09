@@ -289,7 +289,9 @@ fn add_dependencies(
     let deps = match canister_config.extras.get("dependencies") {
         None => vec![],
         Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-            DfxError::InvalidConfiguration(String::from("Field 'dependencies' is of the wrong type"))
+            DfxError::InvalidConfiguration(String::from(
+                "Field 'dependencies' is of the wrong type",
+            ))
         })?,
     };
 
