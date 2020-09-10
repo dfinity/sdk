@@ -98,7 +98,7 @@ user_message!(
     ConfigureOptions => "Configures project options for your currently-selected project.",
     OptionName => "Specifies the name of the configuration option to set or read. Use the period delineated path to specify the option to set or read. If this is not mentioned, outputs the whole configuration.",
     OptionValue => "Specifies the new value to set. If you don't specify a value, the command displays the current value of the option from the configuration file.",
-    OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
+    OptionFormat => "Specifies the format of the output. By default, the output format is JSON.",
 
     // dfx deploy
     DeployCanister => "Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.",
