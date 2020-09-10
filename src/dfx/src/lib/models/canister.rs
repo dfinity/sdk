@@ -9,8 +9,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::{assets, check_candid_file};
 use ic_types::principal::Principal as CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
-use rand::{thread_rng, Rng, RngCore};
-use serde::Deserialize;
+use rand::{thread_rng, RngCore};
 use slog::Logger;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -96,8 +95,6 @@ struct PoolConstructHelper<'a> {
     canister_id_store: CanisterIdStore,
     generate_cid: bool,
     canisters_map: &'a mut Vec<Arc<Canister>>,
-    visited_map: BTreeMap<String, u32>,
-    logger: &'a Logger,
 }
 
 impl CanisterPool {
@@ -113,9 +110,6 @@ impl CanisterPool {
             pool_helper
                 .canisters_map
                 .insert(0, Arc::new(Canister::new(info, builder)));
-            pool_helper
-                .visited_map
-                .insert(canister_name.to_owned(), thread_rng().gen::<u32>());
             Ok(())
         } else {
             Err(DfxError::CouldNotFindBuilderForCanister(
@@ -124,42 +118,10 @@ impl CanisterPool {
         }
     }
 
-    fn insert_with_dependencies(
-        canister_name: &str,
-        pool_helper: &mut PoolConstructHelper<'_>,
-    ) -> DfxResult<()> {
-        //insert this canister
-        CanisterPool::insert(canister_name, pool_helper)?;
-
-        // recursively fetch direct and transitive dependencies
-        let canister_id = pool_helper.canister_id_store.get(canister_name)?;
-        let info = CanisterInfo::load(pool_helper.config, canister_name, Some(canister_id))?;
-        let deps = match info.get_extra_value("dependencies") {
-            None => vec![],
-            Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-                DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
-            })?,
-        };
-
-        for canister in deps.iter() {
-            if !pool_helper.visited_map.contains_key(&canister.to_owned()) {
-                CanisterPool::insert_with_dependencies(canister, pool_helper)?;
-            } else {
-                slog::warn!(
-                    pool_helper.logger,
-                    "Possible circular dependency detected during evaluation of {}'s dependency on {}.",
-                    &canister_name.to_owned(),
-                    &canister.to_owned(),
-                );
-            }
-        }
-        Ok(())
-    }
-
     pub fn load(
         env: &dyn Environment,
         generate_cid: bool,
-        some_canister: Option<&str>,
+        canister_names: &[String],
     ) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
         let config = env
@@ -174,20 +136,10 @@ impl CanisterPool {
             canister_id_store: CanisterIdStore::for_env(env)?,
             generate_cid,
             canisters_map: &mut canisters_map,
-            visited_map: BTreeMap::new(),
-            logger: env.get_logger(),
         };
 
-        if let Some(canister_name) = some_canister {
-            CanisterPool::insert_with_dependencies(canister_name, &mut pool_helper)?;
-        } else {
-            // insert all canisters configured in dfx.json
-            let canisters = config.get_config().canisters.as_ref().ok_or_else(|| {
-                DfxError::Unknown("No canisters in the configuration file.".to_string())
-            })?;
-            for (key, _value) in canisters.iter() {
-                CanisterPool::insert(key, &mut pool_helper)?;
-            }
+        for canister_name in canister_names {
+            CanisterPool::insert(canister_name, &mut pool_helper)?;
         }
 
         Ok(CanisterPool {

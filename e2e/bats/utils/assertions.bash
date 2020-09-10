@@ -70,6 +70,25 @@ assert_match() {
          | fail)
 }
 
+# Asserts that a string does not contain another string, using regexp.
+# Arguments:
+#    $1 - The regex to use to match.
+#    $2 - The string to match against (output). By default it will use
+#         $output.
+assert_not_match() {
+    regex="$1"
+    if [[ $# < 2 ]]; then
+        text="$output"
+    else
+        text="$2"
+    fi
+    if [[ "$text" =~ $regex ]]; then
+        (batslib_print_kv_single_or_multi 10 "regex" "$regex" "actual" "$text" \
+         | batslib_decorate "output matches but is expected not to" \
+         | fail)
+    fi
+}
+
 # Asserts a command will timeout. This assertion will fail if the command finishes before
 # the timeout period. If the command fails, it will also fail.
 # Arguments:

@@ -56,9 +56,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // Option can be None in which case --all was specified
     let some_canister = args.value_of("canister_name");
+    let canister_names = config
+        .get_config()
+        .get_canister_names_with_dependencies(some_canister)?;
 
     // Get pool of canisters to build
-    let canister_pool = CanisterPool::load(&env, build_mode_check, some_canister)?;
+    let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)?;
 
     // Create canisters on the replica and associate canister ids locally.
     if args.is_present("check") {
