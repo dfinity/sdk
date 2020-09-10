@@ -63,7 +63,7 @@ pub fn construct() -> App<'static, 'static> {
                 .long("output")
                 .takes_value(true)
                 .conflicts_with("async")
-                .possible_values(&["idl", "raw"]),
+                .possible_values(&["idl", "raw", "pp"]),
         )
         .arg(
             Arg::with_name("argument")
