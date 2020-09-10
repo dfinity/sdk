@@ -101,8 +101,8 @@ user_message!(
     OptionFormat => "Specifies the format of the output. By default, it uses JSON.",
 
     // dfx deploy
-    DeployCanister => "Deploys all or specific canisters from the code in your project. By default, all canisters are deployed.",
-    DeployCanisterName => "Specifies the canister name.  If none specified, deploys all canisters.",
+    DeployCanister => "Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.",
+    DeployCanisterName => "Specifies the name of the canister you want to deploy. If you don’t specify a canister name, all canisters defined in the dfx.json file are deployed.",
 
     // dfx identity mod
     ManageIdentity => "Manages identities used to communicate with the Internet Computer network. Setting an identity enables you to test user-based access controls.",
