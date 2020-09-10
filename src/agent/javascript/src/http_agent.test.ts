@@ -15,14 +15,6 @@ import { requestIdOf } from './request_id';
 import { BinaryBlob } from './types';
 import { Nonce } from './types';
 
-const RealDate = Date.now;
-beforeAll(() => {
-  global.Date.now = jest.fn(() => new Date('1970-01-01T10:20:30Z').getTime());
-});
-afterAll(() => {
-  global.Date.now = RealDate;
-});
-
 test('call', async () => {
   const mockFetch: jest.Mock = jest.fn((resource, init) => {
     return Promise.resolve(
@@ -66,7 +58,7 @@ test('call', async () => {
     arg,
     nonce,
     sender: principal.toBlob(),
-    ingress_expiry: (new Date('1970-01-01T10:20:30Z').valueOf() + 300000) * 1000000,
+    ingress_expiry: 300,
   };
 
   const mockPartialsRequestId = await requestIdOf(mockPartialRequest);
@@ -78,6 +70,7 @@ test('call', async () => {
     content: mockPartialRequest,
     sender_pubkey: keyPair.publicKey,
     sender_sig: senderSig,
+    // ingress_expiry: 300,
   } as Signed<CallRequest>;
 
   const expectedRequestId = await requestIdOf(expectedRequest.content);
@@ -150,7 +143,7 @@ test('requestStatus', async () => {
     content: {
       request_type: ReadRequestType.RequestStatus,
       request_id: requestId,
-      ingress_expiry: (new Date('1970-01-01T10:20:30Z').valueOf() + 300000) * 1000000,
+      ingress_expiry: 300,
     },
     sender_pubkey: senderPubKey,
     sender_sig: Buffer.from([0]) as SenderSig,

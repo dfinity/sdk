@@ -36,7 +36,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     let timeout = args.value_of("expiry_duration");
-    let (duration, _) = expiry_duration_and_nanos(timeout)?;
+
+    let (duration, v_nanos) = expiry_duration_and_nanos(timeout)?;
+    let valid_until_as_nanos = v_nanos?;
 
     let mut waiter = Delay::builder()
         .timeout(duration?)
@@ -48,7 +50,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             waiter.start();
             loop {
                 match agent
-                    .request_status_raw(&request_id)
+                    .request_status_raw(&request_id, valid_until_as_nanos)
                     .await?
                 {
                     RequestStatusResponse::Replied { reply } => return Ok(reply),

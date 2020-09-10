@@ -67,10 +67,16 @@ walkdir = "2.2.9"
 wasmparser = "0.45.0"
 
 [dependencies.ic-agent]
-path = "/Users/prithvishahi/dev/rust-agent/ic-agent"
+version = "0.1.0"
+git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
+branch = "pshahi/ingress-expiry"
+rev = "10c6450b1346bae3645095f0a65c1a8c96c27156"
 
 [dependencies.ic-types]
-path = "/Users/prithvishahi/dev/rust-agent/ic-types"
+version = "0.1.0"
+git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
+branch = "pshahi/ingress-expiry"
+rev = "10c6450b1346bae3645095f0a65c1a8c96c27156"
 
 
 [dev-dependencies]

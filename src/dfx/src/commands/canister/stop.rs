@@ -41,7 +41,7 @@ async fn stop_canister(
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id = canister_id_store.get(canister_name)?;
 
-    let (duration, _) = expiry_duration_and_nanos(timeout)?;
+    let (duration, valid_until_as_nanos) = expiry_duration_and_nanos(timeout)?;
 
     let waiter = Delay::builder()
         .timeout(duration?)
@@ -55,7 +55,7 @@ async fn stop_canister(
         canister_id.to_text(),
     );
 
-    mgr.stop_canister(waiter, &canister_id)
+    mgr.stop_canister(waiter, &canister_id, valid_until_as_nanos?)
         .await
         .map_err(DfxError::from)?;
 
