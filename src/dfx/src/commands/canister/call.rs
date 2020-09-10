@@ -142,7 +142,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             &canister_id,
             method_name,
             &arg_value,
-            valid_until_as_nanos,
         ))?;
         print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
@@ -151,7 +150,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             &canister_id,
             method_name,
             &arg_value,
-            valid_until_as_nanos,
         ))?;
 
         eprint!("Request ID: ");

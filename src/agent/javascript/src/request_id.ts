@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js';
 import borc from 'borc';
 import { Buffer } from 'buffer/';
 import { BinaryBlob, blobToHex } from './types';
@@ -24,6 +25,8 @@ async function hashValue(value: unknown): Promise<Buffer> {
   } else if (typeof value === 'string') {
     return hashString(value);
   } else if (typeof value === 'number') {
+    return hash(lebEncode(value) as BinaryBlob);
+  } else if (BigNumber.isBigNumber(value)) {
     return hash(lebEncode(value) as BinaryBlob);
   } else if (Buffer.isBuffer(value)) {
     return hash(new Uint8Array(value) as BinaryBlob);

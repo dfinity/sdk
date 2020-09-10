@@ -94,8 +94,7 @@ async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    let (duration, v_nanos) = expiry_duration_and_nanos(timeout)?;
-    let valid_until_as_nanos = v_nanos?;
+    let (duration, _) = expiry_duration_and_nanos(timeout)?;
 
     let waiter = Delay::builder()
         .timeout(duration?)
@@ -112,13 +111,12 @@ async fn install_canister(
             compute_allocation,
             memory_allocation,
         },
-        valid_until_as_nanos,
     )
     .await
     .map_err(DfxError::from)?;
 
     if canister_info.get_type() == "assets" {
-        post_install_store_assets(&canister_info, &agent, valid_until_as_nanos).await?;
+        post_install_store_assets(&canister_info, &agent).await?;
     }
 
     Ok(())

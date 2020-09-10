@@ -10,7 +10,6 @@ use walkdir::WalkDir;
 pub async fn post_install_store_assets(
     info: &CanisterInfo,
     agent: &Agent,
-    valid_until: u64,
 ) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
     let output_assets_path = assets_canister_info.get_output_assets_path();
@@ -32,7 +31,6 @@ pub async fn post_install_store_assets(
             agent
                 .update(&canister_id, &method_name)
                 .with_arg(&blob)
-                .with_expiry(valid_until)
                 .call_and_wait(create_waiter())
                 .await?;
         }

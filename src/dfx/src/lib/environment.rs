@@ -5,7 +5,9 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
+use crate::util::expiry_duration_and_nanos;
 
+use clap::ArgMatches;
 use ic_agent::{Agent, AgentConfig, Identity};
 use semver::Version;
 use slog::{Logger, Record};
@@ -210,13 +212,18 @@ impl<'a> AgentEnvironment<'a> {
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
+        args: &ArgMatches<'_>,
     ) -> DfxResult<Self> {
         let identity = IdentityManager::new(backend)?.instantiate_selected_identity()?;
 
         let agent_url = network_descriptor.providers.first().unwrap();
+
+        let (_, v_nanos) = expiry_duration_and_nanos(args.value_of("expiry_duration"))?;
+        let ingress_expiry = v_nanos?;
+
         Ok(AgentEnvironment {
             backend,
-            agent: create_agent(backend.get_logger().clone(), agent_url, identity)
+            agent: create_agent(backend.get_logger().clone(), agent_url, identity, ingress_expiry)
                 .expect("Failed to construct agent."),
             network_descriptor,
         })
@@ -407,7 +414,7 @@ impl ic_agent::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity>) -> Option<Agent> {
+fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity>, ingress_expiry: u64) -> Option<Agent> {
     AgentClient::new(logger, url.to_string())
         .ok()
         .and_then(|executor| {
@@ -415,6 +422,7 @@ fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity>) -> Optio
                 url: url.to_string(),
                 identity,
                 password_manager: Some(Box::new(executor)),
+                ingress_expiry,
                 ..AgentConfig::default()
             })
             .ok()

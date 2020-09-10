@@ -46,14 +46,14 @@ async fn delete_canister(
         canister_name,
         canister_id.to_text(),
     );
-    let (duration, valid_until_as_nanos) = expiry_duration_and_nanos(timeout)?;
+    let (duration, _) = expiry_duration_and_nanos(timeout)?;
 
     let waiter = Delay::builder()
         .timeout(duration?)
         .throttle(Duration::from_secs(1))
         .build();
 
-    mgr.delete_canister(waiter, &canister_id, valid_until_as_nanos?)
+    mgr.delete_canister(waiter, &canister_id)
         .await
         .map_err(DfxError::from)?;
 
