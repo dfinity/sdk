@@ -46,10 +46,10 @@ async fn delete_canister(
         canister_name,
         canister_id.to_text(),
     );
-    let (valid_until, valid_until_as_nanos) = expiry_duration_and_nanos(timeout)?;
+    let (duration, valid_until_as_nanos) = expiry_duration_and_nanos(timeout)?;
 
     let waiter = Delay::builder()
-        .timeout(valid_until?)
+        .timeout(duration?)
         .throttle(Duration::from_secs(1))
         .build();
 

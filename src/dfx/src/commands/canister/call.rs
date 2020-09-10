@@ -134,7 +134,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     let timeout = args.value_of("expiry_duration");
-    let (valid_until, v_nanos) = expiry_duration_and_nanos(timeout)?;
+    let (duration, v_nanos) = expiry_duration_and_nanos(timeout)?;
     let valid_until_as_nanos = v_nanos?;
 
     if is_query {
@@ -158,7 +158,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         println!("0x{}", String::from(request_id));
     } else {
         let waiter = Delay::builder()
-            .timeout(valid_until?)
+            .timeout(duration?)
             .throttle(Duration::from_secs(1))
             .build();
         let blob = runtime.block_on(

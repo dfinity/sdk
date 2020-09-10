@@ -94,11 +94,11 @@ async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    let (valid_until, v_nanos) = expiry_duration_and_nanos(timeout)?;
+    let (duration, v_nanos) = expiry_duration_and_nanos(timeout)?;
     let valid_until_as_nanos = v_nanos?;
 
     let waiter = Delay::builder()
-        .timeout(valid_until?)
+        .timeout(duration?)
         .throttle(Duration::from_secs(1))
         .build();
 

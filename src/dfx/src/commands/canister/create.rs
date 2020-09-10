@@ -66,10 +66,10 @@ fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Option<&
                     .ok_or(DfxError::CommandMustBeRunInAProject)?,
             );
 
-            let (valid_until, valid_until_as_nanos) = expiry_duration_and_nanos(timeout)?;
+            let (duration, valid_until_as_nanos) = expiry_duration_and_nanos(timeout)?;
 
             let waiter = Delay::builder()
-                .timeout(valid_until?)
+                .timeout(duration?)
                 .throttle(Duration::from_secs(1))
                 .build();
             let mut runtime = Runtime::new().expect("Unable to create a runtime");

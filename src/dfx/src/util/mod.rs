@@ -24,7 +24,7 @@ pub fn expiry_duration_and_nanos(
         .expect("Time wrapped around");
     let valid_until = since_epoch + dur - permitted_drift;
     Ok((
-        Ok(valid_until),
+        Ok(dur),
         Ok(u64::try_from(valid_until.as_nanos()).map_err(DfxError::ExpiryDurationTooLong)?),
     ))
 }

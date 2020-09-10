@@ -37,11 +37,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let timeout = args.value_of("expiry_duration");
 
-    let (valid_until, v_nanos) = expiry_duration_and_nanos(timeout)?;
+    let (duration, v_nanos) = expiry_duration_and_nanos(timeout)?;
     let valid_until_as_nanos = v_nanos?;
 
     let mut waiter = Delay::builder()
-        .timeout(valid_until?)
+        .timeout(duration?)
         .throttle(Duration::from_secs(1))
         .build();
 
