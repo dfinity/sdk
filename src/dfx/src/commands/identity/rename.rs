@@ -31,6 +31,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let renamed_default = IdentityManager::new(env)?.rename(from, to)?;
 
+    info!(log, r#"Renamed identity "{}" to "{}"."#, from, to);
     if renamed_default {
         info!(log, r#"Now using identity: "{}"."#, to);
     }
