@@ -73,7 +73,7 @@ branch = "pshahi/ingress-expiry-two"
 rev = "e8fdf9dddd8c11535f233a05c2dd354b1162a4c4"
 
 [dependencies.ic-types]
-version = "0.1.0"
+version = "0.1.1"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "pshahi/ingress-expiry-two"
 rev = "e8fdf9dddd8c11535f233a05c2dd354b1162a4c4"
