@@ -1,16 +1,19 @@
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::waiter::create_waiter;
+use crate::lib::waiter::waiter_with_timeout;
 use candid::Encode;
+
 use ic_agent::Agent;
 use std::path::Path;
+use std::time::Duration;
 use walkdir::WalkDir;
 
 pub async fn post_install_store_assets(
     info: &CanisterInfo,
     agent: &Agent,
-    valid_until: u64,
+    duration: Duration,
+    // valid_until: u64,
 ) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
     let output_assets_path = assets_canister_info.get_output_assets_path();
@@ -29,11 +32,12 @@ pub async fn post_install_store_assets(
 
             let canister_id = info.get_canister_id().expect("Could not find canister ID.");
             let method_name = String::from("store");
+
             agent
                 .update(&canister_id, &method_name)
                 .with_arg(&blob)
-                .with_expiry(valid_until)
-                .call_and_wait(create_waiter())
+                // .expire_when(valid_until)
+                .call_and_wait(waiter_with_timeout(duration))
                 .await?;
         }
     }

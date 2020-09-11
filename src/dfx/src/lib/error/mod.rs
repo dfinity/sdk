@@ -145,8 +145,6 @@ pub enum DfxError {
     CouldNotSaveCanisterIds(String, std::io::Error),
 
     HumanizeParseError(humanize_rs::ParseError),
-
-    ExpiryDurationTooLong(std::num::TryFromIntError),
 }
 
 /// The result of running a DFX command.

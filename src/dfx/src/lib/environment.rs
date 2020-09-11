@@ -5,7 +5,9 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
+use crate::util::expiry_duration;
 
+use clap::ArgMatches;
 use ic_agent::{Agent, AgentConfig, Identity};
 use semver::Version;
 use slog::{Logger, Record};
@@ -13,6 +15,7 @@ use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 #[cfg(test)]
 use mockall::automock;
@@ -210,13 +213,17 @@ impl<'a> AgentEnvironment<'a> {
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
+        args: &ArgMatches<'_>,
     ) -> DfxResult<Self> {
         let identity = IdentityManager::new(backend)?.instantiate_selected_identity()?;
+
+        let timeout = args.value_of("expiry_duration");
+        let duration = expiry_duration(timeout)?;
 
         let agent_url = network_descriptor.providers.first().unwrap();
         Ok(AgentEnvironment {
             backend,
-            agent: create_agent(backend.get_logger().clone(), agent_url, identity)
+            agent: create_agent(backend.get_logger().clone(), agent_url, identity, duration)
                 .expect("Failed to construct agent."),
             network_descriptor,
         })
@@ -407,7 +414,12 @@ impl ic_agent::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity>) -> Option<Agent> {
+fn create_agent(
+    logger: Logger,
+    url: &str,
+    identity: Box<dyn Identity>,
+    duration: Duration,
+) -> Option<Agent> {
     AgentClient::new(logger, url.to_string())
         .ok()
         .and_then(|executor| {
@@ -415,6 +427,7 @@ fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity>) -> Optio
                 url: url.to_string(),
                 identity,
                 password_manager: Some(Box::new(executor)),
+                ingress_expiry: Some(duration),
                 ..AgentConfig::default()
             })
             .ok()

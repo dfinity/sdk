@@ -3,15 +3,12 @@ use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
 use humanize_rs::duration::parse;
-use std::convert::TryFrom;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub mod assets;
 pub mod clap;
 
-pub fn expiry_duration_and_nanos(
-    timeout: Option<&str>,
-) -> DfxResult<(DfxResult<Duration>, DfxResult<u64>)> {
+pub fn expiry_duration(timeout: Option<&str>) -> DfxResult<Duration> {
     let dur = match timeout {
         Some(expiry_duration) => parse(expiry_duration),
         None => Ok(Duration::from_secs(60 * 5)), // 5 minutes is max ingress timeout
@@ -23,10 +20,7 @@ pub fn expiry_duration_and_nanos(
         .duration_since(UNIX_EPOCH)
         .expect("Time wrapped around");
     let valid_until = since_epoch + dur - permitted_drift;
-    Ok((
-        Ok(dur),
-        Ok(u64::try_from(valid_until.as_nanos()).map_err(DfxError::ExpiryDurationTooLong)?),
-    ))
+    Ok(valid_until)
 }
 
 /// Deserialize and print return values from canister method.

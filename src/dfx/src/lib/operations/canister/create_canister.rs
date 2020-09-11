@@ -3,13 +3,11 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::progress_bar::ProgressBar;
 use crate::lib::provider::get_network_context;
-use crate::util::expiry_duration_and_nanos;
+use crate::lib::waiter::waiter_with_timeout;
+use crate::util::expiry_duration;
 
-use delay::Delay;
 use ic_agent::ManagementCanister;
-
 use std::format;
-use std::time::Duration;
 use tokio::runtime::Runtime;
 
 pub fn create_canister(
@@ -50,14 +48,10 @@ pub fn create_canister(
                     .ok_or(DfxError::CommandMustBeRunInAProject)?,
             );
 
-            let (duration, valid_until_as_nanos) = expiry_duration_and_nanos(timeout)?;
+            let duration = expiry_duration(timeout)?;
 
-            let waiter = Delay::builder()
-                .timeout(duration?)
-                .throttle(Duration::from_secs(1))
-                .build();
             let mut runtime = Runtime::new().expect("Unable to create a runtime");
-            let cid = runtime.block_on(mgr.create_canister(waiter, valid_until_as_nanos?))?;
+            let cid = runtime.block_on(mgr.create_canister(waiter_with_timeout(duration)))?;
             let canister_id = cid.to_text();
             let message = format!(
                 "{:?} canister created {}with canister id: {:?}",

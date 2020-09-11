@@ -2,14 +2,13 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::installers::assets::post_install_store_assets;
-use crate::util::expiry_duration_and_nanos;
+use crate::lib::waiter::waiter_with_timeout;
+use crate::util::expiry_duration;
 
-use delay::Delay;
 use ic_agent::{
     Agent, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister, MemoryAllocation,
 };
 use slog::info;
-use std::time::Duration;
 
 pub async fn install_canister(
     env: &dyn Environment,
@@ -38,16 +37,10 @@ pub async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    let (duration, v_nanos) = expiry_duration_and_nanos(timeout)?;
-    let valid_until_as_nanos = v_nanos?;
-
-    let waiter = Delay::builder()
-        .timeout(duration?)
-        .throttle(Duration::from_secs(1))
-        .build();
+    let duration = expiry_duration(timeout)?;
 
     mgr.install_code(
-        waiter,
+        waiter_with_timeout(duration),
         &canister_id,
         mode,
         &wasm,
@@ -56,13 +49,12 @@ pub async fn install_canister(
             compute_allocation,
             memory_allocation,
         },
-        valid_until_as_nanos,
     )
     .await
     .map_err(DfxError::from)?;
 
     if canister_info.get_type() == "assets" {
-        post_install_store_assets(&canister_info, &agent, valid_until_as_nanos).await?;
+        post_install_store_assets(&canister_info, &agent, duration).await?;
     }
 
     Ok(())

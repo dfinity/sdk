@@ -3,14 +3,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::util::{
-    blob_from_arguments, expiry_duration_and_nanos, get_candid_type, print_idl_blob,
-};
+use crate::lib::waiter::waiter_with_timeout;
+use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use delay::Delay;
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
-use std::time::Duration;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -134,39 +131,28 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     let timeout = args.value_of("expiry_duration");
-    let (duration, v_nanos) = expiry_duration_and_nanos(timeout)?;
-    let valid_until_as_nanos = v_nanos?;
+    let duration = expiry_duration(timeout)?;
 
     if is_query {
-        let blob = runtime.block_on(agent.query_raw(
-            &canister_id,
-            method_name,
-            &arg_value,
-            valid_until_as_nanos,
-        ))?;
+        let blob = runtime.block_on(agent.query_raw(&canister_id, method_name, &arg_value))?;
         print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
-        let request_id = runtime.block_on(agent.update_raw(
-            &canister_id,
-            method_name,
-            &arg_value,
-            valid_until_as_nanos,
-        ))?;
-
+        let request_id = runtime.block_on(
+            agent
+                .update(&canister_id, &method_name)
+                .with_arg(&arg_value)
+                .call(),
+        )?;
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
     } else {
-        let waiter = Delay::builder()
-            .timeout(duration?)
-            .throttle(Duration::from_secs(1))
-            .build();
         let blob = runtime.block_on(
             agent
                 .update(&canister_id, &method_name)
                 .with_arg(&arg_value)
-                .with_expiry(valid_until_as_nanos)
-                .call_and_wait(waiter),
+                // .expire_when(valid_until_as_nanos)
+                .call_and_wait(waiter_with_timeout(duration)),
         )?;
 
         print_idl_blob(&blob, output_type, &method_type)

@@ -2,13 +2,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::util::expiry_duration_and_nanos;
+use crate::lib::waiter::waiter_with_timeout;
+use crate::util::expiry_duration;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use delay::Delay;
 use ic_agent::{Agent, ManagementCanister};
 use slog::info;
-use std::time::Duration;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -46,14 +45,9 @@ async fn delete_canister(
         canister_name,
         canister_id.to_text(),
     );
-    let (duration, valid_until_as_nanos) = expiry_duration_and_nanos(timeout)?;
+    let duration = expiry_duration(timeout)?;
 
-    let waiter = Delay::builder()
-        .timeout(duration?)
-        .throttle(Duration::from_secs(1))
-        .build();
-
-    mgr.delete_canister(waiter, &canister_id, valid_until_as_nanos?)
+    mgr.delete_canister(waiter_with_timeout(duration), &canister_id)
         .await
         .map_err(DfxError::from)?;
 

@@ -1,13 +1,13 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators;
-use crate::util::{expiry_duration_and_nanos, print_idl_blob};
+use crate::util::{expiry_duration, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use delay::{Delay, Waiter};
+use delay::Waiter;
 use ic_agent::{AgentError, Replied, RequestId, RequestStatusResponse};
 use std::str::FromStr;
-use std::time::Duration;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -37,22 +37,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let timeout = args.value_of("expiry_duration");
 
-    let (duration, v_nanos) = expiry_duration_and_nanos(timeout)?;
-    let valid_until_as_nanos = v_nanos?;
+    let duration = expiry_duration(timeout)?;
 
-    let mut waiter = Delay::builder()
-        .timeout(duration?)
-        .throttle(Duration::from_secs(1))
-        .build();
+    let mut waiter = waiter_with_timeout(duration);
 
     let Replied::CallReplied(blob) = runtime
         .block_on(async {
             waiter.start();
             loop {
-                match agent
-                    .request_status_raw(&request_id, valid_until_as_nanos)
-                    .await?
-                {
+                match agent.request_status_raw(&request_id).await? {
                     RequestStatusResponse::Replied { reply } => return Ok(reply),
                     RequestStatusResponse::Rejected {
                         reject_code,

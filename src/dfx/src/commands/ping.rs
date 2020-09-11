@@ -37,7 +37,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             other => Err(other),
         })?;
 
-    let env = AgentEnvironment::new(env, network_descriptor)?;
+    let env = AgentEnvironment::new(env, network_descriptor, args)?;
 
     let agent = env
         .get_agent()
