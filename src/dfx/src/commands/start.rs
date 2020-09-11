@@ -11,7 +11,7 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use delay::{Delay, Waiter};
-use futures::future::Future;
+use futures::executor::block_on;
 use ic_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::fs;
@@ -247,19 +247,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // block.
 
     b.set_message("Terminating proxy...");
-    actix_handler
-        .recv()
-        .expect("Failed to receive server")
-        .stop(true)
-        // We do not use await here on purpose. We should probably follow up
-        // and have this function be async, internal of exec.
-        .wait()
-        .map_err(|e| {
-            DfxError::RuntimeError(Error::new(
-                ErrorKind::Other,
-                format!("Failed to stop server: {:?}", e),
-            ))
-        })?;
+    block_on(
+        actix_handler
+            .recv()
+            .expect("Failed to receive server")
+            .stop(true),
+    );
+
     b.set_message("Gathering proxy thread...");
     // Join and handle errors for the frontend watchdog thread.
     frontend_watchdog.join().map_err(|e| {

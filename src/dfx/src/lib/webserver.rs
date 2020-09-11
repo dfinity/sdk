@@ -3,7 +3,6 @@ use crate::lib::locations::canister_did_location;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
-use actix::dev::Stream;
 use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
@@ -12,7 +11,7 @@ use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
 use crossbeam::channel::Sender;
-use futures::Future;
+use futures::StreamExt;
 use serde::Deserialize;
 use slog::{debug, info, trace, Logger};
 use std::net::SocketAddr;
@@ -49,7 +48,7 @@ struct CandidRequest {
     format: Option<Format>,
 }
 
-fn candid(
+async fn candid(
     web::Query(info): web::Query<CandidRequest>,
     data: web::Data<Arc<CandidData>>,
 ) -> DfxResult<HttpResponse> {
@@ -79,12 +78,12 @@ fn candid(
     Ok(response)
 }
 
-fn forward(
+async fn forward(
     req: HttpRequest,
-    payload: web::Payload,
+    mut payload: web::Payload,
     client: web::Data<Client>,
     actix_data: web::Data<Arc<Mutex<ForwardActixData>>>,
-) -> impl Future<Item = HttpResponse, Error = Error> {
+) -> Result<HttpResponse, Error> {
     let mut data = actix_data.lock().unwrap();
     data.counter += 1;
     let count = data.counter;
@@ -118,59 +117,51 @@ fn forward(
     // TODO(hansl): move this all to async/await. Jeez....
     // (PS: the reason I don't do this yet is moving actix to async/await is a bit more
     //      involved than replacing this single function)
-    payload
-        .map_err(Error::from)
-        .fold(web::BytesMut::new(), move |mut body, chunk| {
-            body.extend_from_slice(&chunk);
-            Ok::<_, Error>(body)
-        })
-        .and_then(move |req_body| {
-            // We streamed the whole body in memory. Let's log some informations.
-            debug!(
-                logger,
-                "Request ({}) to replica ({})",
-                indicatif::HumanBytes(req_body.len() as u64),
-                url,
-            );
-            trace!(logger, "  headers");
-            for (k, v) in req.head().headers.iter() {
-                trace!(logger, "      {}: {}", k, v.to_str().unwrap());
-            }
-            trace!(logger, "  body    {}", hex::encode(&req_body));
+    let mut req_body = web::BytesMut::new();
+    while let Some(item) = payload.next().await {
+        req_body.extend_from_slice(&item?);
+    }
+    debug!(
+        logger,
+        "Request ({}) to replica ({})",
+        indicatif::HumanBytes(req_body.len() as u64),
+        url,
+    );
+    trace!(logger, "  headers");
+    for (k, v) in req.head().headers.iter() {
+        trace!(logger, "      {}: {}", k, v.to_str().unwrap());
+    }
+    trace!(logger, "  body    {}", hex::encode(&req_body));
+    let mut response = forwarded_req
+        .send_body(req_body)
+        .await
+        .map_err(Error::from)?;
 
-            forwarded_req
-                .send_body(req_body)
-                .map_err(Error::from)
-                .and_then(|mut res| {
-                    res.take_payload()
-                        .map_err(Error::from)
-                        .fold(web::BytesMut::new(), move |mut body, chunk| {
-                            body.extend_from_slice(&chunk);
-                            Ok::<_, Error>(body)
-                        })
-                        .and_then(move |res_body| {
-                            let mut client_resp = HttpResponse::build(res.status());
-                            for (header_name, header_value) in res
-                                .headers()
-                                .iter()
-                                .filter(|(h, _)| *h != "connection" && *h != "content-length")
-                            {
-                                client_resp.header(header_name.clone(), header_value.clone());
-                            }
+    let mut payload = response.take_payload();
+    let mut resp_body = web::BytesMut::new();
+    while let Some(item) = payload.next().await {
+        resp_body.extend_from_slice(&item?);
+    }
 
-                            debug!(
-                                logger,
-                                "Response ({}) with status code {}",
-                                indicatif::HumanBytes(res_body.len() as u64),
-                                res.status().as_u16()
-                            );
-                            trace!(logger, "  type  {}", res.content_type());
-                            trace!(logger, "  body  {}", hex::encode(&res_body));
+    let mut client_resp = HttpResponse::build(response.status());
+    for (header_name, header_value) in response
+        .headers()
+        .iter()
+        .filter(|(h, _)| *h != "connection" && *h != "content-length")
+    {
+        client_resp.header(header_name.clone(), header_value.clone());
+    }
 
-                            client_resp.body(res_body)
-                        })
-                })
-        })
+    debug!(
+        logger,
+        "Response ({}) with status code {}",
+        indicatif::HumanBytes(resp_body.len() as u64),
+        response.status().as_u16()
+    );
+    trace!(logger, "  type  {}", response.content_type());
+    trace!(logger, "  body  {}", hex::encode(&resp_body));
+
+    Ok(client_resp.body(resp_body))
 }
 
 /// Run the webserver in the current thread.
@@ -220,10 +211,11 @@ pub fn run_webserver(
                     .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
                     .allowed_header(http::header::CONTENT_TYPE)
                     .send_wildcard()
-                    .max_age(3600),
+                    .max_age(3600)
+                    .finish(),
             )
             .wrap(middleware::Logger::default())
-            .service(web::scope("/api").default_service(web::to_async(forward)))
+            .service(web::scope("/api").default_service(web::to(forward)))
             .service(web::resource("/_/candid").route(web::get().to(candid)))
             .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
     })
@@ -231,7 +223,7 @@ pub fn run_webserver(
     // N.B. This is an arbitrary timeout for now.
     .shutdown_timeout(SHUTDOWN_WAIT_TIME)
     .system_exit()
-    .start();
+    .run();
 
     // Warning: Note that HttpServer provides its own signal
     // handler. That means if we provide signal handling beyond basic
