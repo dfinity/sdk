@@ -46,6 +46,8 @@ teardown() {
 
 @test "identity new: creates a new identity" {
     assert_command dfx identity new alice
+    assert_match 'Creating identity: "alice".' "$stderr"
+    assert_match 'Created identity: "alice".' "$stderr"
     assert_command head $HOME/.config/dfx/identity/alice/identity.pem
     assert_match "BEGIN PRIVATE KEY"
 
@@ -78,6 +80,8 @@ teardown() {
     assert_match 'alice default'
 
     assert_command dfx identity remove alice
+    assert_match 'Removing identity "alice".' "$stderr"
+    assert_match 'Removed identity "alice".' "$stderr"
     assert_command_fail cat $HOME/.config/dfx/identity/alice/identity.pem
 
     assert_command dfx identity list
@@ -124,6 +128,8 @@ teardown() {
     local key=$(cat $HOME/.config/dfx/identity/alice/identity.pem)
 
     assert_command dfx identity rename alice bob
+    assert_match 'Renaming identity "alice" to "bob".' "$stderr"
+    assert_match 'Renamed identity "alice" to "bob".' "$stderr"
 
     assert_command dfx identity list
     assert_match 'bob default'
@@ -209,6 +215,7 @@ teardown() {
     assert_command dfx identity whoami
     assert_eq 'default' "$stdout"
     assert_match 'Creating the "default" identity.' "$stderr"
+    assert_match 'Created the "default" identity.' "$stderr"
 }
 
 @test "identity whoami: shows the current identity" {

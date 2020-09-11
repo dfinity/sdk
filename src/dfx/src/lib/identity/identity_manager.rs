@@ -262,6 +262,7 @@ fn initialize(
         default: String::from(DEFAULT_IDENTITY_NAME),
     };
     write_configuration(&identity_json_path, &config)?;
+    slog::info!(logger, r#"Created the "default" identity."#);
 
     Ok(config)
 }

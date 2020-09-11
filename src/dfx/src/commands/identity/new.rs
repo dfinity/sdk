@@ -22,5 +22,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let log = env.get_logger();
     info!(log, r#"Creating identity: "{}"."#, name);
 
-    IdentityManager::new(env)?.create_new_identity(name)
+    IdentityManager::new(env)?.create_new_identity(name)?;
+
+    info!(log, r#"Created identity: "{}"."#, name);
+    Ok(())
 }
