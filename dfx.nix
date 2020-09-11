@@ -26,6 +26,11 @@ let
     cargoTestCommands = _: [
       ''cargo $cargo_options test $cargo_test_options --workspace''
     ];
+    override = oldAttrs: {
+      preBuild = (oldAttrs.preBuild or "") + ''
+        unset SDKROOT
+      '';
+    };
   };
 
   # set DFX_ASSETS for the builds and shells
