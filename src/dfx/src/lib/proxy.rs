@@ -2,7 +2,6 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 use actix_server::Server;
 use crossbeam::channel::{Receiver, Sender};
-use futures::future::Future;
 use std::io::Result;
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
@@ -49,7 +48,7 @@ impl Proxy {
     }
 
     // Shutdown and start are private (for now).
-    fn shutdown(self) -> Result<Self> {
+    async fn shutdown(self) -> Result<Self> {
         match self.server_handle {
             // In case the server is down we recall new() as in the
             // future we might add more bookkeeping logic, which will
@@ -67,10 +66,7 @@ impl Proxy {
                         ))
                     })?
                     .stop(true)
-                    .wait()
-                    .map_err(|e| {
-                        Error::new(ErrorKind::Other, format!("Failed to stop server: {:?}", e))
-                    })?;
+                    .await;
                 Ok(Self {
                     config: self.config,
                     server_handle: ProxyServer::Down,
@@ -119,9 +115,9 @@ impl Proxy {
     }
 
     /// Restart a proxy with a new configuration.
-    pub fn restart(self, sender: Sender<Server>, receiver: Receiver<Server>) -> Result<Self> {
+    pub async fn restart(self, sender: Sender<Server>, receiver: Receiver<Server>) -> Result<Self> {
         let config = self.config.clone();
-        let mut handle = self.shutdown()?;
+        let mut handle = self.shutdown().await?;
         handle.config = config;
         handle.start(sender, receiver)
     }

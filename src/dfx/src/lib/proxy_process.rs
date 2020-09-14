@@ -2,6 +2,7 @@ use crate::lib::error::DfxError;
 use crate::lib::proxy::{CoordinateProxy, Proxy, ProxyConfig};
 
 use crossbeam::unbounded;
+use futures::executor::block_on;
 use hotwatch::{Event, Hotwatch};
 use indicatif::ProgressBar;
 use std::fs;
@@ -90,18 +91,17 @@ pub fn spawn_and_update_proxy(
             let _ = hotwatch;
             let proxy = proxy.set_client_api_port(port.clone());
             b.set_message(format!("Replica bound at {}", port).as_str());
-            proxy
-                .restart(
-                    proxy_supervisor.inform_parent.clone(),
-                    proxy_supervisor.server_receiver.clone(),
-                )
-                .unwrap_or_else(|e| {
-                    proxy_supervisor
-                        .request_stop_echo
-                        .try_send(())
-                        .expect("Replica thread couldn't signal parent to stop");
-                    panic!("Failed to restart the proxy {:?}", e);
-                });
+            block_on(proxy.restart(
+                proxy_supervisor.inform_parent.clone(),
+                proxy_supervisor.server_receiver.clone(),
+            ))
+            .unwrap_or_else(|e| {
+                proxy_supervisor
+                    .request_stop_echo
+                    .try_send(())
+                    .expect("Replica thread couldn't signal parent to stop");
+                panic!("Failed to restart the proxy {:?}", e);
+            });
 
             while proxy_supervisor.is_killed.is_empty() {
                 std::thread::sleep(Duration::from_millis(1000));
