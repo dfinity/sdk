@@ -111,13 +111,14 @@ fn install_canisters(
         let canister_id = canister_id_store.get(&canister_name)?;
         let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
         let compute_allocation = None;
+        let memory_allocation = None;
         let result = runtime.block_on(install_canister(
             env,
             &agent,
             &canister_info,
             compute_allocation,
             first_mode,
-            None,
+            memory_allocation,
             timeout,
         ));
         match result {
@@ -141,7 +142,7 @@ fn install_canisters(
                     &canister_info,
                     compute_allocation,
                     second_mode,
-                    None,
+                    memory_allocation,
                     timeout,
                 ))
             }
