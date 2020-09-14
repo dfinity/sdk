@@ -60,11 +60,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     RequestStatusResponse::Received => (),
                     RequestStatusResponse::Processing => (),
                     RequestStatusResponse::Done => {
-                        return Err(DfxError::AgentError(
-                            AgentError::RequestStatusDoneNoReply(String::from(
-                                request_id,
-                            )),
-                        ))
+                        return Err(DfxError::AgentError(AgentError::RequestStatusDoneNoReply(
+                            String::from(request_id),
+                        )))
                     }
                 };
 
