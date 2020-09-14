@@ -11,7 +11,11 @@ use ic_agent::{AgentError, InstallMode};
 use slog::{info, warn};
 use tokio::runtime::Runtime;
 
-pub fn deploy_canisters(env: &dyn Environment, some_canister: Option<&str>) -> DfxResult {
+pub fn deploy_canisters(
+    env: &dyn Environment,
+    some_canister: Option<&str>,
+    timeout: Option<&str>,
+) -> DfxResult {
     let log = env.get_logger();
 
     let config = env
@@ -26,11 +30,17 @@ pub fn deploy_canisters(env: &dyn Environment, some_canister: Option<&str>) -> D
         info!(log, "Deploying all canisters.");
     }
 
-    register_canisters(env, &canister_names, &initial_canister_id_store)?;
+    register_canisters(env, &canister_names, &initial_canister_id_store, timeout)?;
 
     build_canisters(env, &canister_names, &config)?;
 
-    install_canisters(env, &canister_names, &initial_canister_id_store, &config)?;
+    install_canisters(
+        env,
+        &canister_names,
+        &initial_canister_id_store,
+        &config,
+        timeout,
+    )?;
 
     info!(log, "Deployed canisters.");
 
@@ -49,6 +59,7 @@ fn register_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
+    timeout: Option<&str>,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -60,7 +71,7 @@ fn register_canisters(
     } else {
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
-            create_canister(env, &canister_name)?;
+            create_canister(env, &canister_name, timeout)?;
         }
     }
     Ok(())
@@ -79,6 +90,7 @@ fn install_canisters(
     canister_names: &[String],
     initial_canister_id_store: &CanisterIdStore,
     config: &Config,
+    timeout: Option<&str>,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -99,12 +111,15 @@ fn install_canisters(
         let canister_id = canister_id_store.get(&canister_name)?;
         let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
         let compute_allocation = None;
+        let memory_allocation = None;
         let result = runtime.block_on(install_canister(
             env,
             &agent,
             &canister_info,
             compute_allocation,
             first_mode,
+            memory_allocation,
+            timeout,
         ));
         match result {
             Err(DfxError::AgentError(AgentError::ReplicaError {
@@ -127,6 +142,8 @@ fn install_canisters(
                     &canister_info,
                     compute_allocation,
                     second_mode,
+                    memory_allocation,
+                    timeout,
                 ))
             }
             other => other,

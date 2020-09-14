@@ -25,7 +25,8 @@ pub fn construct() -> App<'static, 'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let env = create_agent_environment(env, args)?;
 
+    let timeout = args.value_of("expiry_duration");
     let canister = args.value_of("canister_name");
 
-    deploy_canisters(&env, canister)
+    deploy_canisters(&env, canister, timeout)
 }

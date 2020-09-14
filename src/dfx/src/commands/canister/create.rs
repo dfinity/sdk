@@ -29,14 +29,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
+    let timeout = args.value_of("expiry_duration");
+
     if let Some(canister_name) = args.value_of("canister_name") {
-        create_canister(env, canister_name)?;
+        create_canister(env, canister_name, timeout)?;
         Ok(())
     } else if args.is_present("all") {
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                create_canister(env, canister_name)?;
+                create_canister(env, canister_name, timeout)?;
             }
         }
         Ok(())

@@ -39,14 +39,14 @@
     },
     "dfinity": {
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "70434f1ecac5227dc8e5d30635f7aceb7c257e3f",
-        "tag": "release-2020-09-04.RC00",
+        "rev": "d0856d8d60b5a2d2a7b6f50fa0fa1d68db9264dc",
+        "branch": "akhi3030/expiry-time",
         "type": "git"
     },
     "ic-ref": {
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "493f0862ddd9970b8fb09e4e97f95fab1764b18e",
-        "tag": "release-0.9",
+        "rev": "7c1e8bae654588790374ec1a23f40f579405b31c",
+        "tag": "0.10.2",
         "type": "git"
     },
     "motoko": {

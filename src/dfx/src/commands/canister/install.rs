@@ -6,7 +6,9 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::{ComputeAllocation, InstallMode};
+use humanize_rs::bytes::{Bytes, Unit};
+use ic_agent::{ComputeAllocation, InstallMode, MemoryAllocation};
+
 use std::convert::TryFrom;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
@@ -51,6 +53,13 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(true)
                 .validator(compute_allocation_validator),
         )
+        .arg(
+            Arg::with_name("memory-allocation")
+                .help(UserMessage::InstallMemoryAllocation.to_str())
+                .long("memory-allocation")
+                .takes_value(true)
+                .validator(memory_allocation_validator),
+        )
 }
 
 fn compute_allocation_validator(compute_allocation: String) -> Result<(), String> {
@@ -62,17 +71,37 @@ fn compute_allocation_validator(compute_allocation: String) -> Result<(), String
     Err("Must be a percent between 0 and 100".to_string())
 }
 
+fn memory_allocation_validator(memory_allocation: String) -> Result<(), String> {
+    let limit = Bytes::new(256, Unit::TByte).map_err(|_| "Parse Overflow.")?;
+    if let Ok(bytes) = memory_allocation.parse::<Bytes>() {
+        if bytes.size() <= limit.size() {
+            return Ok(());
+        }
+    }
+    Err("Must be a value between 0..256 TB inclusive.".to_string())
+}
+
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
+
+    let timeout = args.value_of("expiry_duration");
+
     let agent = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
+
     let compute_allocation = args.value_of("compute-allocation").map(|arg| {
         ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
             .expect("Compute Allocation must be a percentage.")
     });
+
+    let memory_allocation: Option<MemoryAllocation> =
+        args.value_of("memory_allocation").map(|arg| {
+            MemoryAllocation::try_from(u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap())
+                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
+        });
 
     let mode = InstallMode::from_str(args.value_of("mode").unwrap())?;
 
@@ -90,6 +119,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             &canister_info,
             compute_allocation,
             mode,
+            memory_allocation,
+            timeout,
         ))?;
         Ok(())
     } else if args.is_present("all") {
@@ -105,6 +136,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     &canister_info,
                     compute_allocation,
                     mode.clone(),
+                    memory_allocation,
+                    timeout,
                 ))?;
             }
         }

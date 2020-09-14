@@ -37,6 +37,7 @@ lazy-init = "0.3.0"
 lazy_static = "1.4.0"
 libflate = "0.1.27"
 hotwatch = "0.4.3"
+humanize-rs = "0.1.5"
 mockall = "0.6.0"
 pem = "0.7.0"
 petgraph = "0.5.0"
@@ -68,14 +69,15 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "35a0f9851cf8cceea34acf405ba50c84ab5fbc5e"
+branch = "pshahi/ingress-expiry-two"
+rev = "b57f659d431198feaca98f7ef9adf9b1fdff7807"
 
 [dependencies.ic-types]
 version = "0.1.1"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "35a0f9851cf8cceea34acf405ba50c84ab5fbc5e"
+branch = "pshahi/ingress-expiry-two"
+rev = "b57f659d431198feaca98f7ef9adf9b1fdff7807"
+
 
 [dev-dependencies]
 env_logger = "0.6"
