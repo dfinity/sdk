@@ -3,7 +3,7 @@ use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
 use humanize_rs::duration::parse;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
@@ -13,14 +13,7 @@ pub fn expiry_duration(timeout: Option<&str>) -> DfxResult<Duration> {
         Some(expiry_duration) => parse(expiry_duration),
         None => Ok(Duration::from_secs(60 * 5)), // 5 minutes is max ingress timeout
     }?;
-    let permitted_drift = Duration::from_secs(60);
-    // TODO: once replica exposes time in the status endpoint, will need to read that
-    let start = SystemTime::now();
-    let since_epoch = start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time wrapped around");
-    let valid_until = since_epoch + dur - permitted_drift;
-    Ok(valid_until)
+    Ok(dur)
 }
 
 /// Deserialize and print return values from canister method.

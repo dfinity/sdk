@@ -1696,7 +1696,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/ingress-expiry-two#e8fdf9dddd8c11535f233a05c2dd354b1162a4c4"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/ingress-expiry-two#b57f659d431198feaca98f7ef9adf9b1fdff7807"
 dependencies = [
  "async-trait",
  "base32",
@@ -1724,7 +1724,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.1"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/ingress-expiry-two#e8fdf9dddd8c11535f233a05c2dd354b1162a4c4"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=pshahi/ingress-expiry-two#b57f659d431198feaca98f7ef9adf9b1fdff7807"
 dependencies = [
  "base32",
  "crc32fast",

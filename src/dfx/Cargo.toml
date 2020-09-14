@@ -70,13 +70,13 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "pshahi/ingress-expiry-two"
-rev = "e8fdf9dddd8c11535f233a05c2dd354b1162a4c4"
+rev = "b57f659d431198feaca98f7ef9adf9b1fdff7807"
 
 [dependencies.ic-types]
 version = "0.1.1"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "pshahi/ingress-expiry-two"
-rev = "e8fdf9dddd8c11535f233a05c2dd354b1162a4c4"
+rev = "b57f659d431198feaca98f7ef9adf9b1fdff7807"
 
 [dev-dependencies]
 env_logger = "0.6"

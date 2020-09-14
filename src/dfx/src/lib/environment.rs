@@ -427,7 +427,7 @@ fn create_agent(
                 url: url.to_string(),
                 identity,
                 password_manager: Some(Box::new(executor)),
-                ingress_expiry: Some(duration),
+                ing_exp_duration: Some(duration),
                 ..AgentConfig::default()
             })
             .ok()

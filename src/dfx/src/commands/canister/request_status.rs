@@ -45,7 +45,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .block_on(async {
             waiter.start();
             loop {
-                match agent.request_status_raw(&request_id).await? {
+                match agent.request_status_raw(&request_id, None).await? {
                     RequestStatusResponse::Replied { reply } => return Ok(reply),
                     RequestStatusResponse::Rejected {
                         reject_code,
