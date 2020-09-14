@@ -57,6 +57,7 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("memory-allocation")
                 .help(UserMessage::InstallMemoryAllocation.to_str())
                 .long("memory-allocation")
+                .default_value("8GB")
                 .takes_value(true)
                 .validator(memory_allocation_validator),
         )
