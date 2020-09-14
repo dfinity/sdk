@@ -152,7 +152,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             agent
                 .update(&canister_id, &method_name)
                 .with_arg(&arg_value)
-                // .expire_when(valid_until_as_nanos)
+                .expire_after(duration)
                 .call_and_wait(waiter_with_timeout(duration)),
         )?;
 

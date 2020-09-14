@@ -42,8 +42,9 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("expiry-duration")
                 .long("expiry-duration")
-                .help(UserMessage::CreateAll.to_str())
+                .help(UserMessage::CanisterCallExpiryDuration.to_str())
                 .takes_value(true)
+                .default_value("5m")
                 .validator(expiry_duration_validator),
         )
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
@@ -53,7 +54,11 @@ fn expiry_duration_validator(expiry_duration: String) -> Result<(), String> {
     if let Ok(_ed) = parse(&expiry_duration) {
         return Ok(());
     }
-    Err("Invalid input.".to_string())
+    let err = format!(
+        r#""Invalid input: {}. Expected a duration-type string e.g. "1h", "1h 30m""#,
+        expiry_duration
+    );
+    Err(err)
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {

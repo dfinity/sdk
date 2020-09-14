@@ -59,6 +59,7 @@ user_message!(
 
     // dfx canister mod
     ManageCanister => "Manages canisters deployed on a network replica.",
+    CanisterCallExpiryDuration => "The duration of time for which the message will considered valid and processed by the Internet Computer. Default value is set to 5 minutes.",
 
     // dfx canister delete
     DeleteCanister => "Deletes a canister on the Internet Computer network.",
