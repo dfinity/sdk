@@ -1,10 +1,10 @@
 import A "mo:base/Array";
 import Prim "mo:prim";
 
-type List<T> = ?{head : T; tail : List<T>};
-type List2<T> = { #nil; #cons: (T, List2<T>) };
-
 actor {
+    type List<T> = ?{head : T; tail : List<T>};
+    type List2<T> = { #nil; #cons: (T, List2<T>) };
+    
     func map(l: List<Int>) : List<Int> = {
         switch l {
           case null { null };

@@ -1,6 +1,5 @@
-type Vec = [Int];
-
 actor {
+    type Vec = [Int];
     var vec : Vec = [];
     
     public func init(a: Vec) : async () {

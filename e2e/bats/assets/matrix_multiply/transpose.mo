@@ -1,8 +1,8 @@
 import A "mo:base/Array";
 
-type Matrix = [[Int]];
-
 actor {
+    type Matrix = [[Int]];
+
     public query func transpose(m: Matrix) : async Matrix {
         assert (m.size() > 0);
         let n_row = m.size();
