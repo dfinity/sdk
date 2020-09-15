@@ -55,6 +55,7 @@ async fn candid(
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
     let store = CanisterIdStore::for_network(&network_descriptor)?;
+    eprintln!("Network descriptor: {:?}", network_descriptor);
     let candid_path = store
         .get_name(&id)
         .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
@@ -65,7 +66,15 @@ async fn candid(
             )
         })?
         .canonicalize()
-        .map_err(|_e| DfxError::Unknown("cannot find candid file".to_string()))?;
+        .map_err(|e| {
+            DfxError::Unknown(
+                format!(
+                    "Don't know where the candid file is supposed to be. Underlying error: {}",
+                    e
+                )
+                .to_string(),
+            )
+        })?;
 
     let content = match info.format {
         None => std::fs::read_to_string(candid_path)?,
