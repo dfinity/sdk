@@ -13,10 +13,17 @@ pkgs.stdenv.mkDerivation {
   configurePhase = ''
     export HOME=$(mktemp -d)
   '';
+  buildPhase = ''
+    cd packages/agent
+    echo "calling npm pack"
+    npm pack
+    cd -
+  '';
   installPhase = ''
     # $out: everything
     mkdir -p $out
     cp -R ${pkgs.agent-js-monorepo.agent}/* $out/
+    cp -R packages/agent/dfinity-agent*.tgz $out/
 
     # $lib/node_modules: node_modules dir that must be resolvable by npm
     #   for future build steps to work (e.g. at ../../node_modules)
@@ -25,5 +32,6 @@ pkgs.stdenv.mkDerivation {
     if test -d "$agent_node_modules"; then
       cp -R "$agent_node_modules" $lib;
     fi
+
   '';
 }
