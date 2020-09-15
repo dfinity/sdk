@@ -15,7 +15,7 @@
     "agent-js-monorepo": {
         "ref": "next",
         "repo": "ssh://git@github.com/dfinity-lab/agent-js",
-        "rev": "d32e6ec4ac0e20083720c49d39062827979a15ae",
+        "rev": "ccea79546e273892041b3863cf7a5e4ad51c2f07",
         "type": "git"
     },
     "bats-support": {
@@ -44,9 +44,9 @@
         "type": "git"
     },
     "ic-ref": {
+        "branch": "release-0.10",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
         "rev": "7d453c4b09f78b3fa1f06df6a3ff00e51b11ca3e",
-        "branch": "release-0.10",
         "type": "git"
     },
     "motoko": {
