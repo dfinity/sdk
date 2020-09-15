@@ -43,7 +43,6 @@ pub fn construct() -> App<'static, 'static> {
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let subcommand = args.subcommand();
-
     let agent_env = create_agent_environment(env, args)?;
 
     if let (name, Some(subcommand_args)) = subcommand {

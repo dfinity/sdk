@@ -3,8 +3,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::waiter::create_waiter;
-use crate::util::{blob_from_arguments, get_candid_type, print_idl_blob};
+use crate::lib::waiter::waiter_with_timeout;
+use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
@@ -125,26 +125,34 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
     let arg_value = blob_from_arguments(arguments, arg_type, &method_type)?;
-    let client = env
+    let agent = env
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
+
+    let timeout = expiry_duration();
+
     if is_query {
-        let blob = runtime.block_on(client.query_raw(&canister_id, method_name, &arg_value))?;
+        let blob =
+            runtime.block_on(agent.query_raw(&canister_id, method_name, &arg_value, None))?;
         print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
-        let request_id =
-            runtime.block_on(client.update_raw(&canister_id, method_name, &arg_value))?;
-
+        let request_id = runtime.block_on(
+            agent
+                .update(&canister_id, &method_name)
+                .with_arg(&arg_value)
+                .call(),
+        )?;
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
     } else {
         let blob = runtime.block_on(
-            client
+            agent
                 .update(&canister_id, &method_name)
                 .with_arg(&arg_value)
-                .call_and_wait(create_waiter()),
+                .expire_after(timeout)
+                .call_and_wait(waiter_with_timeout(timeout)),
         )?;
 
         print_idl_blob(&blob, output_type, &method_type)

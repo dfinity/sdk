@@ -2,6 +2,7 @@ use crate::config::dfinity::ConfigNetwork;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::util::expiry_duration;
 use clap::ArgMatches;
 use lazy_static::lazy_static;
 use std::sync::{Arc, RwLock};
@@ -80,8 +81,8 @@ pub fn create_agent_environment<'a>(
     args: &ArgMatches<'_>,
 ) -> DfxResult<AgentEnvironment<'a>> {
     let network_descriptor = get_network_descriptor(env, args)?;
-
-    AgentEnvironment::new(env, network_descriptor)
+    let timeout = expiry_duration();
+    AgentEnvironment::new(env, network_descriptor, timeout)
 }
 
 pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {

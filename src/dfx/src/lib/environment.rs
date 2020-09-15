@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 #[cfg(test)]
 use mockall::automock;
@@ -210,13 +211,14 @@ impl<'a> AgentEnvironment<'a> {
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
+        timeout: Duration,
     ) -> DfxResult<Self> {
         let identity = IdentityManager::new(backend)?.instantiate_selected_identity()?;
 
         let agent_url = network_descriptor.providers.first().unwrap();
         Ok(AgentEnvironment {
             backend,
-            agent: create_agent(backend.get_logger().clone(), agent_url, identity)
+            agent: create_agent(backend.get_logger().clone(), agent_url, identity, timeout)
                 .expect("Failed to construct agent."),
             network_descriptor,
         })
@@ -407,7 +409,12 @@ impl ic_agent::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity>) -> Option<Agent> {
+fn create_agent(
+    logger: Logger,
+    url: &str,
+    identity: Box<dyn Identity>,
+    timeout: Duration,
+) -> Option<Agent> {
     AgentClient::new(logger, url.to_string())
         .ok()
         .and_then(|executor| {
@@ -415,6 +422,7 @@ fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity>) -> Optio
                 url: url.to_string(),
                 identity,
                 password_manager: Some(Box::new(executor)),
+                ingress_expiry_duration: Some(timeout),
                 ..AgentConfig::default()
             })
             .ok()

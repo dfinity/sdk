@@ -1,9 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use crate::lib::waiter::create_waiter;
+use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators;
-use crate::util::print_idl_blob;
+use crate::util::{expiry_duration, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use delay::Waiter;
 use ic_agent::{AgentError, Replied, RequestId, RequestStatusResponse};
@@ -35,13 +35,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let mut waiter = create_waiter();
+    let timeout = expiry_duration();
+
+    let mut waiter = waiter_with_timeout(timeout);
 
     let Replied::CallReplied(blob) = runtime
         .block_on(async {
             waiter.start();
             loop {
-                match agent.request_status_raw(&request_id).await? {
+                match agent.request_status_raw(&request_id, None).await? {
                     RequestStatusResponse::Replied { reply } => return Ok(reply),
                     RequestStatusResponse::Rejected {
                         reject_code,
@@ -55,6 +57,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     RequestStatusResponse::Unknown => (),
                     RequestStatusResponse::Received => (),
                     RequestStatusResponse::Processing => (),
+                    RequestStatusResponse::Done => {
+                        return Err(DfxError::AgentError(AgentError::RequestStatusDoneNoReply(
+                            String::from(request_id),
+                        )))
+                    }
                 };
 
                 waiter

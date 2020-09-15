@@ -2,10 +2,13 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::installers::assets::post_install_store_assets;
-use crate::lib::waiter::create_waiter;
+use crate::lib::waiter::waiter_with_timeout;
 
-use ic_agent::{Agent, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister};
+use ic_agent::{
+    Agent, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister, MemoryAllocation,
+};
 use slog::info;
+use std::time::Duration;
 
 pub async fn install_canister(
     env: &dyn Environment,
@@ -13,6 +16,8 @@ pub async fn install_canister(
     canister_info: &CanisterInfo,
     compute_allocation: Option<ComputeAllocation>,
     mode: InstallMode,
+    memory_allocation: Option<MemoryAllocation>,
+    timeout: Duration,
 ) -> DfxResult {
     let mgr = ManagementCanister::new(agent);
     let log = env.get_logger();
@@ -33,18 +38,21 @@ pub async fn install_canister(
     let wasm = std::fs::read(wasm_path)?;
 
     mgr.install_code(
-        create_waiter(),
+        waiter_with_timeout(timeout),
         &canister_id,
         mode,
         &wasm,
         &[],
-        &CanisterAttributes { compute_allocation },
+        &CanisterAttributes {
+            compute_allocation,
+            memory_allocation,
+        },
     )
     .await
     .map_err(DfxError::from)?;
 
     if canister_info.get_type() == "assets" {
-        post_install_store_assets(&canister_info, &agent).await?;
+        post_install_store_assets(&canister_info, &agent, timeout).await?;
     }
 
     Ok(())

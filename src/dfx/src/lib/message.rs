@@ -54,6 +54,7 @@ user_message!(
     InstallAll => "Deploys all canisters configured in the project dfx.json files.",
     InstallCanisterName => "Specifies the canister name to deploy. You must specify either canister name or the --all option.",
     InstallComputeAllocation => "Specifies the canister's compute allocation. This should be a percent in the range [0..100]",
+    InstallMemoryAllocation =>  "Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..256 TB]",
     InstallMode => "Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.",
 
     // dfx canister mod
