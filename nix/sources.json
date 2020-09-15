@@ -39,8 +39,8 @@
     },
     "dfinity": {
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "d0856d8d60b5a2d2a7b6f50fa0fa1d68db9264dc",
-        "branch": "akhi3030/expiry-time",
+        "rev": "ed4b1ae420f863a7b8393af058a2d62deebba2ed",
+        "branch": "master",
         "type": "git"
     },
     "ic-ref": {
