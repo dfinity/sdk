@@ -1,9 +1,9 @@
 import A "mo:base/Array";
 import M "secret_import";
 
-type Matrix = [[Int]];
-
 actor {
+    type Matrix = [[Int]];
+    
     public func multiply(a: Matrix, b: Matrix) : async Matrix {
         assert (a.size() > 0 and b.size() > 0);
         assert (a[0].size() == b.size());
