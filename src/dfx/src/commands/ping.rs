@@ -38,7 +38,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             other => Err(other),
         })?;
 
-    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
+    let timeout = expiry_duration();
     let env = AgentEnvironment::new(env, network_descriptor, timeout)?;
 
     let agent = env

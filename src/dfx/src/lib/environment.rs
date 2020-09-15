@@ -422,7 +422,7 @@ fn create_agent(
                 url: url.to_string(),
                 identity,
                 password_manager: Some(Box::new(executor)),
-                ing_exp_duration: Some(timeout),
+                ingress_expiry_duration: Some(timeout),
                 ..AgentConfig::default()
             })
             .ok()

@@ -64,7 +64,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
+    let timeout = expiry_duration();
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 

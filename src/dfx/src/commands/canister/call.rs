@@ -130,7 +130,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
+    let timeout = expiry_duration();
 
     if is_query {
         let blob =

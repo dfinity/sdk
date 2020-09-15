@@ -88,7 +88,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
+    let timeout = expiry_duration();
 
     let agent = env
         .get_agent()
@@ -100,7 +100,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     });
 
     let memory_allocation: Option<MemoryAllocation> =
-        args.value_of("memory_allocation").map(|arg| {
+        args.value_of("memory-allocation").map(|arg| {
             MemoryAllocation::try_from(u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap())
                 .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
         });

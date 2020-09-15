@@ -2,18 +2,14 @@ use crate::lib::error::{DfxError, DfxResult};
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
-use humanize_rs::duration::parse;
 use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
 
-pub fn expiry_duration(timeout: Option<&str>) -> DfxResult<Duration> {
-    let dur = match timeout {
-        Some(expiry_duration) => parse(expiry_duration),
-        None => Ok(Duration::from_secs(60 * 5)), // 5 minutes is max ingress timeout
-    }?;
-    Ok(dur)
+pub fn expiry_duration() -> Duration {
+    // 5 minutes is max ingress timeout
+    Duration::from_secs(60 * 5)
 }
 
 /// Deserialize and print return values from canister method.

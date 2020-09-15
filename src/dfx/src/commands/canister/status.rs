@@ -60,7 +60,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
+    let timeout = expiry_duration();
 
     if let Some(canister_name) = args.value_of("canister_name") {
         runtime.block_on(canister_status(env, &agent, &canister_name, timeout))?;

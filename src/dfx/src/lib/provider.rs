@@ -81,9 +81,8 @@ pub fn create_agent_environment<'a>(
     args: &ArgMatches<'_>,
 ) -> DfxResult<AgentEnvironment<'a>> {
     let network_descriptor = get_network_descriptor(env, args)?;
-    let duration = expiry_duration(args.value_of("expiry_duration"))?;
-
-    AgentEnvironment::new(env, network_descriptor, duration)
+    let timeout = expiry_duration();
+    AgentEnvironment::new(env, network_descriptor, timeout)
 }
 
 pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {

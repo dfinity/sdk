@@ -30,7 +30,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
+    let timeout = expiry_duration();
 
     if let Some(canister_name) = args.value_of("canister_name") {
         create_canister(env, canister_name, timeout)?;
