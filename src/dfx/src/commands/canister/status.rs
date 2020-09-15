@@ -8,6 +8,7 @@ use crate::util::expiry_duration;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::{Agent, ManagementCanister};
 use slog::info;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -33,17 +34,15 @@ async fn canister_status(
     env: &dyn Environment,
     agent: &Agent,
     canister_name: &str,
-    timeout: Option<&str>,
+    timeout: Duration,
 ) -> DfxResult {
     let mgr = ManagementCanister::new(agent);
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id = canister_id_store.get(canister_name)?;
 
-    let duration = expiry_duration(timeout)?;
-
     let status = mgr
-        .canister_status(waiter_with_timeout(duration), &canister_id)
+        .canister_status(waiter_with_timeout(timeout), &canister_id)
         .await
         .map_err(DfxError::from)?;
     info!(log, "Canister {}'s status is {}.", canister_name, status);
@@ -61,7 +60,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let timeout = args.value_of("expiry_duration");
+    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
 
     if let Some(canister_name) = args.value_of("canister_name") {
         runtime.block_on(canister_status(env, &agent, &canister_name, timeout))?;

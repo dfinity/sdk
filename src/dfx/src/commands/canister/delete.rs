@@ -8,6 +8,7 @@ use crate::util::expiry_duration;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::{Agent, ManagementCanister};
 use slog::info;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
@@ -33,7 +34,7 @@ async fn delete_canister(
     env: &dyn Environment,
     agent: &Agent,
     canister_name: &str,
-    timeout: Option<&str>,
+    timeout: Duration,
 ) -> DfxResult {
     let mgr = ManagementCanister::new(agent);
     let log = env.get_logger();
@@ -45,9 +46,8 @@ async fn delete_canister(
         canister_name,
         canister_id.to_text(),
     );
-    let duration = expiry_duration(timeout)?;
 
-    mgr.delete_canister(waiter_with_timeout(duration), &canister_id)
+    mgr.delete_canister(waiter_with_timeout(timeout), &canister_id)
         .await
         .map_err(DfxError::from)?;
 
@@ -64,7 +64,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let timeout = args.value_of("expiry_duration");
+    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 

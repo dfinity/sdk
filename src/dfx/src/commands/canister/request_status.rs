@@ -35,11 +35,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let timeout = args.value_of("expiry_duration");
+    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
 
-    let duration = expiry_duration(timeout)?;
-
-    let mut waiter = waiter_with_timeout(duration);
+    let mut waiter = waiter_with_timeout(timeout);
 
     let Replied::CallReplied(blob) = runtime
         .block_on(async {

@@ -4,6 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
+use crate::util::expiry_duration;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use humanize_rs::bytes::{Bytes, Unit};
@@ -87,7 +88,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let timeout = args.value_of("expiry_duration");
+    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
 
     let agent = env
         .get_agent()

@@ -3,18 +3,14 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
-use crate::util::expiry_duration;
 
 use ic_agent::ManagementCanister;
 use slog::info;
 use std::format;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
-pub fn create_canister(
-    env: &dyn Environment,
-    canister_name: &str,
-    timeout: Option<&str>,
-) -> DfxResult {
+pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Duration) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
 
@@ -48,10 +44,8 @@ pub fn create_canister(
                     .ok_or(DfxError::CommandMustBeRunInAProject)?,
             );
 
-            let duration = expiry_duration(timeout)?;
-
             let mut runtime = Runtime::new().expect("Unable to create a runtime");
-            let cid = runtime.block_on(mgr.create_canister(waiter_with_timeout(duration)))?;
+            let cid = runtime.block_on(mgr.create_canister(waiter_with_timeout(timeout)))?;
             let canister_id = cid.to_text();
             info!(
                 log,

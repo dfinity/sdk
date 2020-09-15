@@ -130,8 +130,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let timeout = args.value_of("expiry_duration");
-    let duration = expiry_duration(timeout)?;
+    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
 
     if is_query {
         let blob =
@@ -152,8 +151,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             agent
                 .update(&canister_id, &method_name)
                 .with_arg(&arg_value)
-                .expire_after(duration)
-                .call_and_wait(waiter_with_timeout(duration)),
+                .expire_after(timeout)
+                .call_and_wait(waiter_with_timeout(timeout)),
         )?;
 
         print_idl_blob(&blob, output_type, &method_type)

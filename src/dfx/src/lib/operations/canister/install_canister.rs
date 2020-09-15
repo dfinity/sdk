@@ -3,12 +3,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::waiter::waiter_with_timeout;
-use crate::util::expiry_duration;
 
 use ic_agent::{
     Agent, CanisterAttributes, ComputeAllocation, InstallMode, ManagementCanister, MemoryAllocation,
 };
 use slog::info;
+use std::time::Duration;
 
 pub async fn install_canister(
     env: &dyn Environment,
@@ -17,7 +17,7 @@ pub async fn install_canister(
     compute_allocation: Option<ComputeAllocation>,
     mode: InstallMode,
     memory_allocation: Option<MemoryAllocation>,
-    timeout: Option<&str>,
+    timeout: Duration,
 ) -> DfxResult {
     let mgr = ManagementCanister::new(agent);
     let log = env.get_logger();
@@ -37,10 +37,8 @@ pub async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm = std::fs::read(wasm_path)?;
 
-    let duration = expiry_duration(timeout)?;
-
     mgr.install_code(
-        waiter_with_timeout(duration),
+        waiter_with_timeout(timeout),
         &canister_id,
         mode,
         &wasm,
@@ -54,7 +52,7 @@ pub async fn install_canister(
     .map_err(DfxError::from)?;
 
     if canister_info.get_type() == "assets" {
-        post_install_store_assets(&canister_info, &agent, duration).await?;
+        post_install_store_assets(&canister_info, &agent, timeout).await?;
     }
 
     Ok(())

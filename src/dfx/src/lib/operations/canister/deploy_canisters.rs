@@ -9,12 +9,13 @@ use crate::lib::operations::canister::create_canister;
 use crate::lib::operations::canister::install_canister;
 use ic_agent::{AgentError, InstallMode};
 use slog::{info, warn};
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 pub fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
-    timeout: Option<&str>,
+    timeout: Duration,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -59,7 +60,7 @@ fn register_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
-    timeout: Option<&str>,
+    timeout: Duration,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -90,7 +91,7 @@ fn install_canisters(
     canister_names: &[String],
     initial_canister_id_store: &CanisterIdStore,
     config: &Config,
-    timeout: Option<&str>,
+    timeout: Duration,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 

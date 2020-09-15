@@ -5,9 +5,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
-use crate::util::expiry_duration;
 
-use clap::ArgMatches;
 use ic_agent::{Agent, AgentConfig, Identity};
 use semver::Version;
 use slog::{Logger, Record};
@@ -213,17 +211,14 @@ impl<'a> AgentEnvironment<'a> {
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
-        args: &ArgMatches<'_>,
+        timeout: Duration,
     ) -> DfxResult<Self> {
         let identity = IdentityManager::new(backend)?.instantiate_selected_identity()?;
-
-        let timeout = args.value_of("expiry_duration");
-        let duration = expiry_duration(timeout)?;
 
         let agent_url = network_descriptor.providers.first().unwrap();
         Ok(AgentEnvironment {
             backend,
-            agent: create_agent(backend.get_logger().clone(), agent_url, identity, duration)
+            agent: create_agent(backend.get_logger().clone(), agent_url, identity, timeout)
                 .expect("Failed to construct agent."),
             network_descriptor,
         })
@@ -418,7 +413,7 @@ fn create_agent(
     logger: Logger,
     url: &str,
     identity: Box<dyn Identity>,
-    duration: Duration,
+    timeout: Duration,
 ) -> Option<Agent> {
     AgentClient::new(logger, url.to_string())
         .ok()
@@ -427,7 +422,7 @@ fn create_agent(
                 url: url.to_string(),
                 identity,
                 password_manager: Some(Box::new(executor)),
-                ing_exp_duration: Some(duration),
+                ing_exp_duration: Some(timeout),
                 ..AgentConfig::default()
             })
             .ok()

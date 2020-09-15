@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::operations::canister::create_canister;
+use crate::util::expiry_duration;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 
@@ -29,7 +30,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let timeout = args.value_of("expiry_duration");
+    let timeout = expiry_duration(args.value_of("expiry_duration"))?;
 
     if let Some(canister_name) = args.value_of("canister_name") {
         create_canister(env, canister_name, timeout)?;
