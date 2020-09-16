@@ -1,10 +1,11 @@
+use crate::actors;
 use crate::config::dfinity::{ConfigDefaults, ConfigDefaultsBootstrap};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
-use crate::lib::webserver::webserver;
+use actix::Actor;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
 use std::default::Default;
@@ -13,7 +14,6 @@ use std::io::{Error, ErrorKind};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::time::Duration;
 use url::Url;
 
 /// Constructs a sub-command to run the bootstrap server.
@@ -68,38 +68,32 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let providers = get_providers(&network_descriptor)?;
 
-    let (sender, receiver) = crossbeam::unbounded();
-
-    webserver(
-        logger.clone(),
+    let webserver_actor_config = actors::webserver::Config {
+        logger: Some(logger.clone()),
         build_output_root,
         network_descriptor,
-        SocketAddr::new(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap()),
-        providers
+        bind: SocketAddr::new(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap()),
+        clients_api_uri: providers
             .iter()
             .map(|uri| Url::from_str(uri).unwrap())
             .collect(),
-        &config_bootstrap.root.unwrap(),
-        sender,
-    )?
-    .join()
-    .map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed while running frontend proxy thead -- {:?}", e),
-        ))
-    })?;
+        serve_dir: config_bootstrap.root.unwrap(),
+    };
 
-    // Wait for the webserver to be started.
-    let _ = receiver.recv().expect("Failed to receive server...");
+    // validate here because the actor system never stops if the
+    // actor panics when starting.
+    webserver_actor_config.validate()?;
 
-    // Tell the user.
+    let system = actix::System::new("dfx-bootstrap");
+
+    let _addr = actors::webserver::Webserver::new(webserver_actor_config).start();
+
     info!(logger, "Webserver started...");
 
-    // And then wait forever.
-    loop {
-        std::thread::sleep(Duration::from_secs(std::u64::MAX))
-    }
+    actors::signal_watcher::SignalWatchdog::new().start();
+    system.run()?;
+
+    Ok(())
 }
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
