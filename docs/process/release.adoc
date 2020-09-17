@@ -73,86 +73,84 @@ git checkout master && git pull
 
 Verify that you can build DFX and the JavaScript agent from the `+master+` branch without errors.
 
+. Store a path to your latest system dfx as a variable. (This requires having the latest `dfx` installed)
++
+[source, bash]
+----
+export dfx_system=$(which dfx)
+----
++
+Ensure `$dfx_system` is set
++
+[source, bash]
+----
+▶ echo $dfx_system
+/usr/local/bin/dfx
+----
++
+. Change directory to the sdk repository
++
+[source, bash]
+----
+export dfx_repository="$HOME/dfinity/sdk" # may be different for you
+cd $dfx_repository
+----
++
 . Build the `dfx` binary by running the following command:
 +
 [source, bash]
 ----
-nix-build ./dfx.nix -A build --option extra-binary-caches https://nix.dfinity.systems
+export sdk_rc="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://nix.dfinity.systems)"
+export dfx_rc="$sdk_rc/bin/dfx"
 ----
 +
-This command prints logs to the console.
-The last line printed is the build output directory. 
+This stores some shell variables. Make sure `$dfx_rc` points to a real file.
 +
-For example, you should see a path similar to this:
+```
+test -x $dfx_rc \
+    && echo 'Please proceed.' \
+    || echo 'Cant find executable $dfx_rc'="$dfx_rc"
+# You should see 'Please proceed'
+```
 +
-`/nix/store/7qsrb3pikzam301h6khjzwpg35ry7miz-dfinity-sdk-rust-unknown`
-. Copy the `/nix/store/...-dfinity-sdk-rust-unknown` path displayed in the console.
-// (_for the rest of these instructions, assume that `dfx` is a reference to
-// `result/bin/dfx or wherever the binary was built with this command`_)
-. Create a temporary `alias` for the binary to use in successive steps by appending `/bin/dfx` to the `/nix/store/...-dfinity-sdk-rust-unknown` path.
-+
-For example, add `/bin/dfx` to the `/nix/store/...-dfinity-sdk-rust-unknown` path to create an alias by running a command similar to the following: 
+. Verify the binary version. The version of `$dfx_rc` should be greater than the version from `$dfx_system`
 +
 [source, bash]
 ----
-alias dfx=/nix/store/7qsrb3pikzam301h6khjzwpg35ry7miz-dfinity-sdk-rust-unknown/bin/dfx
+$dfx_system --version
+# example stdout: dfx 0.6.7
+
+$dfx_rc --version
+# example stdout: dfx 0.6.8
 ----
-. Verify the binary version by running the following command:
 +
-[source, bash]
-----
-dfx --version
-----
+
 . Delete the existing `dfx` cache to ensure you're not using a stale binary.
 +
 [source, bash]
 ----
-dfx cache delete
+$dfx_rc cache delete
 ----
 . Build the JavaScript agent by running the following command:
 +
 [source, bash]
 ----
-nix-build . -A agent-js --option extra-binary-caches https://nix.dfinity.systems
+export agent_js_rc="$(nix-build . -A agent-js --option extra-binary-caches https://nix.dfinity.systems)"
+export agent_js_rc_npm_packed="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent-*.tgz)"
+
+test -f $agent_js_rc_npm_packed \
+    && echo 'Please proceed' \
+    || echo 'Cannot find npm-packed dfinity-agent-*.tgz' 
+# You should see 'Please proceed'
 ----
 +
-This command prints logs to the console.
-The last line printed is the build output directory. 
-+
-For example, you should see a path similar to the following:
-+
-`/nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js`
-. Copy the `/nix/store/...-dfinity-sdk-agent-js` path displayed in the console.
-. List the files in the `/nix/store/...-dfinity-sdk-agent-js` path by running a command similar to the following:
-+
-[source, bash]
-----
-ls -l /nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js
-----
-+
-You should see output similar to the following:
-+
-....
-total 64
--r--r--r--  1 username  admin  30439 Dec 31  1969 dfinity-agent-0.6.0.tgz
-dr-xr-xr-x  4 username  admin    128 Dec 31  1969 nix-support
-....
-. Append the `/nix/store/` path with the `dfinity-agent-n.n.n.tgz` file name and
-store the full path to the archive (`.tgz`) file in a temporary environment variable by running a command similar to the following:
-+
-[source, bash]
-----
-export JS_AGENT_PATH=/nix/store/s9al333cb07lgzjl90hy3c5n9p59380p-dfinity-sdk-agent-js/dfinity-agent-0.6.0.tgz
-----
 . Ensure `dfx` and `replica` are not running in the background by running the following commands:
 +
 [source, bash]
 ----
-ps -ef | grep replica
-ps -ef | grep dfx
+ps -ef | grep -E 'replica|dfx' | grep -v grep
 ----
 +
-These commands should only list `+grep+` as a running process. 
 If there are any `replica` or `dfx` processes running, use the `kill` command to terminate them.
 
 === Validate the default project
@@ -163,39 +161,55 @@ Verify that you can build, deploy, and call the default `hello_world` project wi
 +
 [source, bash]
 ----
-dfx new hello_world
+$dfx_rc new hello_world
 cd hello_world
 ----
 . Install the locally-built JavaScript agent for the new project.
 +
 [source, bash]
 ----
-npm install ${JS_AGENT_PATH}
+npm install "$agent_js_rc_npm_packed"
 ----
 . Start the local `replica` as a background process.
 +
 [source, bash]
 ----
-dfx start --background
+$dfx_rc start --background
 ----
-. Create, build, and install canisters by running the following commands:
+. Create, build, and install canisters by running:
 +
 [source, bash]
 ----
-dfx canister create --all
-dfx build
-dfx canister install --all
+$dfx_rc deploy
 ----
 . Call the canister and verify the result.
 +
 [source, bash]
 ----
-dfx canister call hello_world greet everyone
+$dfx_rc canister call hello_world greet everyone
 ----
-. Verify the default front-end in a browser.
-.. In a new incognito or private window, navigate to the default localhost address and port `8000` as specified in the `dfx.json` configuration file.
-.. Append `?canisterId=ic:<YOUR-CANISTER-IDENTIFIER>` with the canister identifier for the
-`hello_world_assets` canister to the URL (for example, `http://localhost:8000/?canisterId=cxeji-wacaa-aaaaa-aaaaa-aaaaa-aaaaa-aaaaa-q`).
+. Save the canister URLs
++
+[source, bash]
+----
+export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_worlds)"
+export hello_world_assets_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_assets)"
+----
++
+. Verify hello_world_assets in a web browser. If possible, use "Private Browsing" or "Incognito Mode".
++
+To open it, run:
++
+[source, bash]
+----
+if test -x $(which open); then
+    open "$hello_world_assets_url"
+else
+    echo "Please open the following in your web browser: $hello_world_assets_url"
+fi
+# Either your browser will open to the hello_world_assets canister, or you will see the URL printed on stdout.
+----
++
 .. Verify that you are prompted to type a greeting in a prompt window.
 .. Type a greeting, then click *OK* to return the greeting in an alert window.
 .. Verify there are no errors in the console by opening the Developer Tools.
@@ -204,8 +218,19 @@ For example, in the browser, right-click>, then click Inspect and select Console
 Warnings can be ignored.
 
 . Verify the Candid UI.
-.. In a new incognito or private window, navigate to the default localhost address and port `8000` as specified in the `dfx.json` configuration file.
-.. Append the `candid` endpoint and `canisterId` for the `hello_world` canister to the URL (for example, `http://localhost:8000/candid?canisterId=75hes-oqbaa-aaaaa-aaaaa-aaaaa-aaaaa-aaaaa-q`).
++
+To open it, run:
++
+[source, bash]
+----
+if test -x $(which open); then
+    open "$hello_world_candid_url"
+else
+    echo "Please open the following in your web browser: $hello_world_candid_url"
+fi
+# Either your browser will open to the hello_world Candid UI, or you will see the URL printed on stdout.
+----
++
 .. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
 .. Verify there are no errors in the console by opening the Developer Tools.
 +
@@ -215,7 +240,7 @@ Warnings can be ignored.
 +
 [source, bash]
 ----
-dfx stop
+$dfx_rc stop
 ----
 . Delete the test project by running the following commands:
 +
@@ -227,13 +252,6 @@ rm -rf hello_world
 
 ==== Update the version
 
-. Navigate back to the top-level of the `sdk` repo.
-. Enter the sdk `nix` development environment by running the following command:
-+
-[source, bash]
-----
-nix-shell --option extra-binary-caches https://nix.dfinity.systems
-----
 . Set the new version in a temporary environment variable.
 +
 For example, replace `<n.n.n>` with a specific version number:
@@ -242,48 +260,28 @@ For example, replace `<n.n.n>` with a specific version number:
 ----
 export NEW_DFX_VERSION=<n.n.n>
 ----
+. If you're not already there, navigate back to the top-level of the `sdk` repo.
+. Enter the sdk `nix` development environment by running the following command:
++
+[source, bash]
+----
+nix-shell --option extra-binary-caches https://nix.dfinity.systems
+----
 . Create a new branch for your changes by running the following commands:
 +
 [source, nix-shell]
 ----
 git switch -c $USER/release-$NEW_DFX_VERSION
 ----
-. Update the `version` field in this file:
-+
-....
-`src/dfx/Cargo.toml`
-....
+. Update the first `version` field in `src/dfx/Cargo.toml` to be equal to `$NEW_DFX_VERSION`
 . Apply these changes to `Cargo.lock` by running the following command:
 +
 [source, nix-shell]
 ----
 cargo build
 ----
-. Update the `@dfinity/agent` JavaScript package by running the following command:
-+
-[source, nix-shell]
-----
-cd src/agent/javascript/ && npm version $NEW_DFX_VERSION
-----
-. Navigate back to the root of sdk repo by running the following command: 
-+
-[source, nix-shell]
-----
-cd ../../..
-----
-. Update the `@dfinity/bootstrap` JavaScript package by running the following command:
-+
-[source, nix-shell]
-----
-cd src/bootstrap/ && npm version $NEW_DFX_VERSION
-----
-. Navigate back to the root of sdk repo by running the following command: 
-+
-[source, nix-shell]
-----
-cd ../..
-----
-. Append the new version to `public/manifest.json` by adding it to the `versions` list.
+
+. Append the new version to `public/manifest.json` by appending it to the `versions` list.
 +
 For example:
 +
@@ -301,7 +299,7 @@ For example:
 }
 ----
 +
-*Ensure* `latest` remains the same.
+*Ensure* `tags.latest` remains the same.
 
 
 ==== Create a pull request and tag 
@@ -376,25 +374,23 @@ Hydra will spur into action when `stable` advances, so if the branch is already 
 
 ==== Publish Javascript agent to NPM
 
-. Change to the `javascript` agent directory and clean it by running the following commands:
+. Create and switch to a new directory to release from
 +
 [source, nix-shell]
 ----
-cd src/agent/javascript
-git clean -dfx .
+pushd $(mktemp -d)
+cp -R $agent_js_rc/. ./
+// tar -xf $agent_js_rc_npm_packed
+// cd package
 ----
-. Make sure you have latest version of node modules and don't have stale files by running the following command:
+
+. Change the package.json's `version` property:
 +
 [source, nix-shell]
 ----
-npm install
+npm version $NEW_DFX_VERSION
 ----
-. Build files by running the following command:
-+
-[source, nix-shell]
-----
-npm run build
-----
+
 . Run the following command to check that every `.js` file has a `.d.ts` assigned and that every `.js` and `.d.ts` file has a source file that is not a test:
 +
 [source, nix-shell]
