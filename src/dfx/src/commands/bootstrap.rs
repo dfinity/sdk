@@ -78,11 +78,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .map(|uri| Url::from_str(uri).unwrap())
             .collect(),
         serve_dir: config_bootstrap.root.unwrap(),
-    };
-
-    // validate here because the actor system never stops if the
-    // actor panics when starting.
-    webserver_actor_config.validate()?;
+    }
+    .validate()?; // validate here because the actor system never stops if the
+                  // actor panics when starting.
 
     let system = actix::System::new("dfx-bootstrap");
 

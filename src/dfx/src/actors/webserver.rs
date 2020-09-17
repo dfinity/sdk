@@ -25,7 +25,7 @@ impl Config {
     /// Validate the configuration.  This happens before attempting to start
     /// the actor, because if Actor.started() panics, the actor system
     /// never exits.  I'd love to know why.
-    pub fn validate(&self) -> DfxResult {
+    pub fn validate(self) -> DfxResult<Self> {
         // Verify that we cannot bind to a port that we forward to.
         let bound_port = self.bind.port();
         let bind_and_forward_on_same_port = self.clients_api_uri.iter().any(|url| {
@@ -40,7 +40,7 @@ impl Config {
                 "Cannot forward API calls to the same bootstrap server.".to_string(),
             ))
         } else {
-            Ok(())
+            Ok(self)
         }
     }
 }
