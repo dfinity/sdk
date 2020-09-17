@@ -380,8 +380,6 @@ Hydra will spur into action when `stable` advances, so if the branch is already 
 ----
 pushd $(mktemp -d)
 cp -R $agent_js_rc/. ./
-// tar -xf $agent_js_rc_npm_packed
-// cd package
 ----
 
 . Change the package.json's `version` property:
