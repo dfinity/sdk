@@ -78,13 +78,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .map(|uri| Url::from_str(uri).unwrap())
             .collect(),
         serve_dir: config_bootstrap.root.unwrap(),
-    }
-    .validate()?; // validate here because the actor system never stops if the
-                  // actor panics when starting.
+    };
 
     let system = actix::System::new("dfx-bootstrap");
 
-    let _addr = actors::webserver::Webserver::new(webserver_actor_config).start();
+    let _addr = actors::webserver::Webserver::new(webserver_actor_config)?.start();
 
     info!(logger, "Webserver started...");
 

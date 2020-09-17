@@ -55,15 +55,16 @@ pub struct Webserver {
 }
 
 impl Webserver {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config) -> DfxResult<Self> {
+        let config = config.validate()?;
         let logger =
             (config.logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
-        Webserver {
+        Ok(Webserver {
             logger,
             config,
             server: None,
             thread_join: None,
-        }
+        })
     }
 
     fn start_webserver(&mut self) -> DfxResult {
