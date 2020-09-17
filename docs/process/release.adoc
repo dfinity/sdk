@@ -77,16 +77,14 @@ Verify that you can build DFX and the JavaScript agent from the `+master+` branc
 +
 [source, bash]
 ----
-export dfx_system=$(which dfx)
+export dfx_system=$(which dfx);
+
+! test -z "$dfx_system" \
+    && echo "Please Proceed" \
+    || echo 'ERROR: `dfx` not found'
 ----
 +
-Ensure `$dfx_system` is set
-+
-[source, bash]
-----
-▶ echo $dfx_system
-/usr/local/bin/dfx
-----
+You should see "Please Proceed"
 +
 . Change directory to the sdk repository
 +
