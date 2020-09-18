@@ -3,7 +3,6 @@ use crate::lib::locations::canister_did_location;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
-use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
 use actix_web::client::Client;
@@ -187,7 +186,6 @@ pub fn run_webserver(
             .join(", ")
     );
 
-    let _sys = System::new("dfx-frontend-http-server");
     let forward_data = Arc::new(Mutex::new(ForwardActixData {
         providers,
         logger: logger.clone(),
