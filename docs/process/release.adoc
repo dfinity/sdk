@@ -372,7 +372,7 @@ Hydra will spur into action when `stable` advances, so if the branch is already 
 
 ==== Publish Javascript agent to NPM
 
-. Create and switch to a new directory to release from
+. Create and switch to a new directory to release from by running the following commands:
 +
 [source, nix-shell]
 ----
