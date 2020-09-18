@@ -3,13 +3,11 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::webserver;
 use actix::{Actor, Context, Running};
 use actix_server::Server;
-use crossbeam::channel::unbounded;
 use futures::executor::block_on;
 use slog::info;
 use slog::Logger;
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::thread::JoinHandle;
 
 /// The configuration for the webserver actor.
 pub struct Config {
@@ -51,7 +49,6 @@ pub struct Webserver {
     config: Config,
 
     server: Option<Server>,
-    thread_join: Option<JoinHandle<()>>,
 }
 
 impl Webserver {
@@ -63,14 +60,11 @@ impl Webserver {
             logger,
             config,
             server: None,
-            thread_join: None,
         })
     }
 
     fn start_webserver(&mut self) -> DfxResult {
         let config = &self.config;
-
-        let (sender, receiver) = unbounded();
 
         let handle = webserver(
             self.logger.clone(),
@@ -79,11 +73,9 @@ impl Webserver {
             config.bind,
             config.clients_api_uri.clone(),
             &config.serve_dir,
-            sender,
         )?;
 
-        self.thread_join = Some(handle);
-        self.server = Some(receiver.recv().expect("Failed to receive server..."));
+        self.server = Some(handle);
         Ok(())
     }
 }
@@ -102,10 +94,6 @@ impl Actor for Webserver {
 
         if let Some(server) = self.server.take() {
             block_on(server.stop(true));
-        }
-
-        if let Some(join) = self.thread_join.take() {
-            let _ = join.join();
         }
 
         info!(self.logger, "Stopped.");
