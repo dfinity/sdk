@@ -643,11 +643,10 @@ dependencies = [
 [[package]]
 name = "candid"
 version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3140c40bfcb45e52ea8cf084eb7d5ed1bdf6d869a447bcb265926d92ec6d3349"
+source = "git+ssh://git@github.com/dfinity/candid.git#89df78ee3899abd20b32f63a76d9bfebc7c5c212"
 dependencies = [
  "byteorder",
- "candid_derive",
+ "candid_derive 0.4.0 (git+ssh://git@github.com/dfinity/candid.git)",
  "codespan-reporting",
  "hex",
  "ic-types",
@@ -661,6 +660,40 @@ dependencies = [
  "paste",
  "pretty",
  "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "candid"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3140c40bfcb45e52ea8cf084eb7d5ed1bdf6d869a447bcb265926d92ec6d3349"
+dependencies = [
+ "byteorder",
+ "candid_derive 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "codespan-reporting",
+ "hex",
+ "ic-types",
+ "lalrpop",
+ "lalrpop-util",
+ "leb128",
+ "logos",
+ "num-bigint",
+ "num-traits",
+ "num_enum",
+ "paste",
+ "pretty",
+ "serde",
+]
+
+[[package]]
+name = "candid_derive"
+version = "0.4.0"
+source = "git+ssh://git@github.com/dfinity/candid.git#89df78ee3899abd20b32f63a76d9bfebc7c5c212"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -969,7 +1002,7 @@ dependencies = [
  "actix-web",
  "atty",
  "base64 0.11.0",
- "candid",
+ "candid 0.6.3 (git+ssh://git@github.com/dfinity/candid.git)",
  "chrono",
  "clap",
  "console 0.7.7",
@@ -1657,7 +1690,7 @@ dependencies = [
  "base32",
  "base64 0.12.3",
  "byteorder",
- "candid",
+ "candid 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "delay",
  "hex",
  "ic-types",

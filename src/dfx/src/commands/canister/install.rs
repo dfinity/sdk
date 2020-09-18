@@ -6,6 +6,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
 use crate::util::expiry_duration;
 
+use candid::Encode;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use humanize_rs::bytes::{Bytes, Unit};
 use ic_agent::{ComputeAllocation, InstallMode, MemoryAllocation};
@@ -44,6 +45,11 @@ pub fn construct() -> App<'static, 'static> {
                 .short("m")
                 .possible_values(&["install", "reinstall", "upgrade"])
                 .default_value("install")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("argument")
+                .help(UserMessage::ArgumentValue.to_str())
                 .takes_value(true),
         )
         .arg(
@@ -111,6 +117,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
+    let install_args = candid::Encode!()?;
+
     if let Some(canister_name) = args.value_of("canister_name") {
         let canister_id = canister_id_store.get(canister_name)?;
 
@@ -119,6 +127,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             env,
             &agent,
             &canister_info,
+            &install_args,
             compute_allocation,
             mode,
             memory_allocation,
@@ -136,6 +145,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     env,
                     &agent,
                     &canister_info,
+                    &install_args,
                     compute_allocation,
                     mode.clone(),
                     memory_allocation,

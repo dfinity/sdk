@@ -14,6 +14,7 @@ pub async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
     canister_info: &CanisterInfo,
+    args: &[u8],
     compute_allocation: Option<ComputeAllocation>,
     mode: InstallMode,
     memory_allocation: Option<MemoryAllocation>,
@@ -42,7 +43,7 @@ pub async fn install_canister(
         &canister_id,
         mode,
         &wasm,
-        &[],
+        args,
         &CanisterAttributes {
             compute_allocation,
             memory_allocation,

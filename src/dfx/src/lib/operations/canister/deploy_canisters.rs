@@ -7,6 +7,7 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::operations::canister::install_canister;
+use candid::Encode;
 use ic_agent::{AgentError, InstallMode};
 use slog::{info, warn};
 use std::time::Duration;
@@ -111,12 +112,14 @@ fn install_canisters(
 
         let canister_id = canister_id_store.get(&canister_name)?;
         let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
+        let install_args = candid::Encode!()?;
         let compute_allocation = None;
         let memory_allocation = None;
         let result = runtime.block_on(install_canister(
             env,
             &agent,
             &canister_info,
+            &install_args,
             compute_allocation,
             first_mode,
             memory_allocation,
@@ -141,6 +144,7 @@ fn install_canisters(
                     env,
                     &agent,
                     &canister_info,
+                    &install_args,
                     compute_allocation,
                     second_mode,
                     memory_allocation,
