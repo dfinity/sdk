@@ -21,7 +21,7 @@ actix-server = "1.0.3"
 actix-web = { version = "2.0.0", features = [ "default", "openssl", "rustls" ] }
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = "0.6.0"
+candid = { git = "https://github.com/dfinity/candid.git", branch = "master" }
 chrono = "0.4.9"
 clap = "2.33.0"
 console = "0.7.7"
