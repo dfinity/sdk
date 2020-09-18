@@ -10,7 +10,7 @@ use ic_agent::{
 use slog::info;
 use std::time::Duration;
 
-#![allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 pub async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
