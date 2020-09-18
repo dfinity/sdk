@@ -10,7 +10,6 @@ use actix_web::client::Client;
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
-use crossbeam::channel::Sender;
 use futures::StreamExt;
 use serde::Deserialize;
 use slog::{debug, info, trace, Logger};
@@ -172,8 +171,7 @@ pub fn run_webserver(
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
-    inform_parent: Sender<Server>,
-) -> Result<(), std::io::Error> {
+) -> Result<Server, std::io::Error> {
     info!(logger, "binding to: {:?}", bind);
 
     const SHUTDOWN_WAIT_TIME: u64 = 60;
@@ -225,12 +223,7 @@ pub fn run_webserver(
     .system_exit()
     .run();
 
-    // Warning: Note that HttpServer provides its own signal
-    // handler. That means if we provide signal handling beyond basic
-    // we need to either as normal "re-signal" or disable_signals().
-    let _ = inform_parent.send(handler);
-
-    Ok(())
+    Ok(handler)
 }
 
 pub fn webserver(
@@ -240,8 +233,7 @@ pub fn webserver(
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
     serve_dir: &Path,
-    inform_parent: Sender<Server>,
-) -> DfxResult<std::thread::JoinHandle<()>> {
+) -> DfxResult<Server> {
     // Verify that we cannot bind to a port that we forward to.
     let bound_port = bind.port();
     let bind_and_forward_on_same_port = clients_api_uri.iter().any(|url| {
@@ -257,22 +249,14 @@ pub fn webserver(
         ));
     }
 
-    std::thread::Builder::new()
-        .name("Frontend".into())
-        .spawn({
-            let serve_dir = serve_dir.to_path_buf();
-            move || {
-                run_webserver(
-                    logger,
-                    build_output_root,
-                    network_descriptor,
-                    bind,
-                    clients_api_uri,
-                    serve_dir,
-                    inform_parent,
-                )
-                .unwrap()
-            }
-        })
-        .map_err(DfxError::from)
+    let serve_dir = serve_dir.to_path_buf();
+    run_webserver(
+        logger,
+        build_output_root,
+        network_descriptor,
+        bind,
+        clients_api_uri,
+        serve_dir,
+    )
+    .map_err(DfxError::from)
 }
