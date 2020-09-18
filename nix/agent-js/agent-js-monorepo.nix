@@ -24,7 +24,7 @@ let
     installPhase = ''
       # $out: Everything!
       mkdir -p $out
-      cp -R ./* $out/
+      cp -R ./. $out/
 
       # $lib/node_modules: fetched npm dependencies
       mkdir -p $lib
@@ -33,7 +33,7 @@ let
       # $agent: npm subpackage @dfinity/agent
       mkdir -p $agent
       cp -R node_modules $agent/
-      cp -R ./packages/agent/* $agent/
+      cp -R ./packages/agent/. $agent/
 
       # $bootstrap: npm subpackage @dfinity/bootstrap
       mkdir -p $bootstrap
