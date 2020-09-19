@@ -4,7 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
-use crate::util::expiry_duration;
+use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use candid::Encode;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -51,6 +51,14 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("argument")
                 .help(UserMessage::ArgumentValue.to_str())
                 .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("type")
+                .help(UserMessage::ArgumentType.to_str())
+                .long("type")
+                .takes_value(true)
+                .requires("argument")
+                .possible_values(&["idl", "raw"]),
         )
         .arg(
             Arg::with_name("compute-allocation")
@@ -117,12 +125,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let install_args = candid::Encode!()?;
-
     if let Some(canister_name) = args.value_of("canister_name") {
         let canister_id = canister_id_store.get(canister_name)?;
-
         let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+
+        let maybe_path = canister_info.get_output_idl_path();
+        let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
+        let arguments: Option<&str> = args.value_of("argument");
+        let arg_type: Option<&str> = args.value_of("type");
+        let install_args = blob_from_arguments(arguments, arg_type, &init_type)?;
+
         runtime.block_on(install_canister(
             env,
             &agent,
@@ -139,8 +151,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
                 let canister_id = canister_id_store.get(canister_name)?;
-
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+
+                let install_args = candid::Encode!(&())?;
+
                 runtime.block_on(install_canister(
                     env,
                     &agent,
