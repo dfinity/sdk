@@ -63,13 +63,13 @@ impl IdentityManager {
     }
 
     /// Create an Identity instance for use with an Agent
-    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity>> {
+    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         let pem_path = self.get_selected_identity_pem_path();
         let basic = BasicIdentity::from_pem_file(&pem_path).map_err(|e| {
             DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone()))
         })?;
 
-        let b: Box<dyn Identity> = Box::new(basic);
+        let b: Box<dyn Identity + Send + Sync> = Box::new(basic);
         Ok(b)
     }
 
