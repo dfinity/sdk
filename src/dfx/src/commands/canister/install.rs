@@ -6,7 +6,6 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
-use candid::Encode;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use humanize_rs::bytes::{Bytes, Unit};
 use ic_agent::{ComputeAllocation, InstallMode, MemoryAllocation};
@@ -153,7 +152,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 let canister_id = canister_id_store.get(canister_name)?;
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
 
-                let install_args = candid::Encode!(&())?;
+                let install_args = [];
 
                 runtime.block_on(install_canister(
                     env,
