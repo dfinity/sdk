@@ -60,6 +60,21 @@ pub fn get_candid_type(
     Some((env, method))
 }
 
+pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Function)> {
+    let (env, ty) = check_candid_file(idl_path).ok()?;
+    let actor = ty?;
+    let args = match actor {
+        Type::Class(args, _) => args,
+        _ => vec![],
+    };
+    let res = Function {
+        args,
+        rets: vec![],
+        modes: vec![],
+    };
+    Some((env, res))
+}
+
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
     let idl_file = std::fs::read_to_string(idl_path)?;
     let ast = candid::pretty_parse::<IDLProg>(&idl_path.to_string_lossy(), &idl_file)?;
