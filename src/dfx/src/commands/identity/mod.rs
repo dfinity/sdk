@@ -6,11 +6,11 @@ use clap::{App, ArgMatches, SubCommand};
 
 mod list;
 mod new;
+mod principal;
 mod remove;
 mod rename;
 mod r#use;
 mod whoami;
-mod principal;
 
 fn builtins() -> Vec<CliCommand> {
     vec![

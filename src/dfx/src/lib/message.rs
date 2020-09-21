@@ -127,7 +127,7 @@ user_message!(
     ShowIdentity => "Shows the name of the current identity.",
 
     // dfx identity get-principal-id
-    GetPrincipalId => "Shows the textual representation of the Principal ID associated with current identity."
+    GetPrincipalId => "Shows the textual representation of the Principal ID associated with the current identity.",
 
     // dfx new
     CreateProject => "Creates a new project.",
