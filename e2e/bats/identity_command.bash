@@ -13,6 +13,22 @@ teardown() {
 }
 
 ##
+## dfx identity get-principal-id
+##
+
+@test "identity get-principal-id: different identities have different principal ids" {
+    assert_command dfx identity new jose
+    assert_command dfx identity new juana
+
+    PRINCPAL_ID_JOSE=$(dfx --identity jose identity get-principal-id)
+    PRINCPAL_ID_JUANA=$(dfx --identity juana identity get-principal-id)
+
+    if [ "$PRINCPAL_ID_JOSE" -eq "$PRINCPAL_ID_JUANA" ]; then
+      echo "IDs should not match: Jose '${PRINCPAL_ID_JOSE}' == Juana '${PRINCPAL_ID_JUANA}'..." | fail
+    fi  
+}
+
+##
 ## dfx identity list
 ##
 
