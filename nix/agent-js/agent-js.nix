@@ -22,7 +22,7 @@ pkgs.stdenv.mkDerivation {
   installPhase = ''
     # $out: everything
     mkdir -p $out
-    cp -R ${pkgs.agent-js-monorepo.agent}/* $out/
+    cp -R ${pkgs.agent-js-monorepo.agent}/. $out/
     cp -R packages/agent/dfinity-agent*.tgz $out/
 
     # $lib/node_modules: node_modules dir that must be resolvable by npm
