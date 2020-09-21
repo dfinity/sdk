@@ -68,7 +68,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let providers = get_providers(&network_descriptor)?;
 
-    let _ = webserver(
+    let (sender, receiver) = crossbeam::unbounded();
+
+    webserver(
         logger.clone(),
         build_output_root,
         network_descriptor,
@@ -78,7 +80,18 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .map(|uri| Url::from_str(uri).unwrap())
             .collect(),
         &config_bootstrap.root.unwrap(),
-    )?;
+        sender,
+    )?
+    .join()
+    .map_err(|e| {
+        DfxError::RuntimeError(Error::new(
+            ErrorKind::Other,
+            format!("Failed while running frontend proxy thead -- {:?}", e),
+        ))
+    })?;
+
+    // Wait for the webserver to be started.
+    let _ = receiver.recv().expect("Failed to receive server...");
 
     // Tell the user.
     info!(logger, "Webserver started...");
