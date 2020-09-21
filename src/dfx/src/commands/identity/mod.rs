@@ -10,6 +10,7 @@ mod remove;
 mod rename;
 mod r#use;
 mod whoami;
+mod principal;
 
 fn builtins() -> Vec<CliCommand> {
     vec![
@@ -19,6 +20,7 @@ fn builtins() -> Vec<CliCommand> {
         CliCommand::new(rename::construct(), rename::exec),
         CliCommand::new(r#use::construct(), r#use::exec),
         CliCommand::new(whoami::construct(), whoami::exec),
+        CliCommand::new(principal::construct(), principal::exec),
     ]
 }
 
