@@ -126,6 +126,9 @@ user_message!(
     // dfx identity whoami
     ShowIdentity => "Shows the name of the current identity.",
 
+    // dfx identity get-principal-id
+    GetPrincipalId => "Shows the textual representation of the Principal ID associated with current identity."
+
     // dfx new
     CreateProject => "Creates a new project.",
     ProjectName => "Specifies the name of the project to create.",
