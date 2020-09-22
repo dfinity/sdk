@@ -458,6 +458,10 @@ CI Hydra:
 +
 link:https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release[]
 
+Add a description and publish the tag for the latest release
+https://github.com/dfinity-lab/sdk/releases/new?tag=${NEW_DFX_VERSION}
+
+
 === Release documentation
 
 link:https://github.com/dfinity/docs[Documentation repo]
