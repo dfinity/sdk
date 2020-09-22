@@ -7,7 +7,7 @@
 , labels ? {}
 }:
 rec {
-  dfx = import ./dfx.nix { inherit pkgs assets; };
+  inherit (pkgs.dfinity-sdk) dfx;
 
   e2e-tests = import ./e2e/bats { inherit pkgs dfx; };
   e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
@@ -34,10 +34,19 @@ rec {
   # `shell.nix` in the root to provide an environment which is the composition
   # of all the shells here.
   shells = {
-    rust-workspace = dfx.shell;
+    rust-workspace = pkgs.dfinity-sdk.shell.overrideAttrs (
+      attrs: {
+        nativeBuildInputs = attrs.nativeBuildInputs ++ [
+          pkgs.rls
+          pkgs.file
+          pkgs.stdenv.cc
+          pkgs.coreutils
+        ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin pkgs.stdenv.cc.bintools;
+      }
+    );
   };
 
-  licenses = {
-    dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
-  };
+  # licenses = {
+  #   dfx = pkgs.lib.runtime.runtimeLicensesReport dfx;
+  # };
 }

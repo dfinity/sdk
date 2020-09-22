@@ -52,6 +52,10 @@ let
               nix-fmt = nixFmt.fmt;
               nix-fmt-check = nixFmt.check;
 
+              lib = super.lib // {
+                runBenchmarks = self.callPackage ./benchmarks {};
+              };
+
               # An attribute set mapping every supported system to a nixpkgs evaluated for
               # that system. Special care is taken not to reevaluate nixpkgs for the current
               # system because we already did that in self.
@@ -65,6 +69,7 @@ let
               );
             }
       )
+      (import ../workspace.nix)
     ];
   };
 in

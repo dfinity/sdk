@@ -70,13 +70,11 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "next"
-rev = "9d611f08cb55923fc6ff5bf0136e8f4b848dd2cc"
 
 [dependencies.ic-types]
 version = "0.1.1"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "next"
-rev = "9d611f08cb55923fc6ff5bf0136e8f4b848dd2cc"
 
 
 [dev-dependencies]

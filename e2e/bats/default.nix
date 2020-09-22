@@ -24,7 +24,7 @@ let
     python3
     procps
     which
-    dfx.standalone
+    dfx
   ] ++ lib.optional use_ic_ref ic-ref;
 in
 
