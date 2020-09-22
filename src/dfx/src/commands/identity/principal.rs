@@ -5,7 +5,7 @@ use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("get-principal-id").about(UserMessage::GetPrincipalId.to_str())
+    SubCommand::with_name("get-principal").about(UserMessage::GetPrincipalId.to_str())
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
