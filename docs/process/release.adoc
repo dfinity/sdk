@@ -57,6 +57,11 @@ to verify:
 
 image:is-master-green.png[]
 
+=== Notify the Community in case of a Breaking Release
+
+Create a post in `https://forum.dfinity.org/c/tungsten-developer-network/25`
+
+
 === Start preparing a new release
 
 . Connect to VPN.
@@ -86,14 +91,6 @@ export dfx_system=$(which dfx);
 +
 You should see "Please Proceed"
 +
-. Change directory to the sdk repository
-+
-[source, bash]
-----
-export dfx_repository="$HOME/dfinity/sdk" # may be different for you
-cd $dfx_repository
-----
-+
 . Build the `dfx` binary by running the following command:
 +
 [source, bash]
@@ -110,18 +107,6 @@ test -x $dfx_rc \
     || echo 'Cant find executable $dfx_rc'="$dfx_rc"
 # You should see 'Please proceed'
 ```
-+
-. Verify the binary version. The version of `$dfx_rc` should be greater than the version from `$dfx_system`.
-+
-[source, bash]
-----
-$dfx_system --version
-# example stdout: dfx 0.6.7
-
-$dfx_rc --version
-# example stdout: dfx 0.6.8
-----
-+
 
 . Delete the existing `dfx` cache to ensure you're not using a stale binary.
 +
@@ -138,7 +123,7 @@ export agent_js_rc_npm_packed="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent
 
 test -f $agent_js_rc_npm_packed \
     && echo 'Please proceed' \
-    || echo 'Cannot find npm-packed dfinity-agent-*.tgz' 
+    || echo 'Cannot find npm-packed dfinity-agent-*.tgz'
 # You should see 'Please proceed'
 ----
 +
@@ -156,6 +141,7 @@ If there are any `replica` or `dfx` processes running, use the `kill` command to
 Verify that you can build, deploy, and call the default `hello_world` project without errors.
 
 . Generate a default new project.
+. cd into a tmp directory
 +
 [source, bash]
 ----
@@ -190,7 +176,7 @@ $dfx_rc canister call hello_world greet everyone
 +
 [source, bash]
 ----
-export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_worlds)"
+export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_world)"
 export hello_world_assets_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_assets)"
 ----
 +
@@ -212,7 +198,7 @@ fi
 .. Type a greeting, then click *OK* to return the greeting in an alert window.
 .. Verify there are no errors in the console by opening the Developer Tools.
 +
-For example, in the browser, right-click>, then click Inspect and select Console to check for errors and warnings. 
+For example, in the browser, right-click>, then click Inspect and select Console to check for errors and warnings.
 Warnings can be ignored.
 
 . Verify the Candid UI.
@@ -232,7 +218,7 @@ fi
 .. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
 .. Verify there are no errors in the console by opening the Developer Tools.
 +
-For example, in the browser, right-click>, then click Inspect and select Console to check for errors and warnings. 
+For example, in the browser, right-click>, then click Inspect and select Console to check for errors and warnings.
 Warnings can be ignored.
 . Stop the replica by running the following command:
 +
@@ -300,7 +286,7 @@ For example:
 *Ensure* `tags.latest` remains the same.
 
 
-==== Create a pull request and tag 
+==== Create a pull request and tag
 
 . Create a pull request with the above changes by running the following commands:
 +
