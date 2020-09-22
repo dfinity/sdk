@@ -19,12 +19,12 @@ teardown() {
 }
 
 
-@test "identity get-principal-id: the get-principal-id is the same as sender id" {
+@test "identity get-principal: the get-principal is the same as sender id" {
     install_asset identity
     dfx_start
     assert_command dfx identity new jose
 
-    PRINCPAL_ID=$(dfx --identity jose identity get-principal-id)
+    PRINCPAL_ID=$(dfx --identity jose identity get-principal)
 
     dfx --identity jose canister create e2e_project
     dfx --identity jose build e2e_project
