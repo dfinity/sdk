@@ -90,15 +90,20 @@ impl Proxy {
         providers.push(client_api_uri);
         eprintln!("replica address: {:?}", ic_client_bind_addr);
 
-        run_webserver(
+        let server = run_webserver(
             self.config.logger.clone(),
             self.config.build_output_root.clone(),
             self.config.network_descriptor.clone(),
             self.config.bind,
             providers,
             self.config.serve_dir.clone(),
-            sender.clone(),
+            //sender.clone(),
         )?;
+
+        // // Warning: Note that HttpServer provides its own signal
+        // // handler. That means if we provide signal handling beyond basic
+        // // we need to either as normal "re-signal" or disable_signals().
+        let _ = sender.clone().send(server);
 
         let mut new_server = Proxy::new(self.config);
         let handle = ServerHandle { sender, receiver };

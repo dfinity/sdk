@@ -90,10 +90,12 @@ impl Replica {
             .timeout(Duration::from_secs(30))
             .build();
 
+        println!("wait_for_port_file({})", file_path.to_string_lossy());
         waiter.start();
         loop {
             if let Ok(content) = std::fs::read_to_string(file_path) {
                 if let Ok(port) = content.parse::<u16>() {
+                    println!(" - got port {}", port);
                     return Ok(port);
                 }
             }
@@ -127,6 +129,7 @@ impl Replica {
             addr,
             receiver,
         )?;
+        info!(self.logger, "started replica thread");
 
         self.thread_join = Some(handle);
         self.stop_sender = Some(sender);
@@ -134,6 +137,7 @@ impl Replica {
     }
 
     fn send_ready_signal(&self, port: u16) {
+        info!(self.logger, "send_ready_signal(port={})", port);
         for sub in &self.ready_subscribers {
             let _ = sub.do_send(signals::outbound::ReplicaReadySignal { port });
         }
@@ -146,6 +150,7 @@ impl Actor for Replica {
     fn started(&mut self, ctx: &mut Self::Context) {
         self.start_replica(ctx.address())
             .expect("Could not start the replica");
+        info!(self.logger, "Replica Actor started...");
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
@@ -182,6 +187,10 @@ impl Handler<signals::ReplicaRestarted> for Replica {
     type Result = ();
 
     fn handle(&mut self, msg: ReplicaRestarted, _ctx: &mut Self::Context) -> Self::Result {
+        info!(
+            self.logger,
+            "Replica::Handler(ReplicaRestarted port={})", msg.port
+        );
         self.port = Some(msg.port);
         self.send_ready_signal(msg.port);
     }
@@ -238,12 +247,20 @@ fn replica_start_thread(
         cmd.args(&[
             "--replica-path",
             replica_path.to_str().unwrap_or_default(),
-            "--http-port",
-            &port.unwrap_or_default().to_string(),
             "--state-dir",
             config.state_manager.state_root.to_str().unwrap_or_default(),
             "--require-valid-signatures",
         ]);
+        if let Some(port) = port {
+            cmd.args(&["--http-port", &port.to_string()]);
+        }
+        if let Some(write_port_to) = &write_port_to {
+            cmd.args(&[
+                "--http-port-file",
+                &write_port_to.to_string_lossy().to_string(),
+            ]);
+        }
+
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
@@ -259,8 +276,10 @@ fn replica_start_thread(
             let port = port.unwrap_or_else(|| {
                 Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
             });
+            println!("sending ReplicaRestarted");
             addr.do_send(signals::ReplicaRestarted { port });
 
+            println!("wait_for_child_or_receiver...");
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {

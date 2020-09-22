@@ -7,6 +7,9 @@ use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
 use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
 
+use crate::actors;
+use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
+use actix::Actor;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
@@ -19,6 +22,7 @@ use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Command;
+//use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 use tokio::runtime::Runtime;
@@ -77,11 +81,156 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     })
 }
 
+fn never() -> bool {
+    false
+}
+
 // TODO(eftychis)/In progress: Rename to replica.
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+    let config = env
+        .get_config()
+        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+
+    let (frontend_url, address_and_port) = frontend_address(args, &config)?;
+
+    let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
+    let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
+
+    let temp_dir = env.get_temp_dir();
+    let state_root = env.get_state_dir();
+
+    let pid_file_path = temp_dir.join("pid");
+    check_previous_process_running(&pid_file_path)?;
+    // As we know no start process is running in this project, we can
+    // clean up the state if it is necessary.
+    if args.is_present("clean") {
+        // Clean the contents of the provided directory including the
+        // directory itself. N.B. This does NOT follow symbolic links -- and I
+        // hope we do not need to.
+        if state_root.is_dir() {
+            fs::remove_dir_all(state_root.clone()).map_err(DfxError::CleanState)?;
+        }
+        let local_dir = temp_dir.join("local");
+        if local_dir.is_dir() {
+            fs::remove_dir_all(local_dir).map_err(DfxError::CleanState)?;
+        }
+    }
+
+    let client_configuration_dir = temp_dir.join("client-configuration");
+    fs::create_dir_all(&client_configuration_dir)?;
+    let state_dir = temp_dir.join("state/replicated_state");
+    fs::create_dir_all(&state_dir)?;
+    let client_port_path = client_configuration_dir.join("client-1.port");
+
+    // Touch the client port file. This ensures it is empty prior to
+    // handing it over to the replica. If we read the file and it has
+    // contents we shall assume it is due to our spawned client
+    // process.
+    std::fs::write(&client_port_path, "")?;
+    // We are doing this here to make sure we can write to the temp
+    // pid file.
+    std::fs::write(&pid_file_path, "")?;
+
+    if args.is_present("background") {
+        send_background()?;
+        return ping_and_wait(&frontend_url);
+    }
+
+    // Start the client.
+    let b = ProgressBar::new_spinner();
+    b.set_draw_target(ProgressDrawTarget::stderr());
+
+    //b.set_message("Starting up the replica...");
+    //b.enable_steady_tick(80);
+
+    //b.set_message("Generating IC local replica configuration.");
+    let replica_config = ReplicaConfig::new(state_root).with_random_port(&client_port_path);
+
+    let system = actix::System::new("dfx-start");
+
+    let replica_addr = actors::replica::Replica::new(actors::replica::Config {
+        ic_starter_path: ic_starter_pathbuf,
+        replica_config,
+        replica_path: replica_pathbuf,
+        logger: Some(env.get_logger().clone()),
+    })
+    .start();
+
+    let network_descriptor = get_network_descriptor(env, args)?;
+    let bootstrap_dir = env.get_cache().get_binary_command_path("bootstrap")?;
+    // By default we reach to no external IC nodes.
+    let providers = Vec::new();
+    let build_output_root = config
+        .get_temp_path()
+        .join(network_descriptor.name.clone())
+        .join("canisters");
+
+    let proxy_config = ProxyConfig {
+        logger: env.get_logger().clone(),
+        client_api_port: address_and_port.port(),
+        bind: address_and_port,
+        serve_dir: bootstrap_dir,
+        providers,
+        build_output_root,
+        network_descriptor,
+    };
+
+    let _coordinator_actor =
+        ReplicaWebserverCoordinator::new(actors::replica_webserver_coordinator::Config {
+            replica_addr,
+            logger: Some(env.get_logger().clone()),
+            proxy_config,
+        })
+        .start();
+
+    // Update the pid file.
+    if let Ok(pid) = sysinfo::get_current_pid() {
+        let _ = std::fs::write(&pid_file_path, pid.to_string());
+    }
+
+    println!("start signal watcher");
+
+    // let stopped = AtomicBool::new(false);
+    // ctrlc::set_handler(move || {
+    //     println!("Ctrl-C received");
+    //     let already_stopped = stopped.compare_and_swap(false, true, Ordering::SeqCst);
+    //     if already_stopped {
+    //         println!(" - ignoring double hit");
+    //     } else {
+    //         println!(" - (would) shutting down");
+    //         //actix::System::current().stop();
+    //     }
+    // })
+    // .expect("Error setting ctrl-c handler");
+
+    // let ctrl_c = tokio_signal::ctrl_c().flatten_stream();
+    // let handle_shutdown = ctrl_c.for_each(|()| {
+    //     println!("Ctrl-C received, shutting down");
+    //     System::current().stop();
+    //     Ok(())
+    // }).map_err(|_| ());
+    // actix::spawn(handle_shutdown);
+
+    //actors::signal_watcher::SignalWatchdog::new().start();
+    println!("run system");
+    system.run()?;
+    println!("system run returned");
+
+    if never() {
+        // so I don't have to delete a ton of dead code just yet
+        old_exec(env, &args)?;
+    }
+    Ok(())
+}
+
+// TODO(eftychis)/In progress: Rename to replica.
+/// Start the Internet Computer locally. Spawns a proxy to forward and
+/// manage browser requests. Responsible for running the network (one
+/// replica at the moment) and the proxy.
+pub fn old_exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
