@@ -11,6 +11,7 @@ mod delete;
 mod id;
 mod install;
 mod request_status;
+mod set_controller;
 mod start;
 mod status;
 mod stop;
@@ -23,6 +24,7 @@ fn builtins() -> Vec<CliCommand> {
         CliCommand::new(id::construct(), id::exec),
         CliCommand::new(install::construct(), install::exec),
         CliCommand::new(request_status::construct(), request_status::exec),
+        CliCommand::new(set_controller::construct(), set_controller::exec),
         CliCommand::new(start::construct(), start::exec),
         CliCommand::new(status::construct(), status::exec),
         CliCommand::new(stop::construct(), stop::exec),
