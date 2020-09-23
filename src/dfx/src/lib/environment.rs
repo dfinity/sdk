@@ -6,7 +6,7 @@ use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
-use ic_agent::{Agent, AgentConfig, Identity};
+use ic_agent::Agent;
 use semver::Version;
 use slog::{Logger, Record};
 use std::collections::BTreeMap;
@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use ic_agent::identity::BasicIdentity;
 #[cfg(test)]
 use mockall::automock;
 
@@ -412,19 +413,18 @@ impl ic_agent::PasswordManager for AgentClient {
 fn create_agent(
     logger: Logger,
     url: &str,
-    identity: Box<dyn Identity + Send + Sync>,
+    identity: BasicIdentity,
     timeout: Duration,
 ) -> Option<Agent> {
     AgentClient::new(logger, url.to_string())
         .ok()
         .and_then(|executor| {
-            Agent::new(AgentConfig {
-                url: url.to_string(),
-                identity,
-                password_manager: Some(Box::new(executor)),
-                ingress_expiry_duration: Some(timeout),
-                ..AgentConfig::default()
-            })
-            .ok()
+            Agent::builder()
+                .with_url(url)
+                .with_identity(identity)
+                .with_password_manager(executor)
+                .expire_after(Some(timeout))
+                .build()
+                .ok()
         })
 }

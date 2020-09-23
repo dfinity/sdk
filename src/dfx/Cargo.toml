@@ -26,7 +26,7 @@ chrono = "0.4.9"
 clap = "2.33.0"
 console = "0.7.7"
 crossbeam = "0.7.3"
-delay = "0.2.0"
+delay = "0.3.0"
 dialoguer = "0.6.2"
 erased-serde = "0.3.10"
 flate2 = "1.0.11"
@@ -70,13 +70,19 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "next"
-rev = "9d611f08cb55923fc6ff5bf0136e8f4b848dd2cc"
+rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
 
 [dependencies.ic-types]
 version = "0.1.1"
 git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
 branch = "next"
-rev = "9d611f08cb55923fc6ff5bf0136e8f4b848dd2cc"
+rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
+
+[dependencies.ic-utils]
+version = "0.1.0"
+git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
+branch = "next"
+rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
 
 
 [dev-dependencies]
