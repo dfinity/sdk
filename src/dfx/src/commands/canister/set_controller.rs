@@ -12,18 +12,18 @@ use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("set-controller")
-        .about(UserMessage::CallCanister.to_str())
+        .about(UserMessage::SetController.to_str())
         .arg(
             Arg::with_name("canister")
                 .takes_value(true)
-                .help("A canister's name or its canister id.")
+                .help(UserMessage::SetControllerCanister.to_str())
                 .long("canister")
                 .required(true),
         )
         .arg(
             Arg::with_name("new-controller")
                 .takes_value(true)
-                .help("An identity's name or its principal.")
+                .help(UserMessage::NewController.to_str())
                 .long("new-controller")
                 .required(true),
         )
