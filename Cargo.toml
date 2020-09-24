@@ -4,4 +4,8 @@ members = [
 ]
 
 [patch.crates-io]
-ic-types = { git = "ssh://git@github.com/dfinity-lab/agent-rust.git", branch = "next", version = "0.1.1" }
+#candid = { git = "ssh://git@github.com/dfinity/candid.git", rev = "738d5ed469128feb3a15a2fbe5cf50aee94b38de" }
+#candid_derive = { git = "ssh://git@github.com/dfinity/candid.git", rev = "738d5ed469128feb3a15a2fbe5cf50aee94b38de" }
+ic-agent = { git = "ssh://git@github.com/dfinity/agent-rs.git", rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5" }
+ic-types = { git = "ssh://git@github.com/dfinity/agent-rs.git", rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5" }
+ic-utils = { git = "ssh://git@github.com/dfinity/agent-rs.git", rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5" }

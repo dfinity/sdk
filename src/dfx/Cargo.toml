@@ -32,6 +32,9 @@ erased-serde = "0.3.10"
 flate2 = "1.0.11"
 futures = "0.3.5"
 hex = "0.4.2"
+ic-agent = "0.1.0"
+ic-types = "0.1.2"
+ic-utils = "0.1.0"
 indicatif = "0.13.0"
 lazy-init = "0.3.0"
 lazy_static = "1.4.0"
@@ -65,25 +68,6 @@ tokio = "0.2.10"
 url = "2.1.0"
 walkdir = "2.2.9"
 wasmparser = "0.45.0"
-
-[dependencies.ic-agent]
-version = "0.1.0"
-git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
-
-[dependencies.ic-types]
-version = "0.1.1"
-git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
-
-[dependencies.ic-utils]
-version = "0.1.0"
-git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
-
 
 [dev-dependencies]
 env_logger = "0.6"
