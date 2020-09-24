@@ -6,6 +6,7 @@ use clap::{App, ArgMatches, SubCommand};
 
 mod list;
 mod new;
+mod principal;
 mod remove;
 mod rename;
 mod r#use;
@@ -19,6 +20,7 @@ fn builtins() -> Vec<CliCommand> {
         CliCommand::new(rename::construct(), rename::exec),
         CliCommand::new(r#use::construct(), r#use::exec),
         CliCommand::new(whoami::construct(), whoami::exec),
+        CliCommand::new(principal::construct(), principal::exec),
     ]
 }
 
