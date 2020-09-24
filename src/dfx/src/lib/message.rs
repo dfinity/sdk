@@ -67,8 +67,8 @@ user_message!(
 
     // dfx canister set-controller
     SetController => "Sets the provided identity's name or its principal as the new controller of a canister on the Internet Computer network.",
-    SetControllerCanister => "A canister's name or its canister id.",
-    NewController => "An identity's name or its principal.",
+    SetControllerCanister => "Specifies the canister name or the canister identifier for the canister to be controlled.",
+    NewController => "Specifies the identity name or the principal identifier of the new controller.",
 
     // dfx canister status
     CanisterStatus => "Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.",
