@@ -68,21 +68,21 @@ wasmparser = "0.45.0"
 
 [dependencies.ic-agent]
 version = "0.1.0"
-git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
+git = "ssh://git@github.com/p-shahi/agent-rs.git"
+branch = "pshahi/setcontroller"
+rev = "3ed014da213d9119997a1735f4808a0bb2b9782a"
 
 [dependencies.ic-types]
 version = "0.1.1"
-git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
+git = "ssh://git@github.com/p-shahi/agent-rs.git"
+branch = "pshahi/setcontroller"
+rev = "3ed014da213d9119997a1735f4808a0bb2b9782a"
 
 [dependencies.ic-utils]
 version = "0.1.0"
-git = "ssh://git@github.com/dfinity-lab/agent-rust.git"
-branch = "next"
-rev = "ce7751e99d3d0ff76c66ad0796f7385afceeda17"
+git = "ssh://git@github.com/p-shahi/agent-rs.git"
+branch = "pshahi/setcontroller"
+rev = "3ed014da213d9119997a1735f4808a0bb2b9782a"
 
 
 [dev-dependencies]

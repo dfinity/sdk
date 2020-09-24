@@ -423,7 +423,7 @@ fn create_agent(
                 .with_url(url)
                 .with_identity(identity)
                 .with_password_manager(executor)
-                .expire_after(Some(timeout))
+                .with_ingress_expiry(Some(timeout))
                 .build()
                 .ok()
         })
