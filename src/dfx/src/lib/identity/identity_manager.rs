@@ -64,7 +64,16 @@ impl IdentityManager {
 
     /// Create an Identity instance for use with an Agent
     pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity + Send + Sync>> {
-        let pem_path = self.get_selected_identity_pem_path();
+        self.instantiate_identity_from_name(self.selected_identity.as_str())
+    }
+
+    /// Provide a valid Identity name and create its Identity instance for use with an Agent
+    pub fn instantiate_identity_from_name(
+        &self,
+        identity_name: &str,
+    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
+        self.require_identity_exists(identity_name)?;
+        let pem_path = self.get_identity_pem_path(identity_name);
         let basic = BasicIdentity::from_pem_file(&pem_path).map_err(|e| {
             DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone()))
         })?;
@@ -207,10 +216,6 @@ impl IdentityManager {
 
     fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_PEM)
-    }
-
-    fn get_selected_identity_pem_path(&self) -> PathBuf {
-        self.get_identity_pem_path(&self.selected_identity)
     }
 }
 
