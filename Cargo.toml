@@ -3,9 +3,20 @@ members = [
     "src/dfx",
 ]
 
-[patch.crates-io]
-#candid = { git = "ssh://git@github.com/dfinity/candid.git", rev = "738d5ed469128feb3a15a2fbe5cf50aee94b38de" }
-#candid_derive = { git = "ssh://git@github.com/dfinity/candid.git", rev = "738d5ed469128feb3a15a2fbe5cf50aee94b38de" }
-ic-agent = { git = "ssh://git@github.com/dfinity/agent-rs.git", rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5" }
-ic-types = { git = "ssh://git@github.com/dfinity/agent-rs.git", rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5" }
-ic-utils = { git = "ssh://git@github.com/dfinity/agent-rs.git", rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5" }
+[patch.crates-io.ic-agent]
+version = "0.1.0"
+git = "ssh://git@github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
+
+[patch.crates-io.ic-types]
+version = "0.1.2"
+git = "ssh://git@github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
+
+[patch.crates-io.ic-utils]
+version = "0.1.0"
+git = "ssh://git@github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
