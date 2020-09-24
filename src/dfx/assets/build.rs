@@ -5,25 +5,37 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-fn add_assets(fn_name: &str, f: &mut File, path: &str) {
-    let out_dir = env::var("OUT_DIR").unwrap();
+fn add_asset_archive(fn_name: &str, f: &mut File) {
     let filename_tgz = format!("{}.tgz", fn_name);
+
+    let path = env::var("DFX_ASSETS").expect("Cannot find DFX_ASSETS");
+    let prebuilt_file = Path::new(&path).join(&filename_tgz);
+
+    let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(&filename_tgz);
 
-    let in_file = Path::new(path).join(filename_tgz);
-    if in_file.exists()
-    {
+    if tgz_path.exists() {
+        // This avoids PermissionDenied errors.
         std::fs::remove_file(&tgz_path).unwrap();
-        std::fs::copy(in_file, tgz_path).unwrap();
     }
-    else
-    {
-        let tar_gz = File::create(&tgz_path).unwrap();
-        let enc = GzEncoder::new(tar_gz, Compression::default());
-        let mut tar = tar::Builder::new(enc);
-        tar.append_dir_all("", path).unwrap();
-    }
+    std::fs::copy(prebuilt_file, tgz_path).unwrap();
 
+    write_archive_accessor(fn_name, f);
+}
+
+fn add_assets_from_directory(fn_name: &str, f: &mut File, path: &str) {
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
+
+    let tar_gz = File::create(&tgz_path).unwrap();
+    let enc = GzEncoder::new(tar_gz, Compression::default());
+    let mut tar = tar::Builder::new(enc);
+    tar.append_dir_all("", path).unwrap();
+
+    write_archive_accessor(fn_name, f);
+}
+
+fn write_archive_accessor(fn_name: &str, f: &mut File) {
     f.write_all(
         format!(
             "
@@ -41,28 +53,6 @@ fn add_assets(fn_name: &str, f: &mut File, path: &str) {
         .as_bytes(),
     )
     .unwrap();
-}
-
-fn add_optional_assets(fn_name: &str, f: &mut File, path: &str) {
-    if Path::new(path).exists() {
-        add_assets(fn_name, f, path);
-    } else {
-        f.write_all(
-            format!(
-                "
-            pub fn {fn_name}() -> Result<Archive<GzDecoder<Cursor<Vec<u8>>>>> {{
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    \"{fn_name} is not available during this build phase.\",
-                ))
-            }}
-        ",
-                fn_name = fn_name,
-            )
-            .as_bytes(),
-        )
-        .unwrap();
-    }
 }
 
 fn get_git_hash() -> Option<String> {
@@ -93,13 +83,11 @@ fn main() {
     )
     .unwrap();
 
-    let path = env::var("DFX_ASSETS").expect("Cannot find DFX_ASSETS");
-    add_assets("binary_cache", &mut f, &path);
-    let assetstorage_canister_path = path + &String::from("/canisters/assetstorage");
-    add_optional_assets("assetstorage_canister", &mut f, &assetstorage_canister_path);
-    add_assets("language_bindings", &mut f, "assets/language_bindings");
-    add_assets("new_project_files", &mut f, "assets/new_project_files");
-    add_assets(
+    add_asset_archive("binary_cache", &mut f);
+    add_asset_archive("assetstorage_canister", &mut f);
+    add_assets_from_directory("language_bindings", &mut f, "assets/language_bindings");
+    add_assets_from_directory("new_project_files", &mut f, "assets/new_project_files");
+    add_assets_from_directory(
         "new_project_node_files",
         &mut f,
         "assets/new_project_node_files",

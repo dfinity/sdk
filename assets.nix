@@ -23,5 +23,6 @@ pkgs.runCommandNoCCLocal "assets" {} ''
 
   tar -czf $out/binary_cache.tgz -C ${looseBinaryCache}/ .
 
-  cp -R ${distributed-canisters} $out/canisters
+  tar -czf $out/assetstorage_canister.tgz -C ${distributed-canisters}/assetstorage/ .
+
 ''
