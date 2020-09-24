@@ -66,9 +66,9 @@ user_message!(
     DeleteAll => "Deletes all of the canisters configured in the dfx.json file.",
 
     // dfx canister set-controller
-    SetController => "Sets the provided identitys name or its principal as the new controller of a canister on the Internet Computer network.",
-    SetControllerCanister => "A canisters name or its canister id.",
-    NewController => "An identitys name or its principal.",
+    SetController => "Sets the provided identity's name or its principal as the new controller of a canister on the Internet Computer network.",
+    SetControllerCanister => "A canister's name or its canister id.",
+    NewController => "An identity's name or its principal.",
 
     // dfx canister status
     CanisterStatus => "Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.",
