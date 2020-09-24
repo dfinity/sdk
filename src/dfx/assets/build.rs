@@ -7,11 +7,22 @@ use std::path::Path;
 
 fn add_assets(fn_name: &str, f: &mut File, path: &str) {
     let out_dir = env::var("OUT_DIR").unwrap();
-    let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
-    let tar_gz = File::create(&tgz_path).unwrap();
-    let enc = GzEncoder::new(tar_gz, Compression::default());
-    let mut tar = tar::Builder::new(enc);
-    tar.append_dir_all("", path).unwrap();
+    let filename_tgz = format!("{}.tgz", fn_name);
+    let tgz_path = Path::new(&out_dir).join(&filename_tgz);
+
+    let in_file = Path::new(path).join(filename_tgz);
+    if in_file.exists()
+    {
+        std::fs::remove_file(&tgz_path).unwrap();
+        std::fs::copy(in_file, tgz_path).unwrap();
+    }
+    else
+    {
+        let tar_gz = File::create(&tgz_path).unwrap();
+        let enc = GzEncoder::new(tar_gz, Compression::default());
+        let mut tar = tar::Builder::new(enc);
+        tar.append_dir_all("", path).unwrap();
+    }
 
     f.write_all(
         format!(
