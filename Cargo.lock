@@ -932,6 +932,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctrlc"
+version = "3.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0b676fa23f995faf587496dcd1c80fead847ed58d2da52ac1caca9a72790dd2"
+dependencies = [
+ "nix",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "delay"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -975,6 +985,7 @@ dependencies = [
  "clap",
  "console 0.7.7",
  "crossbeam",
+ "ctrlc",
  "delay",
  "dialoguer",
  "env_logger",
@@ -1679,8 +1690,8 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.1.1"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#23972ef6eb8ccbab8bcdb3cfa384f8db231eb01f"
+version = "0.1.2"
+source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#eb953d80e8c61098c63bcbf046f8dd93f483dfe9"
 dependencies = [
  "base32",
  "crc32fast",
@@ -2145,6 +2156,19 @@ name = "new_debug_unreachable"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
+
+[[package]]
+name = "nix"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50e4785f2c3b7589a0d0c1dd60285e1188adac4006e8abd6dd578e1567027363"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cfg-if",
+ "libc",
+ "void",
+]
 
 [[package]]
 name = "nom"
@@ -3733,6 +3757,12 @@ name = "version_check"
 version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5a972e5669d67ba988ce3dc826706fb0a8b01471c088cb0b6110b805cc36aed"
+
+[[package]]
+name = "void"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
 
 [[package]]
 name = "wait-timeout"
