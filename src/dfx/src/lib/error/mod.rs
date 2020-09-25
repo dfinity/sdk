@@ -93,9 +93,6 @@ pub enum DfxError {
     /// An error during parsing of a version string.
     VersionCouldNotBeParsed(semver::SemVerError),
 
-    /// String provided is not a port
-    CouldNotParsePort(std::num::ParseIntError),
-
     /// A replica did not start successfully.
     ReplicaCouldNotBeStarted(),
 
