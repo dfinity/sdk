@@ -421,9 +421,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.37"
+version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caae68055714ff28740f310927e04f2eba76ff580b16fb18ed90073ee71646f7"
+checksum = "687c230d85c0a52504709705fc8a53e4a692b83a2184f03dae73e38e1e93a783"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -933,9 +933,9 @@ dependencies = [
 
 [[package]]
 name = "delay"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6eb11c569f9e41ce743746d5995ba75531d13e4f9763db6f4061e25d46fb9758"
+checksum = "da251be9c00cade565f17c1ce87232ad626e32c506774288ca4970094642693d"
 
 [[package]]
 name = "derivative"
@@ -986,6 +986,7 @@ dependencies = [
  "humanize-rs",
  "ic-agent",
  "ic-types",
+ "ic-utils",
  "indicatif",
  "lazy-init",
  "lazy_static",
@@ -1652,13 +1653,12 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#9d611f08cb55923fc6ff5bf0136e8f4b848dd2cc"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95f1bc51b9ede8ccb5be18f0a16c575515a681ca"
 dependencies = [
  "async-trait",
  "base32",
  "base64 0.12.3",
  "byteorder",
- "candid",
  "delay",
  "hex",
  "ic-types",
@@ -1679,13 +1679,27 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.1.1"
-source = "git+ssh://git@github.com/dfinity-lab/agent-rust.git?branch=next#23972ef6eb8ccbab8bcdb3cfa384f8db231eb01f"
+version = "0.1.2"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95f1bc51b9ede8ccb5be18f0a16c575515a681ca"
 dependencies = [
  "base32",
  "crc32fast",
  "serde",
  "sha2 0.9.1",
+ "thiserror",
+]
+
+[[package]]
+name = "ic-utils"
+version = "0.1.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95f1bc51b9ede8ccb5be18f0a16c575515a681ca"
+dependencies = [
+ "async-trait",
+ "candid",
+ "delay",
+ "ic-agent",
+ "ic-types",
+ "serde",
  "thiserror",
 ]
 
