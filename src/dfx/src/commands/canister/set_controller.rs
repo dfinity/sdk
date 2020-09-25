@@ -19,14 +19,12 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("canister")
                 .takes_value(true)
                 .help(UserMessage::SetControllerCanister.to_str())
-                .long("canister")
                 .required(true),
         )
         .arg(
             Arg::with_name("new-controller")
                 .takes_value(true)
                 .help(UserMessage::NewController.to_str())
-                .long("new-controller")
                 .required(true),
         )
 }
@@ -59,5 +57,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .call_and_wait(waiter_with_timeout(timeout)),
     )?;
 
+    println!("Set {:?} as controller of {:?}.", new_controller, canister);
     Ok(())
 }
