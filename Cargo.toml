@@ -5,18 +5,18 @@ members = [
 
 [patch.crates-io.ic-agent]
 version = "0.1.0"
-git = "ssh://git@github.com/dfinity/agent-rs.git"
+git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
 rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
-git = "ssh://git@github.com/dfinity/agent-rs.git"
+git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
 rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
 
 [patch.crates-io.ic-utils]
 version = "0.1.0"
-git = "ssh://git@github.com/dfinity/agent-rs.git"
+git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
 rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
