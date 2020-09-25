@@ -4,7 +4,8 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
-use ic_agent::ManagementCanister;
+use ic_utils::call::AsyncCall;
+use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
 use std::time::Duration;
@@ -39,13 +40,16 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
             Ok(())
         }
         None => {
-            let mgr = ManagementCanister::new(
+            let mgr = ManagementCanister::create(
                 env.get_agent()
                     .ok_or(DfxError::CommandMustBeRunInAProject)?,
             );
 
             let mut runtime = Runtime::new().expect("Unable to create a runtime");
-            let cid = runtime.block_on(mgr.create_canister(waiter_with_timeout(timeout)))?;
+            let (cid,) = runtime.block_on(
+                mgr.create_canister()
+                    .call_and_wait(waiter_with_timeout(timeout)),
+            )?;
             let canister_id = cid.to_text();
             info!(
                 log,

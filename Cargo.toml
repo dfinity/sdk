@@ -3,5 +3,20 @@ members = [
     "src/dfx",
 ]
 
-[patch.crates-io]
-ic-types = { git = "ssh://git@github.com/dfinity-lab/agent-rust.git", branch = "next", version = "0.1.1" }
+[patch.crates-io.ic-agent]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
+
+[patch.crates-io.ic-types]
+version = "0.1.2"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
+
+[patch.crates-io.ic-utils]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"

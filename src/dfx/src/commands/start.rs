@@ -12,7 +12,7 @@ use crossbeam::channel::{Receiver, Sender};
 use crossbeam::unbounded;
 use delay::{Delay, Waiter};
 use futures::executor::block_on;
-use ic_agent::{Agent, AgentConfig};
+use ic_agent::Agent;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::fs;
 use std::io::{Error, ErrorKind};
@@ -51,10 +51,7 @@ pub fn construct() -> App<'static, 'static> {
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let agent = Agent::new(AgentConfig {
-        url: frontend_url.to_string(),
-        ..AgentConfig::default()
-    })?;
+    let agent = Agent::builder().with_url(frontend_url).build()?;
 
     // wait for frontend to come up
     let mut waiter = Delay::builder()

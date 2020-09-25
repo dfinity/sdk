@@ -8,8 +8,8 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use humanize_rs::bytes::{Bytes, Unit};
-use ic_agent::{ComputeAllocation, InstallMode, MemoryAllocation};
 
+use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
 use std::convert::TryFrom;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
@@ -160,7 +160,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     &canister_info,
                     &install_args,
                     compute_allocation,
-                    mode.clone(),
+                    mode,
                     memory_allocation,
                     timeout,
                 ))?;
