@@ -160,7 +160,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     &canister_info,
                     &install_args,
                     compute_allocation,
-                    mode.clone(),
+                    mode,
                     memory_allocation,
                     timeout,
                 ))?;
