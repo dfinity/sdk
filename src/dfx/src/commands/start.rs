@@ -7,16 +7,18 @@ use crate::lib::proxy::ProxyConfig;
 use crate::lib::replica_config::ReplicaConfig;
 
 use crate::actors;
+use crate::actors::replica::Replica;
 use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
-use actix::Actor;
+use actix::{Actor, Addr};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use delay::{Delay, Waiter};
 use ic_agent::{Agent, AgentConfig};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::fs;
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Arc;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -74,7 +76,6 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     })
 }
 
-// TODO(eftychis)/In progress: Rename to replica.
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
@@ -85,29 +86,75 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let (frontend_url, address_and_port) = frontend_address(args, &config)?;
 
-    let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
-    let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
-
     let temp_dir = env.get_temp_dir();
     let state_root = env.get_state_dir();
 
     let pid_file_path = temp_dir.join("pid");
     check_previous_process_running(&pid_file_path)?;
+
+    if args.is_present("background") {
+        send_background()?;
+        return ping_and_wait(&frontend_url);
+    }
+
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if args.is_present("clean") {
-        // Clean the contents of the provided directory including the
-        // directory itself. N.B. This does NOT follow symbolic links -- and I
-        // hope we do not need to.
-        if state_root.is_dir() {
-            fs::remove_dir_all(state_root.clone()).map_err(DfxError::CleanState)?;
-        }
-        let local_dir = temp_dir.join("local");
-        if local_dir.is_dir() {
-            fs::remove_dir_all(local_dir).map_err(DfxError::CleanState)?;
-        }
+        clean_state(temp_dir, &state_root)?;
     }
 
+    // We are doing this here to make sure we can write to the temp
+    // pid file.
+    std::fs::write(&pid_file_path, "")?;
+
+    // Start the client.
+    let b = ProgressBar::new_spinner();
+    b.set_draw_target(ProgressDrawTarget::stderr());
+
+    //b.set_message("Starting up the replica...");
+    //b.enable_steady_tick(80);
+
+    //b.set_message("Generating IC local replica configuration.");
+
+    let system = actix::System::new("dfx-start");
+
+    let replica_addr = start_replica(env, &state_root)?;
+
+    let _webserver_coordinator =
+        start_webserver_coordinator(env, args, config, address_and_port, replica_addr)?;
+
+    // Update the pid file.
+    if let Ok(pid) = sysinfo::get_current_pid() {
+        let _ = std::fs::write(&pid_file_path, pid.to_string());
+    }
+
+    println!("run system");
+    system.run()?;
+    println!("system run returned");
+
+    Ok(())
+}
+
+fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
+    // Clean the contents of the provided directory including the
+    // directory itself. N.B. This does NOT follow symbolic links -- and I
+    // hope we do not need to.
+    if state_root.is_dir() {
+        fs::remove_dir_all(state_root)
+            .map_err(|e| DfxError::CleanState(e, PathBuf::from(state_root)))?;
+    }
+    let local_dir = temp_dir.join("local");
+    if local_dir.is_dir() {
+        fs::remove_dir_all(&local_dir).map_err(|e| DfxError::CleanState(e, local_dir))?;
+    }
+    Ok(())
+}
+
+fn start_replica(env: &dyn Environment, state_root: &Path) -> DfxResult<Addr<Replica>> {
+    let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
+    let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
+
+    let temp_dir = env.get_temp_dir();
     let client_configuration_dir = temp_dir.join("client-configuration");
     fs::create_dir_all(&client_configuration_dir)?;
     let state_dir = temp_dir.join("state/replicated_state");
@@ -119,35 +166,24 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // contents we shall assume it is due to our spawned client
     // process.
     std::fs::write(&client_port_path, "")?;
-    // We are doing this here to make sure we can write to the temp
-    // pid file.
-    std::fs::write(&pid_file_path, "")?;
 
-    if args.is_present("background") {
-        send_background()?;
-        return ping_and_wait(&frontend_url);
-    }
-
-    // Start the client.
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-
-    //b.set_message("Starting up the replica...");
-    //b.enable_steady_tick(80);
-
-    //b.set_message("Generating IC local replica configuration.");
     let replica_config = ReplicaConfig::new(state_root).with_random_port(&client_port_path);
-
-    let system = actix::System::new("dfx-start");
-
-    let replica_addr = actors::replica::Replica::new(actors::replica::Config {
+    Ok(actors::replica::Replica::new(actors::replica::Config {
         ic_starter_path: ic_starter_pathbuf,
         replica_config,
         replica_path: replica_pathbuf,
         logger: Some(env.get_logger().clone()),
     })
-    .start();
+    .start())
+}
 
+fn start_webserver_coordinator(
+    env: &dyn Environment,
+    args: &ArgMatches<'_>,
+    config: Arc<Config>,
+    address_and_port: SocketAddr,
+    replica_addr: Addr<Replica>,
+) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
     let network_descriptor = get_network_descriptor(env, args)?;
     let bootstrap_dir = env.get_cache().get_binary_command_path("bootstrap")?;
     // By default we reach to no external IC nodes.
@@ -167,24 +203,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         network_descriptor,
     };
 
-    let _coordinator_actor =
+    Ok(
         ReplicaWebserverCoordinator::new(actors::replica_webserver_coordinator::Config {
             replica_addr,
             logger: Some(env.get_logger().clone()),
             proxy_config,
         })
-        .start();
-
-    // Update the pid file.
-    if let Ok(pid) = sysinfo::get_current_pid() {
-        let _ = std::fs::write(&pid_file_path, pid.to_string());
-    }
-
-    println!("run system");
-    system.run()?;
-    println!("system run returned");
-
-    Ok(())
+        .start(),
+    )
 }
 
 fn send_background() -> DfxResult<()> {

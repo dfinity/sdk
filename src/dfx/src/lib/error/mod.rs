@@ -79,7 +79,7 @@ pub enum DfxError {
     RuntimeError(std::io::Error),
 
     /// Failed to clean up state.
-    CleanState(std::io::Error),
+    CleanState(std::io::Error, PathBuf),
 
     /// The ide server shouldn't be started from a terminal.
     LanguageServerFromATerminal,

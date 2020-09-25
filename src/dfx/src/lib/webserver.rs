@@ -172,7 +172,6 @@ pub fn run_webserver(
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
-    //inform_parent: Sender<Server>,
 ) -> Result<Server, std::io::Error> {
     info!(logger, "binding to: {:?}", bind);
 
@@ -224,11 +223,6 @@ pub fn run_webserver(
     .system_exit()
     .run();
 
-    // // Warning: Note that HttpServer provides its own signal
-    // // handler. That means if we provide signal handling beyond basic
-    // // we need to either as normal "re-signal" or disable_signals().
-    // let _ = inform_parent.send(handler);
-
     Ok(handler)
 }
 
@@ -269,7 +263,6 @@ pub fn webserver(
                     bind,
                     clients_api_uri,
                     serve_dir,
-                    //inform_parent,
                 )
                 .unwrap();
 
