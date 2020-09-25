@@ -32,9 +32,6 @@ erased-serde = "0.3.10"
 flate2 = "1.0.11"
 futures = "0.3.5"
 hex = "0.4.2"
-ic-agent = "0.1.0"
-ic-types = "0.1.2"
-ic-utils = "0.1.0"
 indicatif = "0.13.0"
 lazy-init = "0.3.0"
 lazy_static = "1.4.0"
@@ -68,6 +65,24 @@ tokio = "0.2.10"
 url = "2.1.0"
 walkdir = "2.2.9"
 wasmparser = "0.45.0"
+
+[dependencies.ic-agent]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
+
+[dependencies.ic-types]
+version = "0.1.2"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
+
+[dependencies.ic-utils]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "8fe864e3079dcc764cdac7999cb7024d72e92ca5"
 
 [dev-dependencies]
 env_logger = "0.6"
