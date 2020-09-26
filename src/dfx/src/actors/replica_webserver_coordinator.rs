@@ -2,17 +2,23 @@ use crate::actors::replica::signals::outbound::ReplicaReadySignal;
 use crate::actors::replica::signals::PortReadySubscribe;
 use crate::actors::replica::Replica;
 use crate::lib::error::DfxResult;
-use crate::lib::proxy::ProxyConfig;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 use actix::fut::wrap_future;
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
 use actix_server::Server;
 use slog::{info, Logger};
+use std::net::SocketAddr;
+use std::path::PathBuf;
 
 pub struct Config {
-    pub replica_addr: Addr<Replica>,
     pub logger: Option<Logger>,
-    pub proxy_config: ProxyConfig,
+    pub replica_addr: Addr<Replica>,
+    pub bind: SocketAddr,
+    pub serve_dir: PathBuf,
+    pub providers: Vec<url::Url>,
+    pub build_output_root: PathBuf,
+    pub network_descriptor: NetworkDescriptor,
 }
 
 pub struct ReplicaWebserverCoordinator {
@@ -33,8 +39,7 @@ impl ReplicaWebserverCoordinator {
     }
 
     fn start_server(&self, port: u16) -> DfxResult<Option<Server>> {
-        let proxy_config = &self.config.proxy_config;
-        let mut providers = proxy_config.providers.clone();
+        let mut providers = self.config.providers.clone();
 
         let ic_client_bind_addr = "http://localhost:".to_owned() + port.to_string().as_str();
         let ic_client_bind_addr = ic_client_bind_addr.as_str();
@@ -45,32 +50,13 @@ impl ReplicaWebserverCoordinator {
         eprintln!("replica address: {:?}", ic_client_bind_addr);
 
         let server = run_webserver(
-            proxy_config.logger.clone(),
-            proxy_config.build_output_root.clone(),
-            proxy_config.network_descriptor.clone(),
-            proxy_config.bind,
+            self.logger.clone(),
+            self.config.build_output_root.clone(),
+            self.config.network_descriptor.clone(),
+            self.config.bind,
             providers,
-            proxy_config.serve_dir.clone(),
+            self.config.serve_dir.clone(),
         )?;
-
-        // webserver(
-        //     proxy_config.logger.clone(),
-        //     proxy_config.build_output_root.clone(),
-        //     proxy_config.network_descriptor.clone(),
-        //     proxy_config.bind,
-        //     providers,
-        //     &proxy_config.serve_dir,
-        //     sender,
-        // )?.join()
-        //     .map_err(|e| {
-        //         DfxError::RuntimeError(Error::new(
-        //             ErrorKind::Other,
-        //             format!("Failed while running frontend proxy thead -- {:?}", e),
-        //         ))
-        //     })?;
-        //
-        // // Wait for the webserver to be started.
-        // let server = receiver.recv().expect("Failed to receive server...");
 
         Ok(Some(server))
     }

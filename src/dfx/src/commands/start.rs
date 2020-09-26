@@ -3,7 +3,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::provider::get_network_descriptor;
-use crate::lib::proxy::ProxyConfig;
 use crate::lib::replica_config::ReplicaConfig;
 
 use crate::actors;
@@ -193,23 +192,16 @@ fn start_webserver_coordinator(
         .join(network_descriptor.name.clone())
         .join("canisters");
 
-    let proxy_config = ProxyConfig {
-        logger: env.get_logger().clone(),
+    let coord_config = actors::replica_webserver_coordinator::Config {
+        logger: Some(env.get_logger().clone()),
+        replica_addr,
         bind: address_and_port,
         serve_dir: bootstrap_dir,
         providers,
         build_output_root,
         network_descriptor,
     };
-
-    Ok(
-        ReplicaWebserverCoordinator::new(actors::replica_webserver_coordinator::Config {
-            replica_addr,
-            logger: Some(env.get_logger().clone()),
-            proxy_config,
-        })
-        .start(),
-    )
+    Ok(ReplicaWebserverCoordinator::new(coord_config).start())
 }
 
 fn send_background() -> DfxResult<()> {

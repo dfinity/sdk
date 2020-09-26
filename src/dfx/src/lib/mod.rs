@@ -14,7 +14,6 @@ pub mod operations;
 pub mod package_arguments;
 pub mod progress_bar;
 pub mod provider;
-pub mod proxy;
 pub mod replica_config;
 pub mod waiter;
 pub mod webserver;
