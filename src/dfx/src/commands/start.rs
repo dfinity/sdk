@@ -236,7 +236,7 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
     Ok((frontend_url, address_and_port))
 }
 
-fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
+fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
     if dfx_pid_path.exists() {
         // Read and verify it's not running. If it is just return.
         if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
