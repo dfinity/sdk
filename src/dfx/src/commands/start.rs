@@ -195,7 +195,6 @@ fn start_webserver_coordinator(
 
     let proxy_config = ProxyConfig {
         logger: env.get_logger().clone(),
-        client_api_port: address_and_port.port(),
         bind: address_and_port,
         serve_dir: bootstrap_dir,
         providers,

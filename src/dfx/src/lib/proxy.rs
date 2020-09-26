@@ -6,7 +6,6 @@ use std::path::PathBuf;
 /// address and the serve directory.
 #[derive(Clone, Debug)]
 pub struct ProxyConfig {
-    pub client_api_port: u16,
     pub bind: SocketAddr,
     pub serve_dir: PathBuf,
     pub providers: Vec<url::Url>,
