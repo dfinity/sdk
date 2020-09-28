@@ -59,8 +59,7 @@ pub async fn install_canister(
     install_builder
         .build()?
         .call_and_wait(waiter_with_timeout(timeout))
-        .await
-        .map_err(DfxError::from)?;
+        .await?;
 
     if canister_info.get_type() == "assets" {
         post_install_store_assets(&canister_info, &agent, timeout).await?;
