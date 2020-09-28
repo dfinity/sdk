@@ -46,8 +46,7 @@ async fn canister_status(
     let (status,) = mgr
         .canister_status(&canister_id)
         .call_and_wait(waiter_with_timeout(timeout))
-        .await
-        .map_err(DfxError::from)?;
+        .await?;
     info!(log, "Canister {}'s status is {}.", canister_name, status);
 
     Ok(())
