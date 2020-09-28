@@ -3,5 +3,20 @@ members = [
     "src/dfx",
 ]
 
-[patch.crates-io]
-ic-types = { git = "ssh://git@github.com/p-shahi/agent-rs.git", branch = "pshahi/setcontroller", version = "0.1.1" }
+[patch.crates-io.ic-agent]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "191dca1c38cf7eebfb177f242063592223c87976"
+
+[patch.crates-io.ic-types]
+version = "0.1.2"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "191dca1c38cf7eebfb177f242063592223c87976"
+
+[patch.crates-io.ic-utils]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "191dca1c38cf7eebfb177f242063592223c87976"

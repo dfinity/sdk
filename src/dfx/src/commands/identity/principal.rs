@@ -11,7 +11,7 @@ pub fn construct() -> App<'static, 'static> {
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
     let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
-    let principal_id = identity.sender()?;
+    let principal_id = identity.as_ref().sender()?;
     println!("{}", principal_id.to_text());
     Ok(())
 }
