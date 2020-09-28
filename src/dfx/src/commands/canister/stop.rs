@@ -52,8 +52,7 @@ async fn stop_canister(
 
     mgr.stop_canister(&canister_id)
         .call_and_wait(waiter_with_timeout(timeout))
-        .await
-        .map_err(DfxError::from)?;
+        .await?;
 
     Ok(())
 }
