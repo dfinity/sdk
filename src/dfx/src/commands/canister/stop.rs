@@ -6,7 +6,9 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::{Agent, ManagementCanister};
+use ic_agent::Agent;
+use ic_utils::call::AsyncCall;
+use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::time::Duration;
 use tokio::runtime::Runtime;
@@ -36,7 +38,7 @@ async fn stop_canister(
     canister_name: &str,
     timeout: Duration,
 ) -> DfxResult {
-    let mgr = ManagementCanister::new(agent);
+    let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id = canister_id_store.get(canister_name)?;
@@ -48,9 +50,9 @@ async fn stop_canister(
         canister_id.to_text(),
     );
 
-    mgr.stop_canister(waiter_with_timeout(timeout), &canister_id)
-        .await
-        .map_err(DfxError::from)?;
+    mgr.stop_canister(&canister_id)
+        .call_and_wait(waiter_with_timeout(timeout))
+        .await?;
 
     Ok(())
 }

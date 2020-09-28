@@ -1,7 +1,8 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityErrorKind};
-use ic_agent::{BasicIdentity, Identity};
+use ic_agent::identity::BasicIdentity;
+use ic_agent::Identity;
 use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
@@ -63,14 +64,20 @@ impl IdentityManager {
     }
 
     /// Create an Identity instance for use with an Agent
-    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity + Send + Sync>> {
-        let pem_path = self.get_selected_identity_pem_path();
-        let basic = BasicIdentity::from_pem_file(&pem_path).map_err(|e| {
-            DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone()))
-        })?;
+    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<impl Identity + Send + Sync>> {
+        self.instantiate_identity_from_name(self.selected_identity.as_str())
+    }
 
-        let b: Box<dyn Identity + Send + Sync> = Box::new(basic);
-        Ok(b)
+    /// Provide a valid Identity name and create its Identity instance for use with an Agent
+    pub fn instantiate_identity_from_name(
+        &self,
+        identity_name: &str,
+    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+        self.require_identity_exists(identity_name)?;
+        let pem_path = self.get_identity_pem_path(identity_name);
+        Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
+            |e| DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone())),
+        )?))
     }
 
     /// Create a new identity (name -> generated key)
@@ -207,10 +214,6 @@ impl IdentityManager {
 
     fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_PEM)
-    }
-
-    fn get_selected_identity_pem_path(&self) -> PathBuf {
-        self.get_identity_pem_path(&self.selected_identity)
     }
 }
 

@@ -6,7 +6,8 @@ use crate::util::clap::validators;
 use crate::util::{expiry_duration, print_idl_blob};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use delay::Waiter;
-use ic_agent::{AgentError, Replied, RequestId, RequestStatusResponse};
+use ic_agent::agent::{Replied, RequestStatusResponse};
+use ic_agent::{AgentError, RequestId};
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
