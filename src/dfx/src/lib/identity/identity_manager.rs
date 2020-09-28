@@ -69,7 +69,10 @@ impl IdentityManager {
     }
 
     /// Provide a valid Identity name and create its Identity instance for use with an Agent
-    pub fn instantiate_identity_from_name(&self, identity_name: &str) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    pub fn instantiate_identity_from_name(
+        &self,
+        identity_name: &str,
+    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
         self.require_identity_exists(identity_name)?;
         let pem_path = self.get_identity_pem_path(identity_name);
         Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
