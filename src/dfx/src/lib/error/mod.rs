@@ -3,9 +3,13 @@ use ic_types::principal::PrincipalError;
 
 mod build;
 mod cache;
+mod config;
+mod identity;
 
 pub use build::BuildErrorKind;
 pub use cache::CacheErrorKind;
+pub use config::ConfigErrorKind;
+pub use identity::IdentityErrorKind;
 use serde::export::Formatter;
 use std::ffi::OsString;
 use std::fmt::Display;
@@ -20,6 +24,11 @@ pub enum DfxError {
 
     /// An error happened while managing the cache.
     CacheError(CacheErrorKind),
+
+    ConfigError(ConfigErrorKind),
+
+    /// An error happened while managing identities.
+    IdentityError(IdentityErrorKind),
 
     IdeError(String),
 
@@ -60,7 +69,6 @@ pub enum DfxError {
     /// Argument provided is invalid.
     InvalidArgument(String),
 
-    #[allow(dead_code)]
     /// Configuration provided is invalid.
     InvalidConfiguration(String),
     /// Method called invalid.
@@ -135,6 +143,8 @@ pub enum DfxError {
 
     /// Could not save the contents of the file
     CouldNotSaveCanisterIds(String, std::io::Error),
+
+    HumanizeParseError(humanize_rs::ParseError),
 }
 
 /// The result of running a DFX command.
@@ -145,6 +155,12 @@ impl Display for DfxError {
         match self {
             DfxError::BuildError(err) => {
                 f.write_fmt(format_args!("Build failed. Reason:\n  {}", err))?;
+            }
+            DfxError::ConfigError(err) => {
+                f.write_fmt(format_args!("Config error:\n  {}", err))?;
+            }
+            DfxError::IdentityError(err) => {
+                f.write_fmt(format_args!("Identity error:\n  {}", err))?;
             }
             DfxError::IdeError(msg) => {
                 f.write_fmt(format_args!(
@@ -183,6 +199,9 @@ impl Display for DfxError {
             DfxError::InvalidArgument(e) => {
                 f.write_fmt(format_args!("Invalid argument: {}", e))?;
             }
+            DfxError::InvalidConfiguration(e) => {
+                f.write_fmt(format_args!("Invalid configuration: {}", e))?;
+            }
             DfxError::InvalidData(e) => {
                 f.write_fmt(format_args!("Invalid data: {}", e))?;
             }
@@ -220,7 +239,6 @@ impl Display for DfxError {
             DfxError::CouldNotSaveCanisterIds(path, error) => {
                 f.write_fmt(format_args!("Failed to save {} due to: {}", path, error))?;
             }
-
             err => {
                 f.write_fmt(format_args!("An error occured:\n{:#?}", err))?;
             }
@@ -288,5 +306,11 @@ impl actix_web::error::ResponseError for DfxError {}
 impl From<std::string::String> for DfxError {
     fn from(err: std::string::String) -> DfxError {
         DfxError::Unknown(err)
+    }
+}
+
+impl From<humanize_rs::ParseError> for DfxError {
+    fn from(err: humanize_rs::ParseError) -> DfxError {
+        DfxError::HumanizeParseError(err)
     }
 }

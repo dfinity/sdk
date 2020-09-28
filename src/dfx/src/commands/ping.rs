@@ -4,6 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{command_line_provider_to_url, get_network_descriptor};
+use crate::util::expiry_duration;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use tokio::runtime::Runtime;
 
@@ -37,7 +38,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             other => Err(other),
         })?;
 
-    let env = AgentEnvironment::new(env, network_descriptor);
+    let timeout = expiry_duration();
+    let env = AgentEnvironment::new(env, network_descriptor, timeout)?;
 
     let agent = env
         .get_agent()

@@ -34,23 +34,6 @@ let
       --no-progress
   '';
 
-  slack = pkgs.lib.writeCheckedShellScriptBin "slack" [] ''
-    set -eu
-    PATH="${pkgs.lib.makeBinPath [ pkgs.jq pkgs.curl ]}"
-    slack_channel_webhook="$1"
-    msg="$(</dev/stdin)"
-    echo {} | jq --arg msg "$msg" '.blocks=[
-      {
-        "type" : "section",
-        "text" : {
-          "type" : "mrkdwn",
-          "text" : $msg
-        }
-      }
-    ]' | curl -X POST --data @- "$slack_channel_webhook" \
-           --header "Content-Type: application/json" --silent --show-error
-  '';
-
   mkDfxTarball = dfx:
     pkgs.runCommandNoCC "dfx-${releaseVersion}.tar.gz" {
       inherit dfx;
@@ -66,7 +49,7 @@ in
 {
   dfx = pkgs.lib.writeCheckedShellScriptBin "activate" [] ''
     set -eu
-    PATH="${pkgs.lib.makeBinPath [ s3cp slack ]}"
+    PATH="${pkgs.lib.makeBinPath [ s3cp pkgs.slack ]}"
 
     v="${releaseVersion}"
     cache_long="max-age=31536000" # 1 year

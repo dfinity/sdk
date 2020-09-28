@@ -1,37 +1,34 @@
-import AssocList "mo:base/AssocList";
 import Error "mo:base/Error";
-import List "mo:base/List";
-import Prim "mo:prim";
+import Tree "mo:base/RBTree";
+import Text "mo:base/Text";
+import Iter "mo:base/Iter";
 
-actor {
+shared {caller = creator} actor class () {
 
     public type Path = Text;
-
     public type Contents = Blob;
 
-    private let initializer : Principal = Prim.caller();
+    let initializer : Principal = creator;
 
-    private stable var db: AssocList.AssocList<Path, Contents> = List.nil();
-
-    func eq(a: Path, b: Path): Bool {
-        return a == b;
-    };
+    let db: Tree.RBTree<Path, Contents> = Tree.RBTree(Text.compare);
 
     public shared { caller } func store(path : Path, contents : Contents) : async () {
         if (caller != initializer) {
             throw Error.reject("not authorized");
         } else {
-            db := AssocList.replace<Path, Contents>(db, path, eq, ?contents).0;
+            db.put(path, contents);
         };
     };
 
     public query func retrieve(path : Path) : async Contents {
-        let result = AssocList.find<Path, Contents>(db, path, eq);
-        switch result {
-            case null {
-                throw Error.reject("not found");
-            };
-            case (?contents) contents;
+        switch (db.get(path)) {
+        case null throw Error.reject("not found");
+        case (?contents) contents;
         };
+    };
+
+    public query func list() : async [Path] {
+        let iter = Iter.map<(Path, Contents), Path>(db.entries(), func (path, _) = path);
+        Iter.toArray(iter)
     };
 };

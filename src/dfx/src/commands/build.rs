@@ -11,10 +11,18 @@ pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("build")
         .about(UserMessage::BuildCanister.to_str())
         .arg(
-            Arg::with_name("skip-frontend")
-                .long("skip-frontend")
-                .takes_value(false)
-                .help(UserMessage::SkipFrontend.to_str()),
+            Arg::with_name("canister_name")
+                .takes_value(true)
+                .conflicts_with("all")
+                .help(UserMessage::BuildCanisterName.to_str())
+                .required(false),
+        )
+        .arg(
+            Arg::with_name("all")
+                .long("all")
+                .conflicts_with("canister_name")
+                .help(UserMessage::BuildAll.to_str())
+                .takes_value(false),
         )
         .arg(
             Arg::with_name("check")
@@ -45,8 +53,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     env.get_cache().install()?;
 
     let build_mode_check = args.is_present("check");
-    // First build.
-    let canister_pool = CanisterPool::load(&env, build_mode_check)?;
+
+    // Option can be None in which case --all was specified
+    let some_canister = args.value_of("canister_name");
+    let canister_names = config
+        .get_config()
+        .get_canister_names_with_dependencies(some_canister)?;
+
+    // Get pool of canisters to build
+    let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)?;
 
     // Create canisters on the replica and associate canister ids locally.
     if args.is_present("check") {
@@ -66,9 +81,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     slog::info!(logger, "Building canisters...");
 
     canister_pool.build_or_fail(
-        BuildConfig::from_config(&config)?
-            .with_skip_frontend(args.is_present("skip-frontend"))
-            .with_build_mode_check(build_mode_check),
+        BuildConfig::from_config(&config)?.with_build_mode_check(build_mode_check),
     )?;
 
     Ok(())

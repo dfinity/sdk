@@ -1,21 +1,23 @@
 { system ? builtins.currentSystem
+, pkgs ? import ./nix { inherit system isMaster labels; }
 , src ? builtins.fetchGit ./.
 , releaseVersion ? "latest"
 , RustSec-advisory-db ? pkgs.sources.advisory-db
-, pkgs ? import ./nix { inherit system; }
+, isMaster ? true
+, labels ? {}
 }:
 rec {
-  dfx = import ./dfx.nix { inherit pkgs agent-js assets; };
+  dfx = import ./dfx.nix { inherit pkgs assets; };
 
   e2e-tests = import ./e2e/bats { inherit pkgs dfx; };
   e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
-  node-e2e-tests = import ./e2e/node { inherit pkgs dfx; };
 
   # Agents in varous languages
-  agent-js = import ./src/agent/javascript { inherit pkgs; };
+  agent-js-monorepo = pkgs.agent-js-monorepo;
+  agent-js = import ./nix/agent-js/agent-js.nix { inherit system pkgs; };
 
   # Bootstrap frontend.
-  bootstrap-js = import ./src/bootstrap { inherit pkgs agent-js; };
+  bootstrap-js = import ./nix/agent-js/bootstrap-js.nix { inherit system pkgs; };
 
   cargo-audit = import ./cargo-audit.nix { inherit pkgs RustSec-advisory-db; };
 
@@ -32,7 +34,6 @@ rec {
   # `shell.nix` in the root to provide an environment which is the composition
   # of all the shells here.
   shells = {
-    js-user-library = import ./src/agent/javascript/shell.nix { inherit pkgs agent-js; };
     rust-workspace = dfx.shell;
   };
 

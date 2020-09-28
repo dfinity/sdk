@@ -42,6 +42,11 @@ fn cli(_: &impl Environment) -> App<'_, '_> {
                 .long("logfile")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("identity")
+                .long("identity")
+                .takes_value(true),
+        )
         .subcommands(
             commands::builtin()
                 .into_iter()
@@ -153,10 +158,15 @@ fn main() {
 
             let (progress_bar, log) = setup_logging(&matches);
 
+            let identity_name = matches.value_of("identity").map(String::from);
+
             // Need to recreate the environment because we use it to get matches.
             // TODO(hansl): resolve this double-create problem.
-            match EnvironmentImpl::new().map(|x| x.with_logger(log).with_progress_bar(progress_bar))
-            {
+            match EnvironmentImpl::new().map(|x| {
+                x.with_logger(log)
+                    .with_progress_bar(progress_bar)
+                    .with_identity_override(identity_name)
+            }) {
                 Ok(env) => {
                     slog::trace!(
                         env.get_logger(),

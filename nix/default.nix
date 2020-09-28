@@ -1,6 +1,8 @@
 # Returns the nixpkgs set overridden and extended with DFINITY specific
 # packages.
 { system ? builtins.currentSystem
+, isMaster ? true
+, labels ? {}
 }:
 let
   # The `common` repo provides code (mostly Nix) that is used in the
@@ -26,7 +28,7 @@ let
   };
 
   pkgs = import (commonSrc + "/pkgs") {
-    inherit system;
+    inherit system isMaster labels;
     extraSources = sources;
     repoRoot = ../.;
     overlays = [
@@ -41,14 +43,14 @@ let
               napalm = self.callPackage self.sources.napalm {
                 pkgs = self // { nodejs = self.nodejs-12_x; };
               };
+              agent-js-monorepo = import ./agent-js/agent-js-monorepo.nix {
+                inherit system pkgs;
+                agent-js-monorepo-src = self.sources.agent-js-monorepo;
+              };
               ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref;
 
-              inherit (nixFmt) nix-fmt;
+              nix-fmt = nixFmt.fmt;
               nix-fmt-check = nixFmt.check;
-
-              lib = super.lib // {
-                mk-jobset = import ./mk-jobset.nix self;
-              };
 
               # An attribute set mapping every supported system to a nixpkgs evaluated for
               # that system. Special care is taken not to reevaluate nixpkgs for the current

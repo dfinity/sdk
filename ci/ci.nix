@@ -3,10 +3,13 @@
 , src ? builtins.fetchGit ../.
 , RustSec-advisory-db ? pkgs.sources.advisory-db
 
+, isMaster ? true
+, labels ? {}
+
   # The version of the release. Will be set to the right value in ./release.nix.
 , releaseVersion ? "latest"
 
-, pkgs ? import ../nix { inherit system; }
+, pkgs ? import ../nix { inherit system isMaster labels; }
 }:
 let
   jobset =

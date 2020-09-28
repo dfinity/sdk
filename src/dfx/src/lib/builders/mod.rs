@@ -78,7 +78,6 @@ pub trait CanisterBuilder {
 #[derive(Clone)]
 pub struct BuildConfig {
     profile: Profile,
-    pub skip_frontend: bool,
     pub build_mode_check: bool,
     pub network_name: String,
 
@@ -98,18 +97,10 @@ impl BuildConfig {
         Ok(BuildConfig {
             network_name,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
-            skip_frontend: false,
             build_mode_check: false,
             build_root: build_root.clone(),
             idl_root: build_root.join("idl/"),
         })
-    }
-
-    pub fn with_skip_frontend(self, skip_frontend: bool) -> Self {
-        Self {
-            skip_frontend,
-            ..self
-        }
     }
 
     pub fn with_build_mode_check(self, build_mode_check: bool) -> Self {

@@ -6,11 +6,17 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "c12999b9c881a87e1aa73e0854274bb58918563d",
-        "sha256": "0p4sjx6nr25zwj4mimr67vldrnxxj56hlxryxfms6w4585ivjsw5",
+        "rev": "92e5c88a735b5deb50f6c60880e4447da236a591",
+        "sha256": "1cw2dpj9hb4b52g14vzymahsjikcg0p6d7vm711nspx17w3xgr79",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/c12999b9c881a87e1aa73e0854274bb58918563d.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/92e5c88a735b5deb50f6c60880e4447da236a591.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "agent-js-monorepo": {
+        "ref": "next",
+        "repo": "ssh://git@github.com/dfinity-lab/agent-js",
+        "rev": "8f3b96a42a71ec7f34089ffd6d4eb8249076d229",
+        "type": "git"
     },
     "bats-support": {
         "branch": "v0.3.0",
@@ -28,25 +34,25 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "b0fb6fd07826e20ec0d484c7de8d94846ff4b45d",
+        "rev": "4b93b09b796fbb62f3c4789e7527a0765eae0cdb",
         "type": "git"
     },
     "dfinity": {
-        "tag": "release-2020-08-17.RC00",
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "4402d73e4470e8eccbe6b69b6218a9c098f4beb1",
+        "rev": "8849766d3d65ce56c34129d6714344b18f4d3fdb",
         "type": "git"
     },
     "ic-ref": {
+        "branch": "release-0.10",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "tag": "release-0.9",
-        "rev": "493f0862ddd9970b8fb09e4e97f95fab1764b18e",
+        "rev": "7d453c4b09f78b3fa1f06df6a3ff00e51b11ca3e",
         "type": "git"
     },
     "motoko": {
         "branch": "release",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "7e436c2e095b63a8131b1cc7d19a59114b01db97",
+        "rev": "b167fce36a202cc29ced956cdb02662fc8ad5402",
         "type": "git"
     },
     "napalm": {
@@ -56,10 +62,10 @@
         "homepage": "",
         "owner": "nmattia",
         "repo": "napalm",
-        "rev": "47e8d246cba57a346db15f6a33ba61c54d3b5c05",
-        "sha256": "1dxj8jqi0292s1xalis0mr1p3ck3zxqxx0xwlvx856kcnp317x8b",
+        "rev": "1bd5ecc16bf8cf260a870ade5cff0bf6b55f2576",
+        "sha256": "12nqa47zv15j71fhpwsjirqcanxlfhzdnp1smy1m8nxkf35bixhv",
         "type": "tarball",
-        "url": "https://github.com/nmattia/napalm/archive/47e8d246cba57a346db15f6a33ba61c54d3b5c05.tar.gz",
+        "url": "https://github.com/nmattia/napalm/archive/1bd5ecc16bf8cf260a870ade5cff0bf6b55f2576.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
