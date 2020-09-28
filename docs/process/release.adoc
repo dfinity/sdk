@@ -98,7 +98,7 @@ cd $dfx_repository
 +
 [source, bash]
 ----
-export sdk_rc="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://nix.dfinity.systems)"
+export sdk_rc="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
 export dfx_rc="$sdk_rc/bin/dfx"
 ----
 +
@@ -133,7 +133,7 @@ $dfx_rc cache delete
 +
 [source, bash]
 ----
-export agent_js_rc="$(nix-build . -A agent-js --option extra-binary-caches https://nix.dfinity.systems)"
+export agent_js_rc="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
 export agent_js_rc_npm_packed="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent-*.tgz)"
 
 test -f $agent_js_rc_npm_packed \
@@ -263,7 +263,7 @@ export NEW_DFX_VERSION=<n.n.n>
 +
 [source, bash]
 ----
-nix-shell --option extra-binary-caches https://nix.dfinity.systems
+nix-shell --option extra-binary-caches https://cache.dfinity.systems
 ----
 . Create a new branch for your changes by running the following commands:
 +
