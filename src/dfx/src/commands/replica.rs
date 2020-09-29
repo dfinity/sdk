@@ -123,7 +123,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let system = actix::System::new("dfx-replica");
     let config = get_config(env, args)?;
 
-    actors::replica::Replica::new(actors::replica::Config {
+    let _replica_addr = actors::replica::Replica::new(actors::replica::Config {
         ic_starter_path: ic_starter_pathbuf,
         replica_config: config,
         replica_path: replica_pathbuf,
@@ -131,8 +131,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     })
     .start();
 
-    actors::signal_watcher::SignalWatchdog::new().start();
+    let _wd_addr = actors::signal_watcher::SignalWatchdog::new().start();
     system.run()?;
 
+    eprintln!("system.run returned");
     Ok(())
 }
