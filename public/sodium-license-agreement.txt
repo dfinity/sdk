@@ -1,7 +1,7 @@
 Sodium Release of the Internet Computer (“Developer Network”) 
 License Agreement (“License Agreement”)
 
-Thank you for your interest in the Developer Network, a staged test network for developers to access and deploy their test applications in a controlled environment.  This  License Agreement governs your use of and access to the Developer Network, including use and access by your employees, agents and/or subcontractors ("You"). BY ACCESSING AND DEPLOYING YOUR APPLICATION(S) ON THE DEVELOPER NETWORK, YOU AGREE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY THIS LICENSE AGREEMENT. IF YOU DO NOT AGREE, YOU MAY NOT USE THE DEVELOPER NETWORK.
+Thank you for your interest in the Developer Network, a staged test network for developers to access and deploy their test applications in a controlled environment.   This License Agreement governs your use of and access to the Developer Network, including use and access by your employees, agents and/or subcontractors ("You"). BY ACCESSING AND DEPLOYING YOUR APPLICATION(S) ON THE DEVELOPER NETWORK, YOU AGREE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY THIS LICENSE AGREEMENT. IF YOU DO NOT AGREE, YOU MAY NOT USE THE DEVELOPER NETWORK.
 
 If You choose to participate in the Developer Network, You and the DFINITY Foundation, including its affiliates and subsidiaries (collectively “DFINITY”), acknowledge and agree as follows:
 
@@ -36,4 +36,3 @@ You will not misrepresent or embellish the relationship between You and DFINITY,
 13. NO WAIVER. The failure to exercise, or delay in exercising, a right, power, or remedy provided in this License Agreement or by law shall not constitute a waiver of that right, power, or remedy. DFINITY 's waiver of any obligation or breach of this License Agreement shall not operate as a waiver of any other obligation or subsequent breach of the License Agreement.
 
 14. ENGLISH VERSION. The English language version of this License Agreement shall be the official and controlling version of the agreement if any conflict should arise. All communications and notices made pursuant to this License Agreement must be in the English language.
-
