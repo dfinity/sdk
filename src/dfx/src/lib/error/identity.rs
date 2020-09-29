@@ -30,5 +30,5 @@ pub enum IdentityErrorKind {
     CannotFindUserHomeDirectory(),
 
     #[error("An error occurred while reading {1}: {0}")]
-    AgentPemError(ic_agent::PemError, PathBuf),
+    AgentPemError(ic_agent::identity::PemError, PathBuf),
 }
