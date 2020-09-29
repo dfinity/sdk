@@ -5,6 +5,8 @@ load utils/assertions
 install_asset() {
     ASSET_ROOT=${BATS_TEST_DIRNAME}/assets/$1/
     cp -R $ASSET_ROOT/* .
+    # set write perms to overwrite local bind in assets which have a dfx.json
+    chmod -R a+w .
 
     [ -f ./patch.bash ] && source ./patch.bash
 }
