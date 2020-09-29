@@ -21,9 +21,9 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::Duration;
-
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 use tokio::runtime::Runtime;
+
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
 pub fn construct() -> App<'static, 'static> {
@@ -54,6 +54,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     let agent = Agent::builder().with_url(frontend_url).build()?;
 
+    // wait for frontend to come up
     let mut waiter = Delay::builder()
         .timeout(std::time::Duration::from_secs(30))
         .throttle(std::time::Duration::from_secs(1))
