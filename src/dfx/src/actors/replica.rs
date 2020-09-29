@@ -155,6 +155,9 @@ impl Actor for Replica {
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
         info!(self.logger, "Stopping the replica...");
+        //info!(self.logger, "(would stop))");
+        //std::thread::sleep(std::time::Duration::from_secs(86400));
+
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -208,13 +211,31 @@ fn wait_for_child_or_receiver(
     receiver: &Receiver<()>,
 ) -> ChildOrReceiver {
     loop {
+        // let child_try_wait = child.try_wait();
+        // let receiver_signalled = receiver.recv_timeout(std::time::Duration::from_millis(100));
+        //
+        // match (receiver_signalled, child_try_wait) {
+        //     (Ok(()), _) => {
+        //         eprintln!("received from receiver");
+        //         std::thread::sleep(std::time::Duration::from_secs(86400));
+        //         return ChildOrReceiver::Receiver;
+        //     },
+        //     (Err(_), Ok(Some(_))) => {
+        //         eprintln!("child.try_wait returned Some");
+        //         std::thread::sleep(std::time::Duration::from_secs(86400));
+        //         return ChildOrReceiver::Child;
+        //     },
+        //     _ => {}
+        // };
         // Ping-pong between waiting 100 msec for a receiver signal, and check if
         // the child quit.
         if let Ok(()) = receiver.recv_timeout(std::time::Duration::from_millis(100)) {
+            eprintln!("received from receiver");
             return ChildOrReceiver::Receiver;
         }
 
         if let Ok(Some(_)) = child.try_wait() {
+            eprintln!("child.try_wait returned Some");
             return ChildOrReceiver::Child;
         }
     }
@@ -261,6 +282,7 @@ fn replica_start_thread(
             ]);
         }
 
+        cmd.stdin(std::process::Stdio::null());
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
@@ -284,18 +306,18 @@ fn replica_start_thread(
             // We don't restart the replica if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
-                    debug!(logger, "Got signal to stop. Killing replica process...");
+                    info!(logger, "Got signal to stop. Killing replica process...");
                     let _ = child.kill();
                     let _ = child.wait();
                     done = true;
                 }
                 ChildOrReceiver::Child => {
-                    debug!(logger, "Replica process failed.");
+                    info!(logger, "Replica process failed.");
                     // Reset waiter if last start was over 2 seconds ago, and do not wait.
                     if std::time::Instant::now().duration_since(last_start)
                         >= Duration::from_secs(2)
                     {
-                        debug!(
+                        info!(
                             logger,
                             "Last replica seemed to have been healthy, not waiting..."
                         );

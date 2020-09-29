@@ -12,7 +12,6 @@ use actix::{Actor, Addr};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use delay::{Delay, Waiter};
 use ic_agent::{Agent, AgentConfig};
-use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::fs;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -106,15 +105,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // pid file.
     std::fs::write(&pid_file_path, "")?;
 
-    // Start the client.
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-
-    //b.set_message("Starting up the replica...");
-    //b.enable_steady_tick(80);
-
-    //b.set_message("Generating IC local replica configuration.");
-
     let system = actix::System::new("dfx-start");
 
     let replica_addr = start_replica(env, &state_root)?;
@@ -127,9 +117,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         let _ = std::fs::write(&pid_file_path, pid.to_string());
     }
 
-    println!("run system");
     system.run()?;
-    println!("system run returned");
 
     Ok(())
 }

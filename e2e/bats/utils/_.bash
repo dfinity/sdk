@@ -82,8 +82,6 @@ dfx_stop() {
         local dfx_root=.dfx/
         rm -rf $dfx_root
 
-        # Verify that processes are killed.
-        ! ( ps | grep "[/\s]dfx start" )
-        ! ( ps | grep "[/\s]replica" )
+        assert_no_dfx_start_or_replica_processes
     fi
 }

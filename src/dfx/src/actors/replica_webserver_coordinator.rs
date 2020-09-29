@@ -10,6 +10,7 @@ use actix_server::Server;
 use slog::{info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use actix::clock::{Duration, delay_for};
 
 pub struct Config {
     pub logger: Option<Logger>,
@@ -84,11 +85,19 @@ impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
         println!("replica ready {}", msg.port);
 
         if let Some(server) = &self.server {
+            println!("stopping webserver");
             ctx.wait(wrap_future(server.stop(true)));
             self.server = None;
+            println!("delay before restarting webserver");
+            ctx.wait(wrap_future(delay_for(Duration::from_secs(10))));
+            ctx.address().do_send(ReplicaReadySignal { port: msg.port });
+        }
+        else {
+            println!("starting webserver");
+
+            let server = self.start_server(msg.port).unwrap();
+            self.server = server;
         }
 
-        let server = self.start_server(msg.port).unwrap();
-        self.server = server;
     }
 }
