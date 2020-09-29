@@ -407,6 +407,8 @@ fn start_client(
         "--state-dir",
         config.state_manager.state_root.to_str().unwrap_or_default(),
         "--require-valid-signatures",
+        "--create-funds-whitelist",
+        "*",
     ]);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
