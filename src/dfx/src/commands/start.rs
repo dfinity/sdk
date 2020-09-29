@@ -16,7 +16,7 @@ use futures::executor::block_on;
 use ic_agent::Agent;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::fs;
-use std::io::{Error, ErrorKind};
+use std::io::{Error, ErrorKind, Read};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Command;
@@ -75,6 +75,40 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     })
 }
 
+// The frontend webserver is brought up by the bg process; thus, the fg process
+// needs to wait and verify it's up before exiting.
+// Because the user may have specified to start on port 0, here we wait for
+// webserver_port_path to get written to and modify the frontend_url so we
+// ping the correct address.
+fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxResult {
+    let mut waiter = Delay::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .throttle(std::time::Duration::from_secs(1))
+        .build();
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let port = runtime.block_on(async {
+        waiter.start();
+        let mut contents = String::new();
+        loop {
+            let tokio_file = tokio::fs::File::open(&webserver_port_path).await?;
+            let mut std_file = tokio_file.into_std().await;
+            std_file.read_to_string(&mut contents)?;
+            if !contents.is_empty() {
+                break;
+            }
+            waiter.wait()?;
+        }
+        Ok::<String, DfxError>(contents.clone())
+    })?;
+    let mut frontend_url_mod = frontend_url.clone();
+    let port_offset = frontend_url_mod
+        .as_str()
+        .rfind(':')
+        .ok_or_else(|| DfxError::MalformedFrontendUrl(frontend_url))?;
+    frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
+    ping_and_wait(&frontend_url_mod)
+}
+
 // TODO(eftychis)/In progress: Rename to replica.
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
@@ -89,7 +123,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let (frontend_url, address_and_port) = frontend_address(args, &config)?;
     let webserver_port_path = temp_dir.join("webserver-port");
     std::fs::write(&webserver_port_path, "")?;
-    std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
+
+    // don't write to file since this arg means we send_background()
+    if !args.is_present("background") {
+        std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
+    }
 
     let client_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
@@ -130,7 +168,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     if args.is_present("background") {
         send_background()?;
-        return Ok(());
+        return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
 
     // Start the client.
