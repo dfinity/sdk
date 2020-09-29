@@ -65,7 +65,6 @@ dfx_start() {
         local dfx_config_root=.dfx/client-configuration
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f ${dfx_config_root}/client-1.port
-        sleep 5
         local port=$(cat ${dfx_config_root}/client-1.port)
 
         # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
