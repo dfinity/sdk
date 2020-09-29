@@ -15,9 +15,9 @@ teardown() {
 }
 
 @test "build fails on invalid motoko" {
-    install_asset invalid
-    dfx_start
-    dfx canister create --all
+    #install_asset invalid
+    #dfx_start
+    #dfx canister create --all
     #assert_command_fail dfx build
     #assert_match "syntax error"
 }
