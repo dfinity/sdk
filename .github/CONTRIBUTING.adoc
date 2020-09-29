@@ -30,9 +30,7 @@ dfx 0.5.7-1-gad81116
 
 [source,bash]
 ----
-sdk $ nix-shell -A e2e-tests default.nix
-[nix-shell:~/d/sdk]$ cd e2e/bats
-[nix-shell:~/d/sdk]$ bats *.bash
+sdk $ nix-build -A e2e-tests default.nix
 ----
 
 ==== Running End-to-End Tests Locally Against Reference IC
@@ -42,9 +40,7 @@ https://github.com/dfinity-lab/ic-ref[reference implementation of the Internet C
 
 [source,bash]
 ----
-sdk $ nix-shell -A e2e-tests-ic-ref default.nix
-[nix-shell:~/d/sdk]$ cd e2e/bats
-[nix-shell:~/d/sdk]$ USE_IC_REF=1 bats *.bash
+sdk $ nix-build -A e2e-tests-ic-ref default.nix
 ----
 
 ==== Running `dfx` in a Debugger
