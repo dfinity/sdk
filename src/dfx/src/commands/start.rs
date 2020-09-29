@@ -314,7 +314,6 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
         address_and_port.ip().to_string()
     };
     let frontend_url = format!("http://{}:{}", ip, address_and_port.port());
-    println!("frontend_url {:?}", frontend_url);
     Ok((frontend_url, address_and_port))
 }
 
