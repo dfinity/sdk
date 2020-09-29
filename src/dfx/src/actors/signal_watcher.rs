@@ -31,6 +31,7 @@ impl Actor for SignalWatchdog {
     // at the same time, then here move to using tokio::signal and futures::select the two
     // receivers.
     fn started(&mut self, _ctx: &mut Self::Context) {
+        eprintln!("SignalWatchdog::started");
         let signals =
             signal_hook::iterator::Signals::new(&[signal_hook::SIGTERM, signal_hook::SIGINT])
                 .expect("Could not create a signal handler.");
@@ -39,12 +40,14 @@ impl Actor for SignalWatchdog {
 
         let handle = thread::spawn(move || {
             let _ = signals.forever().next();
+            eprintln!("received signal, stopping system");
             system.stop();
         });
         self.join = Some(handle);
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
+        eprintln!("SignalWatchdog::stopped");
         if let Some(handle) = self.join.take() {
             let _ = handle.join();
         }
