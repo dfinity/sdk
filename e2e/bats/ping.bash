@@ -53,6 +53,8 @@ teardown() {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     dfx_start --host 127.0.0.1:12345
+    # dfx_start overwrites local bind with provided port arg, set it back to default
+    assert_command dfx config networks.local.bind '"127.0.0.1:8000"'
     cat <<<$(jq .networks.arbitrary.providers=[\"http://127.0.0.1:12345\"] dfx.json) >dfx.json
 
     assert_command dfx ping arbitrary
