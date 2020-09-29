@@ -74,8 +74,8 @@ teardown() {
 }
 
 @test "can build a custom canister type" {
-  dfx_start --host 127.0.0.1:8000
   install_asset custom_canister
+  dfx_start
   dfx canister create --all
   assert_command dfx build
   assert_match "CUSTOM_CANISTER_BUILD_DONE"
