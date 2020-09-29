@@ -38,9 +38,9 @@
         "type": "git"
     },
     "dfinity": {
-        "branch": "pshahi/icstarter-createwhitelist",
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "d8136fe0b0564e9ab8da7b11fa59998c2c47b9f9",
+        "rev": "f43a3b3e6ca2974b8a552e19df2b53e461e62b6f",
         "type": "git"
     },
     "ic-ref": {
