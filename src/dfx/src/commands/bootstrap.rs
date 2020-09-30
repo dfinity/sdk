@@ -5,12 +5,13 @@ use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::webserver;
+use crate::util::get_reusable_socket_addr;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
 use std::default::Default;
 use std::fs;
 use std::io::{Error, ErrorKind};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
@@ -70,11 +71,21 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let (sender, receiver) = crossbeam::unbounded();
 
+    // Since the user may have provided port "0", we need to grab a dynamically
+    // allocated port and construct a resuable SocketAddr which the actix
+    // HttpServer will bind to
+    let socket_addr =
+        get_reusable_socket_addr(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap())?;
+
+    let webserver_port_path = env.get_temp_dir().join("webserver-port");
+    std::fs::write(&webserver_port_path, "")?;
+    std::fs::write(&webserver_port_path, socket_addr.port().to_string())?;
+
     webserver(
         logger.clone(),
         build_output_root,
         network_descriptor,
-        SocketAddr::new(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap()),
+        socket_addr,
         providers
             .iter()
             .map(|uri| Url::from_str(uri).unwrap())

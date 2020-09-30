@@ -144,7 +144,14 @@ pub enum DfxError {
     /// Could not save the contents of the file
     CouldNotSaveCanisterIds(String, std::io::Error),
 
+    /// Could not parse a string using Humanize
     HumanizeParseError(humanize_rs::ParseError),
+
+    /// An error occured when waiting using the Delay crate
+    WaiterError(delay::WaiterError),
+
+    /// The url for the frontend webserver is malformed
+    MalformedFrontendUrl(String),
 }
 
 /// The result of running a DFX command.
@@ -239,6 +246,9 @@ impl Display for DfxError {
             DfxError::CouldNotSaveCanisterIds(path, error) => {
                 f.write_fmt(format_args!("Failed to save {} due to: {}", path, error))?;
             }
+            DfxError::MalformedFrontendUrl(err) => {
+                f.write_fmt(format_args!("Malformed frontend url: {}", err))?;
+            }
             err => {
                 f.write_fmt(format_args!("An error occured:\n{:#?}", err))?;
             }
@@ -312,5 +322,11 @@ impl From<std::string::String> for DfxError {
 impl From<humanize_rs::ParseError> for DfxError {
     fn from(err: humanize_rs::ParseError) -> DfxError {
         DfxError::HumanizeParseError(err)
+    }
+}
+
+impl From<delay::WaiterError> for DfxError {
+    fn from(err: delay::WaiterError) -> DfxError {
+        DfxError::WaiterError(err)
     }
 }
