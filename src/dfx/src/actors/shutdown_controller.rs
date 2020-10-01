@@ -1,16 +1,9 @@
-use std::fmt;
-use std::time::Duration;
-
 use ::actix::fut;
-//use ::actix::prelude::*;
 use futures::{future, FutureExt};
-//use futures::prelude::*;
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use slog::Logger;
-use actix::fut::{FutureWrap, wrap_future};
-use actix::{Recipient, Context, WrapFuture, Running, Handler, ContextFutureSpawner, Actor, System, ActorFuture};
+use actix::{AsyncContext, Recipient, Context, WrapFuture, Running, Handler, Actor, System, ActorFuture, ContextFutureSpawner};
 use actix::prelude::RecipientRequest;
-use actix::clock::delay_for;
 
 pub mod signals {
     use actix::prelude::*;
@@ -61,28 +54,45 @@ impl ShutdownController {
         let f = f
             .map(|recipient: &Recipient<Shutdown>| recipient.send(Shutdown{}));
         let f = f
-            .map(|future: RecipientRequest<Shutdown>| future.then(|_x| {
+            .map(|rr: RecipientRequest<Shutdown>| rr.then(|_x| {
                 future::ok(())
             }));
         let f: Vec<_> = f
             .collect();
 
-        let x = future::join_all(f);
+        let joined = future::join_all(f);
         //let y = x.and_then()
         //let z = wrap_future( x );
-        let x = x
+        let joined_actor_future = joined
             .into_actor(self);
-        let x = x
+        let stop_system_future = joined_actor_future
             .then(move |_,_,_| {
 
                 System::current().stop();
 
                 fut::ok(())
             });
-        ctx.spawn(x);
-        //let x = x
-        //    .spawn(ctx);
 
+        // fails with
+        // error[E0599]: no method named `spawn` found for struct `actix::fut::then::Then<actix::fut::FutureWrap<futures_util::future::join_all::JoinAll<futures_util::future::future::Then<actix::address::message::RecipientRequest<actors::shutdown_controller::signals::outbound::Shutdown>, futures_util::future::ready::Ready<std::result::Result<(), _>>, [closure@src/dfx/src/actors/shutdown_controller.rs:57:59: 59:14]>>, actors::shutdown_controller::ShutdownController>, actix::fut::result::FutureResult<(), _, actors::shutdown_controller::ShutdownController>, [closure@src/dfx/src/actors/shutdown_controller.rs:69:19: 74:14]>` in the current scope
+        //    --> src/dfx/src/actors/shutdown_controller.rs:75:28
+        //     |
+        //  83 |           stop_system_future.spawn(ctx);
+        //     |                              ^^^^^ method not found in `actix::fut::then::Then<actix::fut::FutureWrap<futures_util::future::join_all::JoinAll<futures_util::future::future::Then<actix::address::message::RecipientRequest<actors::shutdown_controller::signals::outbound::Shutdown>, futures_util::future::ready::Ready<std::result::Result<(), _>>, [closure@src/dfx/src/actors/shutdown_controller.rs:57:59: 59:14]>>, actors::shutdown_controller::ShutdownController>, actix::fut::result::FutureResult<(), _, actors::shutdown_controller::ShutdownController>, [closure@src/dfx/src/actors/shutdown_controller.rs:69:19: 74:14]>`
+        //
+        stop_system_future.spawn(ctx);
+
+        // fails with
+        // error[E0271]: type mismatch resolving `<actix::fut::then::Then<actix::fut::FutureWrap<futures_util::future::join_all::JoinAll<futures_util::future::future::Then<actix::address::message::RecipientRequest<actors::shutdown_controller::signals::outbound::Shutdown>, futures_util::future::ready::Ready<std::result::Result<(), _>>, [closure@src/dfx/src/actors/shutdown_controller.rs:57:59: 59:14]>>, actors::shutdown_controller::ShutdownController>, actix::fut::result::FutureResult<(), _, actors::shutdown_controller::ShutdownController>, [closure@src/dfx/src/actors/shutdown_controller.rs:69:19: 74:14]> as actix::fut::ActorFuture>::Output == ()`
+        //    --> src/dfx/src/actors/shutdown_controller.rs:84:13
+        //     |
+        //  95 |         ctx.spawn(stop_system_future);
+        //     |             ^^^^^ expected enum `std::result::Result`, found `()`
+        //     |
+        // = note:   expected enum `std::result::Result<(), _>`
+        // found unit type `()`
+
+        ctx.spawn(stop_system_future);
     }
 }
 
@@ -122,7 +132,6 @@ impl Handler<signals::ShutdownTriggered> for ShutdownController {
 
     fn handle(&mut self, _msg: signals::ShutdownTriggered, ctx: &mut Self::Context) {
         self.shutdown(ctx);
-        ctx.wait(wrap_future(delay_for(Duration::from_secs(10))));
 
     }
 }
