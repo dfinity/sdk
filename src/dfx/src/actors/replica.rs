@@ -2,13 +2,14 @@ use crate::actors::replica::signals::ReplicaRestarted;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
 
-use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, Running};
+use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, Running, MessageResult, ResponseActFuture, WrapFuture, ActorFuture, ActorContext};
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 
 pub mod signals {
     use actix::prelude::*;
@@ -188,6 +189,26 @@ impl Handler<signals::ReplicaRestarted> for Replica {
     fn handle(&mut self, msg: ReplicaRestarted, _ctx: &mut Self::Context) -> Self::Result {
         self.port = Some(msg.port);
         self.send_ready_signal(msg.port);
+    }
+}
+
+impl Handler<Shutdown> for Replica {
+    type Result = ResponseActFuture<Self, Result<(), ()>>;
+
+    fn handle(&mut self, msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
+        eprintln!("Replica::handle Shutdown");
+        Box::pin(
+                    async {
+                        // Some async computation
+                        ()
+                    }
+                    .into_actor(self) // converts future to ActorFuture
+                    .map(|res, _act, ctx| {
+                        ctx.stop();
+                        // Do some computation with actor's state or context
+                        Ok(res)
+                    }),
+                )
     }
 }
 
