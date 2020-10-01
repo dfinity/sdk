@@ -9,6 +9,7 @@ mod new;
 mod principal;
 mod remove;
 mod rename;
+mod set_wallet;
 mod r#use;
 mod whoami;
 
@@ -16,11 +17,12 @@ fn builtins() -> Vec<CliCommand> {
     vec![
         CliCommand::new(list::construct(), list::exec),
         CliCommand::new(new::construct(), new::exec),
+        CliCommand::new(principal::construct(), principal::exec),
         CliCommand::new(remove::construct(), remove::exec),
         CliCommand::new(rename::construct(), rename::exec),
+        CliCommand::new(set_wallet::construct(), set_wallet::exec),
         CliCommand::new(r#use::construct(), r#use::exec),
         CliCommand::new(whoami::construct(), whoami::exec),
-        CliCommand::new(principal::construct(), principal::exec),
     ]
 }
 

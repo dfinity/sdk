@@ -29,4 +29,15 @@ pkgs.runCommandNoCCLocal "distributed-canisters" {
        -c --release \
        --package base $base
   done
+
+  for canister_wasm in ${distributed}/*.wasm; do
+    canister_name=$(basename -s .wasm $canister_wasm)
+    canister_did=$(dirname $canister_wasm)/$canister_name.did
+
+    build_dir=$out/$canister_name
+    mkdir -p $build_dir
+
+    cp $canister_wasm $out/$canister_name/$canister_name.wasm
+    cp $canister_did $out/$canister_name/$canister_name.did
+  done
 ''

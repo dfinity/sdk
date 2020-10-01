@@ -58,6 +58,7 @@ pub fn get_network_descriptor<'a>(
                 name: network_name.to_string(),
                 providers: provider_urls,
                 r#type: network_provider.r#type,
+                is_local: false,
             })
         }
         Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
@@ -70,6 +71,7 @@ pub fn get_network_descriptor<'a>(
                 name: network_name.to_string(),
                 providers: provider_urls,
                 r#type: local_provider.r#type,
+                is_local: true,
             })
         }
         None => Err(DfxError::ComputeNetworkNotFound(network_name.to_string())),

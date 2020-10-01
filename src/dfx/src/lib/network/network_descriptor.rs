@@ -5,4 +5,5 @@ pub struct NetworkDescriptor {
     pub name: String,
     pub providers: Vec<String>,
     pub r#type: NetworkType,
+    pub is_local: bool,
 }

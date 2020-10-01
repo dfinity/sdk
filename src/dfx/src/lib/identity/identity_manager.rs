@@ -1,8 +1,7 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityErrorKind};
-use ic_agent::identity::BasicIdentity;
-use ic_agent::Identity;
+use crate::lib::identity::Identity;
 use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
@@ -12,6 +11,8 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
+
+/// TODO: move this to identity/mod.rs
 const IDENTITY_PEM: &str = "identity.pem";
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -64,20 +65,14 @@ impl IdentityManager {
     }
 
     /// Create an Identity instance for use with an Agent
-    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<Identity>> {
         self.instantiate_identity_from_name(self.selected_identity.as_str())
     }
 
     /// Provide a valid Identity name and create its Identity instance for use with an Agent
-    pub fn instantiate_identity_from_name(
-        &self,
-        identity_name: &str,
-    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    pub fn instantiate_identity_from_name(&self, identity_name: &str) -> DfxResult<Box<Identity>> {
         self.require_identity_exists(identity_name)?;
-        let pem_path = self.get_identity_pem_path(identity_name);
-        Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
-            |e| DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone())),
-        )?))
+        Ok(Box::new(Identity::load(self, identity_name)?))
     }
 
     /// Create a new identity (name -> generated key)
@@ -87,22 +82,9 @@ impl IdentityManager {
                 IdentityErrorKind::CannotCreateAnonymousIdentity(),
             ));
         }
-        let identity_dir = self.get_identity_dir_path(name);
 
-        if identity_dir.exists() {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::IdentityAlreadyExists(),
-            ));
-        }
-        std::fs::create_dir_all(&identity_dir).map_err(|e| {
-            DfxError::IdentityError(IdentityErrorKind::CouldNotCreateIdentityDirectory(
-                identity_dir.clone(),
-                e,
-            ))
-        })?;
-
-        let pem_file = identity_dir.join(IDENTITY_PEM);
-        generate_key(&pem_file)
+        let _ = Identity::create(self, name)?;
+        Ok(())
     }
 
     /// Return a sorted list of all available identity names
@@ -208,7 +190,7 @@ impl IdentityManager {
         }
     }
 
-    fn get_identity_dir_path(&self, identity: &str) -> PathBuf {
+    pub fn get_identity_dir_path(&self, identity: &str) -> PathBuf {
         self.identity_root_path.join(&identity)
     }
 
@@ -292,7 +274,7 @@ fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
     std::fs::write(&path, content).map_err(|err| DfxError::IoWithPath(err, PathBuf::from(path)))
 }
 
-fn generate_key(pem_file: &Path) -> DfxResult {
+pub(super) fn generate_key(pem_file: &Path) -> DfxResult {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
         .map_err(|x| DfxError::IdentityError(IdentityErrorKind::CouldNotGenerateKey(x)))?;

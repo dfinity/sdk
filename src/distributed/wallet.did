@@ -1,0 +1,68 @@
+type device = record {
+  name: text;
+  id: text;
+  public_key: text;
+};
+
+type event = variant {
+
+  CyclesSent: record {
+    nonce: nat32;
+    to: principal;
+    amount: nat64;
+    timestamp: nat64;
+  };
+
+  CyclesReceived: record {
+    nonce: nat32;
+    from: principal;
+    amount: nat64;
+    timestamp: nat64;
+  };
+
+  ICPTSent: record {
+    nonce: nat32;
+    to: principal;
+    amount: nat64;
+    timestamp: nat64;
+  };
+
+  ICPTReceived: record {
+    nonce: nat32;
+    from: principal;
+    amount: nat64;
+    timestamp: nat64;
+  };
+};
+
+service : {
+
+  // Controller Management
+  get_controller: () -> (principal);
+  set_controller: (principal) -> ();
+
+  // Custodian Management
+  get_custodians: () -> (vec principal);
+  authorize: (principal) -> ();
+  deauthorize: (principal) -> ();
+
+  // WebAuthn Support
+  register: (text, text, text) -> ();
+  get_devices: () -> (vec device);
+
+  // Cycle Management
+  cycle_balance: () -> (nat64);
+  send_cycles: (principal, nat64) -> ();
+  receive_cycles: () -> ();
+
+  // ICPT Management
+  icpt_balance: () -> (nat64);
+  send_icpt: (principal, nat64) -> ();
+  receive_icpt: () -> ();
+
+  // Call Forwarding
+  call: (principal, text, blob, nat64) -> (blob);
+
+  // Events
+  get_events: () -> (vec event)
+}

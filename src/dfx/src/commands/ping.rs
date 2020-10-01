@@ -32,6 +32,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     name: "-ping-".to_string(),
                     providers: vec![url],
                     r#type: NetworkType::Ephemeral,
+                    is_local: false,
                 };
                 Ok(network_descriptor)
             }
