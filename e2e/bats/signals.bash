@@ -13,11 +13,13 @@ teardown() {
   dfx_stop
 }
 
-@test "dfx shuts down (gracefully) due to SIGINT" {
+@test "dfx replica kills the replica upon SIGINT" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
-    dfx_start
+    dfx replica &
 
+    echo $! > test-dfx.pid # Use a local file for the replica.
+    echo "dfx pid is $(cat test-dfx.pid)"
     DFX_PID=$(cat .dfx/pid)
 
     kill -SIGINT $DFX_PID
@@ -27,10 +29,10 @@ teardown() {
     assert_no_dfx_start_or_replica_processes
 }
 
-@test "dfx shuts down (gracefully) due to SIGTERM" {
+@test "dfx replica kills the replica upon SIGTERM" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
-    dfx_start
+    dfx replica &
 
     DFX_PID=$(cat .dfx/pid)
 
