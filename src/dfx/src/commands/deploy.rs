@@ -24,6 +24,7 @@ pub fn construct() -> App<'static, 'static> {
         .arg(
             Arg::with_name("argument")
                 .help(UserMessage::ArgumentValue.to_str())
+                .long("argument")
                 .takes_value(true),
         )
         .arg(

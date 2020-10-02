@@ -69,7 +69,7 @@ teardown() {
     dfx_start
     assert_command dfx canister create --all
 
-    assert_command dfx deploy World
+    assert_command dfx deploy --argument World
     assert_match 'attempting install'
 
     assert_command dfx canister call hello greet
