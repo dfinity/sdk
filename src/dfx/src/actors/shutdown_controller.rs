@@ -1,11 +1,10 @@
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-use ::actix::fut;
-use actix::prelude::RecipientRequest;
+//use ::actix::fut;
+//use actix::prelude::RecipientRequest;
 use actix::{
-    Actor, ActorFuture, AsyncContext, Context, ContextFutureSpawner, Handler, Recipient, Running,
-    System, WrapFuture,
+    Actor, Context, Handler, Recipient
 };
-use futures::{FutureExt, TryFutureExt};
+//use futures::{FutureExt, TryFutureExt};
 use slog::Logger;
 use std::time::Duration;
 
@@ -34,8 +33,7 @@ pub struct Config {
 }
 
 pub struct ShutdownController {
-    logger: Logger,
-    config: Config,
+    _logger: Logger,
 
     shutdown_subscribers: Vec<Recipient<signals::outbound::Shutdown>>,
 }
@@ -45,8 +43,7 @@ impl ShutdownController {
         let logger =
             (config.logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
         ShutdownController {
-            logger,
-            config,
+            _logger: logger,
             shutdown_subscribers: Vec::new(),
         }
     }
@@ -59,12 +56,9 @@ impl ShutdownController {
             .shutdown_subscribers
             .iter()
             .map(|recipient| recipient.send(Shutdown {}))
-            .map(|future| future.then(|_| future::ok::<(), ()>(())))
+            .map(|response| response.then(|_| future::ok::<(), ()>(())))
             .collect();
 
-        // let joined = future::join_all(f);
-        //let y = x.and_then()
-        //let z = wrap_future( x );
         futures::future::join_all(futures)
             .into_actor(self)
             .then(|_, _, ctx| {
@@ -84,31 +78,21 @@ impl ShutdownController {
                 fut::wrap_future(async { () })
             })
             .spawn(ctx)
-
-        // .spawn(ctx);
     }
 }
 
 impl Actor for ShutdownController {
     type Context = Context<Self>;
 
-    fn started(&mut self, _ctx: &mut Self::Context) {
-        eprintln!("ShutdownController::started");
-
-        // ctrlc::set_handler(move || {
-        //     eprintln!("ctrlc handler called");
-        //     ctx.address().do_send(ShutdownTriggered());
-        // }).expect("Error setting Ctrl-C handler");
-    }
-
-    fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        eprintln!("ShutdownController::stopping");
-        Running::Stop
-    }
-
-    fn stopped(&mut self, _ctx: &mut Self::Context) {
-        eprintln!("ShutdownController::stopped");
-    }
+    // fn started(&mut self, _ctx: &mut Self::Context) {
+    // }
+    //
+    // fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
+    //     Running::Stop
+    // }
+    //
+    // fn stopped(&mut self, _ctx: &mut Self::Context) {
+    // }
 }
 
 impl Handler<signals::ShutdownSubscribe> for ShutdownController {

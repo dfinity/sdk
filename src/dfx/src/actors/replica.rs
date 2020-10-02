@@ -2,14 +2,17 @@ use crate::actors::replica::signals::ReplicaRestarted;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
 
-use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, Running, ResponseActFuture, WrapFuture, ActorFuture, ActorContext};
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
+use actix::{
+    Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
+    ResponseActFuture, Running, WrapFuture,
+};
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
 use slog::{debug, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 
 pub mod signals {
     use actix::prelude::*;
@@ -195,20 +198,20 @@ impl Handler<signals::ReplicaRestarted> for Replica {
 impl Handler<Shutdown> for Replica {
     type Result = ResponseActFuture<Self, Result<(), ()>>;
 
-    fn handle(&mut self, msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
         eprintln!("Replica::handle Shutdown");
         Box::pin(
-                    async {
-                        // Some async computation
-                        ()
-                    }
-                    .into_actor(self) // converts future to ActorFuture
-                    .map(|res, _act, ctx| {
-                        ctx.stop();
-                        // Do some computation with actor's state or context
-                        Ok(res)
-                    }),
-                )
+            async {
+                // Some async computation
+                ()
+            }
+            .into_actor(self) // converts future to ActorFuture
+            .map(|res, _act, ctx| {
+                ctx.stop();
+                // Do some computation with actor's state or context
+                Ok(res)
+            }),
+        )
     }
 }
 

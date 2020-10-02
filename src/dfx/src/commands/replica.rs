@@ -5,13 +5,13 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
 
+use crate::actors::shutdown_controller;
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
+use crate::actors::shutdown_controller::signals::{ShutdownSubscribe, ShutdownTriggered};
+use crate::actors::shutdown_controller::ShutdownController;
 use actix::Actor;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use std::default::Default;
-use crate::actors::shutdown_controller;
-use crate::actors::shutdown_controller::ShutdownController;
-use crate::actors::shutdown_controller::signals::{ShutdownTriggered, ShutdownSubscribe};
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 
 /// Constructs a sub-command to run the Internet Computer replica.
 pub fn construct() -> App<'static, 'static> {
@@ -130,7 +130,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let shutdown_controller = ShutdownController::new(shutdown_controller::Config {
         logger: Some(env.get_logger().clone()),
     })
-        .start();
+    .start();
 
     let replica_addr = actors::replica::Replica::new(actors::replica::Config {
         ic_starter_path: ic_starter_pathbuf,
@@ -147,7 +147,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     ctrlc::set_handler(move || {
         eprintln!("ctrlc handler called");
         shutdown_controller.do_send(ShutdownTriggered());
-    }).expect("Error setting Ctrl-C handler");
+    })
+    .expect("Error setting Ctrl-C handler");
 
     system.run()?;
 
