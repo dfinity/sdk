@@ -6,16 +6,16 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "d416cf5d86240dc4f44a9cade44cb3ba18b9b320",
-        "sha256": "0rbyn2sn3bgidqn0ff6dhjc6373bab0grpgkcdwqg3rj7cmdhhw2",
+        "rev": "92e5c88a735b5deb50f6c60880e4447da236a591",
+        "sha256": "1cw2dpj9hb4b52g14vzymahsjikcg0p6d7vm711nspx17w3xgr79",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/d416cf5d86240dc4f44a9cade44cb3ba18b9b320.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/92e5c88a735b5deb50f6c60880e4447da236a591.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-js-monorepo": {
         "ref": "next",
         "repo": "ssh://git@github.com/dfinity-lab/agent-js",
-        "rev": "6caaa829bd7a98e3ed182351f5e1fa744718a3fa",
+        "rev": "8f3b96a42a71ec7f34089ffd6d4eb8249076d229",
         "type": "git"
     },
     "bats-support": {
@@ -38,9 +38,9 @@
         "type": "git"
     },
     "dfinity": {
-        "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "3b50a89937862f47fe9aaff9442423d59fdec252",
         "branch": "master",
+        "repo": "ssh://git@github.com/dfinity-lab/dfinity",
+        "rev": "f43a3b3e6ca2974b8a552e19df2b53e461e62b6f",
         "type": "git"
     },
     "ic-ref": {

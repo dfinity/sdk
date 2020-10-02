@@ -65,6 +65,11 @@ user_message!(
     DeleteCanisterName => "Specifies the name of the canister to delete. You must specify either a canister name or the --all flag.",
     DeleteAll => "Deletes all of the canisters configured in the dfx.json file.",
 
+    // dfx canister set-controller
+    SetController => "Sets the provided identity's name or its principal as the new controller of a canister on the Internet Computer network.",
+    SetControllerCanister => "Specifies the canister name or the canister identifier for the canister to be controlled.",
+    NewController => "Specifies the identity name or the principal of the new controller.",
+
     // dfx canister status
     CanisterStatus => "Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.",
     StatusCanisterName => "Specifies the name of the canister to return information for. You must specify either a canister name or the --all flag.",
@@ -125,6 +130,9 @@ user_message!(
 
     // dfx identity whoami
     ShowIdentity => "Shows the name of the current identity.",
+
+    // dfx identity get-principal
+    GetPrincipalId => "Shows the textual representation of the Principal associated with the current identity.",
 
     // dfx new
     CreateProject => "Creates a new project.",

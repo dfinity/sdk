@@ -17,7 +17,8 @@ teardown() {
 @test "create stores canister ids for default-persistent networks in canister_ids.json" {
     dfx_start
 
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+    webserver_port=$(cat .dfx/webserver-port)
+    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
 
     assert_command dfx canister --network tungsten create --all
 
@@ -29,7 +30,8 @@ teardown() {
 @test "create stores canister ids for configured-ephemeral networks in canister_ids.json" {
     dfx_start
 
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+    webserver_port=$(cat .dfx/webserver-port)
+    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
     cat <<<$(jq .networks.tungsten.type=\"ephemeral\" dfx.json) >dfx.json
 
     assert_command dfx canister --network tungsten create --all
@@ -71,7 +73,8 @@ teardown() {
 @test "failure message does include network if for non-local network" {
     dfx_start
 
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+    webserver_port=$(cat .dfx/webserver-port)
+    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
 
     assert_command_fail dfx build --network tungsten
     assert_match "Cannot find canister id. Please issue 'dfx canister --network tungsten create e2e_project"

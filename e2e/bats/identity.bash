@@ -18,6 +18,27 @@ teardown() {
     rm -rf $(pwd)/home-for-test
 }
 
+
+@test "identity get-principal: the get-principal is the same as sender id" {
+    install_asset identity
+    dfx_start
+    assert_command dfx identity new jose
+
+    PRINCPAL_ID=$(dfx --identity jose identity get-principal)
+
+    dfx --identity jose canister create e2e_project
+    dfx --identity jose build e2e_project
+    dfx --identity jose canister install e2e_project
+
+    assert_command dfx --identity jose canister call e2e_project amInitializer
+
+    SENDER_ID=$(dfx --identity jose canister call e2e_project fromCall)
+
+    if [ "$PRINCPAL_ID" -ne "$SENDER_ID" ]; then
+      echo "IDs did not match: Principal '${PRINCPAL_ID}' != Sender '${SENDER_ID}'..." | fail
+    fi  
+}
+
 @test "calls and query receive the same principal from dfx" {
     install_asset identity
     dfx_start

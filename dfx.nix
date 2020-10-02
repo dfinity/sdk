@@ -26,6 +26,11 @@ let
     cargoTestCommands = _: [
       ''cargo $cargo_options test $cargo_test_options --workspace''
     ];
+    override = attrs: {
+      preConfigure = (attrs.preConfigure or "") + ''
+        unset SDKROOT
+      '';
+    };
   };
 
   # set DFX_ASSETS for the builds and shells
@@ -85,6 +90,9 @@ let
 
             # Set environment variable for debug version.
             export DFX_TIMESTAMP_DEBUG_MODE_ONLY=$(date +%s)
+
+            # the presence of this var breaks brotli-sys compilation
+            unset SDKROOT
           '';
         };
     };

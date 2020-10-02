@@ -2,10 +2,30 @@ use crate::lib::error::{DfxError, DfxResult};
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
+use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
+use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
+
+// The user can pass in port "0" to dfx start or dfx bootstrap i.e. "127.0.0.1:0" or "[::1]:0",
+// thus, we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
+// TcpBuilder is used with reuse_address and reuse_port set to "true" because
+// the Actix HttpServer in webserver.rs will bind to this SocketAddr.
+pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
+    let tcp_builder = if ip.is_ipv4() {
+        TcpBuilder::new_v4()?
+    } else {
+        TcpBuilder::new_v6()?
+    };
+    Ok(tcp_builder
+        .bind(SocketAddr::new(ip, port))?
+        .reuse_address(true)?
+        .reuse_port(true)?
+        .to_tcp_listener()?
+        .local_addr()?)
+}
 
 pub fn expiry_duration() -> Duration {
     // 5 minutes is max ingress timeout

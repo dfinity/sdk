@@ -133,8 +133,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let timeout = expiry_duration();
 
     if is_query {
-        let blob =
-            runtime.block_on(agent.query_raw(&canister_id, method_name, &arg_value, None))?;
+        let blob = runtime.block_on(
+            agent
+                .query(&canister_id, method_name)
+                .with_arg(&arg_value)
+                .call(),
+        )?;
         print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
     } else if args.is_present("async") {
