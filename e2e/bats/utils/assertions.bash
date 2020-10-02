@@ -130,3 +130,25 @@ assert_neq() {
          | batslib_decorate "output does not match" \
          | fail)
 }
+
+
+# Asserts that a process exits within a timeframe
+# Arguments:
+#    $1 - the PID
+#    $2 - the timeout
+assert_process_exits() {
+    pid="$1"
+    timeout="$2"
+
+    timeout $timeout sh -c \
+      "while kill -0 $pid; do echo waiting for process $pid to exit; sleep 1; done" \
+      || (echo "process $pid did not exit" && ps aux && exit 1)
+
+}
+
+# Asserts that `dfx start` and `replica` are no longer running
+assert_no_dfx_start_or_replica_processes() {
+    # Verify that processes are killed.
+    ! ( ps | grep "[/\s]dfx start" )
+    ! ( ps | grep "[/\s]replica" )
+}
