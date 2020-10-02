@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::message::UserMessage;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
-use crate::util::{blob_from_arguments, expiry_duration};
+use crate::util::expiry_duration;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
 pub fn construct() -> App<'static, 'static> {
@@ -43,9 +43,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let timeout = expiry_duration();
     let canister = args.value_of("canister_name");
 
-    let arguments: Option<&str> = args.value_of("argument");
-    let arg_type: Option<&str> = args.value_of("type");
-    let install_args = blob_from_arguments(arguments, arg_type, &None)?;
+    let argument = args.value_of("argument");
+    let argument_type = args.value_of("type");
 
-    deploy_canisters(&env, canister, Some(install_args), timeout)
+    deploy_canisters(&env, canister, argument, argument_type, timeout)
 }

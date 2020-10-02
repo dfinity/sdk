@@ -7,6 +7,7 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::operations::canister::install_canister;
+use crate::util::{blob_from_arguments, get_candid_init_type};
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::InstallMode;
 use slog::{info, warn};
@@ -16,7 +17,8 @@ use tokio::runtime::Runtime;
 pub fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
-    argument: Option<Vec<u8>>,
+    argument: Option<&str>,
+    argument_type: Option<&str>,
     timeout: Duration,
 ) -> DfxResult {
     let log = env.get_logger();
@@ -43,6 +45,7 @@ pub fn deploy_canisters(
         &initial_canister_id_store,
         &config,
         argument,
+        argument_type,
         timeout,
     )?;
 
@@ -94,7 +97,8 @@ fn install_canisters(
     canister_names: &[String],
     initial_canister_id_store: &CanisterIdStore,
     config: &Config,
-    argument: Option<Vec<u8>>,
+    argument: Option<&str>,
+    argument_type: Option<&str>,
     timeout: Duration,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
@@ -115,7 +119,11 @@ fn install_canisters(
 
         let canister_id = canister_id_store.get(&canister_name)?;
         let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
-        let install_args = argument.clone().unwrap_or_else(Vec::new);
+
+        let maybe_path = canister_info.get_output_idl_path();
+        let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
+        let install_args = blob_from_arguments(argument, argument_type, &init_type)?;
+
         let compute_allocation = None;
         let memory_allocation = None;
         let result = runtime.block_on(install_canister(
