@@ -15,10 +15,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-#[cfg(test)]
-use mockall::automock;
-
-#[cfg_attr(test, automock)]
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Option<Arc<Config>>;

@@ -13,10 +13,6 @@ use std::process::ExitStatus;
 // POSIX permissions for files in the cache.
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
 
-#[cfg(test)]
-use mockall::automock;
-
-#[cfg_attr(test, automock)]
 pub trait Cache {
     fn version_str(&self) -> String;
     fn is_installed(&self) -> DfxResult<bool>;
