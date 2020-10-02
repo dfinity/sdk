@@ -14,10 +14,10 @@ check_help_for() {
     # fail to find these options to force fallback
     if check_cmd sw_vers; then
         case "$(sw_vers -productVersion)" in
-            10.13) ;; # High Sierra
-            10.14) ;; # Mojave
-            10.15) ;; # Catalina
-            11.*) ;;  # Big Sur
+            10.13*) ;; # High Sierra
+            10.14*) ;; # Mojave
+            10.15*) ;; # Catalina
+            11.*) ;;   # Big Sur
             *)
                 warn "Detected OS X platform older than 10.13 (High Sierra)"
                 _ok="n"
