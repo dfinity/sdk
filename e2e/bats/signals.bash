@@ -20,9 +20,7 @@ teardown() {
     DFX_PID=$!
 
     echo "dfx pid is $DFX_PID"
-    ps
 
-    #assert_file_eventually_exists .dfx/pid 15s
     assert_file_eventually_exists .dfx/config/port.txt 15s
 
     ps
@@ -35,12 +33,17 @@ teardown() {
 }
 
 @test "dfx replica kills the replica upon SIGTERM" {
-  skip "not yet"
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
     dfx replica --port 0 &
+    DFX_PID=$!
 
-    DFX_PID=$(cat .dfx/pid)
+    echo "dfx pid is $DFX_PID"
+    ps
+
+    assert_file_eventually_exists .dfx/config/port.txt 15s
+
+    ps
 
     kill -SIGTERM $DFX_PID
 
