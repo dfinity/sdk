@@ -16,6 +16,7 @@ use tokio::runtime::Runtime;
 pub fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
+    argument: Option<Vec<u8>>,
     timeout: Duration,
 ) -> DfxResult {
     let log = env.get_logger();
@@ -41,6 +42,7 @@ pub fn deploy_canisters(
         &canister_names,
         &initial_canister_id_store,
         &config,
+        argument,
         timeout,
     )?;
 
@@ -92,6 +94,7 @@ fn install_canisters(
     canister_names: &[String],
     initial_canister_id_store: &CanisterIdStore,
     config: &Config,
+    argument: Option<Vec<u8>>,
     timeout: Duration,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
@@ -112,7 +115,7 @@ fn install_canisters(
 
         let canister_id = canister_id_store.get(&canister_name)?;
         let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
-        let install_args = [];
+        let install_args = argument.clone().unwrap_or_else(Vec::new);
         let compute_allocation = None;
         let memory_allocation = None;
         let result = runtime.block_on(install_canister(

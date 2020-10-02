@@ -63,3 +63,16 @@ teardown() {
     assert_match 'attempting install'
 }
 
+@test "dfx deploy supports arguments" {
+    dfx_new hello
+    install_asset greet_arg
+    dfx_start
+    assert_command dfx canister create --all
+
+    assert_command dfx deploy World
+    assert_match 'attempting install'
+
+    assert_command dfx canister call hello greet
+    assert_match 'Hello, World'
+}
+
