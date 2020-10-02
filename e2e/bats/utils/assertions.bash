@@ -152,3 +152,12 @@ assert_no_dfx_start_or_replica_processes() {
     ! ( ps | grep "[/\s]dfx start" )
     ! ( ps | grep "[/\s]replica" )
 }
+
+assert_file_eventually_exists() {
+    filename="$1"
+    timeout="$2"
+
+    timeout $timeout sh -c \
+      "until [ -f $filename ]; do echo waiting for $filename; sleep 1; done" \
+      || (echo "file $filename was never created" && ls && exit 1)
+}
