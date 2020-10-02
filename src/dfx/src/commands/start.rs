@@ -263,11 +263,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // terminates all sibling processes if a process returns an error,
     // which we lack. We consider this a fine trade-off for now.
 
-    rcv_wait.recv().or_else(|e| {
-        Err(DfxError::RuntimeError(Error::new(
+    rcv_wait.recv().map_err(|e| {
+        DfxError::RuntimeError(Error::new(
             ErrorKind::Other,
             format!("Failed while waiting for the manager -- {:?}", e),
-        )))
+        ))
     })?;
 
     // Signal the client to stop. Right now we have little control

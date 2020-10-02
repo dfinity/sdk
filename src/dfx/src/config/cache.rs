@@ -13,10 +13,6 @@ use std::process::ExitStatus;
 // POSIX permissions for files in the cache.
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
 
-#[cfg(test)]
-use mockall::automock;
-
-#[cfg_attr(test, automock)]
 pub trait Cache {
     fn version_str(&self) -> String;
     fn is_installed(&self) -> DfxResult<bool>;
@@ -108,7 +104,7 @@ pub fn get_bin_cache(v: &str) -> DfxResult<PathBuf> {
 }
 
 pub fn is_version_installed(v: &str) -> DfxResult<bool> {
-    get_bin_cache(v).and_then(|c| Ok(c.is_dir()))
+    get_bin_cache(v).map(|c| c.is_dir())
 }
 
 pub fn delete_version(v: &str) -> DfxResult<bool> {

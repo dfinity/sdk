@@ -89,7 +89,7 @@ pub fn spawn_and_update_proxy(
             });
             // Stop watching.
             let _ = hotwatch;
-            let proxy = proxy.set_client_api_port(port.clone());
+            let proxy = proxy.set_client_api_port(port);
             b.set_message(format!("Replica bound at {}", port).as_str());
             block_on(proxy.restart(
                 proxy_supervisor.inform_parent.clone(),
