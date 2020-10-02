@@ -41,7 +41,9 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Replica
     let port = get_port(&config, args)?;
     let mut http_handler: HttpHandlerConfig = Default::default();
     if port == 0 {
-        let file = env.get_temp_dir().join("config").join("port.txt");
+        let config_dir = env.get_temp_dir().join("config");
+        std::fs::create_dir_all(&config_dir)?;
+        let file = config_dir.join("port.txt");
         http_handler.write_port_to = Some(file);
     } else {
         http_handler.port = Some(port);
