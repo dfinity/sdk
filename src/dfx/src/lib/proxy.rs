@@ -61,8 +61,8 @@ impl Proxy {
                     .try_recv()
                     .map_err(|e| {
                         Error::new(
-                          ErrorKind::Other,
-                          format!("Failed to shutdown proxy -- {:?}", e),
+                            ErrorKind::Other,
+                            format!("Failed to shutdown proxy -- {:?}", e),
                         )
                     })?
                     .stop(true)

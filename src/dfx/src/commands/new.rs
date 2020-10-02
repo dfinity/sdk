@@ -189,8 +189,7 @@ fn write_files_from_entries<R: Sized + Read>(
         }
 
         let mut s = String::new();
-        file.read_to_string(&mut s)
-            .map_err(DfxError::Io)?;
+        file.read_to_string(&mut s).map_err(DfxError::Io)?;
 
         // Perform replacements.
         variables.iter().for_each(|(name, value)| {
@@ -293,10 +292,7 @@ fn scaffold_frontend_code(
                 ));
 
             let pretty = serde_json::to_string_pretty(&config_json).map_err(|e| {
-                DfxError::InvalidData(format!(
-                  "Failed to serialize dfx.json: {}",
-                  e
-                ))
+                DfxError::InvalidData(format!("Failed to serialize dfx.json: {}", e))
             })?;
             std::fs::write(&dfx_path, pretty)?;
 

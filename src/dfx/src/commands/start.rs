@@ -265,8 +265,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     rcv_wait.recv().map_err(|e| {
         DfxError::RuntimeError(Error::new(
-          ErrorKind::Other,
-          format!("Failed while waiting for the manager -- {:?}", e),
+            ErrorKind::Other,
+            format!("Failed while waiting for the manager -- {:?}", e),
         ))
     })?;
 
