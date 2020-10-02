@@ -190,7 +190,7 @@ fn write_files_from_entries<R: Sized + Read>(
 
         let mut s = String::new();
         file.read_to_string(&mut s)
-            .or_else(|e| Err(DfxError::Io(e)))?;
+            .map_err(DfxError::Io)?;
 
         // Perform replacements.
         variables.iter().for_each(|(name, value)| {
@@ -292,11 +292,11 @@ fn scaffold_frontend_code(
                     "dist/".to_owned() + project_name_str + "_assets/",
                 ));
 
-            let pretty = serde_json::to_string_pretty(&config_json).or_else(|e| {
-                Err(DfxError::InvalidData(format!(
-                    "Failed to serialize dfx.json: {}",
-                    e
-                )))
+            let pretty = serde_json::to_string_pretty(&config_json).map_err(|e| {
+                DfxError::InvalidData(format!(
+                  "Failed to serialize dfx.json: {}",
+                  e
+                ))
             })?;
             std::fs::write(&dfx_path, pretty)?;
 

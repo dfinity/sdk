@@ -59,11 +59,11 @@ impl Proxy {
                 handler
                     .receiver
                     .try_recv()
-                    .or_else(|e| {
-                        Err(Error::new(
-                            ErrorKind::Other,
-                            format!("Failed to shutdown proxy -- {:?}", e),
-                        ))
+                    .map_err(|e| {
+                        Error::new(
+                          ErrorKind::Other,
+                          format!("Failed to shutdown proxy -- {:?}", e),
+                        )
                     })?
                     .stop(true)
                     .await;

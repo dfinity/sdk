@@ -108,7 +108,7 @@ pub fn get_bin_cache(v: &str) -> DfxResult<PathBuf> {
 }
 
 pub fn is_version_installed(v: &str) -> DfxResult<bool> {
-    get_bin_cache(v).and_then(|c| Ok(c.is_dir()))
+    get_bin_cache(v).map(|c| c.is_dir())
 }
 
 pub fn delete_version(v: &str) -> DfxResult<bool> {
