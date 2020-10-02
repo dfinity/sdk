@@ -238,13 +238,20 @@ fn replica_start_thread(
         cmd.args(&[
             "--replica-path",
             replica_path.to_str().unwrap_or_default(),
-            "--http-port",
-            &port.unwrap_or_default().to_string(),
             "--state-dir",
             config.state_manager.state_root.to_str().unwrap_or_default(),
             "--create-funds-whitelist",
             "*",
         ]);
+        if let Some(port) = port {
+                cmd.args(&["--http-port", &port.to_string()]);
+            }
+        if let Some(write_port_to) = &write_port_to {
+                cmd.args(&[
+                                              "--http-port-file",
+                        &write_port_to.to_string_lossy().to_string(),
+                ]);
+            }
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
