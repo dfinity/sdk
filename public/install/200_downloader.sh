@@ -17,7 +17,7 @@ check_help_for() {
             10.13*) ;; # High Sierra
             10.14*) ;; # Mojave
             10.15*) ;; # Catalina
-            11.*) ;;  # Big Sur
+            11.*) ;;   # Big Sur
             *)
                 warn "Detected OS X platform older than 10.13 (High Sierra)"
                 _ok="n"
