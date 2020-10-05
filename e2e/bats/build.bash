@@ -94,9 +94,9 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
-    assert_command dfx canister --network tungsten create --all
-    assert_command dfx build --network tungsten
+    assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
+    assert_command dfx canister --network ic create --all
+    assert_command dfx build --network ic
 }
 
 @test "build output for local network is in expected directory" {
@@ -110,10 +110,10 @@ teardown() {
 @test "build output for non-local network is in expected directory" {
   dfx_start
   webserver_port=$(cat .dfx/webserver-port)
-  assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
-  dfx canister --network tungsten create --all
-  assert_command dfx build --network tungsten
-  assert_command ls .dfx/tungsten/canisters/e2e_project/
-  assert_command ls .dfx/tungsten/canisters/e2e_project/e2e_project.wasm
+  assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
+  dfx canister --network ic create --all
+  assert_command dfx build --network ic
+  assert_command ls .dfx/ic/canisters/e2e_project/
+  assert_command ls .dfx/ic/canisters/e2e_project/e2e_project.wasm
 }
 
