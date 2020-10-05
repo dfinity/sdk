@@ -3,6 +3,8 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
 
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::ShutdownController;
 use actix::{
     Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -13,8 +15,6 @@ use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
-use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
-use crate::actors::shutdown_controller::ShutdownController;
 
 pub mod signals {
     use actix::prelude::*;
@@ -154,7 +154,9 @@ impl Actor for Replica {
         self.start_replica(ctx.address())
             .expect("Could not start the replica");
 
-        self.config.shutdown_controller.do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
+        self.config
+            .shutdown_controller
+            .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
@@ -202,16 +204,12 @@ impl Handler<Shutdown> for Replica {
     fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
         // This is just the example for ResponseActFuture but stopping the context
         Box::pin(
-            async {
-                // Some async computation
-                ()
-            }
-            .into_actor(self) // converts future to ActorFuture
-            .map(|res, _act, ctx| {
-                // Do some computation with actor's state or context
-                ctx.stop();
-                Ok(res)
-            }),
+            async {}
+                .into_actor(self) // converts future to ActorFuture
+                .map(|_, _act, ctx| {
+                    ctx.stop();
+                    Ok(())
+                }),
         )
     }
 }
@@ -273,14 +271,14 @@ fn replica_start_thread(
             "*",
         ]);
         if let Some(port) = port {
-                cmd.args(&["--http-port", &port.to_string()]);
-            }
+            cmd.args(&["--http-port", &port.to_string()]);
+        }
         if let Some(write_port_to) = &write_port_to {
-                cmd.args(&[
-                                              "--http-port-file",
-                        &write_port_to.to_string_lossy().to_string(),
-                ]);
-            }
+            cmd.args(&[
+                "--http-port-file",
+                &write_port_to.to_string_lossy().to_string(),
+            ]);
+        }
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 

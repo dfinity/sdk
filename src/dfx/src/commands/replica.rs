@@ -134,7 +134,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         ic_starter_path: ic_starter_pathbuf,
         replica_config: config,
         replica_path: replica_pathbuf,
-        shutdown_controller: shutdown_controller.clone(),
+        shutdown_controller,
         logger: Some(env.get_logger().clone()),
     })
     .start();

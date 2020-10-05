@@ -1,8 +1,8 @@
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-use actix::{Actor, Context, Handler, Recipient, Addr, AsyncContext};
+use crate::actors::shutdown_controller::signals::ShutdownTrigger;
+use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient};
 use slog::Logger;
 use std::time::Duration;
-use crate::actors::shutdown_controller::signals::ShutdownTriggered;
 
 pub mod signals {
     use actix::prelude::*;
@@ -21,7 +21,7 @@ pub mod signals {
 
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub struct ShutdownTriggered();
+    pub struct ShutdownTrigger();
 }
 
 pub struct Config {
@@ -74,19 +74,17 @@ impl ShutdownController {
                     System::current().stop();
                 });
 
-                fut::wrap_future(async { () })
+                fut::wrap_future(async {})
             })
             .spawn(ctx)
     }
 
-    fn install_ctrlc_handler(&self, shutdown_controller: Addr<ShutdownController>)
-    {
+    fn install_ctrlc_handler(&self, shutdown_controller: Addr<ShutdownController>) {
         ctrlc::set_handler(move || {
-            shutdown_controller.do_send(ShutdownTriggered());
+            shutdown_controller.do_send(ShutdownTrigger());
         })
-            .expect("Error setting Ctrl-C handler");
+        .expect("Error setting Ctrl-C handler");
     }
-
 }
 
 impl Actor for ShutdownController {
@@ -105,10 +103,10 @@ impl Handler<signals::ShutdownSubscribe> for ShutdownController {
     }
 }
 
-impl Handler<signals::ShutdownTriggered> for ShutdownController {
+impl Handler<signals::ShutdownTrigger> for ShutdownController {
     type Result = ();
 
-    fn handle(&mut self, _msg: signals::ShutdownTriggered, ctx: &mut Self::Context) {
+    fn handle(&mut self, _msg: signals::ShutdownTrigger, ctx: &mut Self::Context) {
         self.shutdown(ctx);
     }
 }
