@@ -2,7 +2,13 @@ use crate::actors::replica::signals::ReplicaRestarted;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
 
-use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, Running};
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::ShutdownController;
+use actix::{
+    Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
+    ResponseActFuture, Running, WrapFuture,
+};
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
@@ -41,6 +47,7 @@ pub struct Config {
     pub ic_starter_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub replica_path: PathBuf,
+    pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
 }
 
@@ -146,6 +153,10 @@ impl Actor for Replica {
     fn started(&mut self, ctx: &mut Self::Context) {
         self.start_replica(ctx.address())
             .expect("Could not start the replica");
+
+        self.config
+            .shutdown_controller
+            .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
@@ -184,6 +195,22 @@ impl Handler<signals::ReplicaRestarted> for Replica {
     fn handle(&mut self, msg: ReplicaRestarted, _ctx: &mut Self::Context) -> Self::Result {
         self.port = Some(msg.port);
         self.send_ready_signal(msg.port);
+    }
+}
+
+impl Handler<Shutdown> for Replica {
+    type Result = ResponseActFuture<Self, Result<(), ()>>;
+
+    fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
+        // This is just the example for ResponseActFuture but stopping the context
+        Box::pin(
+            async {}
+                .into_actor(self) // converts future to ActorFuture
+                .map(|_, _act, ctx| {
+                    ctx.stop();
+                    Ok(())
+                }),
+        )
     }
 }
 
@@ -238,13 +265,20 @@ fn replica_start_thread(
         cmd.args(&[
             "--replica-path",
             replica_path.to_str().unwrap_or_default(),
-            "--http-port",
-            &port.unwrap_or_default().to_string(),
             "--state-dir",
             config.state_manager.state_root.to_str().unwrap_or_default(),
             "--create-funds-whitelist",
             "*",
         ]);
+        if let Some(port) = port {
+            cmd.args(&["--http-port", &port.to_string()]);
+        }
+        if let Some(write_port_to) = &write_port_to {
+            cmd.args(&[
+                "--http-port-file",
+                &write_port_to.to_string_lossy().to_string(),
+            ]);
+        }
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
