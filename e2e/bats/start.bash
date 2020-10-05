@@ -15,6 +15,7 @@ teardown() {
 
 @test "dfx restarts the replica" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
+    skip "this test is not ready, nor is dfx start ready for it"
 
     dfx_start
 
