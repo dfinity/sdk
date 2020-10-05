@@ -9,6 +9,8 @@ use crate::util::get_reusable_socket_addr;
 use crate::actors;
 use crate::actors::replica::Replica;
 use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
+use crate::actors::shutdown_controller;
+use crate::actors::shutdown_controller::ShutdownController;
 use actix::{Actor, Addr};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use delay::{Delay, Waiter};
@@ -21,8 +23,6 @@ use std::process::Command;
 use std::sync::Arc;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
-use crate::actors::shutdown_controller::ShutdownController;
-use crate::actors::shutdown_controller;
 
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
@@ -160,7 +160,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let shutdown_controller = ShutdownController::new(shutdown_controller::Config {
         logger: Some(env.get_logger().clone()),
     })
-        .start();
+    .start();
 
     let replica_addr = start_replica(env, &state_root, shutdown_controller)?;
 
@@ -192,7 +192,11 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     Ok(())
 }
 
-fn start_replica(env: &dyn Environment, state_root: &Path, shutdown_controller: Addr<ShutdownController>) -> DfxResult<Addr<Replica>> {
+fn start_replica(
+    env: &dyn Environment,
+    state_root: &Path,
+    shutdown_controller: Addr<ShutdownController>,
+) -> DfxResult<Addr<Replica>> {
     let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
 

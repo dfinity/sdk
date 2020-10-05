@@ -4,13 +4,13 @@ use crate::actors::replica::Replica;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
+use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
 use actix_server::Server;
 use slog::{info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use actix::clock::{Duration, delay_for};
 
 pub struct Config {
     pub logger: Option<Logger>,
@@ -91,13 +91,11 @@ impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
             println!("delay before restarting webserver");
             ctx.wait(wrap_future(delay_for(Duration::from_secs(10))));
             ctx.address().do_send(ReplicaReadySignal { port: msg.port });
-        }
-        else {
+        } else {
             println!("starting webserver");
 
             let server = self.start_server(msg.port).unwrap();
             self.server = server;
         }
-
     }
 }
