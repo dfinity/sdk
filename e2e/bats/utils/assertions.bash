@@ -148,7 +148,6 @@ assert_process_exits() {
 
 # Asserts that `dfx start` and `replica` are no longer running
 assert_no_dfx_start_or_replica_processes() {
-    # Verify that processes are killed.
     ! ( ps | grep "[/\s]dfx start" )
     ! ( ps | grep "[/\s]replica" )
 }

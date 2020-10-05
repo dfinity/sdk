@@ -37,18 +37,3 @@ dfx_replica_kills_replica() {
     assert_process_exits $DFX_PID 15s
     assert_no_dfx_start_or_replica_processes
 }
-
-#@test "dfx replica kills the replica upon SIGTERM" {
-#    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-#
-#    dfx replica --port 0 &
-#    DFX_PID=$!
-#
-#    # wait for replica to start
-#    assert_file_eventually_exists .dfx/config/port.txt 15s
-#
-#    kill -SIGTERM $DFX_PID
-#
-#    assert_process_exits $DFX_PID 15s
-#    assert_no_dfx_start_or_replica_processes
-#}
