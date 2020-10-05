@@ -6,8 +6,6 @@ use crate::lib::message::UserMessage;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
 
 use crate::actors::shutdown_controller;
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-use crate::actors::shutdown_controller::signals::{ShutdownSubscribe, ShutdownTriggered};
 use crate::actors::shutdown_controller::ShutdownController;
 use actix::Actor;
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -132,26 +130,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     })
     .start();
 
-    let replica_addr = actors::replica::Replica::new(actors::replica::Config {
+    let _replica_addr = actors::replica::Replica::new(actors::replica::Config {
         ic_starter_path: ic_starter_pathbuf,
         replica_config: config,
         replica_path: replica_pathbuf,
+        shutdown_controller: shutdown_controller.clone(),
         logger: Some(env.get_logger().clone()),
     })
     .start();
 
-    //let _wd_addr = actors::signal_watcher::SignalWatchdog::new().start();
-
-    shutdown_controller.do_send(ShutdownSubscribe(replica_addr.recipient::<Shutdown>()));
-
-    ctrlc::set_handler(move || {
-        eprintln!("ctrlc handler called");
-        shutdown_controller.do_send(ShutdownTriggered());
-    })
-    .expect("Error setting Ctrl-C handler");
-
     system.run()?;
 
-    eprintln!("system.run returned");
     Ok(())
 }

@@ -9,10 +9,12 @@ use actix::{
 };
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
-use slog::{debug, Logger};
+use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::ShutdownController;
 
 pub mod signals {
     use actix::prelude::*;
@@ -45,6 +47,7 @@ pub struct Config {
     pub ic_starter_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub replica_path: PathBuf,
+    pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
 }
 
@@ -150,10 +153,12 @@ impl Actor for Replica {
     fn started(&mut self, ctx: &mut Self::Context) {
         self.start_replica(ctx.address())
             .expect("Could not start the replica");
+
+        self.config.shutdown_controller.do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        eprintln!("Stopping the replica...");
+        info!(self.logger, "Stopping the replica...");
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -164,10 +169,6 @@ impl Actor for Replica {
 
         debug!(self.logger, "Stopped.");
         Running::Stop
-    }
-
-    fn stopped(&mut self, _ctx: &mut Self::Context) {
-        eprintln!("replica Actor::stopped");
     }
 }
 
@@ -199,7 +200,7 @@ impl Handler<Shutdown> for Replica {
     type Result = ResponseActFuture<Self, Result<(), ()>>;
 
     fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
-        eprintln!("Replica::handle Shutdown");
+        // This is just the example for ResponseActFuture but stopping the context
         Box::pin(
             async {
                 // Some async computation
@@ -207,8 +208,8 @@ impl Handler<Shutdown> for Replica {
             }
             .into_actor(self) // converts future to ActorFuture
             .map(|res, _act, ctx| {
-                ctx.stop();
                 // Do some computation with actor's state or context
+                ctx.stop();
                 Ok(res)
             }),
         )
@@ -301,13 +302,13 @@ fn replica_start_thread(
             // We don't restart the replica if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
-                    eprintln!("Got signal to stop. Killing replica process...");
+                    debug!(logger, "Got signal to stop. Killing replica process...");
                     let _ = child.kill();
                     let _ = child.wait();
                     done = true;
                 }
                 ChildOrReceiver::Child => {
-                    eprintln!("Replica process failed.");
+                    debug!(logger, "Replica process failed.");
                     // Reset waiter if last start was over 2 seconds ago, and do not wait.
                     if std::time::Instant::now().duration_since(last_start)
                         >= Duration::from_secs(2)
@@ -324,7 +325,6 @@ fn replica_start_thread(
                 }
             }
         }
-        eprintln!("replica thread handler exits");
     };
 
     std::thread::Builder::new()

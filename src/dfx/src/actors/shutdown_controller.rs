@@ -1,12 +1,8 @@
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-//use ::actix::fut;
-//use actix::prelude::RecipientRequest;
-use actix::{
-    Actor, Context, Handler, Recipient
-};
-//use futures::{FutureExt, TryFutureExt};
+use actix::{Actor, Context, Handler, Recipient, Addr, AsyncContext};
 use slog::Logger;
 use std::time::Duration;
+use crate::actors::shutdown_controller::signals::ShutdownTriggered;
 
 pub mod signals {
     use actix::prelude::*;
@@ -51,7 +47,6 @@ impl ShutdownController {
         use actix::prelude::*;
         use futures::prelude::*;
 
-        eprintln!("ShutdownController::shutdown");
         let futures: Vec<_> = self
             .shutdown_subscribers
             .iter()
@@ -79,20 +74,23 @@ impl ShutdownController {
             })
             .spawn(ctx)
     }
+
+    fn install_ctrlc_handler(&self, shutdown_controller: Addr<ShutdownController>)
+    {
+        ctrlc::set_handler(move || {
+            shutdown_controller.do_send(ShutdownTriggered());
+        })
+            .expect("Error setting Ctrl-C handler");
+    }
+
 }
 
 impl Actor for ShutdownController {
     type Context = Context<Self>;
 
-    // fn started(&mut self, _ctx: &mut Self::Context) {
-    // }
-    //
-    // fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-    //     Running::Stop
-    // }
-    //
-    // fn stopped(&mut self, _ctx: &mut Self::Context) {
-    // }
+    fn started(&mut self, ctx: &mut Self::Context) {
+        self.install_ctrlc_handler(ctx.address());
+    }
 }
 
 impl Handler<signals::ShutdownSubscribe> for ShutdownController {
