@@ -6,7 +6,7 @@ use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
-use ic_agent::{Agent, AgentConfig, Identity};
+use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{Logger, Record};
 use std::collections::BTreeMap;
@@ -15,10 +15,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-#[cfg(test)]
-use mockall::automock;
-
-#[cfg_attr(test, automock)]
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Option<Arc<Config>>;
@@ -409,22 +405,19 @@ impl ic_agent::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent(
-    logger: Logger,
-    url: &str,
-    identity: Box<dyn Identity + Send + Sync>,
-    timeout: Duration,
-) -> Option<Agent> {
+fn create_agent<I>(logger: Logger, url: &str, identity: Box<I>, timeout: Duration) -> Option<Agent>
+where
+    I: Identity + Send + Sync + 'static,
+{
     AgentClient::new(logger, url.to_string())
         .ok()
         .and_then(|executor| {
-            Agent::new(AgentConfig {
-                url: url.to_string(),
-                identity,
-                password_manager: Some(Box::new(executor)),
-                ingress_expiry_duration: Some(timeout),
-                ..AgentConfig::default()
-            })
-            .ok()
+            Agent::builder()
+                .with_url(url)
+                .with_boxed_identity(identity)
+                .with_password_manager(executor)
+                .with_ingress_expiry(Some(timeout))
+                .build()
+                .ok()
         })
 }

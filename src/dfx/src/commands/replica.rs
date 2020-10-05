@@ -5,6 +5,8 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
 
+use crate::actors::shutdown_controller;
+use crate::actors::shutdown_controller::ShutdownController;
 use actix::Actor;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use std::default::Default;
@@ -41,7 +43,9 @@ fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<Replica
     let port = get_port(&config, args)?;
     let mut http_handler: HttpHandlerConfig = Default::default();
     if port == 0 {
-        let file = env.get_temp_dir().join("config").join("port.txt");
+        let config_dir = env.get_temp_dir().join("config");
+        std::fs::create_dir_all(&config_dir)?;
+        let file = config_dir.join("port.txt");
         http_handler.write_port_to = Some(file);
     } else {
         http_handler.port = Some(port);
@@ -121,15 +125,20 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let system = actix::System::new("dfx-replica");
     let config = get_config(env, args)?;
 
-    actors::replica::Replica::new(actors::replica::Config {
-        ic_starter_path: ic_starter_pathbuf,
-        replica_config: config,
-        replica_path: replica_pathbuf,
+    let shutdown_controller = ShutdownController::new(shutdown_controller::Config {
         logger: Some(env.get_logger().clone()),
     })
     .start();
 
-    actors::signal_watcher::SignalWatchdog::new().start();
+    let _replica_addr = actors::replica::Replica::new(actors::replica::Config {
+        ic_starter_path: ic_starter_pathbuf,
+        replica_config: config,
+        replica_path: replica_pathbuf,
+        shutdown_controller,
+        logger: Some(env.get_logger().clone()),
+    })
+    .start();
+
     system.run()?;
 
     Ok(())

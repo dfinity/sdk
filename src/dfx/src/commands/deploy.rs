@@ -21,6 +21,20 @@ pub fn construct() -> App<'static, 'static> {
                 .long("network")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("argument")
+                .help(UserMessage::ArgumentValue.to_str())
+                .long("argument")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("type")
+                .help(UserMessage::ArgumentType.to_str())
+                .long("type")
+                .takes_value(true)
+                .requires("argument")
+                .possible_values(&["idl", "raw"]),
+        )
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -29,5 +43,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let timeout = expiry_duration();
     let canister = args.value_of("canister_name");
 
-    deploy_canisters(&env, canister, timeout)
+    let argument = args.value_of("argument");
+    let argument_type = args.value_of("type");
+
+    deploy_canisters(&env, canister, argument, argument_type, timeout)
 }

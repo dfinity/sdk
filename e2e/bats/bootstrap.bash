@@ -18,20 +18,17 @@ teardown() {
     dfx build
     dfx canister install hello
     ID=$(dfx canister id hello)
-
-    assert_command curl http://localhost:8000/_/candid?canisterId="$ID" -o ./web.txt
+    PORT=$(cat .dfx/webserver-port)
+    assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID" -o ./web.txt
     assert_command diff .dfx/local/canisters/hello/hello.did ./web.txt
-    assert_command curl http://localhost:8000/_/candid?canisterId="$ID"\&format=js -o ./web.txt
+    assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt
     # Relax diff as it's produced by two different compilers.
     assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello/hello.did.js ./web.txt
 }
 
 @test "forbid starting webserver with a forwarded port" {
-    dfx replica &
-    echo $! > replica.pid # Use a local file for the replica.
-    sleep 5 # Wait for replica to be available.
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     assert_command_fail dfx bootstrap --port 8000
     assert_match "Cannot forward API calls to the same bootstrap server"
-    kill -TERM `cat replica.pid`
 }
