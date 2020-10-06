@@ -1,8 +1,7 @@
 import P "mo:base/Principal";
-import Prim "mo:prim";
 
-actor Self {
-    private let initializer : Principal = Prim.caller();
+shared {caller} actor class () = Self {
+    private let initializer : Principal = caller;
 
     public shared(msg) func fromCall(): async Principal {
         msg.caller
