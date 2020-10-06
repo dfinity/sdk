@@ -78,19 +78,6 @@ git checkout master && git pull
 
 Verify that you can build DFX and the JavaScript agent from the `+master+` branch without errors.
 
-. Store a path to your latest system `dfx` as a variable. This step requires you to have the latest `dfx` binary installed.
-+
-[source, bash]
-----
-export dfx_system=$(which dfx);
-
-! test -z "$dfx_system" \
-    && echo "Please Proceed" \
-    || echo 'ERROR: `dfx` not found'
-----
-+
-You should see "Please Proceed"
-+
 . Build the `dfx` binary by running the following command:
 +
 [source, bash]
