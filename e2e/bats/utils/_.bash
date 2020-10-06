@@ -94,7 +94,16 @@ dfx_stop() {
         kill $(cat dfx-bootstrap.pid)
         rm -f dfx-bootstrap.pid
     else
+        echo "** process list before dfx stop"
+        ps | grep -e dfx -e replica
+
+        echo ".dfx/pid is $(cat .dfx/pid)"
+
         dfx stop
+
+        echo "** process list after dfx stop"
+        ps | grep -e dfx -e replica
+
         local dfx_root=.dfx/
         rm -rf $dfx_root
 

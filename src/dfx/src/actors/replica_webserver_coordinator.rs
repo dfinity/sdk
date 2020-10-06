@@ -89,7 +89,7 @@ impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
             ctx.wait(wrap_future(server.stop(true)));
             self.server = None;
             println!("delay before restarting webserver");
-            ctx.wait(wrap_future(delay_for(Duration::from_secs(10))));
+            ctx.wait(wrap_future(delay_for(Duration::from_millis(100))));
             ctx.address().do_send(ReplicaReadySignal { port: msg.port });
         } else {
             println!("starting webserver");
