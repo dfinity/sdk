@@ -136,7 +136,6 @@ impl Replica {
             addr,
             receiver,
         )?;
-        info!(self.logger, "started replica thread");
 
         self.thread_join = Some(handle);
         self.stop_sender = Some(sender);
@@ -157,7 +156,6 @@ impl Actor for Replica {
     fn started(&mut self, ctx: &mut Self::Context) {
         self.start_replica(ctx.address())
             .expect("Could not start the replica");
-        info!(self.logger, "Replica Actor started...");
 
         self.config
             .shutdown_controller

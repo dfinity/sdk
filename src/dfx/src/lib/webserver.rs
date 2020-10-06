@@ -172,7 +172,7 @@ pub fn run_webserver(
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
-) -> Result<Server, std::io::Error> {
+) -> DfxResult<Server> {
     info!(logger, "binding to: {:?}", bind);
 
     const SHUTDOWN_WAIT_TIME: u64 = 60;
