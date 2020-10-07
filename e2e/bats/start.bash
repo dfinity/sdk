@@ -26,7 +26,6 @@ teardown() {
     DFX_PID=$(cat .dfx/pid)
 
     ps | grep replica
-    ps | grep "[/\s]replica"
 
     # find the replica that is the child of dfx.  we do not have awk.
     REPLICA_PID=$(ps | grep "[/\s]replica" | cut -d ' ' -f 1)
