@@ -25,6 +25,9 @@ teardown() {
 
     DFX_PID=$(cat .dfx/pid)
 
+    echo "export"
+    export
+
     echo "jobs 0"
     jobs -p
 
