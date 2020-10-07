@@ -1,20 +1,24 @@
 use crate::actors::replica::signals::outbound::ReplicaReadySignal;
 use crate::actors::replica::signals::PortReadySubscribe;
 use crate::actors::replica::Replica;
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
-use actix::{Actor, Addr, AsyncContext, Context, Handler, ResponseActFuture, WrapFuture, ActorContext, ActorFuture, Running, System, fut};
+use actix::{
+    Actor, Addr, AsyncContext, Context, Handler,
+    ResponseFuture,
+};
 use actix_server::Server;
+use futures::future;
+use futures::future::FutureExt;
 use slog::{debug, error, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
-use crate::actors::shutdown_controller::ShutdownController;
-use actix_web::rt;
 
 pub struct Config {
     pub logger: Option<Logger>,
@@ -94,7 +98,6 @@ impl Actor for ReplicaWebserverCoordinator {
     //     debug!(self.logger, "Stopped.");
     //     Running::Stop
     // }
-
 }
 
 impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
@@ -126,33 +129,13 @@ impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
 }
 
 impl Handler<Shutdown> for ReplicaWebserverCoordinator {
-    type Result = ResponseActFuture<Self, Result<(), ()>>;
+    type Result = ResponseFuture<Result<(), ()>>;
 
     fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
         if let Some(server) = self.server.take() {
-            eprintln!("stopping webserver");
-            Box::pin(
-                server.stop(true)
-                    .into_actor(self) // converts future to ActorFuture
-                    .map(|_, _act, ctx| {
-                        eprintln!("stopping ReplicaWebserverCoordinator");
-                        ctx.stop();
-                        eprintln!("stopped ReplicaWebserverCoordinator");
-                        Ok(())
-                    }),
-            )
-        } else
-        {
-            Box::pin(fut::ok(())
-                // async{}
-                //     .into_actor(self) // converts future to ActorFuture
-                //     .map(|_, _act, ctx| {
-                //         eprintln!("stopping ReplicaWebserverCoordinator");
-                //         ctx.stop();
-                //         eprintln!("stopped ReplicaWebserverCoordinator");
-                //         Ok(())
-                //     }),
-            )
+            Box::pin(server.stop(true).map(Ok))
+        } else {
+            Box::pin(future::ok(()))
         }
     }
 }

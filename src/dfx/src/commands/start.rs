@@ -164,8 +164,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let replica_addr = start_replica(env, &state_root, shutdown_controller.clone())?;
 
-    let _webserver_coordinator =
-        start_webserver_coordinator(env, args, config, address_and_port, replica_addr, shutdown_controller)?;
+    let _webserver_coordinator = start_webserver_coordinator(
+        env,
+        args,
+        config,
+        address_and_port,
+        replica_addr,
+        shutdown_controller,
+    )?;
 
     // Update the pid file.
     if let Ok(pid) = sysinfo::get_current_pid() {
@@ -173,8 +179,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     }
 
     system.run()?;
-
-    eprintln!("system.run() returned");
 
     Ok(())
 }
