@@ -25,6 +25,12 @@ teardown() {
 
     DFX_PID=$(cat .dfx/pid)
 
+    # this differs between linux and darwin under nix?
+    echo "ps"
+    ps
+    echo "ps --help"
+    ps --help
+
     # find the replica that is the child of dfx.  we do not have awk.
     REPLICA_PID=$(ps -o "ppid, pid, comm" | grep ^\\s*$DFX_PID\\s.*replica$ | cut -d ' ' -f 2)
 
