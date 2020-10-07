@@ -25,6 +25,9 @@ teardown() {
 
     DFX_PID=$(cat .dfx/pid)
 
+    echo "jobs 0"
+    jobs -p
+
     echo "xx 0"
     ps
     echo "xx 1"
