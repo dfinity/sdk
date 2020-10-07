@@ -220,7 +220,6 @@ pub fn run_webserver(
     .bind(bind)?
     // N.B. This is an arbitrary timeout for now.
     .shutdown_timeout(SHUTDOWN_WAIT_TIME)
-    //.system_exit()
     .run();
 
     Ok(handler)

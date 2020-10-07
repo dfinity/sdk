@@ -26,12 +26,8 @@ fn list_all_descendants(pid: Pid) -> Vec<Pid> {
 
 /// Recursively kill a process and ALL its children.
 fn kill_all(pid: Pid) -> DfxResult {
-    eprintln!("kill pid {} and all descendants", pid);
     let processes = list_all_descendants(pid);
-    eprintln!(" - descendants: {:?}", processes);
     for pid in processes {
-        eprintln!(" - kill process {}", pid);
-
         let process = Process::new(pid, None, 0);
         process.kill(Signal::Term);
     }
