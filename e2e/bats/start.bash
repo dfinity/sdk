@@ -28,8 +28,6 @@ teardown() {
     # this differs between linux and darwin under nix?
     echo "ps"
     ps
-    echo "man ps"
-    man ps
     echo "ps simple"
     ps simple
     echo "ps list"
