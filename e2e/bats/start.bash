@@ -25,31 +25,19 @@ teardown() {
 
     DFX_PID=$(cat .dfx/pid)
 
-    # this differs between linux and darwin under nix?
-    echo "ps"
-    ps
-    echo "ps simple"
-    ps s
-    echo "ps list"
-    ps l
-    echo "ps output"
-    ps o
-    echo "ps threads"
-    ps t
-    echo "ps misc"
-    ps m
-    echo "ps all"
-    ps a
+    ps | grep replica
+    ps | grep "[/\s]replica"
 
-    ps -o "ppid, pid, comm"
     # find the replica that is the child of dfx.  we do not have awk.
-    REPLICA_PID=$(ps -o "ppid, pid, comm" | grep ^\\s*$DFX_PID\\s.*replica$ | cut -d ' ' -f 2)
+    REPLICA_PID=$(ps | grep "[/\s]replica" | cut -d ' ' -f 1)
+
+    echo "replica pid is $REPLICA_PID"
 
     kill -KILL $REPLICA_PID
     assert_process_exits $REPLICA_PID 15s
 
     timeout $timeout sh -c \
-      'until ps -o "ppid, pid, comm" | grep ^\\s*'$DFX_PID'\\s.*replica$; do echo waiting for replica to restart; sleep 1; done' \
+      'until ps | grep "[/\s]replica"; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
 
     assert_command dfx canister call hello greet '("Omega")'
