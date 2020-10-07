@@ -29,17 +29,17 @@ teardown() {
     echo "ps"
     ps
     echo "ps simple"
-    ps simple
+    ps s
     echo "ps list"
-    ps list
+    ps l
     echo "ps output"
-    ps output
+    ps o
     echo "ps threads"
-    ps threads
+    ps t
     echo "ps misc"
-    ps misc
+    ps m
     echo "ps all"
-    ps all
+    ps a
 
     ps -o "ppid, pid, comm"
     # find the replica that is the child of dfx.  we do not have awk.
