@@ -162,10 +162,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     })
     .start();
 
-    let replica_addr = start_replica(env, &state_root, shutdown_controller)?;
+    let replica_addr = start_replica(env, &state_root, shutdown_controller.clone())?;
 
     let _webserver_coordinator =
-        start_webserver_coordinator(env, args, config, address_and_port, replica_addr)?;
+        start_webserver_coordinator(env, args, config, address_and_port, replica_addr, shutdown_controller)?;
 
     // Update the pid file.
     if let Ok(pid) = sysinfo::get_current_pid() {
@@ -173,6 +173,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     }
 
     system.run()?;
+
+    eprintln!("system.run() returned");
 
     Ok(())
 }
@@ -230,6 +232,7 @@ fn start_webserver_coordinator(
     config: Arc<Config>,
     address_and_port: SocketAddr,
     replica_addr: Addr<Replica>,
+    shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
     let network_descriptor = get_network_descriptor(env, args)?;
     let bootstrap_dir = env.get_cache().get_binary_command_path("bootstrap")?;
@@ -243,6 +246,7 @@ fn start_webserver_coordinator(
     let coord_config = actors::replica_webserver_coordinator::Config {
         logger: Some(env.get_logger().clone()),
         replica_addr,
+        shutdown_controller,
         bind: address_and_port,
         serve_dir: bootstrap_dir,
         providers,

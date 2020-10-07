@@ -180,6 +180,7 @@ fn main() {
         Err(e) => Err(e),
     };
 
+    eprintln!("main about to exit");
     if let Err(err) = result {
         eprintln!("{}", err);
 

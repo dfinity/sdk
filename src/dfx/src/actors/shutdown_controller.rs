@@ -3,6 +3,7 @@ use crate::actors::shutdown_controller::signals::ShutdownTrigger;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient};
 use slog::Logger;
 use std::time::Duration;
+use std::thread;
 
 pub mod signals {
     use actix::prelude::*;
@@ -85,6 +86,13 @@ impl ShutdownController {
         })
         .expect("Error setting Ctrl-C handler");
     }
+
+    fn shutdown_soon(&self, shutdown_controller: Addr<ShutdownController>) {
+        let _t = thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(10));
+            shutdown_controller.do_send(ShutdownTrigger());
+        });
+    }
 }
 
 impl Actor for ShutdownController {
@@ -92,6 +100,7 @@ impl Actor for ShutdownController {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         self.install_ctrlc_handler(ctx.address());
+        self.shutdown_soon(ctx.address());
     }
 }
 

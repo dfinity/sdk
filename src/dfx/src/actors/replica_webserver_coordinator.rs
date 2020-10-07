@@ -6,15 +6,20 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
-use actix::{Actor, Addr, AsyncContext, Context, Handler};
+use actix::{Actor, Addr, AsyncContext, Context, Handler, ResponseActFuture, WrapFuture, ActorContext, ActorFuture, Running, System, fut};
 use actix_server::Server;
 use slog::{debug, error, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::ShutdownController;
+use actix_web::rt;
 
 pub struct Config {
     pub logger: Option<Logger>,
     pub replica_addr: Addr<Replica>,
+    pub shutdown_controller: Addr<ShutdownController>,
     pub bind: SocketAddr,
     pub serve_dir: PathBuf,
     pub providers: Vec<url::Url>,
@@ -74,7 +79,22 @@ impl Actor for ReplicaWebserverCoordinator {
         self.config
             .replica_addr
             .do_send(PortReadySubscribe(ctx.address().recipient()));
+        self.config
+            .shutdown_controller
+            .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
     }
+
+    // fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
+    //     info!(self.logger, "Stopping the web server...");
+    //     if let Some(server) = self.server.take() {
+    //         block_on(server.stop(true));
+    //         //System::current().block_on(wrap_future(server.stop(true)));
+    //     }
+    //
+    //     debug!(self.logger, "Stopped.");
+    //     Running::Stop
+    // }
+
 }
 
 impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
@@ -101,6 +121,38 @@ impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
                     ctx.address().do_send(msg);
                 }
             }
+        }
+    }
+}
+
+impl Handler<Shutdown> for ReplicaWebserverCoordinator {
+    type Result = ResponseActFuture<Self, Result<(), ()>>;
+
+    fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
+        if let Some(server) = self.server.take() {
+            eprintln!("stopping webserver");
+            Box::pin(
+                server.stop(true)
+                    .into_actor(self) // converts future to ActorFuture
+                    .map(|_, _act, ctx| {
+                        eprintln!("stopping ReplicaWebserverCoordinator");
+                        ctx.stop();
+                        eprintln!("stopped ReplicaWebserverCoordinator");
+                        Ok(())
+                    }),
+            )
+        } else
+        {
+            Box::pin(fut::ok(())
+                // async{}
+                //     .into_actor(self) // converts future to ActorFuture
+                //     .map(|_, _act, ctx| {
+                //         eprintln!("stopping ReplicaWebserverCoordinator");
+                //         ctx.stop();
+                //         eprintln!("stopped ReplicaWebserverCoordinator");
+                //         Ok(())
+                //     }),
+            )
         }
     }
 }
