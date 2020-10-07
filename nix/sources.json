@@ -32,9 +32,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "master",
+        "branch": "nixpkgs-release-20.09",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "603c77cf1626bd4c9ab622325c5707755e1d5377",
+        "rev": "7a932ff55b3902424fd0c683d21b52fe62655703",
         "type": "git"
     },
     "dfinity": {
