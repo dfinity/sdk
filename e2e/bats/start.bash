@@ -34,6 +34,8 @@ teardown() {
     echo "xx 3"
     ps | grep [/[:space:]]replica | cut -d ' ' -f 1
     echo "xx 4"
+    ps | grep [/[:space:]]replica | awk '{print $1}'
+    echo "xx 5"
 
     # find the replica that is the child of dfx.  we do not have awk.
     REPLICA_PID=$(ps | grep [/[:space:]]replica | cut -d ' ' -f 1)
