@@ -28,6 +28,9 @@ teardown() {
     echo "jobs 0"
     jobs -p
 
+    echo "ps aux"
+    ps aux
+
     echo "xx 0"
     ps
     echo "xx 1"
