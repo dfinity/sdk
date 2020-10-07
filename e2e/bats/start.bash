@@ -61,5 +61,7 @@ teardown() {
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
+
+    assert_match "force fail"
 }
 
