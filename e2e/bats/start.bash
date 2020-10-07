@@ -34,10 +34,7 @@ teardown() {
     echo "ps aux"
     ps aux
 
-    echo "ps -T"
-    ps -T
-
-    echo "ps"
+    echo "ps" # on x86_64-darwin this fails
     ps
     echo "xx 1"
     ps | grep replica
