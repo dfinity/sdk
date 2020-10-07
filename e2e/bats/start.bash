@@ -34,7 +34,10 @@ teardown() {
     echo "ps aux"
     ps aux
 
-    echo "xx 0"
+    echo "ps -T"
+    ps -T
+
+    echo "ps"
     ps
     echo "xx 1"
     ps | grep replica
@@ -64,7 +67,5 @@ teardown() {
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
-
-    assert_match "force fail"
 }
 
