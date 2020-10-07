@@ -25,12 +25,14 @@ teardown() {
 
     DFX_PID=$(cat .dfx/pid)
 
+    echo "xx 0"
+    ps
     echo "xx 1"
-    ps | grep replica
+    ps | egrep replica
     echo "xx 2"
-    ps | grep "[/\s]replica"
+    ps | egrep "[/[:space:]]replica"
     echo "xx 3"
-    ps | grep "[/\s]replica" | cut -d ' ' -f 1
+    ps | egrep "[/\s]replica" | cut -d ' ' -f 1
     echo "xx 4"
 
     # find the replica that is the child of dfx.  we do not have awk.
