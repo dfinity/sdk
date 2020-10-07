@@ -28,9 +28,22 @@ teardown() {
     # this differs between linux and darwin under nix?
     echo "ps"
     ps
-    echo "ps --help"
-    ps --help
+    echo "man ps"
+    man ps
+    echo "ps simple"
+    ps simple
+    echo "ps list"
+    ps list
+    echo "ps output"
+    ps output
+    echo "ps threads"
+    ps threads
+    echo "ps misc"
+    ps misc
+    echo "ps all"
+    ps all
 
+    ps -o "ppid, pid, comm"
     # find the replica that is the child of dfx.  we do not have awk.
     REPLICA_PID=$(ps -o "ppid, pid, comm" | grep ^\\s*$DFX_PID\\s.*replica$ | cut -d ' ' -f 2)
 
