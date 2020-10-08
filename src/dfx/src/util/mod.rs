@@ -119,14 +119,11 @@ pub fn blob_from_arguments(
         "idl" => {
             let arguments = arguments.unwrap_or("()");
             let typed_args = match method_type {
-                None => {
-                    eprintln!("cannot find method type, dfx will send message with inferred type");
-                    candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
-                        .map_err(|e| {
-                            DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
-                        })?
-                        .to_bytes()
-                }
+                None => candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
+                    .map_err(|e| {
+                        DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
+                    })?
+                    .to_bytes(),
                 Some((env, func)) => {
                     let first_char = arguments.chars().next();
                     let is_candid_format = first_char.map_or(false, |c| c == '(');
