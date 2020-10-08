@@ -87,17 +87,6 @@ impl Actor for ReplicaWebserverCoordinator {
             .shutdown_controller
             .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
     }
-
-    // fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-    //     info!(self.logger, "Stopping the web server...");
-    //     if let Some(server) = self.server.take() {
-    //         block_on(server.stop(true));
-    //         //System::current().block_on(wrap_future(server.stop(true)));
-    //     }
-    //
-    //     debug!(self.logger, "Stopped.");
-    //     Running::Stop
-    // }
 }
 
 impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {

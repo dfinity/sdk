@@ -5,12 +5,12 @@ use crate::lib::message::UserMessage;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
-
 use crate::actors;
 use crate::actors::replica::Replica;
 use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
 use crate::actors::shutdown_controller;
 use crate::actors::shutdown_controller::ShutdownController;
+
 use actix::{Actor, Addr};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use delay::{Delay, Waiter};
@@ -150,10 +150,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     if args.is_present("clean") {
         clean_state(temp_dir, &state_root)?;
     }
-
-    // We are doing this here to make sure we can write to the temp
-    // pid file.
-    std::fs::write(&pid_file_path, "")?;
 
     let system = actix::System::new("dfx-start");
 
