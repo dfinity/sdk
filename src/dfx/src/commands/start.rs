@@ -1,3 +1,8 @@
+use crate::actors;
+use crate::actors::replica::Replica;
+use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
+use crate::actors::shutdown_controller;
+use crate::actors::shutdown_controller::ShutdownController;
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -5,11 +10,6 @@ use crate::lib::message::UserMessage;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
-use crate::actors;
-use crate::actors::replica::Replica;
-use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
-use crate::actors::shutdown_controller;
-use crate::actors::shutdown_controller::ShutdownController;
 
 use actix::{Actor, Addr};
 use clap::{App, Arg, ArgMatches, SubCommand};
@@ -109,7 +109,6 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
     ping_and_wait(&frontend_url_mod)
 }
 
-// TODO(eftychis)/In progress: Rename to replica.
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
@@ -119,37 +118,29 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     let temp_dir = env.get_temp_dir();
-
-    let (frontend_url, address_and_port) = frontend_address(args, &config)?;
+    let pid_file_path = temp_dir.join("pid");
     let webserver_port_path = temp_dir.join("webserver-port");
-    std::fs::write(&webserver_port_path, "")?;
-
-    // don't write to file since this arg means we send_background()
-    if !args.is_present("background") {
-        std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
-    }
-
-    let temp_dir = env.get_temp_dir();
-
     let state_root = env.get_state_dir();
 
-    let pid_file_path = temp_dir.join("pid");
     check_previous_process_running(&pid_file_path)?;
-
-    // We are doing this here to make sure we can write to the temp
-    // pid file.
-    std::fs::write(&pid_file_path, "")?;
-
-    if args.is_present("background") {
-        send_background()?;
-        return fg_ping_and_wait(webserver_port_path, frontend_url);
-    }
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if args.is_present("clean") {
         clean_state(temp_dir, &state_root)?;
     }
+
+    std::fs::write(&pid_file_path, "")?; // make sure we can write to this file
+    std::fs::write(&webserver_port_path, "")?;
+
+    let (frontend_url, address_and_port) = frontend_address(args, &config)?;
+
+    if args.is_present("background") {
+        send_background()?;
+        return fg_ping_and_wait(webserver_port_path, frontend_url);
+    }
+
+    std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let system = actix::System::new("dfx-start");
 
