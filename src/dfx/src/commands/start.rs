@@ -7,6 +7,7 @@ use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
@@ -20,7 +21,6 @@ use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -117,7 +117,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
+    let network_descriptor = get_network_descriptor(env, args)?;
+
     let temp_dir = env.get_temp_dir();
+    let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
     let webserver_port_path = temp_dir.join("webserver-port");
     let state_root = env.get_state_dir();
@@ -145,19 +148,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let system = actix::System::new("dfx-start");
 
-    let shutdown_controller = ShutdownController::new(shutdown_controller::Config {
-        logger: Some(env.get_logger().clone()),
-    })
-    .start();
+    let shutdown_controller = start_shutdown_controller(env)?;
 
-    let replica_addr = start_replica(env, &state_root, shutdown_controller.clone())?;
+    let replica = start_replica(env, &state_root, shutdown_controller.clone())?;
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,
-        args,
-        config,
+        network_descriptor,
         address_and_port,
-        replica_addr,
+        build_output_root,
+        replica,
         shutdown_controller,
     )?;
 
@@ -181,13 +181,20 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     Ok(())
 }
 
+fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<ShutdownController>> {
+    let actor_config = shutdown_controller::Config {
+        logger: Some(env.get_logger().clone()),
+    };
+    Ok(ShutdownController::new(actor_config).start())
+}
+
 fn start_replica(
     env: &dyn Environment,
     state_root: &Path,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<Replica>> {
-    let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
-    let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
+    let replica_path = env.get_cache().get_binary_command_path("replica")?;
+    let ic_starter_path = env.get_cache().get_binary_command_path("ic-starter")?;
 
     let temp_dir = env.get_temp_dir();
     let client_configuration_dir = temp_dir.join("client-configuration");
@@ -203,44 +210,39 @@ fn start_replica(
     std::fs::write(&client_port_path, "")?;
 
     let replica_config = ReplicaConfig::new(state_root).with_random_port(&client_port_path);
-    Ok(actors::replica::Replica::new(actors::replica::Config {
-        ic_starter_path: ic_starter_pathbuf,
+    let actor_config = actors::replica::Config {
+        ic_starter_path,
         replica_config,
-        replica_path: replica_pathbuf,
+        replica_path,
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
-    })
-    .start())
+    };
+    Ok(actors::replica::Replica::new(actor_config).start())
 }
 
 fn start_webserver_coordinator(
     env: &dyn Environment,
-    args: &ArgMatches<'_>,
-    config: Arc<Config>,
-    address_and_port: SocketAddr,
+    network_descriptor: NetworkDescriptor,
+    bind: SocketAddr,
+    build_output_root: PathBuf,
     replica_addr: Addr<Replica>,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
-    let network_descriptor = get_network_descriptor(env, args)?;
-    let bootstrap_dir = env.get_cache().get_binary_command_path("bootstrap")?;
+    let serve_dir = env.get_cache().get_binary_command_path("bootstrap")?;
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
-    let build_output_root = config
-        .get_temp_path()
-        .join(network_descriptor.name.clone())
-        .join("canisters");
 
-    let coord_config = actors::replica_webserver_coordinator::Config {
+    let actor_config = actors::replica_webserver_coordinator::Config {
         logger: Some(env.get_logger().clone()),
         replica_addr,
         shutdown_controller,
-        bind: address_and_port,
-        serve_dir: bootstrap_dir,
+        bind,
+        serve_dir,
         providers,
         build_output_root,
         network_descriptor,
     };
-    Ok(ReplicaWebserverCoordinator::new(coord_config).start())
+    Ok(ReplicaWebserverCoordinator::new(actor_config).start())
 }
 
 fn send_background() -> DfxResult<()> {
