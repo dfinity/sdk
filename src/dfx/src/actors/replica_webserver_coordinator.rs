@@ -119,6 +119,9 @@ impl Handler<Shutdown> for ReplicaWebserverCoordinator {
 
     fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
         if let Some(server) = self.server.take() {
+            // We stop the webserver before shutting down because
+            // if we don't, the process will segfault
+            // while dropping actix stuff after main() returns.
             Box::pin(server.stop(true).map(Ok))
         } else {
             Box::pin(future::ok(()))
