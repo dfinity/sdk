@@ -140,6 +140,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
 
+    write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let system = actix::System::new("dfx-start");
@@ -159,11 +160,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         replica_addr,
         shutdown_controller,
     )?;
-
-    // Update the pid file.
-    if let Ok(pid) = sysinfo::get_current_pid() {
-        let _ = std::fs::write(&pid_file_path, pid.to_string());
-    }
 
     system.run()?;
 
@@ -301,4 +297,10 @@ fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
         }
     }
     Ok(())
+}
+
+fn write_pid(pid_file_path: &Path) {
+    if let Ok(pid) = sysinfo::get_current_pid() {
+        let _ = std::fs::write(&pid_file_path, pid.to_string());
+    }
 }
