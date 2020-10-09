@@ -72,19 +72,19 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "191dca1c38cf7eebfb177f242063592223c87976"
+rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "191dca1c38cf7eebfb177f242063592223c87976"
+rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "191dca1c38cf7eebfb177f242063592223c87976"
+rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
 
 [dev-dependencies]
 env_logger = "0.6"

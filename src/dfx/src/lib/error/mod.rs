@@ -152,6 +152,12 @@ pub enum DfxError {
 
     /// The url for the frontend webserver is malformed
     MalformedFrontendUrl(String),
+
+    /// A wallet Canister ID could not be found.
+    CouldNotFindWalletForIdentity(String, String),
+
+    /// Could not find the wallet or the wallet was invalid.
+    InvalidWalletCanister(),
 }
 
 /// The result of running a DFX command.

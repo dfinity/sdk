@@ -15,6 +15,8 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 pub mod identity_manager;
+use ic_utils::interfaces::Wallet;
+use ic_utils::Canister;
 pub use identity_manager::IdentityManager;
 use std::io::Read;
 
@@ -84,13 +86,12 @@ impl Identity {
         &self.name
     }
 
-    pub fn set_wallet_id(
+    fn get_wallet_config_file(
         &self,
         env: &dyn Environment,
         network: &NetworkDescriptor,
-        id: Principal,
-    ) -> DfxResult {
-        let wallet_path = match network.r#type {
+    ) -> DfxResult<PathBuf> {
+        Ok(match network.r#type {
             NetworkType::Persistent => {
                 // Using the global
                 get_config_dfx_dir_path()?
@@ -101,7 +102,16 @@ impl Identity {
                 .get_temp_dir()
                 .join("local")
                 .join(WALLET_CONFIG_FILENAME),
-        };
+        })
+    }
+
+    pub fn set_wallet_id(
+        &self,
+        env: &dyn Environment,
+        network: &NetworkDescriptor,
+        id: Principal,
+    ) -> DfxResult {
+        let wallet_path = self.get_wallet_config_file(env, network)?;
 
         // Read the config file.
         let mut config = if wallet_path.exists() {
@@ -109,10 +119,9 @@ impl Identity {
             std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
             serde_json::from_slice::<WalletGlobalConfig>(&buffer)?
         } else {
-            let config = WalletGlobalConfig {
+            WalletGlobalConfig {
                 identities: BTreeMap::new(),
-            };
-            config
+            }
         };
 
         // Update the wallet map in it.
@@ -128,6 +137,53 @@ impl Identity {
         std::fs::create_dir_all(wallet_path.parent().unwrap())?;
         std::fs::write(&wallet_path, &serde_json::to_string_pretty(&config)?)?;
         Ok(())
+    }
+
+    pub fn wallet_canister_id(
+        &self,
+        env: &dyn Environment,
+        network: &NetworkDescriptor,
+    ) -> DfxResult<Principal> {
+        let wallet_path = self.get_wallet_config_file(env, network)?;
+        if !wallet_path.exists() {
+            return Err(DfxError::CouldNotFindWalletForIdentity(
+                self.name.clone(),
+                network.name.clone(),
+            ));
+        }
+
+        let config = {
+            let mut buffer = Vec::new();
+            std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
+            serde_json::from_slice::<WalletGlobalConfig>(&buffer)?
+        };
+
+        let wallet_network = config.identities.get(&self.name).ok_or_else(|| {
+            DfxError::CouldNotFindWalletForIdentity(self.name.clone(), network.name.clone())
+        })?;
+        Ok(wallet_network
+            .networks
+            .get(&network.name)
+            .ok_or_else(|| {
+                DfxError::CouldNotFindWalletForIdentity(self.name.clone(), network.name.clone())
+            })?
+            .clone())
+    }
+
+    pub fn get_wallet<'env>(
+        &self,
+        env: &'env dyn Environment,
+        network: &NetworkDescriptor,
+    ) -> DfxResult<Canister<'env, Wallet>> {
+        Ok(ic_utils::Canister::builder()
+            .with_agent(
+                env.get_agent()
+                    .ok_or(DfxError::CommandMustBeRunInAProject)?,
+            )
+            .with_canister_id(self.wallet_canister_id(env, network)?)
+            .with_interface(ic_utils::interfaces::Wallet)
+            .build()
+            .unwrap())
     }
 }
 
