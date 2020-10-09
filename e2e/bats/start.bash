@@ -34,17 +34,9 @@ teardown() {
     echo "ps aux"
     ps aux
 
-    echo "ps" # on x86_64-darwin this fails
+    echo "ps       # this will fail :("
+    # on x86_64-darwin this fails:
     ps
-    echo "xx 1"
-    ps | grep replica
-    echo "xx 2"
-    ps | grep [/[:space:]]replica
-    echo "xx 3"
-    ps | grep [/[:space:]]replica | cut -d ' ' -f 1
-    echo "xx 4"
-    ps | grep [/[:space:]]replica | awk '{print $1}'
-    echo "xx 5"
 
     REPLICA_PID=$(ps | grep [/[:space:]]replica | awk '{print $1}')
 
@@ -53,13 +45,9 @@ teardown() {
     kill -KILL $REPLICA_PID
     assert_process_exits $REPLICA_PID 15s
 
-    echo "replica exited"
-
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
-
-    echo "replica restarted"
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
