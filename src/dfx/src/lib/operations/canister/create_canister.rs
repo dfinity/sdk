@@ -1,9 +1,11 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::identity::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
+use candid::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
@@ -40,14 +42,26 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
             Ok(())
         }
         None => {
+            // Get the wallet canister.
+            let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+            let network = env.get_network_descriptor().expect("no network descriptor");
+            let wallet = identity.get_wallet(env, network)?;
+
             let mgr = ManagementCanister::create(
                 env.get_agent()
                     .ok_or(DfxError::CommandMustBeRunInAProject)?,
             );
 
+            info!(log, "Creating the canister using the wallet canister...");
+            #[derive(serde::Deserialize)]
+            struct Output {
+                canister_id: Principal,
+            }
+
             let mut runtime = Runtime::new().expect("Unable to create a runtime");
-            let (cid,) = runtime.block_on(
-                mgr.create_canister()
+            let (Output { canister_id: cid },): (Output,) = runtime.block_on(
+                wallet
+                    .call_forward(mgr.update_("create_canister").build(), 0)?
                     .call_and_wait(waiter_with_timeout(timeout)),
             )?;
             let canister_id = cid.to_text();

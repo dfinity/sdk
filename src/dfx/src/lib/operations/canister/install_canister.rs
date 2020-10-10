@@ -1,10 +1,11 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::identity::IdentityManager;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::waiter::waiter_with_timeout;
-
 use ic_agent::Agent;
+use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::*;
 use ic_utils::interfaces::ManagementCanister;
@@ -38,26 +39,37 @@ pub async fn install_canister(
     let wasm_path = canister_info
         .get_output_wasm_path()
         .expect("Cannot get WASM output path.");
-    let wasm = std::fs::read(wasm_path)?;
+    let wasm_module = std::fs::read(wasm_path)?;
 
-    let install_builder = mgr
-        .install_code(&canister_id, &wasm)
-        .with_raw_arg(args.to_vec())
-        .with_mode(mode);
+    #[derive(candid::CandidType)]
+    struct CanisterInstall {
+        mode: InstallMode,
+        canister_id: Principal,
+        wasm_module: Vec<u8>,
+        arg: Vec<u8>,
+        compute_allocation: Option<candid::Nat>,
+        memory_allocation: Option<candid::Nat>,
+    }
 
-    let install_builder = if let Some(ca) = compute_allocation {
-        install_builder.with_compute_allocation(ca)
-    } else {
-        install_builder
+    let install_args = CanisterInstall {
+        mode,
+        canister_id,
+        wasm_module,
+        arg: args.to_vec(),
+        compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
+        memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
     };
-    let install_builder = if let Some(ma) = memory_allocation {
-        install_builder.with_memory_allocation(ma)
-    } else {
-        install_builder
-    };
 
-    install_builder
-        .build()?
+    // Get the wallet canister.
+    let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+    let network = env.get_network_descriptor().expect("no network descriptor");
+    let wallet = identity.get_wallet(env, network)?;
+
+    wallet
+        .call_forward(
+            mgr.update_("install_code").with_arg(install_args).build(),
+            0,
+        )?
         .call_and_wait(waiter_with_timeout(timeout))
         .await?;
 

@@ -11,7 +11,7 @@ use indicatif::HumanBytes;
 use lazy_static::lazy_static;
 use semver::Version;
 use serde_json::Value;
-use slog::{info, warn, Logger};
+use slog::{error, info, warn, Logger};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -372,17 +372,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let is_dirty = dfx_version_str().contains('-');
 
     let js_agent_version = if is_dirty {
-        // file!() returns a path like `src/dfx/src/commands/new.rs`, but since we are
-        // running from a directory outside the source tree, this does not help.
-        let agent_path = std::env::current_exe()?
-            .parent()
-            .unwrap()
-            .join("../../src/agent/javascript");
-        agent_path
-            .canonicalize()
-            .map_err(|e| DfxError::IoWithPath(e, agent_path))?
-            .to_string_lossy()
-            .to_string()
+        error!(
+            log,
+            "{}\n{}",
+            "YOU'RE USING A DEVELOPER DFX VERSION BUT MIGHT NOT BE USING LATEST JAVASCRIPT AGENT",
+            "You will need to install a custom Agent in your project if you want to test JavaScript."
+        );
+        dfx_version_str().to_owned()
     } else {
         dfx_version_str().to_owned()
     };

@@ -4,65 +4,55 @@ type device = record {
   public_key: text;
 };
 
-type event = variant {
+type Unit = vec nat8;
 
-  CyclesSent: record {
-    nonce: nat32;
+type EventKind = variant {
+  UnitSent: record {
     to: principal;
+    unit: Unit;
     amount: nat64;
-    timestamp: nat64;
   };
-
-  CyclesReceived: record {
-    nonce: nat32;
+  UnitReceived: record {
     from: principal;
+    unit: Unit;
     amount: nat64;
-    timestamp: nat64;
   };
-
-  ICPTSent: record {
-    nonce: nat32;
-    to: principal;
-    amount: nat64;
-    timestamp: nat64;
+  CustodianAdded: record {
+    custodian: principal;
   };
-
-  ICPTReceived: record {
-    nonce: nat32;
-    from: principal;
-    amount: nat64;
-    timestamp: nat64;
+  CustodianRemoved: record {
+    custodian: principal;
   };
 };
 
-service : {
+type event = record {
+  id: nat32;
+  timestamp: nat64;
+  kind: EventKind;
+};
 
+service : {
   // Controller Management
-  get_controller: () -> (principal);
+  get_controller: () -> (principal) query;
   set_controller: (principal) -> ();
 
   // Custodian Management
-  get_custodians: () -> (vec principal);
+  get_custodians: () -> (vec principal) query;
   authorize: (principal) -> ();
   deauthorize: (principal) -> ();
 
   // WebAuthn Support
   register: (text, text, text) -> ();
-  get_devices: () -> (vec device);
+  get_devices: () -> (vec device) query;
 
   // Cycle Management
-  cycle_balance: () -> (nat64);
+  cycle_balance: () -> (nat64) query;
   send_cycles: (principal, nat64) -> ();
   receive_cycles: () -> ();
-
-  // ICPT Management
-  icpt_balance: () -> (nat64);
-  send_icpt: (principal, nat64) -> ();
-  receive_icpt: () -> ();
 
   // Call Forwarding
   call: (principal, text, blob, nat64) -> (blob);
 
   // Events
-  get_events: () -> (vec event)
+  get_events: () -> (vec event) query;
 }

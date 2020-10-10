@@ -269,6 +269,7 @@ fn replica_start_thread(
             config.state_manager.state_root.to_str().unwrap_or_default(),
             "--create-funds-whitelist",
             "*",
+            "--scheduler-disable-refilling-hack",
         ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);

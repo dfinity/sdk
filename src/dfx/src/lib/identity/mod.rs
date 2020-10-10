@@ -7,18 +7,24 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityErrorKind};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::waiter::waiter_with_timeout;
+use crate::util;
+use candid::CandidType;
 use ic_agent::identity::BasicIdentity;
 use ic_agent::Signature;
 use ic_types::Principal;
+use ic_utils::interfaces::{ManagementCanister, Wallet};
+use ic_utils::Canister;
 use serde::{Deserialize, Serialize};
+use slog::info;
 use std::collections::BTreeMap;
+use std::io::Read;
 use std::path::PathBuf;
+use tokio::runtime::Runtime;
 
 pub mod identity_manager;
-use ic_utils::interfaces::Wallet;
-use ic_utils::Canister;
+use crate::util::expiry_duration;
 pub use identity_manager::IdentityManager;
-use std::io::Read;
 
 const IDENTITY_PEM: &str = "identity.pem";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
@@ -37,9 +43,6 @@ struct WalletGlobalConfig {
 pub struct Identity {
     /// The name of this Identity.
     name: String,
-
-    /// The directory where files for this identity can be found.
-    dir: PathBuf,
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
@@ -76,7 +79,6 @@ impl Identity {
 
         Ok(Self {
             name: name.to_string(),
-            dir,
             inner,
         })
     }
@@ -139,6 +141,86 @@ impl Identity {
         Ok(())
     }
 
+    fn create_wallet(
+        &self,
+        env: &dyn Environment,
+        network: &NetworkDescriptor,
+    ) -> DfxResult<Principal> {
+        if !network.is_local {
+            return Err(DfxError::CouldNotCreateWalletCanister());
+        }
+        let mgr = ManagementCanister::create(
+            env.get_agent()
+                .ok_or(DfxError::CommandMustBeRunInAProject)?,
+        );
+
+        info!(env, "Creating a wallet canister on the local network.");
+
+        let mut canister_assets = util::assets::wallet_canister()?;
+        let mut wasm = Vec::new();
+
+        for file in canister_assets.entries()? {
+            let mut file = file?;
+            if file.header().path()?.ends_with("wallet.wasm") {
+                file.read_to_end(&mut wasm)?;
+            }
+        }
+
+        #[derive(CandidType)]
+        struct Input {
+            num_cycles: candid::Nat,
+            num_icpt: candid::Nat,
+        }
+
+        #[derive(Deserialize)]
+        struct Output {
+            canister_id: Principal,
+        }
+
+        let mut runtime = Runtime::new().expect("Unable to create a runtime");
+        let cid: Principal = runtime.block_on(async {
+            let (Output { canister_id },) = mgr
+                .update_("dev_create_canister_with_funds")
+                .with_arg(Input {
+                    num_cycles: candid::Nat::from(5_000_000_000_000u64),
+                    num_icpt: candid::Nat::from(5_000u64),
+                })
+                .build()
+                .call_and_wait(waiter_with_timeout(expiry_duration()))
+                .await?;
+
+            mgr.install_code(&canister_id, wasm.as_slice())
+                .call_and_wait(waiter_with_timeout(expiry_duration()))
+                .await?;
+
+            DfxResult::Ok(canister_id)
+        })?;
+        self.set_wallet_id(env, network, cid.clone())?;
+
+        info!(env, "Your wallet canister on the local network is {}", cid);
+
+        Ok(cid)
+    }
+
+    pub fn get_or_create_wallet(
+        &self,
+        env: &dyn Environment,
+        network: &NetworkDescriptor,
+    ) -> DfxResult<Principal> {
+        // IF the network is local, we ignore the error and create a new wallet for the
+        // identity.
+        match self.wallet_canister_id(env, network) {
+            err @ Err(DfxError::CouldNotFindWalletForIdentity(..)) => {
+                if network.is_local {
+                    self.create_wallet(env, network)
+                } else {
+                    err
+                }
+            }
+            x => x,
+        }
+    }
+
     pub fn wallet_canister_id(
         &self,
         env: &dyn Environment,
@@ -180,7 +262,7 @@ impl Identity {
                 env.get_agent()
                     .ok_or(DfxError::CommandMustBeRunInAProject)?,
             )
-            .with_canister_id(self.wallet_canister_id(env, network)?)
+            .with_canister_id(self.get_or_create_wallet(env, network)?)
             .with_interface(ic_utils::interfaces::Wallet)
             .build()
             .unwrap())
