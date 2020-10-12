@@ -16,7 +16,7 @@ mod whoami;
 
 fn builtins() -> Vec<CliCommand> {
     vec![
-        CliCommand::new(create_wallet::construct(), list::exec),
+        CliCommand::new(create_wallet::construct(), create_wallet::exec),
         CliCommand::new(list::construct(), list::exec),
         CliCommand::new(new::construct(), new::exec),
         CliCommand::new(principal::construct(), principal::exec),

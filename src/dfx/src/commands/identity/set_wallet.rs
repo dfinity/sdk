@@ -10,7 +10,19 @@ use slog::{error, info};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("create-wallet").about(UserMessage::IdentityCreateWallet.to_str())
+    SubCommand::with_name("create-wallet")
+        .about(UserMessage::IdentitySetWallet.to_str())
+        .arg(
+            Arg::with_name("canister-id")
+                .help("The Canister ID of the wallet to associate with this identity.")
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("force")
+                .help("Skip verification that the ID points to a correct wallet canister. Only useful for the local network.")
+                .long("force"),
+        )
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -31,9 +43,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         let mut runtime = Runtime::new().expect("Unable to create a runtime");
         runtime
             .block_on(async {
-                if agent.status().await.is_err() {
-                    panic!("!!");
-                }
+                let _ = agent.status().await?;
 
                 info!(
                     log,
