@@ -10,12 +10,18 @@ use slog::{error, info};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("create-wallet")
+    SubCommand::with_name("set-wallet")
         .about(UserMessage::IdentitySetWallet.to_str())
         .arg(
             Arg::with_name("canister-id")
                 .help("The Canister ID of the wallet to associate with this identity.")
                 .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("network")
+                .help("The network that the wallet exists on.")
+                .long("network")
                 .takes_value(true),
         )
         .arg(
