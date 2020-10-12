@@ -141,7 +141,7 @@ impl Identity {
         Ok(())
     }
 
-    fn create_wallet(
+    pub fn create_wallet(
         &self,
         env: &dyn Environment,
         network: &NetworkDescriptor,

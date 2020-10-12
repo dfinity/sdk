@@ -7,6 +7,7 @@ setup() {
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
     export RUST_BACKTRACE=1
 
+    dfx identity new test_id
     dfx_new
 }
 

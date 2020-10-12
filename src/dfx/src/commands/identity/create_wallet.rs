@@ -10,7 +10,19 @@ use slog::{error, info};
 use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("create-wallet").about(UserMessage::IdentityCreateWallet.to_str())
+    SubCommand::with_name("create-wallet")
+        .about(UserMessage::NewIdentity.to_str())
+        .arg(
+            Arg::with_name("canister-id")
+                .help("The Canister ID of the wallet to associate with this identity.")
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("force")
+                .help("Skip verification that the ID points to a correct wallet canister. Only useful for the local network.")
+                .long("force"),
+        )
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
@@ -40,18 +52,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = identity.get_wallet(env, &network)?;
-                let balance = canister.cycle_balance().call().await;
-                match balance {
-                    Err(_) | Ok((0,)) => {
-                        error!(
-                            log,
-                            "Impossible to read the canister. Make sure this is a valid wallet and the network is running. Use --force to skip this verification."
-                        );
-                        Err(DfxError::InvalidWalletCanister())
-                    }
-                    _ => Ok(()),
-                }
+                identity.create_wallet(env, &network)?;
             })
             .map_err(DfxError::from)?;
     }
@@ -63,7 +64,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         canister_id
     );
 
-    identity.set_wallet_id(env, &network, canister_id)?;
+    identity.set_wallet_id(env, &network, canister_id.clone())?;
 
     Ok(())
 }
