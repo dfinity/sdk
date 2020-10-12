@@ -7,7 +7,7 @@ setup() {
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
     export RUST_BACKTRACE=1
 
-    dfx identity new test_id
+    run dfx identity new test_id
     dfx_new
 }
 
@@ -32,8 +32,14 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
+<<<<<<< HEAD
     assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
     cat <<<$(jq .networks.ic.type=\"ephemeral\" dfx.json) >dfx.json
+=======
+    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
+    cat <<<$(jq .networks.tungsten.type=\"ephemeral\" dfx.json) >dfx.json
+    assert_command dfx identity create-wallet --network tungsten
+>>>>>>> .
 
     assert_command dfx canister --network ic create --all
 
