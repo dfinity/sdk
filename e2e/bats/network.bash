@@ -18,27 +18,27 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
+    assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
 
-    assert_command dfx canister --network tungsten create --all
+    assert_command dfx canister --network ic create --all
 
     # canister creates writes to a spinner (stderr), not stdout
-    assert_command dfx canister --network tungsten id e2e_project
-    assert_match $(cat canister_ids.json | jq -r .e2e_project.tungsten)
+    assert_command dfx canister --network ic id e2e_project
+    assert_match $(cat canister_ids.json | jq -r .e2e_project.ic)
 }
 
 @test "create stores canister ids for configured-ephemeral networks in canister_ids.json" {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
-    cat <<<$(jq .networks.tungsten.type=\"ephemeral\" dfx.json) >dfx.json
+    assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
+    cat <<<$(jq .networks.ic.type=\"ephemeral\" dfx.json) >dfx.json
 
-    assert_command dfx canister --network tungsten create --all
+    assert_command dfx canister --network ic create --all
 
     # canister creates writes to a spinner (stderr), not stdout
-    assert_command dfx canister --network tungsten id e2e_project
-    assert_match $(cat .dfx/tungsten/canister_ids.json | jq -r .e2e_project.tungsten)
+    assert_command dfx canister --network ic id e2e_project
+    assert_match $(cat .dfx/ic/canister_ids.json | jq -r .e2e_project.ic)
 }
 
 @test "create stores canister ids for default-ephemeral local networks in .dfx/{network}canister_ids.json" {
@@ -74,8 +74,8 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
+    assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
 
-    assert_command_fail dfx build --network tungsten
-    assert_match "Cannot find canister id. Please issue 'dfx canister --network tungsten create e2e_project"
+    assert_command_fail dfx build --network ic
+    assert_match "Cannot find canister id. Please issue 'dfx canister --network ic create e2e_project"
 }
