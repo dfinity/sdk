@@ -8,6 +8,7 @@ setup() {
     export RUST_BACKTRACE=1
 
     run dfx identity new test_id
+    dfx identity use test_id
     dfx_new
 }
 
