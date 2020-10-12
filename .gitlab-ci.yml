@@ -1,0 +1,43 @@
+before_script:
+  - set -euo pipefail
+  - 'command -v ssh-agent >/dev/null'
+  - eval $(ssh-agent -s)
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+  - chmod 700 ~/.ssh/id_ed25519
+  - ssh-add ~/.ssh/id_ed25519
+  - ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+  - rm ~/.ssh/id_ed25519
+  - ulimit -n 8192
+  - mkdir -p $CI_JOB_STAGE/$CI_JOB_NAME
+
+# Run SDK tests against the upstream DFINITY repo.
+#
+# Typically this job is triggered from an upstream pipeline in the DFINITY
+# repo, but this job can still be run manually from within the GitLab pipeline UI.
+#
+# The following variables indicate which branch and commit in the DFINITY repo to run
+# the SDK tests against.
+#
+#   SDK_TEST_BRANCH_NAME:
+#     The branch name in the dfinity repo.
+#   SDK_TEST_COMMIT_SHA:
+#     The git commit hash.
+#
+sdk_test:
+  stage: test
+  rules:
+    # Only trigger this job from upstream pipelines or manual execution
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+  script:
+    ./scripts/run_sdk_test.sh
+  artifacts:
+    when: always
+    paths:
+      - $CI_JOB_STAGE/$CI_JOB_NAME
+
+stages:
+  - test
