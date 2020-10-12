@@ -22,8 +22,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let log = env.get_logger();
     let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
 
-    let network = get_network_descriptor(env, args)?;
-
     // Try to check the canister_id for a `cycle_balance()` if the network is local and available.
     // Otherwise we just trust the user.
     let agent = env
@@ -33,6 +31,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     runtime
         .block_on(async {
+            let network = get_network_descriptor(env, args)?;
             let _ = agent.status().await?;
 
             info!(
