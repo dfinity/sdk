@@ -81,7 +81,7 @@ teardown() {
   assert_match "CUSTOM_CANISTER_BUILD_DONE"
 
   dfx canister install --all
-  assert_command dfx canister call custom hashFromQuery
+  assert_command dfx canister call custom fromQuery
 }
 
 @test "build succeeds with network parameter" {
