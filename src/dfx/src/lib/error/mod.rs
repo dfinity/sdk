@@ -346,10 +346,10 @@ impl From<delay::WaiterError> for DfxError {
 }
 
 fn is_plain_text_utf8(content_type: &Option<String>) -> bool {
-    match content_type.as_ref().map(|s|s.parse::<mime::Mime>()) {
-        // text/plain is also sometimes returned by the replica (or ic-ref),
-        // depending on where in the stack the error happens.
-        Some(Ok(mt)) => mt == mime::TEXT_PLAIN || mt == mime::TEXT_PLAIN_UTF_8,
-        _ => false,
-    }
+    // text/plain is also sometimes returned by the replica (or ic-ref),
+    // depending on where in the stack the error happens.
+    matches!(
+        content_type.as_ref().and_then(|s|s.parse::<mime::Mime>().ok()),
+        Some(mt) if mt == mime::TEXT_PLAIN || mt == mime::TEXT_PLAIN_UTF_8
+    )
 }
