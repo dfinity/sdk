@@ -24,7 +24,7 @@ let
   publish = import ./publish.nix {
     inherit pkgs releaseVersion;
     inherit (jobset) install;
-    dfx = jobset.dfx.standalone;
+    dfx-standalone = jobset.dfx.standalone;
   };
 in
 jobset // { inherit publish; }
