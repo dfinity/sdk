@@ -22,7 +22,7 @@
     }
   },
   "networks": {
-    "tungsten": {
+    "ic": {
       "providers": [
         "https://gw.dfinity.network"
       ],
