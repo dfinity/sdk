@@ -1028,6 +1028,7 @@ dependencies = [
  "lazy-init",
  "lazy_static",
  "libflate",
+ "mime",
  "mockall",
  "mockito",
  "net2",
