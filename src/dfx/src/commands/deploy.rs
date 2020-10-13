@@ -5,6 +5,7 @@ use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::util::expiry_duration;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use tokio::runtime::Runtime;
 
 pub fn construct() -> App<'static, 'static> {
     SubCommand::with_name("deploy")
@@ -46,5 +47,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let argument = args.value_of("argument");
     let argument_type = args.value_of("type");
 
-    deploy_canisters(&env, canister, argument, argument_type, timeout)
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    runtime.block_on(deploy_canisters(
+        &env,
+        canister,
+        argument,
+        argument_type,
+        timeout,
+    ))
 }

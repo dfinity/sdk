@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::message::UserMessage;
-use crate::lib::provider::get_network_descriptor;
+use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
 use tokio::runtime::Runtime;
@@ -19,8 +19,10 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+    let env = create_agent_environment(env, args)?;
     let log = env.get_logger();
-    let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+    let identity = IdentityManager::new(&env)?.instantiate_selected_identity()?;
+    let network = get_network_descriptor(&env, args)?;
 
     // Try to check the canister_id for a `cycle_balance()` if the network is local and available.
     // Otherwise we just trust the user.
@@ -31,7 +33,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     runtime
         .block_on(async {
-            let network = get_network_descriptor(env, args)?;
             let _ = agent.status().await?;
 
             info!(
@@ -39,7 +40,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 "Checking availability of the canister on the network..."
             );
 
-            let canister_id = identity.create_wallet(env, &network)?;
+            let canister_id = identity.create_wallet(&env, &network).await?;
             info!(
                 log,
                 "Created wallet for identity '{}' on network '{}' with id '{}'",
@@ -48,7 +49,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 canister_id
             );
 
-            identity.set_wallet_id(env, &network, canister_id)?;
+            identity.set_wallet_id(&env, &network, canister_id)?;
 
             DfxResult::Ok(())
         })

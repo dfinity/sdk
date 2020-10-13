@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::message::UserMessage;
-use crate::lib::provider::get_network_descriptor;
+use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_types::Principal;
 use ic_utils::call::SyncCall;
@@ -32,6 +32,8 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+    let agent_env = create_agent_environment(env, args)?;
+    let env = &agent_env;
     let log = env.get_logger();
     let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
 
@@ -39,9 +41,19 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let canister_id = Principal::from_text(args.value_of("canister-id").unwrap())?;
     let force = args.is_present("force");
 
+    info!(
+        log,
+        "Setting wallet for identity '{}' on network '{}' to id '{}'",
+        identity.name(),
+        network.name,
+        canister_id
+    );
+
+    identity.set_wallet_id(env, &network, canister_id)?;
+
     // Try to check the canister_id for a `cycle_balance()` if the network is local and available.
     // Otherwise we just trust the user.
-    if network.is_local && force {
+    if network.is_local || force {
         let agent = env
             .get_agent()
             .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -56,7 +68,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = identity.get_wallet(env, &network)?;
+                let canister = identity.get_wallet(env, &network, false).await?;
                 let balance = canister.cycle_balance().call().await;
                 match balance {
                     Err(_) | Ok((0,)) => {
@@ -71,15 +83,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             })
             .map_err(DfxError::from)?;
     }
-    info!(
-        log,
-        "Setting wallet for identity '{}' on network '{}' to id '{}'",
-        identity.name(),
-        network.name,
-        canister_id
-    );
-
-    identity.set_wallet_id(env, &network, canister_id)?;
 
     Ok(())
 }

@@ -3,6 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
+use tokio::runtime::Runtime;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 
@@ -32,17 +33,21 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let timeout = expiry_duration();
 
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
     if let Some(canister_name) = args.value_of("canister_name") {
-        create_canister(env, canister_name, timeout)?;
+        runtime.block_on(create_canister(env, canister_name, timeout))?;
         Ok(())
     } else if args.is_present("all") {
-        // Create all canisters.
-        if let Some(canisters) = &config.get_config().canisters {
-            for canister_name in canisters.keys() {
-                create_canister(env, canister_name, timeout)?;
+        runtime.block_on(async {
+            // Create all canisters.
+            if let Some(canisters) = &config.get_config().canisters {
+                for canister_name in canisters.keys() {
+                    create_canister(env, canister_name, timeout).await?;
+                }
             }
-        }
-        Ok(())
+
+            Ok(())
+        })
     } else {
         Err(DfxError::CanisterNameMissing())
     }

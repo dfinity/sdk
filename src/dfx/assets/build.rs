@@ -96,11 +96,11 @@ fn main() {
 
     // Pass a version in the environment, or the git describe version at time of build,
     // or let the cargo.toml version.
-    if let Ok(v) = std::env::var("DFX_VERSION") {
-        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
-    } else if let Some(git) = get_git_hash() {
-        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
-    } else {
-        // Nothing to do here, as there is no GIT. We keep the CARGO_PKG_VERSION.
-    }
+    // if let Ok(v) = std::env::var("DFX_VERSION") {
+    // println!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
+    // } else if let Some(git) = get_git_hash() {
+    // println!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
+    // } else {
+    // Nothing to do here, as there is no GIT. We keep the CARGO_PKG_VERSION.
+    // }
 }

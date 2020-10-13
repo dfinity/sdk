@@ -141,14 +141,11 @@ impl Identity {
         Ok(())
     }
 
-    pub fn create_wallet(
+    pub async fn create_wallet(
         &self,
         env: &dyn Environment,
         network: &NetworkDescriptor,
     ) -> DfxResult<Principal> {
-        if !network.is_local {
-            return Err(DfxError::CouldNotCreateWalletCanister());
-        }
         let mgr = ManagementCanister::create(
             env.get_agent()
                 .ok_or(DfxError::CommandMustBeRunInAProject)?,
@@ -177,42 +174,42 @@ impl Identity {
             canister_id: Principal,
         }
 
-        let mut runtime = Runtime::new().expect("Unable to create a runtime");
-        let cid: Principal = runtime.block_on(async {
-            let (Output { canister_id },) = mgr
-                .update_("dev_create_canister_with_funds")
-                .with_arg(Input {
-                    num_cycles: candid::Nat::from(5_000_000_000_000u64),
-                    num_icpt: candid::Nat::from(5_000u64),
-                })
-                .build()
-                .call_and_wait(waiter_with_timeout(expiry_duration()))
-                .await?;
+        let (Output { canister_id },) = mgr
+            .update_("dev_create_canister_with_funds")
+            .with_arg(Input {
+                num_cycles: candid::Nat::from(5_000_000_000_000u64),
+                num_icpt: candid::Nat::from(5_000u64),
+            })
+            .build()
+            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .await?;
 
-            mgr.install_code(&canister_id, wasm.as_slice())
-                .call_and_wait(waiter_with_timeout(expiry_duration()))
-                .await?;
+        mgr.install_code(&canister_id, wasm.as_slice())
+            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .await?;
 
-            DfxResult::Ok(canister_id)
-        })?;
-        self.set_wallet_id(env, network, cid.clone())?;
+        self.set_wallet_id(env, network, canister_id.clone())?;
 
-        info!(env, "Your wallet canister on the local network is {}", cid);
+        info!(
+            env,
+            "Your wallet canister on the local network is {}", canister_id
+        );
 
-        Ok(cid)
+        Ok(canister_id)
     }
 
-    pub fn get_or_create_wallet(
+    pub async fn get_or_create_wallet(
         &self,
         env: &dyn Environment,
         network: &NetworkDescriptor,
+        create: bool,
     ) -> DfxResult<Principal> {
         // IF the network is local, we ignore the error and create a new wallet for the
         // identity.
         match self.wallet_canister_id(env, network) {
             err @ Err(DfxError::CouldNotFindWalletForIdentity(..)) => {
-                if network.is_local {
-                    self.create_wallet(env, network)
+                if network.is_local && create {
+                    self.create_wallet(env, network).await
                 } else {
                     err
                 }
@@ -252,17 +249,18 @@ impl Identity {
             .clone())
     }
 
-    pub fn get_wallet<'env>(
+    pub async fn get_wallet<'env>(
         &self,
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
+        create: bool,
     ) -> DfxResult<Canister<'env, Wallet>> {
         Ok(ic_utils::Canister::builder()
             .with_agent(
                 env.get_agent()
                     .ok_or(DfxError::CommandMustBeRunInAProject)?,
             )
-            .with_canister_id(self.get_or_create_wallet(env, network)?)
+            .with_canister_id(self.get_or_create_wallet(env, network, create).await?)
             .with_interface(ic_utils::interfaces::Wallet)
             .build()
             .unwrap())

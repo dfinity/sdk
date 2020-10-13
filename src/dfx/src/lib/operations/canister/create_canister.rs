@@ -11,9 +11,12 @@ use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
 use std::time::Duration;
-use tokio::runtime::Runtime;
 
-pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Duration) -> DfxResult {
+pub async fn create_canister(
+    env: &dyn Environment,
+    canister_name: &str,
+    timeout: Duration,
+) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
 
@@ -45,7 +48,7 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
             // Get the wallet canister.
             let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
             let network = env.get_network_descriptor().expect("no network descriptor");
-            let wallet = identity.get_wallet(env, network)?;
+            let wallet = identity.get_wallet(env, network, true).await?;
 
             let mgr = ManagementCanister::create(
                 env.get_agent()
@@ -58,12 +61,10 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
                 canister_id: Principal,
             }
 
-            let mut runtime = Runtime::new().expect("Unable to create a runtime");
-            let (Output { canister_id: cid },): (Output,) = runtime.block_on(
-                wallet
-                    .call_forward(mgr.update_("create_canister").build(), 0)?
-                    .call_and_wait(waiter_with_timeout(timeout)),
-            )?;
+            let (Output { canister_id: cid },): (Output,) = wallet
+                .call_forward(mgr.update_("create_canister").build(), 0)?
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
             let canister_id = cid.to_text();
             info!(
                 log,
