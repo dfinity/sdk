@@ -4,11 +4,12 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::IdentityManager;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::waiter::waiter_with_timeout;
-use ic_agent::Agent;
+use ic_agent::{Agent, Identity};
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::*;
 use ic_utils::interfaces::ManagementCanister;
+use ic_utils::Canister;
 use slog::info;
 use std::time::Duration;
 
@@ -28,6 +29,11 @@ pub async fn install_canister(
     let canister_id = canister_info.get_canister_id().map_err(|_| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(canister_id.clone())
+        .build()
+        .unwrap();
 
     info!(
         log,
@@ -74,6 +80,20 @@ pub async fn install_canister(
         .await?;
 
     if canister_info.get_type() == "assets" {
+        info!(env, "Authorizing ourselves to the asset canister...");
+        // Before storing assets, make sure the DFX principal is in there first.
+        wallet
+            .call_forward(
+                canister
+                    .update_("authorize")
+                    .with_arg((identity.sender(),))
+                    .build(),
+                0,
+            )?
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await?;
+
+        info!(env, "Uploading assets to asset canister...");
         post_install_store_assets(&canister_info, &agent, timeout).await?;
     }
 

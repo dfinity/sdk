@@ -1,22 +1,31 @@
 import Error "mo:base/Error";
-import Tree "mo:base/RBTree";
-import Text "mo:base/Text";
 import Iter "mo:base/Iter";
+import Array "mo:base/Array";
+import Text "mo:base/Text";
+import Tree "mo:base/RBTree";
 
 shared {caller = creator} actor class () {
 
     public type Path = Text;
     public type Contents = Blob;
 
-    let initializer : Principal = creator;
+    stable var authorized: [Principal] = [creator];
 
     let db: Tree.RBTree<Path, Contents> = Tree.RBTree(Text.compare);
 
-    public shared { caller } func store(path : Path, contents : Contents) : async () {
-        if (caller != initializer) {
-            throw Error.reject("not authorized");
+    public shared { caller } func authorize(other: Principal) : async () {
+        if (isSafe(caller)) {
+            authorized := Array.append<Principal>(authorized, [other]);
         } else {
+            throw Error.reject("not authorized");
+        }
+    };
+
+    public shared { caller } func store(path : Path, contents : Contents) : async () {
+        if (isSafe(caller)) {
             db.put(path, contents);
+        } else {
+            throw Error.reject("not authorized");
         };
     };
 
@@ -31,4 +40,9 @@ shared {caller = creator} actor class () {
         let iter = Iter.map<(Path, Contents), Path>(db.entries(), func (path, _) = path);
         Iter.toArray(iter)
     };
+
+    func isSafe(caller: Principal) : Bool {
+        func eq(value: Principal): Bool = value == caller;
+        Array.find(authorized, eq) != null
+    }
 };
