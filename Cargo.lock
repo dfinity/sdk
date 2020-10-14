@@ -663,7 +663,7 @@ dependencies = [
  "lalrpop-util",
  "leb128",
  "logos",
- "num-bigint",
+ "num-bigint 0.3.0",
  "num-traits",
  "num_enum",
  "paste",
@@ -1679,7 +1679,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#191dca1c38cf7eebfb177f242063592223c87976"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#c90032837714392ef1a6a239138b7d0235f4f26a"
 dependencies = [
  "async-trait",
  "base32",
@@ -1698,6 +1698,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_cbor",
+ "simple_asn1",
  "thiserror",
  "url",
  "webpki-roots 0.20.0",
@@ -1706,7 +1707,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#191dca1c38cf7eebfb177f242063592223c87976"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#c90032837714392ef1a6a239138b7d0235f4f26a"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1718,7 +1719,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#191dca1c38cf7eebfb177f242063592223c87976"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#c90032837714392ef1a6a239138b7d0235f4f26a"
 dependencies = [
  "async-trait",
  "candid",
@@ -2226,6 +2227,17 @@ dependencies = [
  "mio-extras",
  "walkdir",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "090c7f9998ee0ff65aa5b723e4009f7b217707f1fb5ea551329cc4d6231fb304"
+dependencies = [
+ "autocfg 1.0.1",
+ "num-integer",
+ "num-traits",
 ]
 
 [[package]]
@@ -3168,6 +3180,17 @@ checksum = "a3e12110bc539e657a646068aaf5eb5b63af9d0c1f7b29c97113fad80e15f035"
 dependencies = [
  "arc-swap",
  "libc",
+]
+
+[[package]]
+name = "simple_asn1"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "692ca13de57ce0613a363c8c2f1de925adebc81b04c923ac60c5488bb44abe4b"
+dependencies = [
+ "chrono",
+ "num-bigint 0.2.6",
+ "num-traits",
 ]
 
 [[package]]
