@@ -135,6 +135,7 @@ async fn install_canisters(
             timeout,
         )
         .await;
+
         match result {
             Err(DfxError::AgentError(AgentError::ReplicaError {
                 reject_code,
@@ -148,7 +149,7 @@ async fn install_canisters(
                 };
                 warn!(
                     env.get_logger(),
-                    "replica error. attempting {}", mode_description
+                    "Replica error. attempting {}", mode_description
                 );
                 install_canister(
                     env,
