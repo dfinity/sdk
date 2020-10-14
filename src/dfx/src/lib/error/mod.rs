@@ -158,9 +158,6 @@ pub enum DfxError {
 
     /// Could not find the wallet or the wallet was invalid.
     InvalidWalletCanister(),
-
-    /// Could not create a wallet canister.
-    CouldNotCreateWalletCanister(),
 }
 
 /// The result of running a DFX command.
