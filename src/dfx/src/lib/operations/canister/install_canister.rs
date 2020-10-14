@@ -29,17 +29,12 @@ pub async fn install_canister(
     let canister_id = canister_info.get_canister_id().map_err(|_| {
         DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
     })?;
-    let canister = Canister::builder()
-        .with_agent(agent)
-        .with_canister_id(canister_id.clone())
-        .build()
-        .unwrap();
 
     info!(
         log,
         "Installing code for canister {}, with canister_id {}",
         canister_info.get_name(),
-        canister_id.to_text(),
+        canister_id,
     );
 
     let wasm_path = canister_info
@@ -59,7 +54,7 @@ pub async fn install_canister(
 
     let install_args = CanisterInstall {
         mode,
-        canister_id,
+        canister_id: canister_id.clone(),
         wasm_module,
         arg: args.to_vec(),
         compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
@@ -80,16 +75,20 @@ pub async fn install_canister(
         .await?;
 
     if canister_info.get_type() == "assets" {
-        info!(env, "Authorizing ourselves to the asset canister...");
+        let self_id = identity.sender()?;
+        info!(
+            env,
+            "Authorizing ourselves ({}) to the asset canister...", self_id
+        );
+        let canister = Canister::builder()
+            .with_agent(agent)
+            .with_canister_id(canister_id.clone())
+            .build()
+            .unwrap();
+
         // Before storing assets, make sure the DFX principal is in there first.
         wallet
-            .call_forward(
-                canister
-                    .update_("authorize")
-                    .with_arg((identity.sender(),))
-                    .build(),
-                0,
-            )?
+            .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
             .call_and_wait(waiter_with_timeout(timeout))
             .await?;
 
