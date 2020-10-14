@@ -249,11 +249,11 @@ impl Identity {
     }
 
     pub async fn get_wallet<'env>(
-        &self,
+        &'env self,
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
         create: bool,
-    ) -> DfxResult<Canister<'env, Wallet>> {
+    ) -> DfxResult<Canister<'_, Wallet>> {
         Ok(ic_utils::Canister::builder()
             .with_agent(
                 env.get_agent()
