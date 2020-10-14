@@ -5,9 +5,11 @@ use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
+use candid::CandidType;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use ic_agent::Identity;
 use ic_types::principal::Principal as CanisterId;
+use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
 use tokio::runtime::Runtime;
@@ -43,6 +45,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .instantiate_identity_from_name(new_controller)?
             .sender()?,
     };
+    let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+    let network = env.get_network_descriptor().expect("no network descriptor");
 
     let timeout = expiry_duration();
 
@@ -51,12 +55,35 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             .ok_or(DfxError::CommandMustBeRunInAProject)?,
     );
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    runtime.block_on(
-        mgr.set_controller(&canister_id, &controller_principal)
-            .call_and_wait(waiter_with_timeout(timeout)),
-    )?;
+    #[derive(CandidType)]
+    struct Argument {
+        canister_id: Principal,
+        new_controller: Principal,
+    }
 
-    println!("Set {:?} as controller of {:?}.", new_controller, canister);
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    runtime.block_on(async {
+        let wallet = identity.get_wallet(env, &network, false).await?;
+
+        wallet
+            .call_forward(
+                mgr.update_("set_controller")
+                    .with_arg(Argument {
+                        canister_id,
+                        new_controller: controller_principal.clone(),
+                    })
+                    .build(),
+                0,
+            )?
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await?;
+
+        DfxResult::Ok(())
+    })?;
+
+    println!(
+        "Set {} as controller of {:?}.",
+        controller_principal, canister
+    );
     Ok(())
 }
