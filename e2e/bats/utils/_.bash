@@ -102,3 +102,11 @@ dfx_stop() {
         assert_no_dfx_start_or_replica_processes
     fi
 }
+
+# Create a canister to make sure we have a wallet on the local network, then
+# get that wallet canister ID and add it to the tungsten identity.
+dfx_wallet() {
+  dfx canister create --all
+  export WALLET_CANISTER_ID=$(dfx identity get-identity)
+  dfx idenity set-wallet --network tungsten ${WALLET_CANISTER_ID}
+}

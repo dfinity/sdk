@@ -125,8 +125,8 @@ user_message!(
     // dfx identity rename
     RenameIdentity => "Renames an existing identity.",
 
-    // dfx identity create-wallet
-    IdentityCreateWallet => "Create a new wallet for your identity on a network. This requires that you already have a wallet (or the network doesn't require payment, like the local network).",
+    // dfx identity get-wallet
+    IdentityGetWallet => "Get the canister ID of your wallet (or fail if there's no wallet) on a network.",
 
     // dfx identity set-wallet
     IdentitySetWallet => "Set the wallet for your identity on a network.",

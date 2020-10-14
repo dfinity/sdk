@@ -4,7 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
 
-mod create_wallet;
+mod get_wallet;
 mod list;
 mod new;
 mod principal;
@@ -16,7 +16,7 @@ mod whoami;
 
 fn builtins() -> Vec<CliCommand> {
     vec![
-        CliCommand::new(create_wallet::construct(), create_wallet::exec),
+        CliCommand::new(get_wallet::construct(), get_wallet::exec),
         CliCommand::new(list::construct(), list::exec),
         CliCommand::new(new::construct(), new::exec),
         CliCommand::new(principal::construct(), principal::exec),
