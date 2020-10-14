@@ -20,7 +20,6 @@ use slog::info;
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::PathBuf;
-use tokio::runtime::Runtime;
 
 pub mod identity_manager;
 use crate::util::expiry_duration;
