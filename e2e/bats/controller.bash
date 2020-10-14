@@ -24,12 +24,13 @@ teardown() {
     assert_command dfx identity new bob
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
-    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
-    BOB_WALLET=$(dfx --identity bob identity get-wallet)
 
     assert_command dfx identity use alice
 
     dfx_start
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    BOB_WALLET=$(dfx --identity bob identity get-wallet)
+
     dfx canister create hello
     dfx build hello
     dfx canister install hello
