@@ -81,6 +81,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         DfxResult::Ok(())
     })?;
 
-    println!("Set {} as controller of {:?}.", new_controller, canister);
+    println!("Set {:?} as controller of {:?}.", new_controller, canister);
     Ok(())
 }
