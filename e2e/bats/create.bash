@@ -51,6 +51,7 @@ teardown() {
 
 @test "create succeeds when requested network is configured" {
     dfx_start
+    dfx_set_wallet
 
     webserver_port=$(cat .dfx/webserver-port)
     assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
