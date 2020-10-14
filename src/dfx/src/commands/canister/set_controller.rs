@@ -6,7 +6,6 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::set_controller;
 use crate::util::expiry_duration;
 use clap::{App, Arg, ArgMatches, SubCommand};
-use ic_agent::Identity;
 use ic_types::Principal;
 use tokio::runtime::Runtime;
 
@@ -35,16 +34,22 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     };
 
     let new_controller = args.value_of("new-controller").unwrap();
-    let controller_principal = match Principal::from_text(new_controller) {
-        Ok(principal) => principal,
-        Err(_) => IdentityManager::new(env)?
-            .instantiate_identity_from_name(new_controller)?
-            .sender()?,
-    };
     let timeout = expiry_duration();
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
+        let controller_principal = match Principal::from_text(new_controller) {
+            Ok(principal) => principal,
+            Err(_) => {
+                // If this is not a textual principal format, use the wallet of the person
+                // and not its principal directly.
+                let sender =
+                    IdentityManager::new(env)?.instantiate_identity_from_name(new_controller)?;
+                let network = env.get_network_descriptor().expect("no network descriptor");
+                sender.get_or_create_wallet(env, &network, true).await?
+            }
+        };
+
         set_controller(env, canister_id, controller_principal.clone(), timeout).await?;
 
         DfxResult::Ok(())
