@@ -107,6 +107,6 @@ dfx_stop() {
 # get that wallet canister ID and add it to the tungsten identity.
 dfx_wallet() {
   dfx canister create --all
-  export WALLET_CANISTER_ID=$(dfx identity get-identity)
+  export WALLET_CANISTER_ID=$(dfx identity get-wallet)
   dfx idenity set-wallet --network tungsten ${WALLET_CANISTER_ID}
 }
