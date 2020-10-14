@@ -9,7 +9,6 @@ before_script:
   - ssh-add ~/.ssh/id_ed25519
   - ssh-keyscan -H github.com >> ~/.ssh/known_hosts
   - rm ~/.ssh/id_ed25519
-  - ulimit -n 8192
   - mkdir -p $CI_JOB_STAGE/$CI_JOB_NAME
 
 # Run SDK tests against the upstream DFINITY repo.
