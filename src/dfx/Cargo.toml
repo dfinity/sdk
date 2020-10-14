@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.6.10"
+version = "0.6.12"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -39,6 +39,7 @@ lazy_static = "1.4.0"
 libflate = "0.1.27"
 hotwatch = "0.4.3"
 humanize-rs = "0.1.5"
+mime = "0.3.16"
 mockall = "0.6.0"
 net2 = "0.2.34"
 pem = "0.7.0"

@@ -12,10 +12,10 @@ setup() {
 @test "dfx config -- read/write" {
     assert_command_fail dfx config defaults/build/output
 
-    assert_command dfx config networks.tungsten.providers '[ "http://127.0.0.1:8000" ]'
+    assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:8000" ]'
     assert_eq ""
 
-    assert_command dfx config networks.tungsten.providers
+    assert_command dfx config networks.ic.providers
     assert_eq '[ "http://127.0.0.1:8000" ]'
 
     assert_command_fail dfx config non_existent

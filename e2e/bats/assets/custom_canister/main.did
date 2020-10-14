@@ -1,4 +1,7 @@
 service : {
-    "hashFromCall": () -> (nat);
-    "hashFromQuery": () -> (nat);
+  amInitializer: () -> (bool) query;
+  fromCall: () -> (principal);
+  fromQuery: () -> (principal) query;
+  getCanisterId: () -> (principal) query;
+  isMyself: (principal) -> (bool) query;
 }

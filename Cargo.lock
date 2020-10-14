@@ -998,7 +998,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.6.10"
+version = "0.6.12"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1029,6 +1029,7 @@ dependencies = [
  "lazy-init",
  "lazy_static",
  "libflate",
+ "mime",
  "mockall",
  "mockito",
  "net2",
