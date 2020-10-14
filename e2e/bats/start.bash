@@ -1,6 +1,5 @@
 #!/usr/bin/env bats
 
-
 load utils/_
 
 setup() {
@@ -53,4 +52,3 @@ teardown() {
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 }
-
