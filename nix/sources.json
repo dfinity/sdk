@@ -40,13 +40,13 @@
     "dfinity": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "387bb6b47d14c6608e3890dca5f7f6a79b98a0b0",
+        "rev": "4e45012fd77be9de59d769d14b227c9099e700b1",
         "type": "git"
     },
     "ic-ref": {
-        "branch": "release-0.11",
+        "branch": "joachm/impl-webauthn",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "9edd0fdda006519118ed40515b84c74f69c59bc1",
+        "rev": "d9d402154a1301866547877157739c026c341303",
         "type": "git"
     },
     "motoko": {
