@@ -108,5 +108,5 @@ dfx_stop() {
 dfx_set_wallet() {
   dfx canister create --all
   export WALLET_CANISTER_ID=$(dfx identity get-wallet)
-  dfx identity set-wallet --network ic ${WALLET_CANISTER_ID}
+  dfx identity set-wallet --network ic ${WALLET_CANISTER_ID} --force
 }
