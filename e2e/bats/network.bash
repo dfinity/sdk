@@ -32,11 +32,11 @@ teardown() {
 
 @test "create stores canister ids for configured-ephemeral networks in canister_ids.json" {
     dfx_start
-    dfx_set_wallet
 
     webserver_port=$(cat .dfx/webserver-port)
     assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
     cat <<<$(jq .networks.ic.type=\"ephemeral\" dfx.json) >dfx.json
+    dfx_set_wallet
 
     assert_command dfx canister --network ic create --all
 
