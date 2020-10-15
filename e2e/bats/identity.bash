@@ -36,7 +36,7 @@ teardown() {
 
     if [ "$PRINCPAL_ID" -ne "$SENDER_ID" ]; then
       echo "IDs did not match: Principal '${PRINCPAL_ID}' != Sender '${SENDER_ID}'..." | fail
-    fi  
+    fi
 }
 
 @test "calls and query receive the same principal from dfx" {
@@ -56,7 +56,7 @@ teardown() {
     assert_command dfx canister call e2e_project isMyself "$ID"
     assert_eq '(true)'
     assert_command dfx canister call e2e_project isMyself "$ID_CALL"
-    assert_eq '(false)'    
+    assert_eq '(false)'
 }
 
 @test "dfx ping creates the default identity on first run" {
@@ -74,7 +74,7 @@ teardown() {
     assert_match 'Creating the "default" identity.' "$stderr"
 }
 
-@test "after using a specific identity while creating a canister, that identity is the initializer" {
+@test "after using a specific identity while creating a canister, that wallet is the initializer" {
     install_asset identity
     dfx_start
     assert_command dfx identity new alice
@@ -85,6 +85,11 @@ teardown() {
     assert_command dfx --identity alice canister install --all
 
     assert_command dfx --identity alice canister call e2e_project amInitializer
+    assert_eq '(false)'
+
+    assert_command dfx --identity alice canister call \
+      $(dfx --identity alice identity get-wallet) call \
+      '(principal "'$(dfx canister id e2e_project)'", "amInitializer", vec { 68; 73; 68; 76; 0; 0 })'
     assert_eq '(true)'
 
     assert_command dfx --identity bob canister call e2e_project amInitializer
