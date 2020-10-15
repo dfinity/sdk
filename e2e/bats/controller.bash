@@ -66,8 +66,8 @@ teardown() {
     assert_match "Set \"alice\" as controller of \"${ID}\"."
 
     # Set controller using invalid principal/identity fails
-    assert_command_fail dfx --identity alice canister set-controller hello bob
-    assert_match "Identity bob does not exist"
+    assert_command_fail dfx --identity alice canister set-controller hello charlie
+    assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
     assert_command_fail dfx --identity alice canister set-controller hello_assets bob
