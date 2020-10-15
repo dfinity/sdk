@@ -7,16 +7,16 @@ members = [
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1126-der-encode-sender-pubkey"
-rev = "dfc52868299cd500583634d318f24f4812d897ef"
+rev = "f987914d8a1158228b3fb7bf387d6b870656d7b9"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1126-der-encode-sender-pubkey"
-rev = "dfc52868299cd500583634d318f24f4812d897ef"
+rev = "f987914d8a1158228b3fb7bf387d6b870656d7b9"
 
 [patch.crates-io.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1126-der-encode-sender-pubkey"
-rev = "dfc52868299cd500583634d318f24f4812d897ef"
+rev = "f987914d8a1158228b3fb7bf387d6b870656d7b9"
