@@ -89,7 +89,7 @@ teardown() {
 
     assert_command dfx --identity alice canister call \
       $(dfx --identity alice identity get-wallet) call \
-      '(principal "'$(dfx canister id e2e_project)'", "amInitializer", vec { nat8 68; 73; 68; 76; 0; 0 }, nat8 0)'
+      '(principal "'$(dfx canister id e2e_project)'", "amInitializer", blob "\44\49\44\4c\00\00", 0: nat64)'
     assert_eq '(true)'
 
     assert_command dfx --identity bob canister call e2e_project amInitializer
