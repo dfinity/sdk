@@ -52,10 +52,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
         set_controller(env, canister_id, new_controller_principal.clone(), timeout).await?;
 
-        println!(
-            "Set {:?} ({}) as controller of {:?}.",
-            new_controller, new_controller_principal, canister
-        );
+        println!("Set {:?} as controller of {:?}.", new_controller, canister);
 
         DfxResult::Ok(())
     })?;

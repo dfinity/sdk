@@ -109,8 +109,6 @@ pub async fn set_controller(
         new_controller: Principal,
     }
 
-    eprintln!("new controller: {}", new_controller);
-
     let _: () = do_wallet_management_call(
         env,
         "set_controller",
