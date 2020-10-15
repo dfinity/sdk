@@ -1685,7 +1685,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#c63e99ab9e4331599491dd635736f7e7a0f89f83"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#dfc52868299cd500583634d318f24f4812d897ef"
 dependencies = [
  "async-trait",
  "base32",
@@ -1714,7 +1714,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#c63e99ab9e4331599491dd635736f7e7a0f89f83"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#dfc52868299cd500583634d318f24f4812d897ef"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1726,7 +1726,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#c63e99ab9e4331599491dd635736f7e7a0f89f83"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1126-der-encode-sender-pubkey#dfc52868299cd500583634d318f24f4812d897ef"
 dependencies = [
  "async-trait",
  "candid",
