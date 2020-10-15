@@ -113,7 +113,7 @@ pub async fn set_controller(
 
     let _: () = do_wallet_management_call(
         env,
-        "canister_status",
+        "set_controller",
         In {
             canister_id,
             new_controller,

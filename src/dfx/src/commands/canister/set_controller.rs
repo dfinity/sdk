@@ -38,7 +38,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
-        let controller_principal = match Principal::from_text(new_controller) {
+        let new_controller_principal = match Principal::from_text(new_controller) {
             Ok(principal) => principal,
             Err(_) => {
                 // If this is not a textual principal format, use the wallet of the person
@@ -50,11 +50,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
             }
         };
 
-        set_controller(env, canister_id, controller_principal.clone(), timeout).await?;
+        set_controller(env, canister_id, new_controller_principal.clone(), timeout).await?;
+
+        println!(
+            "Set {:?} ({}) as controller of {:?}.",
+            new_controller, new_controller_principal, canister
+        );
 
         DfxResult::Ok(())
     })?;
 
-    println!("Set {:?} as controller of {:?}.", new_controller, canister);
     Ok(())
 }
