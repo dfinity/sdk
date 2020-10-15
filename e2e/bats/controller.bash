@@ -54,12 +54,12 @@ teardown() {
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
-    assert_command dfx canister set-controller ${ID} ${ALICE_PRINCIPAL}
+    assert_command dfx canister set-controller ${ID} ${ALICE_WALLET}
     assert_match "Set \"${ALICE_PRINCIPAL}\" as controller of \"${ID}\"."
     assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity alice canister set-controller hello ${BOB_PRINCIPAL}
+    assert_command dfx --identity alice canister set-controller hello ${BOB_WALLET}
     assert_match "Set \"${BOB_PRINCIPAL}\" as controller of \"hello\"."
 
     assert_command dfx --identity bob canister set-controller ${ID} alice
