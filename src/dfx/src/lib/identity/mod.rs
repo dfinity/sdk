@@ -140,17 +140,21 @@ impl Identity {
         Ok(())
     }
 
-    pub async fn create_wallet(
+    async fn create_wallet(
         &self,
         env: &dyn Environment,
         network: &NetworkDescriptor,
     ) -> DfxResult<Principal> {
+        let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
         let mgr = ManagementCanister::create(
             env.get_agent()
                 .ok_or(DfxError::CommandMustBeRunInAProject)?,
         );
 
-        info!(env, "Creating a wallet canister on the local network.");
+        info!(
+            env,
+            "Creating a wallet canister on the {} network.", network.name
+        );
 
         let mut canister_assets = util::assets::wallet_canister()?;
         let mut wasm = Vec::new();
@@ -191,7 +195,10 @@ impl Identity {
 
         info!(
             env,
-            "Your wallet canister on the local network is {}", canister_id
+            r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
+            network.name,
+            identity.name,
+            canister_id,
         );
 
         Ok(canister_id)
