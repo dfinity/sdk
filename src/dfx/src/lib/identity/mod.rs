@@ -145,7 +145,6 @@ impl Identity {
         env: &dyn Environment,
         network: &NetworkDescriptor,
     ) -> DfxResult<Principal> {
-        let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
         let mgr = ManagementCanister::create(
             env.get_agent()
                 .ok_or(DfxError::CommandMustBeRunInAProject)?,
@@ -197,7 +196,7 @@ impl Identity {
             env,
             r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
             network.name,
-            identity.name,
+            self.name,
             canister_id,
         );
 
