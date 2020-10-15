@@ -64,6 +64,7 @@ pub async fn install_canister(
     // Get the wallet canister.
     let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
     let network = env.get_network_descriptor().expect("no network descriptor");
+    info!(env, "identity: {}", identity.name());
     let wallet = identity.get_wallet(env, network, true).await?;
 
     wallet
