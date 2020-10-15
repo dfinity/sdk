@@ -8,7 +8,7 @@ set -euo pipefail
 
 echo "Running SDK tests against $SDK_TEST_BRANCH_NAME $SDK_TEST_COMMIT_SHA"
 
-if [ -z "$SDK_VER" ]; then
+if [ -z ${SDK_VER+x}]; then
   export SDK_VER=$(jq -r '.tags.latest' public/manifest.json)
 fi
 
