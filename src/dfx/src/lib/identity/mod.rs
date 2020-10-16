@@ -45,6 +45,9 @@ pub struct Identity {
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
+
+    /// The root directory for this identity.
+    pub dir: PathBuf,
 }
 
 impl Identity {
@@ -79,6 +82,7 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
+            dir: manager.get_identity_dir_path(name),
         })
     }
 
@@ -96,7 +100,8 @@ impl Identity {
             NetworkType::Persistent => {
                 // Using the global
                 get_config_dfx_dir_path()?
-                    .join("wallets")
+                    .join("identity")
+                    .join(&self.name)
                     .join(WALLET_CONFIG_FILENAME)
             }
             NetworkType::Ephemeral => env
@@ -106,25 +111,35 @@ impl Identity {
         })
     }
 
+    fn wallet_config(
+        &self,
+        env: &dyn Environment,
+        network: &NetworkDescriptor,
+    ) -> DfxResult<(PathBuf, WalletGlobalConfig)> {
+        let wallet_path = self.get_wallet_config_file(env, network)?;
+
+        // Read the config file.
+        Ok((
+            wallet_path.clone(),
+            if wallet_path.exists() {
+                let mut buffer = Vec::new();
+                std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
+                serde_json::from_slice::<WalletGlobalConfig>(&buffer)?
+            } else {
+                WalletGlobalConfig {
+                    identities: BTreeMap::new(),
+                }
+            },
+        ))
+    }
+
     pub fn set_wallet_id(
         &self,
         env: &dyn Environment,
         network: &NetworkDescriptor,
         id: Principal,
     ) -> DfxResult {
-        let wallet_path = self.get_wallet_config_file(env, network)?;
-
-        // Read the config file.
-        let mut config = if wallet_path.exists() {
-            let mut buffer = Vec::new();
-            std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
-            serde_json::from_slice::<WalletGlobalConfig>(&buffer)?
-        } else {
-            WalletGlobalConfig {
-                identities: BTreeMap::new(),
-            }
-        };
-
+        let (wallet_path, mut config) = self.wallet_config(env, network)?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
         let network_map = identities
@@ -134,6 +149,27 @@ impl Identity {
             });
 
         network_map.networks.insert(network.name.clone(), id);
+
+        std::fs::create_dir_all(wallet_path.parent().unwrap())?;
+        std::fs::write(&wallet_path, &serde_json::to_string_pretty(&config)?)?;
+        Ok(())
+    }
+
+    pub fn remove_wallet_id(
+        &self,
+        env: &dyn Environment,
+        network: &NetworkDescriptor,
+    ) -> DfxResult {
+        let (wallet_path, mut config) = self.wallet_config(env, network)?;
+        // Update the wallet map in it.
+        let identities = &mut config.identities;
+        let network_map = identities
+            .entry(self.name.clone())
+            .or_insert(WalletNetworkMap {
+                networks: BTreeMap::new(),
+            });
+
+        network_map.networks.remove(&network.name);
 
         std::fs::create_dir_all(wallet_path.parent().unwrap())?;
         std::fs::write(&wallet_path, &serde_json::to_string_pretty(&config)?)?;

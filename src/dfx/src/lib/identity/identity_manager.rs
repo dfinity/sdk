@@ -142,8 +142,11 @@ impl IdentityManager {
         }
         self.require_identity_exists(from)?;
 
-        let from_dir = self.get_identity_dir_path(from);
-        let to_dir = self.get_identity_dir_path(to);
+        let from_id = self.instantiate_identity_from_name(from)?;
+        let to_id = self.instantiate_identity_from_name(to)?;
+
+        let from_dir = from_id.dir;
+        let to_dir = to_id.dir;
 
         if to_dir.exists() {
             return Err(DfxError::IdentityError(

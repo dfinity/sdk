@@ -35,5 +35,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     if renamed_default {
         info!(log, r#"Now using identity: "{}"."#, to);
     }
+
+    info!(
+        log,
+        r#"Wallets set to ephemeral and local networks were not changed. They will be recreated."#
+    );
     Ok(())
 }

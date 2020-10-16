@@ -116,7 +116,6 @@ teardown() {
     dfx --identity alice canister create --all
     assert_command dfx --identity alice build
     assert_command dfx --identity alice canister install --all
-    assert_command dfx --identity alice canister call e2e_project amInitializer
     assert_command dfx --identity alice canister call \
       $(dfx --identity alice identity get-wallet) call \
       '(principal "'$(dfx canister id e2e_project)'", "amInitializer", blob "\44\49\44\4c\00\00", 0: nat64)'
