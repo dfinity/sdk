@@ -8,10 +8,10 @@ set -euo pipefail
 
 echo "Running SDK tests against $SDK_TEST_BRANCH_NAME $SDK_TEST_COMMIT_SHA"
 
-if [ -z "$SDK_VER" ]; then
+if [ -z ${SDK_VER+x}]; then
   export SDK_VER=$(jq -r '.tags.latest' public/manifest.json)
 fi
 
 git switch --detach $SDK_VER
 contents=$(jq --indent 4 ".dfinity.ref = \"$SDK_TEST_BRANCH_NAME\" | .dfinity.rev = \"$SDK_TEST_COMMIT_SHA\"" nix/sources.json) && echo "$contents" > nix/sources.json
-nix-build --max-jobs 10 -A e2e-tests . -o $CI_JOB_STAGE/$CI_JOB_NAME --show-trace
+nix-build --max-jobs 10 -A e2e-tests . --show-trace
