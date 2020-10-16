@@ -26,6 +26,8 @@ before_script:
 #
 sdk_test:
   stage: test
+  tags:
+    - cd
   rules:
     # Only trigger this job from upstream pipelines or manual execution
     - if: '$CI_PIPELINE_SOURCE == "pipeline"'
