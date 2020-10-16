@@ -155,6 +155,7 @@ impl Identity {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn remove_wallet_id(
         &self,
         env: &dyn Environment,
