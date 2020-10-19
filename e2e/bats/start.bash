@@ -34,8 +34,7 @@ teardown() {
     echo "ps aux"
     ps aux
 
-    echo "ps       # this will fail :("
-    # on x86_64-darwin this fails:
+    echo "ps       # expected to no longer fail?"
     ps
 
     REPLICA_PID=$(ps | grep [/[:space:]]replica | awk '{print $1}')
