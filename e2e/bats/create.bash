@@ -67,7 +67,7 @@ teardown() {
 
 @test "create fails with network parameter when network does not exist" {
     dfx_start
-    assert_command dfx config networks.ic.providers '[ "http://not-real.nowhere.systems" ]'
+    assert_command dfx config networks.ic.providers '[ "http://not-real.nowhere.test." ]'
     assert_command_fail dfx canister --network ic create --all
     assert_match "ConnectError"
 }
