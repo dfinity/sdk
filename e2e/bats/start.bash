@@ -31,13 +31,7 @@ teardown() {
     echo "jobs 0"
     jobs -p
 
-    echo "ps aux"
-    ps aux
-
-    echo "ps       # expected to no longer fail?"
-    ps
-
-    REPLICA_PID=$(ps | grep [/[:space:]]replica | awk '{print $1}')
+    REPLICA_PID=$(ps x | grep [/[:space:]]replica | awk '{print $1}')
 
     echo "replica pid is $REPLICA_PID"
 
