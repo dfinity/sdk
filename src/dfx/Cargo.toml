@@ -72,19 +72,19 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1126-der-encode-sender-pubkey"
-rev = "39944bd8a5abb02ed7602edf549019197e62b849"
+rev = "75fa723e6d7f6a43c2dce4c6a01d531fe427c407"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1126-der-encode-sender-pubkey"
-rev = "39944bd8a5abb02ed7602edf549019197e62b849"
+rev = "75fa723e6d7f6a43c2dce4c6a01d531fe427c407"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1126-der-encode-sender-pubkey"
-rev = "39944bd8a5abb02ed7602edf549019197e62b849"
+rev = "75fa723e6d7f6a43c2dce4c6a01d531fe427c407"
 
 [dev-dependencies]
 env_logger = "0.6"
