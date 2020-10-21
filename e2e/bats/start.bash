@@ -28,8 +28,9 @@ teardown() {
     echo "export"
     export
 
-    echo "jobs 0"
-    jobs -p
+    echo "ps x"
+    ps x
+    assert_eq '("fail")'
 
     REPLICA_PID=$(ps x | grep [/[:space:]]replica | awk '{print $1}')
 
