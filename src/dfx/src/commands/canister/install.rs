@@ -71,7 +71,6 @@ pub fn construct() -> App<'static, 'static> {
             Arg::with_name("memory-allocation")
                 .help(UserMessage::InstallMemoryAllocation.to_str())
                 .long("memory-allocation")
-                .default_value("8GB")
                 .takes_value(true)
                 .validator(memory_allocation_validator),
         )
@@ -107,16 +106,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let compute_allocation = args.value_of("compute-allocation").map(|arg| {
-        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
-            .expect("Compute Allocation must be a percentage.")
-    });
-
-    let memory_allocation: Option<MemoryAllocation> =
-        args.value_of("memory-allocation").map(|arg| {
-            MemoryAllocation::try_from(u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap())
-                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
-        });
+    let config_interface = config.get_config();
 
     let mode = InstallMode::from_str(args.value_of("mode").unwrap())?;
 
@@ -133,6 +123,26 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         let arguments: Option<&str> = args.value_of("argument");
         let arg_type: Option<&str> = args.value_of("type");
         let install_args = blob_from_arguments(arguments, arg_type, &init_type)?;
+
+        let compute_allocation = args
+            .value_of("compute-allocation")
+            .map(|v| v.to_string())
+            .or(config_interface.get_compute_allocation(canister_name)?)
+            .map(|arg| {
+                ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+                    .expect("Compute Allocation must be a percentage.")
+            });
+
+        let memory_allocation: Option<MemoryAllocation> = args
+            .value_of("memory-allocation")
+            .map(|v| v.to_string())
+            .or(config_interface.get_memory_allocation(canister_name)?)
+            .map(|arg| {
+                MemoryAllocation::try_from(
+                    u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
+                )
+                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
+            });
 
         runtime.block_on(install_canister(
             env,
@@ -153,6 +163,26 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
 
                 let install_args = [];
+
+                let compute_allocation = args
+                    .value_of("compute-allocation")
+                    .map(|v| v.to_string())
+                    .or(config_interface.get_compute_allocation(canister_name)?)
+                    .map(|arg| {
+                        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+                            .expect("Compute Allocation must be a percentage.")
+                    });
+
+                let memory_allocation: Option<MemoryAllocation> = args
+                    .value_of("memory-allocation")
+                    .map(|v| v.to_string())
+                    .or(config_interface.get_memory_allocation(canister_name)?)
+                    .map(|arg| {
+                        MemoryAllocation::try_from(
+                            u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
+                        )
+                        .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
+                    });
 
                 runtime.block_on(install_canister(
                     env,
