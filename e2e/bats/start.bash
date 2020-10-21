@@ -23,15 +23,6 @@ teardown() {
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
-    DFX_PID=$(cat .dfx/pid)
-
-    echo "export"
-    export
-
-    echo "ps x"
-    ps x
-    assert_eq '("fail")'
-
     REPLICA_PID=$(ps x | grep [/[:space:]]replica | awk '{print $1}')
 
     echo "replica pid is $REPLICA_PID"
