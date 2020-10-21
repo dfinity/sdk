@@ -34,7 +34,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "8620955bf495750a664b66050f5761be0f3ec05d",
+        "rev": "603c77cf1626bd4c9ab622325c5707755e1d5377",
         "type": "git"
     },
     "dfinity": {
@@ -62,10 +62,10 @@
         "homepage": "",
         "owner": "nmattia",
         "repo": "napalm",
-        "rev": "334be6465a93b5ed19d64cf7f0c292f627d71bb8",
-        "sha256": "0fhywlvzhhsjn4gprxfa8da5i67hkm3dd3afvl06ml11dmrmcqap",
+        "rev": "4db4f253c78cfa8d8e8defb45dfe25e04409142a",
+        "sha256": "1rzj7a3r6wcsfjlzs5fj1min3rk8d8k9g9v00kmygdl1696mnkrb",
         "type": "tarball",
-        "url": "https://github.com/nmattia/napalm/archive/334be6465a93b5ed19d64cf7f0c292f627d71bb8.tar.gz",
+        "url": "https://github.com/nmattia/napalm/archive/4db4f253c78cfa8d8e8defb45dfe25e04409142a.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
