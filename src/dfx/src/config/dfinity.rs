@@ -283,16 +283,15 @@ impl ConfigInterface {
             .get(canister_name)
             .ok_or_else(|| DfxError::CannotFindCanisterName(canister_name.to_string()))?;
 
-        let values = match canister_config.extras.get("initialization_values") {
-            None => None,
-            Some(v) => match v.get(field) {
-                None => None,
-                Some(a) => Some(String::deserialize(a).map_err(|_| {
-                    DfxError::InvalidConfiguration(format!("Field {} is of the wrong type", field))
-                })?),
-            },
-        };
-        Ok(values)
+        canister_config
+            .extras
+            .get("initialization_values")
+            .and_then(|v| v.get(field))
+            .map(String::deserialize)
+            .transpose()
+            .map_err(|_| {
+                DfxError::InvalidConfiguration(format!("Field {} is of the wrong type", field))
+            })
     }
 }
 

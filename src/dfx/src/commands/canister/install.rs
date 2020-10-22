@@ -1,3 +1,4 @@
+use crate::config::dfinity::ConfigInterface;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -95,6 +96,36 @@ fn memory_allocation_validator(memory_allocation: String) -> Result<(), String> 
     Err("Must be a value between 0..256 TB inclusive.".to_string())
 }
 
+fn get_compute_allocation(
+    args: &ArgMatches<'_>,
+    config_interface: &ConfigInterface,
+    canister_name: &str,
+) -> DfxResult<Option<ComputeAllocation>> {
+    Ok(args
+        .value_of("compute-allocation")
+        .map(|v| v.to_string())
+        .or(config_interface.get_compute_allocation(canister_name)?)
+        .map(|arg| {
+            ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+                .expect("Compute Allocation must be a percentage.")
+        }))
+}
+
+fn get_memory_allocation(
+    args: &ArgMatches<'_>,
+    config_interface: &ConfigInterface,
+    canister_name: &str,
+) -> DfxResult<Option<MemoryAllocation>> {
+    Ok(args
+        .value_of("memory-allocation")
+        .map(|v| v.to_string())
+        .or(config_interface.get_memory_allocation(canister_name)?)
+        .map(|arg| {
+            MemoryAllocation::try_from(u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap())
+                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
+        }))
+}
+
 pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     let config = env
         .get_config()
@@ -124,25 +155,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         let arg_type: Option<&str> = args.value_of("type");
         let install_args = blob_from_arguments(arguments, arg_type, &init_type)?;
 
-        let compute_allocation = args
-            .value_of("compute-allocation")
-            .map(|v| v.to_string())
-            .or(config_interface.get_compute_allocation(canister_name)?)
-            .map(|arg| {
-                ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
-                    .expect("Compute Allocation must be a percentage.")
-            });
-
-        let memory_allocation: Option<MemoryAllocation> = args
-            .value_of("memory-allocation")
-            .map(|v| v.to_string())
-            .or(config_interface.get_memory_allocation(canister_name)?)
-            .map(|arg| {
-                MemoryAllocation::try_from(
-                    u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
-                )
-                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
-            });
+        let compute_allocation = get_compute_allocation(args, config_interface, canister_name)?;
+        let memory_allocation = get_memory_allocation(args, config_interface, canister_name)?;
 
         runtime.block_on(install_canister(
             env,
@@ -164,25 +178,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
                 let install_args = [];
 
-                let compute_allocation = args
-                    .value_of("compute-allocation")
-                    .map(|v| v.to_string())
-                    .or(config_interface.get_compute_allocation(canister_name)?)
-                    .map(|arg| {
-                        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
-                            .expect("Compute Allocation must be a percentage.")
-                    });
-
-                let memory_allocation: Option<MemoryAllocation> = args
-                    .value_of("memory-allocation")
-                    .map(|v| v.to_string())
-                    .or(config_interface.get_memory_allocation(canister_name)?)
-                    .map(|arg| {
-                        MemoryAllocation::try_from(
-                            u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
-                        )
-                        .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
-                    });
+                let compute_allocation =
+                    get_compute_allocation(args, config_interface, canister_name)?;
+                let memory_allocation =
+                    get_memory_allocation(args, config_interface, canister_name)?;
 
                 runtime.block_on(install_canister(
                     env,
