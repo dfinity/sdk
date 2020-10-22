@@ -261,6 +261,38 @@ impl ConfigInterface {
 
         Ok(canister_names)
     }
+
+    pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
+        self.get_initialization_value(canister_name, "compute_allocation")
+    }
+
+    pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
+        self.get_initialization_value(canister_name, "memory_allocation")
+    }
+
+    fn get_initialization_value(
+        &self,
+        canister_name: &str,
+        field: &str,
+    ) -> DfxResult<Option<String>> {
+        let canister_map = (&self.canisters).as_ref().ok_or_else(|| {
+            DfxError::InvalidConfiguration("No canisters in the configuration file.".to_string())
+        })?;
+
+        let canister_config = canister_map
+            .get(canister_name)
+            .ok_or_else(|| DfxError::CannotFindCanisterName(canister_name.to_string()))?;
+
+        canister_config
+            .extras
+            .get("initialization_values")
+            .and_then(|v| v.get(field))
+            .map(String::deserialize)
+            .transpose()
+            .map_err(|_| {
+                DfxError::InvalidConfiguration(format!("Field {} is of the wrong type", field))
+            })
+    }
 }
 
 fn add_dependencies(
@@ -599,5 +631,54 @@ mod tests {
                 r#type: NetworkType::Ephemeral,
             })
         );
+    }
+
+    #[test]
+    fn get_correct_initialization_values() {
+        let config = Config::from_str(
+            r#"{
+              "canisters": {
+                "test_project": {
+                  "initialization_values": {
+                    "compute_allocation" : "100",
+                    "memory_allocation": "8GB"
+                  }
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let config_interface = config.get_config();
+        let compute_allocation = config_interface
+            .get_compute_allocation("test_project")
+            .unwrap()
+            .unwrap();
+        assert_eq!("100", compute_allocation);
+
+        let memory_allocation = config_interface
+            .get_memory_allocation("test_project")
+            .unwrap()
+            .unwrap();
+        assert_eq!("8GB", memory_allocation);
+
+        let config_no_values = Config::from_str(
+            r#"{
+              "canisters": {
+                "test_project_two": {
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+        let config_interface = config_no_values.get_config();
+        let compute_allocation = config_interface
+            .get_compute_allocation("test_project_two")
+            .unwrap();
+        let memory_allocation = config_interface
+            .get_memory_allocation("test_project_two")
+            .unwrap();
+        assert_eq!(None, compute_allocation);
+        assert_eq!(None, memory_allocation);
     }
 }
