@@ -185,17 +185,43 @@ When authorizing a new device, the master key is imported, the device's web auth
 The identity manager uses a specific origin (e.g. `identity.dfinity.network`). It is implemented as a full page, not an iframe. The identity manager uses a web authentication key and additionally keeps the following data in browser local storage:
 
 * Auxiliary information needed to access the web authentication key
-* (If available) delegation from the master key to the device key
-* Master public key (*not* private key)
-* List of canister front ends authorized to use the identity
+* (If available) Master public key (*not* private key)
+* (If available) Delegation from the master key to the web authentication key
+* List of front ends canister id authorized to use the identity, and for each front end the back end canister ids that may be accessed as well as a user-friendly free-text name of that front end
 
-When the user accesses a canister, and decides to use the user's IC identity, the browser is redirected to the identity manager. In this process, the canister front end first generates a new (Ed25519 or better web cryptography) key, and passes the public key with the redirection. Then:
+The main concept in the identity manager is that of a _delegation_. A delegation here means that some canister front end (which is served by a canister) is allowed to access *some* background canisters using as sender of the requests the principal derived from the user's master key (or if that does not exist, the user's web authentication key).
+Delegations are scoped, meaning each canister front end may access only specific back end canisters. For Mercury I, the identity manager has to enforce the following rules:
 
-. If there is no available state (identity manager not initialized on this device), the user is asked to (a) create a new master key, (b) import an existing master key, (c) proceed without master key.
+* Every canister front end may access only the canister serving the front end assets and at most *one* additional canister.
+* No canister may be accessed by two different front end canisters. (I.e. at any point in time, access to a canister is delegated to only *one* front end.)
+
+The identity manager creates _delegation certificates_ when asked to do so by a canister front end that has an active delegation. A delegation certificate contains the delegate public key (supplied by the canister front end), the list of allowed targets (containing the id of the front end canister itself and at most one additional canister id), an expiration time (default 15 minutes unless configured otherwise by the user), and a signature by the web authentication key.
+
+*Initialization*: When the user opens the identity manager (whether by visiting `identity.dfinity.network` directly or by being redirected from some canister front wnd), the identity manager checks the browser local storage for the  above data to be available. If the local storage is found to be empty, the following procedure is followed:
+
+. The user is asked to (a) create a new master key, (b) import an existing master key, (c) proceed without master key.
+  In cases (a) and (b), the respective part of the BIP-39 mechanism is used.
 . Create new web authentication key, store auxiliary information in local storage
 . If not (c), then after the master key is created and exported, or imported, then create delegation to the web authentication key.
 
-If the state already exists, sign a delegation with the web authentication key toward the session public key passed by the canister front end, and redirect the browser back to the canister front end, passing along the delegations and the master public key (if present, otherwise web authentication key). The canister front end can then proceed using the session key.
+*Direct visit*: If the user visits `identity.dfinity.network` directly, the identity manager shows a list of acive delegations. The user can view and delete the delegations. Optionally, the user may be allowed to set the expiration time for delegation certificates, as well as edit the free text name of that canister front end.
+
+*Redirection*: When the user accesses a canister, and decides to use the user's IC identity, the browser is redirected to the identity manager.
+First, the canister front end first generates a new (Ed25519 or better web cryptography) session key pair.
+Second, the canister front end redirects the browser to `identity.dfinity.network`, passing:
+
+* the public key
+* the suggested free text name for the front end
+* optionally the additional canister id that the front end wants to access
+
+as parameters.
+The identity manager then proceeds as follows:
+
+* If no delegation for that canister front end exists, ask the user whether a new delegation shall be created.
+  Let the user edit the free text name of the canister as well as the expiration.
+  Create the new delegation (to the front end canister and, if provided, the additional canister requested by the front end) in the browser local storage.
+* Sign a delegation with the web authentication key toward the session public key passed by the canister front end, and redirect the browser back to the canister front end, passing along the delegations and the master public key (if present, otherwise web authentication key).
+  The canister front end can then proceed using the session key.
 
 === Public API
 ////
@@ -263,7 +289,13 @@ When the user delegates from the master key to any one canister front end, that 
 
 ==== Single sign-on
 
-The main security consideration for the identity manager affects how it is served. As we initially serve it in the same way as we serve the bootstrap, we do not add an additional trust assumption.
+One main security consideration for the identity manager affects how it is served. As we initially serve it in the same way as we serve the bootstrap, we do not add an additional trust assumption.
+
+The second main consideration relates to cross-canister requests. If delegations for the same master key to different canisters are not scoped, then a potentially malicious or vulnerable canister front end can access any canister in the name of the user.
+The main security mechanism here is _scoping_: The user explicitly restricts the validity of the delegation.
+As we do not want to bother the user with checking canister ids (actually, there is no good way for a user to do those checks), we restrict the mechanism to explicitly keep the access of different front ends separate.
+That way, we can mostly exclude that a malicious or vulnerable front end accesses precious user data in other canisters.
+This mechanism will have to be improved in the future, to allow for controlled access sharing between different canister front ends.
 
 === Performance Considerations
 ////
