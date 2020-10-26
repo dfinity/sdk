@@ -52,14 +52,14 @@ impl ReplicaWebserverCoordinator {
     fn start_server(&self, port: u16) -> DfxResult<Server> {
         let mut providers = self.config.providers.clone();
 
-        let ic_client_bind_addr = "http://localhost:".to_owned() + port.to_string().as_str();
-        let ic_client_bind_addr = ic_client_bind_addr.as_str();
-        let client_api_uri =
-            url::Url::parse(ic_client_bind_addr).expect("Failed to parse replica ingress url.");
-        providers.push(client_api_uri);
+        let ic_replica_bind_addr = "http://localhost:".to_owned() + port.to_string().as_str();
+        let ic_replica_bind_addr = ic_replica_bind_addr.as_str();
+        let replica_api_uri =
+            url::Url::parse(ic_replica_bind_addr).expect("Failed to parse replica ingress url.");
+        providers.push(replica_api_uri);
         info!(
             self.logger,
-            "Starting webserver on port {} for replica at {:?}", port, ic_client_bind_addr
+            "Starting webserver on port {} for replica at {:?}", port, ic_replica_bind_addr
         );
 
         run_webserver(
