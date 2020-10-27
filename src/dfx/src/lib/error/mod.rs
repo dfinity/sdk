@@ -79,7 +79,7 @@ pub enum DfxError {
     RuntimeError(std::io::Error),
 
     /// Failed to clean up state.
-    CleanState(std::io::Error),
+    CleanState(std::io::Error, PathBuf),
 
     /// The ide server shouldn't be started from a terminal.
     LanguageServerFromATerminal,
@@ -92,9 +92,6 @@ pub enum DfxError {
 
     /// An error during parsing of a version string.
     VersionCouldNotBeParsed(semver::SemVerError),
-
-    /// String provided is not a port
-    CouldNotParsePort(std::num::ParseIntError),
 
     /// A replica did not start successfully.
     ReplicaCouldNotBeStarted(),

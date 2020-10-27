@@ -226,15 +226,22 @@ fn wait_for_child_or_receiver(
     receiver: &Receiver<()>,
 ) -> ChildOrReceiver {
     loop {
-        // Ping-pong between waiting 100 msec for a receiver signal, and check if
-        // the child quit.
-        if let Ok(()) = receiver.recv_timeout(std::time::Duration::from_millis(100)) {
-            return ChildOrReceiver::Receiver;
-        }
+        // Check if either the child exited or a shutdown has been requested.
+        // These can happen in either order in response to Ctrl-C, so increase the chance
+        // to notice a shutdown request even if the replica exited quickly.
+        let child_try_wait = child.try_wait();
+        let receiver_signalled = receiver.recv_timeout(std::time::Duration::from_millis(100));
 
-        if let Ok(Some(_)) = child.try_wait() {
-            return ChildOrReceiver::Child;
-        }
+        match (receiver_signalled, child_try_wait) {
+            (Ok(()), _) => {
+                // Prefer to indicate the shutdown request
+                return ChildOrReceiver::Receiver;
+            }
+            (Err(_), Ok(Some(_))) => {
+                return ChildOrReceiver::Child;
+            }
+            _ => {}
+        };
     }
 }
 
