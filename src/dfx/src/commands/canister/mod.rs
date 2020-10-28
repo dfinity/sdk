@@ -31,19 +31,19 @@ fn builtins() -> Vec<CliCommand> {
     ]
 }
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("canister")
         .about(UserMessage::ManageCanister.to_str())
         .arg(
-            Arg::with_name("network")
-                .help(UserMessage::CanisterComputeNetwork.to_str())
+            Arg::new("network")
+                //.help(UserMessage::CanisterComputeNetwork.to_str())
                 .long("network")
                 .takes_value(true),
         )
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let subcommand = args.subcommand();
     let agent_env = create_agent_environment(env, args)?;
 

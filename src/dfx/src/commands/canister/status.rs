@@ -13,21 +13,21 @@ use slog::info;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("status")
         .about(UserMessage::CanisterStatus.to_str())
         .arg(
-            Arg::with_name("canister_name")
+            Arg::new("canister_name")
                 .takes_value(true)
                 .required_unless("all")
-                .help(UserMessage::StatusCanisterName.to_str())
+                //.help(UserMessage::StatusCanisterName.to_str())
                 .required(false),
         )
         .arg(
-            Arg::with_name("all")
+            Arg::new("all")
                 .long("all")
                 .required_unless("canister_name")
-                .help(UserMessage::StatusAll.to_str())
+                //.help(UserMessage::StatusAll.to_str())
                 .takes_value(false),
         )
 }
@@ -52,7 +52,7 @@ async fn canister_status(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

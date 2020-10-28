@@ -26,24 +26,24 @@ use tokio::runtime::Runtime;
 
 /// Provide necessary arguments to start the Internet Computer
 /// locally. See `exec` for further information.
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("start")
         .about(UserMessage::StartNode.to_str())
         .arg(
-            Arg::with_name("host")
-                .help(UserMessage::NodeAddress.to_str())
+            Arg::new("host")
+                //.help(UserMessage::NodeAddress.to_str())
                 .long("host")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("background")
-                .help(UserMessage::StartBackground.to_str())
+            Arg::new("background")
+                //.help(UserMessage::StartBackground.to_str())
                 .long("background")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("clean")
-                .help(UserMessage::CleanState.to_str())
+            Arg::new("clean")
+                //.help(UserMessage::CleanState.to_str())
                 .long("clean")
                 .takes_value(false),
         )
@@ -112,7 +112,7 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -257,7 +257,7 @@ fn send_background() -> DfxResult<()> {
     Ok(())
 }
 
-fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String, SocketAddr)> {
+fn frontend_address(args: &ArgMatches, config: &Config) -> DfxResult<(String, SocketAddr)> {
     let mut address_and_port = args
         .value_of("host")
         .and_then(|host| Option::from(host.parse()))

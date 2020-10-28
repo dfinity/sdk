@@ -12,25 +12,25 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use std::default::Default;
 
 /// Constructs a sub-command to run the Internet Computer replica.
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("replica")
         .about(UserMessage::Replica.to_str())
         .arg(
-            Arg::with_name("message-gas-limit")
-                .help(UserMessage::ReplicaMessageGasLimit.to_str())
+            Arg::new("message-gas-limit")
+                //.help(UserMessage::ReplicaMessageGasLimit.to_str())
                 .hidden(true)
                 .long("message-gas-limit")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("port")
-                .help(UserMessage::ReplicaPort.to_str())
+            Arg::new("port")
+                //.help(UserMessage::ReplicaPort.to_str())
                 .long("port")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("round-gas-limit")
-                .help(UserMessage::ReplicaRoundGasLimit.to_str())
+            Arg::new("round-gas-limit")
+                //.help(UserMessage::ReplicaRoundGasLimit.to_str())
                 .hidden(true)
                 .long("round-gas-limit")
                 .takes_value(true),
@@ -38,7 +38,7 @@ pub fn construct() -> App<'static, 'static> {
 }
 
 /// Gets the configuration options for the Internet Computer replica.
-fn get_config(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult<ReplicaConfig> {
+fn get_config(env: &dyn Environment, args: &ArgMatches) -> DfxResult<ReplicaConfig> {
     let config = get_config_from_file(env);
     let port = get_port(&config, args)?;
     let mut http_handler: HttpHandlerConfig = Default::default();
@@ -79,7 +79,7 @@ fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsReplica {
 /// Gets the port number that the Internet Computer replica listens on. First checks if the port
 /// number was specified on the command-line using --port, otherwise checks if the port number was
 /// specified in the dfx configuration file, otherise defaults to 8080.
-fn get_port(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) -> DfxResult<u16> {
+fn get_port(config: &ConfigDefaultsReplica, args: &ArgMatches) -> DfxResult<u16> {
     args.value_of("port")
         .map(|port| port.parse())
         .unwrap_or_else(|| {
@@ -92,7 +92,7 @@ fn get_port(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) -> DfxResult<
 /// Gets the maximum amount of gas a single message can consume. First checks if the gas limit was
 /// specified on the command-line using --message-gas-limit, otherwise checks if the gas limit was
 /// specified in the dfx configuration file, otherise defaults to 5368709120.
-fn get_message_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) -> DfxResult<u64> {
+fn get_message_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches) -> DfxResult<u64> {
     args.value_of("message-gas-limit")
         .map(|limit| limit.parse())
         .unwrap_or_else(|| {
@@ -105,7 +105,7 @@ fn get_message_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) 
 /// Gets the maximum amount of gas a single round can consume. First checks if the gas limit was
 /// specified on the command-line using --round-gas-limit, otherwise checks if the gas limit was
 /// specified in the dfx configuration file, otherise defaults to 26843545600.
-fn get_round_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) -> DfxResult<u64> {
+fn get_round_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches) -> DfxResult<u64> {
     args.value_of("round-gas-limit")
         .map(|limit| limit.parse())
         .unwrap_or_else(|| {
@@ -118,7 +118,7 @@ fn get_round_gas_limit(config: &ConfigDefaultsReplica, args: &ArgMatches<'_>) ->
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
 

@@ -63,30 +63,30 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
     }
 }
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("new")
         .about(UserMessage::CreateProject.to_str())
         .arg(
-            Arg::with_name(PROJECT_NAME)
-                .help(UserMessage::ProjectName.to_str())
+            Arg::new(PROJECT_NAME)
+                //.help(UserMessage::ProjectName.to_str())
                 .validator(project_name_validator)
                 .required(true),
         )
         .arg(
-            Arg::with_name(DRY_RUN)
-                .help(UserMessage::DryRun.to_str())
+            Arg::new(DRY_RUN)
+                //.help(UserMessage::DryRun.to_str())
                 .long("dry-run")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("frontend")
+            Arg::new("frontend")
                 .long("--frontend")
-                .help(UserMessage::NewFrontend.to_str())
+                //.help(UserMessage::NewFrontend.to_str())
                 .takes_value(false)
                 .conflicts_with("no-frontend"),
         )
         .arg(
-            Arg::with_name("no-frontend")
+            Arg::new("no-frontend")
                 .long("--no-frontend")
                 .hidden(true)
                 .takes_value(false)
@@ -323,7 +323,7 @@ fn scaffold_frontend_code(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let log = env.get_logger();
     let dry_run = args.is_present(DRY_RUN);
     let project_name_path = args

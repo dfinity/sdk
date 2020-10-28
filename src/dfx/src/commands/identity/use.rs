@@ -5,18 +5,18 @@ use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("use")
         .about(UserMessage::UseIdentity.to_str())
         .arg(
-            Arg::with_name("identity")
-                .help("The identity to use.")
+            Arg::new("identity")
+                //.help("The identity to use.")
                 .required(true)
                 .takes_value(true),
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let identity = args.value_of("identity").unwrap();
 
     let log = env.get_logger();

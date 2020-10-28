@@ -11,19 +11,19 @@ use ic_agent::{AgentError, RequestId};
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("request-status")
         .about(UserMessage::RequestCallStatus.to_str())
         .arg(
-            Arg::with_name("request_id")
+            Arg::new("request_id")
                 .takes_value(true)
-                .help(UserMessage::RequestId.to_str())
+                //.help(UserMessage::RequestId.to_str())
                 .required(true)
                 .validator(validators::is_request_id),
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let request_id = RequestId::from_str(
         &args
             .value_of("request_id")

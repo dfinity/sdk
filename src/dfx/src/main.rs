@@ -12,38 +12,38 @@ mod config;
 mod lib;
 mod util;
 
-fn cli(_: &impl Environment) -> App<'_, '_> {
+fn cli(_: &impl Environment) -> App<'_> {
     App::new("dfx")
         .about("The DFINITY Executor.")
         .version(dfx_version_str())
         .global_setting(AppSettings::ColoredHelp)
         .arg(
-            Arg::with_name("verbose")
+            Arg::new("verbose")
                 .long("verbose")
                 .short("v")
                 .multiple(true),
         )
         .arg(
-            Arg::with_name("quiet")
+            Arg::new("quiet")
                 .long("quiet")
                 .short("q")
                 .multiple(true),
         )
         .arg(
-            Arg::with_name("logmode")
+            Arg::new("logmode")
                 .long("log")
                 .takes_value(true)
                 .possible_values(&["stderr", "tee", "file"])
                 .default_value("stderr"),
         )
         .arg(
-            Arg::with_name("logfile")
+            Arg::new("logfile")
                 .long("log-file")
                 .long("logfile")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("identity")
+            Arg::new("identity")
                 .long("identity")
                 .takes_value(true),
         )
@@ -54,7 +54,7 @@ fn cli(_: &impl Environment) -> App<'_, '_> {
         )
 }
 
-fn exec(env: &impl Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) -> DfxResult {
+fn exec(env: &impl Environment, args: &clap::ArgMatches, cli: &App<'_>) -> DfxResult {
     let (name, subcommand_args) = match args.subcommand() {
         (name, Some(args)) => (name, args),
         _ => {
@@ -129,7 +129,7 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(matches: &ArgMatches<'_>) -> (bool, slog::Logger) {
+fn setup_logging(matches: &ArgMatches) -> (bool, slog::Logger) {
     // Create a logger with our argument matches.
     let level = matches.occurrences_of("verbose") as i64 - matches.occurrences_of("quiet") as i64;
 

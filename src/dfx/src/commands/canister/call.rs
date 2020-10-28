@@ -10,66 +10,66 @@ use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("call")
         .about(UserMessage::CallCanister.to_str())
         .arg(
-            Arg::with_name("canister_name")
+            Arg::new("canister_name")
                 .takes_value(true)
-                .help(UserMessage::CanisterName.to_str())
+                //.help(UserMessage::CanisterName.to_str())
                 .required(true),
         )
         .arg(
-            Arg::with_name("method_name")
-                .help(UserMessage::MethodName.to_str())
+            Arg::new("method_name")
+                //.help(UserMessage::MethodName.to_str())
                 .required(true),
         )
         .arg(
-            Arg::with_name("async")
-                .help(UserMessage::AsyncResult.to_str())
+            Arg::new("async")
+                //.help(UserMessage::AsyncResult.to_str())
                 .long("async")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("query")
-                .help(UserMessage::QueryCanister.to_str())
+            Arg::new("query")
+                //.help(UserMessage::QueryCanister.to_str())
                 .long("query")
                 .conflicts_with("async")
                 .conflicts_with("update")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("update")
-                .help(UserMessage::UpdateCanisterArg.to_str())
+            Arg::new("update")
+                //.help(UserMessage::UpdateCanisterArg.to_str())
                 .long("update")
                 .conflicts_with("async")
                 .conflicts_with("query")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("type")
-                .help(UserMessage::ArgumentType.to_str())
+            Arg::new("type")
+                //.help(UserMessage::ArgumentType.to_str())
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
                 .possible_values(&["idl", "raw"]),
         )
         .arg(
-            Arg::with_name("output")
-                .help(UserMessage::OutputType.to_str())
+            Arg::new("output")
+                //.help(UserMessage::OutputType.to_str())
                 .long("output")
                 .takes_value(true)
                 .conflicts_with("async")
                 .possible_values(&["idl", "raw", "pp"]),
         )
         .arg(
-            Arg::with_name("argument")
-                .help(UserMessage::ArgumentValue.to_str())
+            Arg::new("argument")
+                //.help(UserMessage::ArgumentValue.to_str())
                 .takes_value(true),
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

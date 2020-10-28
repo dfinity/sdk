@@ -12,7 +12,7 @@ lazy_static! {
     static ref NETWORK_CONTEXT: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
 }
 
-fn set_network_context(args: &ArgMatches<'_>) {
+fn set_network_context(args: &ArgMatches) {
     let name = args.value_of("network").unwrap_or("local").to_string();
 
     let mut n = NETWORK_CONTEXT.write().unwrap();
@@ -30,7 +30,7 @@ pub fn get_network_context() -> DfxResult<String> {
 // always returns at least one url
 pub fn get_network_descriptor<'a>(
     env: &'a (dyn Environment + 'a),
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
 ) -> DfxResult<NetworkDescriptor> {
     set_network_context(args);
     let config = env
@@ -78,7 +78,7 @@ pub fn get_network_descriptor<'a>(
 
 pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
 ) -> DfxResult<AgentEnvironment<'a>> {
     let network_descriptor = get_network_descriptor(env, args)?;
     let timeout = expiry_duration();

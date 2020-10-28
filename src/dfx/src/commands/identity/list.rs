@@ -5,11 +5,11 @@ use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
 use std::io::Write;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("list").about(UserMessage::ListIdentities.to_str())
 }
 
-pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {
     let mgr = IdentityManager::new(env)?;
     let identities = mgr.get_identity_names()?;
     let current_identity = mgr.get_selected_identity_name();

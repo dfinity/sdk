@@ -7,38 +7,38 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("build")
         .about(UserMessage::BuildCanister.to_str())
         .arg(
-            Arg::with_name("canister_name")
+            Arg::new("canister_name")
                 .takes_value(true)
                 .conflicts_with("all")
-                .help(UserMessage::BuildCanisterName.to_str())
+                //.help(UserMessage::BuildCanisterName.to_str())
                 .required(false),
         )
         .arg(
-            Arg::with_name("all")
+            Arg::new("all")
                 .long("all")
                 .conflicts_with("canister_name")
-                .help(UserMessage::BuildAll.to_str())
+                //.help(UserMessage::BuildAll.to_str())
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("check")
+            Arg::new("check")
                 .long("check")
                 .takes_value(false)
-                .help(UserMessage::BuildCheck.to_str()),
+                //.help(UserMessage::BuildCheck.to_str()),
         )
         .arg(
-            Arg::with_name("network")
-                .help(UserMessage::CanisterComputeNetwork.to_str())
+            Arg::new("network")
+                //.help(UserMessage::CanisterComputeNetwork.to_str())
                 .long("network")
                 .takes_value(true),
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let env = create_agent_environment(env, args)?;
 
     let logger = env.get_logger();

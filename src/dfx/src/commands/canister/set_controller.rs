@@ -12,24 +12,24 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("set-controller")
         .about(UserMessage::SetController.to_str())
         .arg(
-            Arg::with_name("canister")
+            Arg::new("canister")
                 .takes_value(true)
-                .help(UserMessage::SetControllerCanister.to_str())
+                //.help(UserMessage::SetControllerCanister.to_str())
                 .required(true),
         )
         .arg(
-            Arg::with_name("new-controller")
+            Arg::new("new-controller")
                 .takes_value(true)
-                .help(UserMessage::NewController.to_str())
+                //.help(UserMessage::NewController.to_str())
                 .required(true),
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let canister = args.value_of("canister").unwrap();
     let canister_id = match CanisterId::from_text(canister) {
         Ok(id) => id,

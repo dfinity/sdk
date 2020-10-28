@@ -6,30 +6,30 @@ use crate::lib::provider::create_agent_environment;
 use crate::util::expiry_duration;
 use clap::{App, Arg, ArgMatches, SubCommand};
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("deploy")
         .about(UserMessage::DeployCanister.to_str())
         .arg(
-            Arg::with_name("canister_name")
+            Arg::new("canister_name")
                 .takes_value(true)
-                .help(UserMessage::DeployCanisterName.to_str())
+                //.help(UserMessage::DeployCanisterName.to_str())
                 .required(false),
         )
         .arg(
-            Arg::with_name("network")
-                .help(UserMessage::CanisterComputeNetwork.to_str())
+            Arg::new("network")
+                //.help(UserMessage::CanisterComputeNetwork.to_str())
                 .long("network")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("argument")
-                .help(UserMessage::ArgumentValue.to_str())
+            Arg::new("argument")
+                //.help(UserMessage::ArgumentValue.to_str())
                 .long("argument")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("type")
-                .help(UserMessage::ArgumentType.to_str())
+            Arg::new("type")
+                //.help(UserMessage::ArgumentType.to_str())
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
@@ -37,7 +37,7 @@ pub fn construct() -> App<'static, 'static> {
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let env = create_agent_environment(env, args)?;
 
     let timeout = expiry_duration();

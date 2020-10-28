@@ -5,24 +5,24 @@ use crate::lib::message::UserMessage;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use slog::info;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("rename")
         .about(UserMessage::RenameIdentity.to_str())
         .arg(
-            Arg::with_name("from")
-                .help("The current name of the identity.")
+            Arg::new("from")
+                //.help("The current name of the identity.")
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("to")
-                .help("The new name of the identity.")
+            Arg::new("to")
+                //.help("The new name of the identity.")
                 .required(true)
                 .takes_value(true),
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let from = args.value_of("from").unwrap();
     let to = args.value_of("to").unwrap();
 

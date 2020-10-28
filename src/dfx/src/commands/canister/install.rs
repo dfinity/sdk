@@ -15,32 +15,32 @@ use std::convert::TryFrom;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("install")
         .about(UserMessage::InstallCanister.to_str())
         .arg(
-            Arg::with_name("canister_name")
+            Arg::new("canister_name")
                 .takes_value(true)
                 .required_unless("all")
-                .help(UserMessage::InstallCanisterName.to_str())
+                //.help(UserMessage::InstallCanisterName.to_str())
                 .required(false),
         )
         .arg(
-            Arg::with_name("all")
+            Arg::new("all")
                 .long("all")
                 .required_unless("canister_name")
-                .help(UserMessage::InstallAll.to_str())
+                //.help(UserMessage::InstallAll.to_str())
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("async")
-                .help(UserMessage::AsyncResult.to_str())
+            Arg::new("async")
+                //.help(UserMessage::AsyncResult.to_str())
                 .long("async")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("mode")
-                .help(UserMessage::InstallMode.to_str())
+            Arg::new("mode")
+                //.help(UserMessage::InstallMode.to_str())
                 .long("mode")
                 .short("m")
                 .possible_values(&["install", "reinstall", "upgrade"])
@@ -48,29 +48,29 @@ pub fn construct() -> App<'static, 'static> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("argument")
-                .help(UserMessage::ArgumentValue.to_str())
+            Arg::new("argument")
+                //.help(UserMessage::ArgumentValue.to_str())
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("type")
-                .help(UserMessage::ArgumentType.to_str())
+            Arg::new("type")
+                //.help(UserMessage::ArgumentType.to_str())
                 .long("type")
                 .takes_value(true)
                 .requires("argument")
                 .possible_values(&["idl", "raw"]),
         )
         .arg(
-            Arg::with_name("compute-allocation")
-                .help(UserMessage::InstallComputeAllocation.to_str())
+            Arg::new("compute-allocation")
+                //.help(UserMessage::InstallComputeAllocation.to_str())
                 .long("compute-allocation")
                 .short("c")
                 .takes_value(true)
                 .validator(compute_allocation_validator),
         )
         .arg(
-            Arg::with_name("memory-allocation")
-                .help(UserMessage::InstallMemoryAllocation.to_str())
+            Arg::new("memory-allocation")
+                //.help(UserMessage::InstallMemoryAllocation.to_str())
                 .long("memory-allocation")
                 .takes_value(true)
                 .validator(memory_allocation_validator),
@@ -97,7 +97,7 @@ fn memory_allocation_validator(memory_allocation: String) -> Result<(), String> 
 }
 
 fn get_compute_allocation(
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
     config_interface: &ConfigInterface,
     canister_name: &str,
 ) -> DfxResult<Option<ComputeAllocation>> {
@@ -112,7 +112,7 @@ fn get_compute_allocation(
 }
 
 fn get_memory_allocation(
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
     config_interface: &ConfigInterface,
     canister_name: &str,
 ) -> DfxResult<Option<MemoryAllocation>> {
@@ -126,7 +126,7 @@ fn get_memory_allocation(
         }))
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

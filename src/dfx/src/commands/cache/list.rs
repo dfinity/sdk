@@ -5,11 +5,11 @@ use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches, SubCommand};
 use std::io::Write;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("list").about(UserMessage::CacheList.to_str())
 }
 
-pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {
     let mut current_printed = false;
     let current_version = env.get_version();
     let mut all_versions = cache::list_versions()?;

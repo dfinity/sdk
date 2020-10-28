@@ -8,17 +8,17 @@ use crate::util::expiry_duration;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("ping")
         .about(UserMessage::Ping.to_str())
         .arg(
-            Arg::with_name("network")
-                .help("The provider to use.")
+            Arg::new("network")
+                //.help("The provider to use.")
                 .takes_value(true),
         )
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     env.get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 

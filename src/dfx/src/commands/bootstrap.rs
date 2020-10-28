@@ -18,43 +18,43 @@ use std::time::Duration;
 use url::Url;
 
 /// Constructs a sub-command to run the bootstrap server.
-pub fn construct() -> App<'static, 'static> {
+pub fn construct() -> App<'static> {
     SubCommand::with_name("bootstrap")
         .about(UserMessage::BootstrapCommand.to_str())
         .arg(
-            Arg::with_name("ip")
-                .help(UserMessage::BootstrapIP.to_str())
+            Arg::new("ip")
+                //.help(UserMessage::BootstrapIP.to_str())
                 .long("ip")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("port")
-                .help(UserMessage::BootstrapPort.to_str())
+            Arg::new("port")
+                //.help(UserMessage::BootstrapPort.to_str())
                 .long("port")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("network")
-                .help(UserMessage::CanisterComputeNetwork.to_str())
+            Arg::new("network")
+                //.help(UserMessage::CanisterComputeNetwork.to_str())
                 .long("network")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("root")
-                .help(UserMessage::BootstrapRoot.to_str())
+            Arg::new("root")
+                //.help(UserMessage::BootstrapRoot.to_str())
                 .long("root")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("timeout")
-                .help(UserMessage::BootstrapTimeout.to_str())
+            Arg::new("timeout")
+                //.help(UserMessage::BootstrapTimeout.to_str())
                 .long("timeout")
                 .takes_value(true),
         )
 }
 
 /// Runs the bootstrap server.
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let logger = env.get_logger();
     let config = env
         .get_config()
@@ -118,7 +118,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 fn apply_arguments(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
     let ip = get_ip(&config, args)?;
     let port = get_port(&config, args)?;
@@ -143,7 +143,7 @@ fn get_config_defaults_from_file(env: &dyn Environment) -> ConfigDefaults {
 /// Gets the IP address that the bootstrap server listens on. First checks if the IP address was
 /// specified on the command-line using --ip, otherwise checks if the IP address was specified in
 /// the dfx configuration file, otherise defaults to 127.0.0.1.
-fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<IpAddr> {
+fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<IpAddr> {
     args.value_of("ip")
         .map(|ip| ip.parse())
         .unwrap_or_else(|| {
@@ -156,7 +156,7 @@ fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
 /// specified on the command-line using --port, otherwise checks if the port number was specified
 /// in the dfx configuration file, otherise defaults to 8081.
-fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<u16> {
+fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u16> {
     args.value_of("port")
         .map(|port| port.parse())
         .unwrap_or_else(|| {
@@ -182,7 +182,7 @@ fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String
 fn get_root(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
 ) -> DfxResult<PathBuf> {
     args.value_of("root")
         .map(|root| parse_dir(root))
@@ -205,7 +205,7 @@ fn get_root(
 /// requests to complete. First checks if the timeout was specified on the command-line using
 /// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
 /// otherise defaults to 30.
-fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ArgMatches<'_>) -> DfxResult<u64> {
+fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u64> {
     args.value_of("timeout")
         .map(|timeout| timeout.parse())
         .unwrap_or_else(|| {
