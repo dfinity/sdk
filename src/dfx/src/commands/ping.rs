@@ -1,22 +1,34 @@
 use crate::config::dfinity::NetworkType;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{command_line_provider_to_url, get_network_descriptor};
 use crate::util::expiry_duration;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches, Clap, FromArgMatches, IntoApp};
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static> {
-    SubCommand::with_name("ping")
-        .about(UserMessage::Ping.to_str())
-        .arg(
-            Arg::new("network")
-                //.help("The provider to use.")
-                .takes_value(true),
-        )
+
+/// Pings an Internet Computer network and returns its status.
+#[derive(Clap)]
+pub struct PingOpts {
+    /// The provider to use.
+    network: Option<String>,
 }
+
+pub fn construct() -> App<'static> {
+    PingOpts::into_app()
+        .name("ping")
+}
+
+// pub fn construct() -> App<'static> {
+//     SubCommand::with_name("ping")
+//         .about(UserMessage::Ping.to_str())
+//         .arg(
+//             Arg::new("network")
+//                 //.help("The provider to use.")
+//                 .takes_value(true),
+//         )
+// }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     env.get_config()
