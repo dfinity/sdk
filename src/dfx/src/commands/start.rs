@@ -125,7 +125,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
-    if args.is_present("clean") {
+    if opts.clean {
         clean_state(temp_dir, &state_root)?;
     }
 
