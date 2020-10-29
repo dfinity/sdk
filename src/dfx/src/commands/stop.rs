@@ -1,11 +1,16 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, IntoApp};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
+/// Stops the local network replica.
+#[derive(Clap)]
+pub struct StopOpts {
+}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("stop").about(UserMessage::StopNode.to_str())
+    StopOpts::into_app()
+        .name("stop")
 }
 
 fn list_all_descendants(pid: Pid) -> Vec<Pid> {
