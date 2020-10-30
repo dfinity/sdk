@@ -1,12 +1,15 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, IntoApp};
 use std::io::Write;
 
+/// Lists existing identities.
+#[derive(Clap)]
+pub struct ListOpts {}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("list").about(UserMessage::ListIdentities.to_str())
+    ListOpts::into_app().name("list")
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

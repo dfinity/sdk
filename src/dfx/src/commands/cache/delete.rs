@@ -17,7 +17,7 @@ pub fn construct() -> App<'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: CacheDeleteOpts = CacheDeleteOpts::from_arg_matches(args);
     match opts.version {
-        Some(v) => delete_version(v).map(|_| {}),
+        Some(v) => delete_version(v.as_str()).map(|_| {}),
         _ => env.get_cache().delete(),
     }
 }

@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use clap::{App, AppSettings, Arg, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;

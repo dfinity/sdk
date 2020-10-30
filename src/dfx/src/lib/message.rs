@@ -20,9 +20,6 @@ macro_rules! user_message {
 user_message!(
     // dfx cache
     ManageCache => "Manages the dfx version cache.",
-    CacheUnpack => "Forces unpacking the cache from this dfx version.",
-    CacheList => "Lists installed and used version.",
-    CacheShow => "Shows the path of the cache used by this version.",
 
     // dfx canister call
     CallCanister => "Calls a method on a deployed canister.",
@@ -39,15 +36,6 @@ user_message!(
 
     // dfx identity mod
     ManageIdentity => "Manages identities used to communicate with the Internet Computer network. Setting an identity enables you to test user-based access controls.",
-
-    // dfx identity list
-    ListIdentities => "Lists existing identities.",
-
-    // dfx identity whoami
-    ShowIdentity => "Shows the name of the current identity.",
-
-    // dfx identity get-principal
-    GetPrincipalId => "Shows the textual representation of the Principal associated with the current identity.",
 
     // dfx replica
     ReplicaRoundGasLimit => "Specifies the maximum number of cycles a single round can consume.",

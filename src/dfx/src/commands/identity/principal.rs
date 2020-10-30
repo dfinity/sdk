@@ -1,12 +1,15 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, IntoApp};
 use ic_agent::Identity;
 
+/// Shows the textual representation of the Principal associated with the current identity.
+#[derive(Clap)]
+pub struct GetPrincipalOpts {}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("get-principal").about(UserMessage::GetPrincipalId.to_str())
+    GetPrincipalOpts::into_app().name("get-principal")
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

@@ -1,12 +1,15 @@
 use crate::config::{cache, dfx_version};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, IntoApp};
 use std::io::Write;
 
+/// Lists installed and used version.
+#[derive(Clap)]
+pub struct CacheListOpts {}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("list").about(UserMessage::CacheList.to_str())
+    CacheListOpts::into_app().name("list")
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

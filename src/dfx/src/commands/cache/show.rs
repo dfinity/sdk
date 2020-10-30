@@ -1,11 +1,14 @@
 use crate::config::cache;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, IntoApp};
+
+/// Shows the path of the cache used by this version.
+#[derive(Clap)]
+pub struct CacheShowOpts {}
 
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("show").about(UserMessage::CacheShow.to_str())
+    CacheShowOpts::into_app().name("show")
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

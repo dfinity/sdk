@@ -1,11 +1,14 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, IntoApp};
+
+/// Shows the name of the current identity.
+#[derive(Clap)]
+pub struct WhoAmIOpts {}
 
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("whoami").about(UserMessage::ShowIdentity.to_str())
+    WhoAmIOpts::into_app().name("whoami")
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {
