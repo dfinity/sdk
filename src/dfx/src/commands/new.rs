@@ -3,9 +3,8 @@ use crate::config::dfinity::CONFIG_FILE_NAME;
 use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::util::assets;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use console::{style, Style};
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
@@ -34,7 +33,7 @@ lazy_static! {
 /// Validate a String can be a valid project name.
 /// A project name is valid if it starts with a letter, and is alphanumeric (with hyphens).
 /// It cannot end with a dash.
-pub fn project_name_validator(name: String) -> Result<(), String> {
+pub fn project_name_validator(name: &str) -> Result<(), String> {
     let mut chars = name.chars();
     // Check first character first. If there's no first character it's empty.
     if let Some(first) = chars.next() {
@@ -63,35 +62,28 @@ pub fn project_name_validator(name: String) -> Result<(), String> {
     }
 }
 
+/// Creates a new project.
+#[derive(Clap)]
+pub struct NewOpts {
+    /// Specifies the name of the project to create.
+    #[clap(long, validator(project_name_validator))]
+    project_name: String,
+
+    /// Provides a preview the directories and files to be created without adding them to the file system.
+    #[clap(long)]
+    dry_run: bool,
+
+    /// Installs the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.
+    #[clap(long, conflicts_with("no_frontend"))]
+    frontend: bool,
+
+    #[clap(long, conflicts_with("frontend"))]
+    no_frontend: bool,
+}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("new")
-        .about(UserMessage::CreateProject.to_str())
-        .arg(
-            Arg::new(PROJECT_NAME)
-                //.help(UserMessage::ProjectName.to_str())
-                .validator(project_name_validator)
-                .required(true),
-        )
-        .arg(
-            Arg::new(DRY_RUN)
-                //.help(UserMessage::DryRun.to_str())
-                .long("dry-run")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::new("frontend")
-                .long("--frontend")
-                //.help(UserMessage::NewFrontend.to_str())
-                .takes_value(false)
-                .conflicts_with("no-frontend"),
-        )
-        .arg(
-            Arg::new("no-frontend")
-                .long("--no-frontend")
-                .hidden(true)
-                .takes_value(false)
-                .conflicts_with("frontend"),
-        )
+    NewOpts::into_app()
+        .name("new")
 }
 
 enum Status<'a> {
@@ -324,12 +316,10 @@ fn scaffold_frontend_code(
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: NewOpts = NewOpts::from_arg_matches(args);
     let log = env.get_logger();
-    let dry_run = args.is_present(DRY_RUN);
-    let project_name_path = args
-        .value_of(PROJECT_NAME)
-        .ok_or_else(|| DfxError::InvalidArgument("project_path".to_string()))?;
-    let project_name = Path::new(project_name_path);
+    let dry_run = opts.dry_run;
+    let project_name = Path::new(opts.project_name.as_str());
 
     if project_name.exists() {
         return Err(DfxError::ProjectExists);
@@ -410,8 +400,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         env,
         dry_run,
         project_name,
-        args.is_present("no-frontend"),
-        args.is_present("frontend"),
+        opts.no_frontend,
+        opts.frontend,
         &variables,
     )?;
 
@@ -490,28 +480,28 @@ mod tests {
 
     #[test]
     fn project_name_is_valid() {
-        assert!(project_name_validator("a".to_owned()).is_ok());
-        assert!(project_name_validator("a_".to_owned()).is_ok());
-        assert!(project_name_validator("a_1".to_owned()).is_ok());
-        assert!(project_name_validator("A".to_owned()).is_ok());
-        assert!(project_name_validator("A1".to_owned()).is_ok());
-        assert!(project_name_validator("a_good_name_".to_owned()).is_ok());
-        assert!(project_name_validator("a_good_name".to_owned()).is_ok());
+        assert!(project_name_validator("a").is_ok());
+        assert!(project_name_validator("a_").is_ok());
+        assert!(project_name_validator("a_1").is_ok());
+        assert!(project_name_validator("A").is_ok());
+        assert!(project_name_validator("A1").is_ok());
+        assert!(project_name_validator("a_good_name_").is_ok());
+        assert!(project_name_validator("a_good_name").is_ok());
     }
 
     #[test]
     fn project_name_is_invalid() {
-        assert!(project_name_validator("_a_good_name_".to_owned()).is_err());
-        assert!(project_name_validator("__also_good".to_owned()).is_err());
-        assert!(project_name_validator("_1".to_owned()).is_err());
-        assert!(project_name_validator("_a".to_owned()).is_err());
-        assert!(project_name_validator("1".to_owned()).is_err());
-        assert!(project_name_validator("1_".to_owned()).is_err());
-        assert!(project_name_validator("-".to_owned()).is_err());
-        assert!(project_name_validator("_".to_owned()).is_err());
-        assert!(project_name_validator("a-b-c".to_owned()).is_err());
-        assert!(project_name_validator("🕹".to_owned()).is_err());
-        assert!(project_name_validator("不好".to_owned()).is_err());
-        assert!(project_name_validator("a:b".to_owned()).is_err());
+        assert!(project_name_validator("_a_good_name_").is_err());
+        assert!(project_name_validator("__also_good").is_err());
+        assert!(project_name_validator("_1").is_err());
+        assert!(project_name_validator("_a").is_err());
+        assert!(project_name_validator("1").is_err());
+        assert!(project_name_validator("1_").is_err());
+        assert!(project_name_validator("-").is_err());
+        assert!(project_name_validator("_").is_err());
+        assert!(project_name_validator("a-b-c").is_err());
+        assert!(project_name_validator("🕹").is_err());
+        assert!(project_name_validator("不好").is_err());
+        assert!(project_name_validator("a:b").is_err());
     }
 }

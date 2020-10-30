@@ -141,22 +141,11 @@ user_message!(
     NewFrontend => "Installs the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.",
 
     // dfx replica
-    Replica => "Starts a local Internet Computer replica.",
-    ReplicaMessageGasLimit => "Specifies the maximum number of cycles a single message can consume.",
-    ReplicaPort => "Specifies the port the local replica should listen to.",
     ReplicaRoundGasLimit => "Specifies the maximum number of cycles a single round can consume.",
-
-    // dfx start
-    CleanState => "Cleans the state of the current project.",
-    StartNode => "Starts the local replica and a web server for the current project.",
-    NodeAddress => "Specifies the host name and port number to bind the frontend to.",
-    StartBackground => "Exits the dfx leaving the replica running. Will wait until the replica replies before exiting.",
 
     // misc
     CanisterName => "Specifies the canister name. If you don't specify this argument, all canisters are processed.",
 
-    // dfx stop
-    StopNode => "Stops the local network replica.",
     // dfx ide
     StartLanguageService => "Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the end-user.",
     ForceTTY => "Forces the language server to start even when run from a terminal.",

@@ -25,8 +25,7 @@ pub struct UpgradeOpts {
 }
 
 pub fn construct() -> App<'static> {
-    UpgradeOpts::into_app()
-        .name("upgrade")
+    UpgradeOpts::into_app().name("upgrade")
 }
 
 fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>
@@ -160,7 +159,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         "macos" => "x86_64-darwin",
         _ => panic!("Not supported architecture"),
     };
-    let current_version = if let Some(version) = opts.current_version.and_then(|v| Some(v.as_str())) {
+    let current_version = if let Some(version) = opts.current_version.and_then(|v| Some(v.as_str()))
+    {
         Version::parse(version)?
     } else {
         env.get_version().clone()

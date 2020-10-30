@@ -7,7 +7,6 @@ use crate::util::expiry_duration;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use tokio::runtime::Runtime;
 
-
 /// Pings an Internet Computer network and returns its status.
 #[derive(Clap)]
 pub struct PingOpts {
@@ -16,8 +15,7 @@ pub struct PingOpts {
 }
 
 pub fn construct() -> App<'static> {
-    PingOpts::into_app()
-        .name("ping")
+    PingOpts::into_app().name("ping")
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

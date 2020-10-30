@@ -5,12 +5,10 @@ use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
 /// Stops the local network replica.
 #[derive(Clap)]
-pub struct StopOpts {
-}
+pub struct StopOpts {}
 
 pub fn construct() -> App<'static> {
-    StopOpts::into_app()
-        .name("stop")
+    StopOpts::into_app().name("stop")
 }
 
 fn list_all_descendants(pid: Pid) -> Vec<Pid> {

@@ -40,8 +40,7 @@ pub struct StartOpts {
 }
 
 pub fn construct() -> App<'static> {
-    StartOpts::into_app()
-        .name("start")
+    StartOpts::into_app().name("start")
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -254,7 +253,11 @@ fn send_background() -> DfxResult<()> {
     Ok(())
 }
 
-fn frontend_address(host: Option<String>, config: &Config, background: bool) -> DfxResult<(String, SocketAddr)> {
+fn frontend_address(
+    host: Option<String>,
+    config: &Config,
+    background: bool,
+) -> DfxResult<(String, SocketAddr)> {
     let mut address_and_port = host
         .and_then(|host| Option::from(host.parse()))
         .unwrap_or_else(|| {
