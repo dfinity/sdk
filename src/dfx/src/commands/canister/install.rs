@@ -2,82 +2,59 @@ use crate::config::dfinity::ConfigInterface;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
-
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use humanize_rs::bytes::{Bytes, Unit};
-
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
 use std::convert::TryFrom;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static> {
-    SubCommand::with_name("install")
-        .about(UserMessage::InstallCanister.to_str())
-        .arg(
-            Arg::new("canister_name")
-                .takes_value(true)
-                .required_unless("all")
-                //.help(UserMessage::InstallCanisterName.to_str())
-                .required(false),
-        )
-        .arg(
-            Arg::new("all")
-                .long("all")
-                .required_unless("canister_name")
-                //.help(UserMessage::InstallAll.to_str())
-                .takes_value(false),
-        )
-        .arg(
-            Arg::new("async")
-                //.help(UserMessage::AsyncResult.to_str())
-                .long("async")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::new("mode")
-                //.help(UserMessage::InstallMode.to_str())
-                .long("mode")
-                .short("m")
-                .possible_values(&["install", "reinstall", "upgrade"])
-                .default_value("install")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("argument")
-                //.help(UserMessage::ArgumentValue.to_str())
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("type")
-                //.help(UserMessage::ArgumentType.to_str())
-                .long("type")
-                .takes_value(true)
-                .requires("argument")
-                .possible_values(&["idl", "raw"]),
-        )
-        .arg(
-            Arg::new("compute-allocation")
-                //.help(UserMessage::InstallComputeAllocation.to_str())
-                .long("compute-allocation")
-                .short("c")
-                .takes_value(true)
-                .validator(compute_allocation_validator),
-        )
-        .arg(
-            Arg::new("memory-allocation")
-                //.help(UserMessage::InstallMemoryAllocation.to_str())
-                .long("memory-allocation")
-                .takes_value(true)
-                .validator(memory_allocation_validator),
-        )
+/// Deploys compiled code as a canister on the Internet Computer.
+#[derive(Clap)]
+pub struct CanisterInstallOpts {
+    /// Specifies the canister name to deploy. You must specify either canister name or the --all option.
+    #[clap(long, required_unless_present("all"))]
+    canister_name: String,
+
+    /// Deploys all canisters configured in the project dfx.json files.
+    #[clap(long, required_unless_present("canister_name"))]
+    all: bool,
+
+    /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
+    #[clap(long)]
+    async_call: bool,
+
+    /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
+    #[clap(long, short('m'), default_value("install"),
+        possible_values(&["install", "reinstall", "upgrade"]))]
+    mode: String,
+
+    /// Specifies the argument to pass to the method.
+    #[clap(long)]
+    argument: Option<String>,
+
+    /// Specifies the data type for the argument when making the call using an argument.
+    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    argument_type: Option<String>,
+
+    /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
+    #[clap(long, short('c'), validator(compute_allocation_validator))]
+    compute_allocation: Option<String>,
+
+    /// Specifies how much memory the canister is allowed to use in total.
+    /// This should be a value in the range [0..256 TB]
+    #[clap(long, validator(memory_allocation_validator))]
+    memory_allocation: Option<String>,
 }
 
-fn compute_allocation_validator(compute_allocation: String) -> Result<(), String> {
+pub fn construct() -> App<'static> {
+    CanisterInstallOpts::into_app().name("install")
+}
+
+fn compute_allocation_validator(compute_allocation: &str) -> Result<(), String> {
     if let Ok(num) = compute_allocation.parse::<u64>() {
         if num <= 100 {
             return Ok(());
@@ -86,7 +63,7 @@ fn compute_allocation_validator(compute_allocation: String) -> Result<(), String
     Err("Must be a percent between 0 and 100".to_string())
 }
 
-fn memory_allocation_validator(memory_allocation: String) -> Result<(), String> {
+fn memory_allocation_validator(memory_allocation: &str) -> Result<(), String> {
     let limit = Bytes::new(256, Unit::TByte).map_err(|_| "Parse Overflow.")?;
     if let Ok(bytes) = memory_allocation.parse::<Bytes>() {
         if bytes.size() <= limit.size() {
@@ -97,12 +74,11 @@ fn memory_allocation_validator(memory_allocation: String) -> Result<(), String> 
 }
 
 fn get_compute_allocation(
-    args: &ArgMatches,
+    compute_allocation: Option<String>,
     config_interface: &ConfigInterface,
     canister_name: &str,
 ) -> DfxResult<Option<ComputeAllocation>> {
-    Ok(args
-        .value_of("compute-allocation")
+    Ok(compute_allocation
         .map(|v| v.to_string())
         .or(config_interface.get_compute_allocation(canister_name)?)
         .map(|arg| {
@@ -112,12 +88,11 @@ fn get_compute_allocation(
 }
 
 fn get_memory_allocation(
-    args: &ArgMatches,
+    memory_allocation: Option<String>,
     config_interface: &ConfigInterface,
     canister_name: &str,
 ) -> DfxResult<Option<MemoryAllocation>> {
-    Ok(args
-        .value_of("memory-allocation")
+    Ok(memory_allocation
         .map(|v| v.to_string())
         .or(config_interface.get_memory_allocation(canister_name)?)
         .map(|arg| {
@@ -127,6 +102,7 @@ fn get_memory_allocation(
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: CanisterInstallOpts = CanisterInstallOpts::from_arg_matches(args);
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -139,24 +115,26 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let config_interface = config.get_config();
 
-    let mode = InstallMode::from_str(args.value_of("mode").unwrap())?;
+    let mode = InstallMode::from_str(opts.mode.as_str())?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    if let Some(canister_name) = args.value_of("canister_name") {
+    if let Some(canister_name) = Some(opts.canister_name.as_str()) {
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-        let arguments: Option<&str> = args.value_of("argument");
-        let arg_type: Option<&str> = args.value_of("type");
+        let arguments: Option<&str> = opts.argument.and_then(|v| Some(v.as_str()));
+        let arg_type: Option<&str> = opts.argument_type.and_then(|v| Some(v.as_str()));
         let install_args = blob_from_arguments(arguments, arg_type, &init_type)?;
 
-        let compute_allocation = get_compute_allocation(args, config_interface, canister_name)?;
-        let memory_allocation = get_memory_allocation(args, config_interface, canister_name)?;
+        let compute_allocation =
+            get_compute_allocation(opts.compute_allocation, config_interface, canister_name)?;
+        let memory_allocation =
+            get_memory_allocation(opts.memory_allocation, config_interface, canister_name)?;
 
         runtime.block_on(install_canister(
             env,
@@ -169,7 +147,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
             timeout,
         ))?;
         Ok(())
-    } else if args.is_present("all") {
+    } else if opts.all {
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
@@ -178,10 +156,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
                 let install_args = [];
 
-                let compute_allocation =
-                    get_compute_allocation(args, config_interface, canister_name)?;
+                let compute_allocation = get_compute_allocation(
+                    opts.compute_allocation,
+                    config_interface,
+                    canister_name,
+                )?;
                 let memory_allocation =
-                    get_memory_allocation(args, config_interface, canister_name)?;
+                    get_memory_allocation(opts.memory_allocation, config_interface, canister_name)?;
 
                 runtime.block_on(install_canister(
                     env,

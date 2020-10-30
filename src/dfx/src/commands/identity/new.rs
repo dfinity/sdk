@@ -1,23 +1,24 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::message::UserMessage;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use slog::info;
 
+/// Creates a new identity.
+#[derive(Clap)]
+pub struct NewIdentityOpts {
+    /// The identity to create.
+    #[clap(long)]
+    identity: String,
+}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("new")
-        .about(UserMessage::NewIdentity.to_str())
-        .arg(
-            Arg::new("identity")
-                //.help("The identity to create.")
-                .required(true)
-                .takes_value(true),
-        )
+    NewIdentityOpts::into_app().name("rename")
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let name = args.value_of("identity").unwrap();
+    let opts: NewIdentityOpts = NewIdentityOpts::from_arg_matches(args);
+    let name = opts.identity.as_str();
 
     let log = env.get_logger();
     info!(log, r#"Creating identity: "{}"."#, name);

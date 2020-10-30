@@ -20,15 +20,10 @@ fn cli(_: &impl Environment) -> App<'_> {
         .arg(
             Arg::new("verbose")
                 .long("verbose")
-                .short("v")
+                .short('v')
                 .multiple(true),
         )
-        .arg(
-            Arg::new("quiet")
-                .long("quiet")
-                .short("q")
-                .multiple(true),
-        )
+        .arg(Arg::new("quiet").long("quiet").short('q').multiple(true))
         .arg(
             Arg::new("logmode")
                 .long("log")
@@ -42,11 +37,7 @@ fn cli(_: &impl Environment) -> App<'_> {
                 .long("logfile")
                 .takes_value(true),
         )
-        .arg(
-            Arg::new("identity")
-                .long("identity")
-                .takes_value(true),
-        )
+        .arg(Arg::new("identity").long("identity").takes_value(true))
         .subcommands(
             commands::builtin()
                 .into_iter()

@@ -1,42 +1,42 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use ic_agent::Identity;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
 use tokio::runtime::Runtime;
 
+/// Sets the provided identity's name or its principal as the
+/// new controller of a canister on the Internet Computer network.
+#[derive(Clap)]
+pub struct SetControllerOpts {
+    /// Specifies the canister name or the canister identifier for the canister to be controlled.
+    #[clap(long)]
+    canister: String,
+
+    /// Specifies the identity name or the principal of the new controller."
+    #[clap(long)]
+    new_controller: String,
+}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("set-controller")
-        .about(UserMessage::SetController.to_str())
-        .arg(
-            Arg::new("canister")
-                .takes_value(true)
-                //.help(UserMessage::SetControllerCanister.to_str())
-                .required(true),
-        )
-        .arg(
-            Arg::new("new-controller")
-                .takes_value(true)
-                //.help(UserMessage::NewController.to_str())
-                .required(true),
-        )
+    SetControllerOpts::into_app().name("set-controller")
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let canister = args.value_of("canister").unwrap();
+    let opts: SetControllerOpts = SetControllerOpts::from_arg_matches(args);
+    let canister = opts.canister.as_str();
     let canister_id = match CanisterId::from_text(canister) {
         Ok(id) => id,
         Err(_) => CanisterIdStore::for_env(env)?.get(canister)?,
     };
 
-    let new_controller = args.value_of("new-controller").unwrap();
+    let new_controller = opts.new_controller.as_str();
     let controller_principal = match CanisterId::from_text(new_controller) {
         Ok(principal) => principal,
         Err(_) => IdentityManager::new(env)?

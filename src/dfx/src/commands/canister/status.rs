@@ -1,11 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
-
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
@@ -13,23 +11,21 @@ use slog::info;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
+/// Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.
+#[derive(Clap)]
+pub struct CanisterStatusOpts {
+    /// Specifies the name of the canister to return information for.
+    /// You must specify either a canister name or the --all flag.
+    #[clap(long, required_unless_present("all"))]
+    canister_name: String,
+
+    /// Returns status information for all of the canisters configured in the dfx.json file.
+    #[clap(long, required_unless_present("canister_name"))]
+    all: bool,
+}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("status")
-        .about(UserMessage::CanisterStatus.to_str())
-        .arg(
-            Arg::new("canister_name")
-                .takes_value(true)
-                .required_unless("all")
-                //.help(UserMessage::StatusCanisterName.to_str())
-                .required(false),
-        )
-        .arg(
-            Arg::new("all")
-                .long("all")
-                .required_unless("canister_name")
-                //.help(UserMessage::StatusAll.to_str())
-                .takes_value(false),
-        )
+    CanisterStatusOpts::into_app().name("status")
 }
 
 async fn canister_status(
@@ -53,6 +49,7 @@ async fn canister_status(
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: CanisterStatusOpts = CanisterStatusOpts::from_arg_matches(args);
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -64,10 +61,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = args.value_of("canister_name") {
+    if let Some(canister_name) = Some(opts.canister_name.as_str()) {
         runtime.block_on(canister_status(env, &agent, &canister_name, timeout))?;
         Ok(())
-    } else if args.is_present("all") {
+    } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
                 runtime.block_on(canister_status(env, &agent, &canister_name, timeout))?;

@@ -1,82 +1,64 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
 use tokio::runtime::Runtime;
 
+/// Deletes a canister on the Internet Computer network.
+#[derive(Clap)]
+pub struct CanisterCallOpts {
+    /// Specifies the name of the canister to build.
+    /// You must specify either a canister name or the --all option.
+    #[clap(long)]
+    canister_name: String,
+
+    /// Specifies the method name to call on the canister.
+    #[clap(long)]
+    method_name: String,
+
+    /// Specifies not to wait for the result of the call to be returned by polling the replica.
+    /// Instead return a response ID.
+    #[clap(long)]
+    async_call: bool,
+
+    /// Sends a query request to a canister.
+    #[clap(long, conflicts_with("async"), conflicts_with("update"))]
+    query: bool,
+
+    /// Sends an update request to a canister. This is the default if the method is not a query method.
+    #[clap(long, conflicts_with("async"), conflicts_with("query"))]
+    update: bool,
+
+    /// Specifies the argument to pass to the method.
+    #[clap(long)]
+    argument: Option<String>,
+
+    /// Specifies the data type for the argument when making the call using an argument.
+    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    argument_type: Option<String>,
+
+    /// Specifies the format for displaying the method's return result.
+    #[clap(long, requires("argument"), conflicts_with("async"),
+        possible_values(&["idl", "raw", "pp"]))]
+    output: Option<String>,
+}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("call")
-        .about(UserMessage::CallCanister.to_str())
-        .arg(
-            Arg::new("canister_name")
-                .takes_value(true)
-                //.help(UserMessage::CanisterName.to_str())
-                .required(true),
-        )
-        .arg(
-            Arg::new("method_name")
-                //.help(UserMessage::MethodName.to_str())
-                .required(true),
-        )
-        .arg(
-            Arg::new("async")
-                //.help(UserMessage::AsyncResult.to_str())
-                .long("async")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::new("query")
-                //.help(UserMessage::QueryCanister.to_str())
-                .long("query")
-                .conflicts_with("async")
-                .conflicts_with("update")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::new("update")
-                //.help(UserMessage::UpdateCanisterArg.to_str())
-                .long("update")
-                .conflicts_with("async")
-                .conflicts_with("query")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::new("type")
-                //.help(UserMessage::ArgumentType.to_str())
-                .long("type")
-                .takes_value(true)
-                .requires("argument")
-                .possible_values(&["idl", "raw"]),
-        )
-        .arg(
-            Arg::new("output")
-                //.help(UserMessage::OutputType.to_str())
-                .long("output")
-                .takes_value(true)
-                .conflicts_with("async")
-                .possible_values(&["idl", "raw", "pp"]),
-        )
-        .arg(
-            Arg::new("argument")
-                //.help(UserMessage::ArgumentValue.to_str())
-                .takes_value(true),
-        )
+    CanisterCallOpts::into_app().name("call")
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: CanisterCallOpts = CanisterCallOpts::from_arg_matches(args);
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
-    let canister_name = args.value_of("canister_name").unwrap();
-    let method_name = args
-        .value_of("method_name")
-        .ok_or_else(|| DfxError::InvalidArgument("method_name".to_string()))?;
+    let canister_name = opts.canister_name.as_str();
+    let method_name = opts.method_name.as_str();
 
     let (canister_id, maybe_candid_path) = match CanisterId::from_text(canister_name) {
         Ok(id) => {
@@ -100,16 +82,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         None => None,
     };
 
-    let arguments: Option<&str> = args.value_of("argument");
-    let arg_type: Option<&str> = args.value_of("type");
-    let output_type: Option<&str> = args.value_of("output");
-    let is_query = if args.is_present("async") {
+    let arguments: Option<&str> = opts.argument.and_then(|v| Some(v.as_str()));
+    let arg_type: Option<&str> = opts.argument_type.and_then(|v| Some(v.as_str()));
+    let output_type: Option<&str> = opts.output.and_then(|v| Some(v.as_str()));
+    let is_query = if opts.async_call {
         false
     } else {
         match is_query_method {
-            Some(true) => !args.is_present("update"),
+            Some(true) => !opts.update,
             Some(false) => {
-                if args.is_present("query") {
+                if opts.query {
                     return Err(DfxError::InvalidMethodCall(format!(
                         "{} is not a query method",
                         method_name
@@ -118,7 +100,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
                     false
                 }
             }
-            None => args.is_present("query"),
+            None => opts.query,
         }
     };
 

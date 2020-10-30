@@ -1,12 +1,11 @@
 use crate::config::dfinity::{ConfigDefaults, ConfigDefaultsBootstrap};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::webserver;
 use crate::util::get_reusable_socket_addr;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use slog::info;
 use std::default::Default;
 use std::fs;
@@ -17,53 +16,48 @@ use std::str::FromStr;
 use std::time::Duration;
 use url::Url;
 
-/// Constructs a sub-command to run the bootstrap server.
+/// Starts the bootstrap server.
+#[derive(Clap)]
+pub struct BootstrapOpts {
+    /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
+    #[clap(long)]
+    ip: Option<String>,
+
+    /// Specifies the port number that the bootstrap server listens on. Defaults to 8081.
+    #[clap(long)]
+    port: Option<String>,
+
+    /// Override the compute network to connect to. By default, the local network is used.
+    #[clap(long)]
+    network: Option<String>,
+
+    /// Specifies the directory containing static assets served by the bootstrap server.
+    /// Defaults to $HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap.",
+    #[clap(long)]
+    root: Option<String>,
+
+    /// Specifies the maximum number of seconds that the bootstrap server
+    /// will wait for upstream requests to complete. Defaults to 30.",
+    #[clap(long)]
+    timeout: Option<String>,
+}
+
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("bootstrap")
-        .about(UserMessage::BootstrapCommand.to_str())
-        .arg(
-            Arg::new("ip")
-                //.help(UserMessage::BootstrapIP.to_str())
-                .long("ip")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("port")
-                //.help(UserMessage::BootstrapPort.to_str())
-                .long("port")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("network")
-                //.help(UserMessage::CanisterComputeNetwork.to_str())
-                .long("network")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("root")
-                //.help(UserMessage::BootstrapRoot.to_str())
-                .long("root")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("timeout")
-                //.help(UserMessage::BootstrapTimeout.to_str())
-                .long("timeout")
-                .takes_value(true),
-        )
+    BootstrapOpts::into_app().name("bootstrap")
 }
 
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: BootstrapOpts = BootstrapOpts::from_arg_matches(args);
     let logger = env.get_logger();
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
-    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, args)?;
+    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts)?;
 
-    let network_descriptor = get_network_descriptor(env, args)?;
+    let network_descriptor = get_network_descriptor(env, opts.network)?;
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
 
@@ -118,12 +112,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 fn apply_arguments(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
-    args: &ArgMatches,
+    opts: BootstrapOpts,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
-    let ip = get_ip(&config, args)?;
-    let port = get_port(&config, args)?;
-    let root = get_root(&config, env, args)?;
-    let timeout = get_timeout(&config, args)?;
+    let ip = get_ip(&config, opts.ip)?;
+    let port = get_port(&config, opts.port)?;
+    let root = get_root(&config, env, opts.root.and_then(|v| Some(v.as_str())))?;
+    let timeout = get_timeout(&config, opts.timeout)?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
@@ -143,9 +137,8 @@ fn get_config_defaults_from_file(env: &dyn Environment) -> ConfigDefaults {
 /// Gets the IP address that the bootstrap server listens on. First checks if the IP address was
 /// specified on the command-line using --ip, otherwise checks if the IP address was specified in
 /// the dfx configuration file, otherise defaults to 127.0.0.1.
-fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<IpAddr> {
-    args.value_of("ip")
-        .map(|ip| ip.parse())
+fn get_ip(config: &ConfigDefaultsBootstrap, ip: Option<String>) -> DfxResult<IpAddr> {
+    ip.map(|ip| ip.parse())
         .unwrap_or_else(|| {
             let default = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
             Ok(config.ip.unwrap_or(default))
@@ -156,9 +149,8 @@ fn get_ip(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<IpAd
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
 /// specified on the command-line using --port, otherwise checks if the port number was specified
 /// in the dfx configuration file, otherise defaults to 8081.
-fn get_port(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u16> {
-    args.value_of("port")
-        .map(|port| port.parse())
+fn get_port(config: &ConfigDefaultsBootstrap, port: Option<String>) -> DfxResult<u16> {
+    port.map(|port| port.parse())
         .unwrap_or_else(|| {
             let default = 8081;
             Ok(config.port.unwrap_or(default))
@@ -182,10 +174,9 @@ fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String
 fn get_root(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
-    args: &ArgMatches,
+    root: Option<&str>,
 ) -> DfxResult<PathBuf> {
-    args.value_of("root")
-        .map(|root| parse_dir(root))
+    root.map(|root| parse_dir(root))
         .unwrap_or_else(|| {
             config
                 .root
@@ -205,8 +196,8 @@ fn get_root(
 /// requests to complete. First checks if the timeout was specified on the command-line using
 /// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
 /// otherise defaults to 30.
-fn get_timeout(config: &ConfigDefaultsBootstrap, args: &ArgMatches) -> DfxResult<u64> {
-    args.value_of("timeout")
+fn get_timeout(config: &ConfigDefaultsBootstrap, timeout: Option<String>) -> DfxResult<u64> {
+    timeout
         .map(|timeout| timeout.parse())
         .unwrap_or_else(|| {
             let default = 30;

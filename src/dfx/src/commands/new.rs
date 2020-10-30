@@ -82,8 +82,7 @@ pub struct NewOpts {
 }
 
 pub fn construct() -> App<'static> {
-    NewOpts::into_app()
-        .name("new")
+    NewOpts::into_app().name("new")
 }
 
 enum Status<'a> {
