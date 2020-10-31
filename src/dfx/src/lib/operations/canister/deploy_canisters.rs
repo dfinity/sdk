@@ -8,9 +8,11 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::operations::canister::install_canister;
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
-use ic_utils::interfaces::management_canister::InstallMode;
+use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
 use slog::{info, warn};
+use std::convert::TryFrom;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
@@ -124,8 +126,23 @@ fn install_canisters(
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
         let install_args = blob_from_arguments(argument, argument_type, &init_type)?;
 
-        let compute_allocation = None;
-        let memory_allocation = None;
+        let config_interface = config.get_config();
+        let compute_allocation =
+            config_interface
+                .get_compute_allocation(canister_name)?
+                .map(|arg| {
+                    ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+                        .expect("Compute Allocation must be a percentage.")
+                });
+        let memory_allocation = config_interface
+            .get_memory_allocation(canister_name)?
+            .map(|arg| {
+                MemoryAllocation::try_from(
+                    u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
+                )
+                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
+            });
+
         let result = runtime.block_on(install_canister(
             env,
             &agent,

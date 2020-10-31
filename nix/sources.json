@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "7d14cb7de8c6bf69957c92fad8edbeb036c888cf",
-        "sha256": "0l3wmmf6jijby0f3sfffjskn24ynvpkab8jr7di1zajgla7bn6nc",
+        "rev": "a0e59ff2f81ea9d44518cc73254c1b2f9eda985e",
+        "sha256": "18b5xbm3b3x62pwvd902yx3sr648npy6rz0lvs8a66v6dg31sxfd",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/7d14cb7de8c6bf69957c92fad8edbeb036c888cf.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/a0e59ff2f81ea9d44518cc73254c1b2f9eda985e.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-js-monorepo": {
@@ -34,7 +34,7 @@
     "common": {
         "branch": "nixpkgs-release-20.09",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "ce0e73edd2c91472f1f1ddad14ee5ce0e24cee76",
+        "rev": "897d4674debd73015bc0273bca2ac6cbb0943516",
         "type": "git"
     },
     "dfinity": {

@@ -1,27 +1,27 @@
+use crate::actors;
+use crate::actors::replica::Replica;
+use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
+use crate::actors::shutdown_controller;
+use crate::actors::shutdown_controller::ShutdownController;
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
-use crate::lib::proxy::{CoordinateProxy, ProxyConfig};
-use crate::lib::proxy_process::spawn_and_update_proxy;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
+use actix::{Actor, Addr};
 use clap::{App, Arg, ArgMatches, SubCommand};
-use crossbeam::channel::{Receiver, Sender};
-use crossbeam::unbounded;
 use delay::{Delay, Waiter};
-use futures::executor::block_on;
 use ic_agent::Agent;
-use indicatif::{ProgressBar, ProgressDrawTarget};
 use std::fs;
-use std::io::{Error, ErrorKind, Read};
+use std::io::Read;
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::Duration;
-use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
+use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
 
 /// Provide necessary arguments to start the Internet Computer
@@ -109,7 +109,6 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
     ping_and_wait(&frontend_url_mod)
 }
 
-// TODO(eftychis)/In progress: Rename to replica.
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
@@ -118,39 +117,86 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
+    let network_descriptor = get_network_descriptor(env, args)?;
+
     let temp_dir = env.get_temp_dir();
-
-    let (frontend_url, address_and_port) = frontend_address(args, &config)?;
+    let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
+    let pid_file_path = temp_dir.join("pid");
     let webserver_port_path = temp_dir.join("webserver-port");
-    std::fs::write(&webserver_port_path, "")?;
-
-    // don't write to file since this arg means we send_background()
-    if !args.is_present("background") {
-        std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
-    }
-
-    let client_pathbuf = env.get_cache().get_binary_command_path("replica")?;
-    let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
-
     let state_root = env.get_state_dir();
 
-    let pid_file_path = temp_dir.join("pid");
     check_previous_process_running(&pid_file_path)?;
+
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if args.is_present("clean") {
-        // Clean the contents of the provided directory including the
-        // directory itself. N.B. This does NOT follow symbolic links -- and I
-        // hope we do not need to.
-        if state_root.is_dir() {
-            fs::remove_dir_all(state_root.clone()).map_err(DfxError::CleanState)?;
-        }
-        let local_dir = temp_dir.join("local");
-        if local_dir.is_dir() {
-            fs::remove_dir_all(local_dir).map_err(DfxError::CleanState)?;
-        }
+        clean_state(temp_dir, &state_root)?;
     }
 
+    std::fs::write(&pid_file_path, "")?; // make sure we can write to this file
+    std::fs::write(&webserver_port_path, "")?;
+
+    let (frontend_url, address_and_port) = frontend_address(args, &config)?;
+
+    if args.is_present("background") {
+        send_background()?;
+        return fg_ping_and_wait(webserver_port_path, frontend_url);
+    }
+
+    write_pid(&pid_file_path);
+    std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
+
+    let system = actix::System::new("dfx-start");
+
+    let shutdown_controller = start_shutdown_controller(env)?;
+
+    let replica = start_replica(env, &state_root, shutdown_controller.clone())?;
+
+    let _webserver_coordinator = start_webserver_coordinator(
+        env,
+        network_descriptor,
+        address_and_port,
+        build_output_root,
+        replica,
+        shutdown_controller,
+    )?;
+
+    system.run()?;
+
+    Ok(())
+}
+
+fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
+    // Clean the contents of the provided directory including the
+    // directory itself. N.B. This does NOT follow symbolic links -- and I
+    // hope we do not need to.
+    if state_root.is_dir() {
+        fs::remove_dir_all(state_root)
+            .map_err(|e| DfxError::CleanState(e, PathBuf::from(state_root)))?;
+    }
+    let local_dir = temp_dir.join("local");
+    if local_dir.is_dir() {
+        fs::remove_dir_all(&local_dir).map_err(|e| DfxError::CleanState(e, local_dir))?;
+    }
+    Ok(())
+}
+
+fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<ShutdownController>> {
+    let actor_config = shutdown_controller::Config {
+        logger: Some(env.get_logger().clone()),
+    };
+    Ok(ShutdownController::new(actor_config).start())
+}
+
+fn start_replica(
+    env: &dyn Environment,
+    state_root: &Path,
+    shutdown_controller: Addr<ShutdownController>,
+) -> DfxResult<Addr<Replica>> {
+    let replica_path = env.get_cache().get_binary_command_path("replica")?;
+    let ic_starter_path = env.get_cache().get_binary_command_path("ic-starter")?;
+
+    let temp_dir = env.get_temp_dir();
     let client_configuration_dir = temp_dir.join("client-configuration");
     fs::create_dir_all(&client_configuration_dir)?;
     let state_dir = temp_dir.join("state/replicated_state");
@@ -162,158 +208,41 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // contents we shall assume it is due to our spawned client
     // process.
     std::fs::write(&client_port_path, "")?;
-    // We are doing this here to make sure we can write to the temp
-    // pid file.
-    std::fs::write(&pid_file_path, "")?;
 
-    if args.is_present("background") {
-        send_background()?;
-        return fg_ping_and_wait(webserver_port_path, frontend_url);
-    }
-
-    // Start the client.
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-
-    b.set_message("Starting up the replica...");
-    b.enable_steady_tick(80);
-
-    // Must be unbounded, as a killed child should not deadlock.
-
-    let (request_stop, rcv_wait) = unbounded();
-    let (broadcast_stop, is_killed_client) = unbounded();
-    let (give_actix, actix_handler) = unbounded();
-
-    let request_stop_echo = request_stop.clone();
-    let rcv_wait_fwatcher = rcv_wait.clone();
-    b.set_message("Generating IC local replica configuration.");
     let replica_config = ReplicaConfig::new(state_root).with_random_port(&client_port_path);
+    let actor_config = actors::replica::Config {
+        ic_starter_path,
+        replica_config,
+        replica_path,
+        shutdown_controller,
+        logger: Some(env.get_logger().clone()),
+    };
+    Ok(actors::replica::Replica::new(actor_config).start())
+}
 
-    // TODO(eftychis): we need a proper manager type when we start
-    // spawning multiple client processes and registry.
-    let client_watchdog = std::thread::Builder::new().name("replica".into()).spawn({
-        let is_killed_client = is_killed_client.clone();
-        let b = b.clone();
-
-        move || {
-            start_client(
-                &client_pathbuf,
-                &ic_starter_pathbuf,
-                &pid_file_path,
-                is_killed_client,
-                request_stop,
-                replica_config,
-                b,
-            )
-        }
-    })?;
-
-    let bootstrap_dir = env.get_cache().get_binary_command_path("bootstrap")?;
-
-    // We have a long-lived replica process and a proxy. We use
-    // currently a messaging pattern to supervise. This is going to
-    // be tidied up over a more formal actor framework.
-    let is_killed = is_killed_client;
-
+fn start_webserver_coordinator(
+    env: &dyn Environment,
+    network_descriptor: NetworkDescriptor,
+    bind: SocketAddr,
+    build_output_root: PathBuf,
+    replica_addr: Addr<Replica>,
+    shutdown_controller: Addr<ShutdownController>,
+) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
+    let serve_dir = env.get_cache().get_binary_command_path("bootstrap")?;
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
-    let network_descriptor = get_network_descriptor(env, args)?;
-    let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
-    let build_output_root = build_output_root.join("canisters");
-
-    let proxy_config = ProxyConfig {
-        logger: env.get_logger().clone(),
-        client_api_port: address_and_port.port(),
-        bind: address_and_port,
-        serve_dir: bootstrap_dir,
+    let actor_config = actors::replica_webserver_coordinator::Config {
+        logger: Some(env.get_logger().clone()),
+        replica_addr,
+        shutdown_controller,
+        bind,
+        serve_dir,
         providers,
         build_output_root,
         network_descriptor,
     };
-
-    let supervisor_actor_handle = CoordinateProxy {
-        inform_parent: give_actix,
-        server_receiver: actix_handler.clone(),
-        rcv_wait_fwatcher,
-        request_stop_echo,
-        is_killed,
-    };
-
-    let frontend_watchdog = spawn_and_update_proxy(
-        proxy_config,
-        client_port_path,
-        supervisor_actor_handle,
-        b.clone(),
-    )?;
-
-    b.set_message("Pinging the Internet Computer replica...");
-    ping_and_wait(&frontend_url)?;
-    b.finish_with_message("Internet Computer replica started...");
-
-    // TODO/In Progress(eftychis): Here we should define a Supervisor
-    // actor to keep track and spawn these two processes
-    // independently.
-
-    // We have two side processes involving multiple threads running at
-    // this point. We first wait for a signal that one of the processes
-    // terminated. N.B. We do not handle the case where the proxy
-    // terminates abruptly and we have to terminate the client as that
-    // complicates the situation right now, and we need a watcher that
-    // terminates all sibling processes if a process returns an error,
-    // which we lack. We consider this a fine trade-off for now.
-
-    rcv_wait.recv().map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed while waiting for the manager -- {:?}", e),
-        ))
-    })?;
-
-    // Signal the client to stop. Right now we have little control
-    // over the client and nodemanager as it provides little
-    // handling. This is mostly done for completeness. In the future
-    // we should also force kill, if it ends up being necessary.
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-    b.set_message("Terminating...");
-    b.enable_steady_tick(80);
-    broadcast_stop.send(()).expect("Failed to signal children");
-    // We can now start terminating our proxy server, we block to
-    // ensure termination is done properly. At this point the client
-    // is down though.
-
-    // Signal the actix server to stop. This will
-    // block.
-
-    b.set_message("Terminating proxy...");
-    block_on(
-        actix_handler
-            .recv()
-            .expect("Failed to receive server")
-            .stop(true),
-    );
-
-    b.set_message("Gathering proxy thread...");
-    // Join and handle errors for the frontend watchdog thread.
-    frontend_watchdog.join().map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed while running frontend proxy thead -- {:?}", e),
-        ))
-    })?;
-
-    b.set_message("Gathering replica thread...");
-    // Join and handle errors for the client watchdog thread. Here we
-    // check the result of client_watchdog and start_client.
-    client_watchdog.join().map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed while running replica thread -- {:?}", e),
-        ))
-    })??;
-    b.finish_with_message("Terminated successfully... Have a great day!!!");
-    Ok(())
+    Ok(ReplicaWebserverCoordinator::new(actor_config).start())
 }
 
 fn send_background() -> DfxResult<()> {
@@ -356,7 +285,7 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
     Ok((frontend_url, address_and_port))
 }
 
-fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
+fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
     if dfx_pid_path.exists() {
         // Read and verify it's not running. If it is just return.
         if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
@@ -372,108 +301,8 @@ fn check_previous_process_running(dfx_pid_path: &PathBuf) -> DfxResult<()> {
     Ok(())
 }
 
-/// Starts the client. It is supposed to be used in a thread, thus
-/// this function will panic when an error occurs that implies
-/// termination of the replica and need the attention of the parent
-/// thread.
-///
-/// # Panics
-/// We panic here to transmit an error to the parent thread.
-fn start_client(
-    client_pathbuf: &PathBuf,
-    ic_starter_pathbuf: &PathBuf,
-    pid_file_path: &PathBuf,
-    is_killed_client: Receiver<()>,
-    request_stop: Sender<()>,
-    config: ReplicaConfig,
-    b: ProgressBar,
-) -> DfxResult<()> {
-    b.set_message("Generating IC local replica configuration.");
-
-    let ic_starter = ic_starter_pathbuf.as_path().as_os_str();
-    let mut cmd = std::process::Command::new(ic_starter);
-    // if None is returned, then an empty String will be provided to replica-path
-    // TODO: figure out the right solution
-    cmd.args(&[
-        "--replica-path",
-        client_pathbuf.to_str().unwrap_or_default(),
-        "--http-port-file",
-        config
-            .http_handler
-            .write_port_to
-            .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default(),
-        "--state-dir",
-        config.state_manager.state_root.to_str().unwrap_or_default(),
-        "--create-funds-whitelist",
-        "*",
-    ]);
-    cmd.stdout(std::process::Stdio::inherit());
-    cmd.stderr(std::process::Stdio::inherit());
-
-    // If the replica itself fails, we are probably into deeper trouble than
-    // we can solve at this point and the user is better rerunning the server.
-    let mut child = cmd.spawn().unwrap_or_else(|e| {
-        request_stop
-            .try_send(())
-            .expect("Replica thread couldn't signal parent to stop");
-        // We still want to send an error message.
-        panic!("Couldn't spawn ic-starter with command {:?}: {}", cmd, e);
-    });
-
-    // Update the pid file.
+fn write_pid(pid_file_path: &Path) {
     if let Ok(pid) = sysinfo::get_current_pid() {
         let _ = std::fs::write(&pid_file_path, pid.to_string());
     }
-
-    // N.B. The logic below fixes errors from replica causing
-    // restarts. We do not want to respawn the replica on a failure.
-    // This should be substituted with a supervisor.
-
-    // Did we receive a kill signal?
-    while is_killed_client.is_empty() {
-        // We have to wait for the child to exit here. We *should*
-        // always wait(). Read related documentation.
-
-        // We check every 1s on the replica. This logic should be
-        // transferred / substituted by a supervisor object.
-        std::thread::sleep(Duration::from_millis(1000));
-
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                // An error occurred: exit the loop.
-                b.set_message(format!("local replica exited with: {}", status).as_str());
-                break;
-            }
-            Ok(None) => {
-                // No change in exit status.
-                continue;
-            }
-            Err(e) => {
-                request_stop
-                    .send(())
-                    .expect("Could not signal parent thread from replica runner");
-                panic!("Failed to check the status of the replica: {}", e)
-            }
-        }
-    }
-    // Terminate the replica; wait() then signal stop. Ignore errors
-    // -- we might get InvalidInput: that is fine -- process might
-    // have terminated already.
-    Process::new(child.id() as Pid, None, 0).kill(Signal::Term);
-    match child.wait() {
-        Ok(status) => b.set_message(format!("Replica exited with {}", status).as_str()),
-        Err(e) => b.set_message(
-            format!("Failed to properly wait for the replica to terminate {}", e).as_str(),
-        ),
-    }
-
-    // We DO want to panic here, if we can not signal our
-    // parent. This is interpreted as an error via join by the
-    // parent thread.
-    request_stop
-        .send(())
-        .expect("Could not signal parent thread from replica runner");
-    Ok(())
 }

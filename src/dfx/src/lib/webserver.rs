@@ -172,8 +172,7 @@ pub fn run_webserver(
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
-    inform_parent: Sender<Server>,
-) -> Result<(), std::io::Error> {
+) -> DfxResult<Server> {
     info!(logger, "binding to: {:?}", bind);
 
     const SHUTDOWN_WAIT_TIME: u64 = 60;
@@ -189,7 +188,6 @@ pub fn run_webserver(
             .join(", ")
     );
 
-    let _sys = System::new("dfx-frontend-http-server");
     let forward_data = Arc::new(Mutex::new(ForwardActixData {
         providers,
         logger: logger.clone(),
@@ -222,15 +220,9 @@ pub fn run_webserver(
     .bind(bind)?
     // N.B. This is an arbitrary timeout for now.
     .shutdown_timeout(SHUTDOWN_WAIT_TIME)
-    .system_exit()
     .run();
 
-    // Warning: Note that HttpServer provides its own signal
-    // handler. That means if we provide signal handling beyond basic
-    // we need to either as normal "re-signal" or disable_signals().
-    let _ = inform_parent.send(handler);
-
-    Ok(())
+    Ok(handler)
 }
 
 pub fn webserver(
@@ -262,16 +254,21 @@ pub fn webserver(
         .spawn({
             let serve_dir = serve_dir.to_path_buf();
             move || {
-                run_webserver(
+                let _sys = System::new("dfx-frontend-http-server");
+                let server = run_webserver(
                     logger,
                     build_output_root,
                     network_descriptor,
                     bind,
                     clients_api_uri,
                     serve_dir,
-                    inform_parent,
                 )
-                .unwrap()
+                .unwrap();
+
+                // Warning: Note that HttpServer provides its own signal
+                // handler. That means if we provide signal handling beyond basic
+                // we need to either as normal "re-signal" or disable_signals().
+                let _ = inform_parent.send(server);
             }
         })
         .map_err(DfxError::from)

@@ -148,8 +148,8 @@ assert_process_exits() {
 
 # Asserts that `dfx start` and `replica` are no longer running
 assert_no_dfx_start_or_replica_processes() {
-    ! ( ps | grep "[/\s]dfx start" )
-    ! ( ps | grep "[/\s]replica" )
+    ! ( ps | grep "[/[:space:]]dfx start" )
+    ! ( ps | grep "[/[:space:]]replica" )
 }
 
 assert_file_eventually_exists() {
