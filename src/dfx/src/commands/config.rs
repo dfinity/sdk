@@ -53,7 +53,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         config_path.clear()
     }
 
-    if let Some(arg_value) = Some(opts.value).and_then(|v| Some(v.as_str())) {
+    if let Some(arg_value) = Some(opts.value.as_str()) {
         // Try to parse the type of the value (which is a string from the arguments) as
         // JSON. By default we will just assume the type is string (if all parsing fails).
         let value = serde_json::from_str::<Value>(arg_value)

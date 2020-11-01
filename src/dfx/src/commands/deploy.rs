@@ -35,10 +35,12 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let env = create_agent_environment(env, args)?;
 
     let timeout = expiry_duration();
-    let canister = opts.canister_name.and_then(|v| Some(v.as_str()));
+    // let canister = opts.canister_name.and_then(|v| Some(v.as_str()));
+    let canister_name = opts.canister_name.unwrap();
+    let canister = Some(canister_name.as_str());
 
-    let argument = opts.argument.and_then(|v| Some(v.as_str()));
-    let argument_type = opts.argument_type.and_then(|v| Some(v.as_str()));
+    let argument = opts.argument;
+    let argument_type = opts.argument_type;
 
     deploy_canisters(&env, canister, argument, argument_type, timeout)
 }

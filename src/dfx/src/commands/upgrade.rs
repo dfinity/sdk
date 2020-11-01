@@ -159,8 +159,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         "macos" => "x86_64-darwin",
         _ => panic!("Not supported architecture"),
     };
-    let current_version = if let Some(version) = opts.current_version.and_then(|v| Some(v.as_str()))
-    {
+    let curr_ver_str = opts.current_version.unwrap();
+    let current_version = if let Some(version) = Some(curr_ver_str.as_str()) {
         Version::parse(version)?
     } else {
         env.get_version().clone()

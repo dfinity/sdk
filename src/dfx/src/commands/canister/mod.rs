@@ -32,7 +32,7 @@ fn builtins() -> Vec<CliCommand> {
 }
 
 pub fn construct() -> App<'static> {
-    SubCommand::with_name("canister")
+    App::new("canister")
         .about(UserMessage::ManageCanister.to_str())
         .arg(
             Arg::new("network")
@@ -47,7 +47,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let subcommand = args.subcommand();
     let agent_env = create_agent_environment(env, args)?;
 
-    if let (name, Some(subcommand_args)) = subcommand {
+    if let Some((name, subcommand_args)) = subcommand {
         match builtins().into_iter().find(|x| name == x.get_name()) {
             Some(cmd) => cmd.execute(&agent_env, subcommand_args),
             None => Err(DfxError::UnknownCommand(format!(

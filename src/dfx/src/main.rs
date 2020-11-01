@@ -12,7 +12,7 @@ mod config;
 mod lib;
 mod util;
 
-fn cli(_: &impl Environment) -> App<'_> {
+fn cli(_: &impl Environment) -> App<'static> {
     App::new("dfx")
         .about("The DFINITY Executor.")
         .version(dfx_version_str())
@@ -45,9 +45,9 @@ fn cli(_: &impl Environment) -> App<'_> {
         )
 }
 
-fn exec(env: &impl Environment, args: &clap::ArgMatches, cli: &App<'_>) -> DfxResult {
+fn exec(env: &impl Environment, args: &clap::ArgMatches, cli: &mut App<'static>) -> DfxResult {
     let (name, subcommand_args) = match args.subcommand() {
-        (name, Some(args)) => (name, args),
+        Some((name, args)) => (name, args),
         _ => {
             cli.write_help(&mut std::io::stderr())?;
             eprintln!();
@@ -163,7 +163,7 @@ fn main() {
                         env.get_logger(),
                         "Trace mode enabled. Lots of logs coming up."
                     );
-                    exec(&env, &matches, &(cli(&env)))
+                    exec(&env, &matches, &mut (cli(&env)))
                 }
                 Err(e) => Err(e),
             }

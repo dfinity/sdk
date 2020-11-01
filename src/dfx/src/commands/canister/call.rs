@@ -82,9 +82,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         None => None,
     };
 
-    let arguments: Option<&str> = opts.argument.and_then(|v| Some(v.as_str()));
-    let arg_type: Option<&str> = opts.argument_type.and_then(|v| Some(v.as_str()));
-    let output_type: Option<&str> = opts.output.and_then(|v| Some(v.as_str()));
+    let arguments: Option<String> = opts.argument;
+    let arg_type: Option<String> = opts.argument_type;
+    let output_type: Option<String> = opts.output;
     let is_query = if opts.async_call {
         false
     } else {

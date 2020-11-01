@@ -56,36 +56,34 @@ fn get_main_path(
     // TODO try and point at the actual dfx.json path
     let dfx_json = CONFIG_FILE_NAME;
 
-    let (canister_name, canister): (String, ConfigCanistersCanister) = match (
-        config.canisters.as_ref(),
-        canister_name.and_then(|v| Some(v.as_str())),
-    ) {
-        (None, _) => Err(DfxError::InvalidData(format!(
-            "Missing field 'canisters' in {0}",
-            dfx_json
-        ))),
+    let (canister_name, canister): (String, ConfigCanistersCanister) =
+        match (config.canisters.as_ref(), canister_name) {
+            (None, _) => Err(DfxError::InvalidData(format!(
+                "Missing field 'canisters' in {0}",
+                dfx_json
+            ))),
 
-        (Some(canisters), Some(cn)) => {
-            let c = canisters.get(cn).ok_or_else(|| {
-                DfxError::InvalidArgument(format!(
-                    "Canister {0} cannot not be found in {1}",
-                    cn, dfx_json
-                ))
-            })?;
-            Ok((cn.to_string(), c.clone()))
-        }
-        (Some(canisters), None) => {
-            if canisters.len() == 1 {
-                let (n, c) = canisters.iter().next().unwrap();
-                Ok((n.to_string(), c.clone()))
-            } else {
-                Err(DfxError::InvalidData(format!(
+            (Some(canisters), Some(cn)) => {
+                let c = canisters.get(cn.as_str()).ok_or_else(|| {
+                    DfxError::InvalidArgument(format!(
+                        "Canister {0} cannot not be found in {1}",
+                        cn, dfx_json
+                    ))
+                })?;
+                Ok((cn.to_string(), c.clone()))
+            }
+            (Some(canisters), None) => {
+                if canisters.len() == 1 {
+                    let (n, c) = canisters.iter().next().unwrap();
+                    Ok((n.to_string(), c.clone()))
+                } else {
+                    Err(DfxError::InvalidData(format!(
                     "There are multiple canisters in {0}, please select one using the {1} argument",
                     dfx_json, CANISTER_ARG
                 )))
+                }
             }
-        }
-    }?;
+        }?;
 
     canister
         .extras

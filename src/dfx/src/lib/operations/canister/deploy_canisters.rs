@@ -19,8 +19,8 @@ use tokio::runtime::Runtime;
 pub fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
-    argument: Option<&str>,
-    argument_type: Option<&str>,
+    argument: Option<String>,
+    argument_type: Option<String>,
     timeout: Duration,
 ) -> DfxResult {
     let log = env.get_logger();
@@ -99,8 +99,8 @@ fn install_canisters(
     canister_names: &[String],
     initial_canister_id_store: &CanisterIdStore,
     config: &Config,
-    argument: Option<&str>,
-    argument_type: Option<&str>,
+    argument: Option<String>,
+    argument_type: Option<String>,
     timeout: Duration,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
@@ -124,7 +124,8 @@ fn install_canisters(
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-        let install_args = blob_from_arguments(argument, argument_type, &init_type)?;
+        let install_args =
+            blob_from_arguments(argument.clone(), argument_type.clone(), &init_type)?;
 
         let config_interface = config.get_config();
         let compute_allocation =

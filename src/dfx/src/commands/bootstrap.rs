@@ -17,7 +17,7 @@ use std::time::Duration;
 use url::Url;
 
 /// Starts the bootstrap server.
-#[derive(Clap)]
+#[derive(Clap, Clone)]
 pub struct BootstrapOpts {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
     #[clap(long)]
@@ -55,7 +55,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
-    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts)?;
+    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;
 
     let network_descriptor = get_network_descriptor(env, opts.network)?;
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
@@ -116,7 +116,7 @@ fn apply_arguments(
 ) -> DfxResult<ConfigDefaultsBootstrap> {
     let ip = get_ip(&config, opts.ip)?;
     let port = get_port(&config, opts.port)?;
-    let root = get_root(&config, env, opts.root.and_then(|v| Some(v.as_str())))?;
+    let root = get_root(&config, env, opts.root)?;
     let timeout = get_timeout(&config, opts.timeout)?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
@@ -174,9 +174,9 @@ fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String
 fn get_root(
     config: &ConfigDefaultsBootstrap,
     env: &dyn Environment,
-    root: Option<&str>,
+    root: Option<String>,
 ) -> DfxResult<PathBuf> {
-    root.map(|root| parse_dir(root))
+    root.map(|root| parse_dir(root.as_str()))
         .unwrap_or_else(|| {
             config
                 .root

@@ -13,7 +13,7 @@ use std::str::FromStr;
 use tokio::runtime::Runtime;
 
 /// Deploys compiled code as a canister on the Internet Computer.
-#[derive(Clap)]
+#[derive(Clap, Clone)]
 pub struct CanisterInstallOpts {
     /// Specifies the canister name to deploy. You must specify either canister name or the --all option.
     #[clap(long, required_unless_present("all"))]
@@ -127,8 +127,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-        let arguments: Option<&str> = opts.argument.and_then(|v| Some(v.as_str()));
-        let arg_type: Option<&str> = opts.argument_type.and_then(|v| Some(v.as_str()));
+        let arguments: Option<String> = opts.argument;
+        let arg_type: Option<String> = opts.argument_type;
         let install_args = blob_from_arguments(arguments, arg_type, &init_type)?;
 
         let compute_allocation =
@@ -157,12 +157,15 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
                 let install_args = [];
 
                 let compute_allocation = get_compute_allocation(
-                    opts.compute_allocation,
+                    opts.compute_allocation.clone(),
                     config_interface,
                     canister_name,
                 )?;
-                let memory_allocation =
-                    get_memory_allocation(opts.memory_allocation, config_interface, canister_name)?;
+                let memory_allocation = get_memory_allocation(
+                    opts.memory_allocation.clone(),
+                    config_interface,
+                    canister_name,
+                )?;
 
                 runtime.block_on(install_canister(
                     env,
