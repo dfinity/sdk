@@ -11,20 +11,15 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 pub struct CanisterBuildOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.",
-    #[clap(long, required_unless_present("all"))]
-    canister_name: String,
-
-    /// Builds all canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister_name"))]
-    all: bool,
+    #[clap(long)]
+    canister_name: Option<String>,
 
     /// Build canisters without creating them. This can be used to check that canisters build ok.
     #[clap(long)]
     check: bool,
-
-    /// Override the compute network to connect to. By default, the local network is used.
-    #[clap(long)]
-    network: Option<String>,
+    // Override the compute network to connect to. By default, the local network is used.
+    // #[clap(long)]
+    // network: Option<String>,
 }
 
 pub fn construct() -> App<'static> {
@@ -49,7 +44,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let build_mode_check = opts.check;
 
     // Option can be None in which case --all was specified
-    let some_canister = Some(opts.canister_name.as_str());
+    let canister_name = opts.canister_name.unwrap();
+    let some_canister = Some(canister_name.as_str());
     let canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(some_canister)?;

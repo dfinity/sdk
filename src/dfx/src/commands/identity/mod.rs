@@ -2,7 +2,7 @@ use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::{App, ArgMatches};
 
 mod list;
 mod new;

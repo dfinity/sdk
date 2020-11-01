@@ -18,8 +18,8 @@ use std::process::Stdio;
 use std::time::Duration;
 use tar::Archive;
 
-const DRY_RUN: &str = "dry_run";
-const PROJECT_NAME: &str = "project_name";
+// const DRY_RUN: &str = "dry_run";
+// const PROJECT_NAME: &str = "project_name";
 const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
 lazy_static! {
 // Tested on a phone tethering connection. This should be fine with
@@ -66,7 +66,7 @@ pub fn project_name_validator(name: &str) -> Result<(), String> {
 #[derive(Clap)]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
-    #[clap(long, validator(project_name_validator))]
+    #[clap(validator(project_name_validator))]
     project_name: String,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
@@ -74,10 +74,10 @@ pub struct NewOpts {
     dry_run: bool,
 
     /// Installs the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.
-    #[clap(long, conflicts_with("no_frontend"))]
+    #[clap(long)]
     frontend: bool,
 
-    #[clap(long, conflicts_with("frontend"))]
+    #[clap(long, conflicts_with = "frontend")]
     no_frontend: bool,
 }
 

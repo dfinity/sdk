@@ -13,10 +13,9 @@ pub struct DeployOpts {
     #[clap(long)]
     canister_name: Option<String>,
 
-    /// Override the compute network to connect to. By default, the local network is used.
-    #[clap(long)]
-    network: Option<String>,
-
+    // Override the compute network to connect to. By default, the local network is used.
+    // #[clap(long)]
+    // network: Option<String>,
     /// Specifies the argument to pass to the method.
     #[clap(long)]
     argument: Option<String>,

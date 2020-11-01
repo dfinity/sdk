@@ -6,7 +6,7 @@ use clap::{App, AppSettings, ArgMatches, Clap, FromArgMatches, IntoApp};
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
-const FORCE_TTY: &str = "force-tty";
+// const FORCE_TTY: &str = "force-tty";
 
 /// Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the
 /// end-user.

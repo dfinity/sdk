@@ -13,7 +13,7 @@ lazy_static! {
 }
 
 fn set_network_context(network: Option<String>) {
-    let name = network.unwrap_or("local".to_string()).to_string();
+    let name = network.unwrap_or_else(|| "local".to_string());
 
     let mut n = NETWORK_CONTEXT.write().unwrap();
     *n = Some(name);
@@ -80,7 +80,7 @@ pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
     args: &ArgMatches,
 ) -> DfxResult<AgentEnvironment<'a>> {
-    let network = args.value_of("network").and_then(|v| Some(v.to_string()));
+    let network = args.value_of("network").map(|v| v.to_string());
     let network_descriptor = get_network_descriptor(env, network)?;
     let timeout = expiry_duration();
     AgentEnvironment::new(env, network_descriptor, timeout)
