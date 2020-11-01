@@ -9,11 +9,11 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 #[derive(Clap)]
 pub struct CanisterCreateOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
-    #[clap(long, required_unless_present("all"))]
-    canister_name: String,
+    #[clap(required_unless_present = "all")]
+    canister_name: Option<String>,
 
     /// Creates all canisters configured in dfx.json.
-    #[clap(long, required_unless_present("canister_name"))]
+    #[clap(long, required_unless_present = "canister-name")]
     all: bool,
 }
 
@@ -29,8 +29,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = Some(opts.canister_name.as_str()) {
-        create_canister(env, canister_name, timeout)?;
+    if let Some(canister_name) = opts.canister_name {
+        create_canister(env, canister_name.as_str(), timeout)?;
         Ok(())
     } else if opts.all {
         // Create all canisters.

@@ -14,11 +14,9 @@ use tokio::runtime::Runtime;
 pub struct CanisterCallOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.
-    #[clap(long)]
     canister_name: String,
 
     /// Specifies the method name to call on the canister.
-    #[clap(long)]
     method_name: String,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
@@ -27,11 +25,11 @@ pub struct CanisterCallOpts {
     async_call: bool,
 
     /// Sends a query request to a canister.
-    #[clap(long, conflicts_with("async"), conflicts_with("update"))]
+    #[clap(long, conflicts_with("async-call"))]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("async"), conflicts_with("query"))]
+    #[clap(long, conflicts_with("async-call"), conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
@@ -43,7 +41,7 @@ pub struct CanisterCallOpts {
     argument_type: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
-    #[clap(long, requires("argument"), conflicts_with("async"),
+    #[clap(long, requires("argument"), conflicts_with("async-call"),
         possible_values(&["idl", "raw", "pp"]))]
     output: Option<String>,
 }
@@ -82,9 +80,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         None => None,
     };
 
-    let arguments: Option<String> = opts.argument;
-    let arg_type: Option<String> = opts.argument_type;
-    let output_type: Option<String> = opts.output;
+    let arguments = opts.argument.as_deref();
+    let arg_type = opts.argument_type.as_deref();
+    let output_type = opts.output.as_deref();
     let is_query = if opts.async_call {
         false
     } else {

@@ -11,7 +11,6 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 pub struct CanisterBuildOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.",
-    #[clap(long)]
     canister_name: Option<String>,
 
     /// Build canisters without creating them. This can be used to check that canisters build ok.
@@ -44,11 +43,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let build_mode_check = opts.check;
 
     // Option can be None in which case --all was specified
-    let canister_name = opts.canister_name.unwrap();
-    let some_canister = Some(canister_name.as_str());
     let canister_names = config
         .get_config()
-        .get_canister_names_with_dependencies(some_canister)?;
+        .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
 
     // Get pool of canisters to build
     let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)?;

@@ -16,11 +16,11 @@ use tokio::runtime::Runtime;
 #[derive(Clap, Clone)]
 pub struct CanisterInstallOpts {
     /// Specifies the canister name to deploy. You must specify either canister name or the --all option.
-    #[clap(long, required_unless_present("all"))]
-    canister_name: String,
+    #[clap(required_unless_present("all"))]
+    canister_name: Option<String>,
 
     /// Deploys all canisters configured in the project dfx.json files.
-    #[clap(long, required_unless_present("canister_name"))]
+    #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
@@ -79,7 +79,6 @@ fn get_compute_allocation(
     canister_name: &str,
 ) -> DfxResult<Option<ComputeAllocation>> {
     Ok(compute_allocation
-        .map(|v| v.to_string())
         .or(config_interface.get_compute_allocation(canister_name)?)
         .map(|arg| {
             ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
@@ -93,7 +92,6 @@ fn get_memory_allocation(
     canister_name: &str,
 ) -> DfxResult<Option<MemoryAllocation>> {
     Ok(memory_allocation
-        .map(|v| v.to_string())
         .or(config_interface.get_memory_allocation(canister_name)?)
         .map(|arg| {
             MemoryAllocation::try_from(u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap())
@@ -121,14 +119,14 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    if let Some(canister_name) = Some(opts.canister_name.as_str()) {
+    if let Some(canister_name) = opts.canister_name.as_deref() {
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-        let arguments: Option<String> = opts.argument;
-        let arg_type: Option<String> = opts.argument_type;
+        let arguments = opts.argument.as_deref();
+        let arg_type = opts.argument_type.as_deref();
         let install_args = blob_from_arguments(arguments, arg_type, &init_type)?;
 
         let compute_allocation =

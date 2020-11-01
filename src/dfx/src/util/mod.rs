@@ -35,11 +35,10 @@ pub fn expiry_duration() -> Duration {
 /// Deserialize and print return values from canister method.
 pub fn print_idl_blob(
     blob: &[u8],
-    output_type: Option<String>,
+    output_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
 ) -> DfxResult<()> {
-    let output_type_str = output_type.unwrap_or_else(|| "pp".to_string());
-    let output_type = output_type_str.as_str();
+    let output_type = output_type.unwrap_or("pp");
     match output_type {
         "raw" => {
             let hex_string = hex::encode(blob);
@@ -105,21 +104,20 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
 }
 
 pub fn blob_from_arguments(
-    arguments: Option<String>,
-    arg_type: Option<String>,
+    arguments: Option<&str>,
+    arg_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
 ) -> DfxResult<Vec<u8>> {
-    let arg_type_str = arg_type.unwrap_or_else(|| "idl".to_string());
-    let arg_type = arg_type_str.as_str();
+    let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
         "raw" => {
-            let bytes = hex::decode(&arguments.unwrap_or_else(|| "".to_string())).map_err(|e| {
+            let bytes = hex::decode(&arguments.unwrap_or("")).map_err(|e| {
                 DfxError::InvalidArgument(format!("Argument is not a valid hex string: {}", e))
             })?;
             Ok(bytes)
         }
         "idl" => {
-            let arguments = arguments.unwrap_or_else(|| "()".to_string());
+            let arguments = arguments.unwrap_or("()");
             let typed_args = match method_type {
                 None => candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
                     .map_err(|e| {
