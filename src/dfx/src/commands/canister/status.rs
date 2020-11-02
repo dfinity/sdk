@@ -19,7 +19,7 @@ pub struct CanisterStatusOpts {
     canister_name: Option<String>,
 
     /// Returns status information for all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister_name"))]
+    #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 }
 
