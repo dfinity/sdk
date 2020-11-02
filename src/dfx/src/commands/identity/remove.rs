@@ -8,7 +8,6 @@ use slog::info;
 #[derive(Clap)]
 pub struct RemoveOpts {
     /// The identity to remove.
-    #[clap(long)]
     identity: String,
 }
 

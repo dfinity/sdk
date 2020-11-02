@@ -16,11 +16,10 @@ use tokio::runtime::Runtime;
 pub struct CanisterStopOpts {
     /// Specifies the name of the canister to stop.
     /// You must specify either a canister name or the --all option.
-    #[clap(long, required_unless_present("all"))]
-    canister_name: String,
+    canister_name: Option<String>,
 
     /// Stops all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister_name"))]
+    #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 }
 
@@ -65,7 +64,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = Some(opts.canister_name.as_str()) {
+    if let Some(canister_name) = opts.canister_name.as_deref() {
         runtime.block_on(stop_canister(env, &agent, &canister_name, timeout))?;
         Ok(())
     } else if opts.all {

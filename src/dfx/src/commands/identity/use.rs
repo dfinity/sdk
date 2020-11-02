@@ -8,7 +8,6 @@ use slog::info;
 #[derive(Clap)]
 pub struct UseOpts {
     /// The identity to use.
-    #[clap(long)]
     identity: String,
 }
 

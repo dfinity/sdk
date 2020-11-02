@@ -16,7 +16,6 @@ use tokio::runtime::Runtime;
 #[derive(Clap, Clone)]
 pub struct CanisterInstallOpts {
     /// Specifies the canister name to deploy. You must specify either canister name or the --all option.
-    #[clap(required_unless_present("all"))]
     canister_name: Option<String>,
 
     /// Deploys all canisters configured in the project dfx.json files.

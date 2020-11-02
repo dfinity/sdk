@@ -9,7 +9,6 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 #[derive(Clap)]
 pub struct CanisterCreateOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
-    #[clap(required_unless_present = "all")]
     canister_name: Option<String>,
 
     /// Creates all canisters configured in dfx.json.

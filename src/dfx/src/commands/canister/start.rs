@@ -15,11 +15,10 @@ use tokio::runtime::Runtime;
 #[derive(Clap)]
 pub struct CanisterStartOpts {
     /// Specifies the name of the canister to start. You must specify either a canister name or the --all flag.
-    #[clap(long, required_unless_present("all"))]
-    canister_name: String,
+    canister_name: Option<String>,
 
     /// Starts all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister_name"))]
+    #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 }
 
@@ -66,7 +65,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = Some(opts.canister_name.as_str()) {
+    if let Some(canister_name) = opts.canister_name.as_deref() {
         runtime.block_on(start_canister(env, &agent, &canister_name, timeout))?;
         Ok(())
     } else if opts.all {

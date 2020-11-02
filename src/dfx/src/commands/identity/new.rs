@@ -8,7 +8,6 @@ use slog::info;
 #[derive(Clap)]
 pub struct NewIdentityOpts {
     /// The identity to create.
-    #[clap(long)]
     identity: String,
 }
 

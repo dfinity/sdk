@@ -16,8 +16,7 @@ use tokio::runtime::Runtime;
 pub struct CanisterStatusOpts {
     /// Specifies the name of the canister to return information for.
     /// You must specify either a canister name or the --all flag.
-    #[clap(long, required_unless_present("all"))]
-    canister_name: String,
+    canister_name: Option<String>,
 
     /// Returns status information for all of the canisters configured in the dfx.json file.
     #[clap(long, required_unless_present("canister_name"))]
@@ -61,7 +60,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = Some(opts.canister_name.as_str()) {
+    if let Some(canister_name) = opts.canister_name.as_deref() {
         runtime.block_on(canister_status(env, &agent, &canister_name, timeout))?;
         Ok(())
     } else if opts.all {

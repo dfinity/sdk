@@ -16,11 +16,9 @@ use tokio::runtime::Runtime;
 #[derive(Clap)]
 pub struct SetControllerOpts {
     /// Specifies the canister name or the canister identifier for the canister to be controlled.
-    #[clap(long)]
     canister: String,
 
     /// Specifies the identity name or the principal of the new controller."
-    #[clap(long)]
     new_controller: String,
 }
 
@@ -30,17 +28,15 @@ pub fn construct() -> App<'static> {
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: SetControllerOpts = SetControllerOpts::from_arg_matches(args);
-    let canister = opts.canister.as_str();
-    let canister_id = match CanisterId::from_text(canister) {
+    let canister_id = match CanisterId::from_text(&opts.canister) {
         Ok(id) => id,
-        Err(_) => CanisterIdStore::for_env(env)?.get(canister)?,
+        Err(_) => CanisterIdStore::for_env(env)?.get(&opts.canister)?,
     };
 
-    let new_controller = opts.new_controller.as_str();
-    let controller_principal = match CanisterId::from_text(new_controller) {
+    let controller_principal = match CanisterId::from_text(&opts.new_controller) {
         Ok(principal) => principal,
         Err(_) => IdentityManager::new(env)?
-            .instantiate_identity_from_name(new_controller)?
+            .instantiate_identity_from_name(&opts.new_controller)?
             .sender()?,
     };
 
@@ -57,6 +53,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
             .call_and_wait(waiter_with_timeout(timeout)),
     )?;
 
-    println!("Set {:?} as controller of {:?}.", new_controller, canister);
+    println!(
+        "Set {:?} as controller of {:?}.",
+        opts.new_controller, opts.canister
+    );
     Ok(())
 }

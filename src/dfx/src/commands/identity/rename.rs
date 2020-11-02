@@ -8,11 +8,9 @@ use slog::info;
 #[derive(Clap)]
 pub struct RenameOpts {
     /// The current name of the identity.
-    #[clap(long)]
     from: String,
 
     /// The new name of the identity.
-    #[clap(long)]
     to: String,
 }
 

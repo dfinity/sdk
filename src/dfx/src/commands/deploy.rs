@@ -10,7 +10,6 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 pub struct DeployOpts {
     /// Specifies the name of the canister you want to deploy.
     /// If you don’t specify a canister name, all canisters defined in the dfx.json file are deployed.
-    #[clap(long)]
     canister_name: Option<String>,
 
     // Override the compute network to connect to. By default, the local network is used.

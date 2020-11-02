@@ -13,6 +13,10 @@ pub struct CanisterBuildOpts {
     /// You must specify either a canister name or the --all option.",
     canister_name: Option<String>,
 
+    /// Builds all canisters configured in the dfx.json file.
+    #[clap(long, conflicts_with("canister-name"))]
+    all: bool,
+
     /// Build canisters without creating them. This can be used to check that canisters build ok.
     #[clap(long)]
     check: bool,
@@ -42,6 +46,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     env.get_cache().install()?;
 
     let build_mode_check = opts.check;
+    let _all = opts.all;
 
     // Option can be None in which case --all was specified
     let canister_names = config
