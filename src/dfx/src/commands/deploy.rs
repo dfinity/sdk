@@ -23,15 +23,19 @@ pub struct DeployOpts {
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     argument_type: Option<String>,
+
+    /// Override the compute network to connect to. By default, the local network is used.
+    #[clap(long)]
+    network: Option<String>,
 }
 
 pub fn construct() -> App<'static> {
-    DeployOpts::into_app().name("rename")
+    DeployOpts::into_app().name("deploy")
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: DeployOpts = DeployOpts::from_arg_matches(args);
-    let env = create_agent_environment(env, args)?;
+    let env = create_agent_environment(env, opts.network)?;
 
     let timeout = expiry_duration();
     let canister_name = opts.canister_name.as_deref();

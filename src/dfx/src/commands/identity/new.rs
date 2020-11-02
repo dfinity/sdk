@@ -13,7 +13,7 @@ pub struct NewIdentityOpts {
 }
 
 pub fn construct() -> App<'static> {
-    NewIdentityOpts::into_app().name("rename")
+    NewIdentityOpts::into_app().name("new")
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

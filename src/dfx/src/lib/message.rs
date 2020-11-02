@@ -28,9 +28,6 @@ user_message!(
     // OutputType => "Specifies the format for displaying the method's return result.",
     // ArgumentValue => "Specifies the argument to pass to the method.",
 
-    // dfx canister mod
-    ManageCanister => "Manages canisters deployed on a network replica.",
-
     // dfx build
     // CanisterComputeNetwork => "Override the compute network to connect to. By default, the local network is used.",
 

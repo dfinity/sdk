@@ -16,9 +16,10 @@ pub struct CanisterBuildOpts {
     /// Build canisters without creating them. This can be used to check that canisters build ok.
     #[clap(long)]
     check: bool,
-    // Override the compute network to connect to. By default, the local network is used.
-    // #[clap(long)]
-    // network: Option<String>,
+
+    /// Override the compute network to connect to. By default, the local network is used.
+    #[clap(long)]
+    network: Option<String>,
 }
 
 pub fn construct() -> App<'static> {
@@ -27,7 +28,7 @@ pub fn construct() -> App<'static> {
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: CanisterBuildOpts = CanisterBuildOpts::from_arg_matches(args);
-    let env = create_agent_environment(env, args)?;
+    let env = create_agent_environment(env, opts.network)?;
 
     let logger = env.get_logger();
 

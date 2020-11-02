@@ -1,9 +1,8 @@
 use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::provider::create_agent_environment;
-use clap::{App, Arg, ArgMatches};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 mod call;
 mod create;
@@ -31,21 +30,24 @@ fn builtins() -> Vec<CliCommand> {
     ]
 }
 
+/// Manages canisters deployed on a network replica.
+#[derive(Clap)]
+pub struct CanisterOpts {
+    // Override the compute network to connect to. By default, the local network is used.
+    #[clap(long)]
+    network: Option<String>,
+}
+
 pub fn construct() -> App<'static> {
-    App::new("canister")
-        .about(UserMessage::ManageCanister.to_str())
-        .arg(
-            Arg::new("network")
-                //.help(UserMessage::CanisterComputeNetwork.to_str())
-                .long("network")
-                .takes_value(true),
-        )
+    CanisterOpts::into_app()
+        .name("canister")
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: CanisterOpts = CanisterOpts::from_arg_matches(args);
     let subcommand = args.subcommand();
-    let agent_env = create_agent_environment(env, args)?;
+    let agent_env = create_agent_environment(env, opts.network)?;
 
     if let Some((name, subcommand_args)) = subcommand {
         match builtins().into_iter().find(|x| name == x.get_name()) {

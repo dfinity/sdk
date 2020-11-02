@@ -15,7 +15,7 @@ use tokio::runtime::Runtime;
 pub struct RequestStatusOpts {
     /// Specifies the request identifier.
     /// The request identifier is an hexadecimal string starting with 0x.
-    #[clap(long, validator(validators::is_request_id))]
+    #[clap(validator(validators::is_request_id))]
     request_id: String,
 }
 

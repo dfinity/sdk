@@ -3,7 +3,6 @@ use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::expiry_duration;
-use clap::ArgMatches;
 use lazy_static::lazy_static;
 use std::sync::{Arc, RwLock};
 use url::Url;
@@ -78,9 +77,8 @@ pub fn get_network_descriptor<'a>(
 
 pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
-    args: &ArgMatches,
+    network: Option<String>,
 ) -> DfxResult<AgentEnvironment<'a>> {
-    let network = args.value_of("network").map(|v| v.to_string());
     let network_descriptor = get_network_descriptor(env, network)?;
     let timeout = expiry_duration();
     AgentEnvironment::new(env, network_descriptor, timeout)

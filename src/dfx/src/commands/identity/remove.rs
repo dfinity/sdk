@@ -13,7 +13,7 @@ pub struct RemoveOpts {
 }
 
 pub fn construct() -> App<'static> {
-    RemoveOpts::into_app().name("rename")
+    RemoveOpts::into_app().name("remove")
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

@@ -22,26 +22,25 @@ pub struct CanisterCallOpts {
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
     /// Instead return a response ID.
     #[clap(long)]
-    async_call: bool,
+    r#async: bool,
 
     /// Sends a query request to a canister.
-    #[clap(long, conflicts_with("async-call"))]
+    #[clap(long, conflicts_with("async"))]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("async-call"), conflicts_with("query"))]
+    #[clap(long, conflicts_with("async"), conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
-    #[clap(long)]
     argument: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
-    argument_type: Option<String>,
+    r#type: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
-    #[clap(long, requires("argument"), conflicts_with("async-call"),
+    #[clap(long, conflicts_with("async"),
         possible_values(&["idl", "raw", "pp"]))]
     output: Option<String>,
 }
@@ -81,9 +80,9 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     };
 
     let arguments = opts.argument.as_deref();
-    let arg_type = opts.argument_type.as_deref();
+    let arg_type = opts.r#type.as_deref();
     let output_type = opts.output.as_deref();
-    let is_query = if opts.async_call {
+    let is_query = if opts.r#async {
         false
     } else {
         match is_query_method {

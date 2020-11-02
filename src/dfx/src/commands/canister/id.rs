@@ -9,7 +9,6 @@ use ic_types::principal::Principal as CanisterId;
 pub struct CanisterIdOpts {
     /// Specifies the name of the canister to stop.
     /// You must specify either a canister name or the --all option.
-    #[clap(long)]
     canister_name: String,
 }
 

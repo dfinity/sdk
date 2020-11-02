@@ -10,13 +10,11 @@ pub struct ConfigOpts {
     /// Specifies the name of the configuration option to set or read.
     /// Use the period delineated path to specify the option to set or read.
     /// If this is not mentioned, outputs the whole configuration.
-    #[clap(long)]
     config_path: String,
 
     /// Specifies the new value to set.
     /// If you don't specify a value, the command displays the current value of the option from the configuration file.
-    #[clap(long)]
-    value: String,
+    value: Option<String>,
 
     /// Specifies the format of the output. By default, the output format is JSON.
     #[clap(long, default_value("json"), possible_values(&["json", "text"]))]
@@ -24,7 +22,7 @@ pub struct ConfigOpts {
 }
 
 pub fn construct() -> App<'static> {
-    ConfigOpts::into_app().name("rename")
+    ConfigOpts::into_app().name("config")
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
@@ -53,11 +51,11 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         config_path.clear()
     }
 
-    if let Some(arg_value) = Some(opts.value.as_str()) {
+    if let Some(arg_value) = opts.value {
         // Try to parse the type of the value (which is a string from the arguments) as
         // JSON. By default we will just assume the type is string (if all parsing fails).
-        let value = serde_json::from_str::<Value>(arg_value)
-            .unwrap_or_else(|_| Value::String(arg_value.to_owned()));
+        let value =
+            serde_json::from_str::<Value>(&arg_value).unwrap_or_else(|_| Value::String(arg_value));
         *config
             .get_mut_json()
             .pointer_mut(config_path.as_str())
