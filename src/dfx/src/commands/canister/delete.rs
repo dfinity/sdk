@@ -19,7 +19,7 @@ pub struct CanisterDeleteOpts {
     canister_name: Option<String>,
 
     /// Deletes all of the canisters configured in the dfx.json file.
-    #[clap(long, conflicts_with("canister-name"))]
+    #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 }
 

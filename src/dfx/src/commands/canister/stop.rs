@@ -19,7 +19,7 @@ pub struct CanisterStopOpts {
     canister_name: Option<String>,
 
     /// Stops all of the canisters configured in the dfx.json file.
-    #[clap(long, conflicts_with("canister-name"))]
+    #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 }
 

@@ -12,7 +12,7 @@ pub struct CanisterCreateOpts {
     canister_name: Option<String>,
 
     /// Creates all canisters configured in dfx.json.
-    #[clap(long, conflicts_with("canister-name"))]
+    #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 }
 

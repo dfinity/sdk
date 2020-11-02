@@ -19,7 +19,7 @@ pub struct CanisterInstallOpts {
     canister_name: Option<String>,
 
     /// Deploys all canisters configured in the project dfx.json files.
-    #[clap(long, conflicts_with("canister-name"))]
+    #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
