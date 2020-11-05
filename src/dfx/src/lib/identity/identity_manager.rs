@@ -1,6 +1,7 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult, IdentityErrorKind};
+use crate::lib::error::{DfxError, DfxResult};
+use anyhow::{bail, Context};
 use ic_agent::identity::BasicIdentity;
 use ic_agent::Identity;
 use pem::{encode, Pem};
@@ -75,31 +76,25 @@ impl IdentityManager {
     ) -> DfxResult<Box<impl Identity + Send + Sync>> {
         self.require_identity_exists(identity_name)?;
         let pem_path = self.get_identity_pem_path(identity_name);
-        Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
-            |e| DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone())),
+        Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).context(
+            format!("Cannot read file at \"{}\".", pem_path.display()),
         )?))
     }
 
     /// Create a new identity (name -> generated key)
     pub fn create_new_identity(&self, name: &str) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::CannotCreateAnonymousIdentity(),
-            ));
+            bail!("Cannot create an identity using a reserved name.");
         }
         let identity_dir = self.get_identity_dir_path(name);
 
         if identity_dir.exists() {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::IdentityAlreadyExists(),
-            ));
+            bail!("Cannot create an identity that already exists.");
         }
-        std::fs::create_dir_all(&identity_dir).map_err(|e| {
-            DfxError::IdentityError(IdentityErrorKind::CouldNotCreateIdentityDirectory(
-                identity_dir.clone(),
-                e,
-            ))
-        })?;
+        std::fs::create_dir_all(&identity_dir).context(format!(
+            "Cannot create directory at \"{}\".",
+            identity_dir.display()
+        ))?;
 
         let pem_file = identity_dir.join(IDENTITY_PEM);
         generate_key(&pem_file)
@@ -138,9 +133,7 @@ impl IdentityManager {
         self.require_identity_exists(name)?;
 
         if self.configuration.default == name {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::CannotDeleteDefaultIdentity(),
-            ));
+            bail!("Cannot delete the default identity.");
         }
         let dir = self.get_identity_dir_path(name);
         let pem = self.get_identity_pem_path(name);
@@ -154,9 +147,7 @@ impl IdentityManager {
     /// to refer to the new identity name.
     pub fn rename(&self, from: &str, to: &str) -> DfxResult<bool> {
         if to == ANONYMOUS_IDENTITY_NAME {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::CannotCreateAnonymousIdentity(),
-            ));
+            bail!("Cannot create an identity using a reserved name.");
         }
         self.require_identity_exists(from)?;
 
@@ -164,16 +155,14 @@ impl IdentityManager {
         let to_dir = self.get_identity_dir_path(to);
 
         if to_dir.exists() {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::IdentityAlreadyExists(),
-            ));
+            bail!("Cannot create an identity that already exists.");
         }
 
-        std::fs::rename(&from_dir, &to_dir).map_err(|e| {
-            DfxError::IdentityError(IdentityErrorKind::CouldNotRenameIdentityDirectory(
-                from_dir, to_dir, e,
-            ))
-        })?;
+        std::fs::rename(&from_dir, &to_dir).context(format!(
+            "Cannot rename directory from \"{}\" to \"{}\".",
+            from_dir.display(),
+            to_dir.display()
+        ))?;
 
         if from == self.configuration.default {
             self.write_default_identity(to)?;
@@ -198,14 +187,14 @@ impl IdentityManager {
 
     fn require_identity_exists(&self, name: &str) -> DfxResult {
         let identity_pem_path = self.get_identity_pem_path(name);
-
         if !identity_pem_path.exists() {
-            Err(DfxError::IdentityError(
-                IdentityErrorKind::IdentityDoesNotExist(String::from(name), identity_pem_path),
-            ))
-        } else {
-            Ok(())
+            bail!(
+                "Cannot find identity \"{}\" at \"{}\".",
+                name,
+                identity_pem_path.display()
+            );
         }
+        Ok(())
     }
 
     fn get_identity_dir_path(&self, identity: &str) -> PathBuf {
@@ -228,12 +217,10 @@ fn initialize(
     let identity_pem_path = identity_dir.join(IDENTITY_PEM);
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
-            std::fs::create_dir_all(&identity_dir).map_err(|e| {
-                DfxError::IdentityError(IdentityErrorKind::CouldNotCreateIdentityDirectory(
-                    identity_dir.clone(),
-                    e,
-                ))
-            })?;
+            std::fs::create_dir_all(&identity_dir).context(format!(
+                "Cannot create directory at \"{}\".",
+                identity_dir.display()
+            ))?;
         }
 
         let creds_pem_path = get_legacy_creds_pem_path()?;
@@ -271,9 +258,9 @@ fn initialize(
 }
 
 fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
-    let home = std::env::var("HOME")
-        .map_err(|_| DfxError::IdentityError(IdentityErrorKind::CannotFindUserHomeDirectory()))?;
-
+    let home = std::env::var("HOME").context(
+        "Cannot find the home directory. Did you forget to set the \"HOME\" environment variable?",
+    )?;
     Ok(PathBuf::from(home)
         .join(".dfinity")
         .join("identity")
@@ -294,8 +281,9 @@ fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
 
 fn generate_key(pem_file: &Path) -> DfxResult {
     let rng = rand::SystemRandom::new();
-    let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
-        .map_err(|x| DfxError::IdentityError(IdentityErrorKind::CouldNotGenerateKey(x)))?;
+    let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng).context(
+        "Cannot generate an Ed25519 key pair. Does your operating system support random number generation?",
+    )?;
 
     let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
     fs::write(&pem_file, encoded_pem)?;

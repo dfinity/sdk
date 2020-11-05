@@ -1,5 +1,6 @@
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 
+use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::path::{Path, PathBuf};
@@ -25,11 +26,9 @@ pub struct SchedulerConfig {
 impl SchedulerConfig {
     pub fn validate(self) -> DfxResult<Self> {
         if self.exec_gas >= self.round_gas_max {
-            let message = "Round gas limit must exceed message gas limit.";
-            Err(DfxError::InvalidData(message.to_string()))
-        } else {
-            Ok(self)
+            bail!("Round gas limit must exceed message gas limit.")
         }
+        Ok(self)
     }
 }
 

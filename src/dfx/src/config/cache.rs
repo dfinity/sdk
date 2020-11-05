@@ -1,7 +1,7 @@
 use crate::config::dfx_version;
-use crate::lib::error::DfxError::CacheError;
-use crate::lib::error::{CacheErrorKind, DfxError, DfxResult};
+use crate::lib::error::{DfxError, DfxResult};
 use crate::util;
+use anyhow::{bail, Context};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -66,36 +66,30 @@ impl Cache for DiskBasedCache {
 }
 
 pub fn get_cache_root() -> DfxResult<PathBuf> {
-    let home = std::env::var("HOME")
-        .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
-
-    let p = PathBuf::from(home).join(".cache").join("dfinity");
-
-    if !p.exists() {
-        if let Err(e) = std::fs::create_dir_all(&p) {
-            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
-        }
-    } else if !p.is_dir() {
-        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+    let home = std::env::var("HOME").context(
+        "Cannot find the home directory. Did you forget to set the \"HOME\" environment variable?",
+    )?;
+    let dir = PathBuf::from(home).join(".cache").join("dfinity");
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir)
+            .context(format!("Cannot create directory at \"{}\".", dir.display()))?;
+    } else if !dir.is_dir() {
+        bail!("Cannot find directory at \"{}\".", dir.display());
     }
-
-    Ok(p)
+    Ok(dir)
 }
 
 /// Return the binary cache root. It constructs it if not present
 /// already.
 pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
-    let p = get_cache_root()?.join("versions");
-
-    if !p.exists() {
-        if let Err(e) = std::fs::create_dir_all(&p) {
-            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
-        }
-    } else if !p.is_dir() {
-        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+    let dir = get_cache_root()?.join("versions");
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir)
+            .context(format!("Cannot create directory at \"{}\".", dir.display()))?;
+    } else if !dir.is_dir() {
+        bail!("Cannot find directory at \"{}\".", dir.display());
     }
-
-    Ok(p)
+    Ok(dir)
 }
 
 pub fn get_bin_cache(v: &str) -> DfxResult<PathBuf> {
@@ -185,7 +179,10 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
         Ok(p)
     } else {
-        Err(CacheError(CacheErrorKind::UnknownDfxVersion(v.to_owned())))
+        bail!(
+            "Cannot parse version number \"{}\". Did you make a typo?",
+            v.to_owned()
+        );
     }
 }
 

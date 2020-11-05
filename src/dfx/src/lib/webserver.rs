@@ -1,4 +1,4 @@
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::locations::canister_did_location;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
@@ -10,6 +10,7 @@ use actix_web::client::Client;
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
+use anyhow::{bail, Context};
 use crossbeam::channel::Sender;
 use futures::StreamExt;
 use serde::Deserialize;
@@ -55,17 +56,16 @@ async fn candid(
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
     let store = CanisterIdStore::for_network(&network_descriptor)?;
-    let candid_path = store
-        .get_name(&id)
-        .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
-        .ok_or_else(|| {
-            DfxError::CouldNotFindCanisterNameForNetwork(
-                id.to_string(),
-                network_descriptor.name.clone(),
-            )
-        })?
-        .canonicalize()
-        .map_err(|_e| DfxError::Unknown("cannot find candid file".to_string()))?;
+    let candid_path = match store.get_name(&id) {
+        Some(canister_name) => canister_did_location(&data.build_output_root, &canister_name)
+            .canonicalize()
+            .context("Cannot canonicalize Candid file path."),
+        None => bail!(
+            "Cannot find canister \"{}\" in network \"{}\".",
+            id,
+            network_descriptor.name.clone()
+        ),
+    }?;
 
     let content = match info.format {
         None => std::fs::read_to_string(candid_path)?,
@@ -244,9 +244,7 @@ pub fn webserver(
             }
     });
     if bind_and_forward_on_same_port {
-        return Err(DfxError::Unknown(
-            "Cannot forward API calls to the same bootstrap server.".to_string(),
-        ));
+        bail!("Cannot forward API calls to the same bootstrap server.");
     }
 
     std::thread::Builder::new()
@@ -271,5 +269,5 @@ pub fn webserver(
                 let _ = inform_parent.send(server);
             }
         })
-        .map_err(DfxError::from)
+        .context("Cannot start web server.")
 }

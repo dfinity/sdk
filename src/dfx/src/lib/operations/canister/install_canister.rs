@@ -1,9 +1,10 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::waiter::waiter_with_timeout;
 
+use anyhow::Context;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::*;
@@ -24,9 +25,9 @@ pub async fn install_canister(
 ) -> DfxResult {
     let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
-    let canister_id = canister_info.get_canister_id().map_err(|_| {
-        DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
-    })?;
+    let canister_id = canister_info.get_canister_id().context(
+        format!("Cannot find build output for canister \"{}\". Did you forget to run the \"build\" command?", canister_info.get_name().to_owned()),
+    )?;
 
     info!(
         log,
