@@ -166,9 +166,6 @@ user_message!(
 
     // dfx stop
     StopNode => "Stops the local network replica.",
-    // dfx ide
-    StartLanguageService => "Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the end-user.",
-    ForceTTY => "Forces the language server to start even when run from a terminal.",
 );
 
 impl fmt::Display for UserMessage {
