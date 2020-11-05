@@ -1,7 +1,6 @@
 use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches};
 
 mod list;
@@ -26,7 +25,7 @@ fn builtins() -> Vec<CliCommand> {
 
 pub fn construct() -> App<'static> {
     App::new("identity")
-        .about(UserMessage::ManageIdentity.to_str())
+        .about("Manages identities used to communicate with the Internet Computer network. Setting an identity enables you to test user-based access controls.")
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 

@@ -15,12 +15,8 @@ pub struct UpgradeOpts {
     #[clap(long)]
     current_version: Option<String>,
 
-    // hidden
-    #[clap(long, default_value = "https://sdk.dfinity.org")]
+    #[clap(long, default_value = "https://sdk.dfinity.org", hidden = true)]
     release_root: String,
-    // Verbose output.
-    // #[clap(long)]
-    // verbose: bool,
 }
 
 pub fn construct() -> App<'static> {

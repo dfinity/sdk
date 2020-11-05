@@ -18,7 +18,7 @@ pub struct SetControllerOpts {
     /// Specifies the canister name or the canister identifier for the canister to be controlled.
     canister: String,
 
-    /// Specifies the identity name or the principal of the new controller."
+    /// Specifies the identity name or the principal of the new controller.
     new_controller: String,
 }
 

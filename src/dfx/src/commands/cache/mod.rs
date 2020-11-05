@@ -1,7 +1,6 @@
 use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use clap::{App, ArgMatches};
 
 mod delete;
@@ -20,7 +19,7 @@ fn builtins() -> Vec<CliCommand> {
 
 pub fn construct() -> App<'static> {
     App::new("cache")
-        .about(UserMessage::ManageCache.to_str())
+        .about("Manages the dfx version cache.")
         .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 

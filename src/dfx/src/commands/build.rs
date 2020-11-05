@@ -10,7 +10,7 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 #[derive(Clap)]
 pub struct CanisterBuildOpts {
     /// Specifies the name of the canister to build.
-    /// You must specify either a canister name or the --all option.",
+    /// You must specify either a canister name or the --all option.
     canister_name: Option<String>,
 
     /// Builds all canisters configured in the dfx.json file.

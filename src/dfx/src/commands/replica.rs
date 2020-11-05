@@ -13,8 +13,7 @@ use std::default::Default;
 #[derive(Clap)]
 pub struct ReplicaOpts {
     /// Specifies the maximum number of cycles a single message can consume.
-    // hidden
-    #[clap(long)]
+    #[clap(long, hidden = true)]
     message_gas_limit: Option<String>,
 
     /// Specifies the port the local replica should listen to.
@@ -22,8 +21,7 @@ pub struct ReplicaOpts {
     port: Option<String>,
 
     /// Specifies the maximum number of cycles a single round can consume.
-    // hidden
-    #[clap(long)]
+    #[clap(long, hidden = true)]
     round_gas_limit: Option<String>,
 }
 
