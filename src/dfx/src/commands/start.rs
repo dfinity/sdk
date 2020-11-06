@@ -25,6 +25,7 @@ use tokio::runtime::Runtime;
 
 /// Starts the local replica and a web server for the current project.
 #[derive(Clap)]
+#[clap(name("start"))]
 pub struct StartOpts {
     /// Specifies the host name and port number to bind the frontend to.
     #[clap(long)]
@@ -40,7 +41,7 @@ pub struct StartOpts {
 }
 
 pub fn construct() -> App<'static> {
-    StartOpts::into_app().name("start")
+    StartOpts::into_app()
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {

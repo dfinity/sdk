@@ -10,6 +10,7 @@ const CANISTER_ARG: &str = "canister";
 /// Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the
 /// end-user.
 #[derive(Clap)]
+#[clap(name("_language-service"))]
 #[clap(setting = AppSettings::Hidden)]
 pub struct LanguageServiceOpts {
     /// Specifies the canister name. If you don't specify this argument, all canisters are
@@ -22,7 +23,7 @@ pub struct LanguageServiceOpts {
 }
 
 pub fn construct() -> App<'static> {
-    LanguageServiceOpts::into_app().name("_language-service")
+    LanguageServiceOpts::into_app()
 }
 
 // Don't read anything from stdin or output anything to stdout while this function is being

@@ -6,10 +6,11 @@ use ic_agent::Identity;
 
 /// Shows the textual representation of the Principal associated with the current identity.
 #[derive(Clap)]
+#[clap(name("get-principal"))]
 pub struct GetPrincipalOpts {}
 
 pub fn construct() -> App<'static> {
-    GetPrincipalOpts::into_app().name("get-principal")
+    GetPrincipalOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

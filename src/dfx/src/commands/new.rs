@@ -4,6 +4,7 @@ use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::util::assets;
+use crate::util::clap::validators::project_name_validator;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use console::{style, Style};
 use indicatif::HumanBytes;
@@ -30,40 +31,9 @@ lazy_static! {
     static ref CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
 }
 
-/// Validate a String can be a valid project name.
-/// A project name is valid if it starts with a letter, and is alphanumeric (with hyphens).
-/// It cannot end with a dash.
-pub fn project_name_validator(name: &str) -> Result<(), String> {
-    let mut chars = name.chars();
-    // Check first character first. If there's no first character it's empty.
-    if let Some(first) = chars.next() {
-        if first.is_ascii_alphabetic() {
-            // Then check all other characters.
-            // Reverses the search here; if there is a character that is not compatible
-            // it is found and an error is returned.
-            let m: Vec<&str> = name
-                .matches(|x: char| !x.is_ascii_alphanumeric() && x != '_')
-                .collect();
-
-            if m.is_empty() {
-                Ok(())
-            } else {
-                Err(format!(
-                    r#"Invalid character(s): "{}""#,
-                    m.iter()
-                        .fold(String::new(), |acc, &num| acc + &num.to_string())
-                ))
-            }
-        } else {
-            Err("Must start with a letter.".to_owned())
-        }
-    } else {
-        Err("Cannot be empty.".to_owned())
-    }
-}
-
 /// Creates a new project.
 #[derive(Clap)]
+#[clap(name("new"))]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
     #[clap(validator(project_name_validator))]
@@ -82,7 +52,7 @@ pub struct NewOpts {
 }
 
 pub fn construct() -> App<'static> {
-    NewOpts::into_app().name("new")
+    NewOpts::into_app()
 }
 
 enum Status<'a> {

@@ -4,9 +4,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
+use crate::util::clap::validators::{compute_allocation_validator, memory_allocation_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
-use humanize_rs::bytes::{Bytes, Unit};
+use humanize_rs::bytes::Bytes;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
 use std::convert::TryFrom;
 use std::str::FromStr;
@@ -14,6 +15,7 @@ use tokio::runtime::Runtime;
 
 /// Deploys compiled code as a canister on the Internet Computer.
 #[derive(Clap, Clone)]
+#[clap(name("install"))]
 pub struct CanisterInstallOpts {
     /// Specifies the canister name to deploy. You must specify either canister name or the --all option.
     canister_name: Option<String>,
@@ -50,26 +52,7 @@ pub struct CanisterInstallOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterInstallOpts::into_app().name("install")
-}
-
-fn compute_allocation_validator(compute_allocation: &str) -> Result<(), String> {
-    if let Ok(num) = compute_allocation.parse::<u64>() {
-        if num <= 100 {
-            return Ok(());
-        }
-    }
-    Err("Must be a percent between 0 and 100".to_string())
-}
-
-fn memory_allocation_validator(memory_allocation: &str) -> Result<(), String> {
-    let limit = Bytes::new(256, Unit::TByte).map_err(|_| "Parse Overflow.")?;
-    if let Ok(bytes) = memory_allocation.parse::<Bytes>() {
-        if bytes.size() <= limit.size() {
-            return Ok(());
-        }
-    }
-    Err("Must be a value between 0..256 TB inclusive.".to_string())
+    CanisterInstallOpts::into_app()
 }
 
 fn get_compute_allocation(

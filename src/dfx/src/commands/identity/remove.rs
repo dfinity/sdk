@@ -6,13 +6,14 @@ use slog::info;
 
 /// Removes an existing identity.
 #[derive(Clap)]
+#[clap(name("remove"))]
 pub struct RemoveOpts {
     /// The identity to remove.
     identity: String,
 }
 
 pub fn construct() -> App<'static> {
-    RemoveOpts::into_app().name("remove")
+    RemoveOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

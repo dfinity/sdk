@@ -18,6 +18,7 @@ use url::Url;
 
 /// Starts the bootstrap server.
 #[derive(Clap, Clone)]
+#[clap(name("bootstrap"))]
 pub struct BootstrapOpts {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
     #[clap(long)]
@@ -43,7 +44,7 @@ pub struct BootstrapOpts {
 }
 
 pub fn construct() -> App<'static> {
-    BootstrapOpts::into_app().name("bootstrap")
+    BootstrapOpts::into_app()
 }
 
 /// Runs the bootstrap server.

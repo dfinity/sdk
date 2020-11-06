@@ -6,10 +6,11 @@ use std::io::Write;
 
 /// Lists existing identities.
 #[derive(Clap)]
+#[clap(name("list"))]
 pub struct ListOpts {}
 
 pub fn construct() -> App<'static> {
-    ListOpts::into_app().name("list")
+    ListOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

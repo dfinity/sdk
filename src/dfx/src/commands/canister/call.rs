@@ -11,6 +11,7 @@ use tokio::runtime::Runtime;
 
 /// Deletes a canister on the Internet Computer network.
 #[derive(Clap)]
+#[clap(name("call"))]
 pub struct CanisterCallOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.
@@ -46,7 +47,7 @@ pub struct CanisterCallOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterCallOpts::into_app().name("call")
+    CanisterCallOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

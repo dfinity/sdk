@@ -9,13 +9,14 @@ use tokio::runtime::Runtime;
 
 /// Pings an Internet Computer network and returns its status.
 #[derive(Clap)]
+#[clap(name("ping"))]
 pub struct PingOpts {
     /// The provider to use.
     network: Option<String>,
 }
 
 pub fn construct() -> App<'static> {
-    PingOpts::into_app().name("ping")
+    PingOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

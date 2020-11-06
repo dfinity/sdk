@@ -6,6 +6,7 @@ use slog::info;
 
 /// Renames an existing identity.
 #[derive(Clap)]
+#[clap(name("rename"))]
 pub struct RenameOpts {
     /// The current name of the identity.
     from: String,
@@ -15,7 +16,7 @@ pub struct RenameOpts {
 }
 
 pub fn construct() -> App<'static> {
-    RenameOpts::into_app().name("rename")
+    RenameOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

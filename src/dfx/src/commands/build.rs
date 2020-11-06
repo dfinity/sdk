@@ -8,6 +8,7 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
 #[derive(Clap)]
+#[clap(name("build"))]
 pub struct CanisterBuildOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.
@@ -27,7 +28,7 @@ pub struct CanisterBuildOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterBuildOpts::into_app().name("build")
+    CanisterBuildOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

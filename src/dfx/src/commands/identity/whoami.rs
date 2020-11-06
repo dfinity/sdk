@@ -5,10 +5,11 @@ use clap::{App, ArgMatches, Clap, IntoApp};
 
 /// Shows the name of the current identity.
 #[derive(Clap)]
+#[clap(name("whoami"))]
 pub struct WhoAmIOpts {}
 
 pub fn construct() -> App<'static> {
-    WhoAmIOpts::into_app().name("whoami")
+    WhoAmIOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

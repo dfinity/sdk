@@ -1,7 +1,7 @@
 use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use clap::{App, ArgMatches};
+use clap::{App, ArgMatches, Clap, IntoApp};
 
 mod list;
 mod new;
@@ -10,6 +10,16 @@ mod remove;
 mod rename;
 mod r#use;
 mod whoami;
+
+/// Manages identities used to communicate with the Internet Computer network.
+/// Setting an identity enables you to test user-based access controls.
+#[derive(Clap)]
+#[clap(name("identity"))]
+pub struct IdentityOpt {}
+
+pub fn construct() -> App<'static> {
+    IdentityOpt::into_app().subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
+}
 
 fn builtins() -> Vec<CliCommand> {
     vec![
@@ -21,12 +31,6 @@ fn builtins() -> Vec<CliCommand> {
         CliCommand::new(whoami::construct(), whoami::exec),
         CliCommand::new(principal::construct(), principal::exec),
     ]
-}
-
-pub fn construct() -> App<'static> {
-    App::new("identity")
-        .about("Manages identities used to communicate with the Internet Computer network. Setting an identity enables you to test user-based access controls.")
-        .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

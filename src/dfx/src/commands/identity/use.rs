@@ -6,13 +6,14 @@ use slog::info;
 
 /// Specifies the identity to use.
 #[derive(Clap)]
+#[clap(name("use"))]
 pub struct UseOpts {
     /// The identity to use.
     identity: String,
 }
 
 pub fn construct() -> App<'static> {
-    UseOpts::into_app().name("use")
+    UseOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

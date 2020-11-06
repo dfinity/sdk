@@ -7,6 +7,7 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
 #[derive(Clap)]
+#[clap(name("deploy"))]
 pub struct DeployOpts {
     /// Specifies the name of the canister you want to deploy.
     /// If you don’t specify a canister name, all canisters defined in the dfx.json file are deployed.
@@ -26,7 +27,7 @@ pub struct DeployOpts {
 }
 
 pub fn construct() -> App<'static> {
-    DeployOpts::into_app().name("deploy")
+    DeployOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

@@ -13,6 +13,7 @@ use tokio::runtime::Runtime;
 
 /// Starts a canister on the Internet Computer network.
 #[derive(Clap)]
+#[clap(name("start"))]
 pub struct CanisterStartOpts {
     /// Specifies the name of the canister to start. You must specify either a canister name or the --all flag.
     canister_name: Option<String>,
@@ -23,7 +24,7 @@ pub struct CanisterStartOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterStartOpts::into_app().name("start")
+    CanisterStartOpts::into_app()
 }
 
 async fn start_canister(

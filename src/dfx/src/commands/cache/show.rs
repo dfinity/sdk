@@ -5,10 +5,11 @@ use clap::{App, ArgMatches, Clap, IntoApp};
 
 /// Shows the path of the cache used by this version.
 #[derive(Clap)]
+#[clap(name("show"))]
 pub struct CacheShowOpts {}
 
 pub fn construct() -> App<'static> {
-    CacheShowOpts::into_app().name("show")
+    CacheShowOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

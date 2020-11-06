@@ -12,6 +12,7 @@ use tokio::runtime::Runtime;
 
 /// Requests the status of a specified call from a canister.
 #[derive(Clap)]
+#[clap(name("request-status"))]
 pub struct RequestStatusOpts {
     /// Specifies the request identifier.
     /// The request identifier is an hexadecimal string starting with 0x.
@@ -20,7 +21,7 @@ pub struct RequestStatusOpts {
 }
 
 pub fn construct() -> App<'static> {
-    RequestStatusOpts::into_app().name("request-status")
+    RequestStatusOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

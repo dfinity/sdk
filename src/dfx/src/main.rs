@@ -1,9 +1,8 @@
-use crate::commands::CliCommand;
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::*;
 use crate::lib::logger::{create_root_logger, LoggingMode};
-use clap::{App, AppSettings, Arg, ArgMatches};
+use clap::{App, AppSettings, ArgMatches, Clap, FromArgMatches, IntoApp};
 use std::path::PathBuf;
 
 mod actors;
@@ -12,40 +11,36 @@ mod config;
 mod lib;
 mod util;
 
-fn cli(_: &impl Environment) -> App<'static> {
-    App::new("dfx")
-        .about("The DFINITY Executor.")
-        .version(dfx_version_str())
-        .global_setting(AppSettings::ColoredHelp)
-        .arg(
-            Arg::new("verbose")
-                .long("verbose")
-                .short('v')
-                .multiple(true),
-        )
-        .arg(Arg::new("quiet").long("quiet").short('q').multiple(true))
-        .arg(
-            Arg::new("logmode")
-                .long("log")
-                .takes_value(true)
-                .possible_values(&["stderr", "tee", "file"])
-                .default_value("stderr"),
-        )
-        .arg(
-            Arg::new("logfile")
-                .long("log-file")
-                .long("logfile")
-                .takes_value(true),
-        )
-        .arg(Arg::new("identity").long("identity").takes_value(true))
-        .subcommands(
-            commands::builtin()
-                .into_iter()
-                .map(|x: CliCommand| x.get_subcommand().clone()),
-        )
+/// The DFINITY Executor.
+#[derive(Clap)]
+#[clap(name("dfx"))]
+#[clap(version = dfx_version_str(), global_setting = AppSettings::ColoredHelp)]
+pub struct CliOpts {
+    #[clap(long, short('v'), parse(from_occurrences))]
+    verbose: u64,
+
+    #[clap(long, short('q'), parse(from_occurrences))]
+    quiet: u64,
+
+    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]))]
+    logmode: String,
+
+    #[clap(long)]
+    logfile: Option<String>,
+
+    #[clap(long)]
+    identity: Option<String>,
 }
 
-fn exec(env: &impl Environment, args: &clap::ArgMatches, cli: &mut App<'static>) -> DfxResult {
+fn cli(_: &impl Environment) -> App<'static> {
+    CliOpts::into_app().subcommands(
+        commands::builtin()
+            .into_iter()
+            .map(|x| x.get_subcommand().clone()),
+    )
+}
+
+fn exec(env: &impl Environment, args: &ArgMatches, cli: &mut App<'static>) -> DfxResult {
     let (name, subcommand_args) = match args.subcommand() {
         Some((name, args)) => (name, args),
         _ => {
@@ -120,17 +115,13 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(matches: &ArgMatches) -> (bool, slog::Logger) {
+fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
     // Create a logger with our argument matches.
-    let level = matches.occurrences_of("verbose") as i64 - matches.occurrences_of("quiet") as i64;
+    let level = opts.verbose as i64 - opts.quiet as i64;
 
-    let mode = match matches.value_of("logmode") {
-        Some("tee") => LoggingMode::Tee(PathBuf::from(
-            matches.value_of("logfile").unwrap_or("log.txt"),
-        )),
-        Some("file") => LoggingMode::File(PathBuf::from(
-            matches.value_of("logfile").unwrap_or("log.txt"),
-        )),
+    let mode = match opts.logmode.as_str() {
+        "tee" => LoggingMode::Tee(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
+        "file" => LoggingMode::File(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
         _ => LoggingMode::Stderr,
     };
 
@@ -146,17 +137,16 @@ fn main() {
             }
 
             let matches = cli(&env).get_matches();
+            let opts: CliOpts = CliOpts::from_arg_matches(&matches);
 
-            let (progress_bar, log) = setup_logging(&matches);
-
-            let identity_name = matches.value_of("identity").map(String::from);
+            let (progress_bar, log) = setup_logging(&opts);
 
             // Need to recreate the environment because we use it to get matches.
             // TODO(hansl): resolve this double-create problem.
             match EnvironmentImpl::new().map(|x| {
                 x.with_logger(log)
                     .with_progress_bar(progress_bar)
-                    .with_identity_override(identity_name)
+                    .with_identity_override(opts.identity)
             }) {
                 Ok(env) => {
                     slog::trace!(

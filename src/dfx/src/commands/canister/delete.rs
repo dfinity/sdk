@@ -13,6 +13,7 @@ use tokio::runtime::Runtime;
 
 /// Deletes a canister on the Internet Computer network.
 #[derive(Clap)]
+#[clap(name("delete"))]
 pub struct CanisterDeleteOpts {
     /// Specifies the name of the canister to delete.
     /// You must specify either a canister name or the --all flag.
@@ -24,7 +25,7 @@ pub struct CanisterDeleteOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterDeleteOpts::into_app().name("delete")
+    CanisterDeleteOpts::into_app()
 }
 
 async fn delete_canister(

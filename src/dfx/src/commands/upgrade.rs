@@ -10,6 +10,7 @@ use tar::Archive;
 
 /// Upgrade DFX.
 #[derive(Clap)]
+#[clap(name("upgrade"))]
 pub struct UpgradeOpts {
     /// Current Version.
     #[clap(long)]
@@ -20,7 +21,7 @@ pub struct UpgradeOpts {
 }
 
 pub fn construct() -> App<'static> {
-    UpgradeOpts::into_app().name("upgrade")
+    UpgradeOpts::into_app()
 }
 
 fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>

@@ -6,10 +6,11 @@ use std::io::Write;
 
 /// Lists installed and used version.
 #[derive(Clap)]
+#[clap(name("list"))]
 pub struct CacheListOpts {}
 
 pub fn construct() -> App<'static> {
-    CacheListOpts::into_app().name("list")
+    CacheListOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {

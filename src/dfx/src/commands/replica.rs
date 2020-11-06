@@ -11,6 +11,7 @@ use std::default::Default;
 
 /// Starts a local Internet Computer replica.
 #[derive(Clap)]
+#[clap(name("replica"))]
 pub struct ReplicaOpts {
     /// Specifies the maximum number of cycles a single message can consume.
     #[clap(long, hidden = true)]
@@ -26,7 +27,7 @@ pub struct ReplicaOpts {
 }
 
 pub fn construct() -> App<'static> {
-    ReplicaOpts::into_app().name("replica")
+    ReplicaOpts::into_app()
 }
 
 /// Gets the configuration options for the Internet Computer replica.

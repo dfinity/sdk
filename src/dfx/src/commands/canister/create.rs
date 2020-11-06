@@ -7,6 +7,7 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 /// Creates an empty canister on the Internet Computer and
 /// associates the Internet Computer assigned Canister ID to the canister name.
 #[derive(Clap)]
+#[clap(name("create"))]
 pub struct CanisterCreateOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
     canister_name: Option<String>,
@@ -17,7 +18,7 @@ pub struct CanisterCreateOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterCreateOpts::into_app().name("create")
+    CanisterCreateOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

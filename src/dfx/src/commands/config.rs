@@ -6,6 +6,7 @@ use serde_json::value::Value;
 
 /// Configures project options for your currently-selected project.
 #[derive(Clap)]
+#[clap(name("config"))]
 pub struct ConfigOpts {
     /// Specifies the name of the configuration option to set or read.
     /// Use the period delineated path to specify the option to set or read.
@@ -22,7 +23,7 @@ pub struct ConfigOpts {
 }
 
 pub fn construct() -> App<'static> {
-    ConfigOpts::into_app().name("config")
+    ConfigOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

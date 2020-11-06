@@ -13,6 +13,7 @@ use tokio::runtime::Runtime;
 
 /// Stops a canister that is currently running on the Internet Computer network.
 #[derive(Clap)]
+#[clap(name("stop"))]
 pub struct CanisterStopOpts {
     /// Specifies the name of the canister to stop.
     /// You must specify either a canister name or the --all option.
@@ -24,7 +25,7 @@ pub struct CanisterStopOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterStopOpts::into_app().name("stop")
+    CanisterStopOpts::into_app()
 }
 
 async fn stop_canister(

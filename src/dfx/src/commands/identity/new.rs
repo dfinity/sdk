@@ -6,13 +6,14 @@ use slog::info;
 
 /// Creates a new identity.
 #[derive(Clap)]
+#[clap(name("new"))]
 pub struct NewIdentityOpts {
     /// The identity to create.
     identity: String,
 }
 
 pub fn construct() -> App<'static> {
-    NewIdentityOpts::into_app().name("new")
+    NewIdentityOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

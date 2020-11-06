@@ -5,13 +5,14 @@ use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 /// Deletes a specific versioned cache of dfx.
 #[derive(Clap)]
+#[clap(name("delete"))]
 pub struct CacheDeleteOpts {
     #[clap(long)]
     version: Option<String>,
 }
 
 pub fn construct() -> App<'static> {
-    CacheDeleteOpts::into_app().name("delete")
+    CacheDeleteOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

@@ -6,6 +6,7 @@ use ic_types::principal::Principal as CanisterId;
 
 /// Prints the identifier of a canister.
 #[derive(Clap)]
+#[clap(name("id"))]
 pub struct CanisterIdOpts {
     /// Specifies the name of the canister to stop.
     /// You must specify either a canister name or the --all option.
@@ -13,7 +14,7 @@ pub struct CanisterIdOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterIdOpts::into_app().name("id")
+    CanisterIdOpts::into_app()
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {

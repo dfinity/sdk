@@ -32,6 +32,7 @@ fn builtins() -> Vec<CliCommand> {
 
 /// Manages canisters deployed on a network replica.
 #[derive(Clap)]
+#[clap(name("canister"))]
 pub struct CanisterOpts {
     // Override the compute network to connect to. By default, the local network is used.
     #[clap(long)]
@@ -39,9 +40,7 @@ pub struct CanisterOpts {
 }
 
 pub fn construct() -> App<'static> {
-    CanisterOpts::into_app()
-        .name("canister")
-        .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
+    CanisterOpts::into_app().subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
 }
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
