@@ -328,23 +328,23 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     // Any version that contains a `-` is a local build.
     // TODO: when adding alpha/beta, take that into account.
     // TODO: move this to a Version type.
-    let _is_dirty = dfx_version_str().contains('-');
+    let is_dirty = dfx_version_str().contains('-');
 
-    let js_agent_version = dfx_version_str().to_owned(); // if is_dirty {
-                                                         //     // file!() returns a path like `src/dfx/src/commands/new.rs`, but since we are
-                                                         //     // running from a directory outside the source tree, this does not help.
-                                                         //     let agent_path = std::env::current_exe()?
-                                                         //         .parent()
-                                                         //         .unwrap()
-                                                         //         .join("../../src/agent/javascript");
-                                                         //     agent_path
-                                                         //         .canonicalize()
-                                                         //         .map_err(|e| DfxError::IoWithPath(e, agent_path))?
-                                                         //         .to_string_lossy()
-                                                         //         .to_string()
-                                                         // } else {
-                                                         // dfx_version_str().to_owned()
-                                                         // };
+    let js_agent_version = if is_dirty {
+        // file!() returns a path like `src/dfx/src/commands/new.rs`, but since we are
+        // running from a directory outside the source tree, this does not help.
+        let agent_path = std::env::current_exe()?
+            .parent()
+            .unwrap()
+            .join("../../src/agent/javascript");
+        agent_path
+            .canonicalize()
+            .map_err(|e| DfxError::IoWithPath(e, agent_path))?
+            .to_string_lossy()
+            .to_string()
+    } else {
+        dfx_version_str().to_owned()
+    };
 
     let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
