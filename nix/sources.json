@@ -38,9 +38,9 @@
         "type": "git"
     },
     "dfinity": {
-        "branch": "master",
+        "branch": "paulliu/prefer-existing-config-in-ic-stater",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "9338342f66f75a5417c4f36c8abcc256786b0638",
+        "rev": "1a446e989070b05f6cc9ed60edaae491b86b7dd8",
         "type": "git"
     },
     "ic-ref": {
