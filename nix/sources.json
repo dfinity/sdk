@@ -40,7 +40,7 @@
     "dfinity": {
         "branch": "paulliu/prefer-existing-config-in-ic-stater",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "1a446e989070b05f6cc9ed60edaae491b86b7dd8",
+        "rev": "0e7c3ca77db1353cf2118eb55bde9dfa722bdebd",
         "type": "git"
     },
     "ic-ref": {
