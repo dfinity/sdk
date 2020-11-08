@@ -1,8 +1,9 @@
 use crate::config::dfinity::ConfigNetwork;
 use crate::lib::environment::{AgentEnvironment, Environment};
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::expiry_duration;
+use anyhow::{Context, bail};
 use lazy_static::lazy_static;
 use std::sync::{Arc, RwLock};
 use url::Url;
@@ -71,7 +72,7 @@ pub fn get_network_descriptor<'a>(
                 r#type: local_provider.r#type,
             })
         }
-        None => Err(DfxError::ComputeNetworkNotFound(network_name.to_string())),
+        None => bail!("Cannot find network \"{}\". Did you forget to specify it in your configuration file?", network_name.to_string()),
     }
 }
 
@@ -97,7 +98,7 @@ pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
 pub fn parse_provider_url(url: &str) -> DfxResult<String> {
     Url::parse(url)
         .map(|_| String::from(url))
-        .map_err(|err| DfxError::InvalidUrl(url.to_string(), err))
+        .context(format!("Cannot parse provider URL \"{}\"", url.to_string()))
 }
 
 #[cfg(test)]

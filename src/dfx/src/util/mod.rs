@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use anyhow::{Context, bail};
+use anyhow::{bail, Context};
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
@@ -111,9 +111,7 @@ pub fn blob_from_arguments(
 ) -> DfxResult<Vec<u8>> {
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
-        "raw" => {
-            Ok(hex::decode(&arguments.unwrap_or("")).context("Invalid hex string.")?)
-        }
+        "raw" => Ok(hex::decode(&arguments.unwrap_or("")).context("Invalid hex string.")?),
         "idl" => {
             let arguments = arguments.unwrap_or("()");
             let typed_args = match method_type {
@@ -139,9 +137,10 @@ pub fn blob_from_arguments(
                         }
                     });
                     args.context("Invalid Candid values.")?
-                    .to_bytes_with_types(&env, &func.args)
+                        .to_bytes_with_types(&env, &func.args)
                 }
-            }.context("Cannot serialize Candid values.")?;
+            }
+            .context("Cannot serialize Candid values.")?;
             Ok(typed_args)
         }
         v => bail!("Invalid type \"{}\".", v),

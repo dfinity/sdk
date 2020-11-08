@@ -1,5 +1,8 @@
 use crate::config::cache::Cache;
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::error::DfxResult;
+use anyhow::{Context, bail};
+use std::error::Error;
+use std::ffi::IntoStringError;
 use std::process::Command;
 
 /// Package arguments for moc or mo-ide as returned by
@@ -13,8 +16,8 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
             .get_binary_command_path("base")?
             .into_os_string()
             .into_string()
-            .map_err(DfxError::CouldNotConvertOsString)?;
-
+            .map_err(|_| IntoStringError)
+            .context("Cannot convert string.")?;
         let base = vec![String::from("--package"), String::from("base"), stdlib_path];
         return Ok(base);
     }
@@ -31,24 +34,19 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
         cmd.arg(arg);
     }
 
-    let output = match cmd.output() {
-        Ok(output) => output,
-        Err(e) => {
-            return Err(DfxError::BuildError(
-                BuildErrorKind::FailedToInvokePackageTool(format!("{:?}", cmd), e),
-            ));
-        }
-    };
+    let output = cmd.output().context(format!(
+        "Failed to invoke the package tool {:?}\n",
+        cmd,
+    ))?;
 
     if !output.status.success() {
-        return Err(DfxError::BuildError(
-            BuildErrorKind::PackageToolReportedError(
-                format!("{:?}", cmd),
-                output.status,
-                String::from_utf8_lossy(&output.stdout).to_string(),
-                String::from_utf8_lossy(&output.stderr).to_string(),
-            ),
-        ));
+        bail!(
+            "Package tool {:?}\n reported an error: {}\n{}{}",
+            cmd,
+            output.status,
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        );
     }
 
     let package_arguments = String::from_utf8_lossy(&output.stdout)

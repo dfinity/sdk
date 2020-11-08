@@ -8,6 +8,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::operations::canister::install_canister;
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use anyhow::Context;
 use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
@@ -27,7 +28,7 @@ pub fn deploy_canisters(
 
     let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .context("Command must be run in a project directory (with a dfx.json file).")?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
     let canister_names = canisters_to_deploy(&config, some_canister)?;
@@ -107,7 +108,7 @@ fn install_canisters(
 
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .context("Command must be run in a project directory (with a dfx.json file).")?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
@@ -143,7 +144,7 @@ fn install_canisters(
                 .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
             });
 
-        let result = runtime.block_on(install_canister(
+        runtime.block_on(install_canister(
             env,
             &agent,
             &canister_info,
@@ -153,34 +154,6 @@ fn install_canisters(
             memory_allocation,
             timeout,
         ));
-        match result {
-            Err(DfxError::AgentError(AgentError::ReplicaError {
-                reject_code,
-                reject_message: _,
-            })) if reject_code == 3 || reject_code == 5 => {
-                // 3: tried to upgrade a canister that has not been created
-                // 5: tried to install a canister that was already installed
-                let mode_description = match second_mode {
-                    InstallMode::Install => "install",
-                    _ => "upgrade",
-                };
-                warn!(
-                    env.get_logger(),
-                    "replica error. attempting {}", mode_description
-                );
-                runtime.block_on(install_canister(
-                    env,
-                    &agent,
-                    &canister_info,
-                    &install_args,
-                    compute_allocation,
-                    second_mode,
-                    memory_allocation,
-                    timeout,
-                ))
-            }
-            other => other,
-        }?;
     }
 
     Ok(())
