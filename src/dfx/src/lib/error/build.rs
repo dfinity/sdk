@@ -1,5 +1,7 @@
 use crate::lib::error::DfxError;
+
 use ic_types::principal::Principal as CanisterId;
+use std::error;
 use std::fmt;
 use std::io::Error;
 use std::process::ExitStatus;
@@ -112,5 +114,11 @@ impl fmt::Display for BuildErrorKind {
                 c, e
             )),
         }
+    }
+}
+
+impl error::Error for BuildErrorKind {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        Some(&self.0)
     }
 }

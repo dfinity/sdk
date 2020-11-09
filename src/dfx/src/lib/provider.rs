@@ -1,9 +1,12 @@
 use crate::config::dfinity::ConfigNetwork;
 use crate::lib::environment::{AgentEnvironment, Environment};
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::expiry_duration;
+
+use anyhow::{anyhow, Context};
 use lazy_static::lazy_static;
+use std::io::{Error, ErrorKind};
 use std::sync::{Arc, RwLock};
 use url::Url;
 
@@ -23,7 +26,7 @@ pub fn get_network_context() -> DfxResult<String> {
         .read()
         .unwrap()
         .clone()
-        .ok_or_else(|| DfxError::ComputeNetworkNotSet)
+        .ok_or_else(|| anyhow!("Cannot find network context."))
 }
 
 // always returns at least one url
@@ -34,25 +37,22 @@ pub fn get_network_descriptor<'a>(
     set_network_context(network);
     let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(Error::new(ErrorKind::NotFound, "dfx.json"))?;
     let config = config.as_ref().get_config();
     let network_name = get_network_context()?;
     match config.get_network(&network_name) {
         Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
             let provider_urls = match &network_provider.providers {
-                providers if !providers.is_empty() => {
-                    let provider_urls = providers.to_vec();
-
-                    Ok(provider_urls)
-                }
-                _ => Err(DfxError::ComputeNetworkHasNoProviders(
-                    network_name.to_string(),
+                providers if !providers.is_empty() => Ok(providers.to_vec()),
+                _ => Err(anyhow!(
+                    "Cannot find providers for network \"{}\"",
+                    network_name
                 )),
             }?;
             let validated_urls = provider_urls
                 .iter()
                 .map(|provider| parse_provider_url(provider))
-                .collect::<Result<_, _>>();
+                .collect::<DfxResult<_>>();
             validated_urls.map(|provider_urls| NetworkDescriptor {
                 name: network_name.to_string(),
                 providers: provider_urls,
@@ -64,14 +64,14 @@ pub fn get_network_descriptor<'a>(
             let validated_urls = provider_urls
                 .iter()
                 .map(|provider| parse_provider_url(provider))
-                .collect::<Result<_, _>>();
+                .collect::<DfxResult<_>>();
             validated_urls.map(|provider_urls| NetworkDescriptor {
                 name: network_name.to_string(),
                 providers: provider_urls,
                 r#type: local_provider.r#type,
             })
         }
-        None => Err(DfxError::ComputeNetworkNotFound(network_name.to_string())),
+        None => Err(anyhow!("Cannot find network \"{}\"", network_name)),
     }
 }
 
@@ -97,7 +97,7 @@ pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
 pub fn parse_provider_url(url: &str) -> DfxResult<String> {
     Url::parse(url)
         .map(|_| String::from(url))
-        .map_err(|err| DfxError::InvalidUrl(url.to_string(), err))
+        .context("Cannot parse provider URL.")
 }
 
 #[cfg(test)]

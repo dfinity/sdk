@@ -34,21 +34,20 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
     let output = match cmd.output() {
         Ok(output) => output,
         Err(e) => {
-            return Err(DfxError::BuildError(
-                BuildErrorKind::FailedToInvokePackageTool(format!("{:?}", cmd), e),
-            ));
+            return Err(DfxError::new(BuildErrorKind::FailedToInvokePackageTool(
+                format!("{:?}", cmd),
+                e,
+            )));
         }
     };
 
     if !output.status.success() {
-        return Err(DfxError::BuildError(
-            BuildErrorKind::PackageToolReportedError(
-                format!("{:?}", cmd),
-                output.status,
-                String::from_utf8_lossy(&output.stdout).to_string(),
-                String::from_utf8_lossy(&output.stderr).to_string(),
-            ),
-        ));
+        return Err(DfxError::new(BuildErrorKind::PackageToolReportedError(
+            format!("{:?}", cmd),
+            output.status,
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        )));
     }
 
     let package_arguments = String::from_utf8_lossy(&output.stdout)

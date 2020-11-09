@@ -1,5 +1,4 @@
 use crate::config::dfx_version;
-use crate::lib::error::DfxError::CacheError;
 use crate::lib::error::{CacheErrorKind, DfxError, DfxResult};
 use crate::util;
 use indicatif::{ProgressBar, ProgressDrawTarget};
@@ -67,16 +66,18 @@ impl Cache for DiskBasedCache {
 
 pub fn get_cache_root() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
-        .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
+        .map_err(|_| DfxError::new(CacheErrorKind::CannotFindUserHomeDirectory()))?;
 
     let p = PathBuf::from(home).join(".cache").join("dfinity");
 
     if !p.exists() {
         if let Err(e) = std::fs::create_dir_all(&p) {
-            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
+            return Err(DfxError::new(CacheErrorKind::CannotCreateCacheDirectory(
+                p, e,
+            )));
         }
     } else if !p.is_dir() {
-        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+        return Err(DfxError::new(CacheErrorKind::CacheShouldBeADirectory(p)));
     }
 
     Ok(p)
@@ -89,10 +90,12 @@ pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
 
     if !p.exists() {
         if let Err(e) = std::fs::create_dir_all(&p) {
-            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
+            return Err(DfxError::new(CacheErrorKind::CannotCreateCacheDirectory(
+                p, e,
+            )));
         }
     } else if !p.is_dir() {
-        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+        return Err(DfxError::new(CacheErrorKind::CacheShouldBeADirectory(p)));
     }
 
     Ok(p)
@@ -185,7 +188,9 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
         Ok(p)
     } else {
-        Err(CacheError(CacheErrorKind::UnknownDfxVersion(v.to_owned())))
+        Err(DfxError::new(CacheErrorKind::UnknownDfxVersion(
+            v.to_owned(),
+        )))
     }
 }
 

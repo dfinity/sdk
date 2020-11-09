@@ -1,8 +1,11 @@
+#[macro_use]
+use crate::{error_unknown};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::locations::canister_did_location;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
+
 use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
@@ -244,8 +247,8 @@ pub fn webserver(
             }
     });
     if bind_and_forward_on_same_port {
-        return Err(DfxError::Unknown(
-            "Cannot forward API calls to the same bootstrap server.".to_string(),
+        return Err(error_unknown!(
+            "Cannot forward API calls to the same bootstrap server."
         ));
     }
 
