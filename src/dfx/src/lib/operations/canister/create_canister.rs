@@ -47,8 +47,14 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
 
             let mut runtime = Runtime::new().expect("Unable to create a runtime");
             let (cid,) = runtime.block_on(
-                mgr.create_canister()
-                    .call_and_wait(waiter_with_timeout(timeout)),
+                // On local, we use a different method which is private, and will give
+                // a large amount of cycles to the new canister being created.
+                if network_name == "local" {
+                    mgr.update_("provisional_create_canister_with_cycles")
+                } else {
+                    mgr.create_canister()
+                }
+                .call_and_wait(waiter_with_timeout(timeout)),
             )?;
             let canister_id = cid.to_text();
             info!(
