@@ -1,4 +1,4 @@
-use ic_agent::AgentError;
+use ic_agent::{AgentError, HttpErrorPayload};
 use ic_types::principal::PrincipalError;
 
 mod build;
@@ -194,11 +194,11 @@ impl Display for DfxError {
                     reject_code, reject_message
                 ))?;
             }
-            DfxError::AgentError(AgentError::HttpError {
+            DfxError::AgentError(AgentError::HttpError(HttpErrorPayload {
                 status,
                 content_type,
                 content,
-            }) if is_plain_text_utf8(content_type) => {
+                })) if is_plain_text_utf8(content_type) => {
                 f.write_fmt(format_args!(
                     "Replica error (HTTP status {}): {}",
                     status,

@@ -44,9 +44,9 @@
         "type": "git"
     },
     "ic-ref": {
-        "branch": "release-0.11",
+        "branch": "release-0.13",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "9edd0fdda006519118ed40515b84c74f69c59bc1",
+        "rev": "78576bc4533bb831c9331e092d321d51c07e7342",
         "type": "git"
     },
     "motoko": {
