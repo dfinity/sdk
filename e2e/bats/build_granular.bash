@@ -66,10 +66,10 @@ teardown() {
     dfx canister install e2e_project_assets
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("binary/noise.txt")' --output idl
-    assert_eq '(vec { 184; 1; 32; 128; 10; 119; 49; 50; 32; 0; 120; 121; 10; 75; 76; 11; 10; 106; 107 })'
+    assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")'
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("text-with-newlines.txt")' --output idl
-    assert_eq '(vec { 99; 104; 101; 114; 114; 105; 101; 115; 10; 105; 116; 39; 115; 32; 99; 104; 101; 114; 114; 121; 32; 115; 101; 97; 115; 111; 110; 10; 67; 72; 69; 82; 82; 73; 69; 83 })'
+    assert_eq '(blob "\63\68\65\72\72\69\65\73\0a\69\74\27\73\20\63\68\65\72\72\79\20\73\65\61\73\6f\6e\0a\43\48\45\52\52\49\45\53")'
 
 }
 

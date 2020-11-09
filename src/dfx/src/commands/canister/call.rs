@@ -144,7 +144,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     } else if args.is_present("async") {
         let request_id = runtime.block_on(
             agent
-                .update(&canister_id, &method_name)
+                .update(&canister_id, method_name)
                 .with_arg(&arg_value)
                 .call(),
         )?;
@@ -153,7 +153,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     } else {
         let blob = runtime.block_on(
             agent
-                .update(&canister_id, &method_name)
+                .update(&canister_id, method_name)
                 .with_arg(&arg_value)
                 .expire_after(timeout)
                 .call_and_wait(waiter_with_timeout(timeout)),
