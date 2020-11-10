@@ -1714,7 +1714,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#ababe5a22ec4d18be5dcf785d5bb97b46e6dfaff"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#e0d19327e7dd71c1678f5a74042f01a731bbd04f"
 dependencies = [
  "async-trait",
  "base32",
@@ -1742,7 +1742,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#ababe5a22ec4d18be5dcf785d5bb97b46e6dfaff"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#e0d19327e7dd71c1678f5a74042f01a731bbd04f"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1754,7 +1754,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#ababe5a22ec4d18be5dcf785d5bb97b46e6dfaff"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#e0d19327e7dd71c1678f5a74042f01a731bbd04f"
 dependencies = [
  "async-trait",
  "candid",
@@ -2146,9 +2146,9 @@ dependencies = [
 
 [[package]]
 name = "native-tls"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a1cda389c26d6b88f3d2dc38aa1b750fe87d298cc5d795ec9e975f402f00372"
+checksum = "6fcc7939b5edc4e4f86b1b4a04bb1498afaaf871b1a6691838ed06fcb48d3a3f"
 dependencies = [
  "lazy_static",
  "libc",

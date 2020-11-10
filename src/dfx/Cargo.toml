@@ -69,21 +69,24 @@ wasmparser = "0.45.0"
 
 [dependencies.ic-agent]
 version = "0.1.0"
+#path = "../../../agent-rs/ic-agent"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "ababe5a22ec4d18be5dcf785d5bb97b46e6dfaff"
+rev = "e0d19327e7dd71c1678f5a74042f01a731bbd04f"
 
 [dependencies.ic-types]
 version = "0.1.2"
+#path = "../../../agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "ababe5a22ec4d18be5dcf785d5bb97b46e6dfaff"
+rev = "e0d19327e7dd71c1678f5a74042f01a731bbd04f"
 
 [dependencies.ic-utils]
 version = "0.1.0"
+#path = "../../../agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "ababe5a22ec4d18be5dcf785d5bb97b46e6dfaff"
+rev = "e0d19327e7dd71c1678f5a74042f01a731bbd04f"
 
 [dev-dependencies]
 env_logger = "0.6"
