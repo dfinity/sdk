@@ -1,6 +1,8 @@
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+
+use anyhow::anyhow;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use serde_json::value::Value;
 
@@ -31,7 +33,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     // Cannot use the `env` variable as we need a mutable copy.
     let mut config: Config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?
         .as_ref()
         .clone();
 

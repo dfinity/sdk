@@ -1,9 +1,11 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
+
+use anyhow::anyhow;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use ic_agent::Identity;
 use ic_types::principal::Principal as CanisterId;
@@ -45,7 +47,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let mgr = ManagementCanister::create(
         env.get_agent()
-            .ok_or(DfxError::CommandMustBeRunInAProject)?,
+            .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?,
     );
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");

@@ -2,6 +2,8 @@ use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::*;
 use crate::lib::logger::{create_root_logger, LoggingMode};
+
+use anyhow::anyhow;
 use clap::{App, AppSettings, ArgMatches, Clap, FromArgMatches, IntoApp};
 use std::path::PathBuf;
 
@@ -60,7 +62,7 @@ fn exec(env: &impl Environment, args: &ArgMatches, cli: &mut App<'static>) -> Df
             cli.write_help(&mut std::io::stderr())?;
             eprintln!();
             eprintln!();
-            Err(DfxError::UnknownCommand(name.to_owned()))
+            Err(anyhow!("Unknown command: {}", name.to_owned()))
         }
     }
 }

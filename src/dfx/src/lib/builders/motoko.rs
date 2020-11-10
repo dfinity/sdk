@@ -223,9 +223,10 @@ impl TryFrom<&str> for MotokoImport {
         let (url, fullpath) = match line.find(' ') {
             Some(index) => {
                 if index >= line.len() - 1 {
-                    return Err(DfxError::new(BuildError::DependencyError(
-                        format!("Unknown import {}", line),
-                    )));
+                    return Err(DfxError::new(BuildError::DependencyError(format!(
+                        "Unknown import {}",
+                        line
+                    ))));
                 }
                 let (url, fullpath) = line.split_at(index + 1);
                 (url.trim_end(), Some(fullpath))
@@ -235,9 +236,10 @@ impl TryFrom<&str> for MotokoImport {
         let import = match url.find(':') {
             Some(index) => {
                 if index >= line.len() - 1 {
-                    return Err(DfxError::new(BuildError::DependencyError(
-                        format!("Unknown import {}", url),
-                    )));
+                    return Err(DfxError::new(BuildError::DependencyError(format!(
+                        "Unknown import {}",
+                        url
+                    ))));
                 }
                 let (prefix, name) = url.split_at(index + 1);
                 match prefix {
@@ -245,9 +247,10 @@ impl TryFrom<&str> for MotokoImport {
                     "ic:" => MotokoImport::Ic(name.to_owned()),
                     "mo:" => MotokoImport::Lib(name.to_owned()),
                     _ => {
-                        return Err(DfxError::new(BuildError::DependencyError(
-                            format!("Unknown import {}", url),
-                        )))
+                        return Err(DfxError::new(BuildError::DependencyError(format!(
+                            "Unknown import {}",
+                            url
+                        ))))
                     }
                 }
             }
@@ -255,16 +258,18 @@ impl TryFrom<&str> for MotokoImport {
                 Some(fullpath) => {
                     let path = PathBuf::from(fullpath);
                     if !path.is_file() {
-                        return Err(DfxError::new(BuildError::DependencyError(
-                            format!("Cannot find import file {}", path.display()),
-                        )));
+                        return Err(DfxError::new(BuildError::DependencyError(format!(
+                            "Cannot find import file {}",
+                            path.display()
+                        ))));
                     };
                     MotokoImport::Relative(path)
                 }
                 None => {
-                    return Err(DfxError::new(BuildError::DependencyError(
-                        format!("Cannot resolve relative import {}", url),
-                    )))
+                    return Err(DfxError::new(BuildError::DependencyError(format!(
+                        "Cannot resolve relative import {}",
+                        url
+                    ))))
                 }
             },
         };

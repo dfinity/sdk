@@ -5,6 +5,8 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::webserver;
 use crate::util::get_reusable_socket_addr;
+
+use anyhow::anyhow;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use slog::info;
 use std::default::Default;
@@ -53,7 +55,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let logger = env.get_logger();
     let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
     let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;

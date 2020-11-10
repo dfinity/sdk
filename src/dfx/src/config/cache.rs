@@ -65,8 +65,8 @@ impl Cache for DiskBasedCache {
 }
 
 pub fn get_cache_root() -> DfxResult<PathBuf> {
-    let home = std::env::var("HOME")
-        .map_err(|_| DfxError::new(CacheError::CannotFindHomeDirectory()))?;
+    let home =
+        std::env::var("HOME").map_err(|_| DfxError::new(CacheError::CannotFindHomeDirectory()))?;
 
     let p = PathBuf::from(home).join(".cache").join("dfinity");
 
@@ -184,9 +184,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
         Ok(p)
     } else {
-        Err(DfxError::new(CacheError::UnknownDfxVersion(
-            v.to_owned(),
-        )))
+        Err(DfxError::new(CacheError::UnknownDfxVersion(v.to_owned())))
     }
 }
 

@@ -12,6 +12,7 @@ use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
 use actix::{Actor, Addr};
+use anyhow::anyhow;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use delay::{Delay, Waiter};
 use ic_agent::Agent;
@@ -111,7 +112,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: StartOpts = StartOpts::from_arg_matches(args);
     let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let network_descriptor = get_network_descriptor(env, None)?;
 

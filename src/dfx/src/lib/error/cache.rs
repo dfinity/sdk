@@ -3,7 +3,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CacheError {
-
     #[error("Cannot create cache directroy at '{0}'.")]
     CannotCreateCacheDirectory(PathBuf),
 

@@ -6,6 +6,8 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
 use crate::util::clap::validators::{compute_allocation_validator, memory_allocation_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
+
+use anyhow::anyhow;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use humanize_rs::bytes::Bytes;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
@@ -85,13 +87,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: CanisterInstallOpts = CanisterInstallOpts::from_arg_matches(args);
     let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let timeout = expiry_duration();
 
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let config_interface = config.get_config();
 

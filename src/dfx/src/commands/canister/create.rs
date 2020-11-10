@@ -2,6 +2,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
+
+use anyhow::anyhow;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 /// Creates an empty canister on the Internet Computer and
@@ -25,7 +27,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: CanisterCreateOpts = CanisterCreateOpts::from_arg_matches(args);
     let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let timeout = expiry_duration();
 

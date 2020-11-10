@@ -6,7 +6,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum BuildError {
-
     #[error("The pre-build all step failed with an embedded error: {0}")]
     PreBuildAllStepFailed(Box<DfxError>),
 

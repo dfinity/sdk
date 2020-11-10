@@ -63,7 +63,11 @@ async fn candid(
         .get_name(&id)
         .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
         .ok_or_else(|| {
-            anyhow!("Cannot find canister {} for network {}", id, network_descriptor.name.clone())
+            anyhow!(
+                "Cannot find canister {} for network {}",
+                id,
+                network_descriptor.name.clone()
+            )
         })?
         .canonicalize()
         .map_err(|_e| anyhow!("Cannot find candid file."))?;

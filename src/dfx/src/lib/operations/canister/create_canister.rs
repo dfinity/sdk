@@ -1,9 +1,10 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
+use anyhow::anyhow;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
@@ -16,7 +17,7 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
     info!(log, "Creating canister {:?}...", canister_name);
 
     env.get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
@@ -42,7 +43,7 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
         None => {
             let mgr = ManagementCanister::create(
                 env.get_agent()
-                    .ok_or(DfxError::CommandMustBeRunInAProject)?,
+                    .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?,
             );
 
             let mut runtime = Runtime::new().expect("Unable to create a runtime");

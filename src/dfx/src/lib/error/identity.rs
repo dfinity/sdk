@@ -1,11 +1,9 @@
 use ring::error::Unspecified;
-use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
-
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
 

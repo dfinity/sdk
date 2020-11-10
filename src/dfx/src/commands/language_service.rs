@@ -1,7 +1,9 @@
 use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+
 use crate::lib::package_arguments::{self, PackageArguments};
+use anyhow::anyhow;
 use clap::{App, AppSettings, ArgMatches, Clap, FromArgMatches, IntoApp};
 use std::process::Stdio;
 
@@ -44,7 +46,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
         run_ide(env, main_path, package_arguments)
     } else {
-        Err(DfxError::CommandMustBeRunInAProject)
+        Err(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
     }
 }
 

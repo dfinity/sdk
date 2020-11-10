@@ -8,6 +8,8 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::operations::canister::install_canister;
 use crate::util::{blob_from_arguments, get_candid_init_type};
+
+use anyhow::anyhow;
 use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
@@ -27,7 +29,7 @@ pub fn deploy_canisters(
 
     let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
     let canister_names = canisters_to_deploy(&config, some_canister)?;
@@ -107,7 +109,7 @@ fn install_canisters(
 
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 

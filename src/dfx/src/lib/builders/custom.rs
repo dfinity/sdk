@@ -128,7 +128,8 @@ impl CanisterBuilder for CustomBuilder {
             );
 
             // First separate everything as if it was read from a shell.
-            let args = shell_words::split(&command).context(format!("Cannot parse command '{}'.", command))?;
+            let args = shell_words::split(&command)
+                .context(format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
                 run_command(args, &canister_id, &candid, dependencies.clone(), pool)?;

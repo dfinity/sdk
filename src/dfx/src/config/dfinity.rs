@@ -306,7 +306,10 @@ fn add_dependencies(
     if !inserted {
         return if path.contains(&String::from(canister_name)) {
             path.push(String::from(canister_name));
-            Err(DfxError::new(BuildError::DependencyError(format!("Found circular dependency: {}", path.join(" -> ")))))
+            Err(DfxError::new(BuildError::DependencyError(format!(
+                "Found circular dependency: {}",
+                path.join(" -> ")
+            ))))
         } else {
             Ok(())
         };

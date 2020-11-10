@@ -114,7 +114,10 @@ impl CanisterPool {
                 .insert(0, Arc::new(Canister::new(info, builder)));
             Ok(())
         } else {
-            Err(anyhow!("Cannot find builder for canister '{}'.", info.get_name().to_string()))
+            Err(anyhow!(
+                "Cannot find builder for canister '{}'.",
+                info.get_name().to_string()
+            ))
         }
     }
 
@@ -126,7 +129,7 @@ impl CanisterPool {
         let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
-            .ok_or(DfxError::CommandMustBeRunInAProject)?;
+            .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
         let mut canisters_map = Vec::new();
 
@@ -205,17 +208,19 @@ impl CanisterPool {
 
         // Verify the graph has no cycles.
         if let Err(err) = petgraph::algo::toposort(&graph, None) {
-            match graph.node_weight(err.node_id()) {
-                Some(canister_id) => Err(DfxError::BuildError(BuildErrorKind::CircularDependency(
+            let message = match graph.node_weight(err.node_id()) {
+                Some(canister_id) => {
                     match self.get_canister_info(canister_id) {
                         Some(info) => info.get_name().to_string(),
                         None => format!("<{}>", canister_id.to_text()),
-                    },
-                ))),
-                None => Err(DfxError::BuildError(BuildErrorKind::CircularDependency(
-                    "<Unknown>".to_string(),
-                ))),
-            }
+                    };
+                }
+                None => "<Unknown>".to_string(),
+            };
+            Err(DfxError::new(BuildError::DependencyError(format!(
+                "Found circular dependency: {}",
+                message
+            ))))
         } else {
             Ok(graph)
         }
@@ -308,23 +313,24 @@ impl CanisterPool {
     pub fn build(
         &self,
         build_config: BuildConfig,
-    ) -> DfxResult<Vec<Result<&BuildOutput, BuildErrorKind>>> {
-        self.step_prebuild_all(&build_config).map_err(|e| {
-            DfxError::BuildError(BuildErrorKind::PrebuildAllStepFailed(Box::new(e)))
-        })?;
+    ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
+        self.step_prebuild_all(&build_config)
+            .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let graph = self.build_dependencies_graph()?;
         let order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
-            .map_err(|cycle| match graph.node_weight(cycle.node_id()) {
-                Some(canister_id) => DfxError::BuildError(BuildErrorKind::CircularDependency(
-                    match self.get_canister_info(canister_id) {
+            .map_err(|cycle| {
+                let message = match graph.node_weight(cycle.node_id()) {
+                    Some(canister_id) => match self.get_canister_info(canister_id) {
                         Some(info) => info.get_name().to_string(),
                         None => format!("<{}>", canister_id.to_text()),
                     },
-                )),
-                None => DfxError::BuildError(BuildErrorKind::CircularDependency(
-                    "<Unknown>".to_string(),
-                )),
+                    None => "<Unknown>".to_string(),
+                };
+                Err(DfxError::new(BuildError::DependencyError(format!(
+                    "Found circular dependency: {}",
+                    message
+                ))))
             })?
             .iter()
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
@@ -337,17 +343,17 @@ impl CanisterPool {
                 result.push(
                     self.step_prebuild(&build_config, canister)
                         .map_err(|e| {
-                            BuildErrorKind::PrebuildStepFailed(canister_id.clone(), Box::new(e))
+                            BuildError::PreBuildStepFailed(canister_id.clone(), Box::new(e))
                         })
                         .and_then(|_| {
                             self.step_build(&build_config, canister).map_err(|e| {
-                                BuildErrorKind::BuildStepFailed(canister_id.clone(), Box::new(e))
+                                BuildError::BuildStepFailed(canister_id.clone(), Box::new(e))
                             })
                         })
                         .and_then(|o| {
                             self.step_postbuild(&build_config, canister, o)
                                 .map_err(|e| {
-                                    BuildErrorKind::PostbuildStepFailed(
+                                    BuildError::PostBuildStepFailed(
                                         canister_id.clone(),
                                         Box::new(e),
                                     )
@@ -359,9 +365,7 @@ impl CanisterPool {
         }
 
         self.step_postbuild_all(&build_config, &order)
-            .map_err(|e| {
-                DfxError::BuildError(BuildErrorKind::PostbuildAllStepFailed(Box::new(e)))
-            })?;
+            .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
     }
@@ -381,7 +385,7 @@ impl CanisterPool {
 
 fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
     path.to_str().ok_or_else(|| {
-        DfxError::BuildError(BuildErrorKind::CanisterJsGenerationError(format!(
+        DfxError::new(BuildError::JsBindGenError(format!(
             "Unable to convert output canister js path to a string: {:#?}",
             path
         )))

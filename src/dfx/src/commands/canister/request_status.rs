@@ -3,6 +3,8 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators;
 use crate::util::{expiry_duration, print_idl_blob};
+
+use anyhow::anyhow;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use delay::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
@@ -31,7 +33,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     let timeout = expiry_duration();
