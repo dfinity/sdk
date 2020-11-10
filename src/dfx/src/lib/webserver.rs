@@ -13,6 +13,7 @@ use actix_web::client::Client;
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
+use anyhow::anyhow;
 use crossbeam::channel::Sender;
 use futures::StreamExt;
 use serde::Deserialize;
@@ -62,13 +63,10 @@ async fn candid(
         .get_name(&id)
         .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
         .ok_or_else(|| {
-            DfxError::CouldNotFindCanisterNameForNetwork(
-                id.to_string(),
-                network_descriptor.name.clone(),
-            )
+            anyhow!("Cannot find canister {} for network {}", id, network_descriptor.name.clone())
         })?
         .canonicalize()
-        .map_err(|_e| DfxError::Unknown("cannot find candid file".to_string()))?;
+        .map_err(|_e| anyhow!("Cannot find candid file."))?;
 
     let content = match info.format {
         None => std::fs::read_to_string(candid_path)?,

@@ -6,7 +6,7 @@ use crate::lib::builders::{
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 use ic_types::principal::Principal as CanisterId;
@@ -223,7 +223,7 @@ impl TryFrom<&str> for MotokoImport {
         let (url, fullpath) = match line.find(' ') {
             Some(index) => {
                 if index >= line.len() - 1 {
-                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                    return Err(DfxError::new(BuildError::DependencyError(
                         format!("Unknown import {}", line),
                     )));
                 }
@@ -235,7 +235,7 @@ impl TryFrom<&str> for MotokoImport {
         let import = match url.find(':') {
             Some(index) => {
                 if index >= line.len() - 1 {
-                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                    return Err(DfxError::new(BuildError::DependencyError(
                         format!("Unknown import {}", url),
                     )));
                 }
@@ -245,7 +245,7 @@ impl TryFrom<&str> for MotokoImport {
                     "ic:" => MotokoImport::Ic(name.to_owned()),
                     "mo:" => MotokoImport::Lib(name.to_owned()),
                     _ => {
-                        return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                        return Err(DfxError::new(BuildError::DependencyError(
                             format!("Unknown import {}", url),
                         )))
                     }
@@ -255,14 +255,14 @@ impl TryFrom<&str> for MotokoImport {
                 Some(fullpath) => {
                     let path = PathBuf::from(fullpath);
                     if !path.is_file() {
-                        return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                        return Err(DfxError::new(BuildError::DependencyError(
                             format!("Cannot find import file {}", path.display()),
                         )));
                     };
                     MotokoImport::Relative(path)
                 }
                 None => {
-                    return Err(DfxError::BuildError(BuildErrorKind::DependencyError(
+                    return Err(DfxError::new(BuildError::DependencyError(
                         format!("Cannot resolve relative import {}", url),
                     )))
                 }
@@ -282,8 +282,9 @@ fn run_command(
 
     let output = cmd.output()?;
     if !output.status.success() {
-        Err(DfxError::BuildError(BuildErrorKind::CompilerError(
+        Err(DfxError::new(BuildError::CommandError(
             format!("{:?}", cmd),
+            output.status,
             String::from_utf8_lossy(&output.stdout).to_string(),
             String::from_utf8_lossy(&output.stderr).to_string(),
         )))

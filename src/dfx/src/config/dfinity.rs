@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
@@ -306,9 +306,7 @@ fn add_dependencies(
     if !inserted {
         return if path.contains(&String::from(canister_name)) {
             path.push(String::from(canister_name));
-            Err(DfxError::BuildError(BuildErrorKind::CircularDependency(
-                path.join(" -> "),
-            )))
+            Err(DfxError::new(BuildError::DependencyError(format!("Found circular dependency: {}", path.join(" -> ")))))
         } else {
             Ok(())
         };

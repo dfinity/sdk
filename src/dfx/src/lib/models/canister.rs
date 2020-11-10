@@ -4,9 +4,11 @@ use crate::lib::builders::{
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::{assets, check_candid_file};
+
+use anyhow::anyhow;
 use ic_types::principal::Principal as CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
@@ -112,9 +114,7 @@ impl CanisterPool {
                 .insert(0, Arc::new(Canister::new(info, builder)));
             Ok(())
         } else {
-            Err(DfxError::CouldNotFindBuilderForCanister(
-                info.get_name().to_string(),
-            ))
+            Err(anyhow!("Cannot find builder for canister '{}'.", info.get_name().to_string()))
         }
     }
 

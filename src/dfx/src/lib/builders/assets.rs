@@ -6,7 +6,7 @@ use crate::lib::builders::{
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
 use ic_types::principal::Principal as CanisterId;
@@ -247,8 +247,9 @@ fn build_frontend(
 
         let output = cmd.output()?;
         if !output.status.success() {
-            return Err(DfxError::BuildError(BuildErrorKind::CompilerError(
+            return Err(DfxError::new(BuildError::CommandError(
                 format!("{:?}", cmd),
+                output.status,
                 String::from_utf8_lossy(&output.stdout).to_string(),
                 String::from_utf8_lossy(&output.stderr).to_string(),
             )));

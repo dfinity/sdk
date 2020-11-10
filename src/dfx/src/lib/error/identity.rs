@@ -4,31 +4,32 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum IdentityErrorKind {
-    #[error("Identity already exists")]
+pub enum IdentityError {
+
+    #[error("Identity already exists.")]
     IdentityAlreadyExists(),
 
-    #[error("Identity {0} does not exist at {1}")]
+    #[error("Identity '{0}' does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
 
-    #[error("Could not generate key")]
-    CouldNotGenerateKey(Unspecified),
+    #[error("Cannot generate key pair.")]
+    CannotGenerateKeyPair(Unspecified),
 
-    #[error(r#"Could not create the identity folder at "{0}". Error: {1}"#)]
-    CouldNotCreateIdentityDirectory(PathBuf, io::Error),
+    #[error("Cannot create identity directroy at '{0}'.")]
+    CannotCreateIdentityDirectory(PathBuf),
 
-    #[error(r#"Could not rename identity directory {0} to {1}: {2}"#)]
-    CouldNotRenameIdentityDirectory(PathBuf, PathBuf, io::Error),
+    #[error("Cannot rename identity directroy from '{0}' to '{1}'.")]
+    CannotRenameIdentityDirectory(PathBuf, PathBuf),
 
-    #[error("Cannot delete the default identity")]
+    #[error("Cannot delete the default identity.")]
     CannotDeleteDefaultIdentity(),
 
-    #[error("Cannot create an anonymous identity")]
+    #[error("Cannot create the anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
-    #[error("Cannot find the home directory.")]
-    CannotFindUserHomeDirectory(),
+    #[error("Cannot find home directory.")]
+    CannotFindHomeDirectory(),
 
-    #[error("An error occurred while reading {1}: {0}")]
-    AgentPemError(ic_agent::identity::PemError, PathBuf),
+    #[error("Cannot read identity file at '{0}'")]
+    CannotReadIdentityFile(PathBuf),
 }

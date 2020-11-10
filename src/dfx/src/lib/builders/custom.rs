@@ -3,8 +3,10 @@ use crate::lib::builders::{
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+
+use anyhow::Context;
 use console::style;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
@@ -126,8 +128,7 @@ impl CanisterBuilder for CustomBuilder {
             );
 
             // First separate everything as if it was read from a shell.
-            let args = shell_words::split(&command)
-                .map_err(|_| DfxError::BuildError(BuildErrorKind::InvalidBuildCommand(command)))?;
+            let args = shell_words::split(&command).context(format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
                 run_command(args, &canister_id, &candid, dependencies.clone(), pool)?;
@@ -181,7 +182,7 @@ fn run_command(
     if output.status.success() {
         Ok(())
     } else {
-        Err(DfxError::BuildError(BuildErrorKind::CustomToolError(
+        Err(DfxError::new(BuildError::CustomToolError(
             output.status.code(),
         )))
     }
