@@ -198,7 +198,7 @@ impl Display for DfxError {
                 status,
                 content_type,
                 content,
-                })) if is_plain_text_utf8(content_type) => {
+            })) if is_plain_text_utf8(content_type) => {
                 f.write_fmt(format_args!(
                     "Replica error (HTTP status {}): {}",
                     status,
