@@ -197,25 +197,26 @@ fn start_replica(
     let ic_starter_path = env.get_cache().get_binary_command_path("ic-starter")?;
 
     let temp_dir = env.get_temp_dir();
-    let client_configuration_dir = temp_dir.join("client-configuration");
-    fs::create_dir_all(&client_configuration_dir)?;
+    let replica_configuration_dir = temp_dir.join("replica-configuration");
+    fs::create_dir_all(&replica_configuration_dir)?;
     let state_dir = temp_dir.join("state/replicated_state");
     fs::create_dir_all(&state_dir)?;
-    let client_port_path = client_configuration_dir.join("client-1.port");
+    let replica_port_path = replica_configuration_dir.join("replica-1.port");
 
-    // Touch the client port file. This ensures it is empty prior to
+    // Touch the replica port file. This ensures it is empty prior to
     // handing it over to the replica. If we read the file and it has
-    // contents we shall assume it is due to our spawned client
+    // contents we shall assume it is due to our spawned replica
     // process.
-    std::fs::write(&client_port_path, "")?;
+    std::fs::write(&replica_port_path, "")?;
 
-    let replica_config = ReplicaConfig::new(state_root).with_random_port(&client_port_path);
+    let replica_config = ReplicaConfig::new(state_root).with_random_port(&replica_port_path);
     let actor_config = actors::replica::Config {
         ic_starter_path,
         replica_config,
         replica_path,
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
+        replica_configuration_dir,
     };
     Ok(actors::replica::Replica::new(actor_config).start())
 }
