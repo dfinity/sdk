@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
@@ -8,27 +8,20 @@ use serde::{Deserialize, Deserializer};
 use std::{collections::BTreeMap, env, fs, os::unix::fs::PermissionsExt};
 use tar::Archive;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("upgrade")
-        .about("Upgrade DFX.")
-        .arg(
-            Arg::with_name("current-version")
-                .hidden(true)
-                .long("current-version")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("release-root")
-                .default_value("https://sdk.dfinity.org")
-                .hidden(true)
-                .long("release-root")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("verbose")
-                .help("Verbose output.")
-                .long("verbose"),
-        )
+/// Upgrade DFX.
+#[derive(Clap)]
+#[clap(name("upgrade"))]
+pub struct UpgradeOpts {
+    /// Current Version.
+    #[clap(long)]
+    current_version: Option<String>,
+
+    #[clap(long, default_value = "https://sdk.dfinity.org", hidden = true)]
+    release_root: String,
+}
+
+pub fn construct() -> App<'static> {
+    UpgradeOpts::into_app()
 }
 
 fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>
@@ -154,21 +147,23 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: UpgradeOpts = UpgradeOpts::from_arg_matches(args);
     // Find OS architecture.
     let os_arch = match std::env::consts::OS {
         "linux" => "x86_64-linux",
         "macos" => "x86_64-darwin",
         _ => panic!("Not supported architecture"),
     };
-    let current_version = if let Some(version) = args.value_of("current-version") {
+    let curr_ver_str = opts.current_version.unwrap();
+    let current_version = if let Some(version) = Some(curr_ver_str.as_str()) {
         Version::parse(version)?
     } else {
         env.get_version().clone()
     };
 
     println!("Current version: {}", current_version);
-    let release_root = args.value_of("release-root").unwrap();
+    let release_root = opts.release_root.as_str();
     let latest_version = get_latest_version(release_root, None)?;
 
     if latest_version > current_version {

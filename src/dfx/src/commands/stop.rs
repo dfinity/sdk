@@ -1,11 +1,15 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, IntoApp};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("stop").about(UserMessage::StopNode.to_str())
+/// Stops the local network replica.
+#[derive(Clap)]
+#[clap(name("stop"))]
+pub struct StopOpts {}
+
+pub fn construct() -> App<'static> {
+    StopOpts::into_app()
 }
 
 fn list_all_descendants(pid: Pid) -> Vec<Pid> {
@@ -35,7 +39,7 @@ fn kill_all(pid: Pid) -> DfxResult {
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {
     let pid_file_path = env.get_temp_dir().join("pid");
     if pid_file_path.exists() {
         // Read and verify it's not running. If it is just return.

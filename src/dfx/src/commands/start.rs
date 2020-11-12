@@ -6,14 +6,13 @@ use crate::actors::shutdown_controller::ShutdownController;
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
 use actix::{Actor, Addr};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
@@ -24,29 +23,25 @@ use std::process::Command;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
 
-/// Provide necessary arguments to start the Internet Computer
-/// locally. See `exec` for further information.
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("start")
-        .about(UserMessage::StartNode.to_str())
-        .arg(
-            Arg::with_name("host")
-                .help(UserMessage::NodeAddress.to_str())
-                .long("host")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("background")
-                .help(UserMessage::StartBackground.to_str())
-                .long("background")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("clean")
-                .help(UserMessage::CleanState.to_str())
-                .long("clean")
-                .takes_value(false),
-        )
+/// Starts the local replica and a web server for the current project.
+#[derive(Clap)]
+#[clap(name("start"))]
+pub struct StartOpts {
+    /// Specifies the host name and port number to bind the frontend to.
+    #[clap(long)]
+    host: Option<String>,
+
+    /// Exits the dfx leaving the replica running. Will wait until the replica replies before exiting.
+    #[clap(long)]
+    background: bool,
+
+    /// Cleans the state of the current project.
+    #[clap(long)]
+    clean: bool,
+}
+
+pub fn construct() -> App<'static> {
+    StartOpts::into_app()
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -112,12 +107,13 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: StartOpts = StartOpts::from_arg_matches(args);
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
-    let network_descriptor = get_network_descriptor(env, args)?;
+    let network_descriptor = get_network_descriptor(env, None)?;
 
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
@@ -129,16 +125,17 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
-    if args.is_present("clean") {
+    if opts.clean {
         clean_state(temp_dir, &state_root)?;
     }
 
     std::fs::write(&pid_file_path, "")?; // make sure we can write to this file
     std::fs::write(&webserver_port_path, "")?;
 
-    let (frontend_url, address_and_port) = frontend_address(args, &config)?;
+    let background = opts.background;
+    let (frontend_url, address_and_port) = frontend_address(opts.host, &config, background)?;
 
-    if args.is_present("background") {
+    if background {
         send_background()?;
         return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
@@ -258,9 +255,12 @@ fn send_background() -> DfxResult<()> {
     Ok(())
 }
 
-fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String, SocketAddr)> {
-    let mut address_and_port = args
-        .value_of("host")
+fn frontend_address(
+    host: Option<String>,
+    config: &Config,
+    background: bool,
+) -> DfxResult<(String, SocketAddr)> {
+    let mut address_and_port = host
         .and_then(|host| Option::from(host.parse()))
         .unwrap_or_else(|| {
             Ok(config
@@ -270,7 +270,7 @@ fn frontend_address(args: &ArgMatches<'_>, config: &Config) -> DfxResult<(String
         })
         .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;
 
-    if !args.is_present("background") {
+    if !background {
         // Since the user may have provided port "0", we need to grab a dynamically
         // allocated port and construct a resuable SocketAddr which the actix
         // HttpServer will bind to

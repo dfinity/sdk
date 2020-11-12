@@ -1,41 +1,38 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+/// Creates an empty canister on the Internet Computer and
+/// associates the Internet Computer assigned Canister ID to the canister name.
+#[derive(Clap)]
+#[clap(name("create"))]
+pub struct CanisterCreateOpts {
+    /// Specifies the canister name. Either this or the --all flag are required.
+    canister_name: Option<String>,
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("create")
-        .about(UserMessage::CreateCanister.to_str())
-        .arg(
-            Arg::with_name("canister_name")
-                .takes_value(true)
-                .required_unless("all")
-                .help(UserMessage::CreateCanisterName.to_str())
-                .required(false),
-        )
-        .arg(
-            Arg::with_name("all")
-                .long("all")
-                .required_unless("canister_name")
-                .help(UserMessage::CreateAll.to_str())
-                .takes_value(false),
-        )
+    /// Creates all canisters configured in dfx.json.
+    #[clap(long, required_unless_present("canister-name"))]
+    all: bool,
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn construct() -> App<'static> {
+    CanisterCreateOpts::into_app()
+}
+
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: CanisterCreateOpts = CanisterCreateOpts::from_arg_matches(args);
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = args.value_of("canister_name") {
-        create_canister(env, canister_name, timeout)?;
+    if let Some(canister_name) = opts.canister_name {
+        create_canister(env, canister_name.as_str(), timeout)?;
         Ok(())
-    } else if args.is_present("all") {
+    } else if opts.all {
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
