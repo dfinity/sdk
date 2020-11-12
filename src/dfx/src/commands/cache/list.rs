@@ -1,7 +1,7 @@
 use crate::config::{cache, dfx_version};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use clap::{App, ArgMatches, Clap, IntoApp};
+use clap::Clap;
 use std::io::Write;
 
 /// Lists installed and used version.
@@ -9,11 +9,7 @@ use std::io::Write;
 #[clap(name("list"))]
 pub struct CacheListOpts {}
 
-pub fn construct() -> App<'static> {
-    CacheListOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {
+pub fn exec(env: &dyn Environment) -> DfxResult {
     let mut current_printed = false;
     let current_version = env.get_version();
     let mut all_versions = cache::list_versions()?;
