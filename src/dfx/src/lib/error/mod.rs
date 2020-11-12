@@ -1,4 +1,4 @@
-use ic_agent::{AgentError, HttpErrorPayload};
+use ic_agent::AgentError;
 use ic_types::principal::PrincipalError;
 
 mod build;
@@ -194,19 +194,10 @@ impl Display for DfxError {
                     reject_code, reject_message
                 ))?;
             }
-            DfxError::AgentError(AgentError::HttpError(HttpErrorPayload {
-                status,
-                content_type,
-                content,
-            })) if is_plain_text_utf8(content_type) => {
+            DfxError::AgentError(AgentError::HttpError(http_error_payload)) => {
                 f.write_fmt(format_args!(
-                    "Replica error (HTTP status {}): {}",
-                    status,
-                    String::from_utf8(content.to_vec()).unwrap_or_else(|from_utf8_err| format!(
-                        "(unable to decode content: {:#?})",
-                        from_utf8_err
-                    ))
-                ))?;
+                    "Replica error: {}",
+                    http_error_payload))?;
             }
             DfxError::Unknown(err) => {
                 f.write_fmt(format_args!("Unknown error: {}", err))?;
@@ -340,13 +331,4 @@ impl From<delay::WaiterError> for DfxError {
     fn from(err: delay::WaiterError) -> DfxError {
         DfxError::WaiterError(err)
     }
-}
-
-fn is_plain_text_utf8(content_type: &Option<String>) -> bool {
-    // text/plain is also sometimes returned by the replica (or ic-ref),
-    // depending on where in the stack the error happens.
-    matches!(
-        content_type.as_ref().and_then(|s|s.parse::<mime::Mime>().ok()),
-        Some(mt) if mt == mime::TEXT_PLAIN || mt == mime::TEXT_PLAIN_UTF_8
-    )
 }
