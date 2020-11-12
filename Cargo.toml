@@ -8,18 +8,18 @@ version = "0.1.0"
 #path = "../agent-rs/ic-agent"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "4c5835098958f63df2650eb1af949468af7090f8"
+rev = "abe5f6a68bd7b16ca6fed5124814ec828160296f"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
 #path = "../agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "4c5835098958f63df2650eb1af949468af7090f8"
+rev = "abe5f6a68bd7b16ca6fed5124814ec828160296f"
 
 [patch.crates-io.ic-utils]
 version = "0.1.0"
 #path = "../agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "4c5835098958f63df2650eb1af949468af7090f8"
+rev = "abe5f6a68bd7b16ca6fed5124814ec828160296f"
