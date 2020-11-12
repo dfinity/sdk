@@ -72,21 +72,21 @@ version = "0.1.0"
 #path = "../../../agent-rs/ic-agent"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "5fc82783da41b253d629dbc55a72c23e7284b522"
+rev = "59f179f99c593343601cc1a8fc05f4476ba92e39"
 
 [dependencies.ic-types]
 version = "0.1.2"
 #path = "../../../agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "5fc82783da41b253d629dbc55a72c23e7284b522"
+rev = "59f179f99c593343601cc1a8fc05f4476ba92e39"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 #path = "../../../agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1139-resp-auth-use-read-state"
-rev = "5fc82783da41b253d629dbc55a72c23e7284b522"
+rev = "59f179f99c593343601cc1a8fc05f4476ba92e39"
 
 [dev-dependencies]
 env_logger = "0.6"

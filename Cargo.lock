@@ -1714,7 +1714,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#5fc82783da41b253d629dbc55a72c23e7284b522"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#59f179f99c593343601cc1a8fc05f4476ba92e39"
 dependencies = [
  "async-trait",
  "base32",
@@ -1742,7 +1742,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#5fc82783da41b253d629dbc55a72c23e7284b522"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#59f179f99c593343601cc1a8fc05f4476ba92e39"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1754,7 +1754,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#5fc82783da41b253d629dbc55a72c23e7284b522"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-1139-resp-auth-use-read-state#59f179f99c593343601cc1a8fc05f4476ba92e39"
 dependencies = [
  "async-trait",
  "candid",
