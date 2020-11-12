@@ -3,7 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
@@ -21,10 +21,6 @@ pub struct CanisterStartOpts {
     /// Starts all of the canisters configured in the dfx.json file.
     #[clap(long, required_unless_present("canister-name"))]
     all: bool,
-}
-
-pub fn construct() -> App<'static> {
-    CanisterStartOpts::into_app()
 }
 
 async fn start_canister(
@@ -53,8 +49,7 @@ async fn start_canister(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterStartOpts = CanisterStartOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: &CanisterStartOpts) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
