@@ -1,35 +1,33 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators;
 use crate::util::{expiry_duration, print_idl_blob};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use delay::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("request-status")
-        .about(UserMessage::RequestCallStatus.to_str())
-        .arg(
-            Arg::with_name("request_id")
-                .takes_value(true)
-                .help(UserMessage::RequestId.to_str())
-                .required(true)
-                .validator(validators::is_request_id),
-        )
+/// Requests the status of a specified call from a canister.
+#[derive(Clap)]
+#[clap(name("request-status"))]
+pub struct RequestStatusOpts {
+    /// Specifies the request identifier.
+    /// The request identifier is an hexadecimal string starting with 0x.
+    #[clap(validator(validators::is_request_id))]
+    request_id: String,
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let request_id = RequestId::from_str(
-        &args
-            .value_of("request_id")
-            .ok_or_else(|| DfxError::InvalidArgument("request_id".to_string()))?[2..],
-    )
-    .map_err(|_| DfxError::InvalidArgument("request_id".to_owned()))?;
+pub fn construct() -> App<'static> {
+    RequestStatusOpts::into_app()
+}
+
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts = RequestStatusOpts::from_arg_matches(args);
+    let request_id = RequestId::from_str(&opts.request_id[2..])
+        .map_err(|_| DfxError::InvalidArgument("request_id".to_owned()))?;
 
     let agent = env
         .get_agent()

@@ -3,7 +3,6 @@ use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::expiry_duration;
-use clap::ArgMatches;
 use lazy_static::lazy_static;
 use std::sync::{Arc, RwLock};
 use url::Url;
@@ -12,8 +11,8 @@ lazy_static! {
     static ref NETWORK_CONTEXT: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
 }
 
-fn set_network_context(args: &ArgMatches<'_>) {
-    let name = args.value_of("network").unwrap_or("local").to_string();
+fn set_network_context(network: Option<String>) {
+    let name = network.unwrap_or_else(|| "local".to_string());
 
     let mut n = NETWORK_CONTEXT.write().unwrap();
     *n = Some(name);
@@ -30,9 +29,9 @@ pub fn get_network_context() -> DfxResult<String> {
 // always returns at least one url
 pub fn get_network_descriptor<'a>(
     env: &'a (dyn Environment + 'a),
-    args: &ArgMatches<'_>,
+    network: Option<String>,
 ) -> DfxResult<NetworkDescriptor> {
-    set_network_context(args);
+    set_network_context(network);
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -78,9 +77,9 @@ pub fn get_network_descriptor<'a>(
 
 pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
-    args: &ArgMatches<'_>,
+    network: Option<String>,
 ) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = get_network_descriptor(env, args)?;
+    let network_descriptor = get_network_descriptor(env, network)?;
     let timeout = expiry_duration();
     AgentEnvironment::new(env, network_descriptor, timeout)
 }

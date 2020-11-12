@@ -1,31 +1,33 @@
 use crate::config::dfinity::NetworkType;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{command_line_provider_to_url, get_network_descriptor};
 use crate::util::expiry_duration;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("ping")
-        .about(UserMessage::Ping.to_str())
-        .arg(
-            Arg::with_name("network")
-                .help("The provider to use.")
-                .takes_value(true),
-        )
+/// Pings an Internet Computer network and returns its status.
+#[derive(Clap)]
+#[clap(name("ping"))]
+pub struct PingOpts {
+    /// The provider to use.
+    network: Option<String>,
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn construct() -> App<'static> {
+    PingOpts::into_app()
+}
+
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: PingOpts = PingOpts::from_arg_matches(args);
     env.get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     // For ping, "provider" could either be a URL or a network name.
     // If not passed, we default to the "local" network.
     let network_descriptor =
-        get_network_descriptor(env, args).or_else::<DfxError, _>(|err| match err {
+        get_network_descriptor(env, opts.network).or_else::<DfxError, _>(|err| match err {
             DfxError::ComputeNetworkNotFound(network_name) => {
                 let url = command_line_provider_to_url(&network_name)?;
                 let network_descriptor = NetworkDescriptor {

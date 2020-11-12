@@ -1,45 +1,39 @@
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("build")
-        .about(UserMessage::BuildCanister.to_str())
-        .arg(
-            Arg::with_name("canister_name")
-                .takes_value(true)
-                .conflicts_with("all")
-                .help(UserMessage::BuildCanisterName.to_str())
-                .required(false),
-        )
-        .arg(
-            Arg::with_name("all")
-                .long("all")
-                .conflicts_with("canister_name")
-                .help(UserMessage::BuildAll.to_str())
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("check")
-                .long("check")
-                .takes_value(false)
-                .help(UserMessage::BuildCheck.to_str()),
-        )
-        .arg(
-            Arg::with_name("network")
-                .help(UserMessage::CanisterComputeNetwork.to_str())
-                .long("network")
-                .takes_value(true),
-        )
+/// Builds all or specific canisters from the code in your project. By default, all canisters are built.
+#[derive(Clap)]
+#[clap(name("build"))]
+pub struct CanisterBuildOpts {
+    /// Specifies the name of the canister to build.
+    /// You must specify either a canister name or the --all option.
+    canister_name: Option<String>,
+
+    /// Builds all canisters configured in the dfx.json file.
+    #[clap(long, conflicts_with("canister-name"))]
+    all: bool,
+
+    /// Build canisters without creating them. This can be used to check that canisters build ok.
+    #[clap(long)]
+    check: bool,
+
+    /// Override the compute network to connect to. By default, the local network is used.
+    #[clap(long)]
+    network: Option<String>,
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let env = create_agent_environment(env, args)?;
+pub fn construct() -> App<'static> {
+    CanisterBuildOpts::into_app()
+}
+
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: CanisterBuildOpts = CanisterBuildOpts::from_arg_matches(args);
+    let env = create_agent_environment(env, opts.network)?;
 
     let logger = env.get_logger();
 
@@ -52,19 +46,19 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
     // already.
     env.get_cache().install()?;
 
-    let build_mode_check = args.is_present("check");
+    let build_mode_check = opts.check;
+    let _all = opts.all;
 
     // Option can be None in which case --all was specified
-    let some_canister = args.value_of("canister_name");
     let canister_names = config
         .get_config()
-        .get_canister_names_with_dependencies(some_canister)?;
+        .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
 
     // Get pool of canisters to build
     let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)?;
 
     // Create canisters on the replica and associate canister ids locally.
-    if args.is_present("check") {
+    if build_mode_check {
         slog::warn!(
             env.get_logger(),
             "Building canisters to check they build ok. Canister IDs might be hard coded."

@@ -1,23 +1,24 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::message::UserMessage;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use slog::info;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("use")
-        .about(UserMessage::UseIdentity.to_str())
-        .arg(
-            Arg::with_name("identity")
-                .help("The identity to use.")
-                .required(true)
-                .takes_value(true),
-        )
+/// Specifies the identity to use.
+#[derive(Clap)]
+#[clap(name("use"))]
+pub struct UseOpts {
+    /// The identity to use.
+    identity: String,
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let identity = args.value_of("identity").unwrap();
+pub fn construct() -> App<'static> {
+    UseOpts::into_app()
+}
+
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: UseOpts = UseOpts::from_arg_matches(args);
+    let identity = opts.identity.as_str();
 
     let log = env.get_logger();
     info!(log, r#"Using identity: "{}"."#, identity);
