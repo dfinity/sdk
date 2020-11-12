@@ -195,9 +195,7 @@ impl Display for DfxError {
                 ))?;
             }
             DfxError::AgentError(AgentError::HttpError(http_error_payload)) => {
-                f.write_fmt(format_args!(
-                    "Replica error: {}",
-                    http_error_payload))?;
+                f.write_fmt(format_args!("Replica error: {}", http_error_payload))?;
             }
             DfxError::Unknown(err) => {
                 f.write_fmt(format_args!("Unknown error: {}", err))?;
