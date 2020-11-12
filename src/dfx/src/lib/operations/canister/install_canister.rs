@@ -26,7 +26,7 @@ pub async fn install_canister(
     let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().context(format!(
-        "Cannot find build output for canister '{}'.",
+        "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
         canister_info.get_name().to_owned()
     ))?;
     info!(

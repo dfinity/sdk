@@ -1,6 +1,7 @@
 use crate::config::{cache, dfx_version};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+
 use clap::{App, ArgMatches, Clap, IntoApp};
 use std::io::Write;
 

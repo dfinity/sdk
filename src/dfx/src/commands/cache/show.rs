@@ -1,6 +1,7 @@
 use crate::config::cache;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+
 use clap::{App, ArgMatches, Clap, IntoApp};
 
 /// Shows the path of the cache used by this version.

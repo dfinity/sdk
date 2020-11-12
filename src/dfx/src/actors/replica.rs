@@ -1,10 +1,10 @@
 use crate::actors::replica::signals::ReplicaRestarted;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::replica_config::ReplicaConfig;
-
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
+use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::replica_config::ReplicaConfig;
+
 use actix::{
     Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -104,10 +104,7 @@ impl Replica {
                     return Ok(port);
                 }
             }
-
-            waiter
-                .wait()
-                .map_err(|_| DfxError::ReplicaCouldNotBeStarted())?;
+            waiter.wait().context("Cannot start replica.")?;
         }
     }
 

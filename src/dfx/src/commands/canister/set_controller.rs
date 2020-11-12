@@ -43,14 +43,13 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
             .sender()?,
     };
 
+    let agent = env
+        .get_agent()
+        .ok_or(anyhow!("Cannot get HTTP client from environment."))?;
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 
-    let mgr = ManagementCanister::create(
-        env.get_agent()
-            .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?,
-    );
-
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let mgr = ManagementCanister::create(agent);
     runtime.block_on(
         mgr.set_controller(&canister_id, &controller_principal)
             .call_and_wait(waiter_with_timeout(timeout)),

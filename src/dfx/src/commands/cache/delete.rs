@@ -1,6 +1,7 @@
 use crate::config::cache::delete_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 /// Deletes a specific versioned cache of dfx.

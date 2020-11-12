@@ -18,6 +18,7 @@ use std::time::Duration;
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Option<Arc<Config>>;
+    fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     fn is_in_project(&self) -> bool;
     /// Return a temporary directory for configuration if none exists
@@ -146,6 +147,12 @@ impl Environment for EnvironmentImpl {
         self.config.as_ref().map(|x| Arc::clone(x))
     }
 
+    fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
+        self.get_config().ok_or(anyhow::anyhow!(
+            "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
+        ))
+    }
+
     fn is_in_project(&self) -> bool {
         self.config.is_some()
     }
@@ -228,6 +235,12 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_config(&self) -> Option<Arc<Config>> {
         self.backend.get_config()
+    }
+
+    fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
+        self.get_config().ok_or(anyhow::anyhow!(
+            "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
+        ))
     }
 
     fn is_in_project(&self) -> bool {

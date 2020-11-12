@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+
 use clap::{App, ArgMatches, Clap, IntoApp};
 
 /// Forces unpacking the cache from this dfx version.

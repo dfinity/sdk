@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::util::expiry_duration;
+
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.

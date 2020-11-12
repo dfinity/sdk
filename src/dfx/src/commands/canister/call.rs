@@ -1,11 +1,11 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail, Context};
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
@@ -54,9 +54,7 @@ pub fn construct() -> App<'static> {
 
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: CanisterCallOpts = CanisterCallOpts::from_arg_matches(args);
-    let config = env
-        .get_config()
-        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+    let config = env.get_config_or_anyhow()?;
     let canister_name = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
 
@@ -92,10 +90,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
             Some(true) => !opts.update,
             Some(false) => {
                 if opts.query {
-                    return Err(DfxError::InvalidMethodCall(format!(
-                        "{} is not a query method",
+                    bail!(
+                        "Invalid method call: '{}' is not a query method.",
                         method_name
-                    )));
+                    );
                 } else {
                     false
                 }
@@ -109,9 +107,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let arg_value = blob_from_arguments(arguments, arg_type, &method_type)?;
     let agent = env
         .get_agent()
-        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+        .ok_or(anyhow!("Cannot get HTTP client from environment."))?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-
     let timeout = expiry_duration();
 
     if is_query {
@@ -122,7 +119,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
                 .call(),
         )?;
         print_idl_blob(&blob, output_type, &method_type)
-            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+            .context("Invalid data: Invalid IDL blob.")?;
     } else if args.is_present("async") {
         let request_id = runtime.block_on(
             agent
@@ -142,7 +139,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         )?;
 
         print_idl_blob(&blob, output_type, &method_type)
-            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+            .context("Invalid data: Invalid IDL blob.")?;
     }
 
     Ok(())

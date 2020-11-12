@@ -5,7 +5,6 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 
-use anyhow::anyhow;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
@@ -40,9 +39,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let logger = env.get_logger();
 
     // Read the config.
-    let config = env
-        .get_config()
-        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+    let config = env.get_config_or_anyhow()?;
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
