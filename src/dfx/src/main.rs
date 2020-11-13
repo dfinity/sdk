@@ -103,20 +103,6 @@ fn main() {
     let (progress_bar, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let command = cli_opts.command;
-    // let result = EnvironmentImpl::new()
-    //     .map(|env| {
-    //         maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
-    //         env.with_logger(log)
-    //             .with_progress_bar(progress_bar)
-    //             .with_identity_override(identity)
-    //     })
-    //     .map(move |env| {
-    //         slog::trace!(
-    //             env.get_logger(),
-    //             "Trace mode enabled. Lots of logs coming up."
-    //         );
-    //         commands::exec(&env, command)
-    //     });
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
