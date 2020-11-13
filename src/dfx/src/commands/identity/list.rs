@@ -9,7 +9,7 @@ use std::io::Write;
 #[clap(name("list"))]
 pub struct ListOpts {}
 
-pub fn exec(env: &dyn Environment) -> DfxResult {
+pub fn exec(env: &dyn Environment, _opts: ListOpts) -> DfxResult {
     let mgr = IdentityManager::new(env)?;
     let identities = mgr.get_identity_names()?;
     let current_identity = mgr.get_selected_identity_name();

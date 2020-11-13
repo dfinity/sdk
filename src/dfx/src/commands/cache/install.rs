@@ -7,6 +7,6 @@ use clap::Clap;
 #[clap(name("install"))]
 pub struct CacheInstall {}
 
-pub fn exec(env: &dyn Environment) -> DfxResult {
+pub fn exec(env: &dyn Environment, _opts: CacheInstall) -> DfxResult {
     env.get_cache().force_install()
 }

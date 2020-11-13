@@ -9,7 +9,7 @@ use ic_agent::Identity;
 #[clap(name("get-principal"))]
 pub struct GetPrincipalOpts {}
 
-pub fn exec(env: &dyn Environment) -> DfxResult {
+pub fn exec(env: &dyn Environment, _opts: GetPrincipalOpts) -> DfxResult {
     let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
     let principal_id = identity.as_ref().sender()?;
     println!("{}", principal_id.to_text());

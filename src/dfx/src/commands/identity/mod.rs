@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 
 mod list;
 mod new;
@@ -30,19 +30,14 @@ enum SubCommand {
     Whoami(whoami::WhoAmIOpts),
 }
 
-pub fn construct() -> App<'static> {
-    IdentityOpt::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: IdentityOpt = IdentityOpt::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: IdentityOpt) -> DfxResult {
     match opts.subcmd {
-        SubCommand::List(_v) => list::exec(env),
+        SubCommand::List(v) => list::exec(env, v),
         SubCommand::New(v) => new::exec(env, v),
-        SubCommand::GetPrincipal(_v) => principal::exec(env),
+        SubCommand::GetPrincipal(v) => principal::exec(env, v),
         SubCommand::Remove(v) => remove::exec(env, v),
         SubCommand::Rename(v) => rename::exec(env, v),
         SubCommand::Use(v) => r#use::exec(env, v),
-        SubCommand::Whoami(_v) => whoami::exec(env),
+        SubCommand::Whoami(v) => whoami::exec(env, v),
     }
 }

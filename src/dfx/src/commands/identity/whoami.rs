@@ -8,7 +8,7 @@ use clap::Clap;
 #[clap(name("whoami"))]
 pub struct WhoAmIOpts {}
 
-pub fn exec(env: &dyn Environment) -> DfxResult {
+pub fn exec(env: &dyn Environment, _opts: WhoAmIOpts) -> DfxResult {
     let mgr = IdentityManager::new(env)?;
     let identity = mgr.get_selected_identity_name();
     println!("{}", identity);

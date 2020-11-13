@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::provider::create_agent_environment;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 
 mod call;
 mod create;
@@ -40,12 +40,7 @@ enum SubCommand {
     Stop(stop::CanisterStopOpts),
 }
 
-pub fn construct() -> App<'static> {
-    CanisterOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterOpts = CanisterOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network)?;
     match opts.subcmd {
         SubCommand::Call(v) => call::exec(&agent_env, &v),

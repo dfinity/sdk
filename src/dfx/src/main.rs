@@ -1,8 +1,7 @@
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
-use crate::lib::error::*;
 use crate::lib::logger::{create_root_logger, LoggingMode};
-use clap::{App, AppSettings, ArgMatches, Clap, IntoApp};
+use clap::{AppSettings, Clap};
 use semver::Version;
 use std::path::PathBuf;
 
@@ -33,39 +32,6 @@ pub struct CliOpts {
 
     #[clap(subcommand)]
     command: commands::Command,
-}
-
-fn cli() -> App<'static> {
-    CliOpts::into_app().subcommands(
-        commands::builtin()
-            .into_iter()
-            .map(|x| x.get_subcommand().clone()),
-    )
-}
-
-fn exec(env: &impl Environment, args: &ArgMatches, cli: &mut App<'static>) -> DfxResult {
-    let (name, subcommand_args) = match args.subcommand() {
-        Some((name, args)) => (name, args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            return Ok(());
-        }
-    };
-
-    match commands::builtin()
-        .into_iter()
-        .find(|x| name == x.get_name())
-    {
-        Some(cmd) => cmd.execute(env, subcommand_args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            Err(DfxError::UnknownCommand(name.to_owned()))
-        }
-    }
 }
 
 fn is_warning_disabled(warning: &str) -> bool {
@@ -137,59 +103,45 @@ fn main() {
     let (progress_bar, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let command = cli_opts.command;
-    let result = EnvironmentImpl::new()
-            .map(|env| {
-                maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+    // let result = EnvironmentImpl::new()
+    //     .map(|env| {
+    //         maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+    //         env.with_logger(log)
+    //             .with_progress_bar(progress_bar)
+    //             .with_identity_override(identity)
+    //     })
+    //     .map(move |env| {
+    //         slog::trace!(
+    //             env.get_logger(),
+    //             "Trace mode enabled. Lots of logs coming up."
+    //         );
+    //         commands::exec(&env, command)
+    //     });
+    let result = match EnvironmentImpl::new() {
+        Ok(env) => {
+            maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+            match EnvironmentImpl::new().map(|env| {
                 env.with_logger(log)
-                .with_progress_bar(progress_bar)
-                .with_identity_override(identity)
-            })
-            .map(move |env| {
-                slog::trace!(
-                    env.get_logger(),
-                    "Trace mode enabled. Lots of logs coming up."
-                );
-                commands::exec(&env, command)
-            });
+                    .with_progress_bar(progress_bar)
+                    .with_identity_override(identity)
+            }) {
+                Ok(env) => {
+                    slog::trace!(
+                        env.get_logger(),
+                        "Trace mode enabled. Lots of logs coming up."
+                    );
+                    commands::exec(&env, command)
+                }
+                Err(e) => Err(e),
+            }
+        }
+        Err(e) => Err(e),
+    };
     if let Err(err) = result {
         eprintln!("{}", err);
 
         std::process::exit(255);
+    } else {
+        println!("{:?}", "no error");
     }
-    // let result = match EnvironmentImpl::new() {
-    //     Ok(env) => {
-    //         if maybe_redirect_dfx(&env).is_some() {
-    //             unreachable!();
-    //         }
-
-    //         let matches = cli().get_matches();
-    //         let opts: CliOpts = CliOpts::from_arg_matches(&matches);
-
-    //         // let (progress_bar, log) = setup_logging(&opts);
-
-    //         // Need to recreate the environment because we use it to get matches.
-    //         // TODO(hansl): resolve this double-create problem.
-    //         match EnvironmentImpl::new().map(|x| {
-    //             x.with_logger(log)
-    //                 .with_progress_bar(progress_bar)
-    //                 .with_identity_override(opts.identity)
-    //         }) {
-    //             Ok(env) => {
-    //                 slog::trace!(
-    //                     env.get_logger(),
-    //                     "Trace mode enabled. Lots of logs coming up."
-    //                 );
-    //                 exec(&env, &matches, &mut (cli()))
-    //             }
-    //             Err(e) => Err(e),
-    //         }
-    //     }
-    //     Err(e) => Err(e),
-    // };
-
-    // if let Err(err) = result {
-    //     eprintln!("{}", err);
-
-    //     std::process::exit(255);
-    // }
 }

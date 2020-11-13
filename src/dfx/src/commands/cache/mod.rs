@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 
 mod delete;
 mod install;
@@ -23,16 +23,11 @@ pub enum SubCommand {
     Show(show::CacheShowOpts),
 }
 
-pub fn construct() -> App<'static> {
-    CacheOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CacheOpts = CacheOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: CacheOpts) -> DfxResult {
     match opts.subcmd {
         SubCommand::Delete(v) => delete::exec(env, v),
-        SubCommand::Install(_v) => install::exec(env),
-        SubCommand::List(_v) => list::exec(env),
-        SubCommand::Show(_v) => show::exec(env),
+        SubCommand::Install(v) => install::exec(env, v),
+        SubCommand::List(v) => list::exec(env, v),
+        SubCommand::Show(v) => show::exec(env, v),
     }
 }
