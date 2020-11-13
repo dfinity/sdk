@@ -141,7 +141,5 @@ fn main() {
         eprintln!("{}", err);
 
         std::process::exit(255);
-    } else {
-        println!("{:?}", "no error");
     }
 }
