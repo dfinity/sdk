@@ -34,7 +34,7 @@
     "common": {
         "branch": "nixpkgs-release-20.09",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "57917d1834412b41676c63c37bed686e62ed59ea",
+        "rev": "5c379c59aec8088cea0cf90841e743abcf9d93a1",
         "type": "git"
     },
     "dfinity": {
