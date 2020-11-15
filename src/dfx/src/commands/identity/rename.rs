@@ -1,30 +1,28 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::message::UserMessage;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use slog::info;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("rename")
-        .about(UserMessage::RenameIdentity.to_str())
-        .arg(
-            Arg::with_name("from")
-                .help("The current name of the identity.")
-                .required(true)
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("to")
-                .help("The new name of the identity.")
-                .required(true)
-                .takes_value(true),
-        )
+/// Renames an existing identity.
+#[derive(Clap)]
+#[clap(name("rename"))]
+pub struct RenameOpts {
+    /// The current name of the identity.
+    from: String,
+
+    /// The new name of the identity.
+    to: String,
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let from = args.value_of("from").unwrap();
-    let to = args.value_of("to").unwrap();
+pub fn construct() -> App<'static> {
+    RenameOpts::into_app()
+}
+
+pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
+    let opts: RenameOpts = RenameOpts::from_arg_matches(args);
+    let from = opts.from.as_str();
+    let to = opts.to.as_str();
 
     let log = env.get_logger();
     info!(log, r#"Renaming identity "{}" to "{}"."#, from, to);

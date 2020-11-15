@@ -1,12 +1,16 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use clap::{App, ArgMatches, Clap, IntoApp};
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("install").about(UserMessage::CacheUnpack.to_str())
+/// Forces unpacking the cache from this dfx version.
+#[derive(Clap)]
+#[clap(name("install"))]
+pub struct CacheInstall {}
+
+pub fn construct() -> App<'static> {
+    CacheInstall::into_app()
 }
 
-pub fn exec(env: &dyn Environment, _args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {
     env.get_cache().force_install()
 }

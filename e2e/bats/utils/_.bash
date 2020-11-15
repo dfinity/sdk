@@ -31,7 +31,7 @@ dfx_new() {
     echo PWD: $(pwd) >&2
 }
 
-# Start the client in the background.
+# Start the replica in the background.
 dfx_start() {
     if [ "$USE_IC_REF" ]
     then
@@ -62,10 +62,10 @@ dfx_start() {
             dfx start --background "$@" 3>&-
         fi
         local project_dir=${pwd}
-        local dfx_config_root=.dfx/client-configuration
+        local dfx_config_root=.dfx/replica-configuration
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-        test -f ${dfx_config_root}/client-1.port
-        local port=$(cat ${dfx_config_root}/client-1.port)
+        test -f ${dfx_config_root}/replica-1.port
+        local port=$(cat ${dfx_config_root}/replica-1.port)
 
         # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
         local webserver_port=$(cat .dfx/webserver-port)
@@ -80,7 +80,7 @@ dfx_start() {
         || (echo "could not connect to replica on port ${port}" && exit 1)
 }
 
-# Stop the client and verify it is very very stopped.
+# Stop the replica and verify it is very very stopped.
 dfx_stop() {
     if [ "$USE_IC_REF" ]
     then
