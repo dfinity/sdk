@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#[macro_use]
 use crate::{error_invalid_config, error_invalid_data};
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 

@@ -73,7 +73,7 @@ pub fn get_cache_root() -> DfxResult<PathBuf> {
     let p = PathBuf::from(home).join(".cache").join("dfinity");
 
     if !p.exists() {
-        if let Err(e) = std::fs::create_dir_all(&p) {
+        if let Err(_e) = std::fs::create_dir_all(&p) {
             return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));
         }
     } else if !p.is_dir() {
@@ -89,7 +89,7 @@ pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
     let p = get_cache_root()?.join("versions");
 
     if !p.exists() {
-        if let Err(e) = std::fs::create_dir_all(&p) {
+        if let Err(_e) = std::fs::create_dir_all(&p) {
             return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));
         }
     } else if !p.is_dir() {

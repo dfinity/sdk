@@ -16,7 +16,7 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
 
-    env.get_config_or_anyhow();
+    let _ = env.get_config_or_anyhow();
 
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 

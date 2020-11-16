@@ -1,4 +1,3 @@
-#[macro_use]
 use crate::{error_unknown};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::locations::canister_did_location;

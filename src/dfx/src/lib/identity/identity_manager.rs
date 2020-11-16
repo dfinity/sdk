@@ -167,7 +167,7 @@ impl IdentityManager {
             return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
         }
 
-        std::fs::rename(&from_dir, &to_dir).map_err(|e| {
+        std::fs::rename(&from_dir, &to_dir).map_err(|_e| {
             DfxError::new(IdentityError::CannotRenameIdentityDirectory(
                 from_dir, to_dir,
             ))
@@ -227,7 +227,7 @@ fn initialize(
     let identity_pem_path = identity_dir.join(IDENTITY_PEM);
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
-            std::fs::create_dir_all(&identity_dir).map_err(|e| {
+            std::fs::create_dir_all(&identity_dir).map_err(|_e| {
                 DfxError::new(IdentityError::CannotCreateIdentityDirectory(identity_dir))
             })?;
         }

@@ -1,4 +1,3 @@
-#[macro_use]
 use crate::{error_invalid_data};
 use crate::lib::error::DfxResult;
 

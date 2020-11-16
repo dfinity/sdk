@@ -1,7 +1,7 @@
-#[macro_use]
 use crate::{error_invalid_argument, error_invalid_data};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
