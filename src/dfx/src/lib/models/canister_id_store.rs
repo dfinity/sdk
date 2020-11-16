@@ -90,10 +90,15 @@ impl CanisterIdStore {
 
     pub fn get(&self, canister_name: &str) -> DfxResult<CanisterId> {
         self.find(canister_name).ok_or_else(|| {
+            let network = if self.network_descriptor.name == "local" {
+                "".to_string()
+            } else {
+                format!("--network {} ", self.network_descriptor.name)
+            };
             anyhow!(
-                "Cannot find canister '{}' for network '{}'.",
-                canister_name.to_string(),
-                self.network_descriptor.name.to_string()
+                "Cannot find canister id. Please issue 'dfx canister {}create {}'.",
+                network,
+                canister_name,
             )
         })
     }
