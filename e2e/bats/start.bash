@@ -23,16 +23,7 @@ teardown() {
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
-    # ps "isn't a robust solution": https://dfinity.atlassian.net/browse/OPS-166
-    #
-    # I guess we could make dfx write the replica pid somewhere.
-    #
-    # Anyway, if this test ends up sometimes killing a replica other than
-    # the one created by dfx for this test, then some other test might fail.
-    #
-    # Also, this does not work on linux:
-    #   ps -o "ppid, pid, comm"
-    REPLICA_PID=$(ps x | grep [/[:space:]]replica | awk '{print $1}')
+    REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
 
     echo "replica pid is $REPLICA_PID"
 

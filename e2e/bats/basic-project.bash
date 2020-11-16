@@ -80,7 +80,7 @@ teardown() {
     # Write has no return value. But we can _call_ read too.
     assert_command dfx canister call hello read --async
     assert_command dfx canister request-status $stdout
-    assert_eq "(1337)"
+    assert_eq "(1_337)"
 }
 
 @test "build + install + call -- counter_idl_mo" {

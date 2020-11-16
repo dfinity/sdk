@@ -50,6 +50,7 @@ pub struct Config {
     pub replica_path: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
+    pub replica_configuration_dir: PathBuf,
 }
 
 /// A replica actor. Starts the replica, can subscribe to a Ready signal and a
@@ -116,6 +117,7 @@ impl Replica {
 
         // Create a replica config.
         let config = &self.config.replica_config;
+        let replica_pid_path = self.config.replica_configuration_dir.join("replica-pid");
 
         let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
@@ -131,6 +133,7 @@ impl Replica {
             write_port_to,
             ic_starter_path,
             replica_path,
+            replica_pid_path,
             addr,
             receiver,
         )?;
@@ -253,6 +256,7 @@ fn replica_start_thread(
     write_port_to: Option<PathBuf>,
     ic_starter_path: PathBuf,
     replica_path: PathBuf,
+    replica_pid_path: PathBuf,
     addr: Addr<Replica>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
@@ -297,6 +301,10 @@ fn replica_start_thread(
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting replica...");
             let mut child = cmd.spawn().expect("Could not start replica.");
+
+            std::fs::write(&replica_pid_path, "").expect("Could not write to replica-pid file.");
+            std::fs::write(&replica_pid_path, child.id().to_string())
+                .expect("Could not write to replica-pid file.");
 
             let port = port.unwrap_or_else(|| {
                 Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()

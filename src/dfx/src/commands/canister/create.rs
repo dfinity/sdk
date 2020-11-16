@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
+use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 use anyhow::bail;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};

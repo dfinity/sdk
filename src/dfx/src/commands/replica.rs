@@ -137,6 +137,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         replica_path: replica_pathbuf,
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
+        replica_configuration_dir: env.get_temp_dir().join("replica-configuration"),
     })
     .start();
 
