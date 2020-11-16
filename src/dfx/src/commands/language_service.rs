@@ -1,5 +1,5 @@
-use crate::{error_invalid_data};
 use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME};
+use crate::error_invalid_data;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::package_arguments::{self, PackageArguments};

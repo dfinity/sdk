@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-use crate::{error_invalid_config, error_invalid_data};
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::{error_invalid_config, error_invalid_data};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};

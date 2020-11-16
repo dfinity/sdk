@@ -1,5 +1,5 @@
-use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 use crate::lib::error::DfxResult;
+use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};

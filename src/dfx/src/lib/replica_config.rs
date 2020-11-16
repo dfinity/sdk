@@ -1,4 +1,4 @@
-use crate::{error_invalid_data};
+use crate::error_invalid_data;
 use crate::lib::error::DfxResult;
 
 use serde::{Deserialize, Serialize};
