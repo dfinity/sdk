@@ -42,7 +42,7 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
         None => {
             let agent = env
                 .get_agent()
-                .ok_or(anyhow!("Cannot get HTTP client from environment."))?;
+                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
             let mgr = ManagementCanister::create(agent);
             let mut runtime = Runtime::new().expect("Unable to create a runtime");
             let (cid,) = runtime.block_on(

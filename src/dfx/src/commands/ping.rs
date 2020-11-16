@@ -25,7 +25,7 @@ pub fn construct() -> App<'static> {
 pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let opts: PingOpts = PingOpts::from_arg_matches(args);
     env.get_config()
-        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     // For ping, "provider" could either be a URL or a network name.
     // If not passed, we default to the "local" network.
@@ -47,7 +47,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let agent = env
         .get_agent()
-        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let status = runtime.block_on(agent.status())?;

@@ -6,7 +6,7 @@ use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{Logger, Record};
@@ -149,7 +149,7 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
-        self.get_config().ok_or(anyhow::anyhow!(
+        self.get_config().ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
     }
@@ -239,7 +239,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
-        self.get_config().ok_or(anyhow::anyhow!(
+        self.get_config().ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
     }

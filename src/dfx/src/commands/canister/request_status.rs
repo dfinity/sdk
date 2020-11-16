@@ -32,7 +32,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         RequestId::from_str(&opts.request_id[2..]).context("Invalid data: request_id")?;
     let agent = env
         .get_agent()
-        .ok_or(anyhow!("Cannot get HTTP client from environment."))?;
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 

@@ -37,7 +37,7 @@ pub fn get_network_descriptor<'a>(
     set_network_context(network);
     let config = env
         .get_config()
-        .ok_or(Error::new(ErrorKind::NotFound, "dfx.json"))?;
+        .ok_or_else(|| Error::new(ErrorKind::NotFound, "dfx.json"))?;
     let config = config.as_ref().get_config();
     let network_name = get_network_context()?;
     match config.get_network(&network_name) {

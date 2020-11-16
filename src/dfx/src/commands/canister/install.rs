@@ -88,7 +88,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let agent = env
         .get_agent()
-        .ok_or(anyhow!("Cannot get HTTP client from environment."))?;
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 

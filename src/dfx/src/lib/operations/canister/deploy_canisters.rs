@@ -29,7 +29,7 @@ pub fn deploy_canisters(
 
     let config = env
         .get_config()
-        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
     let canister_names = canisters_to_deploy(&config, some_canister)?;
@@ -109,7 +109,7 @@ fn install_canisters(
 
     let agent = env
         .get_agent()
-        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 

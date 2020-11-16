@@ -129,7 +129,7 @@ impl CanisterPool {
         let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
-            .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+            .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
         let mut canisters_map = Vec::new();
 
