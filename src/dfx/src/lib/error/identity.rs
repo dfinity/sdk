@@ -7,7 +7,7 @@ pub enum IdentityError {
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
 
-    #[error("Identity '{0}' does not exist at '{1}'.")]
+    #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
 
     #[error("Cannot generate key pair.")]
