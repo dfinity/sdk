@@ -140,9 +140,15 @@ impl IdentityManager {
         let dir = self.get_identity_dir_path(name);
         let pem = self.get_identity_pem_path(name);
 
-        std::fs::remove_file(&pem).context(format!("Cannot remove identity file at '{}'.", pem))?;
-        std::fs::remove_dir(&dir)
-            .context(format!("Cannot remove identity directroy at '{}'.", dir))?;
+        std::fs::remove_file(&pem).context(format!(
+            "Cannot remove identity file at '{}'.",
+            pem.display()
+        ))?;
+        std::fs::remove_dir(&dir).context(format!(
+            "Cannot remove identity directroy at '{}'.",
+            dir.display()
+        ))?;
+        Ok(())
     }
 
     /// Rename an identity.
@@ -163,8 +169,7 @@ impl IdentityManager {
 
         std::fs::rename(&from_dir, &to_dir).map_err(|e| {
             DfxError::new(IdentityError::CannotRenameIdentityDirectory(
-                from_dir.display(),
-                to_dir.display(),
+                from_dir, to_dir,
             ))
         })?;
 
@@ -223,9 +228,7 @@ fn initialize(
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
             std::fs::create_dir_all(&identity_dir).map_err(|e| {
-                DfxError::new(IdentityError::CannotCreateIdentityDirectory(
-                    identity_dir.display(),
-                ))
+                DfxError::new(IdentityError::CannotCreateIdentityDirectory(identity_dir))
             })?;
         }
 
@@ -287,6 +290,7 @@ fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
         "Cannot write configuration file at '{}'.",
         PathBuf::from(path).display()
     ))?;
+    Ok(())
 }
 
 fn generate_key(pem_file: &Path) -> DfxResult {

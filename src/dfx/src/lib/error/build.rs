@@ -30,6 +30,6 @@ pub enum BuildError {
     #[error("The JavaScript bindings generator failed: {0}")]
     JsBindGenError(String),
 
-    #[error("The custom tool failed: {0}")]
+    #[error("The custom tool failed.")]
     CustomToolError(Option<i32>),
 }

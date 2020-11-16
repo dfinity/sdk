@@ -295,7 +295,7 @@ pub struct AgentClient {
 
 impl AgentClient {
     pub fn new(logger: Logger, url: String) -> DfxResult<AgentClient> {
-        let url = reqwest::Url::parse(&url).context("Invalid URL: {}", url)?;
+        let url = reqwest::Url::parse(&url).context(format!("Invalid URL: {}", url))?;
 
         let result = Self {
             logger,

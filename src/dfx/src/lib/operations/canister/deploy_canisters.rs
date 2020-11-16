@@ -2,7 +2,7 @@ use crate::config::dfinity::Config;
 use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::create_canister;
@@ -155,11 +155,11 @@ fn install_canisters(
             memory_allocation,
             timeout,
         ));
-        match result {
-            Err(DfxError::AgentError(AgentError::ReplicaError {
+        match result.map_err(|err| err.downcast_ref()) {
+            Err(Some(AgentError::ReplicaError {
                 reject_code,
                 reject_message: _,
-            })) if reject_code == 3 || reject_code == 5 => {
+            })) if *reject_code == 3 || *reject_code == 5 => {
                 // 3: tried to upgrade a canister that has not been created
                 // 5: tried to install a canister that was already installed
                 let mode_description = match second_mode {
@@ -181,7 +181,7 @@ fn install_canisters(
                     timeout,
                 ))
             }
-            other => other,
+            _ => result,
         }?;
     }
 

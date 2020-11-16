@@ -209,12 +209,10 @@ impl CanisterPool {
         // Verify the graph has no cycles.
         if let Err(err) = petgraph::algo::toposort(&graph, None) {
             let message = match graph.node_weight(err.node_id()) {
-                Some(canister_id) => {
-                    match self.get_canister_info(canister_id) {
-                        Some(info) => info.get_name().to_string(),
-                        None => format!("<{}>", canister_id.to_text()),
-                    };
-                }
+                Some(canister_id) => match self.get_canister_info(canister_id) {
+                    Some(info) => info.get_name().to_string(),
+                    None => format!("<{}>", canister_id.to_text()),
+                },
                 None => "<Unknown>".to_string(),
             };
             Err(DfxError::new(BuildError::DependencyError(format!(
@@ -318,20 +316,17 @@ impl CanisterPool {
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let graph = self.build_dependencies_graph()?;
-        let order: Vec<CanisterId> = petgraph::algo::toposort(&graph, None)
-            .map_err(|cycle| {
-                let message = match graph.node_weight(cycle.node_id()) {
-                    Some(canister_id) => match self.get_canister_info(canister_id) {
-                        Some(info) => info.get_name().to_string(),
-                        None => format!("<{}>", canister_id.to_text()),
-                    },
-                    None => "<Unknown>".to_string(),
-                };
-                Err(DfxError::new(BuildError::DependencyError(format!(
-                    "Found circular dependency: {}",
-                    message
-                ))))
-            })?
+        let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
+            let message = match graph.node_weight(cycle.node_id()) {
+                Some(canister_id) => match self.get_canister_info(canister_id) {
+                    Some(info) => info.get_name().to_string(),
+                    None => format!("<{}>", canister_id.to_text()),
+                },
+                None => "<Unknown>".to_string(),
+            };
+            BuildError::DependencyError(format!("Found circular dependency: {}", message))
+        })?;
+        let order: Vec<CanisterId> = nodes
             .iter()
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| graph.node_weight(*idx).unwrap().clone())
@@ -376,7 +371,7 @@ impl CanisterPool {
         let outputs = self.build(build_config)?;
 
         for output in outputs {
-            output.map_err(DfxError::BuildError)?;
+            output.map_err(DfxError::new)?;
         }
 
         Ok(())
