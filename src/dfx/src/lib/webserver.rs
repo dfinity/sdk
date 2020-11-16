@@ -10,6 +10,7 @@ use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
 use actix_web::client::Client;
+use actix_web::error::ErrorInternalServerError;
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
@@ -55,10 +56,11 @@ struct CandidRequest {
 async fn candid(
     web::Query(info): web::Query<CandidRequest>,
     data: web::Data<Arc<CandidData>>,
-) -> DfxResult<HttpResponse> {
+) -> Result<HttpResponse, Error> {
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
-    let store = CanisterIdStore::for_network(&network_descriptor)?;
+    let store =
+        CanisterIdStore::for_network(&network_descriptor).map_err(ErrorInternalServerError)?;
     let candid_path = store
         .get_name(&id)
         .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
@@ -68,14 +70,16 @@ async fn candid(
                 id,
                 network_descriptor.name.clone()
             )
-        })?
+        })
+        .map_err(ErrorInternalServerError)?
         .canonicalize()
-        .map_err(|_e| anyhow!("Cannot find candid file."))?;
+        .map_err(|_e| anyhow!("Cannot find candid file."))
+        .map_err(ErrorInternalServerError)?;
 
     let content = match info.format {
-        None => std::fs::read_to_string(candid_path)?,
+        None => std::fs::read_to_string(candid_path).map_err(ErrorInternalServerError)?,
         Some(Format::Javascript) => {
-            let (env, ty) = check_candid_file(&candid_path)?;
+            let (env, ty) = check_candid_file(&candid_path).map_err(ErrorInternalServerError)?;
             candid::bindings::javascript::compile(&env, &ty)
         }
     };
