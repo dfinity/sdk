@@ -22,7 +22,7 @@ pub enum IdentityError {
     #[error("Cannot delete the default identity.")]
     CannotDeleteDefaultIdentity(),
 
-    #[error("Cannot create the anonymous identity.")]
+    #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
     #[error("Cannot find home directory.")]
