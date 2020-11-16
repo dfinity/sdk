@@ -1,6 +1,9 @@
 #![allow(dead_code)]
-
+#[macro_use]
+use crate::{error_invalid_config, error_invalid_data};
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
@@ -145,12 +148,12 @@ pub fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
     match s.to_socket_addrs() {
         Ok(mut a) => match a.next() {
             Some(res) => Ok(res),
-            None => Err(DfxError::from(std::io::Error::new(
+            None => Err(DfxError::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 "Empty iterator",
             ))),
         },
-        Err(err) => Err(DfxError::from(err)),
+        Err(err) => Err(DfxError::new(err)),
     }
 }
 
@@ -197,7 +200,7 @@ impl ConfigInterface {
                 Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
                     match network_provider.providers.first() {
                         Some(provider) => Ok(Some(provider.clone())),
-                        None => Err(DfxError::ComputeNetworkHasNoProviders(network.to_string())),
+                        None => Err(anyhow!("Cannot find providers for network '{}'.", network)),
                     }
                 }
                 Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
@@ -227,7 +230,9 @@ impl ConfigInterface {
         self.get_network("local")
             .map(|network| match network {
                 ConfigNetwork::ConfigLocalProvider(local) => to_socket_addr(&local.bind),
-                _ => Err(DfxError::NoLocalNetworkProviderFound),
+                _ => Err(anyhow!(
+                    "Expected there to be a local network with a bind address."
+                )),
             })
             .unwrap_or_else(|| to_socket_addr(default))
     }
@@ -245,9 +250,9 @@ impl ConfigInterface {
         &self,
         some_canister: Option<&str>,
     ) -> DfxResult<Vec<String>> {
-        let canister_map = (&self.canisters).as_ref().ok_or_else(|| {
-            DfxError::InvalidConfiguration("No canisters in the configuration file.".to_string())
-        })?;
+        let canister_map = (&self.canisters)
+            .as_ref()
+            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
 
         let canister_names = match some_canister {
             Some(specific_canister) => {
@@ -275,13 +280,13 @@ impl ConfigInterface {
         canister_name: &str,
         field: &str,
     ) -> DfxResult<Option<String>> {
-        let canister_map = (&self.canisters).as_ref().ok_or_else(|| {
-            DfxError::InvalidConfiguration("No canisters in the configuration file.".to_string())
-        })?;
+        let canister_map = (&self.canisters)
+            .as_ref()
+            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
 
         let canister_config = canister_map
             .get(canister_name)
-            .ok_or_else(|| DfxError::CannotFindCanisterName(canister_name.to_string()))?;
+            .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
 
         canister_config
             .extras
@@ -289,9 +294,7 @@ impl ConfigInterface {
             .and_then(|v| v.get(field))
             .map(String::deserialize)
             .transpose()
-            .map_err(|_| {
-                DfxError::InvalidConfiguration(format!("Field {} is of the wrong type", field))
-            })
+            .map_err(|_| error_invalid_config!("Field {} is of the wrong type", field))
     }
 }
 
@@ -317,15 +320,12 @@ fn add_dependencies(
 
     let canister_config = all_canisters
         .get(canister_name)
-        .ok_or_else(|| DfxError::CannotFindCanisterName(canister_name.to_string()))?;
+        .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
 
     let deps = match canister_config.extras.get("dependencies") {
         None => vec![],
-        Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-            DfxError::InvalidConfiguration(String::from(
-                "Field 'dependencies' is of the wrong type",
-            ))
-        })?,
+        Some(v) => Vec::<String>::deserialize(v)
+            .map_err(|_| error_invalid_config!("Field 'dependencies' is of the wrong type"))?,
     };
 
     path.push(String::from(canister_name));
@@ -427,7 +427,7 @@ impl Config {
 
     pub fn save(&self) -> DfxResult {
         let json_pretty = serde_json::to_string_pretty(&self.json)
-            .map_err(|e| DfxError::InvalidData(format!("Failed to serialize dfx.json: {}", e)))?;
+            .map_err(|e| error_invalid_data!("Failed to serialize dfx.json: {}", e))?;
         std::fs::write(&self.path, json_pretty)?;
         Ok(())
     }

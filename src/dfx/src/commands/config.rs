@@ -58,7 +58,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         *config
             .get_mut_json()
             .pointer_mut(config_path.as_str())
-            .ok_or(anyhow!("Config path does not exist at '{}'.", config_path)? = value);
+            .ok_or(anyhow!("Config path does not exist at '{}'.", config_path))? = value;
         config.save()
     } else if let Some(value) = config.get_json().pointer(config_path.as_str()) {
         match format {

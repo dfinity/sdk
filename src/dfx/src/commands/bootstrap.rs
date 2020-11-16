@@ -6,12 +6,11 @@ use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::webserver;
 use crate::util::get_reusable_socket_addr;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use slog::info;
 use std::default::Default;
 use std::fs;
-use std::io::{Error, ErrorKind};
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -89,7 +88,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         sender,
     )?
     .join()
-    .context("Cannot start frontend proxy server.")?;
+    .map_err(|err| anyhow!("Cannot start frontend proxy server: {:?}", err))?;
 
     // Wait for the webserver to be started.
     let _ = receiver.recv().expect("Failed to receive server...");

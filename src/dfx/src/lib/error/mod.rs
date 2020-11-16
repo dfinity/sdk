@@ -20,6 +20,13 @@ macro_rules! error_invalid_argument {
 }
 
 #[macro_export]
+macro_rules! error_invalid_config {
+    ($($args:tt)*) => {
+        anyhow::anyhow!("Invalid configuration: {}", format_args!($($args)*))
+    }
+}
+
+#[macro_export]
 macro_rules! error_invalid_data {
     ($($args:tt)*) => {
         anyhow::anyhow!("Invalid data: {}", format_args!($($args)*))

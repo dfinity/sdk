@@ -1,6 +1,8 @@
 use crate::config::dfx_version;
 use crate::lib::error::{CacheError, DfxError, DfxResult};
 use crate::util;
+
+use anyhow::bail;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -184,7 +186,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
         Ok(p)
     } else {
-        Err(DfxError::new(CacheError::UnknownDfxVersion(v.to_owned())))
+        Err(DfxError::new(CacheError::UnknownVersion(v.to_owned())))
     }
 }
 
@@ -219,9 +221,7 @@ pub fn call_cached_dfx(v: &Version) -> DfxResult<ExitStatus> {
     let v = format!("{}", v);
     let command_path = get_binary_path_from_version(&v, "dfx")?;
     if command_path == std::env::current_exe()? {
-        return Err(DfxError::Unknown(
-            format_args!("Invalid cache for version {}.", v).to_string(),
-        ));
+        bail!("Invalid cache for version {}.", v)
     }
 
     std::process::Command::new(command_path)

@@ -16,8 +16,7 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
 
-    env.get_config()
-        .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+    env.get_config_or_anyhow();
 
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
@@ -41,11 +40,10 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
             Ok(())
         }
         None => {
-            let mgr = ManagementCanister::create(
-                env.get_agent()
-                    .ok_or(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?,
-            );
-
+            let agent = env
+                .get_agent()
+                .ok_or(anyhow!("Cannot get HTTP client from environment."))?;
+            let mgr = ManagementCanister::create(agent);
             let mut runtime = Runtime::new().expect("Unable to create a runtime");
             let (cid,) = runtime.block_on(
                 mgr.create_canister()

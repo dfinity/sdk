@@ -93,7 +93,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let timeout = expiry_duration();
 
     let config_interface = config.get_config();
-    let mode = InstallMode::from_str(opts.mode.as_str())?;
+    let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {

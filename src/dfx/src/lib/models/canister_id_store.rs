@@ -1,7 +1,9 @@
 use crate::config::dfinity::NetworkType;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
+
+use anyhow::{anyhow, Context};
 use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -57,10 +59,12 @@ impl CanisterIdStore {
     }
 
     pub fn load_ids(path: &PathBuf) -> DfxResult<CanisterIds> {
-        let content = std::fs::read_to_string(path).map_err(|err| {
-            DfxError::CouldNotLoadCanisterIds(path.to_string_lossy().to_string(), err)
-        })?;
-        serde_json::from_str(&content).map_err(DfxError::from)
+        let content = std::fs::read_to_string(path)
+            .context(format!("Cannot read from file at '{}'.", path.display()))?;
+        serde_json::from_str(&content).context(format!(
+            "Cannot decode contents of file at '{}'.",
+            path.display()
+        ))
     }
 
     pub fn save_ids(&self) -> DfxResult {
@@ -69,10 +73,10 @@ impl CanisterIdStore {
         if !parent.exists() {
             std::fs::create_dir_all(parent)?;
         }
-
-        std::fs::write(&self.path, content).map_err(|err| {
-            DfxError::CouldNotSaveCanisterIds(self.path.to_string_lossy().to_string(), err)
-        })
+        std::fs::write(&self.path, content).context(format!(
+            "Cannot write to file at '{}'.",
+            self.path.display()
+        ))
     }
 
     pub fn find(&self, canister_name: &str) -> Option<CanisterId> {
@@ -86,9 +90,10 @@ impl CanisterIdStore {
 
     pub fn get(&self, canister_name: &str) -> DfxResult<CanisterId> {
         self.find(canister_name).ok_or_else(|| {
-            DfxError::CouldNotFindCanisterIdForNetwork(
+            anyhow!(
+                "Cannot find canister '{}' for network '{}'.",
                 canister_name.to_string(),
-                self.network_descriptor.name.to_string(),
+                self.network_descriptor.name.to_string()
             )
         })
     }

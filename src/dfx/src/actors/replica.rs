@@ -9,6 +9,7 @@ use actix::{
     Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
+use anyhow::anyhow;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
@@ -104,7 +105,9 @@ impl Replica {
                     return Ok(port);
                 }
             }
-            waiter.wait().context("Cannot start replica.")?;
+            waiter
+                .wait()
+                .map_err(|err| anyhow!("Cannot start the replica: {:?}", err))?;
         }
     }
 

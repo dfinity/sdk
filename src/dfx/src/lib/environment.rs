@@ -1,11 +1,12 @@
 use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::{cache, dfx_version};
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
+use anyhow::Context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{Logger, Record};
@@ -294,7 +295,7 @@ pub struct AgentClient {
 
 impl AgentClient {
     pub fn new(logger: Logger, url: String) -> DfxResult<AgentClient> {
-        let url = reqwest::Url::parse(&url).map_err(|e| DfxError::InvalidUrl(url, e))?;
+        let url = reqwest::Url::parse(&url).context("Invalid URL: {}", url)?;
 
         let result = Self {
             logger,

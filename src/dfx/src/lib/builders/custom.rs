@@ -6,7 +6,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use console::style;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
@@ -32,9 +32,8 @@ impl CustomBuilderExtra {
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
         let deps = match info.get_extra_value("dependencies") {
             None => vec![],
-            Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-                DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
-            })?,
+            Some(v) => Vec::<String>::deserialize(v)
+                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
         };
         let dependencies = deps
             .iter()
@@ -42,7 +41,7 @@ impl CustomBuilderExtra {
                 pool.get_first_canister_with_name(name)
                     .map(|c| c.canister_id())
                     .map_or_else(
-                        || Err(DfxError::UnknownCanisterNamed(name.clone())),
+                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
                         DfxResult::Ok,
                     )
             })

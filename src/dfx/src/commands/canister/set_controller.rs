@@ -40,7 +40,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         Ok(principal) => principal,
         Err(_) => IdentityManager::new(env)?
             .instantiate_identity_from_name(&opts.new_controller)?
-            .sender()?,
+            .sender()
+            .map_err(|err| anyhow!(err))?,
     };
 
     let agent = env

@@ -1,9 +1,11 @@
+#[macro_use]
+use crate::{error_invalid_argument};
 use crate::actors;
 use crate::actors::shutdown_controller;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::config::dfinity::ConfigDefaultsReplica;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
 use actix::Actor;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
@@ -78,7 +80,7 @@ fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u
             let default = 8080;
             Ok(config.port.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid port number: {}", err)))
+        .map_err(|err| error_invalid_argument!("Invalid port number: {}", err))
 }
 
 /// Gets the maximum amount of gas a single message can consume. First checks if the gas limit was
@@ -94,7 +96,7 @@ fn get_message_gas_limit(
             let default = 5_368_709_120;
             Ok(config.message_gas_limit.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid message gas limit: {}", err)))
+        .map_err(|err| error_invalid_argument!("Invalid message gas limit: {}", err))
 }
 
 /// Gets the maximum amount of gas a single round can consume. First checks if the gas limit was
@@ -110,7 +112,7 @@ fn get_round_gas_limit(
             let default = 26_843_545_600;
             Ok(config.round_gas_limit.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid round gas limit: {}", err)))
+        .map_err(|err| error_invalid_argument!("Invalid round gas limit: {}", err))
 }
 
 /// Start the Internet Computer locally. Spawns a proxy to forward and

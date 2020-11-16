@@ -1,8 +1,9 @@
 use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::provider::create_agent_environment;
 
+use anyhow::bail;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 
 mod call;
@@ -52,10 +53,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     if let Some((name, subcommand_args)) = subcommand {
         match builtins().into_iter().find(|x| name == x.get_name()) {
             Some(cmd) => cmd.execute(&agent_env, subcommand_args),
-            None => Err(DfxError::UnknownCommand(format!(
-                "Command {} not found.",
-                name
-            ))),
+            None => bail!("Command {} not found.", name),
         }
     } else {
         construct().write_help(&mut std::io::stderr())?;

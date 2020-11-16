@@ -1,3 +1,5 @@
+#[macro_use]
+use crate::{error_invalid_argument, error_invalid_data};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
@@ -80,10 +82,10 @@ pub fn get_latest_version(
     timeout: Option<std::time::Duration>,
 ) -> DfxResult<Version> {
     let url = reqwest::Url::parse(release_root)
-        .map_err(|e| DfxError::InvalidArgument(format!("invalid release root: {}", e)))?;
+        .map_err(|e| error_invalid_argument!("invalid release root: {}", e))?;
     let manifest_url = url
         .join("manifest.json")
-        .map_err(|e| DfxError::InvalidArgument(format!("invalid manifest URL: {}", e)))?;
+        .map_err(|e| error_invalid_argument!("invalid manifest URL: {}", e))?;
     println!("Fetching manifest {}", manifest_url);
 
     let b = ProgressBar::new_spinner();
@@ -98,24 +100,24 @@ pub fn get_latest_version(
     };
 
     let client = client.build()?;
-    let response = client.get(manifest_url).send().map_err(DfxError::Reqwest)?;
+    let response = client.get(manifest_url).send().map_err(DfxError::new)?;
     let status_code = response.status();
     b.finish_and_clear();
 
     if !status_code.is_success() {
-        return Err(DfxError::InvalidData(format!(
+        return Err(error_invalid_data!(
             "unable to fetch manifest: {}",
             status_code.canonical_reason().unwrap_or("unknown error"),
-        )));
+        ));
     }
 
     let manifest: Manifest = response
         .json()
-        .map_err(|e| DfxError::InvalidData(format!("invalid manifest: {}", e)))?;
+        .map_err(|e| error_invalid_data!("invalid manifest: {}", e))?;
     manifest
         .tags
         .get("latest")
-        .ok_or_else(|| DfxError::InvalidData("expected field 'latest' in 'tags'".to_string()))
+        .ok_or_else(|| error_invalid_data!("expected field 'latest' in 'tags'"))
         .map(|v| v.clone())
 }
 
@@ -124,18 +126,18 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
         "{0}/downloads/dfx/{1}/{2}/dfx-{1}.tar.gz",
         release_root, version, arch
     ))
-    .map_err(|e| DfxError::InvalidArgument(format!("invalid release root: {}", e)))?;
+    .map_err(|e| error_invalid_argument!("invalid release root: {}", e))?;
 
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
 
     b.set_message(format!("Downloading {}", url).as_str());
     b.enable_steady_tick(80);
-    let mut response = reqwest::blocking::get(url).map_err(DfxError::Reqwest)?;
+    let mut response = reqwest::blocking::get(url).map_err(DfxError::new)?;
     let mut decoder = Decoder::new(&mut response)
-        .map_err(|e| DfxError::InvalidData(format!("unable to gunzip file: {}", e)))?;
+        .map_err(|e| error_invalid_data!("unable to gunzip file: {}", e))?;
     let mut archive = Archive::new(&mut decoder);
-    let current_exe_path = env::current_exe().map_err(DfxError::Io)?;
+    let current_exe_path = env::current_exe().map_err(DfxError::new)?;
     let current_exe_dir = current_exe_path.parent().unwrap(); // This should not fail
     b.set_message("Unpacking");
     archive.unpack(&current_exe_dir)?;
