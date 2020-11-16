@@ -6,7 +6,7 @@ use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{Logger, Record};
