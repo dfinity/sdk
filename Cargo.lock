@@ -375,10 +375,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "arc-swap"
-version = "0.4.7"
+name = "anyhow"
+version = "1.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d25d88fd6b8041580a654f9d0c581a047baee2b3efee13275f2fc392fc75034"
+checksum = "bf8dcb5b4bbaa28653b647d8c77bd4ed40183b48882e130c1f1ffb73de069fd7"
 
 [[package]]
 name = "arrayref"
@@ -1073,6 +1073,7 @@ dependencies = [
  "actix-files",
  "actix-server",
  "actix-web",
+ "anyhow",
  "atty",
  "base64 0.11.0",
  "candid",
@@ -1755,7 +1756,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#c973ab2dd4f0a5f081be8f2d8d336ce991f4d58b"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#132d7995435aeaf8011ee02c0b4009c292c5c2cd"
 dependencies = [
  "base32",
  "crc32fast",
