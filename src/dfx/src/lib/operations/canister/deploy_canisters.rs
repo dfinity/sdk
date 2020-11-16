@@ -155,13 +155,16 @@ fn install_canisters(
             memory_allocation,
             timeout,
         ));
-        match result.map_err(|err| err.downcast_ref()) {
-            Err(Some(AgentError::ReplicaError {
-                reject_code,
-                reject_message: _,
-            })) if *reject_code == 3 || *reject_code == 5 => {
+        match result {
+            Err(err) if (match err.downcast_ref::<AgentError>() {
+                Some(AgentError::ReplicaError {
+                    reject_code,
+                    reject_message: _,
+                }) => *reject_code == 3 || *reject_code == 5,
                 // 3: tried to upgrade a canister that has not been created
                 // 5: tried to install a canister that was already installed
+                _ => false,
+            }) => {
                 let mode_description = match second_mode {
                     InstallMode::Install => "install",
                     _ => "upgrade",
@@ -180,8 +183,8 @@ fn install_canisters(
                     memory_allocation,
                     timeout,
                 ))
-            }
-            _ => result,
+            },
+            other => other,
         }?;
     }
 
