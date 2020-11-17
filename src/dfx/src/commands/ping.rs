@@ -2,7 +2,9 @@ use crate::config::dfinity::NetworkType;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
-use crate::lib::provider::{command_line_provider_to_url, get_network_descriptor};
+use crate::lib::provider::{
+    command_line_provider_to_url, get_network_context, get_network_descriptor,
+};
 use crate::util::expiry_duration;
 
 use anyhow::anyhow;
@@ -33,6 +35,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         get_network_descriptor(env, opts.network).or_else::<DfxError, _>(|err| {
             let logger = env.get_logger();
             warn!(logger, "{}", err);
+            let network_name = get_network_context()?;
             let url = command_line_provider_to_url(&network_name)?;
             let network_descriptor = NetworkDescriptor {
                 name: "-ping-".to_string(),
