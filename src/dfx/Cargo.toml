@@ -69,24 +69,24 @@ wasmparser = "0.45.0"
 
 [dependencies.ic-agent]
 version = "0.1.0"
-#path = "../../../agent-rs/ic-agent"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "es-wip-resp-auth"
-rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
+path = "../../../agent-rs/ic-agent"
+#git = "https://github.com/dfinity/agent-rs.git"
+#branch = "es-wip-resp-auth"
+#rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
 
 [dependencies.ic-types]
 version = "0.1.2"
-#path = "../../../agent-rs/ic-types"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "es-wip-resp-auth"
-rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
+path = "../../../agent-rs/ic-types"
+#git = "https://github.com/dfinity/agent-rs.git"
+#branch = "es-wip-resp-auth"
+#rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
 
 [dependencies.ic-utils]
 version = "0.1.0"
-#path = "../../../agent-rs/ic-utils"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "es-wip-resp-auth"
-rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
+path = "../../../agent-rs/ic-utils"
+#git = "https://github.com/dfinity/agent-rs.git"
+#branch = "es-wip-resp-auth"
+#rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
 
 [dev-dependencies]
 env_logger = "0.6"

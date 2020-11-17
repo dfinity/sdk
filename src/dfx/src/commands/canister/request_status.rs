@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators;
 use crate::util::{expiry_duration, print_idl_blob};
@@ -33,6 +34,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
+
+    runtime.block_on(fetch_root_key_if_needed(env))?;
 
     let timeout = expiry_duration();
 

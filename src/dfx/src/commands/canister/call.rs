@@ -2,6 +2,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
@@ -109,6 +110,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         .get_agent()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
+
+    runtime.block_on(fetch_root_key_if_needed(env))?;
 
     let timeout = expiry_duration();
 

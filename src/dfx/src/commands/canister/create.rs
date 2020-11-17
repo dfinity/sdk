@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::operations::canister::create_canister;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
 use tokio::runtime::Runtime;
@@ -31,6 +32,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let timeout = expiry_duration();
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
+
+    runtime.block_on(fetch_root_key_if_needed(env))?;
 
     if let Some(canister_name) = opts.canister_name {
         runtime.block_on(create_canister(env, canister_name.as_str(), timeout))?;
