@@ -1722,7 +1722,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-wip-resp-auth#d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
 dependencies = [
  "async-trait",
  "base32",
@@ -1750,7 +1750,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-wip-resp-auth#d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1762,7 +1762,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-wip-resp-auth#d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
 dependencies = [
  "async-trait",
  "candid",

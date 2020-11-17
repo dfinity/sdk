@@ -5,18 +5,21 @@ members = [
 
 [patch.crates-io.ic-agent]
 version = "0.1.0"
+#path = "../agent-rs/ic-agent"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
+branch = "es-wip-resp-auth"
+rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
+#path = "../agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
+branch = "es-wip-resp-auth"
+rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
 
 [patch.crates-io.ic-utils]
 version = "0.1.0"
+#path = "../agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
+branch = "es-wip-resp-auth"
+rev = "d8d2649ad0e4e8bb5328d5e97b6705c5275afe7a"
