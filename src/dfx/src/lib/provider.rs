@@ -74,7 +74,7 @@ pub fn get_network_descriptor<'a>(
                 r#type: local_provider.r#type,
             })
         }
-        None => Err(anyhow!("Cannot find network \"{}\"", network_name)),
+        None => Err(anyhow!("ComputeNetworkNotFound({})", network_name)),
     }
 }
 
