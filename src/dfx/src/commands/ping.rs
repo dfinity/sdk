@@ -33,7 +33,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         get_network_descriptor(env, opts.network).or_else::<DfxError, _>(|err| {
             let logger = env.get_logger();
             warn!(logger, "{}", err);
-            let url = command_line_provider_to_url("http://127.0.0.1:8000")?;
+            let url = command_line_provider_to_url(&network_name)?;
             let network_descriptor = NetworkDescriptor {
                 name: "-ping-".to_string(),
                 providers: vec![url],
