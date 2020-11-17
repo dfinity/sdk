@@ -91,7 +91,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
             Some(false) => {
                 if opts.query {
                     bail!(
-                        "Invalid method call: '{}' is not a query method.",
+                        "Invalid method call: {} is not a query method.",
                         method_name
                     );
                 } else {
