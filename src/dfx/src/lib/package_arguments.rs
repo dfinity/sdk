@@ -35,7 +35,7 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
     let output = cmd.output()?;
     if !output.status.success() {
         return Err(DfxError::new(BuildError::CommandError(
-            format!("Failed to invoke the package tool: {:?}", cmd),
+            format!("{:?}", cmd),
             output.status,
             String::from_utf8_lossy(&output.stdout).to_string(),
             String::from_utf8_lossy(&output.stderr).to_string(),
