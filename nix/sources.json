@@ -38,9 +38,9 @@
         "type": "git"
     },
     "dfinity": {
-        "branch": "master",
+        "tag": "release-2020-11-16.RC00",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "482ba09bfa3a0ac41209684e947e83b8e0c83138",
+        "rev": "d1d7c1ed47f01efd73b8b20fe763c747b876676d",
         "type": "git"
     },
     "ic-ref": {
