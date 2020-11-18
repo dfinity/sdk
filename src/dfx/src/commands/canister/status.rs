@@ -10,6 +10,7 @@ use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::time::Duration;
 use tokio::runtime::Runtime;
+use crate::lib::root_key::fetch_root_key_if_needed;
 
 /// Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.
 #[derive(Clap)]
@@ -58,6 +59,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
+
+    runtime.block_on(fetch_root_key_if_needed(env))?;
 
     let timeout = expiry_duration();
 
