@@ -62,7 +62,7 @@ teardown() {
 
     assert_command dfx config networks.ic.providers '[  ]'
     assert_command_fail dfx canister --network ic create --all
-    assert_match "ComputeNetworkHasNoProviders"
+    assert_match "Cannot find providers for network"
 }
 
 @test "create fails with network parameter when network does not exist" {
