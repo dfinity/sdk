@@ -54,7 +54,7 @@ teardown() {
     dfx_start
     dfx canister create --all
     assert_command_fail dfx build
-    assert_match 'Failed to invoke the package tool'
+    assert_match 'The command.*failed with'
     assert_match 'no-such-command.*that.*command.*cannot.*be.*invoked'
     assert_match 'No such file or directory \(os error 2\)'
 }
@@ -66,7 +66,7 @@ teardown() {
     dfx_start
     dfx canister create --all
     assert_command_fail dfx build
-    assert_match 'Package tool.*reported an error'
+    assert_match 'The command.*failed with'
     assert_match 'sh.*command-that-fails.bash'
     assert_match 'exit code: 3'
 }
