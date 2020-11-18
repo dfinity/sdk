@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
@@ -10,7 +11,6 @@ use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::time::Duration;
 use tokio::runtime::Runtime;
-use crate::lib::root_key::fetch_root_key_if_needed;
 
 /// Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.
 #[derive(Clap)]
