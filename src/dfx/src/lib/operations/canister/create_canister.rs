@@ -9,9 +9,12 @@ use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
 use std::time::Duration;
-use tokio::runtime::Runtime;
 
-pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Duration) -> DfxResult {
+pub async fn create_canister(
+    env: &dyn Environment,
+    canister_name: &str,
+    timeout: Duration,
+) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
 
@@ -45,11 +48,10 @@ pub fn create_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
                     .ok_or(DfxError::CommandMustBeRunInAProject)?,
             );
 
-            let mut runtime = Runtime::new().expect("Unable to create a runtime");
-            let (cid,) = runtime.block_on(
-                mgr.create_canister()
-                    .call_and_wait(waiter_with_timeout(timeout)),
-            )?;
+            let (cid,) = mgr
+                .create_canister()
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
             let canister_id = cid.to_text();
             info!(
                 log,
