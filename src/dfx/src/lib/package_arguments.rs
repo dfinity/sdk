@@ -1,7 +1,7 @@
 use crate::config::cache::Cache;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail};
 use std::process::Command;
 
 /// Package arguments for moc or mo-ide as returned by
@@ -32,9 +32,15 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
         cmd.arg(arg);
     }
 
-    let output = cmd
-        .output()
-        .context(format!("Failed to invoke the package tool: {:?}", cmd))?;
+    let output = match cmd.output() {
+        Ok(output) => output,
+        Err(err) => bail!(
+            "Failed to invoke the package tool {:?}\n the error was: {}",
+            cmd,
+            err
+        ),
+    };
+
     if !output.status.success() {
         return Err(DfxError::new(BuildError::CommandError(
             format!("{:?}", cmd),
