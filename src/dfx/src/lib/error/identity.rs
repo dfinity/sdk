@@ -16,7 +16,7 @@ pub enum IdentityError {
     #[error("Cannot create identity directroy at '{0}'.")]
     CannotCreateIdentityDirectory(PathBuf),
 
-    #[error("Cannot rename identity directroy from '{0}' to '{1}'.")]
+    #[error("Cannot rename identity directory from '{0}' to '{1}'.")]
     CannotRenameIdentityDirectory(PathBuf, PathBuf),
 
     #[error("Cannot delete the default identity.")]
