@@ -13,7 +13,7 @@ pub enum IdentityError {
     #[error("Cannot generate key pair.")]
     CannotGenerateKeyPair(Unspecified),
 
-    #[error("Cannot create identity directroy at '{0}'.")]
+    #[error("Cannot create identity directory at '{0}'.")]
     CannotCreateIdentityDirectory(PathBuf),
 
     #[error("Cannot rename identity directory from '{0}' to '{1}'.")]
