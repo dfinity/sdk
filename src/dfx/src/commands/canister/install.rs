@@ -8,7 +8,7 @@ use crate::util::clap::validators::{compute_allocation_validator, memory_allocat
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use anyhow::{anyhow, bail};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use humanize_rs::bytes::Bytes;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
 use std::convert::TryFrom;
@@ -53,10 +53,6 @@ pub struct CanisterInstallOpts {
     memory_allocation: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    CanisterInstallOpts::into_app()
-}
-
 fn get_compute_allocation(
     compute_allocation: Option<String>,
     config_interface: &ConfigInterface,
@@ -83,8 +79,7 @@ fn get_memory_allocation(
         }))
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterInstallOpts = CanisterInstallOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let agent = env
         .get_agent()
@@ -106,10 +101,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         let arg_type = opts.argument_type.as_deref();
         let install_args = blob_from_arguments(arguments, arg_type, &init_type)?;
 
-        let compute_allocation =
-            get_compute_allocation(opts.compute_allocation, config_interface, canister_name)?;
-        let memory_allocation =
-            get_memory_allocation(opts.memory_allocation, config_interface, canister_name)?;
+        let compute_allocation = get_compute_allocation(
+            opts.compute_allocation.clone(),
+            config_interface,
+            canister_name,
+        )?;
+        let memory_allocation = get_memory_allocation(
+            opts.memory_allocation.clone(),
+            config_interface,
+            canister_name,
+        )?;
 
         runtime.block_on(install_canister(
             env,

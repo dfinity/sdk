@@ -5,7 +5,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
@@ -24,10 +24,6 @@ pub struct CanisterStopOpts {
     /// Stops all of the canisters configured in the dfx.json file.
     #[clap(long, required_unless_present("canister-name"))]
     all: bool,
-}
-
-pub fn construct() -> App<'static> {
-    CanisterStopOpts::into_app()
 }
 
 async fn stop_canister(
@@ -55,8 +51,7 @@ async fn stop_canister(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterStopOpts = CanisterStopOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: CanisterStopOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let agent = env
         .get_agent()

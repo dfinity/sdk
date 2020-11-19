@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_data};
 
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
@@ -20,10 +20,6 @@ pub struct UpgradeOpts {
 
     #[clap(long, default_value = "https://sdk.dfinity.org", hidden = true)]
     release_root: String,
-}
-
-pub fn construct() -> App<'static> {
-    UpgradeOpts::into_app()
 }
 
 fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>
@@ -149,8 +145,7 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: UpgradeOpts = UpgradeOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
     // Find OS architecture.
     let os_arch = match std::env::consts::OS {
         "linux" => "x86_64-linux",

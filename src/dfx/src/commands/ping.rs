@@ -8,7 +8,7 @@ use crate::lib::provider::{
 use crate::util::expiry_duration;
 
 use anyhow::anyhow;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use slog::warn;
 use tokio::runtime::Runtime;
 
@@ -20,12 +20,7 @@ pub struct PingOpts {
     network: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    PingOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: PingOpts = PingOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     env.get_config()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 

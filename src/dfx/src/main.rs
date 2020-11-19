@@ -1,10 +1,9 @@
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
-use crate::lib::error::*;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
-use anyhow::anyhow;
-use clap::{App, AppSettings, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::{AppSettings, Clap};
+use semver::Version;
 use std::path::PathBuf;
 
 mod actors;
@@ -15,8 +14,7 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Clap)]
-#[clap(name("dfx"))]
-#[clap(version = dfx_version_str(), global_setting = AppSettings::ColoredHelp)]
+#[clap(name("dfx"), version = dfx_version_str(), global_setting = AppSettings::ColoredHelp)]
 pub struct CliOpts {
     #[clap(long, short('v'), parse(from_occurrences))]
     verbose: u64,
@@ -32,39 +30,9 @@ pub struct CliOpts {
 
     #[clap(long)]
     identity: Option<String>,
-}
 
-fn cli(_: &impl Environment) -> App<'static> {
-    CliOpts::into_app().subcommands(
-        commands::builtin()
-            .into_iter()
-            .map(|x| x.get_subcommand().clone()),
-    )
-}
-
-fn exec(env: &impl Environment, args: &ArgMatches, cli: &mut App<'static>) -> DfxResult {
-    let (name, subcommand_args) = match args.subcommand() {
-        Some((name, args)) => (name, args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            return Ok(());
-        }
-    };
-
-    match commands::builtin()
-        .into_iter()
-        .find(|x| name == x.get_name())
-    {
-        Some(cmd) => cmd.execute(env, subcommand_args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            Err(anyhow!("Unknown command: {}", name.to_owned()))
-        }
-    }
+    #[clap(subcommand)]
+    command: commands::Command,
 }
 
 fn is_warning_disabled(warning: &str) -> bool {
@@ -82,10 +50,10 @@ fn is_warning_disabled(warning: &str) -> bool {
 ///
 /// Note: the right return type for communicating this would be [Option<!>], but since the
 /// never type is experimental, we just assert on the calling site.
-fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
+fn maybe_redirect_dfx(version: &Version) -> Option<()> {
     // Verify we're using the same version as the dfx.json, and if not just redirect the
     // call to the cache.
-    if dfx_version() != env.get_version() {
+    if dfx_version() != version {
         // Show a warning to the user.
         if !is_warning_disabled("version_check") {
             eprintln!(
@@ -97,12 +65,12 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
                     "We are forwarding the command line to the old version. To disable this ",
                     "warning, set the DFX_WARNING=-version_check environment variable.\n"
                 ),
-                env.get_version(),
+                version,
                 dfx_version()
             );
         }
 
-        match crate::config::cache::call_cached_dfx(env.get_version()) {
+        match crate::config::cache::call_cached_dfx(version) {
             Ok(status) => std::process::exit(status.code().unwrap_or(0)),
             Err(e) => {
                 eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
@@ -132,37 +100,30 @@ fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
 }
 
 fn main() {
+    let cli_opts = CliOpts::parse();
+    let (progress_bar, log) = setup_logging(&cli_opts);
+    let identity = cli_opts.identity;
+    let command = cli_opts.command;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
-            if maybe_redirect_dfx(&env).is_some() {
-                unreachable!();
-            }
-
-            let matches = cli(&env).get_matches();
-            let opts: CliOpts = CliOpts::from_arg_matches(&matches);
-
-            let (progress_bar, log) = setup_logging(&opts);
-
-            // Need to recreate the environment because we use it to get matches.
-            // TODO(hansl): resolve this double-create problem.
-            match EnvironmentImpl::new().map(|x| {
-                x.with_logger(log)
+            maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+            match EnvironmentImpl::new().map(|env| {
+                env.with_logger(log)
                     .with_progress_bar(progress_bar)
-                    .with_identity_override(opts.identity)
+                    .with_identity_override(identity)
             }) {
                 Ok(env) => {
                     slog::trace!(
                         env.get_logger(),
                         "Trace mode enabled. Lots of logs coming up."
                     );
-                    exec(&env, &matches, &mut (cli(&env)))
+                    commands::exec(&env, command)
                 }
                 Err(e) => Err(e),
             }
         }
         Err(e) => Err(e),
     };
-
     if let Err(err) = result {
         eprintln!("{}", err);
 

@@ -172,7 +172,7 @@ impl Actor for Replica {
             let _ = join.join();
         }
 
-        debug!(self.logger, "Stopped.");
+        info!(self.logger, "Stopped.");
         Running::Stop
     }
 }

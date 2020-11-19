@@ -7,7 +7,7 @@ use crate::util::assets;
 use crate::util::clap::validators::project_name_validator;
 
 use anyhow::{anyhow, bail, Context};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use console::{style, Style};
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
@@ -51,10 +51,6 @@ pub struct NewOpts {
 
     #[clap(long, conflicts_with = "frontend")]
     no_frontend: bool,
-}
-
-pub fn construct() -> App<'static> {
-    NewOpts::into_app()
 }
 
 enum Status<'a> {
@@ -284,8 +280,7 @@ fn scaffold_frontend_code(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: NewOpts = NewOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     let log = env.get_logger();
     let dry_run = opts.dry_run;
     let project_name = Path::new(opts.project_name.as_str());

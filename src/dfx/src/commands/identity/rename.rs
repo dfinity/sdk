@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use slog::info;
 
 /// Renames an existing identity.
@@ -16,12 +16,7 @@ pub struct RenameOpts {
     to: String,
 }
 
-pub fn construct() -> App<'static> {
-    RenameOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: RenameOpts = RenameOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: RenameOpts) -> DfxResult {
     let from = opts.from.as_str();
     let to = opts.to.as_str();
 

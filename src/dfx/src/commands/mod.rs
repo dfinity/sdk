@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::ArgMatches;
+use clap::Clap;
 
 mod bootstrap;
 mod build;
@@ -18,46 +18,39 @@ mod start;
 mod stop;
 mod upgrade;
 
-pub type CliExecFn = fn(&dyn Environment, &ArgMatches) -> DfxResult;
-pub struct CliCommand {
-    subcommand: clap::App<'static>,
-    executor: CliExecFn,
+#[derive(Clap)]
+pub enum Command {
+    Bootstrap(bootstrap::BootstrapOpts),
+    Build(build::CanisterBuildOpts),
+    Cache(cache::CacheOpts),
+    Canister(canister::CanisterOpts),
+    Config(config::ConfigOpts),
+    Deploy(deploy::DeployOpts),
+    Identity(identity::IdentityOpt),
+    LanguageServices(language_service::LanguageServiceOpts),
+    New(new::NewOpts),
+    Ping(ping::PingOpts),
+    Replica(replica::ReplicaOpts),
+    Start(start::StartOpts),
+    Stop(stop::StopOpts),
+    Upgrade(upgrade::UpgradeOpts),
 }
 
-impl CliCommand {
-    pub fn new(subcommand: clap::App<'static>, executor: CliExecFn) -> CliCommand {
-        CliCommand {
-            subcommand,
-            executor,
-        }
+pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
+    match cmd {
+        Command::Bootstrap(v) => bootstrap::exec(env, v),
+        Command::Build(v) => build::exec(env, v),
+        Command::Cache(v) => cache::exec(env, v),
+        Command::Canister(v) => canister::exec(env, v),
+        Command::Config(v) => config::exec(env, v),
+        Command::Deploy(v) => deploy::exec(env, v),
+        Command::Identity(v) => identity::exec(env, v),
+        Command::LanguageServices(v) => language_service::exec(env, v),
+        Command::New(v) => new::exec(env, v),
+        Command::Ping(v) => ping::exec(env, v),
+        Command::Replica(v) => replica::exec(env, v),
+        Command::Start(v) => start::exec(env, v),
+        Command::Stop(v) => stop::exec(env, v),
+        Command::Upgrade(v) => upgrade::exec(env, v),
     }
-    pub fn get_subcommand(&self) -> &clap::App<'static> {
-        &self.subcommand
-    }
-    pub fn get_name(&self) -> &str {
-        self.subcommand.get_name()
-    }
-    pub fn execute(self: &CliCommand, env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-        (self.executor)(env, args)
-    }
-}
-
-/// Returns all builtin commands understood by DFx.
-pub fn builtin() -> Vec<CliCommand> {
-    vec![
-        CliCommand::new(bootstrap::construct(), bootstrap::exec),
-        CliCommand::new(build::construct(), build::exec),
-        CliCommand::new(cache::construct(), cache::exec),
-        CliCommand::new(canister::construct(), canister::exec),
-        CliCommand::new(config::construct(), config::exec),
-        CliCommand::new(deploy::construct(), deploy::exec),
-        CliCommand::new(identity::construct(), identity::exec),
-        CliCommand::new(language_service::construct(), language_service::exec),
-        CliCommand::new(new::construct(), new::exec),
-        CliCommand::new(ping::construct(), ping::exec),
-        CliCommand::new(replica::construct(), replica::exec),
-        CliCommand::new(start::construct(), start::exec),
-        CliCommand::new(stop::construct(), stop::exec),
-        CliCommand::new(upgrade::construct(), upgrade::exec),
-    ]
 }

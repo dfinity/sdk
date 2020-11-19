@@ -67,11 +67,11 @@ impl Cache for DiskBasedCache {
 }
 
 pub fn get_cache_root() -> DfxResult<PathBuf> {
+    let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
     let home =
         std::env::var("HOME").map_err(|_| DfxError::new(CacheError::CannotFindHomeDirectory()))?;
-
-    let p = PathBuf::from(home).join(".cache").join("dfinity");
-
+    let root = config_root.unwrap_or(home);
+    let p = PathBuf::from(root).join(".cache").join("dfinity");
     if !p.exists() {
         if let Err(_e) = std::fs::create_dir_all(&p) {
             return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));
@@ -79,7 +79,6 @@ pub fn get_cache_root() -> DfxResult<PathBuf> {
     } else if !p.is_dir() {
         return Err(DfxError::new(CacheError::CannotFindCacheDirectory(p)));
     }
-
     Ok(p)
 }
 

@@ -13,7 +13,7 @@ use crate::util::get_reusable_socket_addr;
 
 use actix::{Actor, Addr};
 use anyhow::{anyhow, bail, Context};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
@@ -39,10 +39,6 @@ pub struct StartOpts {
     /// Cleans the state of the current project.
     #[clap(long)]
     clean: bool,
-}
-
-pub fn construct() -> App<'static> {
-    StartOpts::into_app()
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -108,12 +104,9 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: StartOpts = StartOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-
     let network_descriptor = get_network_descriptor(env, None)?;
-
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
