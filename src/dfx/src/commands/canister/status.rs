@@ -44,7 +44,7 @@ async fn canister_status(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, opts: &CanisterStatusOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: CanisterStatusOpts) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

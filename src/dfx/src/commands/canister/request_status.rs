@@ -20,7 +20,7 @@ pub struct RequestStatusOpts {
     request_id: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: &RequestStatusOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     let request_id = RequestId::from_str(&opts.request_id[2..])
         .map_err(|_| DfxError::InvalidArgument("request_id".to_owned()))?;
 

@@ -18,7 +18,7 @@ pub struct CanisterCreateOpts {
     all: bool,
 }
 
-pub fn exec(env: &dyn Environment, opts: &CanisterCreateOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

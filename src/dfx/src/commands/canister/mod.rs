@@ -43,15 +43,15 @@ enum SubCommand {
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network)?;
     match opts.subcmd {
-        SubCommand::Call(v) => call::exec(&agent_env, &v),
-        SubCommand::Create(v) => create::exec(&agent_env, &v),
-        SubCommand::Delete(v) => delete::exec(&agent_env, &v),
-        SubCommand::Id(v) => id::exec(&agent_env, &v),
-        SubCommand::Install(v) => install::exec(&agent_env, &v),
-        SubCommand::RequestStatus(v) => request_status::exec(&agent_env, &v),
-        SubCommand::SetController(v) => set_controller::exec(&agent_env, &v),
-        SubCommand::Start(v) => start::exec(&agent_env, &v),
-        SubCommand::Status(v) => status::exec(&agent_env, &v),
-        SubCommand::Stop(v) => stop::exec(&agent_env, &v),
+        SubCommand::Call(v) => call::exec(&agent_env, v),
+        SubCommand::Create(v) => create::exec(&agent_env, v),
+        SubCommand::Delete(v) => delete::exec(&agent_env, v),
+        SubCommand::Id(v) => id::exec(&agent_env, v),
+        SubCommand::Install(v) => install::exec(&agent_env, v),
+        SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v),
+        SubCommand::SetController(v) => set_controller::exec(&agent_env, v),
+        SubCommand::Start(v) => start::exec(&agent_env, v),
+        SubCommand::Status(v) => status::exec(&agent_env, v),
+        SubCommand::Stop(v) => stop::exec(&agent_env, v),
     }
 }

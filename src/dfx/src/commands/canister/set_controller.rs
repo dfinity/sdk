@@ -23,7 +23,7 @@ pub struct SetControllerOpts {
     new_controller: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: &SetControllerOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
     let canister_id = match CanisterId::from_text(&opts.canister) {
         Ok(id) => id,
         Err(_) => CanisterIdStore::for_env(env)?.get(&opts.canister)?,

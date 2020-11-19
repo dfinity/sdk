@@ -49,7 +49,7 @@ async fn stop_canister(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, opts: &CanisterStopOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: CanisterStopOpts) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

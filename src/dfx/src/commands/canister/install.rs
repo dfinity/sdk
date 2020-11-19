@@ -77,7 +77,7 @@ fn get_memory_allocation(
         }))
 }
 
-pub fn exec(env: &dyn Environment, opts: &CanisterInstallOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;

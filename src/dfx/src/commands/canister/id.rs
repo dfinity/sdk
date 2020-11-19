@@ -13,7 +13,7 @@ pub struct CanisterIdOpts {
     canister_name: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: &CanisterIdOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: CanisterIdOpts) -> DfxResult {
     env.get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
     let canister_name = opts.canister_name.as_str();
