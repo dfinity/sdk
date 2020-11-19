@@ -32,7 +32,9 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
         cmd.arg(arg);
     }
 
-    let output = cmd.output().context("Failed to invoke the package tool.")?;
+    let output = cmd
+        .output()
+        .context(format!("Failed to invoke the package tool: {:?}", cmd))?;
     if !output.status.success() {
         return Err(DfxError::new(BuildError::CommandError(
             format!("{:?}", cmd),
