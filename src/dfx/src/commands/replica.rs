@@ -6,7 +6,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
 use actix::Actor;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use std::default::Default;
 
 /// Starts a local Internet Computer replica.
@@ -24,10 +24,6 @@ pub struct ReplicaOpts {
     /// Specifies the maximum number of cycles a single round can consume.
     #[clap(long, hidden = true)]
     round_gas_limit: Option<String>,
-}
-
-pub fn construct() -> App<'static> {
-    ReplicaOpts::into_app()
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -116,8 +112,7 @@ fn get_round_gas_limit(
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: ReplicaOpts = ReplicaOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
 

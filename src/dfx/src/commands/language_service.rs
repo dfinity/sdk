@@ -2,7 +2,7 @@ use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FI
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::package_arguments::{self, PackageArguments};
-use clap::{App, AppSettings, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::{AppSettings, Clap};
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
@@ -22,14 +22,9 @@ pub struct LanguageServiceOpts {
     force_tty: bool,
 }
 
-pub fn construct() -> App<'static> {
-    LanguageServiceOpts::into_app()
-}
-
 // Don't read anything from stdin or output anything to stdout while this function is being
 // executed or LSP will become very unhappy
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: LanguageServiceOpts = LanguageServiceOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
     let force_tty = opts.force_tty;
     // Are we being run from a terminal? That's most likely not what we want
     if atty::is(atty::Stream::Stdout) && !force_tty {

@@ -4,7 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
 use tokio::runtime::Runtime;
@@ -46,12 +46,7 @@ pub struct CanisterCallOpts {
     output: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    CanisterCallOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterCallOpts = CanisterCallOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -121,7 +116,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         )?;
         print_idl_blob(&blob, output_type, &method_type)
             .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
-    } else if args.is_present("async") {
+    } else if opts.r#async {
         let request_id = runtime.block_on(
             agent
                 .update(&canister_id, method_name)
