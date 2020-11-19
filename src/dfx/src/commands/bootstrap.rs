@@ -5,7 +5,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::webserver;
 use crate::util::get_reusable_socket_addr;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use slog::info;
 use std::default::Default;
 use std::fs;
@@ -43,13 +43,8 @@ pub struct BootstrapOpts {
     timeout: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    BootstrapOpts::into_app()
-}
-
 /// Runs the bootstrap server.
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: BootstrapOpts = BootstrapOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let logger = env.get_logger();
     let config = env
         .get_config()

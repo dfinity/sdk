@@ -1,7 +1,7 @@
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use serde_json::value::Value;
 
 /// Configures project options for your currently-selected project.
@@ -22,12 +22,7 @@ pub struct ConfigOpts {
     format: String,
 }
 
-pub fn construct() -> App<'static> {
-    ConfigOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: ConfigOpts = ConfigOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
     // Cannot use the `env` variable as we need a mutable copy.
     let mut config: Config = env
         .get_config()

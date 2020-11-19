@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::util::expiry_duration;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use tokio::runtime::Runtime;
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
@@ -27,12 +27,7 @@ pub struct DeployOpts {
     network: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    DeployOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: DeployOpts = DeployOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let env = create_agent_environment(env, opts.network)?;
 
     let timeout = expiry_duration();

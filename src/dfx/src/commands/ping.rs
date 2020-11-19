@@ -4,7 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{command_line_provider_to_url, get_network_descriptor};
 use crate::util::expiry_duration;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use tokio::runtime::Runtime;
 
 /// Pings an Internet Computer network and returns its status.
@@ -15,12 +15,7 @@ pub struct PingOpts {
     network: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    PingOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: PingOpts = PingOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     env.get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
 
