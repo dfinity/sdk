@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
+
 use clap::Clap;
 use slog::info;
 

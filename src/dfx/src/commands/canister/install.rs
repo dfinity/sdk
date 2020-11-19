@@ -1,11 +1,13 @@
 use crate::config::dfinity::ConfigInterface;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
 use crate::util::clap::validators::{compute_allocation_validator, memory_allocation_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
+
+use anyhow::{anyhow, bail};
 use clap::Clap;
 use humanize_rs::bytes::Bytes;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
@@ -78,22 +80,15 @@ fn get_memory_allocation(
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
-    let timeout = expiry_duration();
-
+    let config = env.get_config_or_anyhow()?;
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let timeout = expiry_duration();
 
     let config_interface = config.get_config();
-
-    let mode = InstallMode::from_str(opts.mode.as_str())?;
-
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
-
+    let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
@@ -162,6 +157,6 @@ pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
         }
         Ok(())
     } else {
-        Err(DfxError::CanisterNameMissing())
+        bail!("Cannot find canister name.")
     }
 }

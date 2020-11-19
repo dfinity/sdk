@@ -1,8 +1,10 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
+
+use anyhow::{anyhow, bail};
 use clap::Clap;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
@@ -45,15 +47,11 @@ async fn canister_status(
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterStatusOpts) -> DfxResult {
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let config = env.get_config_or_anyhow()?;
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-
     let timeout = expiry_duration();
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
@@ -67,6 +65,6 @@ pub fn exec(env: &dyn Environment, opts: CanisterStatusOpts) -> DfxResult {
         }
         Ok(())
     } else {
-        Err(DfxError::CanisterNameMissing())
+        bail!("Cannot find canister name.")
     }
 }

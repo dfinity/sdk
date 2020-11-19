@@ -3,6 +3,8 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators;
 use crate::util::{expiry_duration, print_idl_blob};
+
+use anyhow::{anyhow, Context};
 use clap::Clap;
 use delay::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
@@ -21,18 +23,15 @@ pub struct RequestStatusOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
-    let request_id = RequestId::from_str(&opts.request_id[2..])
-        .map_err(|_| DfxError::InvalidArgument("request_id".to_owned()))?;
-
+    let request_id =
+        RequestId::from_str(&opts.request_id[2..]).context("Invalid argument: request_id")?;
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-
     let timeout = expiry_duration();
 
     let mut waiter = waiter_with_timeout(timeout);
-
     let Replied::CallReplied(blob) = runtime
         .block_on(async {
             waiter.start();
@@ -43,7 +42,7 @@ pub fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                         reject_code,
                         reject_message,
                     } => {
-                        return Err(DfxError::AgentError(AgentError::ReplicaError {
+                        return Err(DfxError::new(AgentError::ReplicaError {
                             reject_code,
                             reject_message,
                         }))
@@ -52,7 +51,7 @@ pub fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                     RequestStatusResponse::Received => (),
                     RequestStatusResponse::Processing => (),
                     RequestStatusResponse::Done => {
-                        return Err(DfxError::AgentError(AgentError::RequestStatusDoneNoReply(
+                        return Err(DfxError::new(AgentError::RequestStatusDoneNoReply(
                             String::from(request_id),
                         )))
                     }
@@ -60,11 +59,10 @@ pub fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
 
                 waiter
                     .wait()
-                    .map_err(|_| DfxError::AgentError(AgentError::TimeoutWaitingForResponse()))?;
+                    .map_err(|_| DfxError::new(AgentError::TimeoutWaitingForResponse()))?;
             }
         })
         .map_err(DfxError::from)?;
-    print_idl_blob(&blob, None, &None)
-        .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+    print_idl_blob(&blob, None, &None).context("Invalid data: Invalid IDL blob.")?;
     Ok(())
 }

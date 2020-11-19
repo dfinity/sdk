@@ -1,6 +1,8 @@
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
+
+use anyhow::{anyhow, bail};
 use clap::Clap;
 use serde_json::value::Value;
 
@@ -24,11 +26,7 @@ pub struct ConfigOpts {
 
 pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
     // Cannot use the `env` variable as we need a mutable copy.
-    let mut config: Config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?
-        .as_ref()
-        .clone();
+    let mut config: Config = env.get_config_or_anyhow()?.as_ref().clone();
 
     let config_path = opts.config_path.as_str();
     let format = opts.format.as_str();
@@ -55,7 +53,7 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
         *config
             .get_mut_json()
             .pointer_mut(config_path.as_str())
-            .ok_or(DfxError::ConfigPathDoesNotExist(config_path))? = value;
+            .ok_or_else(|| anyhow!("Config path does not exist at '{}'.", config_path))? = value;
         config.save()
     } else if let Some(value) = config.get_json().pointer(config_path.as_str()) {
         match format {
@@ -65,6 +63,6 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
         }
         Ok(())
     } else {
-        Err(DfxError::ConfigPathDoesNotExist(config_path))
+        bail!("Config path does not exist at '{}'.", config_path)
     }
 }

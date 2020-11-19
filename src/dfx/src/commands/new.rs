@@ -5,6 +5,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::util::assets;
 use crate::util::clap::validators::project_name_validator;
+
+use anyhow::{anyhow, bail, Context};
 use clap::Clap;
 use console::{style, Style};
 use indicatif::HumanBytes;
@@ -146,7 +148,7 @@ fn write_files_from_entries<R: Sized + Read>(
         }
 
         let mut s = String::new();
-        file.read_to_string(&mut s).map_err(DfxError::Io)?;
+        file.read_to_string(&mut s).map_err(DfxError::from)?;
 
         // Perform replacements.
         variables.iter().for_each(|(name, value)| {
@@ -201,8 +203,7 @@ fn scaffold_frontend_code(
 
     let project_name_str = project_name
         .to_str()
-        .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
-
+        .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
     if (node_installed && !arg_no_frontend) || arg_frontend {
         // Check if node is available, and if it is create the files for the frontend build.
         let mut new_project_node_files = assets::new_project_node_files()?;
@@ -248,9 +249,8 @@ fn scaffold_frontend_code(
                     "dist/".to_owned() + project_name_str + "_assets/",
                 ));
 
-            let pretty = serde_json::to_string_pretty(&config_json).map_err(|e| {
-                DfxError::InvalidData(format!("Failed to serialize dfx.json: {}", e))
-            })?;
+            let pretty = serde_json::to_string_pretty(&config_json)
+                .context("Invalid data: Cannot serialize configuration file.")?;
             std::fs::write(&dfx_path, pretty)?;
 
             // Install node modules. Error is not blocking, we just show a message instead.
@@ -286,7 +286,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     let project_name = Path::new(opts.project_name.as_str());
 
     if project_name.exists() {
-        return Err(DfxError::ProjectExists);
+        bail!("Cannot create a new project because the directory already exists.");
     }
 
     let current_version = env.get_version();
@@ -318,7 +318,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
 
     let project_name_str = project_name
         .to_str()
-        .ok_or_else(|| DfxError::InvalidArgument("project_name".to_string()))?;
+        .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
     // Any version that contains a `-` is a local build.
     // TODO: when adding alpha/beta, take that into account.
@@ -334,7 +334,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
             .join("../../src/agent/javascript");
         agent_path
             .canonicalize()
-            .map_err(|e| DfxError::IoWithPath(e, agent_path))?
+            .context("Cannot canonicalize agent path.")?
             .to_string_lossy()
             .to_string()
     } else {

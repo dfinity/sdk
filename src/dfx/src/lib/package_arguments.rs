@@ -1,5 +1,7 @@
 use crate::config::cache::Cache;
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::error::{BuildError, DfxError, DfxResult};
+
+use anyhow::{anyhow, bail};
 use std::process::Command;
 
 /// Package arguments for moc or mo-ide as returned by
@@ -13,8 +15,7 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
             .get_binary_command_path("base")?
             .into_os_string()
             .into_string()
-            .map_err(DfxError::CouldNotConvertOsString)?;
-
+            .map_err(|_| anyhow!("Path contains invalid Unicode data."))?;
         let base = vec![String::from("--package"), String::from("base"), stdlib_path];
         return Ok(base);
     }
@@ -33,22 +34,20 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
 
     let output = match cmd.output() {
         Ok(output) => output,
-        Err(e) => {
-            return Err(DfxError::BuildError(
-                BuildErrorKind::FailedToInvokePackageTool(format!("{:?}", cmd), e),
-            ));
-        }
+        Err(err) => bail!(
+            "Failed to invoke the package tool {:?}\n the error was: {}",
+            cmd,
+            err
+        ),
     };
 
     if !output.status.success() {
-        return Err(DfxError::BuildError(
-            BuildErrorKind::PackageToolReportedError(
-                format!("{:?}", cmd),
-                output.status,
-                String::from_utf8_lossy(&output.stdout).to_string(),
-                String::from_utf8_lossy(&output.stderr).to_string(),
-            ),
-        ));
+        return Err(DfxError::new(BuildError::CommandError(
+            format!("{:?}", cmd),
+            output.status,
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        )));
     }
 
     let package_arguments = String::from_utf8_lossy(&output.stdout)

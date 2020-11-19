@@ -1,7 +1,9 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
+
+use anyhow::bail;
 use clap::Clap;
 use tokio::runtime::Runtime;
 
@@ -19,12 +21,8 @@ pub struct CanisterCreateOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
+    let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
-
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     if let Some(canister_name) = opts.canister_name.clone() {
@@ -39,6 +37,6 @@ pub fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
         }
         Ok(())
     } else {
-        Err(DfxError::CanisterNameMissing())
+        bail!("Cannot find canister name.")
     }
 }

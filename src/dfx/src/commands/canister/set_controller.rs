@@ -1,9 +1,11 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
+
+use anyhow::anyhow;
 use clap::Clap;
 use ic_agent::Identity;
 use ic_types::principal::Principal as CanisterId;
@@ -33,17 +35,17 @@ pub fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
         Ok(principal) => principal,
         Err(_) => IdentityManager::new(env)?
             .instantiate_identity_from_name(&opts.new_controller)?
-            .sender()?,
+            .sender()
+            .map_err(|err| anyhow!(err))?,
     };
 
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 
-    let mgr = ManagementCanister::create(
-        env.get_agent()
-            .ok_or(DfxError::CommandMustBeRunInAProject)?,
-    );
-
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let mgr = ManagementCanister::create(agent);
     runtime.block_on(
         mgr.set_controller(&canister_id, &controller_principal)
             .call_and_wait(waiter_with_timeout(timeout)),

@@ -1,6 +1,7 @@
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
+
 use clap::{AppSettings, Clap};
 use semver::Version;
 use std::path::PathBuf;
