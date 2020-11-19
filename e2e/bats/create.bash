@@ -69,5 +69,5 @@ teardown() {
     dfx_start
     assert_command dfx config networks.ic.providers '[ "http://not-real.nowhere.test." ]'
     assert_command_fail dfx canister --network ic create --all
-    assert_match "ConnectError"
+    assert_match "Could not reach the server"
 }
