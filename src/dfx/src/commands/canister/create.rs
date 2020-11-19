@@ -3,6 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
 use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use tokio::runtime::Runtime;
 
 /// Creates an empty canister on the Internet Computer and
 /// associates the Internet Computer assigned Canister ID to the canister name.
@@ -29,14 +30,16 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let timeout = expiry_duration();
 
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+
     if let Some(canister_name) = opts.canister_name {
-        create_canister(env, canister_name.as_str(), timeout)?;
+        runtime.block_on(create_canister(env, canister_name.as_str(), timeout))?;
         Ok(())
     } else if opts.all {
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                create_canister(env, canister_name, timeout)?;
+                runtime.block_on(create_canister(env, canister_name, timeout))?;
             }
         }
         Ok(())
