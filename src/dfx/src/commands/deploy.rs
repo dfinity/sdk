@@ -4,6 +4,7 @@ use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::util::expiry_duration;
 use clap::Clap;
+use tokio::runtime::Runtime;
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
 #[derive(Clap)]
@@ -34,5 +35,13 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let argument = opts.argument.as_deref();
     let argument_type = opts.argument_type.as_deref();
 
-    deploy_canisters(&env, canister_name, argument, argument_type, timeout)
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+
+    runtime.block_on(deploy_canisters(
+        &env,
+        canister_name,
+        argument,
+        argument_type,
+        timeout,
+    ))
 }
