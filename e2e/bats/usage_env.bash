@@ -16,7 +16,7 @@ teardown() {
 }
 
 @test "dfx config root env var stores identity & cache" {
-	#identity
+    #identity
     dfx identity new alice
     assert_command head $DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem
     assert_command head $DFX_CONFIG_ROOT/.config/dfx/identity/default/identity.pem
@@ -27,22 +27,22 @@ teardown() {
     #cache
     # create a new project to install dfx cache
     assert_command_fail ls $DFX_CONFIG_ROOT/.cache/dfinity/versions
-	dfx new hello
+    dfx new hello
     assert_command ls $DFX_CONFIG_ROOT/.cache/dfinity/versions
     assert_command_fail ls $HOME/.cache/dfinity/versions
-	rm -rf hello
+    rm -rf hello
 
-	# remove configured variable, should use $HOME now
+    # remove configured variable, should use $HOME now
     unset DFX_CONFIG_ROOT
 
-	dfx identity new bob
+    dfx identity new bob
     assert_command head $HOME/.config/dfx/identity/bob/identity.pem
     assert_command head $HOME/.config/dfx/identity/default/identity.pem
 
     #cache
     # create a new project to install dfx cache
     assert_command_fail ls $HOME/.cache/dfinity/versions
-	dfx new hello
+    dfx new hello
     assert_command ls $HOME/.cache/dfinity/versions
-	rm -rf hello
+    rm -rf hello
 }
