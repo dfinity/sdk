@@ -1,4 +1,7 @@
+use crate::lib::error::DfxError;
+
 use ring::error::Unspecified;
+use std::boxed::Box;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -13,11 +16,11 @@ pub enum IdentityError {
     #[error("Cannot generate key pair.")]
     CannotGenerateKeyPair(Unspecified),
 
-    #[error("Cannot create identity directory at '{0}'.")]
-    CannotCreateIdentityDirectory(PathBuf),
+    #[error("Cannot create identity directory at '{0}': {1}")]
+    CannotCreateIdentityDirectory(PathBuf, Box<DfxError>),
 
-    #[error("Cannot rename identity directory from '{0}' to '{1}'.")]
-    CannotRenameIdentityDirectory(PathBuf, PathBuf),
+    #[error("Cannot rename identity directory from '{0}' to '{1}': {2}")]
+    CannotRenameIdentityDirectory(PathBuf, PathBuf, Box<DfxError>),
 
     #[error("Cannot delete the default identity.")]
     CannotDeleteDefaultIdentity(),
@@ -28,6 +31,6 @@ pub enum IdentityError {
     #[error("Cannot find home directory.")]
     CannotFindHomeDirectory(),
 
-    #[error("Cannot read identity file at '{0}'")]
-    CannotReadIdentityFile(PathBuf),
+    #[error("Cannot read identity file at '{0}': {1}")]
+    CannotReadIdentityFile(PathBuf, Box<DfxError>),
 }

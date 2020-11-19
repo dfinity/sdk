@@ -9,6 +9,7 @@ use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
+use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -78,7 +79,12 @@ impl IdentityManager {
         self.require_identity_exists(identity_name)?;
         let pem_path = self.get_identity_pem_path(identity_name);
         Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
-            |_| DfxError::new(IdentityError::CannotReadIdentityFile(pem_path.clone())),
+            |err| {
+                DfxError::new(IdentityError::CannotReadIdentityFile(
+                    pem_path.clone(),
+                    Box::new(DfxError::new(err)),
+                ))
+            },
         )?))
     }
 
@@ -92,9 +98,10 @@ impl IdentityManager {
         if identity_dir.exists() {
             return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
         }
-        std::fs::create_dir_all(&identity_dir).map_err(|_| {
+        std::fs::create_dir_all(&identity_dir).map_err(|err| {
             DfxError::new(IdentityError::CannotCreateIdentityDirectory(
                 identity_dir.clone(),
+                Box::new(DfxError::new(err)),
             ))
         })?;
 
@@ -167,9 +174,11 @@ impl IdentityManager {
             return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
         }
 
-        std::fs::rename(&from_dir, &to_dir).map_err(|_e| {
+        std::fs::rename(&from_dir, &to_dir).map_err(|err| {
             DfxError::new(IdentityError::CannotRenameIdentityDirectory(
-                from_dir, to_dir,
+                from_dir,
+                to_dir,
+                Box::new(DfxError::new(err)),
             ))
         })?;
 
@@ -227,8 +236,11 @@ fn initialize(
     let identity_pem_path = identity_dir.join(IDENTITY_PEM);
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
-            std::fs::create_dir_all(&identity_dir).map_err(|_e| {
-                DfxError::new(IdentityError::CannotCreateIdentityDirectory(identity_dir))
+            std::fs::create_dir_all(&identity_dir).map_err(|err| {
+                DfxError::new(IdentityError::CannotCreateIdentityDirectory(
+                    identity_dir,
+                    Box::new(DfxError::new(err)),
+                ))
             })?;
         }
 
