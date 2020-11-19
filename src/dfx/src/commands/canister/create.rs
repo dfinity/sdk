@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use tokio::runtime::Runtime;
 
 /// Creates an empty canister on the Internet Computer and
@@ -18,12 +18,7 @@ pub struct CanisterCreateOpts {
     all: bool,
 }
 
-pub fn construct() -> App<'static> {
-    CanisterCreateOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterCreateOpts = CanisterCreateOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
     let config = env
         .get_config()
         .ok_or(DfxError::CommandMustBeRunInAProject)?;
@@ -32,7 +27,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    if let Some(canister_name) = opts.canister_name {
+    if let Some(canister_name) = opts.canister_name.clone() {
         runtime.block_on(create_canister(env, canister_name.as_str(), timeout))?;
         Ok(())
     } else if opts.all {

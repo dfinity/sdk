@@ -4,7 +4,7 @@ use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use ic_agent::Identity;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::call::AsyncCall;
@@ -23,12 +23,7 @@ pub struct SetControllerOpts {
     new_controller: String,
 }
 
-pub fn construct() -> App<'static> {
-    SetControllerOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: SetControllerOpts = SetControllerOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
     let canister_id = match CanisterId::from_text(&opts.canister) {
         Ok(id) => id,
         Err(_) => CanisterIdStore::for_env(env)?.get(&opts.canister)?,

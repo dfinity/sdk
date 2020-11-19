@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use slog::info;
 
 /// Specifies the identity to use.
@@ -12,12 +12,7 @@ pub struct UseOpts {
     identity: String,
 }
 
-pub fn construct() -> App<'static> {
-    UseOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: UseOpts = UseOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: UseOpts) -> DfxResult {
     let identity = opts.identity.as_str();
 
     let log = env.get_logger();

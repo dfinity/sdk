@@ -3,7 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators;
 use crate::util::{expiry_duration, print_idl_blob};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use delay::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
@@ -20,12 +20,7 @@ pub struct RequestStatusOpts {
     request_id: String,
 }
 
-pub fn construct() -> App<'static> {
-    RequestStatusOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts = RequestStatusOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     let request_id = RequestId::from_str(&opts.request_id[2..])
         .map_err(|_| DfxError::InvalidArgument("request_id".to_owned()))?;
 

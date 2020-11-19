@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use clap::{App, ArgMatches, Clap, IntoApp};
+use clap::Clap;
 use std::io::Write;
 
 /// Lists existing identities.
@@ -9,11 +9,7 @@ use std::io::Write;
 #[clap(name("list"))]
 pub struct ListOpts {}
 
-pub fn construct() -> App<'static> {
-    ListOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, _args: &ArgMatches) -> DfxResult {
+pub fn exec(env: &dyn Environment, _opts: ListOpts) -> DfxResult {
     let mgr = IdentityManager::new(env)?;
     let identities = mgr.get_identity_names()?;
     let current_identity = mgr.get_selected_identity_name();

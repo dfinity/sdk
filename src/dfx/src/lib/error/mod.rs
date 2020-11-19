@@ -44,9 +44,6 @@ pub enum DfxError {
     /// There is already a dfx running in the background.
     DfxAlreadyRunningInBackground(),
 
-    /// An unknown command was used. The argument is the command itself.
-    UnknownCommand(String),
-
     /// Cannot create a new project because the directory already exists.
     ProjectExists,
 
@@ -171,9 +168,6 @@ impl Display for DfxError {
                     "The Motoko Language Server returned an error:\n{}",
                     msg
                 ))?;
-            }
-            DfxError::UnknownCommand(command) => {
-                f.write_fmt(format_args!("Unknown command: {}", command))?;
             }
             DfxError::ProjectExists => {
                 f.write_fmt(format_args!(
