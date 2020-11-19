@@ -6,7 +6,7 @@ pub enum CacheError {
     #[error("Cannot create cache directory at '{0}'.")]
     CannotCreateCacheDirectory(PathBuf),
 
-    #[error("Cannot find cache directroy at '{0}'.")]
+    #[error("Cannot find cache directory at '{0}'.")]
     CannotFindCacheDirectory(PathBuf),
 
     #[error("Cannot find home directory.")]
