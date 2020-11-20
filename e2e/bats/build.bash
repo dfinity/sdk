@@ -70,7 +70,7 @@ teardown() {
   dfx config canisters.e2e_project.type unknown_canister_type
   dfx canister create --all
   assert_command_fail dfx build
-  assert_match "CouldNotFindBuilderForCanister"
+  assert_match "Cannot find builder for canister"
 }
 
 @test "can build a custom canister type" {

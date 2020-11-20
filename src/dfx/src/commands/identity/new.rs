@@ -1,7 +1,8 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+
+use clap::Clap;
 use slog::info;
 
 /// Creates a new identity.
@@ -12,12 +13,7 @@ pub struct NewIdentityOpts {
     identity: String,
 }
 
-pub fn construct() -> App<'static> {
-    NewIdentityOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: NewIdentityOpts = NewIdentityOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
     let name = opts.identity.as_str();
 
     let log = env.get_logger();

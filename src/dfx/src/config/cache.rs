@@ -1,7 +1,8 @@
 use crate::config::dfx_version;
-use crate::lib::error::DfxError::CacheError;
-use crate::lib::error::{CacheErrorKind, DfxError, DfxResult};
+use crate::lib::error::{CacheError, DfxError, DfxResult};
 use crate::util;
+
+use anyhow::bail;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -67,19 +68,17 @@ impl Cache for DiskBasedCache {
 
 pub fn get_cache_root() -> DfxResult<PathBuf> {
     let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
-    let home = std::env::var("HOME")
-        .map_err(|_| CacheError(CacheErrorKind::CannotFindUserHomeDirectory()))?;
+    let home =
+        std::env::var("HOME").map_err(|_| DfxError::new(CacheError::CannotFindHomeDirectory()))?;
     let root = config_root.unwrap_or(home);
     let p = PathBuf::from(root).join(".cache").join("dfinity");
-
     if !p.exists() {
-        if let Err(e) = std::fs::create_dir_all(&p) {
-            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
+        if let Err(_e) = std::fs::create_dir_all(&p) {
+            return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));
         }
     } else if !p.is_dir() {
-        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+        return Err(DfxError::new(CacheError::CannotFindCacheDirectory(p)));
     }
-
     Ok(p)
 }
 
@@ -89,11 +88,11 @@ pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
     let p = get_cache_root()?.join("versions");
 
     if !p.exists() {
-        if let Err(e) = std::fs::create_dir_all(&p) {
-            return Err(CacheError(CacheErrorKind::CannotCreateCacheDirectory(p, e)));
+        if let Err(_e) = std::fs::create_dir_all(&p) {
+            return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));
         }
     } else if !p.is_dir() {
-        return Err(CacheError(CacheErrorKind::CacheShouldBeADirectory(p)));
+        return Err(DfxError::new(CacheError::CannotFindCacheDirectory(p)));
     }
 
     Ok(p)
@@ -186,7 +185,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
         Ok(p)
     } else {
-        Err(CacheError(CacheErrorKind::UnknownDfxVersion(v.to_owned())))
+        Err(DfxError::new(CacheError::UnknownVersion(v.to_owned())))
     }
 }
 
@@ -221,9 +220,7 @@ pub fn call_cached_dfx(v: &Version) -> DfxResult<ExitStatus> {
     let v = format!("{}", v);
     let command_path = get_binary_path_from_version(&v, "dfx")?;
     if command_path == std::env::current_exe()? {
-        return Err(DfxError::Unknown(
-            format_args!("Invalid cache for version {}.", v).to_string(),
-        ));
+        bail!("Invalid cache for version {}.", v)
     }
 
     std::process::Command::new(command_path)

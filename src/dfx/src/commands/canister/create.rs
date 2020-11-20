@@ -1,9 +1,11 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+
+use anyhow::bail;
+use clap::Clap;
 use tokio::runtime::Runtime;
 
 /// Creates an empty canister on the Internet Computer and
@@ -19,23 +21,14 @@ pub struct CanisterCreateOpts {
     all: bool,
 }
 
-pub fn construct() -> App<'static> {
-    CanisterCreateOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterCreateOpts = CanisterCreateOpts::from_arg_matches(args);
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
+pub fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
+    let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
-
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(fetch_root_key_if_needed(env))?;
 
-    if let Some(canister_name) = opts.canister_name {
+    if let Some(canister_name) = opts.canister_name.clone() {
         runtime.block_on(create_canister(env, canister_name.as_str(), timeout))?;
         Ok(())
     } else if opts.all {
@@ -47,6 +40,6 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         }
         Ok(())
     } else {
-        Err(DfxError::CanisterNameMissing())
+        bail!("Cannot find canister name.")
     }
 }

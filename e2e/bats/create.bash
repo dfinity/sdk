@@ -60,15 +60,14 @@ teardown() {
 @test "create fails if selected network exists but has no providers" {
     dfx_start
 
-    assert_command dfx config networks.ic.providers '[  ]'
     cat <<<$(jq .networks.actuallylocal.providers=[] dfx.json) >dfx.json
     assert_command_fail dfx canister --network actuallylocal create --all
-    assert_match "ComputeNetworkHasNoProviders"
+    assert_match "Cannot find providers for network"
 }
 
 @test "create fails with network parameter when network does not exist" {
     dfx_start
     cat <<<$(jq .networks.actuallylocal.providers=[\"http://not-real.nowhere.test.\"] dfx.json) >dfx.json
     assert_command_fail dfx canister --network actuallylocal create --all
-    assert_match "ConnectError"
+    assert_match "Could not reach the server"
 }

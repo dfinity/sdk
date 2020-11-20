@@ -1,5 +1,6 @@
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownTrigger;
+
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient};
 use slog::Logger;
 use std::time::Duration;

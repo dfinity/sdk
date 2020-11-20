@@ -1,15 +1,16 @@
 use crate::config::dfinity::{ConfigDefaults, ConfigDefaultsBootstrap};
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::webserver;
 use crate::util::get_reusable_socket_addr;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+
+use anyhow::{anyhow, Context};
+use clap::Clap;
 use slog::info;
 use std::default::Default;
 use std::fs;
-use std::io::{Error, ErrorKind};
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -43,17 +44,10 @@ pub struct BootstrapOpts {
     timeout: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    BootstrapOpts::into_app()
-}
-
 /// Runs the bootstrap server.
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: BootstrapOpts = BootstrapOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let logger = env.get_logger();
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let config = env.get_config_or_anyhow()?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
     let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;
@@ -89,12 +83,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         sender,
     )?
     .join()
-    .map_err(|e| {
-        DfxError::RuntimeError(Error::new(
-            ErrorKind::Other,
-            format!("Failed while running frontend proxy thead -- {:?}", e),
-        ))
-    })?;
+    .map_err(|err| anyhow!("Cannot start frontend proxy server: {:?}", err))?;
 
     // Wait for the webserver to be started.
     let _ = receiver.recv().expect("Failed to receive server...");
@@ -144,7 +133,7 @@ fn get_ip(config: &ConfigDefaultsBootstrap, ip: Option<&str>) -> DfxResult<IpAdd
             let default = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
             Ok(config.ip.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid IP address: {}", err)))
+        .context("Invalid argument: Invalid IP address.")
 }
 
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
@@ -156,7 +145,7 @@ fn get_port(config: &ConfigDefaultsBootstrap, port: Option<&str>) -> DfxResult<u
             let default = 8081;
             Ok(config.port.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid port number: {}", err)))
+        .context("Invalid argument: Invalid port number.")
 }
 
 /// Gets the list of compute provider API endpoints.
@@ -190,7 +179,7 @@ fn get_root(
                     )
                 })
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid directory: {:?}", err)))
+        .context("Invalid argument: Invalid directory.")
 }
 
 /// Gets the maximum amount of time, in seconds, the bootstrap server will wait for upstream
@@ -204,12 +193,12 @@ fn get_timeout(config: &ConfigDefaultsBootstrap, timeout: Option<&str>) -> DfxRe
             let default = 30;
             Ok(config.timeout.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid timeout: {}", err)))
+        .context("Invalid argument: Invalid timeout.")
 }
 
 /// TODO (enzo): Documentation.
 fn parse_dir(dir: &str) -> DfxResult<PathBuf> {
     fs::metadata(dir)
         .map(|_| PathBuf::from(dir))
-        .map_err(|_| DfxError::Io(Error::new(ErrorKind::NotFound, dir)))
+        .context(format!("Cannot find metadata at '{}'.", dir))
 }

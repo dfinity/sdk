@@ -1,7 +1,7 @@
-use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
-use clap::{App, ArgMatches, Clap, IntoApp};
+use crate::lib::error::DfxResult;
+
+use clap::Clap;
 
 mod list;
 mod new;
@@ -15,39 +15,30 @@ mod whoami;
 /// Setting an identity enables you to test user-based access controls.
 #[derive(Clap)]
 #[clap(name("identity"))]
-pub struct IdentityOpt {}
-
-pub fn construct() -> App<'static> {
-    IdentityOpt::into_app().subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
+pub struct IdentityOpt {
+    #[clap(subcommand)]
+    subcmd: SubCommand,
 }
 
-fn builtins() -> Vec<CliCommand> {
-    vec![
-        CliCommand::new(list::construct(), list::exec),
-        CliCommand::new(new::construct(), new::exec),
-        CliCommand::new(remove::construct(), remove::exec),
-        CliCommand::new(rename::construct(), rename::exec),
-        CliCommand::new(r#use::construct(), r#use::exec),
-        CliCommand::new(whoami::construct(), whoami::exec),
-        CliCommand::new(principal::construct(), principal::exec),
-    ]
+#[derive(Clap)]
+enum SubCommand {
+    List(list::ListOpts),
+    New(new::NewIdentityOpts),
+    GetPrincipal(principal::GetPrincipalOpts),
+    Remove(remove::RemoveOpts),
+    Rename(rename::RenameOpts),
+    Use(r#use::UseOpts),
+    Whoami(whoami::WhoAmIOpts),
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let subcommand = args.subcommand();
-
-    if let Some((name, subcommand_args)) = subcommand {
-        match builtins().into_iter().find(|x| name == x.get_name()) {
-            Some(cmd) => cmd.execute(env, subcommand_args),
-            None => Err(DfxError::UnknownCommand(format!(
-                "Command {} not found.",
-                name
-            ))),
-        }
-    } else {
-        construct().write_help(&mut std::io::stderr())?;
-        eprintln!();
-        eprintln!();
-        Ok(())
+pub fn exec(env: &dyn Environment, opts: IdentityOpt) -> DfxResult {
+    match opts.subcmd {
+        SubCommand::List(v) => list::exec(env, v),
+        SubCommand::New(v) => new::exec(env, v),
+        SubCommand::GetPrincipal(v) => principal::exec(env, v),
+        SubCommand::Remove(v) => remove::exec(env, v),
+        SubCommand::Rename(v) => rename::exec(env, v),
+        SubCommand::Use(v) => r#use::exec(env, v),
+        SubCommand::Whoami(v) => whoami::exec(env, v),
     }
 }

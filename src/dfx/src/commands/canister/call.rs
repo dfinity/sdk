@@ -1,11 +1,13 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+
+use anyhow::{anyhow, bail, Context};
+use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
 use tokio::runtime::Runtime;
@@ -47,15 +49,8 @@ pub struct CanisterCallOpts {
     output: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    CanisterCallOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterCallOpts = CanisterCallOpts::from_arg_matches(args);
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+pub fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
+    let config = env.get_config_or_anyhow()?;
     let canister_name = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
 
@@ -91,10 +86,10 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
             Some(true) => !opts.update,
             Some(false) => {
                 if opts.query {
-                    return Err(DfxError::InvalidMethodCall(format!(
-                        "{} is not a query method",
+                    bail!(
+                        "Invalid method call: {} is not a query method.",
                         method_name
-                    )));
+                    );
                 } else {
                     false
                 }
@@ -108,7 +103,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
     let arg_value = blob_from_arguments(arguments, arg_type, &method_type)?;
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(fetch_root_key_if_needed(env))?;
@@ -123,8 +118,8 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
                 .call(),
         )?;
         print_idl_blob(&blob, output_type, &method_type)
-            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
-    } else if args.is_present("async") {
+            .context("Invalid data: Invalid IDL blob.")?;
+    } else if opts.r#async {
         let request_id = runtime.block_on(
             agent
                 .update(&canister_id, method_name)
@@ -143,7 +138,7 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         )?;
 
         print_idl_blob(&blob, output_type, &method_type)
-            .map_err(|e| DfxError::InvalidData(format!("Invalid IDL blob: {}", e)))?;
+            .context("Invalid data: Invalid IDL blob.")?;
     }
 
     Ok(())
