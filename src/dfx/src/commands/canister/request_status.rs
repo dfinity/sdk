@@ -31,36 +31,36 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
 
     let mut waiter = waiter_with_timeout(timeout);
     let Replied::CallReplied(blob) = async {
-            waiter.start();
-            loop {
-                match agent.request_status_raw(&request_id, None).await? {
-                    RequestStatusResponse::Replied { reply } => return Ok(reply),
-                    RequestStatusResponse::Rejected {
+        waiter.start();
+        loop {
+            match agent.request_status_raw(&request_id, None).await? {
+                RequestStatusResponse::Replied { reply } => return Ok(reply),
+                RequestStatusResponse::Rejected {
+                    reject_code,
+                    reject_message,
+                } => {
+                    return Err(DfxError::new(AgentError::ReplicaError {
                         reject_code,
                         reject_message,
-                    } => {
-                        return Err(DfxError::new(AgentError::ReplicaError {
-                            reject_code,
-                            reject_message,
-                        }))
-                    }
-                    RequestStatusResponse::Unknown => (),
-                    RequestStatusResponse::Received => (),
-                    RequestStatusResponse::Processing => (),
-                    RequestStatusResponse::Done => {
-                        return Err(DfxError::new(AgentError::RequestStatusDoneNoReply(
-                            String::from(request_id),
-                        )))
-                    }
-                };
+                    }))
+                }
+                RequestStatusResponse::Unknown => (),
+                RequestStatusResponse::Received => (),
+                RequestStatusResponse::Processing => (),
+                RequestStatusResponse::Done => {
+                    return Err(DfxError::new(AgentError::RequestStatusDoneNoReply(
+                        String::from(request_id),
+                    )))
+                }
+            };
 
-                waiter
-                    .wait()
-                    .map_err(|_| DfxError::new(AgentError::TimeoutWaitingForResponse()))?;
-            }
+            waiter
+                .wait()
+                .map_err(|_| DfxError::new(AgentError::TimeoutWaitingForResponse()))?;
         }
-        .await
-        .map_err(DfxError::from)?;
+    }
+    .await
+    .map_err(DfxError::from)?;
     print_idl_blob(&blob, None, &None).context("Invalid data: Invalid IDL blob.")?;
     Ok(())
 }

@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
 
-use anyhow::bail;
+use anyhow::anyhow;
 use clap::Clap;
 
 /// Creates an empty canister on the Internet Computer and
@@ -24,8 +24,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult 
     let timeout = expiry_duration();
 
     if let Some(canister_name) = opts.canister_name.clone() {
-        create_canister(env, canister_name.as_str(), timeout).await?;
-        Ok(())
+        create_canister(env, canister_name.as_str(), timeout).await
     } else if opts.all {
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
@@ -35,6 +34,6 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult 
         }
         Ok(())
     } else {
-        bail!("Cannot find canister name.")
+        Err(anyhow!("Cannot find canister name."))
     }
 }

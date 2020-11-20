@@ -119,8 +119,8 @@ pub async fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult
             mode,
             memory_allocation,
             timeout,
-        ).await?;
-        Ok(())
+        )
+        .await
     } else if opts.all {
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
@@ -150,7 +150,8 @@ pub async fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult
                     mode,
                     memory_allocation,
                     timeout,
-                ).await?;
+                )
+                .await?;
             }
         }
         Ok(())

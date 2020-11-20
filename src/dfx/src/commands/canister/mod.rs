@@ -45,16 +45,16 @@ enum SubCommand {
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network)?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    runtime.block_on(match opts.subcmd {
-        SubCommand::Call(v) => call::exec(&agent_env, v),
-        SubCommand::Create(v) => create::exec(&agent_env, v),
-        SubCommand::Delete(v) => delete::exec(&agent_env, v),
-        SubCommand::Id(v) => id::exec(&agent_env, v),
-        SubCommand::Install(v) => install::exec(&agent_env, v),
-        SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v),
-        SubCommand::SetController(v) => set_controller::exec(&agent_env, v),
-        SubCommand::Start(v) => start::exec(&agent_env, v),
-        SubCommand::Status(v) => status::exec(&agent_env, v),
-        SubCommand::Stop(v) => stop::exec(&agent_env, v),
-    })
+    match opts.subcmd {
+        SubCommand::Call(v) => runtime.block_on(call::exec(&agent_env, v)),
+        SubCommand::Create(v) => runtime.block_on(create::exec(&agent_env, v)),
+        SubCommand::Delete(v) => runtime.block_on(delete::exec(&agent_env, v)),
+        SubCommand::Id(v) => runtime.block_on(id::exec(&agent_env, v)),
+        SubCommand::Install(v) => runtime.block_on(install::exec(&agent_env, v)),
+        SubCommand::RequestStatus(v) => runtime.block_on(request_status::exec(&agent_env, v)),
+        SubCommand::SetController(v) => runtime.block_on(set_controller::exec(&agent_env, v)),
+        SubCommand::Start(v) => runtime.block_on(start::exec(&agent_env, v)),
+        SubCommand::Status(v) => runtime.block_on(status::exec(&agent_env, v)),
+        SubCommand::Stop(v) => runtime.block_on(stop::exec(&agent_env, v)),
+    }
 }
