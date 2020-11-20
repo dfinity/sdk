@@ -43,9 +43,9 @@ pub fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(fetch_root_key_if_needed(env))?;
 
     let mgr = ManagementCanister::create(agent);
