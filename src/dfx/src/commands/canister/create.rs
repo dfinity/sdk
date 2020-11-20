@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::create_canister;
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::bail;
 use clap::Clap;
 
 /// Creates an empty canister on the Internet Computer and
@@ -34,6 +34,6 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult 
         }
         Ok(())
     } else {
-        Err(anyhow!("Cannot find canister name."))
+        bail!("Cannot find canister name.")
     }
 }
