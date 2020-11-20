@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::provider::create_agent_environment;
 
 use clap::Clap;
+use tokio::runtime::Runtime;
 
 mod call;
 mod create;
@@ -43,7 +44,8 @@ enum SubCommand {
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network)?;
-    match opts.subcmd {
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    runtime.block_on(match opts.subcmd {
         SubCommand::Call(v) => call::exec(&agent_env, v),
         SubCommand::Create(v) => create::exec(&agent_env, v),
         SubCommand::Delete(v) => delete::exec(&agent_env, v),
@@ -54,5 +56,5 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
         SubCommand::Start(v) => start::exec(&agent_env, v),
         SubCommand::Status(v) => status::exec(&agent_env, v),
         SubCommand::Stop(v) => stop::exec(&agent_env, v),
-    }
+    })
 }

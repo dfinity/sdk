@@ -5,7 +5,6 @@ use crate::util::expiry_duration;
 
 use anyhow::bail;
 use clap::Clap;
-use tokio::runtime::Runtime;
 
 /// Creates an empty canister on the Internet Computer and
 /// associates the Internet Computer assigned Canister ID to the canister name.
@@ -20,19 +19,18 @@ pub struct CanisterCreateOpts {
     all: bool,
 }
 
-pub fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
     if let Some(canister_name) = opts.canister_name.clone() {
-        runtime.block_on(create_canister(env, canister_name.as_str(), timeout))?;
+        create_canister(env, canister_name.as_str(), timeout).await?;
         Ok(())
     } else if opts.all {
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                runtime.block_on(create_canister(env, canister_name, timeout))?;
+                create_canister(env, canister_name, timeout).await?;
             }
         }
         Ok(())

@@ -10,7 +10,6 @@ use delay::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
 use std::str::FromStr;
-use tokio::runtime::Runtime;
 
 /// Requests the status of a specified call from a canister.
 #[derive(Clap)]
@@ -22,18 +21,16 @@ pub struct RequestStatusOpts {
     request_id: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     let request_id =
         RequestId::from_str(&opts.request_id[2..]).context("Invalid argument: request_id")?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 
     let mut waiter = waiter_with_timeout(timeout);
-    let Replied::CallReplied(blob) = runtime
-        .block_on(async {
+    let Replied::CallReplied(blob) = async {
             waiter.start();
             loop {
                 match agent.request_status_raw(&request_id, None).await? {
@@ -61,7 +58,8 @@ pub fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                     .wait()
                     .map_err(|_| DfxError::new(AgentError::TimeoutWaitingForResponse()))?;
             }
-        })
+        }
+        .await
         .map_err(DfxError::from)?;
     print_idl_blob(&blob, None, &None).context("Invalid data: Invalid IDL blob.")?;
     Ok(())

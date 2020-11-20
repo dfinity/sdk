@@ -11,7 +11,6 @@ use ic_agent::Identity;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
-use tokio::runtime::Runtime;
 
 /// Sets the provided identity's name or its principal as the
 /// new controller of a canister on the Internet Computer network.
@@ -25,7 +24,7 @@ pub struct SetControllerOpts {
     new_controller: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
     let canister_id = match CanisterId::from_text(&opts.canister) {
         Ok(id) => id,
         Err(_) => CanisterIdStore::for_env(env)?.get(&opts.canister)?,
@@ -42,14 +41,12 @@ pub fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 
     let mgr = ManagementCanister::create(agent);
-    runtime.block_on(
-        mgr.set_controller(&canister_id, &controller_principal)
-            .call_and_wait(waiter_with_timeout(timeout)),
-    )?;
+    mgr.set_controller(&canister_id, &controller_principal)
+        .call_and_wait(waiter_with_timeout(timeout))
+        .await?;
 
     println!(
         "Set {:?} as controller of {:?}.",
