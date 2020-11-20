@@ -474,9 +474,9 @@ dependencies = [
 
 [[package]]
 name = "backtrace"
-version = "0.3.54"
+version = "0.3.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2baad346b2d4e94a24347adeee9c7a93f412ee94b9cc26e5b59dea23848e9f28"
+checksum = "ef5140344c85b01f9bbb4d4b7288a8aa4b3287ccef913a14bcc78a1063623598"
 dependencies = [
  "addr2line",
  "cfg-if 1.0.0",
@@ -684,9 +684,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.63"
+version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad9c6140b5a2c7db40ea56eb1821245e5362b44385c05b76288b1a599934ac87"
+checksum = "92cc7b4cfeaa608da27ccbd00af8e1485761334821791ccf5ce88e9a2bb949e7"
 
 [[package]]
 name = "cfg-if"
@@ -1739,7 +1739,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-verify-cert-fetch-root-key#27823e8856a1b534921c278f2cb0746cf17ab404"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-verify-cert-fetch-root-key#2f7847d7a1339d404bae62ae6ad6da9914ed2470"
 dependencies = [
  "async-trait",
  "base32",
@@ -1767,7 +1767,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-verify-cert-fetch-root-key#27823e8856a1b534921c278f2cb0746cf17ab404"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-verify-cert-fetch-root-key#2f7847d7a1339d404bae62ae6ad6da9914ed2470"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1779,7 +1779,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=es-verify-cert-fetch-root-key#27823e8856a1b534921c278f2cb0746cf17ab404"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=es-verify-cert-fetch-root-key#2f7847d7a1339d404bae62ae6ad6da9914ed2470"
 dependencies = [
  "async-trait",
  "candid",

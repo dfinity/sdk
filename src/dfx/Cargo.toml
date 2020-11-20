@@ -72,19 +72,19 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-verify-cert-fetch-root-key"
-rev = "27823e8856a1b534921c278f2cb0746cf17ab404"
+rev = "2f7847d7a1339d404bae62ae6ad6da9914ed2470"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-verify-cert-fetch-root-key"
-rev = "27823e8856a1b534921c278f2cb0746cf17ab404"
+rev = "2f7847d7a1339d404bae62ae6ad6da9914ed2470"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-verify-cert-fetch-root-key"
-rev = "27823e8856a1b534921c278f2cb0746cf17ab404"
+rev = "2f7847d7a1339d404bae62ae6ad6da9914ed2470"
 
 [dev-dependencies]
 env_logger = "0.6"
