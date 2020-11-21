@@ -45,7 +45,7 @@ enum SubCommand {
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.clone())?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    runtime.block_on(async move {
+    runtime.block_on(async {
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(&agent_env, v).await,
             SubCommand::Create(v) => create::exec(&agent_env, v).await,
