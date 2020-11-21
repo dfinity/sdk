@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::provider::create_agent_environment;
 
 use clap::Clap;
+use tokio::runtime::Runtime;
 
 mod call;
 mod create;
@@ -42,17 +43,20 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network)?;
-    match opts.subcmd {
-        SubCommand::Call(v) => call::exec(&agent_env, v),
-        SubCommand::Create(v) => create::exec(&agent_env, v),
-        SubCommand::Delete(v) => delete::exec(&agent_env, v),
-        SubCommand::Id(v) => id::exec(&agent_env, v),
-        SubCommand::Install(v) => install::exec(&agent_env, v),
-        SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v),
-        SubCommand::SetController(v) => set_controller::exec(&agent_env, v),
-        SubCommand::Start(v) => start::exec(&agent_env, v),
-        SubCommand::Status(v) => status::exec(&agent_env, v),
-        SubCommand::Stop(v) => stop::exec(&agent_env, v),
-    }
+    let agent_env = create_agent_environment(env, opts.network.clone())?;
+    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    runtime.block_on(async {
+        match opts.subcmd {
+            SubCommand::Call(v) => call::exec(&agent_env, v).await,
+            SubCommand::Create(v) => create::exec(&agent_env, v).await,
+            SubCommand::Delete(v) => delete::exec(&agent_env, v).await,
+            SubCommand::Id(v) => id::exec(&agent_env, v).await,
+            SubCommand::Install(v) => install::exec(&agent_env, v).await,
+            SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
+            SubCommand::SetController(v) => set_controller::exec(&agent_env, v).await,
+            SubCommand::Start(v) => start::exec(&agent_env, v).await,
+            SubCommand::Status(v) => status::exec(&agent_env, v).await,
+            SubCommand::Stop(v) => stop::exec(&agent_env, v).await,
+        }
+    })
 }

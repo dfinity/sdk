@@ -13,7 +13,6 @@ use humanize_rs::bytes::Bytes;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
 use std::convert::TryFrom;
 use std::str::FromStr;
-use tokio::runtime::Runtime;
 
 /// Deploys compiled code as a canister on the Internet Computer.
 #[derive(Clap, Clone)]
@@ -79,12 +78,11 @@ fn get_memory_allocation(
         }))
 }
 
-pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let timeout = expiry_duration();
 
     let config_interface = config.get_config();
@@ -112,7 +110,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
             canister_name,
         )?;
 
-        runtime.block_on(install_canister(
+        install_canister(
             env,
             &agent,
             &canister_info,
@@ -121,8 +119,8 @@ pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
             mode,
             memory_allocation,
             timeout,
-        ))?;
-        Ok(())
+        )
+        .await
     } else if opts.all {
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
@@ -143,7 +141,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
                     canister_name,
                 )?;
 
-                runtime.block_on(install_canister(
+                install_canister(
                     env,
                     &agent,
                     &canister_info,
@@ -152,7 +150,8 @@ pub fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
                     mode,
                     memory_allocation,
                     timeout,
-                ))?;
+                )
+                .await?;
             }
         }
         Ok(())
