@@ -14,7 +14,7 @@ pub struct CanisterIdOpts {
     canister_name: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: CanisterIdOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: CanisterIdOpts) -> DfxResult {
     env.get_config_or_anyhow()?;
     let canister_name = opts.canister_name.as_str();
     let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;

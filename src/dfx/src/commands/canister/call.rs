@@ -10,7 +10,6 @@ use anyhow::{anyhow, bail, Context};
 use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
-use tokio::runtime::Runtime;
 
 /// Deletes a canister on the Internet Computer network.
 #[derive(Clap)]
@@ -49,7 +48,7 @@ pub struct CanisterCallOpts {
     output: Option<String>,
 }
 
-pub fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let canister_name = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
@@ -104,38 +103,34 @@ pub fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    runtime.block_on(fetch_root_key_if_needed(env))?;
+    fetch_root_key_if_needed(env).await?;
 
     let timeout = expiry_duration();
 
     if is_query {
-        let blob = runtime.block_on(
-            agent
-                .query(&canister_id, method_name)
-                .with_arg(&arg_value)
-                .call(),
-        )?;
+        let blob = agent
+            .query(&canister_id, method_name)
+            .with_arg(&arg_value)
+            .call()
+            .await?;
         print_idl_blob(&blob, output_type, &method_type)
             .context("Invalid data: Invalid IDL blob.")?;
     } else if opts.r#async {
-        let request_id = runtime.block_on(
-            agent
-                .update(&canister_id, method_name)
-                .with_arg(&arg_value)
-                .call(),
-        )?;
+        let request_id = agent
+            .update(&canister_id, method_name)
+            .with_arg(&arg_value)
+            .call()
+            .await?;
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
     } else {
-        let blob = runtime.block_on(
-            agent
-                .update(&canister_id, method_name)
-                .with_arg(&arg_value)
-                .expire_after(timeout)
-                .call_and_wait(waiter_with_timeout(timeout)),
-        )?;
+        let blob = agent
+            .update(&canister_id, method_name)
+            .with_arg(&arg_value)
+            .expire_after(timeout)
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await?;
 
         print_idl_blob(&blob, output_type, &method_type)
             .context("Invalid data: Invalid IDL blob.")?;

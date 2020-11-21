@@ -12,7 +12,6 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::time::Duration;
-use tokio::runtime::Runtime;
 
 /// Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.
 #[derive(Clap)]
@@ -47,24 +46,22 @@ async fn canister_status(
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, opts: CanisterStatusOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: CanisterStatusOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
-    runtime.block_on(fetch_root_key_if_needed(env))?;
+    fetch_root_key_if_needed(env).await?;
 
     let timeout = expiry_duration();
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
-        runtime.block_on(canister_status(env, &agent, &canister_name, timeout))?;
-        Ok(())
+        canister_status(env, &agent, &canister_name, timeout).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                runtime.block_on(canister_status(env, &agent, &canister_name, timeout))?;
+                canister_status(env, &agent, &canister_name, timeout).await?;
             }
         }
         Ok(())
