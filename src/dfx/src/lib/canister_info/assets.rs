@@ -1,5 +1,7 @@
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
+
+use anyhow::bail;
 use std::path::{Path, PathBuf};
 
 pub struct AssetsCanisterInfo {
@@ -32,9 +34,10 @@ impl AssetsCanisterInfo {
         for source_path in &source_paths {
             let canonical = source_path.canonicalize()?;
             if !canonical.starts_with(input_root) {
-                return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
-                    source_path.to_path_buf(),
-                ));
+                bail!(
+                    "Directory at '{}' is outside the workspace root.",
+                    source_path.to_path_buf().display()
+                );
             }
         }
         Ok(())

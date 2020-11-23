@@ -19,6 +19,7 @@ actix-cors = "0.4.0"
 actix-files = "0.3.0"
 actix-server = "1.0.4"
 actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
+anyhow = "1.0.34"
 atty = "0.2.13"
 base64 = "0.11.0"
 candid = "0.6.7"
@@ -71,19 +72,19 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "dd99c5c1d7f2ade92451d21eb20fccca59237b84"
+rev = "6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "dd99c5c1d7f2ade92451d21eb20fccca59237b84"
+rev = "6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "dd99c5c1d7f2ade92451d21eb20fccca59237b84"
+rev = "6c02ef4bf25d82652ceb60c93b9df1a8863f0524"
 
 [dev-dependencies]
 env_logger = "0.6"

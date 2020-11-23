@@ -1,34 +1,17 @@
-use std::fmt;
-use std::io;
 use std::path::PathBuf;
+use thiserror::Error;
 
-/// An error happened during build.
-#[derive(Debug)]
-pub enum CacheErrorKind {
-    CannotFindUserHomeDirectory(),
-    CannotCreateCacheDirectory(PathBuf, io::Error),
-    CacheShouldBeADirectory(PathBuf),
-    UnknownDfxVersion(String),
-}
+#[derive(Error, Debug)]
+pub enum CacheError {
+    #[error("Cannot create cache directory at '{0}'.")]
+    CannotCreateCacheDirectory(PathBuf),
 
-impl fmt::Display for CacheErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use CacheErrorKind::*;
+    #[error("Cannot find cache directory at '{0}'.")]
+    CannotFindCacheDirectory(PathBuf),
 
-        match self {
-            CannotFindUserHomeDirectory() => f.write_str("Cannot find the home directory."),
-            CannotCreateCacheDirectory(path, io_err) => f.write_fmt(format_args!(
-                r#"Could not create the cache folder at "{}". Error: {}"#,
-                path.display(),
-                io_err,
-            )),
+    #[error("Cannot find home directory.")]
+    CannotFindHomeDirectory(),
 
-            CacheShouldBeADirectory(path) => f.write_fmt(format_args!(
-                r#"Cache folder "{}" should be a directory or a symlink to a directory."#,
-                path.display(),
-            )),
-
-            UnknownDfxVersion(version) => f.write_fmt(format_args!("Unknown version: {}", version)),
-        }
-    }
+    #[error("Unknown version '{0}'.")]
+    UnknownVersion(String),
 }

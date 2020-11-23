@@ -3,8 +3,10 @@ use crate::config::dfinity::Config;
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::provider::get_network_context;
+
+use anyhow::{anyhow, bail};
 use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -53,13 +55,13 @@ impl CanisterInfo {
         let build_root = build_root.join("canisters");
         std::fs::create_dir_all(&build_root)?;
 
-        let canister_map = (&config.get_config().canisters).as_ref().ok_or_else(|| {
-            DfxError::Unknown("No canisters in the configuration file.".to_string())
-        })?;
+        let canister_map = (&config.get_config().canisters)
+            .as_ref()
+            .ok_or_else(|| anyhow!("No canisters in the configuration file."))?;
 
         let canister_config = canister_map
             .get(name)
-            .ok_or_else(|| DfxError::CannotFindCanisterName(name.to_string()))?;
+            .ok_or_else(|| anyhow!("Cannot find canister '{}',", name.to_string()))?;
 
         let canister_root = workspace_root.to_path_buf();
         let extras = canister_config.extras.clone();
@@ -127,16 +129,14 @@ impl CanisterInfo {
     pub fn get_extra<T: serde::de::DeserializeOwned>(&self, name: &str) -> DfxResult<T> {
         self.get_extra_value(name)
             .ok_or_else(|| {
-                DfxError::Unknown(format!(
+                anyhow!(
                     "Field '{}' is mandatory for canister {}.",
                     name,
                     self.get_name()
-                ))
+                )
             })
             .and_then(|v| {
-                T::deserialize(v).map_err(|_| {
-                    DfxError::Unknown(format!("Field '{}' is of the wrong type", name))
-                })
+                T::deserialize(v).map_err(|_| anyhow!("Field '{}' is of the wrong type.", name))
             })
     }
     pub fn get_extras(&self) -> &BTreeMap<String, serde_json::Value> {
@@ -189,7 +189,10 @@ impl CanisterInfo {
         if T::supports(self) {
             T::create(self)
         } else {
-            Err(DfxError::InvalidCanisterType(self.get_type().to_string()))
+            bail!(
+                "Canister does not support type '{}'.",
+                self.get_type().to_string()
+            )
         }
     }
 }
