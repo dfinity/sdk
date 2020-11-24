@@ -283,9 +283,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web"
-version = "3.3.1"
+version = "3.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d6d0a6ae7ff7290372b3f636b9fc38b76dfbfc395187ce21e5b95471f7ccab9"
+checksum = "e641d4a172e7faa0862241a20ff4f1f5ab0ab7c279f00c2d4587b77483477b86"
 dependencies = [
  "actix-codec",
  "actix-http",
@@ -1738,7 +1738,6 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#3d6d841a3887d322ffb3f59832574a589156f0d0"
 dependencies = [
  "async-trait",
  "base32",
@@ -1749,9 +1748,11 @@ dependencies = [
  "ic-types",
  "leb128",
  "mime",
- "num-bigint 0.2.6",
+ "num-bigint 0.3.1",
  "openssl",
+ "openssl-sys",
  "pem 0.8.2",
+ "pkcs11",
  "rand 0.7.3",
  "reqwest",
  "ring",
@@ -1768,7 +1769,6 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#3d6d841a3887d322ffb3f59832574a589156f0d0"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1780,7 +1780,6 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#3d6d841a3887d322ffb3f59832574a589156f0d0"
 dependencies = [
  "async-trait",
  "candid",
@@ -1968,6 +1967,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libloading"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b111a074963af1d37a139918ac6d49ad1d0d5e47f72fd55388619691a7d753"
+dependencies = [
+ "cc",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "linked-hash-map"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2094,9 +2103,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.6.22"
+version = "0.6.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fce347092656428bc8eaf6201042cb551b8d67855af7374542a92a0fbfcac430"
+checksum = "4afd66f5b91bf2a3bc13fad0e21caedac168ca4c707504e75585648ae80e4cc4"
 dependencies = [
  "cfg-if 0.1.10",
  "fuchsia-zircon",
@@ -2522,6 +2531,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "pkcs11"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3aca6d67e4c8613bfe455599d0233d00735f85df2001f6bfd9bb7ac0496b10af"
+dependencies = [
+ "libloading",
+ "num-bigint 0.2.6",
+]
+
+[[package]]
 name = "pkg-config"
 version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2945,9 +2964,9 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.16.18"
+version = "0.16.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70017ed5c555d79ee3538fc63ca09c70ad8f317dcadc1adc2c496b60c22bb24f"
+checksum = "024a1e66fea74c66c66624ee5622a7ff0e4b73a13b4f5c326ddb50c708944226"
 dependencies = [
  "cc",
  "libc",
@@ -3247,12 +3266,12 @@ dependencies = [
 
 [[package]]
 name = "simple_asn1"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "692ca13de57ce0613a363c8c2f1de925adebc81b04c923ac60c5488bb44abe4b"
+checksum = "39465bdea3e86aa6f95f69d1b7e3010634fdeda0bc4b6c9124cbcd7419873065"
 dependencies = [
  "chrono",
- "num-bigint 0.2.6",
+ "num-bigint 0.3.1",
  "num-traits",
 ]
 
@@ -4078,9 +4097,9 @@ dependencies = [
 
 [[package]]
 name = "webpki"
-version = "0.21.3"
+version = "0.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab146130f5f790d45f82aeeb09e55a256573373ec64409fc19a6fb82fb1032ae"
+checksum = "b8e38c0608262c46d4a56202ebabdeb094cef7e560ca7a226c6bf055188aa4ea"
 dependencies = [
  "ring",
  "untrusted",
