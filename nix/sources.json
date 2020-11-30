@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "bc8e7e0bd126b537f59470290459260898cebfe6",
-        "sha256": "0f3hxabp7q3lgnmpkqkvbbz9yh3xksl3qhh8b71a3qjvicqmivlz",
+        "rev": "5c449df553cfbab0d97c5aae5bf6e3f688532730",
+        "sha256": "0dn2nq06jv197q1p3yf36rgvxcvngkzhibm4sbv0i8kmxfnwk2li",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/bc8e7e0bd126b537f59470290459260898cebfe6.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/5c449df553cfbab0d97c5aae5bf6e3f688532730.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-js-monorepo": {
@@ -39,8 +39,8 @@
     },
     "dfinity": {
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "947aecf0cab4cf476efaca3addd4f5ef0136fba4",
-        "tag": "release-2020-11-23.RC01",
+        "rev": "fc46573d03d0024b85eae4f93ce8dc823308fcfd",
+        "tag": "release-2020-11-26.RC01",
         "type": "git"
     },
     "ic-ref": {
