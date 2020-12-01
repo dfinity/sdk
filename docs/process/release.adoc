@@ -82,6 +82,7 @@ Verify that you can build DFX and the JavaScript agent from the `+master+` branc
 +
 [source, bash]
 ----
+# Make sure you're connected to VPN. This could take awhile, wait for it to be done.
 export sdk_rc="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
 export dfx_rc="$sdk_rc/bin/dfx"
 ----
@@ -127,7 +128,8 @@ If there are any `replica` or `dfx` processes running, use the `kill` command to
 
 Verify that you can build, deploy, and call the default `hello_world` project without errors.
 
-. Generate a default new project.
+Generate a default new project.
+
 . cd into a tmp directory
 +
 [source, bash]
