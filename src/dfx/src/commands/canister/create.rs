@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::create_canister;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
 use anyhow::bail;
@@ -22,6 +23,8 @@ pub struct CanisterCreateOpts {
 pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
+
+    fetch_root_key_if_needed(env).await?;
 
     if let Some(canister_name) = opts.canister_name.clone() {
         create_canister(env, canister_name.as_str(), timeout).await

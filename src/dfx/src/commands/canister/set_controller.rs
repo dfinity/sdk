@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
@@ -43,7 +44,10 @@ pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let timeout = expiry_duration();
 
+    fetch_root_key_if_needed(env).await?;
+
     let mgr = ManagementCanister::create(agent);
+
     mgr.set_controller(&canister_id, &controller_principal)
         .call_and_wait(waiter_with_timeout(timeout))
         .await?;
