@@ -4,6 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::install_canister;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{compute_allocation_validator, memory_allocation_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
@@ -84,6 +85,8 @@ pub async fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let timeout = expiry_duration();
+
+    fetch_root_key_if_needed(env).await?;
 
     let config_interface = config.get_config();
     let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;

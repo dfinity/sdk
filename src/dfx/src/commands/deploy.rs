@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
 use clap::Clap;
@@ -37,6 +38,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let argument_type = opts.argument_type.as_deref();
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(
         &env,
