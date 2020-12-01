@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators;
 use crate::util::{expiry_duration, print_idl_blob};
@@ -27,6 +28,9 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    fetch_root_key_if_needed(env).await?;
+
     let timeout = expiry_duration();
 
     let mut waiter = waiter_with_timeout(timeout);

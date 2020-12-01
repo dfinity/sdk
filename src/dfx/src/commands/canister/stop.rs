@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
@@ -55,6 +56,8 @@ pub async fn exec(env: &dyn Environment, opts: CanisterStopOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    fetch_root_key_if_needed(env).await?;
+
     let timeout = expiry_duration();
 
     if let Some(canister_name) = opts.canister_name.as_deref() {

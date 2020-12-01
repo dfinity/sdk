@@ -14,5 +14,6 @@ pub mod package_arguments;
 pub mod progress_bar;
 pub mod provider;
 pub mod replica_config;
+pub mod root_key;
 pub mod waiter;
 pub mod webserver;
