@@ -169,9 +169,10 @@ export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc
 export hello_world_assets_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_assets)"
 
 echo "For the next step, open the following URL in your web browser. Be sure to clear your cache first and/or use 'Private Browsing' mode."
+echo "@todo(bengo): Actually don't worry about Firefox Private Browsing until we resolve: https://github.com/dfinity/sdk/issues/1227"
 
 # This should print the Asset Canister URL you can use to 'Verify hello_world_assets'.
-echo "hello_world_assets_url: Open this in your web browser with empty cache or 'Private Browsing' mode"
+echo "hello_world_assets_url: Open this in your web browser with empty cache"
 echo "$hello_world_assets_url"
 ----
 +
@@ -191,7 +192,7 @@ To show the URL, run:
 [source, bash]
 ----
 # This should print the Candid UI URL you can use to 'Verify hello_world'.
-echo "hello_world_candid_url: Open this in your web browser with empty cache or 'Private Browsing' mode"
+echo "hello_world_candid_url: Open this in your web browser with empty cache."
 echo "$hello_world_candid_url"
 ----
 +
