@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 
 use anyhow::Context;
-use ic_agent::identity::BasicIdentity;
+use ic_agent::identity::{BasicIdentity, HardwareIdentity};
 use ic_agent::Identity;
 use pem::{encode, Pem};
 use ring::{rand, signature};
@@ -16,6 +16,7 @@ use std::path::{Path, PathBuf};
 const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 const IDENTITY_PEM: &str = "identity.pem";
+const IDENTITY_JSON: &str = "identity.json";
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Configuration {
@@ -76,12 +77,39 @@ impl IdentityManager {
         &self,
         identity_name: &str,
     ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+        //instantiate_basic_identity_from_name(identity_name)
+        self.instantiate_hardware_identity_from_name(identity_name)
+    }
+
+    pub fn instantiate_basic_identity_from_name(
+        &self,
+        identity_name: &str,
+    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
         self.require_identity_exists(identity_name)?;
         let pem_path = self.get_identity_pem_path(identity_name);
         Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
             |err| {
                 DfxError::new(IdentityError::CannotReadIdentityFile(
                     pem_path.clone(),
+                    Box::new(DfxError::new(err)),
+                ))
+            },
+        )?))
+    }
+
+    pub fn instantiate_hardware_identity_from_name(
+        &self,
+        identity_name: &str,
+    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+        //self.require_identity_exists(identity_name)?;
+        let json_path = self.get_identity_json_path(identity_name);
+        let filename = PathBuf::from("/usr/local/lib/opensc-pkcs11.so");
+        let key_id = "abcdef".to_string();
+        let pin = "837235".to_string();
+        Ok(Box::new(HardwareIdentity::new(filename, key_id, pin).map_err(
+            |err| {
+                DfxError::new(IdentityError::CannotReadIdentityFile(
+                    json_path.clone(),
                     Box::new(DfxError::new(err)),
                 ))
             },
@@ -222,6 +250,10 @@ impl IdentityManager {
 
     fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_PEM)
+    }
+
+    fn get_identity_json_path(&self, identity: &str) -> PathBuf {
+        self.get_identity_dir_path(identity).join(IDENTITY_JSON)
     }
 }
 
