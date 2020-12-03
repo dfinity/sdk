@@ -17,11 +17,11 @@ pub struct NewIdentityOpts {
 
     /// A sequence of pairs of hex digits
     // todo validator
-    #[clap(long, requires("hsm_key_id"))]
+    #[clap(long, requires("hsm-key-id"))]
     hsm_filename: Option<String>,
 
     /// Something like "/usr/local/lib/opensc-pkcs11.so"
-    #[clap(long, requires("hsm_filename"))]
+    #[clap(long, requires("hsm-filename"))]
     hsm_key_id: Option<String>,
 }
 
