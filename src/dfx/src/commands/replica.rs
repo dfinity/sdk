@@ -2,11 +2,13 @@ use crate::actors;
 use crate::actors::shutdown_controller;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::config::dfinity::ConfigDefaultsReplica;
+use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
+
 use actix::Actor;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use clap::Clap;
 use std::default::Default;
 
 /// Starts a local Internet Computer replica.
@@ -24,10 +26,6 @@ pub struct ReplicaOpts {
     /// Specifies the maximum number of cycles a single round can consume.
     #[clap(long, hidden = true)]
     round_gas_limit: Option<String>,
-}
-
-pub fn construct() -> App<'static> {
-    ReplicaOpts::into_app()
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -78,7 +76,7 @@ fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u
             let default = 8080;
             Ok(config.port.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid port number: {}", err)))
+        .map_err(|err| error_invalid_argument!("Invalid port number: {}", err))
 }
 
 /// Gets the maximum amount of gas a single message can consume. First checks if the gas limit was
@@ -94,7 +92,7 @@ fn get_message_gas_limit(
             let default = 5_368_709_120;
             Ok(config.message_gas_limit.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid message gas limit: {}", err)))
+        .map_err(|err| error_invalid_argument!("Invalid message gas limit: {}", err))
 }
 
 /// Gets the maximum amount of gas a single round can consume. First checks if the gas limit was
@@ -110,14 +108,13 @@ fn get_round_gas_limit(
             let default = 26_843_545_600;
             Ok(config.round_gas_limit.unwrap_or(default))
         })
-        .map_err(|err| DfxError::InvalidArgument(format!("Invalid round gas limit: {}", err)))
+        .map_err(|err| error_invalid_argument!("Invalid round gas limit: {}", err))
 }
 
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: ReplicaOpts = ReplicaOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
     let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
 

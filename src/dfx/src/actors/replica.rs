@@ -1,14 +1,15 @@
 use crate::actors::replica::signals::ReplicaRestarted;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::replica_config::ReplicaConfig;
-
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
+use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::replica_config::ReplicaConfig;
+
 use actix::{
     Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
+use anyhow::anyhow;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
@@ -105,10 +106,9 @@ impl Replica {
                     return Ok(port);
                 }
             }
-
             waiter
                 .wait()
-                .map_err(|_| DfxError::ReplicaCouldNotBeStarted())?;
+                .map_err(|err| anyhow!("Cannot start the replica: {:?}", err))?;
         }
     }
 
@@ -172,7 +172,7 @@ impl Actor for Replica {
             let _ = join.join();
         }
 
-        debug!(self.logger, "Stopped.");
+        info!(self.logger, "Stopped.");
         Running::Stop
     }
 }

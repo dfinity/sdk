@@ -1,10 +1,11 @@
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+
+use clap::Clap;
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
 #[derive(Clap)]
@@ -27,20 +28,13 @@ pub struct CanisterBuildOpts {
     network: Option<String>,
 }
 
-pub fn construct() -> App<'static> {
-    CanisterBuildOpts::into_app()
-}
-
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: CanisterBuildOpts = CanisterBuildOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let env = create_agent_environment(env, opts.network)?;
 
     let logger = env.get_logger();
 
     // Read the config.
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let config = env.get_config_or_anyhow()?;
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.

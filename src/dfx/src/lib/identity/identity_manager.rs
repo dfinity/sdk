@@ -1,12 +1,15 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult, IdentityErrorKind};
+use crate::lib::error::{DfxError, DfxResult, IdentityError};
+
+use anyhow::Context;
 use ic_agent::identity::BasicIdentity;
 use ic_agent::Identity;
 use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
+use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -76,28 +79,29 @@ impl IdentityManager {
         self.require_identity_exists(identity_name)?;
         let pem_path = self.get_identity_pem_path(identity_name);
         Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
-            |e| DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone())),
+            |err| {
+                DfxError::new(IdentityError::CannotReadIdentityFile(
+                    pem_path.clone(),
+                    Box::new(DfxError::new(err)),
+                ))
+            },
         )?))
     }
 
     /// Create a new identity (name -> generated key)
     pub fn create_new_identity(&self, name: &str) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::CannotCreateAnonymousIdentity(),
-            ));
+            return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
         let identity_dir = self.get_identity_dir_path(name);
 
         if identity_dir.exists() {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::IdentityAlreadyExists(),
-            ));
+            return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
         }
-        std::fs::create_dir_all(&identity_dir).map_err(|e| {
-            DfxError::IdentityError(IdentityErrorKind::CouldNotCreateIdentityDirectory(
+        std::fs::create_dir_all(&identity_dir).map_err(|err| {
+            DfxError::new(IdentityError::CannotCreateIdentityDirectory(
                 identity_dir.clone(),
-                e,
+                Box::new(DfxError::new(err)),
             ))
         })?;
 
@@ -138,15 +142,20 @@ impl IdentityManager {
         self.require_identity_exists(name)?;
 
         if self.configuration.default == name {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::CannotDeleteDefaultIdentity(),
-            ));
+            return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
         }
         let dir = self.get_identity_dir_path(name);
         let pem = self.get_identity_pem_path(name);
 
-        std::fs::remove_file(&pem).map_err(|e| DfxError::IoWithPath(e, pem))?;
-        std::fs::remove_dir(&dir).map_err(|e| DfxError::IoWithPath(e, dir))
+        std::fs::remove_file(&pem).context(format!(
+            "Cannot remove identity file at '{}'.",
+            pem.display()
+        ))?;
+        std::fs::remove_dir(&dir).context(format!(
+            "Cannot remove identity directroy at '{}'.",
+            dir.display()
+        ))?;
+        Ok(())
     }
 
     /// Rename an identity.
@@ -154,9 +163,7 @@ impl IdentityManager {
     /// to refer to the new identity name.
     pub fn rename(&self, from: &str, to: &str) -> DfxResult<bool> {
         if to == ANONYMOUS_IDENTITY_NAME {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::CannotCreateAnonymousIdentity(),
-            ));
+            return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
         self.require_identity_exists(from)?;
 
@@ -164,14 +171,14 @@ impl IdentityManager {
         let to_dir = self.get_identity_dir_path(to);
 
         if to_dir.exists() {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::IdentityAlreadyExists(),
-            ));
+            return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
         }
 
-        std::fs::rename(&from_dir, &to_dir).map_err(|e| {
-            DfxError::IdentityError(IdentityErrorKind::CouldNotRenameIdentityDirectory(
-                from_dir, to_dir, e,
+        std::fs::rename(&from_dir, &to_dir).map_err(|err| {
+            DfxError::new(IdentityError::CannotRenameIdentityDirectory(
+                from_dir,
+                to_dir,
+                Box::new(DfxError::new(err)),
             ))
         })?;
 
@@ -200,9 +207,10 @@ impl IdentityManager {
         let identity_pem_path = self.get_identity_pem_path(name);
 
         if !identity_pem_path.exists() {
-            Err(DfxError::IdentityError(
-                IdentityErrorKind::IdentityDoesNotExist(String::from(name), identity_pem_path),
-            ))
+            Err(DfxError::new(IdentityError::IdentityDoesNotExist(
+                String::from(name),
+                identity_pem_path,
+            )))
         } else {
             Ok(())
         }
@@ -228,10 +236,10 @@ fn initialize(
     let identity_pem_path = identity_dir.join(IDENTITY_PEM);
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
-            std::fs::create_dir_all(&identity_dir).map_err(|e| {
-                DfxError::IdentityError(IdentityErrorKind::CouldNotCreateIdentityDirectory(
-                    identity_dir.clone(),
-                    e,
+            std::fs::create_dir_all(&identity_dir).map_err(|err| {
+                DfxError::new(IdentityError::CannotCreateIdentityDirectory(
+                    identity_dir,
+                    Box::new(DfxError::new(err)),
                 ))
             })?;
         }
@@ -272,7 +280,7 @@ fn initialize(
 
 fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")
-        .map_err(|_| DfxError::IdentityError(IdentityErrorKind::CannotFindUserHomeDirectory()))?;
+        .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
 
     Ok(PathBuf::from(home)
         .join(".dfinity")
@@ -281,21 +289,26 @@ fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
 }
 
 fn read_configuration(path: &Path) -> DfxResult<Configuration> {
-    let content =
-        std::fs::read_to_string(&path).map_err(|e| DfxError::IoWithPath(e, PathBuf::from(path)))?;
+    let content = std::fs::read_to_string(&path).context(format!(
+        "Cannot read configuration file at '{}'.",
+        PathBuf::from(path).display()
+    ))?;
     serde_json::from_str(&content).map_err(DfxError::from)
 }
 
 fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
     let content = serde_json::to_string_pretty(&config)?;
-
-    std::fs::write(&path, content).map_err(|err| DfxError::IoWithPath(err, PathBuf::from(path)))
+    std::fs::write(&path, content).context(format!(
+        "Cannot write configuration file at '{}'.",
+        PathBuf::from(path).display()
+    ))?;
+    Ok(())
 }
 
 fn generate_key(pem_file: &Path) -> DfxResult {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
-        .map_err(|x| DfxError::IdentityError(IdentityErrorKind::CouldNotGenerateKey(x)))?;
+        .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
 
     let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
     fs::write(&pem_file, encoded_pem)?;

@@ -53,21 +53,21 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
-    assert_command dfx config networks.ic.providers '[ "http://127.0.0.1:'$webserver_port'" ]'
-    assert_command dfx canister --network ic create --all
+    cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+    assert_command dfx canister --network actuallylocal create --all
 }
 
 @test "create fails if selected network exists but has no providers" {
     dfx_start
 
-    assert_command dfx config networks.ic.providers '[  ]'
-    assert_command_fail dfx canister --network ic create --all
-    assert_match "ComputeNetworkHasNoProviders"
+    cat <<<$(jq .networks.actuallylocal.providers=[] dfx.json) >dfx.json
+    assert_command_fail dfx canister --network actuallylocal create --all
+    assert_match "Cannot find providers for network"
 }
 
 @test "create fails with network parameter when network does not exist" {
     dfx_start
-    assert_command dfx config networks.ic.providers '[ "http://not-real.nowhere.test." ]'
-    assert_command_fail dfx canister --network ic create --all
-    assert_match "ConnectError"
+    cat <<<$(jq .networks.actuallylocal.providers=[\"http://not-real.nowhere.test.\"] dfx.json) >dfx.json
+    assert_command_fail dfx canister --network actuallylocal create --all
+    assert_match "Could not reach the server"
 }

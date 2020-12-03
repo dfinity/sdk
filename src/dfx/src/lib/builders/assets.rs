@@ -6,9 +6,11 @@ use crate::lib::builders::{
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{BuildErrorKind, DfxError, DfxResult};
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
+
+use anyhow::{anyhow, bail};
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use std::fs;
@@ -26,9 +28,8 @@ impl AssetsBuilderExtra {
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
         let deps = match info.get_extra_value("dependencies") {
             None => vec![],
-            Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-                DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
-            })?,
+            Some(v) => Vec::<String>::deserialize(v)
+                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
         };
         let dependencies = deps
             .iter()
@@ -36,7 +37,7 @@ impl AssetsBuilderExtra {
                 pool.get_first_canister_with_name(name)
                     .map(|c| c.canister_id())
                     .map_or_else(
-                        || Err(DfxError::UnknownCanisterNamed(name.clone())),
+                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
                         DfxResult::Ok,
                     )
             })
@@ -106,9 +107,8 @@ impl CanisterBuilder for AssetsBuilder {
     ) -> DfxResult {
         let deps = match info.get_extra_value("dependencies") {
             None => vec![],
-            Some(v) => Vec::<String>::deserialize(v).map_err(|_| {
-                DfxError::Unknown(String::from("Field 'dependencies' is of the wrong type"))
-            })?,
+            Some(v) => Vec::<String>::deserialize(v)
+                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
         };
         let dependencies = deps
             .iter()
@@ -116,7 +116,7 @@ impl CanisterBuilder for AssetsBuilder {
                 pool.get_first_canister_with_name(name)
                     .map(|c| c.canister_id())
                     .map_or_else(
-                        || Err(DfxError::UnknownCanisterNamed(name.clone())),
+                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
                         DfxResult::Ok,
                     )
             })
@@ -154,9 +154,10 @@ fn delete_output_directory(
     if output_assets_path.exists() {
         let output_assets_path = output_assets_path.canonicalize()?;
         if !output_assets_path.starts_with(info.get_workspace_root()) {
-            return Err(DfxError::DirectoryIsOutsideWorkspaceRoot(
-                output_assets_path,
-            ));
+            bail!(
+                "Directory at '{}' is outside the workspace root.",
+                output_assets_path.display()
+            );
         }
         fs::remove_dir_all(output_assets_path)?;
     }
@@ -247,8 +248,9 @@ fn build_frontend(
 
         let output = cmd.output()?;
         if !output.status.success() {
-            return Err(DfxError::BuildError(BuildErrorKind::CompilerError(
+            return Err(DfxError::new(BuildError::CommandError(
                 format!("{:?}", cmd),
+                output.status,
                 String::from_utf8_lossy(&output.stdout).to_string(),
                 String::from_utf8_lossy(&output.stderr).to_string(),
             )));

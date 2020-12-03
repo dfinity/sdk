@@ -12,7 +12,8 @@ use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
 use actix::{Actor, Addr};
-use clap::{App, ArgMatches, Clap, FromArgMatches, IntoApp};
+use anyhow::{anyhow, bail, Context};
+use clap::Clap;
 use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
@@ -40,10 +41,6 @@ pub struct StartOpts {
     clean: bool,
 }
 
-pub fn construct() -> App<'static> {
-    StartOpts::into_app()
-}
-
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
 
@@ -64,7 +61,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
             }
             waiter
                 .wait()
-                .map_err(|_| DfxError::AgentError(status.unwrap_err()))?;
+                .map_err(|_| DfxError::new(status.unwrap_err()))?;
         }
         Ok(())
     })
@@ -91,7 +88,7 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
             if !contents.is_empty() {
                 break;
             }
-            waiter.wait()?;
+            waiter.wait().map_err(|err| anyhow!("{:?}", err))?;
         }
         Ok::<String, DfxError>(contents.clone())
     })?;
@@ -99,7 +96,7 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
     let port_offset = frontend_url_mod
         .as_str()
         .rfind(':')
-        .ok_or_else(|| DfxError::MalformedFrontendUrl(frontend_url))?;
+        .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
     ping_and_wait(&frontend_url_mod)
 }
@@ -107,14 +104,9 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: StartOpts = StartOpts::from_arg_matches(args);
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
+pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
+    let config = env.get_config_or_anyhow()?;
     let network_descriptor = get_network_descriptor(env, None)?;
-
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
@@ -168,12 +160,17 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     // directory itself. N.B. This does NOT follow symbolic links -- and I
     // hope we do not need to.
     if state_root.is_dir() {
-        fs::remove_dir_all(state_root)
-            .map_err(|e| DfxError::CleanState(e, PathBuf::from(state_root)))?;
+        fs::remove_dir_all(state_root).context(format!(
+            "Cannot remove directroy at '{}'.",
+            state_root.display()
+        ))?;
     }
     let local_dir = temp_dir.join("local");
     if local_dir.is_dir() {
-        fs::remove_dir_all(&local_dir).map_err(|e| DfxError::CleanState(e, local_dir))?;
+        fs::remove_dir_all(&local_dir).context(format!(
+            "Cannot remove directroy at '{}'.",
+            local_dir.display()
+        ))?;
     }
     Ok(())
 }
@@ -268,7 +265,7 @@ fn frontend_address(
                 .get_local_bind_address("localhost:8000")
                 .expect("could not get socket_addr"))
         })
-        .map_err(|e| DfxError::InvalidArgument(format!("Invalid host: {}", e)))?;
+        .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
 
     if !background {
         // Since the user may have provided port "0", we need to grab a dynamically
@@ -294,7 +291,7 @@ fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
                 // If we find the pid in the file, we tell the user and don't start!
                 let system = System::new();
                 if let Some(_process) = system.get_process(pid) {
-                    return Err(DfxError::DfxAlreadyRunningInBackground());
+                    bail!("dfx is already running.");
                 }
             }
         }
