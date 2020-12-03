@@ -3,8 +3,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 
 use anyhow::Context;
-use ic_agent::identity::{BasicIdentity, HardwareIdentity};
+use ic_agent::identity::BasicIdentity;
 use ic_agent::Identity;
+use ic_identity_hsm::HardwareIdentity;
 use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
@@ -88,7 +89,7 @@ impl IdentityManager {
     }
 
     /// Create an Identity instance for use with an Agent
-    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         self.instantiate_identity_from_name(self.selected_identity.as_str())
     }
 
@@ -96,7 +97,7 @@ impl IdentityManager {
     pub fn instantiate_identity_from_name(
         &self,
         identity_name: &str,
-    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         let json_path = self.get_identity_json_path(identity_name);
         let config = if json_path.exists() {
             Some(read_identity_configuration(&json_path)?)
@@ -108,8 +109,11 @@ impl IdentityManager {
                 self.instantiate_hardware_identity_from_name(identity_name),
             _ => self.instantiate_basic_identity_from_name(identity_name)
         }
-        //self.instantiate_hardware_identity_from_name(identity_name)
-        //self.instantiate_basic_identity_from_name(identity_name)
+
+        // self.instantiate_hardware_identity_from_name(identity_name)
+        //
+        // self.instantiate_basic_identity_from_name(identity_name)
+
         // if json_path.exists() {
         //    self.instantiate_hardware_identity_from_name(identity_name)
         // } else {
@@ -120,7 +124,7 @@ impl IdentityManager {
     pub fn instantiate_basic_identity_from_name(
         &self,
         identity_name: &str,
-    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         self.require_identity_exists(identity_name)?;
         let pem_path = self.get_identity_pem_path(identity_name);
         Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
@@ -133,10 +137,29 @@ impl IdentityManager {
         )?))
     }
 
+    // pub fn instantiate_hardware_identity(
+    //     &self,
+    //     hsm: &HardwareSecurityModuleConfiguration,
+    // ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    //     let pin = std::env::var("DFX_HSM_PIN")
+    //         .map_err(|_| DfxError::new(IdentityError::HsmPinNotSpecified()))?;
+    //
+    //     let filename = PathBuf::from("/usr/local/lib/opensc-pkcs11.so");
+    //     let key_id = "abcdef".to_string();
+    //     Ok(Box::new(
+    //         HardwareIdentity::new(&hsm.filename, hsm.key_id.clone(), pin).map_err(|err| {
+    //             DfxError::new(IdentityError::CannotReadIdentityFile(
+    //                 json_path.clone(),
+    //                 Box::new(DfxError::new(err)),
+    //             ))
+    //         })?,
+    //     ))
+    // }
+    //
     pub fn instantiate_hardware_identity_from_name(
         &self,
         identity_name: &str,
-    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         //self.require_identity_exists(identity_name)?;
         let json_path = self.get_identity_json_path(identity_name);
         let config = read_identity_configuration(&json_path)?;
@@ -145,7 +168,6 @@ impl IdentityManager {
 
         let filename = PathBuf::from("/usr/local/lib/opensc-pkcs11.so");
         let key_id = "abcdef".to_string();
-        let pin = "837235".to_string();
         Ok(Box::new(
             HardwareIdentity::new(filename, key_id, pin).map_err(|err| {
                 DfxError::new(IdentityError::CannotReadIdentityFile(
