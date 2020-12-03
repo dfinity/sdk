@@ -1,4 +1,6 @@
 result*
+agent_js
+bootstrap_js
 
 # Building
 build/

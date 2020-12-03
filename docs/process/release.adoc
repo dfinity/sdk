@@ -106,8 +106,10 @@ $dfx_rc cache delete
 +
 [source, bash]
 ----
-export agent_js_rc="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
+export agent_js_rc="$(nix-build . -A agent-js -o agent_js --option extra-binary-caches https://cache.dfinity.systems)"
+export bootstrap_js_rc="$(nix-build . -A bootstrap-js -o bootstrap_js --option extra-binary-caches https://cache.dfinity.systems)"
 export agent_js_rc_npm_packed="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent-*.tgz)"
+
 
 test -f $agent_js_rc_npm_packed \
     && echo 'Please proceed' \
@@ -336,6 +338,22 @@ git push origin stable
 Pushing the branch second is an optimization.
 Hydra will spur into action when `stable` advances, so if the branch is already tagged, it won't require a second fetch.
 
+==== Publish Javascript bootstrap
+
+. Create and switch to a new directory, then copy html/css/js files from bootstrap source.
+[source, nix-shell]
+----
+pushd $(mktemp -d)
+cp -R $bootstrap_js_rc ./
+----
+
+
+. Copy all built files to remote server
+[source, nix-shell]
+----
+rsync -avhP ./dist/ <username>@zh1-ngx01.dfinity.network:/var/www/html
+----
+
 ==== Publish Javascript agent to NPM
 
 . Create and switch to a new directory to release from by running the following commands:
@@ -390,7 +408,7 @@ link:https://dfinity.slack.com/archives/CUXGQBABF/p1594954197000100[_#build-noti
 about the successful publishing of the dfx tarballs.
 
 . Install the build using the `DFX_VERSION=<version>` environment variable.
-. Run through the link:https://staging--eloquent-poitras-af14f0.netlify.app/docs/quickstart/quickstart.html[_Quick start_] steps.
+. Run through the link:https://sdk.dfinity.org/docs/quickstart/quickstart.html[_Quick start_] steps.
 . Notify link:https://app.slack.com/client/T43F9UHS5/CGA566TPV[#eng-sdk] team members that the new build is ready for manual installation and testing.
 . Update the link:https://docs.google.com/spreadsheets/d/1pIblGqIeqapzptOtDb4h0LjJKDFIYXRxJrX9VaphfjA/edit#gid=725289684[_release notes_] spreadsheet and documentation based on the Go/No-go list of merged PRs.
 +
