@@ -28,6 +28,26 @@ fn default_identity() -> String {
     String::from(DEFAULT_IDENTITY_NAME)
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+struct IdentityConfiguration {
+    pub hsm: Option<HardwareSecurityModuleConfiguration>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct HardwareSecurityModuleConfiguration {
+    /// Something like "/usr/local/lib/opensc-pkcs11.so"
+    pub filename: String,
+
+    /// A sequence of pairs of hex digits
+    pub key_id: String,
+}
+
+pub enum IdentityCreationParameters {
+    Pem(),
+
+    Hardware(HardwareSecurityModuleConfiguration),
+}
+
 #[derive(Clone, Debug)]
 pub struct IdentityManager {
     identity_json_path: PathBuf,
@@ -77,8 +97,14 @@ impl IdentityManager {
         &self,
         identity_name: &str,
     ) -> DfxResult<Box<impl Identity + Send + Sync>> {
-        //instantiate_basic_identity_from_name(identity_name)
+        let json_path = self.get_identity_json_path(identity_name);
         self.instantiate_hardware_identity_from_name(identity_name)
+        //self.instantiate_basic_identity_from_name(identity_name)
+        // if json_path.exists() {
+        //    self.instantiate_hardware_identity_from_name(identity_name)
+        // } else {
+        //    self.instantiate_basic_identity_from_name(identity_name)
+        // }
     }
 
     pub fn instantiate_basic_identity_from_name(
@@ -103,21 +129,29 @@ impl IdentityManager {
     ) -> DfxResult<Box<impl Identity + Send + Sync>> {
         //self.require_identity_exists(identity_name)?;
         let json_path = self.get_identity_json_path(identity_name);
+        //let config = read_identity_configuration(&json_path)?;
+        //let pin = std::env::var("DFX_HSM_PIN")
+        //    .map_err(|_| DfxError::new(IdentityError::HsmPinNotSpecified()))?;
+
         let filename = PathBuf::from("/usr/local/lib/opensc-pkcs11.so");
         let key_id = "abcdef".to_string();
         let pin = "837235".to_string();
-        Ok(Box::new(HardwareIdentity::new(filename, key_id, pin).map_err(
-            |err| {
+        Ok(Box::new(
+            HardwareIdentity::new(filename, key_id, pin).map_err(|err| {
                 DfxError::new(IdentityError::CannotReadIdentityFile(
                     json_path.clone(),
                     Box::new(DfxError::new(err)),
                 ))
-            },
-        )?))
+            })?,
+        ))
     }
 
     /// Create a new identity (name -> generated key)
-    pub fn create_new_identity(&self, name: &str) -> DfxResult {
+    pub fn create_new_identity(
+        &self,
+        name: &str,
+        parameters: IdentityCreationParameters,
+    ) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
@@ -133,8 +167,19 @@ impl IdentityManager {
             ))
         })?;
 
-        let pem_file = identity_dir.join(IDENTITY_PEM);
-        generate_key(&pem_file)
+        match parameters {
+            IdentityCreationParameters::Pem() => {
+                let pem_file = identity_dir.join(IDENTITY_PEM);
+                generate_key(&pem_file)
+            }
+            IdentityCreationParameters::Hardware(parameters) => {
+                let identity_configuration = IdentityConfiguration {
+                    hsm: Some(parameters),
+                };
+                let path = identity_dir.join(IDENTITY_JSON);
+                write_identity_configuration(&path, &identity_configuration)
+            }
+        }
     }
 
     /// Return a sorted list of all available identity names
@@ -332,6 +377,23 @@ fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
     let content = serde_json::to_string_pretty(&config)?;
     std::fs::write(&path, content).context(format!(
         "Cannot write configuration file at '{}'.",
+        PathBuf::from(path).display()
+    ))?;
+    Ok(())
+}
+
+fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConfiguration> {
+    let content = std::fs::read_to_string(&path).context(format!(
+        "Cannot read identity configuration file at '{}'.",
+        PathBuf::from(path).display()
+    ))?;
+    serde_json::from_str(&content).map_err(DfxError::from)
+}
+
+fn write_identity_configuration(path: &Path, config: &IdentityConfiguration) -> DfxResult {
+    let content = serde_json::to_string_pretty(&config)?;
+    std::fs::write(&path, content).context(format!(
+        "Cannot write identity configuration file at '{}'.",
         PathBuf::from(path).display()
     ))?;
     Ok(())
