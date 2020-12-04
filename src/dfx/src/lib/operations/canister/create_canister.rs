@@ -47,12 +47,12 @@ pub async fn create_canister(
                 .get_agent()
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
             let mgr = ManagementCanister::create(agent);
-            let (cid,) = if non_default_network {
-                mgr.create_canister()
+            let (cid,) = if network_name == "local" {
+                mgr.provisional_create_canister_with_cycles(None)
                     .call_and_wait(waiter_with_timeout(timeout))
                     .await?
             } else {
-                mgr.provisional_create_canister_with_cycles(None)
+                mgr.create_canister()
                     .call_and_wait(waiter_with_timeout(timeout))
                     .await?
             };
