@@ -106,19 +106,9 @@ impl IdentityManager {
         };
         match config {
             Some(IdentityConfiguration { hsm: Some(hsm)}) =>
-                self.instantiate_hardware_identity_from_name(identity_name),
+                self.instantiate_hardware_identity_from_name(hsm),
             _ => self.instantiate_basic_identity_from_name(identity_name)
         }
-
-        // self.instantiate_hardware_identity_from_name(identity_name)
-        //
-        // self.instantiate_basic_identity_from_name(identity_name)
-
-        // if json_path.exists() {
-        //    self.instantiate_hardware_identity_from_name(identity_name)
-        // } else {
-        //    self.instantiate_basic_identity_from_name(identity_name)
-        // }
     }
 
     pub fn instantiate_basic_identity_from_name(
@@ -158,22 +148,15 @@ impl IdentityManager {
     //
     pub fn instantiate_hardware_identity_from_name(
         &self,
-        identity_name: &str,
+        hsm: HardwareSecurityModuleConfiguration,
     ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
-        //self.require_identity_exists(identity_name)?;
-        let json_path = self.get_identity_json_path(identity_name);
-        let config = read_identity_configuration(&json_path)?;
         let pin = std::env::var("DFX_HSM_PIN")
            .map_err(|_| DfxError::new(IdentityError::HsmPinNotSpecified()))?;
 
-        let filename = PathBuf::from("/usr/local/lib/opensc-pkcs11.so");
-        let key_id = "abcdef".to_string();
+        let slot_id = 0;
         Ok(Box::new(
-            HardwareIdentity::new(filename, key_id, pin).map_err(|err| {
-                DfxError::new(IdentityError::CannotReadIdentityFile(
-                    json_path.clone(),
-                    Box::new(DfxError::new(err)),
-                ))
+            HardwareIdentity::new(hsm.filename, slot_id, &hsm.key_id, &pin).map_err(|err| {
+                DfxError::new(IdentityError::HsmError(err))
             })?,
         ))
     }

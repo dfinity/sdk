@@ -4,6 +4,7 @@ use ring::error::Unspecified;
 use std::boxed::Box;
 use std::path::PathBuf;
 use thiserror::Error;
+use ic_identity_hsm::HardwareIdentityError;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
@@ -36,4 +37,7 @@ pub enum IdentityError {
 
     #[error("There is no DFX_HSM_PIN environment variable.")]
     HsmPinNotSpecified(),
+
+    #[error(transparent)]
+    HsmError(#[from] HardwareIdentityError),
 }

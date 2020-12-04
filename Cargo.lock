@@ -1769,6 +1769,7 @@ dependencies = [
 name = "ic-identity-hsm"
 version = "0.1.0"
 dependencies = [
+ "hex",
  "ic-agent",
  "ic-types",
  "num-bigint 0.3.1",
