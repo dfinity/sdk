@@ -106,7 +106,7 @@ impl IdentityManager {
         };
         match config {
             Some(IdentityConfiguration { hsm: Some(hsm)}) =>
-                self.instantiate_hardware_identity_from_name(hsm),
+                self.instantiate_hardware_identity(hsm),
             _ => self.instantiate_basic_identity_from_name(identity_name)
         }
     }
@@ -127,26 +127,7 @@ impl IdentityManager {
         )?))
     }
 
-    // pub fn instantiate_hardware_identity(
-    //     &self,
-    //     hsm: &HardwareSecurityModuleConfiguration,
-    // ) -> DfxResult<Box<impl Identity + Send + Sync>> {
-    //     let pin = std::env::var("DFX_HSM_PIN")
-    //         .map_err(|_| DfxError::new(IdentityError::HsmPinNotSpecified()))?;
-    //
-    //     let filename = PathBuf::from("/usr/local/lib/opensc-pkcs11.so");
-    //     let key_id = "abcdef".to_string();
-    //     Ok(Box::new(
-    //         HardwareIdentity::new(&hsm.filename, hsm.key_id.clone(), pin).map_err(|err| {
-    //             DfxError::new(IdentityError::CannotReadIdentityFile(
-    //                 json_path.clone(),
-    //                 Box::new(DfxError::new(err)),
-    //             ))
-    //         })?,
-    //     ))
-    // }
-    //
-    pub fn instantiate_hardware_identity_from_name(
+    pub fn instantiate_hardware_identity(
         &self,
         hsm: HardwareSecurityModuleConfiguration,
     ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
