@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!
 
 # Asserts that a command line succeeds. Still sets $output to the stdout and stderr
 # of the command.
