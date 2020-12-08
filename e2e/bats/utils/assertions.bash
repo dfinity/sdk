@@ -149,7 +149,16 @@ assert_process_exits() {
 # Asserts that `dfx start` and `replica` are no longer running
 assert_no_dfx_start_or_replica_processes() {
     ! ( ps | grep "[/[:space:]]dfx start" )
-    ! ps -p "$(cat .dfx/replica-configuration/replica-pid)" > /dev/null
+    if [ -f .dfx/replica-configuration/replica-pid ]; then
+      ! ps -p "$(cat .dfx/replica-configuration/replica-pid)" > /dev/null
+    fi
+}
+
+# Asserts that there is a replica running.
+assert_dfx_start_and_replica_processes() {
+    if [ -f .dfx/replica-configuration/replica-pid ]; then
+      ps -p "$(cat .dfx/replica-configuration/replica-pid)" > /dev/null
+    fi
 }
 
 assert_file_eventually_exists() {
