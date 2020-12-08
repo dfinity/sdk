@@ -78,6 +78,8 @@ dfx_start() {
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
+
+    assert_dfx_start_and_replica_processes
 }
 
 # Stop the replica and verify it is very very stopped.
