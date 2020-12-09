@@ -222,7 +222,7 @@ impl ConfigInterface {
                 bind: String::from(DEFAULT_LOCAL_BIND),
                 r#type: NetworkType::Ephemeral,
             })),
-            ("ic", None) => Some(ConfigNetwork::ConfigNetworkProvider(
+            ("ic", _) => Some(ConfigNetwork::ConfigNetworkProvider(
                 ConfigNetworkProvider {
                     providers: vec![DEFAULT_IC_GATEWAY.to_string()],
                     r#type: NetworkType::Persistent,
