@@ -72,19 +72,19 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/add-provisional-mgmt-methods"
-rev = "9c28d30faa73864e84f3b7fda9161573e80d2bb2"
+rev = "c0ea2deca56061cd595d70506e12e7c21a70fe28"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/add-provisional-mgmt-methods"
-rev = "9c28d30faa73864e84f3b7fda9161573e80d2bb2"
+rev = "c0ea2deca56061cd595d70506e12e7c21a70fe28"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/add-provisional-mgmt-methods"
-rev = "9c28d30faa73864e84f3b7fda9161573e80d2bb2"
+rev = "c0ea2deca56061cd595d70506e12e7c21a70fe28"
 
 [dev-dependencies]
 env_logger = "0.6"
