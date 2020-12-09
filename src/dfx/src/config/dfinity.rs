@@ -34,6 +34,7 @@ const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsRepli
 };
 
 const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
+const DEFAULT_IC_GATEWAY: &str = "https://gw.dfinity.network";
 
 /// A Canister configuration in the dfx.json config file.
 /// It only contains a type; everything else should be infered using the
@@ -221,6 +222,12 @@ impl ConfigInterface {
                 bind: String::from(DEFAULT_LOCAL_BIND),
                 r#type: NetworkType::Ephemeral,
             })),
+            ("ic", None) => Some(ConfigNetwork::ConfigNetworkProvider(
+                ConfigNetworkProvider {
+                    providers: vec![DEFAULT_IC_GATEWAY.to_string()],
+                    r#type: NetworkType::Persistent,
+                },
+            )),
             _ => network,
         }
     }
