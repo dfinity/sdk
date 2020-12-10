@@ -37,7 +37,7 @@ struct IdentityConfiguration {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HardwareSecurityModuleConfiguration {
     /// Something like "/usr/local/lib/opensc-pkcs11.so"
-    pub filename: String,
+    pub pkcs11_lib_path: String,
 
     /// A sequence of pairs of hex digits
     pub key_id: String,
@@ -136,7 +136,7 @@ impl IdentityManager {
 
         let slot_id = 0;
         Ok(Box::new(
-            HardwareIdentity::new(hsm.filename, slot_id, &hsm.key_id, &pin).map_err(|err| {
+            HardwareIdentity::new(hsm.pkcs11_lib_path, slot_id, &hsm.key_id, &pin).map_err(|err| {
                 DfxError::new(IdentityError::HsmError(err))
             })?,
         ))
@@ -213,17 +213,16 @@ impl IdentityManager {
         if self.configuration.default == name {
             return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
         }
-        let dir = self.get_identity_dir_path(name);
-        let pem = self.get_identity_pem_path(name);
 
-        std::fs::remove_file(&pem).context(format!(
-            "Cannot remove identity file at '{}'.",
-            pem.display()
-        ))?;
+        remove_identity_file(&self.get_identity_json_path(name))?;
+        remove_identity_file(&self.get_identity_pem_path(name))?;
+
+        let dir = self.get_identity_dir_path(name);
         std::fs::remove_dir(&dir).context(format!(
             "Cannot remove identity directroy at '{}'.",
             dir.display()
         ))?;
+
         Ok(())
     }
 
@@ -400,6 +399,15 @@ fn write_identity_configuration(path: &Path, config: &IdentityConfiguration) -> 
     Ok(())
 }
 
+fn remove_identity_file(file: &Path) -> DfxResult {
+    if file.exists() {
+        std::fs::remove_file(&file).context(format!(
+            "Cannot remove identity file at '{}'.",
+            file.display()
+        ))?;
+    }
+    Ok(())
+}
 fn generate_key(pem_file: &Path) -> DfxResult {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)

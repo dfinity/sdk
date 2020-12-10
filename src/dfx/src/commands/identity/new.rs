@@ -15,13 +15,12 @@ pub struct NewIdentityOpts {
     /// The identity to create.
     identity: String,
 
-    /// A sequence of pairs of hex digits
-    // todo validator
-    #[clap(long, requires("hsm-key-id"))]
-    hsm_filename: Option<String>,
-
     /// Something like "/usr/local/lib/opensc-pkcs11.so"
-    #[clap(long, requires("hsm-filename"))]
+    #[clap(long, requires("hsm-key-id"))]
+    hsm_pkcs11_lib_path: Option<String>,
+
+    /// A sequence of pairs of hex digits
+    #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_key_id))]
     hsm_key_id: Option<String>,
 }
 
@@ -31,9 +30,9 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
     let log = env.get_logger();
     info!(log, r#"Creating identity: "{}"."#, name);
 
-    let creation_parameters = match (opts.hsm_filename, opts.hsm_key_id) {
-        (Some(filename), Some(key_id)) => {
-            Hardware(HardwareSecurityModuleConfiguration { filename, key_id })
+    let creation_parameters = match (opts.hsm_pkcs11_lib_path, opts.hsm_key_id) {
+        (Some(pkcs11_lib_path), Some(key_id)) => {
+            Hardware(HardwareSecurityModuleConfiguration { pkcs11_lib_path, key_id })
         }
         _ => Pem(),
     };
@@ -42,4 +41,14 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
 
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())
+}
+
+fn is_key_id(key_id: &str) -> Result<(), String> {
+    if key_id.len() % 2 != 0 {
+        Err("Key id must consist of an even number of hex digits".to_string())
+    } else if key_id.contains(|c: char| !c.is_ascii_hexdigit()) {
+        Err("Key id must contain only hex digits".to_string())
+    } else {
+        Ok(())
+    }
 }
