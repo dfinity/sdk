@@ -8,25 +8,25 @@ version = "0.1.0"
 #path = "../agent-rs/ic-agent"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1211-hsm-identity"
-rev = "38ede5e1b364160673a0e1afc58feafe5038ffcf"
+rev = "924888a87855cb4f7d3625c185251a7034f0ccba"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.1.0"
 #path = "../agent-rs/ic-identity-hsm"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1211-hsm-identity"
-rev = "38ede5e1b364160673a0e1afc58feafe5038ffcf"
+rev = "924888a87855cb4f7d3625c185251a7034f0ccba"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
 #path = "../agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1211-hsm-identity"
-rev = "38ede5e1b364160673a0e1afc58feafe5038ffcf"
+rev = "924888a87855cb4f7d3625c185251a7034f0ccba"
 
 [patch.crates-io.ic-utils]
 version = "0.1.0"
 #path = "../agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1211-hsm-identity"
-rev = "38ede5e1b364160673a0e1afc58feafe5038ffcf"
+rev = "924888a87855cb4f7d3625c185251a7034f0ccba"
