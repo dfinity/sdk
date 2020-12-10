@@ -31,11 +31,11 @@ fn default_identity() -> String {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct IdentityConfiguration {
-    pub hsm: Option<HardwareSecurityModuleConfiguration>,
+    pub hsm: Option<HardwareIdentityConfiguration>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct HardwareSecurityModuleConfiguration {
+pub struct HardwareIdentityConfiguration {
     /// Something like "/usr/local/lib/opensc-pkcs11.so"
     pub pkcs11_lib_path: String,
 
@@ -46,7 +46,7 @@ pub struct HardwareSecurityModuleConfiguration {
 pub enum IdentityCreationParameters {
     Pem(),
 
-    Hardware(HardwareSecurityModuleConfiguration),
+    Hardware(HardwareIdentityConfiguration),
 }
 
 #[derive(Clone, Debug)]
@@ -105,9 +105,10 @@ impl IdentityManager {
             None
         };
         match config {
-            Some(IdentityConfiguration { hsm: Some(hsm)}) =>
-                self.instantiate_hardware_identity(hsm),
-            _ => self.instantiate_basic_identity_from_name(identity_name)
+            Some(IdentityConfiguration { hsm: Some(hsm) }) => {
+                self.instantiate_hardware_identity(hsm)
+            }
+            _ => self.instantiate_basic_identity_from_name(identity_name),
         }
     }
 
@@ -129,16 +130,15 @@ impl IdentityManager {
 
     pub fn instantiate_hardware_identity(
         &self,
-        hsm: HardwareSecurityModuleConfiguration,
+        hsm: HardwareIdentityConfiguration,
     ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         let pin = std::env::var("DFX_HSM_PIN")
-           .map_err(|_| DfxError::new(IdentityError::HsmPinNotSpecified()))?;
+            .map_err(|_| DfxError::new(IdentityError::HsmPinNotSpecified()))?;
 
         let slot_id = 0;
         Ok(Box::new(
-            HardwareIdentity::new(hsm.pkcs11_lib_path, slot_id, &hsm.key_id, &pin).map_err(|err| {
-                DfxError::new(IdentityError::HsmError(err))
-            })?,
+            HardwareIdentity::new(hsm.pkcs11_lib_path, slot_id, &hsm.key_id, &pin)
+                .map_err(|err| DfxError::new(IdentityError::HardwareIdentity(err)))?,
         ))
     }
 
@@ -165,15 +165,15 @@ impl IdentityManager {
 
         match parameters {
             IdentityCreationParameters::Pem() => {
-                let pem_file = identity_dir.join(IDENTITY_PEM);
+                let pem_file = self.get_identity_pem_path(name);
                 generate_key(&pem_file)
             }
             IdentityCreationParameters::Hardware(parameters) => {
                 let identity_configuration = IdentityConfiguration {
                     hsm: Some(parameters),
                 };
-                let path = identity_dir.join(IDENTITY_JSON);
-                write_identity_configuration(&path, &identity_configuration)
+                let json_file = self.get_identity_json_path(name);
+                write_identity_configuration(&json_file, &identity_configuration)
             }
         }
     }
@@ -408,6 +408,7 @@ fn remove_identity_file(file: &Path) -> DfxResult {
     }
     Ok(())
 }
+
 fn generate_key(pem_file: &Path) -> DfxResult {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)

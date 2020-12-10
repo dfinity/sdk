@@ -1,10 +1,10 @@
 use crate::lib::error::DfxError;
 
+use ic_identity_hsm::HardwareIdentityError;
 use ring::error::Unspecified;
 use std::boxed::Box;
 use std::path::PathBuf;
 use thiserror::Error;
-use ic_identity_hsm::HardwareIdentityError;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
@@ -39,5 +39,5 @@ pub enum IdentityError {
     HsmPinNotSpecified(),
 
     #[error(transparent)]
-    HsmError(#[from] HardwareIdentityError),
+    HardwareIdentity(#[from] HardwareIdentityError),
 }

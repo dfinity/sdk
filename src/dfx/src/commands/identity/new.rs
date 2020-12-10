@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::{
-    HardwareSecurityModuleConfiguration, IdentityCreationParameters, IdentityManager,
+    HardwareIdentityConfiguration, IdentityCreationParameters, IdentityManager,
 };
 
 use clap::Clap;
@@ -31,9 +31,10 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
     info!(log, r#"Creating identity: "{}"."#, name);
 
     let creation_parameters = match (opts.hsm_pkcs11_lib_path, opts.hsm_key_id) {
-        (Some(pkcs11_lib_path), Some(key_id)) => {
-            Hardware(HardwareSecurityModuleConfiguration { pkcs11_lib_path, key_id })
-        }
+        (Some(pkcs11_lib_path), Some(key_id)) => Hardware(HardwareIdentityConfiguration {
+            pkcs11_lib_path,
+            key_id,
+        }),
         _ => Pem(),
     };
 

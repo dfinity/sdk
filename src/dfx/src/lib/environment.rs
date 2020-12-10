@@ -419,8 +419,12 @@ impl ic_agent::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent(logger: Logger, url: &str, identity: Box<dyn Identity + Send + Sync>, timeout: Duration) -> Option<Agent>
-{
+fn create_agent(
+    logger: Logger,
+    url: &str,
+    identity: Box<dyn Identity + Send + Sync>,
+    timeout: Duration,
+) -> Option<Agent> {
     AgentClient::new(logger, url.to_string())
         .ok()
         .and_then(|executor| {
