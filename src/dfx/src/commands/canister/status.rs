@@ -41,7 +41,10 @@ async fn canister_status(
         .canister_status(&canister_id)
         .call_and_wait(waiter_with_timeout(timeout))
         .await?;
-    info!(log, "Canister {}'s status is {}.", canister_name, status);
+    info!(
+        log,
+        "Canister {}'s status is {}.", canister_name, status.status
+    );
 
     Ok(())
 }

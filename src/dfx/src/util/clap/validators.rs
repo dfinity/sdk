@@ -67,3 +67,13 @@ pub fn project_name_validator(name: &str) -> Result<(), String> {
         Err("Cannot be empty.".to_owned())
     }
 }
+
+pub fn is_hsm_key_id(key_id: &str) -> Result<(), String> {
+    if key_id.len() % 2 != 0 {
+        Err("Key id must consist of an even number of hex digits".to_string())
+    } else if key_id.contains(|c: char| !c.is_ascii_hexdigit()) {
+        Err("Key id must contain only hex digits".to_string())
+    } else {
+        Ok(())
+    }
+}
