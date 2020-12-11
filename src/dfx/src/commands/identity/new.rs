@@ -15,7 +15,7 @@ pub struct NewIdentityOpts {
     /// The identity to create.
     identity: String,
 
-    /// Something like "/usr/local/lib/opensc-pkcs11.so"
+    /// The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"
     #[clap(long, requires("hsm-key-id"))]
     hsm_pkcs11_lib_path: Option<String>,
 

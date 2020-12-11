@@ -36,7 +36,7 @@ struct IdentityConfiguration {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HardwareIdentityConfiguration {
-    /// Something like "/usr/local/lib/opensc-pkcs11.so"
+    /// The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"
     pub pkcs11_lib_path: String,
 
     /// A sequence of pairs of hex digits
@@ -99,18 +99,16 @@ impl IdentityManager {
         identity_name: &str,
     ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         let json_path = self.get_identity_json_path(identity_name);
-        let config = if json_path.exists() {
-            Some(read_identity_configuration(&json_path)?)
+        if json_path.exists() {
+            let hsm = read_identity_configuration(&json_path)?
+                .hsm
+                .ok_or_else(|| {
+                    anyhow!("No HardwareIdentityConfiguration for IdentityConfiguration.")
+                })?;
+            self.instantiate_hardware_identity(hsm)
         } else {
-            None
-        };
-        match config {
-            Some(IdentityConfiguration { hsm: Some(hsm) }) => {
-                self.instantiate_hardware_identity(hsm)
-            }
-            _ => self.instantiate_basic_identity_from_name(identity_name),
+            self.instantiate_basic_identity_from_name(identity_name)
         }
-    }
 
     pub fn instantiate_basic_identity_from_name(
         &self,
