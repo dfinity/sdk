@@ -132,12 +132,14 @@ impl IdentityManager {
         &self,
         hsm: HardwareIdentityConfiguration,
     ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
-        let pin = std::env::var("DFX_HSM_PIN")
-            .map_err(|_| anyhow!("There is no DFX_HSM_PIN environment variable."))?;
-
         Ok(Box::new(
-            HardwareIdentity::new(hsm.pkcs11_lib_path, HSM_SLOT_ID.into(), &hsm.key_id, &pin)
-                .map_err(|err| DfxError::new(err))?,
+            HardwareIdentity::new(
+                hsm.pkcs11_lib_path,
+                HSM_SLOT_ID.into(),
+                &hsm.key_id,
+                get_dfx_hsm_pin,
+            )
+            .map_err(|err| DfxError::new(err))?,
         ))
     }
 
@@ -299,6 +301,11 @@ impl IdentityManager {
     fn get_identity_json_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_JSON)
     }
+}
+
+fn get_dfx_hsm_pin() -> Result<String, String> {
+    std::env::var("DFX_HSM_PIN")
+        .map_err(|_| "There is no DFX_HSM_PIN environment variable.".to_string())
 }
 
 fn initialize(
