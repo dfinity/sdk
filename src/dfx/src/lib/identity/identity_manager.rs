@@ -18,7 +18,6 @@ const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 const IDENTITY_PEM: &str = "identity.pem";
 const IDENTITY_JSON: &str = "identity.json";
-
 const HSM_SLOT_ID: u32 = 0;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

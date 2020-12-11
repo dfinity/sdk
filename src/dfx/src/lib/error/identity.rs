@@ -1,6 +1,6 @@
 use crate::lib::error::DfxError;
-
 use ic_identity_hsm::HardwareIdentityError;
+
 use ring::error::Unspecified;
 use std::boxed::Box;
 use std::path::PathBuf;
