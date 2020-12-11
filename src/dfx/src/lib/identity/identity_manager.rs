@@ -133,11 +133,11 @@ impl IdentityManager {
         hsm: HardwareIdentityConfiguration,
     ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         let pin = std::env::var("DFX_HSM_PIN")
-            .map_err(|_| DfxError::new(IdentityError::HsmPinNotSpecified()))?;
+            .map_err(|_| anyhow!("There is no DFX_HSM_PIN environment variable."))?;
 
         Ok(Box::new(
             HardwareIdentity::new(hsm.pkcs11_lib_path, HSM_SLOT_ID.into(), &hsm.key_id, &pin)
-                .map_err(|err| DfxError::new(IdentityError::HardwareIdentity(err)))?,
+                .map_err(|err| DfxError::new(err))?,
         ))
     }
 

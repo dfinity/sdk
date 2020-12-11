@@ -34,10 +34,4 @@ pub enum IdentityError {
 
     #[error("Cannot read identity file at '{0}': {1}")]
     CannotReadIdentityFile(PathBuf, Box<DfxError>),
-
-    #[error("There is no DFX_HSM_PIN environment variable.")]
-    HsmPinNotSpecified(),
-
-    #[error(transparent)]
-    HardwareIdentity(#[from] HardwareIdentityError),
 }
