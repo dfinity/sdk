@@ -19,6 +19,8 @@ const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 const IDENTITY_PEM: &str = "identity.pem";
 const IDENTITY_JSON: &str = "identity.json";
 
+const HSM_SLOT_ID: u32 = 0;
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Configuration {
     #[serde(default = "default_identity")]
@@ -134,9 +136,8 @@ impl IdentityManager {
         let pin = std::env::var("DFX_HSM_PIN")
             .map_err(|_| DfxError::new(IdentityError::HsmPinNotSpecified()))?;
 
-        let slot_id = 0;
         Ok(Box::new(
-            HardwareIdentity::new(hsm.pkcs11_lib_path, slot_id, &hsm.key_id, &pin)
+            HardwareIdentity::new(hsm.pkcs11_lib_path, HSM_SLOT_ID.into(), &hsm.key_id, &pin)
                 .map_err(|err| DfxError::new(IdentityError::HardwareIdentity(err)))?,
         ))
     }
