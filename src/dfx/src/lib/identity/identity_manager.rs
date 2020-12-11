@@ -139,7 +139,7 @@ impl IdentityManager {
                 &hsm.key_id,
                 get_dfx_hsm_pin,
             )
-            .map_err(|err| DfxError::new(err))?,
+            .map_err(DfxError::new)?,
         ))
     }
 

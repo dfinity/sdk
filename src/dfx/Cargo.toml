@@ -73,28 +73,28 @@ version = "0.1.0"
 #path = "../../../agent-rs/ic-agent"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1211-hsm-identity"
-rev = "8b994fcf8f5579e8fd2ff03e472fb66c6806362e"
+rev = "2709356dba8df7ce11efc77ec1832728eb7d5c48"
 
 [dependencies.ic-identity-hsm]
 version = "0.1.0"
 #path = "../../../agent-rs/ic-identity-hsm"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1211-hsm-identity"
-rev = "8b994fcf8f5579e8fd2ff03e472fb66c6806362e"
+rev = "2709356dba8df7ce11efc77ec1832728eb7d5c48"
 
 [dependencies.ic-types]
 version = "0.1.2"
 #path = "../../../agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1211-hsm-identity"
-rev = "8b994fcf8f5579e8fd2ff03e472fb66c6806362e"
+rev = "2709356dba8df7ce11efc77ec1832728eb7d5c48"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 #path = "../../../agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "es-1211-hsm-identity"
-rev = "8b994fcf8f5579e8fd2ff03e472fb66c6806362e"
+rev = "2709356dba8df7ce11efc77ec1832728eb7d5c48"
 
 [dev-dependencies]
 env_logger = "0.6"
