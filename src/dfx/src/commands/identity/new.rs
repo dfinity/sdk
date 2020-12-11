@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityManager,
 };
+use crate::util::clap::validators::is_hsm_key_id;
 
 use clap::Clap;
 use slog::info;
@@ -20,7 +21,7 @@ pub struct NewIdentityOpts {
     hsm_pkcs11_lib_path: Option<String>,
 
     /// A sequence of pairs of hex digits
-    #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_key_id))]
+    #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_hsm_key_id))]
     hsm_key_id: Option<String>,
 }
 
@@ -42,14 +43,4 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
 
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())
-}
-
-fn is_key_id(key_id: &str) -> Result<(), String> {
-    if key_id.len() % 2 != 0 {
-        Err("Key id must consist of an even number of hex digits".to_string())
-    } else if key_id.contains(|c: char| !c.is_ascii_hexdigit()) {
-        Err("Key id must contain only hex digits".to_string())
-    } else {
-        Ok(())
-    }
 }

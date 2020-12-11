@@ -2,7 +2,7 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use ic_agent::identity::BasicIdentity;
 use ic_agent::Identity;
 use ic_identity_hsm::HardwareIdentity;
@@ -109,6 +109,7 @@ impl IdentityManager {
         } else {
             self.instantiate_basic_identity_from_name(identity_name)
         }
+    }
 
     pub fn instantiate_basic_identity_from_name(
         &self,
