@@ -8,7 +8,7 @@ use crate::util::check_candid_file;
 use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
-use actix_web::client::Client;
+use actix_web::client::{Client, ClientBuilder, Connector};
 use actix_web::error::ErrorInternalServerError;
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
@@ -208,7 +208,11 @@ pub fn run_webserver(
 
     let handler = HttpServer::new(move || {
         App::new()
-            .data(Client::new())
+            .data(
+                ClientBuilder::new()
+                    .connector(Connector::new().limit(1).finish())
+                    .finish(),
+            )
             .data(forward_data.clone())
             .data(candid_data.clone())
             .wrap(
@@ -225,6 +229,7 @@ pub fn run_webserver(
             .service(web::resource("/_/candid").route(web::get().to(candid)))
             .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
     })
+    .max_connections(1)
     .bind(bind)?
     // N.B. This is an arbitrary timeout for now.
     .shutdown_timeout(SHUTDOWN_WAIT_TIME)
