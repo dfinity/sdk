@@ -68,25 +68,25 @@ url = "2.1.0"
 walkdir = "2.2.9"
 wasmparser = "0.45.0"
 
-[patch.crates-io.ic-agent]
+[dependencies.ic-agent]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/update-create-settings"
 rev = "2a38c0a41edaaa86def64dd5d0847376e01435fd"
 
-[patch.crates-io.ic-identity-hsm]
+[dependencies.ic-identity-hsm]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/update-create-settings"
 rev = "2a38c0a41edaaa86def64dd5d0847376e01435fd"
 
-[patch.crates-io.ic-types]
+[dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/update-create-settings"
 rev = "2a38c0a41edaaa86def64dd5d0847376e01435fd"
 
-[patch.crates-io.ic-utils]
+[dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/update-create-settings"
