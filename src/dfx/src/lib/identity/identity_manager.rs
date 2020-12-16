@@ -2,9 +2,10 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use ic_agent::identity::BasicIdentity;
 use ic_agent::Identity;
+use ic_identity_hsm::HardwareIdentity;
 use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
@@ -16,6 +17,8 @@ use std::path::{Path, PathBuf};
 const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 const IDENTITY_PEM: &str = "identity.pem";
+const IDENTITY_JSON: &str = "identity.json";
+const HSM_SLOT_ID: u32 = 0;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Configuration {
@@ -25,6 +28,26 @@ struct Configuration {
 
 fn default_identity() -> String {
     String::from(DEFAULT_IDENTITY_NAME)
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+struct IdentityConfiguration {
+    pub hsm: Option<HardwareIdentityConfiguration>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct HardwareIdentityConfiguration {
+    /// The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"
+    pub pkcs11_lib_path: String,
+
+    /// A sequence of pairs of hex digits
+    pub key_id: String,
+}
+
+pub enum IdentityCreationParameters {
+    Pem(),
+
+    Hardware(HardwareIdentityConfiguration),
 }
 
 #[derive(Clone, Debug)]
@@ -67,7 +90,7 @@ impl IdentityManager {
     }
 
     /// Create an Identity instance for use with an Agent
-    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         self.instantiate_identity_from_name(self.selected_identity.as_str())
     }
 
@@ -75,7 +98,24 @@ impl IdentityManager {
     pub fn instantiate_identity_from_name(
         &self,
         identity_name: &str,
-    ) -> DfxResult<Box<impl Identity + Send + Sync>> {
+    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
+        let json_path = self.get_identity_json_path(identity_name);
+        if json_path.exists() {
+            let hsm = read_identity_configuration(&json_path)?
+                .hsm
+                .ok_or_else(|| {
+                    anyhow!("No HardwareIdentityConfiguration for IdentityConfiguration.")
+                })?;
+            self.instantiate_hardware_identity(hsm)
+        } else {
+            self.instantiate_basic_identity_from_name(identity_name)
+        }
+    }
+
+    pub fn instantiate_basic_identity_from_name(
+        &self,
+        identity_name: &str,
+    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
         self.require_identity_exists(identity_name)?;
         let pem_path = self.get_identity_pem_path(identity_name);
         Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
@@ -88,8 +128,27 @@ impl IdentityManager {
         )?))
     }
 
+    pub fn instantiate_hardware_identity(
+        &self,
+        hsm: HardwareIdentityConfiguration,
+    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
+        Ok(Box::new(
+            HardwareIdentity::new(
+                hsm.pkcs11_lib_path,
+                HSM_SLOT_ID.into(),
+                &hsm.key_id,
+                get_dfx_hsm_pin,
+            )
+            .map_err(DfxError::new)?,
+        ))
+    }
+
     /// Create a new identity (name -> generated key)
-    pub fn create_new_identity(&self, name: &str) -> DfxResult {
+    pub fn create_new_identity(
+        &self,
+        name: &str,
+        parameters: IdentityCreationParameters,
+    ) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
@@ -105,8 +164,19 @@ impl IdentityManager {
             ))
         })?;
 
-        let pem_file = identity_dir.join(IDENTITY_PEM);
-        generate_key(&pem_file)
+        match parameters {
+            IdentityCreationParameters::Pem() => {
+                let pem_file = self.get_identity_pem_path(name);
+                generate_key(&pem_file)
+            }
+            IdentityCreationParameters::Hardware(parameters) => {
+                let identity_configuration = IdentityConfiguration {
+                    hsm: Some(parameters),
+                };
+                let json_file = self.get_identity_json_path(name);
+                write_identity_configuration(&json_file, &identity_configuration)
+            }
+        }
     }
 
     /// Return a sorted list of all available identity names
@@ -144,17 +214,16 @@ impl IdentityManager {
         if self.configuration.default == name {
             return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
         }
-        let dir = self.get_identity_dir_path(name);
-        let pem = self.get_identity_pem_path(name);
 
-        std::fs::remove_file(&pem).context(format!(
-            "Cannot remove identity file at '{}'.",
-            pem.display()
-        ))?;
+        remove_identity_file(&self.get_identity_json_path(name))?;
+        remove_identity_file(&self.get_identity_pem_path(name))?;
+
+        let dir = self.get_identity_dir_path(name);
         std::fs::remove_dir(&dir).context(format!(
             "Cannot remove identity directroy at '{}'.",
             dir.display()
         ))?;
+
         Ok(())
     }
 
@@ -207,10 +276,15 @@ impl IdentityManager {
         let identity_pem_path = self.get_identity_pem_path(name);
 
         if !identity_pem_path.exists() {
-            Err(DfxError::new(IdentityError::IdentityDoesNotExist(
-                String::from(name),
-                identity_pem_path,
-            )))
+            let identity_json_path = self.get_identity_json_path(name);
+            if !identity_json_path.exists() {
+                Err(DfxError::new(IdentityError::IdentityDoesNotExist(
+                    String::from(name),
+                    identity_pem_path,
+                )))
+            } else {
+                Ok(())
+            }
         } else {
             Ok(())
         }
@@ -223,6 +297,15 @@ impl IdentityManager {
     fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_PEM)
     }
+
+    fn get_identity_json_path(&self, identity: &str) -> PathBuf {
+        self.get_identity_dir_path(identity).join(IDENTITY_JSON)
+    }
+}
+
+fn get_dfx_hsm_pin() -> Result<String, String> {
+    std::env::var("DFX_HSM_PIN")
+        .map_err(|_| "There is no DFX_HSM_PIN environment variable.".to_string())
 }
 
 fn initialize(
@@ -302,6 +385,33 @@ fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
         "Cannot write configuration file at '{}'.",
         PathBuf::from(path).display()
     ))?;
+    Ok(())
+}
+
+fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConfiguration> {
+    let content = std::fs::read_to_string(&path).context(format!(
+        "Cannot read identity configuration file at '{}'.",
+        PathBuf::from(path).display()
+    ))?;
+    serde_json::from_str(&content).map_err(DfxError::from)
+}
+
+fn write_identity_configuration(path: &Path, config: &IdentityConfiguration) -> DfxResult {
+    let content = serde_json::to_string_pretty(&config)?;
+    std::fs::write(&path, content).context(format!(
+        "Cannot write identity configuration file at '{}'.",
+        PathBuf::from(path).display()
+    ))?;
+    Ok(())
+}
+
+fn remove_identity_file(file: &Path) -> DfxResult {
+    if file.exists() {
+        std::fs::remove_file(&file).context(format!(
+            "Cannot remove identity file at '{}'.",
+            file.display()
+        ))?;
+    }
     Ok(())
 }
 

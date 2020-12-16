@@ -8,7 +8,6 @@ use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use clap::Clap;
-use ic_agent::Identity;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
