@@ -7,7 +7,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use anyhow::Context;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::*;
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::time::Duration;
@@ -18,9 +18,7 @@ pub async fn install_canister(
     agent: &Agent,
     canister_info: &CanisterInfo,
     args: &[u8],
-    compute_allocation: Option<ComputeAllocation>,
     mode: InstallMode,
-    memory_allocation: Option<MemoryAllocation>,
     timeout: Duration,
 ) -> DfxResult {
     let mgr = ManagementCanister::create(agent);
@@ -45,17 +43,6 @@ pub async fn install_canister(
         .install_code(&canister_id, &wasm)
         .with_raw_arg(args.to_vec())
         .with_mode(mode);
-
-    let install_builder = if let Some(ca) = compute_allocation {
-        install_builder.with_compute_allocation(ca)
-    } else {
-        install_builder
-    };
-    let install_builder = if let Some(ma) = memory_allocation {
-        install_builder.with_memory_allocation(ma)
-    } else {
-        install_builder
-    };
 
     install_builder
         .build()?

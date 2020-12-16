@@ -12,7 +12,8 @@ use crate::util::{blob_from_arguments, get_candid_init_type};
 use anyhow::anyhow;
 use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
-use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
+use ic_utils::interfaces::management_canister::attributes::{ComputeAllocation, MemoryAllocation};
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::{info, warn};
 use std::convert::TryFrom;
 use std::time::Duration;
@@ -38,7 +39,14 @@ pub async fn deploy_canisters(
         info!(log, "Deploying all canisters.");
     }
 
-    register_canisters(env, &canister_names, &initial_canister_id_store, timeout).await?;
+    register_canisters(
+        env,
+        &canister_names,
+        &initial_canister_id_store,
+        timeout,
+        &config,
+    )
+    .await?;
 
     build_canisters(env, &canister_names, &config)?;
 
@@ -71,6 +79,7 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     timeout: Duration,
+    config: &Config,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -82,7 +91,35 @@ async fn register_canisters(
     } else {
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
-            create_canister(env, &canister_name, timeout).await?;
+            let config_interface = config.get_config();
+            let compute_allocation =
+                config_interface
+                    .get_compute_allocation(canister_name)?
+                    .map(|arg| {
+                        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+                            .expect("Compute Allocation must be a percentage.")
+                    });
+            let memory_allocation =
+                config_interface
+                    .get_memory_allocation(canister_name)?
+                    .map(|arg| {
+                        MemoryAllocation::try_from(
+                        u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
+                    )
+                    .expect(
+                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                    )
+                    });
+            let controller = None;
+            create_canister(
+                env,
+                &canister_name,
+                timeout,
+                controller,
+                compute_allocation,
+                memory_allocation,
+            )
+            .await?;
         }
     }
     Ok(())
@@ -126,31 +163,12 @@ async fn install_canisters(
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
         let install_args = blob_from_arguments(argument, argument_type, &init_type)?;
 
-        let config_interface = config.get_config();
-        let compute_allocation =
-            config_interface
-                .get_compute_allocation(canister_name)?
-                .map(|arg| {
-                    ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
-                        .expect("Compute Allocation must be a percentage.")
-                });
-        let memory_allocation = config_interface
-            .get_memory_allocation(canister_name)?
-            .map(|arg| {
-                MemoryAllocation::try_from(
-                    u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
-                )
-                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
-            });
-
         let result = install_canister(
             env,
             &agent,
             &canister_info,
             &install_args,
-            compute_allocation,
             first_mode,
-            memory_allocation,
             timeout,
         )
         .await;
@@ -179,9 +197,7 @@ async fn install_canisters(
                     &agent,
                     &canister_info,
                     &install_args,
-                    compute_allocation,
                     second_mode,
-                    memory_allocation,
                     timeout,
                 )
                 .await
