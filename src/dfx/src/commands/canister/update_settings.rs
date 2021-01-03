@@ -1,4 +1,5 @@
 use crate::config::dfinity::ConfigInterface;
+// use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
@@ -16,17 +17,19 @@ use ic_utils::interfaces::management_canister::attributes::{ComputeAllocation, M
 use ic_utils::interfaces::ManagementCanister;
 use std::convert::TryFrom;
 
+/// Update one or more of a canisters settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Clap)]
 #[clap(name("update-settings"))]
 pub struct UpdateSettingsOpts {
-    ///
+    /// Specifies the canister name to update. You must specify either canister name or the --all option.
     canister_name: Option<String>,
 
-    ///
+    /// Updates the settings of all canisters configured in the project dfx.json files.
     #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
+    #[clap(long)]
     controller: Option<String>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
@@ -74,7 +77,7 @@ pub async fn exec(env: &dyn Environment, opts: UpdateSettingsOpts) -> DfxResult 
     let config_interface = config.get_config();
     fetch_root_key_if_needed(env).await?;
 
-    let controller = if let Some(controller) = opts.controller {
+    let controller = if let Some(controller) = opts.controller.clone() {
         match CanisterId::from_text(controller.clone()) {
             Ok(principal) => Some(principal),
             Err(_) => Some(
@@ -91,8 +94,15 @@ pub async fn exec(env: &dyn Environment, opts: UpdateSettingsOpts) -> DfxResult 
     let mgr = ManagementCanister::create(agent);
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    if let Some(canister_name) = opts.canister_name.as_deref() {
-        let canister_id = canister_id_store.get(canister_name)?;
+    if let Some(canister_name_or_id) = opts.canister_name.as_deref() {
+        let canister_id = match CanisterId::from_text(canister_name_or_id) {
+            Ok(id) => id,
+            Err(_) => canister_id_store.get(canister_name_or_id)?,
+        };
+        let textual_cid = canister_id.to_text();
+        let canister_name = canister_id_store
+            .get_name(&textual_cid)
+            .ok_or_else(|| anyhow!("Cannot find canister name for id '{}'.", textual_cid))?;
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),
             config_interface,
@@ -104,13 +114,19 @@ pub async fn exec(env: &dyn Environment, opts: UpdateSettingsOpts) -> DfxResult 
             canister_name,
         )?;
         mgr.update_canister_settings(&canister_id)
-            .with_optional_controller(controller)
+            .with_optional_controller(controller.clone())
             .with_optional_compute_allocation(compute_allocation)
             .with_optional_memory_allocation(memory_allocation)
             .call_and_wait(waiter_with_timeout(timeout))
             .await?;
+        if let Some(new_controller) = opts.controller.clone() {
+            println!(
+                "Updated {:?} as controller of {:?}.",
+                new_controller, canister_name_or_id
+            );
+        };
     } else if opts.all {
-        // Create all canisters.
+        // Update all canister settings.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
                 let canister_id = canister_id_store.get(canister_name)?;
@@ -130,6 +146,12 @@ pub async fn exec(env: &dyn Environment, opts: UpdateSettingsOpts) -> DfxResult 
                     .with_optional_memory_allocation(memory_allocation)
                     .call_and_wait(waiter_with_timeout(timeout))
                     .await?;
+                if let Some(new_controller) = opts.controller.clone() {
+                    println!(
+                        "Updated {:?} as controller of {:?}.",
+                        new_controller, canister_name
+                    );
+                };
             }
         }
     } else {

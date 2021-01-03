@@ -20,7 +20,7 @@ mod update_settings;
 #[derive(Clap)]
 #[clap(name("canister"))]
 pub struct CanisterOpts {
-    // Override the compute network to connect to. By default, the local network is used.
+    /// Override the compute network to connect to. By default, the local network is used.
     #[clap(long)]
     network: Option<String>,
 
@@ -36,7 +36,6 @@ enum SubCommand {
     Id(id::CanisterIdOpts),
     Install(install::CanisterInstallOpts),
     RequestStatus(request_status::RequestStatusOpts),
-    // SetController(set_controller::SetControllerOpts),
     Start(start::CanisterStartOpts),
     Status(status::CanisterStatusOpts),
     Stop(stop::CanisterStopOpts),
@@ -54,7 +53,6 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
             SubCommand::Install(v) => install::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
-            // SubCommand::SetController(v) => set_controller::exec(&agent_env, v).await,
             SubCommand::Start(v) => start::exec(&agent_env, v).await,
             SubCommand::Status(v) => status::exec(&agent_env, v).await,
             SubCommand::Stop(v) => stop::exec(&agent_env, v).await,

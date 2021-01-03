@@ -18,7 +18,7 @@ teardown() {
     rm -rf $(pwd)/home-for-test
 }
 
-@test "set controller" {
+@test "update controller" {
     # Create two identities and get their Principals
     assert_command dfx identity new jose
     assert_command dfx identity new juana
@@ -34,8 +34,8 @@ teardown() {
     ID=$(dfx canister id hello)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister set-controller hello juana
-    assert_match "Set \"juana\" as controller of \"hello\"."
+    assert_command dfx canister update-settings hello --controller juana
+    assert_match "Updated \"juana\" as controller of \"hello\"."
 
     # Juana is controller, Jose cannot reinstall
     assert_command_fail dfx canister install hello -m reinstall
@@ -51,22 +51,22 @@ teardown() {
 
     assert_command dfx identity use juana
     # Set controller using canister id and principal
-    assert_command dfx canister set-controller ${ID} ${JOSE_PRINCIPAL}
-    assert_match "Set \"${JOSE_PRINCIPAL}\" as controller of \"${ID}\"."
+    assert_command dfx canister update-settings ${ID} --controller ${JOSE_PRINCIPAL}
+    assert_match "Updated \"${JOSE_PRINCIPAL}\" as controller of \"${ID}\"."
     assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity jose canister set-controller hello ${JUANA_PRINCIPAL}
-    assert_match "Set \"${JUANA_PRINCIPAL}\" as controller of \"hello\"."
+    assert_command dfx --identity jose canister update-settings hello --controller ${JUANA_PRINCIPAL}
+    assert_match "Updated \"${JUANA_PRINCIPAL}\" as controller of \"hello\"."
 
-    assert_command dfx --identity juana canister set-controller ${ID} jose
-    assert_match "Set \"jose\" as controller of \"${ID}\"."
+    assert_command dfx --identity juana canister update-settings ${ID} --controller jose
+    assert_match "Updated \"jose\" as controller of \"${ID}\"."
 
     # Set controller using invalid principal/identity fails
-    assert_command_fail dfx --identity jose canister set-controller hello bob
+    assert_command_fail dfx --identity jose canister update-settings hello --controller bob
     assert_match "Identity bob does not exist"
 
     # Set controller using invalid canister name/id fails
-    assert_command_fail dfx --identity jose canister set-controller hello_assets juana
+    assert_command_fail dfx --identity jose canister update-settings hello_assets --controller juana
     assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
 }
