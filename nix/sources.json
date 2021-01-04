@@ -32,9 +32,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "master",
+        "branch": "basvandijk/nixpkgs-update-2021-01-04",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "897d4674debd73015bc0273bca2ac6cbb0943516",
+        "rev": "0f510c85ce4bcbe453591770206434ac0c408a52",
         "type": "git"
     },
     "dfinity": {
