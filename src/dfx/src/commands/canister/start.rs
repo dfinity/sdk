@@ -15,7 +15,6 @@ use std::time::Duration;
 
 /// Starts a canister on the Internet Computer network.
 #[derive(Clap)]
-#[clap(name("start"))]
 pub struct CanisterStartOpts {
     /// Specifies the name of the canister to start. You must specify either a canister name or the --all flag.
     canister_name: Option<String>,

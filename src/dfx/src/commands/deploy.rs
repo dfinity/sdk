@@ -10,7 +10,6 @@ use tokio::runtime::Runtime;
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
 #[derive(Clap)]
-#[clap(name("deploy"))]
 pub struct DeployOpts {
     /// Specifies the name of the canister you want to deploy.
     /// If you don’t specify a canister name, all canisters defined in the dfx.json file are deployed.

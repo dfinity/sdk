@@ -6,7 +6,6 @@ use clap::Clap;
 
 /// Shows the name of the current identity.
 #[derive(Clap)]
-#[clap(name("whoami"))]
 pub struct WhoAmIOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: WhoAmIOpts) -> DfxResult {
