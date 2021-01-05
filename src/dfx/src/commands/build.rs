@@ -9,7 +9,6 @@ use clap::Clap;
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
 #[derive(Clap)]
-#[clap(name("build"))]
 pub struct CanisterBuildOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.

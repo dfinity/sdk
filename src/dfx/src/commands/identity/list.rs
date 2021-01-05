@@ -7,7 +7,6 @@ use std::io::Write;
 
 /// Lists existing identities.
 #[derive(Clap)]
-#[clap(name("list"))]
 pub struct ListOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: ListOpts) -> DfxResult {

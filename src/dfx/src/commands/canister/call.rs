@@ -11,9 +11,8 @@ use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
 
-/// Deletes a canister on the Internet Computer network.
+/// Calls a method on a deployed canister.
 #[derive(Clap)]
-#[clap(name("call"))]
 pub struct CanisterCallOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.
