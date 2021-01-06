@@ -7,7 +7,6 @@ use slog::info;
 
 /// Specifies the identity to use.
 #[derive(Clap)]
-#[clap(name("use"))]
 pub struct UseOpts {
     /// The identity to use.
     identity: String,

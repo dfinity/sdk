@@ -12,7 +12,6 @@ use tar::Archive;
 
 /// Upgrade DFX.
 #[derive(Clap)]
-#[clap(name("upgrade"))]
 pub struct UpgradeOpts {
     /// Current Version.
     #[clap(long)]

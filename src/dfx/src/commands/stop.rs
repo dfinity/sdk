@@ -6,7 +6,6 @@ use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
 /// Stops the local network replica.
 #[derive(Clap)]
-#[clap(name("stop"))]
 pub struct StopOpts {}
 
 fn list_all_descendants(pid: Pid) -> Vec<Pid> {

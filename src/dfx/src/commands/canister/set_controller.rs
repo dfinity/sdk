@@ -8,7 +8,6 @@ use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use clap::Clap;
-use ic_agent::Identity;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
@@ -16,7 +15,6 @@ use ic_utils::interfaces::ManagementCanister;
 /// Sets the provided identity's name or its principal as the
 /// new controller of a canister on the Internet Computer network.
 #[derive(Clap)]
-#[clap(name("set-controller"))]
 pub struct SetControllerOpts {
     /// Specifies the canister name or the canister identifier for the canister to be controlled.
     canister: String,

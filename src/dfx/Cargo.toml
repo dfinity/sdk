@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.6.16"
+version = "0.6.17"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -72,19 +72,25 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "3d6d841a3887d322ffb3f59832574a589156f0d0"
+rev = "5d6ed55236641c136c941707c751b020822cee16"
+
+[dependencies.ic-identity-hsm]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "next"
+rev = "5d6ed55236641c136c941707c751b020822cee16"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "3d6d841a3887d322ffb3f59832574a589156f0d0"
+rev = "5d6ed55236641c136c941707c751b020822cee16"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "3d6d841a3887d322ffb3f59832574a589156f0d0"
+rev = "5d6ed55236641c136c941707c751b020822cee16"
 
 [dev-dependencies]
 env_logger = "0.6"

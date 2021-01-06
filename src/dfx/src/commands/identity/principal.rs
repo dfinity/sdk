@@ -4,11 +4,9 @@ use crate::lib::identity::identity_manager::IdentityManager;
 
 use anyhow::anyhow;
 use clap::Clap;
-use ic_agent::Identity;
 
 /// Shows the textual representation of the Principal associated with the current identity.
 #[derive(Clap)]
-#[clap(name("get-principal"))]
 pub struct GetPrincipalOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetPrincipalOpts) -> DfxResult {
