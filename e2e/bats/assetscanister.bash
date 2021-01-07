@@ -22,24 +22,24 @@ teardown() {
     dfx canister install e2e_project_assets
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("binary/noise.txt")' --output idl
-    assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")'
+    assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("text-with-newlines.txt")' --output idl
-    assert_eq '(blob "\63\68\65\72\72\69\65\73\0a\69\74\27\73\20\63\68\65\72\72\79\20\73\65\61\73\6f\6e\0a\43\48\45\52\52\49\45\53")'
+    assert_eq '(blob "cherries\0ait'\''s cherry season\0aCHERRIES")'
 
-    assert_command dfx canister call --update e2e_project_assets store '("AA", vec { 100; 107; 62; 9; })'
+    assert_command dfx canister call --update e2e_project_assets store '("AA", blob "hello, world!")'
     assert_eq '()'
     assert_command dfx canister call --update e2e_project_assets store '("B", vec { 88; 87; 86; })'
     assert_eq '()'
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("B")' --output idl
-    assert_eq '(blob "\58\57\56")'
+    assert_eq '(blob "XWV")'
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("AA")' --output idl
-    assert_eq '(blob "\64\6b\3e\09")'
+    assert_eq '(blob "hello, world!")'
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("B")' --output idl
-    assert_eq '(blob "\58\57\56")'
+    assert_eq '(blob "XWV")'
 
     assert_command_fail dfx canister call --query e2e_project_assets retrieve '("C")'
 

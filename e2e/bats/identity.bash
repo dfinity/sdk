@@ -100,7 +100,7 @@ teardown() {
     assert_command dfx --identity alice canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
     assert_eq '()'
     assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
-    assert_eq '(blob "\58\57\56")'
+    assert_eq '(blob "XWV")'
 }
 
 @test "after renaming an identity, the renamed identity is still initializer" {
@@ -123,8 +123,8 @@ teardown() {
     assert_command dfx --identity bob canister call e2e_project amInitializer
     assert_eq '(true)'
 
-    assert_command dfx --identity bob canister call e2e_project_assets store '("B", vec { 40; 67 })'
+    assert_command dfx --identity bob canister call e2e_project_assets store '("B", blob "hello")'
     assert_eq '()'
     assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
-    assert_eq '(blob "\28\43")'
+    assert_eq '(blob "hello")'
 }
