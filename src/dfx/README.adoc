@@ -16,7 +16,12 @@ nix-env -iA dfx.standalone -f .
 To create the tarball that would be uploaded as part of a release, run
 
 [source,bash]
-nix-build -A dfx-release
+nix-build ci/ci.nix -A publish.dfx-tarballs.linux
+
+or
+
+[source,bash]
+nix-build ci/ci.nix -A publish.dfx-tarballs.darwin
 
 and look in `result/dfx-latest.tar.gz`.
 
