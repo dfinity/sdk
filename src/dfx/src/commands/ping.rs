@@ -14,7 +14,6 @@ use tokio::runtime::Runtime;
 
 /// Pings an Internet Computer network and returns its status.
 #[derive(Clap)]
-#[clap(name("ping"))]
 pub struct PingOpts {
     /// The provider to use.
     network: Option<String>,

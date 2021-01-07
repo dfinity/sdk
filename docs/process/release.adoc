@@ -18,8 +18,8 @@ Our goal is to update this document with the latest information as we iterate to
 Use this checklist to prepare a release candidate.
 
 === Participants
-- Driver
-- Validator
+- Driver / Primary
+- Validator / Secondary
 
 === Prerequisites
 
@@ -59,8 +59,10 @@ image:is-master-green.png[]
 
 === Notify the Community in case of a Breaking Release
 
-Create a post in `https://forum.dfinity.org/c/tungsten-developer-network/25`
+If a release is known to have changes that are not backward-compatible, create a forum post to describe the change and any instructions for migrating to the new release.
 
+Depending on the change, the notification might need to be posted in more than one topic channels.
+For example, changes to the external network for onboarded developers are currently posted in `https://forum.dfinity.org/c/tungsten-developer-network/25`.
 
 === Start preparing a new release
 

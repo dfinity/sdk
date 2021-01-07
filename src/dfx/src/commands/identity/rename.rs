@@ -7,7 +7,6 @@ use slog::info;
 
 /// Renames an existing identity.
 #[derive(Clap)]
-#[clap(name("rename"))]
 pub struct RenameOpts {
     /// The current name of the identity.
     from: String,

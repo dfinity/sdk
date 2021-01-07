@@ -17,7 +17,6 @@ use std::convert::TryFrom;
 /// Creates an empty canister on the Internet Computer and
 /// associates the Internet Computer assigned Canister ID to the canister name.
 #[derive(Clap)]
-#[clap(name("create"))]
 pub struct CanisterCreateOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
     canister_name: Option<String>,

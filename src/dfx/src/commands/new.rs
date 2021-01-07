@@ -35,7 +35,6 @@ lazy_static! {
 
 /// Creates a new project.
 #[derive(Clap)]
-#[clap(name("new"))]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
     #[clap(validator(project_name_validator))]

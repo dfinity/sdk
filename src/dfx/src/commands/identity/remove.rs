@@ -7,7 +7,6 @@ use slog::info;
 
 /// Removes an existing identity.
 #[derive(Clap)]
-#[clap(name("remove"))]
 pub struct RemoveOpts {
     /// The identity to remove.
     identity: String,
