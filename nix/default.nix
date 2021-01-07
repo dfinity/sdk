@@ -47,7 +47,7 @@ let
                 inherit system pkgs;
                 agent-js-monorepo-src = self.sources.agent-js-monorepo;
               };
-              ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref;
+              ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref-musl;
 
               nix-fmt = nixFmt.fmt;
               nix-fmt-check = nixFmt.check;
