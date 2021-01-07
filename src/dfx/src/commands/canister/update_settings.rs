@@ -19,7 +19,6 @@ use std::convert::TryFrom;
 
 /// Update one or more of a canisters settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Clap)]
-#[clap(name("update-settings"))]
 pub struct UpdateSettingsOpts {
     /// Specifies the canister name to update. You must specify either canister name or the --all option.
     canister_name: Option<String>,
