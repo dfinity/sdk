@@ -11,11 +11,7 @@ setup() {
 
     install_asset certificate
     dfx_start
-    dfx canister create --all
-    dfx build
-    # INSTALL_REQUEST_ID=$(dfx canister install hello --async)
-    # dfx canister request-status $INSTALL_REQUEST_ID
-    dfx canister install certificate
+    dfx deploy
 
     echo "Initial local.bind is $(jq .networks.local.bind dfx.json)"
     jq . dfx.json
