@@ -44,10 +44,9 @@
         "type": "git"
     },
     "ic-ref": {
-        "branch": "joachim/ic-ref-musl",
+        "branch": "release-0.15",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "e106ae69636c9f1ab98fb7328b8f9b59f547aab1",
-        "tag": "0.14.0",
+        "rev": "1f9680de8c9b70565ac2f787ad5e82776745772b",
         "type": "git"
     },
     "motoko": {
