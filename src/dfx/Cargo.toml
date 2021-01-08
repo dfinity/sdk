@@ -72,25 +72,25 @@ wasmparser = "0.45.0"
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/update-create-settings"
-rev = "2a38c0a41edaaa86def64dd5d0847376e01435fd"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [dependencies.ic-identity-hsm]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/update-create-settings"
-rev = "2a38c0a41edaaa86def64dd5d0847376e01435fd"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/update-create-settings"
-rev = "2a38c0a41edaaa86def64dd5d0847376e01435fd"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "pshahi/update-create-settings"
-rev = "2a38c0a41edaaa86def64dd5d0847376e01435fd"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [dev-dependencies]
 env_logger = "0.6"
