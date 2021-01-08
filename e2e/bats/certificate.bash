@@ -14,21 +14,17 @@ setup() {
     dfx deploy
 
     BACKEND=$(jq -r .networks.local.bind dfx.json)
-    echo "backend is $BACKEND"
 
     MITM_PORT=$(python3 ${BATS_TEST_DIRNAME}/utils/get_ephemeral_port.py)
 
     mitmdump -p $MITM_PORT --mode reverse:http://$BACKEND  --replace '/~s/Hello,/Hullo,' &
     MITMDUMP_PID=$!
-    #sleep 5
 
     timeout 5 sh -c \
         "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done" \
         || (echo "mitmdump did not start on port $MITM_PORT" && exit 1)
 
-
     cat <<<$(jq .networks.local.bind=\"127.0.0.1:$MITM_PORT\" dfx.json) >dfx.json
-    echo "MITM local.bind is $(jq .networks.local.bind dfx.json)"
 }
 
 teardown() {
