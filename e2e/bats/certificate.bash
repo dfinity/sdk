@@ -13,9 +13,6 @@ setup() {
     dfx_start
     dfx deploy
 
-    echo "Initial local.bind is $(jq .networks.local.bind dfx.json)"
-    jq . dfx.json
-
     BACKEND=$(jq -r .networks.local.bind dfx.json)
     echo "backend is $BACKEND"
 
@@ -40,12 +37,12 @@ teardown() {
     dfx_stop
 }
 
-@test "mitm attack - update: certificate verification fails" {
+@test "mitm attack - update: attack fails because certificate verification fails" {
     assert_command_fail dfx canister call certificate hello_update '("Banzai")'
     assert_match 'Certificate verification failed.'
 }
 
-@test "mitm attack - query: no certificate verification" {
+@test "mitm attack - query: attack succeeds because there is no certificate to verify" {
     assert_command dfx canister call certificate hello_query '("Banzai")'
     assert_eq '("Hullo, Banzai!")'
 }
