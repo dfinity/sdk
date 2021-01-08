@@ -47,17 +47,7 @@ let
                 inherit system pkgs;
                 agent-js-monorepo-src = self.sources.agent-js-monorepo;
               };
-              ic-ref =
-                let
-                  ic-ref-pkgs = (import self.sources.ic-ref { inherit (self) system; });
-                in
-                  if pkgs.stdenv.isDarwin
-                  then pkgs.lib.standaloneRust {
-                    drv = ic-ref-pkgs.ic-ref;
-                    usePackager = false;
-                    exename = "ic-ref";
-                  }
-                  else ic-ref-pkgs.ic-ref-musl;
+              ic-ref = (import self.sources.ic-ref { inherit (self) system; }).ic-ref-dist;
 
               nix-fmt = nixFmt.fmt;
               nix-fmt-check = nixFmt.check;

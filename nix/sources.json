@@ -46,7 +46,7 @@
     "ic-ref": {
         "branch": "joachim/ic-ref-musl",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "24081914fbf8b0f97ccdcda4233f36371afc47bf",
+        "rev": "889d70cdbcb0012027676b6722d93afe9d9381cd",
         "tag": "0.14.0",
         "type": "git"
     },
