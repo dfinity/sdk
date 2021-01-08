@@ -1,6 +1,6 @@
 actor Greet {
 
-    public func greet(name: Text) : async Text {
+    public query func greet(name: Text) : async Text {
         "Hello, " # name # "!"
     }
 
