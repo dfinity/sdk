@@ -34,7 +34,7 @@ teardown() {
 @test "non-forced install populates an empty cache" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
-    test ! -e $(dfx cache show)/dfx
+    test ! -e $(dfx cache show | tail -1)/dfx
 
     dfx_new
 
@@ -44,7 +44,7 @@ teardown() {
 @test "forced install populates an empty cache" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
-    test ! -e $(dfx cache show)/dfx
+    test ! -e $(dfx cache show | tail -1)/dfx
 
     assert_command dfx cache install
 
