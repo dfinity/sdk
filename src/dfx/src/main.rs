@@ -118,7 +118,7 @@ fn main() {
                         env.get_logger(),
                         "Trace mode enabled. Lots of logs coming up."
                     );
-                    witness_telemetry_consent(&env).and_then(|()| commands::exec(&env, command))
+                    witness_telemetry_consent().and_then(|()| commands::exec(&env, command))
                 }
                 Err(e) => Err(e),
             }
