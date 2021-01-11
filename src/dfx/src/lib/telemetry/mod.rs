@@ -23,7 +23,7 @@ pub enum TelemetryError {
 pub fn get_telemetry_root(env: &dyn Environment) -> DfxResult<PathBuf> {
     let root = env.get_cache().get_binary_command_path("telemetry")?;
     if !root.exists() {
-        if let Err(_) = std::fs::create_dir_all(&root) {
+        if std::fs::create_dir_all(&root).is_err() {
             return Err(DfxError::new(
                 TelemetryError::CannotCreateTelemetryDirectory(root),
             ));
@@ -39,7 +39,7 @@ pub fn get_telemetry_root(env: &dyn Environment) -> DfxResult<PathBuf> {
 pub fn witness_telemetry_consent(env: &dyn Environment) -> DfxResult<()> {
     let file = get_telemetry_root(env)?.join("witness.blank");
     if !file.exists() {
-        if let Err(_) = File::create(&file) {
+        if File::create(&file).is_err() {
             return Err(DfxError::new(
                 TelemetryError::CannotCreateTelemetryWitnessFile(file),
             ));
