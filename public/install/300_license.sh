@@ -6,7 +6,7 @@ confirm_license() {
     \x1b[1mThe DFINITY Canister SDK\x1b[0m
 
     Please READ the following NOTICE:"
-    notice="Copyright 2021 DFINITY Stiftung. All Rights Reserved.
+    notice='Copyright 2021 DFINITY Stiftung. All Rights Reserved.
 
 The DFINITY Canister SDK (the \"Software\") is licensed under the Alpha DFINITY
 Canister SDK License Agreement (the \"License\"). You may not use the Software
@@ -14,7 +14,7 @@ except in compliance with the License. You may obtain a copy of the License at
 
     https://sdk.dfinity.org/sdk-license-agreement.txt
 
-The Software is provided to you AS IS and WITHOUT WARRANTY."
+The Software is provided to you AS IS and WITHOUT WARRANTY.'
     prompt="Do you agree and wish to install the DFINITY Canister SDK [y/N]?"
 
     # we test if there is a terminal present (that is, STDIN is a TTY)
