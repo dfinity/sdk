@@ -17,7 +17,6 @@ use std::str::FromStr;
 
 /// Deploys compiled code as a canister on the Internet Computer.
 #[derive(Clap, Clone)]
-#[clap(name("install"))]
 pub struct CanisterInstallOpts {
     /// Specifies the canister name to deploy. You must specify either canister name or the --all option.
     canister_name: Option<String>,

@@ -26,7 +26,6 @@ use tokio::runtime::Runtime;
 
 /// Starts the local replica and a web server for the current project.
 #[derive(Clap)]
-#[clap(name("start"))]
 pub struct StartOpts {
     /// Specifies the host name and port number to bind the frontend to.
     #[clap(long)]

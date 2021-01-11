@@ -11,7 +11,6 @@ use IdentityCreationParameters::{Hardware, Pem};
 
 /// Creates a new identity.
 #[derive(Clap)]
-#[clap(name("new"))]
 pub struct NewIdentityOpts {
     /// The identity to create.
     identity: String,

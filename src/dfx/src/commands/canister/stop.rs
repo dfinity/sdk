@@ -15,7 +15,6 @@ use std::time::Duration;
 
 /// Stops a canister that is currently running on the Internet Computer network.
 #[derive(Clap)]
-#[clap(name("stop"))]
 pub struct CanisterStopOpts {
     /// Specifies the name of the canister to stop.
     /// You must specify either a canister name or the --all option.

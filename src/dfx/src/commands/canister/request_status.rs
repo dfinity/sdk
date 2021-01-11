@@ -14,7 +14,6 @@ use std::str::FromStr;
 
 /// Requests the status of a specified call from a canister.
 #[derive(Clap)]
-#[clap(name("request-status"))]
 pub struct RequestStatusOpts {
     /// Specifies the request identifier.
     /// The request identifier is an hexadecimal string starting with 0x.

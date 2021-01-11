@@ -15,7 +15,6 @@ use ic_utils::interfaces::ManagementCanister;
 /// Sets the provided identity's name or its principal as the
 /// new controller of a canister on the Internet Computer network.
 #[derive(Clap)]
-#[clap(name("set-controller"))]
 pub struct SetControllerOpts {
     /// Specifies the canister name or the canister identifier for the canister to be controlled.
     canister: String,

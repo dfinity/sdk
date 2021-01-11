@@ -12,7 +12,6 @@ use tar::Archive;
 
 /// Upgrade DFX.
 #[derive(Clap)]
-#[clap(name("upgrade"))]
 pub struct UpgradeOpts {
     /// Current Version.
     #[clap(long)]
@@ -152,9 +151,8 @@ pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
         "macos" => "x86_64-darwin",
         _ => panic!("Not supported architecture"),
     };
-    let curr_ver_str = opts.current_version.unwrap();
-    let current_version = if let Some(version) = Some(curr_ver_str.as_str()) {
-        Version::parse(version)?
+    let current_version = if let Some(version) = opts.current_version {
+        Version::parse(&version)?
     } else {
         env.get_version().clone()
     };
