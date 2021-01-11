@@ -25,7 +25,8 @@ teardown() {
     assert_command_fail head $HOME/.config/dfx/identity/default/identity.pem
 
     #cache
-    # create a new project
+    # create a new project to install dfx cache
+    assert_command_fail ls $DFX_CONFIG_ROOT/.cache/dfinity/versions
     dfx new hello
     assert_command ls $DFX_CONFIG_ROOT/.cache/dfinity/versions
     assert_command_fail ls $HOME/.cache/dfinity/versions
