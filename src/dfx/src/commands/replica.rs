@@ -13,7 +13,6 @@ use std::default::Default;
 
 /// Starts a local Internet Computer replica.
 #[derive(Clap)]
-#[clap(name("replica"))]
 pub struct ReplicaOpts {
     /// Specifies the maximum number of cycles a single message can consume.
     #[clap(long, hidden = true)]

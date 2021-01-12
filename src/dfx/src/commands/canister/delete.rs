@@ -15,7 +15,6 @@ use std::time::Duration;
 
 /// Deletes a canister on the Internet Computer network.
 #[derive(Clap)]
-#[clap(name("delete"))]
 pub struct CanisterDeleteOpts {
     /// Specifies the name of the canister to delete.
     /// You must specify either a canister name or the --all flag.

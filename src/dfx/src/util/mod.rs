@@ -56,10 +56,7 @@ pub fn print_idl_blob(
                 eprintln!("Error deserializing blob 0x{}", hex_string);
             }
             if output_type == "idl" {
-                println!(
-                    "{}",
-                    candid::parser::value::pretty::pp_args(&result?).pretty(usize::MAX)
-                );
+                println!("{:?}", result?);
             } else {
                 println!("{}", result?);
             }

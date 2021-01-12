@@ -648,9 +648,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.6.11"
+version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35ce6409248f64bd04901198a62818cd7f41be6ea9e53d1cce97dc8e2d71a5c6"
+checksum = "85dbaab748ed1d7be4ccd05f2a03f876203d7ff0f01254d529d86b3a115ed4d4"
 dependencies = [
  "byteorder",
  "candid_derive",
@@ -1775,7 +1775,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#5d6ed55236641c136c941707c751b020822cee16"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#4e434825a2117499130df169f3ba2308fefabb18"
 dependencies = [
  "base32",
  "crc32fast",
@@ -3327,9 +3327,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.5.1"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae524f056d7d770e174287294f562e95044c68e88dec909a00d2094805db9d75"
+checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
 
 [[package]]
 name = "socket2"

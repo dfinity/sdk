@@ -41,6 +41,11 @@ setup() {
     assert_match "Current version: .*"
     assert_match "Fetching manifest .*"
     assert_match "New version available: .*"
+
+    assert_command ./dfx upgrade \
+        --release-root "http://localhost:$RANDOM_EMPHEMERAL_PORT"
+    assert_match "Already up to date"
+
     kill "$WEB_SERVER_PID"
     assert_command ./dfx --version
     assert_match "$version"

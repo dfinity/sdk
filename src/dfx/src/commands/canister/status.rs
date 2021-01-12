@@ -15,7 +15,6 @@ use std::time::Duration;
 
 /// Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.
 #[derive(Clap)]
-#[clap(name("status"))]
 pub struct CanisterStatusOpts {
     /// Specifies the name of the canister to return information for.
     /// You must specify either a canister name or the --all flag.

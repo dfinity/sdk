@@ -27,6 +27,7 @@ pub enum Command {
     Config(config::ConfigOpts),
     Deploy(deploy::DeployOpts),
     Identity(identity::IdentityOpt),
+    #[clap(name("_language-service"))]
     LanguageServices(language_service::LanguageServiceOpts),
     New(new::NewOpts),
     Ping(ping::PingOpts),
