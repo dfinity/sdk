@@ -648,9 +648,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.6.12"
+version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06a4d0e76691fa684aad5a01852ed28d628f0201d79beb78a501dcaad8f72684"
+checksum = "85dbaab748ed1d7be4ccd05f2a03f876203d7ff0f01254d529d86b3a115ed4d4"
 dependencies = [
  "byteorder",
  "candid_derive",
@@ -1775,7 +1775,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#edfbf7ee3c4f03b09f43e8bcccdeb4e13929dd27"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#4e434825a2117499130df169f3ba2308fefabb18"
 dependencies = [
  "base32",
  "crc32fast",
