@@ -32,7 +32,7 @@ setup() {
         MITM_PORT=$(python3 ${BATS_TEST_DIRNAME}/utils/get_ephemeral_port.py)
         cat <<<$(jq .networks.local.bind=\"127.0.0.1:$MITM_PORT\" dfx.json) >dfx.json
 
-        mitmdump -p $MITM_PORT -w ${BATS_TEST_DIRNAME}/$MITM_PORT.out --mode reverse:http://$BACKEND  --replace '/~s/Hello,/Hullo,' &
+        mitmdump -p $MITM_PORT --mode reverse:http://$BACKEND  --replace '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
         timeout 5 sh -c \
