@@ -648,35 +648,12 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.6.12"
+version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06a4d0e76691fa684aad5a01852ed28d628f0201d79beb78a501dcaad8f72684"
+checksum = "85dbaab748ed1d7be4ccd05f2a03f876203d7ff0f01254d529d86b3a115ed4d4"
 dependencies = [
  "byteorder",
- "candid_derive 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "codespan-reporting",
- "hex",
- "ic-types",
- "lalrpop",
- "lalrpop-util",
- "leb128",
- "logos",
- "num-bigint 0.3.1",
- "num-traits",
- "num_enum",
- "paste",
- "pretty",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "candid"
-version = "0.6.12"
-source = "git+https://github.com/dfinity/candid.git?branch=master#01d23d61b19aa59674bb37b6a17a31febdd70b81"
-dependencies = [
- "byteorder",
- "candid_derive 0.4.2 (git+https://github.com/dfinity/candid.git)",
+ "candid_derive",
  "codespan-reporting",
  "hex",
  "ic-types",
@@ -698,17 +675,6 @@ name = "candid_derive"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5603430e22543ff48a72020277340132dea6653e6c91b47c9e1f90f91ae82c54"
-dependencies = [
- "lazy_static",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "candid_derive"
-version = "0.4.2"
-source = "git+https://github.com/dfinity/candid.git?branch=master#01d23d61b19aa59674bb37b6a17a31febdd70b81"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -1110,7 +1076,7 @@ dependencies = [
  "anyhow",
  "atty",
  "base64 0.11.0",
- "candid 0.6.12 (git+https://github.com/dfinity/candid.git)",
+ "candid",
  "chrono",
  "clap",
  "console 0.7.7",
@@ -1809,7 +1775,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#edfbf7ee3c4f03b09f43e8bcccdeb4e13929dd27"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#4e434825a2117499130df169f3ba2308fefabb18"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1824,7 +1790,7 @@ version = "0.1.0"
 source = "git+https://github.com/dfinity/agent-rs.git?branch=next#5d6ed55236641c136c941707c751b020822cee16"
 dependencies = [
  "async-trait",
- "candid 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "candid",
  "delay",
  "ic-agent",
  "ic-types",
