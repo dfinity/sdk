@@ -47,12 +47,12 @@ teardown() {
 @test "identity list: shows the anonymous identity" {
     assert_command dfx identity list
     # this should include anonymous, but we do not yet have support.
-    assert_eq 'default' "$(printf "$stdout" | tail -1)"
+    assert_eq 'default' "$stdout"
 }
 
 @test "identity list: shows the default identity" {
     assert_command dfx identity list
-    assert_eq 'default' "$(printf "$stdout" | tail -1)"
+    assert_match 'default' "$stdout"
     assert_match 'Creating the "default" identity.' "$stderr"
 }
 
@@ -269,14 +269,14 @@ teardown() {
 @test "identity whoami: creates the default identity on first run" {
     # Just an example.  All the identity commands do this.
     assert_command dfx identity whoami
-    assert_eq 'default' "$(printf "$stdout" | tail -1)"
+    assert_eq 'default' "$stdout"
     assert_match 'Creating the "default" identity.' "$stderr"
     assert_match 'Created the "default" identity.' "$stderr"
 }
 
 @test "identity whoami: shows the current identity" {
     assert_command dfx identity whoami
-    assert_eq 'default' "$(printf "$stdout" | tail -1)"
+    assert_eq 'default' "$stdout"
     assert_command dfx identity new charlie
     assert_command dfx identity whoami
     assert_eq 'default'
@@ -289,7 +289,7 @@ teardown() {
 
 @test "dfx --identity (name) identity whoami: shows the overriding identity" {
     assert_command dfx identity whoami
-    assert_eq 'default' "$(printf "$stdout" | tail -1)"
+    assert_eq 'default' "$stdout"
     assert_command dfx identity new charlie
     assert_command dfx identity new alice
     assert_command dfx --identity charlie identity whoami
@@ -300,7 +300,7 @@ teardown() {
 
 @test "dfx --identity does not persistently change the selected identity" {
     assert_command dfx identity whoami
-    assert_eq 'default' "$(printf "$stdout" | tail -1)"
+    assert_eq 'default' "$stdout"
     assert_command dfx identity new charlie
     assert_command dfx identity new alice
     assert_command dfx identity use charlie
