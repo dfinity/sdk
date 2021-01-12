@@ -21,11 +21,11 @@ setup() {
     # but it does not actually respond to requests.
     #
     # This happens whether using a fixed port or a dynamic port.
-    # For this reason, we retry initialization if `dfx ping` fails.
+    # For this reason, we retry initialization until `dfx ping` succeeds.
     #
     # I have seen this process take as many as 9 iterations to succeed,
     # so across a large number of CI runs, it could take even more.
-    # The overall CI timeout will control the maximum time taken.
+    # The overall CI timeout will limit the maximum time taken.
 
     while true
     do
