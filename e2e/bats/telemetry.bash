@@ -15,7 +15,7 @@ teardown() {
     test ! -f .config/dfx/telemetry/witness.blank
     assert_command dfx identity whoami
     test -f .config/dfx/telemetry/witness.blank
-    assert_match 'SDK sends anonymous usage data'
+    [[ "$stderr" =~ 'SDK sends anonymous usage data' ]]
     assert_command dfx identity whoami
-    assert_eq 'default'
+    ! [[ "$stderr" =~ 'SDK sends anonymous usage data' ]]
 }
