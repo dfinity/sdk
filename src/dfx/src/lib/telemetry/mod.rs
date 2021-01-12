@@ -2,6 +2,7 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::DfxResult;
 
 use anyhow::bail;
+use libc::{isatty, STDOUT_FILENO};
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -32,7 +33,10 @@ pub fn witness_telemetry_consent() -> DfxResult<()> {
                 file.display(),
             );
         }
-        eprintln!("\nThe DFINITY Canister SDK sends anonymous usage data to DFINITY Stiftung by\ndefault. If you wish to disable this behavior, then please set the environment\nvariable DFX_TELEMETRY_DISABLED=1. Learn more at https://sdk.dfinity.org.\n");
+        let is_tty = unsafe { isatty(STDOUT_FILENO as i32) } != 0;
+        if is_tty {
+            eprintln!("\nThe DFINITY Canister SDK sends anonymous usage data to DFINITY Stiftung by\ndefault. If you wish to disable this behavior, then please set the environment\nvariable DFX_TELEMETRY_DISABLED=1. Learn more at https://sdk.dfinity.org.\n");
+        }
     } else if !file.is_file() {
         bail!(
             "Cannot find telemetry consent witness file at '{}'.",
