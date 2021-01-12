@@ -11,20 +11,50 @@ setup() {
 
     install_asset certificate
     dfx_start
+
+    echo "dfx deploy..." >>${BATS_TEST_DIRNAME}/xx.log
+
     dfx deploy
 
     BACKEND=$(jq -r .networks.local.bind dfx.json)
 
-    MITM_PORT=$(python3 ${BATS_TEST_DIRNAME}/utils/get_ephemeral_port.py)
+    echo "trying to start mitmproxy..." >>${BATS_TEST_DIRNAME}/xx.log
 
-    mitmdump -p $MITM_PORT --mode reverse:http://$BACKEND  --replace '/~s/Hello,/Hullo,' &
-    MITMDUMP_PID=$!
+    for i in $(seq 1 1000);
+    do
+        echo "attempt $i starts" >>${BATS_TEST_DIRNAME}/xx.log
 
-    timeout 5 sh -c \
-        "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done" \
-        || (echo "mitmdump did not start on port $MITM_PORT" && exit 1)
+        MITM_PORT=$(python3 ${BATS_TEST_DIRNAME}/utils/get_ephemeral_port.py)
+        cat <<<$(jq .networks.local.bind=\"127.0.0.1:$MITM_PORT\" dfx.json) >dfx.json
+        #sleep 5
+        pwd >${BATS_TEST_DIRNAME}/$MITM_PORT.pwd
 
-    cat <<<$(jq .networks.local.bind=\"127.0.0.1:$MITM_PORT\" dfx.json) >dfx.json
+        mitmdump -p $MITM_PORT -w ${BATS_TEST_DIRNAME}/$MITM_PORT.out --mode reverse:http://$BACKEND  --replace '/~s/Hello,/Hullo,' >${BATS_TEST_DIRNAME}/$MITM_PORT.txt 2>&1 &
+        MITMDUMP_PID=$!
+
+        #sleep 5
+        timeout 5 sh -c \
+            "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done" \
+            || (echo "mitmdump did not start on port $MITM_PORT" && exit 1)
+
+        echo "  - mitmdump pid $MITMDUMP_PID listening on port $MITM_PORT" >>${BATS_TEST_DIRNAME}/xx.log
+
+        # Sometimes, something goes wrong with mitmdump's initialization.  It reports that it is listening,
+        # and the `nc` call above succeeds, but it does not actually respond to requests.
+        # This happens whether using a fixed port or a dynamic port.
+        # For this reason, we retry initialization if `dfx ping` fails.
+        for p in $(seq 1 2);
+        do
+            echo "  - dfx ping ($p)..." >>${BATS_TEST_DIRNAME}/xx.log
+            if timeout 10 dfx ping; then
+                echo "    - succeeded on attempt $i (ping: $p)" >>${BATS_TEST_DIRNAME}/xx.log
+                break 2
+            fi
+        done
+        echo "    - failed" >>${BATS_TEST_DIRNAME}/xx.log
+
+        kill -9 $MITMDUMP_PID
+    done
 }
 
 teardown() {
