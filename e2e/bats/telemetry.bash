@@ -14,7 +14,7 @@ teardown() {
     export DFX_CONFIG_ROOT=$(pwd)
     test ! -f telemetry/witness.blank
     assert_command dfx identity whoami
-    test ! -f telemetry/witness.blank
+    test -f telemetry/witness.blank
     assert_match 'SDK sends anonymous usage data'
     assert_command dfx identity whoami
     assert_eq 'default'
