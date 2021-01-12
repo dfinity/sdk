@@ -266,27 +266,6 @@ impl Identity {
             }
         }
 
-        // #[derive(CandidType)]
-        // struct Input {
-        //     num_cycles: candid::Nat,
-        //     num_icpt: candid::Nat,
-        // }
-
-        // #[derive(Deserialize)]
-        // struct Output {
-        //     canister_id: Principal,
-        // }
-
-        // let (Output { canister_id },) = mgr
-        //     .update_("dev_create_canister_with_funds")
-        //     .with_arg(Input {
-        //         num_cycles: candid::Nat::from(5_000_000_000_000u64),
-        //         num_icpt: candid::Nat::from(5_000u64),
-        //     })
-        //     .build()
-        //     .call_and_wait(waiter_with_timeout(expiry_duration()))
-        //     .await?;
-
         let (canister_id,) = mgr
             .provisional_create_canister_with_cycles(None, None, None, None)
             .call_and_wait(waiter_with_timeout(expiry_duration()))

@@ -15,7 +15,6 @@ pub struct GetWalletOpts {
 
 pub fn exec(env: &dyn Environment, opts: GetWalletOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.clone())?;
-    // let agent_env = create_agent_environment(env, args)?;
     let identity = IdentityManager::new(&agent_env)?.instantiate_selected_identity()?;
     let network = get_network_descriptor(&agent_env, opts.network)?;
 
