@@ -2,7 +2,8 @@ use crate::config::dfinity::ConfigInterface;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::operations::canister::create_canister;
+use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister::update_canister_settings;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{compute_allocation_validator, memory_allocation_validator};
 use crate::util::expiry_duration;
@@ -10,23 +11,22 @@ use crate::util::expiry_duration;
 use anyhow::{anyhow, bail};
 use clap::Clap;
 use humanize_rs::bytes::Bytes;
-use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::interfaces::management_canister::attributes::{ComputeAllocation, MemoryAllocation};
 use std::convert::TryFrom;
 
-/// Creates an empty canister on the Internet Computer and
-/// associates the Internet Computer assigned Canister ID to the canister name.
+/// Update one or more of a canisters settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Clap)]
-pub struct CanisterCreateOpts {
-    /// Specifies the canister name. Either this or the --all flag are required.
+pub struct UpdateSettingsOpts {
+    /// Specifies the canister name to update. You must specify either canister name or the --all option.
     canister_name: Option<String>,
 
-    /// Creates all canisters configured in dfx.json.
+    /// Updates the settings of all canisters configured in the project dfx.json files.
     #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
+    #[clap(long)]
     controller: Option<String>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
@@ -65,28 +65,39 @@ fn get_memory_allocation(
         }))
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: UpdateSettingsOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
-
-    fetch_root_key_if_needed(env).await?;
     let config_interface = config.get_config();
+    fetch_root_key_if_needed(env).await?;
 
-    let controller = if let Some(controller) = opts.controller {
+    let controller = if let Some(controller) = opts.controller.clone() {
         match CanisterId::from_text(controller.clone()) {
             Ok(principal) => Some(principal),
-            Err(_) => Some(
-                IdentityManager::new(env)?
-                    .instantiate_identity_from_name(controller.as_str())?
-                    .sender()
-                    .map_err(|err| anyhow!(err))?,
-            ),
+            Err(_) => {
+                // If this is not a textual principal format, use the wallet of the person
+                // and not its principal directly.
+                let sender =
+                    IdentityManager::new(env)?.instantiate_identity_from_name(&controller)?;
+                let network = env.get_network_descriptor().expect("no network descriptor");
+                Some(sender.get_or_create_wallet(env, &network, true).await?)
+            }
         }
     } else {
         None
     };
 
-    if let Some(canister_name) = opts.canister_name.as_deref() {
+    let canister_id_store = CanisterIdStore::for_env(env)?;
+
+    if let Some(canister_name_or_id) = opts.canister_name.as_deref() {
+        let canister_id = match CanisterId::from_text(canister_name_or_id) {
+            Ok(id) => id,
+            Err(_) => canister_id_store.get(canister_name_or_id)?,
+        };
+        let textual_cid = canister_id.to_text();
+        let canister_name = canister_id_store
+            .get_name(&textual_cid)
+            .ok_or_else(|| anyhow!("Cannot find canister name for id '{}'.", textual_cid))?;
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),
             config_interface,
@@ -97,19 +108,27 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult 
             config_interface,
             canister_name,
         )?;
-        create_canister(
+
+        update_canister_settings(
             env,
-            canister_name,
-            timeout,
-            controller,
+            canister_id,
+            controller.clone(),
             compute_allocation,
             memory_allocation,
+            timeout,
         )
-        .await
+        .await?;
+        if let Some(new_controller) = opts.controller.clone() {
+            println!(
+                "Updated {:?} as controller of {:?}.",
+                new_controller, canister_name_or_id
+            );
+        };
     } else if opts.all {
-        // Create all canisters.
+        // Update all canister settings.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
+                let canister_id = canister_id_store.get(canister_name)?;
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
                     config_interface,
@@ -120,19 +139,27 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult 
                     config_interface,
                     canister_name,
                 )?;
-                create_canister(
+
+                update_canister_settings(
                     env,
-                    canister_name,
-                    timeout,
+                    canister_id,
                     controller.clone(),
                     compute_allocation,
                     memory_allocation,
+                    timeout,
                 )
                 .await?;
+                if let Some(new_controller) = opts.controller.clone() {
+                    println!(
+                        "Updated {:?} as controller of {:?}.",
+                        new_controller, canister_name
+                    );
+                };
             }
         }
-        Ok(())
     } else {
         bail!("Cannot find canister name.")
     }
+
+    Ok(())
 }

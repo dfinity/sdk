@@ -1,8 +1,7 @@
-use crate::commands::CliCommand;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
-use clap::{App, ArgMatches, SubCommand};
+use crate::lib::error::DfxResult;
+
+use clap::Clap;
 
 mod get_wallet;
 mod list;
@@ -14,41 +13,38 @@ mod set_wallet;
 mod r#use;
 mod whoami;
 
-fn builtins() -> Vec<CliCommand> {
-    vec![
-        CliCommand::new(get_wallet::construct(), get_wallet::exec),
-        CliCommand::new(list::construct(), list::exec),
-        CliCommand::new(new::construct(), new::exec),
-        CliCommand::new(principal::construct(), principal::exec),
-        CliCommand::new(remove::construct(), remove::exec),
-        CliCommand::new(rename::construct(), rename::exec),
-        CliCommand::new(set_wallet::construct(), set_wallet::exec),
-        CliCommand::new(r#use::construct(), r#use::exec),
-        CliCommand::new(whoami::construct(), whoami::exec),
-    ]
+/// Manages identities used to communicate with the Internet Computer network.
+/// Setting an identity enables you to test user-based access controls.
+#[derive(Clap)]
+#[clap(name("identity"))]
+pub struct IdentityOpt {
+    #[clap(subcommand)]
+    subcmd: SubCommand,
 }
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("identity")
-        .about(UserMessage::ManageIdentity.to_str())
-        .subcommands(builtins().into_iter().map(|x| x.get_subcommand().clone()))
+#[derive(Clap)]
+enum SubCommand {
+    GetWallet(get_wallet::GetWalletOpts),
+    List(list::ListOpts),
+    New(new::NewIdentityOpts),
+    GetPrincipal(principal::GetPrincipalOpts),
+    Remove(remove::RemoveOpts),
+    Rename(rename::RenameOpts),
+    SetWallet(set_wallet::SetWalletOpts),
+    Use(r#use::UseOpts),
+    Whoami(whoami::WhoAmIOpts),
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let subcommand = args.subcommand();
-
-    if let (name, Some(subcommand_args)) = subcommand {
-        match builtins().into_iter().find(|x| name == x.get_name()) {
-            Some(cmd) => cmd.execute(env, subcommand_args),
-            None => Err(DfxError::UnknownCommand(format!(
-                "Command {} not found.",
-                name
-            ))),
-        }
-    } else {
-        construct().write_help(&mut std::io::stderr())?;
-        eprintln!();
-        eprintln!();
-        Ok(())
+pub fn exec(env: &dyn Environment, opts: IdentityOpt) -> DfxResult {
+    match opts.subcmd {
+        SubCommand::GetWallet(v) => get_wallet::exec(env, v),
+        SubCommand::List(v) => list::exec(env, v),
+        SubCommand::New(v) => new::exec(env, v),
+        SubCommand::GetPrincipal(v) => principal::exec(env, v),
+        SubCommand::Remove(v) => remove::exec(env, v),
+        SubCommand::Rename(v) => rename::exec(env, v),
+        SubCommand::SetWallet(v) => set_wallet::exec(env, v),
+        SubCommand::Use(v) => r#use::exec(env, v),
+        SubCommand::Whoami(v) => whoami::exec(env, v),
     }
 }

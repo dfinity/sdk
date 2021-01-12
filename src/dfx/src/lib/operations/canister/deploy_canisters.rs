@@ -2,15 +2,20 @@ use crate::config::dfinity::Config;
 use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::operations::canister::install_canister;
 use crate::util::{blob_from_arguments, get_candid_init_type};
+
+use anyhow::anyhow;
+use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
-use ic_utils::interfaces::management_canister::InstallMode;
+use ic_utils::interfaces::management_canister::attributes::{ComputeAllocation, MemoryAllocation};
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::{info, warn};
+use std::convert::TryFrom;
 use std::time::Duration;
 
 pub async fn deploy_canisters(
@@ -24,7 +29,7 @@ pub async fn deploy_canisters(
 
     let config = env
         .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
     let canister_names = canisters_to_deploy(&config, some_canister)?;
@@ -34,7 +39,14 @@ pub async fn deploy_canisters(
         info!(log, "Deploying all canisters.");
     }
 
-    register_canisters(env, &canister_names, &initial_canister_id_store, timeout).await?;
+    register_canisters(
+        env,
+        &canister_names,
+        &initial_canister_id_store,
+        timeout,
+        &config,
+    )
+    .await?;
 
     build_canisters(env, &canister_names, &config)?;
 
@@ -67,6 +79,7 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     timeout: Duration,
+    config: &Config,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -78,7 +91,35 @@ async fn register_canisters(
     } else {
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
-            create_canister(env, &canister_name, timeout).await?;
+            let config_interface = config.get_config();
+            let compute_allocation =
+                config_interface
+                    .get_compute_allocation(canister_name)?
+                    .map(|arg| {
+                        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+                            .expect("Compute Allocation must be a percentage.")
+                    });
+            let memory_allocation =
+                config_interface
+                    .get_memory_allocation(canister_name)?
+                    .map(|arg| {
+                        MemoryAllocation::try_from(
+                        u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
+                    )
+                    .expect(
+                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                    )
+                    });
+            let controller = None;
+            create_canister(
+                env,
+                &canister_name,
+                timeout,
+                controller,
+                compute_allocation,
+                memory_allocation,
+            )
+            .await?;
         }
     }
     Ok(())
@@ -105,7 +146,7 @@ async fn install_canisters(
 
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
@@ -122,27 +163,28 @@ async fn install_canisters(
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
         let install_args = blob_from_arguments(argument, argument_type, &init_type)?;
 
-        let compute_allocation = None;
-        let memory_allocation = None;
         let result = install_canister(
             env,
             &agent,
             &canister_info,
             &install_args,
-            compute_allocation,
             first_mode,
-            memory_allocation,
             timeout,
         )
         .await;
 
         match result {
-            Err(DfxError::AgentError(AgentError::ReplicaError {
-                reject_code,
-                reject_message: _,
-            })) if reject_code == 3 || reject_code == 5 => {
-                // 3: tried to upgrade a canister that has not been created
-                // 5: tried to install a canister that was already installed
+            Err(err)
+                if (match err.downcast_ref::<AgentError>() {
+                    Some(AgentError::ReplicaError {
+                        reject_code,
+                        reject_message: _,
+                    }) => *reject_code == 3 || *reject_code == 5,
+                    // 3: tried to upgrade a canister that has not been created
+                    // 5: tried to install a canister that was already installed
+                    _ => false,
+                }) =>
+            {
                 let mode_description = match second_mode {
                     InstallMode::Install => "install",
                     _ => "upgrade",
@@ -156,9 +198,7 @@ async fn install_canisters(
                     &agent,
                     &canister_info,
                     &install_args,
-                    compute_allocation,
                     second_mode,
-                    memory_allocation,
                     timeout,
                 )
                 .await

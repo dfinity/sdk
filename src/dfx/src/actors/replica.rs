@@ -1,14 +1,15 @@
 use crate::actors::replica::signals::ReplicaRestarted;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::replica_config::ReplicaConfig;
-
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
+use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::replica_config::ReplicaConfig;
+
 use actix::{
     Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
+use anyhow::anyhow;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
@@ -49,6 +50,7 @@ pub struct Config {
     pub replica_path: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
+    pub replica_configuration_dir: PathBuf,
 }
 
 /// A replica actor. Starts the replica, can subscribe to a Ready signal and a
@@ -104,10 +106,9 @@ impl Replica {
                     return Ok(port);
                 }
             }
-
             waiter
                 .wait()
-                .map_err(|_| DfxError::ReplicaCouldNotBeStarted())?;
+                .map_err(|err| anyhow!("Cannot start the replica: {:?}", err))?;
         }
     }
 
@@ -116,6 +117,7 @@ impl Replica {
 
         // Create a replica config.
         let config = &self.config.replica_config;
+        let replica_pid_path = self.config.replica_configuration_dir.join("replica-pid");
 
         let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
@@ -131,6 +133,7 @@ impl Replica {
             write_port_to,
             ic_starter_path,
             replica_path,
+            replica_pid_path,
             addr,
             receiver,
         )?;
@@ -169,7 +172,7 @@ impl Actor for Replica {
             let _ = join.join();
         }
 
-        debug!(self.logger, "Stopped.");
+        info!(self.logger, "Stopped.");
         Running::Stop
     }
 }
@@ -226,15 +229,22 @@ fn wait_for_child_or_receiver(
     receiver: &Receiver<()>,
 ) -> ChildOrReceiver {
     loop {
-        // Ping-pong between waiting 100 msec for a receiver signal, and check if
-        // the child quit.
-        if let Ok(()) = receiver.recv_timeout(std::time::Duration::from_millis(100)) {
-            return ChildOrReceiver::Receiver;
-        }
+        // Check if either the child exited or a shutdown has been requested.
+        // These can happen in either order in response to Ctrl-C, so increase the chance
+        // to notice a shutdown request even if the replica exited quickly.
+        let child_try_wait = child.try_wait();
+        let receiver_signalled = receiver.recv_timeout(std::time::Duration::from_millis(100));
 
-        if let Ok(Some(_)) = child.try_wait() {
-            return ChildOrReceiver::Child;
-        }
+        match (receiver_signalled, child_try_wait) {
+            (Ok(()), _) => {
+                // Prefer to indicate the shutdown request
+                return ChildOrReceiver::Receiver;
+            }
+            (Err(_), Ok(Some(_))) => {
+                return ChildOrReceiver::Child;
+            }
+            _ => {}
+        };
     }
 }
 
@@ -246,6 +256,7 @@ fn replica_start_thread(
     write_port_to: Option<PathBuf>,
     ic_starter_path: PathBuf,
     replica_path: PathBuf,
+    replica_pid_path: PathBuf,
     addr: Addr<Replica>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
@@ -290,6 +301,10 @@ fn replica_start_thread(
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting replica...");
             let mut child = cmd.spawn().expect("Could not start replica.");
+
+            std::fs::write(&replica_pid_path, "").expect("Could not write to replica-pid file.");
+            std::fs::write(&replica_pid_path, child.id().to_string())
+                .expect("Could not write to replica-pid file.");
 
             let port = port.unwrap_or_else(|| {
                 Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()

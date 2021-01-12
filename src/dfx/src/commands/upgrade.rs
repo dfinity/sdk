@@ -1,6 +1,8 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use crate::{error_invalid_argument, error_invalid_data};
+
+use clap::Clap;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
@@ -8,27 +10,15 @@ use serde::{Deserialize, Deserializer};
 use std::{collections::BTreeMap, env, fs, os::unix::fs::PermissionsExt};
 use tar::Archive;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("upgrade")
-        .about("Upgrade DFX.")
-        .arg(
-            Arg::with_name("current-version")
-                .hidden(true)
-                .long("current-version")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("release-root")
-                .default_value("https://sdk.dfinity.org")
-                .hidden(true)
-                .long("release-root")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("verbose")
-                .help("Verbose output.")
-                .long("verbose"),
-        )
+/// Upgrade DFX.
+#[derive(Clap)]
+pub struct UpgradeOpts {
+    /// Current Version.
+    #[clap(long)]
+    current_version: Option<String>,
+
+    #[clap(long, default_value = "https://sdk.dfinity.org", hidden = true)]
+    release_root: String,
 }
 
 fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>
@@ -87,10 +77,10 @@ pub fn get_latest_version(
     timeout: Option<std::time::Duration>,
 ) -> DfxResult<Version> {
     let url = reqwest::Url::parse(release_root)
-        .map_err(|e| DfxError::InvalidArgument(format!("invalid release root: {}", e)))?;
+        .map_err(|e| error_invalid_argument!("invalid release root: {}", e))?;
     let manifest_url = url
         .join("manifest.json")
-        .map_err(|e| DfxError::InvalidArgument(format!("invalid manifest URL: {}", e)))?;
+        .map_err(|e| error_invalid_argument!("invalid manifest URL: {}", e))?;
     println!("Fetching manifest {}", manifest_url);
 
     let b = ProgressBar::new_spinner();
@@ -105,24 +95,24 @@ pub fn get_latest_version(
     };
 
     let client = client.build()?;
-    let response = client.get(manifest_url).send().map_err(DfxError::Reqwest)?;
+    let response = client.get(manifest_url).send().map_err(DfxError::new)?;
     let status_code = response.status();
     b.finish_and_clear();
 
     if !status_code.is_success() {
-        return Err(DfxError::InvalidData(format!(
+        return Err(error_invalid_data!(
             "unable to fetch manifest: {}",
             status_code.canonical_reason().unwrap_or("unknown error"),
-        )));
+        ));
     }
 
     let manifest: Manifest = response
         .json()
-        .map_err(|e| DfxError::InvalidData(format!("invalid manifest: {}", e)))?;
+        .map_err(|e| error_invalid_data!("invalid manifest: {}", e))?;
     manifest
         .tags
         .get("latest")
-        .ok_or_else(|| DfxError::InvalidData("expected field 'latest' in 'tags'".to_string()))
+        .ok_or_else(|| error_invalid_data!("expected field 'latest' in 'tags'"))
         .map(|v| v.clone())
 }
 
@@ -131,18 +121,18 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
         "{0}/downloads/dfx/{1}/{2}/dfx-{1}.tar.gz",
         release_root, version, arch
     ))
-    .map_err(|e| DfxError::InvalidArgument(format!("invalid release root: {}", e)))?;
+    .map_err(|e| error_invalid_argument!("invalid release root: {}", e))?;
 
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
 
     b.set_message(format!("Downloading {}", url).as_str());
     b.enable_steady_tick(80);
-    let mut response = reqwest::blocking::get(url).map_err(DfxError::Reqwest)?;
+    let mut response = reqwest::blocking::get(url).map_err(DfxError::new)?;
     let mut decoder = Decoder::new(&mut response)
-        .map_err(|e| DfxError::InvalidData(format!("unable to gunzip file: {}", e)))?;
+        .map_err(|e| error_invalid_data!("unable to gunzip file: {}", e))?;
     let mut archive = Archive::new(&mut decoder);
-    let current_exe_path = env::current_exe().map_err(DfxError::Io)?;
+    let current_exe_path = env::current_exe().map_err(DfxError::new)?;
     let current_exe_dir = current_exe_path.parent().unwrap(); // This should not fail
     b.set_message("Unpacking");
     archive.unpack(&current_exe_dir)?;
@@ -154,21 +144,21 @@ fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxR
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
     // Find OS architecture.
     let os_arch = match std::env::consts::OS {
         "linux" => "x86_64-linux",
         "macos" => "x86_64-darwin",
         _ => panic!("Not supported architecture"),
     };
-    let current_version = if let Some(version) = args.value_of("current-version") {
-        Version::parse(version)?
+    let current_version = if let Some(version) = opts.current_version {
+        Version::parse(&version)?
     } else {
         env.get_version().clone()
     };
 
     println!("Current version: {}", current_version);
-    let release_root = args.value_of("release-root").unwrap();
+    let release_root = opts.release_root.as_str();
     let latest_version = get_latest_version(release_root, None)?;
 
     if latest_version > current_version {

@@ -66,11 +66,10 @@ teardown() {
     dfx canister install e2e_project_assets
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("binary/noise.txt")' --output idl
-    assert_eq '(vec { 184; 1; 32; 128; 10; 119; 49; 50; 32; 0; 120; 121; 10; 75; 76; 11; 10; 106; 107 })'
+    assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("text-with-newlines.txt")' --output idl
-    assert_eq '(vec { 99; 104; 101; 114; 114; 105; 101; 115; 10; 105; 116; 39; 115; 32; 99; 104; 101; 114; 114; 121; 32; 115; 101; 97; 115; 111; 110; 10; 67; 72; 69; 82; 82; 73; 69; 83 })'
-
+    assert_eq '(blob "cherries\0ait'\''s cherry season\0aCHERRIES")'
 }
 
 @test "cyclic dependencies are detected" {
@@ -78,7 +77,7 @@ teardown() {
     dfx_start
     dfx canister create --all
     assert_command_fail dfx build canister_e
-    assert_match " There is a dependency cycle between canisters found at canister canister_e -> canister_d -> canister_e"
+    assert_match "The dependency analyzer failed: Found circular dependency: canister_e -> canister_d -> canister_e"
 }
 
 @test "multiple non-cyclic dependency paths to the same canister are ok" {

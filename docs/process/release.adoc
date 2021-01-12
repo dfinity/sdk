@@ -18,8 +18,8 @@ Our goal is to update this document with the latest information as we iterate to
 Use this checklist to prepare a release candidate.
 
 === Participants
-- Driver
-- Validator
+- Driver / Primary
+- Validator / Secondary
 
 === Prerequisites
 
@@ -59,8 +59,10 @@ image:is-master-green.png[]
 
 === Notify the Community in case of a Breaking Release
 
-Create a post in `https://forum.dfinity.org/c/tungsten-developer-network/25`
+If a release is known to have changes that are not backward-compatible, create a forum post to describe the change and any instructions for migrating to the new release.
 
+Depending on the change, the notification might need to be posted in more than one topic channels.
+For example, changes to the external network for onboarded developers are currently posted in `https://forum.dfinity.org/c/tungsten-developer-network/25`.
 
 === Start preparing a new release
 
@@ -82,6 +84,7 @@ Verify that you can build DFX and the JavaScript agent from the `+master+` branc
 +
 [source, bash]
 ----
+# Make sure you're connected to VPN. This could take awhile, wait for it to be done.
 export sdk_rc="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
 export dfx_rc="$sdk_rc/bin/dfx"
 ----
@@ -127,7 +130,8 @@ If there are any `replica` or `dfx` processes running, use the `kill` command to
 
 Verify that you can build, deploy, and call the default `hello_world` project without errors.
 
-. Generate a default new project.
+Generate a default new project.
+
 . cd into a tmp directory
 +
 [source, bash]
@@ -159,27 +163,21 @@ $dfx_rc deploy
 ----
 $dfx_rc canister call hello_world greet everyone
 ----
-. Save the canister URLs
+. Save the canister URLs as shell variables, then print them
 +
 [source, bash]
 ----
 export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_world)"
 export hello_world_assets_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_assets)"
+
+echo "For the next step, open the following URL in your web browser. Be sure to clear your cache first and/or use 'Private Browsing' mode."
+
+# This should print the Asset Canister URL you can use to 'Verify hello_world_assets'.
+echo "hello_world_assets_url: Open this in your web browser with empty cache or 'Private Browsing' mode"
+echo "$hello_world_assets_url"
 ----
 +
-. Verify hello_world_assets in a web browser. If possible, use "Private Browsing" or "Incognito Mode".
-+
-To open it, run:
-+
-[source, bash]
-----
-if test -x $(which open); then
-    open "$hello_world_assets_url"
-else
-    echo "Please open the following in your web browser: $hello_world_assets_url"
-fi
-# Either your browser will open to the hello_world_assets canister, or you will see the URL printed on stdout.
-----
+. Verify hello_world_assets_url in a web browser.
 +
 .. Verify that you are prompted to type a greeting in a prompt window.
 .. Type a greeting, then click *OK* to return the greeting in an alert window.
@@ -190,16 +188,13 @@ Warnings can be ignored.
 
 . Verify the Candid UI.
 +
-To open it, run:
+To show the URL, run:
 +
 [source, bash]
 ----
-if test -x $(which open); then
-    open "$hello_world_candid_url"
-else
-    echo "Please open the following in your web browser: $hello_world_candid_url"
-fi
-# Either your browser will open to the hello_world Candid UI, or you will see the URL printed on stdout.
+# This should print the Candid UI URL you can use to 'Verify hello_world'.
+echo "hello_world_candid_url: Open this in your web browser with empty cache or 'Private Browsing' mode"
+echo "$hello_world_candid_url"
 ----
 +
 .. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,

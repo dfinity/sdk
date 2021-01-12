@@ -1,15 +1,19 @@
+use crate::error_unknown;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::locations::canister_did_location;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
+
 use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
-use actix_web::client::Client;
+use actix_web::client::{Client, ClientBuilder, Connector};
+use actix_web::error::ErrorInternalServerError;
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
+use anyhow::anyhow;
 use crossbeam::channel::Sender;
 use futures::StreamExt;
 use serde::Deserialize;
@@ -51,26 +55,30 @@ struct CandidRequest {
 async fn candid(
     web::Query(info): web::Query<CandidRequest>,
     data: web::Data<Arc<CandidData>>,
-) -> DfxResult<HttpResponse> {
+) -> Result<HttpResponse, Error> {
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
-    let store = CanisterIdStore::for_network(&network_descriptor)?;
+    let store =
+        CanisterIdStore::for_network(&network_descriptor).map_err(ErrorInternalServerError)?;
     let candid_path = store
         .get_name(&id)
         .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
         .ok_or_else(|| {
-            DfxError::CouldNotFindCanisterNameForNetwork(
-                id.to_string(),
-                network_descriptor.name.clone(),
+            anyhow!(
+                "Cannot find canister {} for network {}",
+                id,
+                network_descriptor.name.clone()
             )
-        })?
+        })
+        .map_err(ErrorInternalServerError)?
         .canonicalize()
-        .map_err(|_e| DfxError::Unknown("cannot find candid file".to_string()))?;
+        .map_err(|_e| anyhow!("Cannot find candid file."))
+        .map_err(ErrorInternalServerError)?;
 
     let content = match info.format {
-        None => std::fs::read_to_string(candid_path)?,
+        None => std::fs::read_to_string(candid_path).map_err(ErrorInternalServerError)?,
         Some(Format::Javascript) => {
-            let (env, ty) = check_candid_file(&candid_path)?;
+            let (env, ty) = check_candid_file(&candid_path).map_err(ErrorInternalServerError)?;
             candid::bindings::javascript::compile(&env, &ty)
         }
     };
@@ -172,8 +180,7 @@ pub fn run_webserver(
     bind: SocketAddr,
     providers: Vec<url::Url>,
     serve_dir: PathBuf,
-    inform_parent: Sender<Server>,
-) -> Result<(), std::io::Error> {
+) -> DfxResult<Server> {
     info!(logger, "binding to: {:?}", bind);
 
     const SHUTDOWN_WAIT_TIME: u64 = 60;
@@ -189,7 +196,6 @@ pub fn run_webserver(
             .join(", ")
     );
 
-    let _sys = System::new("dfx-frontend-http-server");
     let forward_data = Arc::new(Mutex::new(ForwardActixData {
         providers,
         logger: logger.clone(),
@@ -202,7 +208,11 @@ pub fn run_webserver(
 
     let handler = HttpServer::new(move || {
         App::new()
-            .data(Client::new())
+            .data(
+                ClientBuilder::new()
+                    .connector(Connector::new().limit(1).finish())
+                    .finish(),
+            )
             .data(forward_data.clone())
             .data(candid_data.clone())
             .wrap(
@@ -219,18 +229,13 @@ pub fn run_webserver(
             .service(web::resource("/_/candid").route(web::get().to(candid)))
             .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
     })
+    .max_connections(1)
     .bind(bind)?
     // N.B. This is an arbitrary timeout for now.
     .shutdown_timeout(SHUTDOWN_WAIT_TIME)
-    .system_exit()
     .run();
 
-    // Warning: Note that HttpServer provides its own signal
-    // handler. That means if we provide signal handling beyond basic
-    // we need to either as normal "re-signal" or disable_signals().
-    let _ = inform_parent.send(handler);
-
-    Ok(())
+    Ok(handler)
 }
 
 pub fn webserver(
@@ -252,8 +257,8 @@ pub fn webserver(
             }
     });
     if bind_and_forward_on_same_port {
-        return Err(DfxError::Unknown(
-            "Cannot forward API calls to the same bootstrap server.".to_string(),
+        return Err(error_unknown!(
+            "Cannot forward API calls to the same bootstrap server."
         ));
     }
 
@@ -262,16 +267,21 @@ pub fn webserver(
         .spawn({
             let serve_dir = serve_dir.to_path_buf();
             move || {
-                run_webserver(
+                let _sys = System::new("dfx-frontend-http-server");
+                let server = run_webserver(
                     logger,
                     build_output_root,
                     network_descriptor,
                     bind,
                     clients_api_uri,
                     serve_dir,
-                    inform_parent,
                 )
-                .unwrap()
+                .unwrap();
+
+                // Warning: Note that HttpServer provides its own signal
+                // handler. That means if we provide signal handling beyond basic
+                // we need to either as normal "re-signal" or disable_signals().
+                let _ = inform_parent.send(server);
             }
         })
         .map_err(DfxError::from)

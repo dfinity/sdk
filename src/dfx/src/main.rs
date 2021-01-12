@@ -1,9 +1,9 @@
-use crate::commands::CliCommand;
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
-use crate::lib::error::*;
 use crate::lib::logger::{create_root_logger, LoggingMode};
-use clap::{App, AppSettings, Arg, ArgMatches};
+
+use clap::{AppSettings, Clap};
+use semver::Version;
 use std::path::PathBuf;
 
 mod actors;
@@ -12,71 +12,27 @@ mod config;
 mod lib;
 mod util;
 
-fn cli(_: &impl Environment) -> App<'_, '_> {
-    App::new("dfx")
-        .about("The DFINITY Executor.")
-        .version(dfx_version_str())
-        .global_setting(AppSettings::ColoredHelp)
-        .arg(
-            Arg::with_name("verbose")
-                .long("verbose")
-                .short("v")
-                .multiple(true),
-        )
-        .arg(
-            Arg::with_name("quiet")
-                .long("quiet")
-                .short("q")
-                .multiple(true),
-        )
-        .arg(
-            Arg::with_name("logmode")
-                .long("log")
-                .takes_value(true)
-                .possible_values(&["stderr", "tee", "file"])
-                .default_value("stderr"),
-        )
-        .arg(
-            Arg::with_name("logfile")
-                .long("log-file")
-                .long("logfile")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("identity")
-                .long("identity")
-                .takes_value(true),
-        )
-        .subcommands(
-            commands::builtin()
-                .into_iter()
-                .map(|x: CliCommand| x.get_subcommand().clone()),
-        )
-}
+/// The DFINITY Executor.
+#[derive(Clap)]
+#[clap(name("dfx"), version = dfx_version_str(), global_setting = AppSettings::ColoredHelp)]
+pub struct CliOpts {
+    #[clap(long, short('v'), parse(from_occurrences))]
+    verbose: u64,
 
-fn exec(env: &impl Environment, args: &clap::ArgMatches<'_>, cli: &App<'_, '_>) -> DfxResult {
-    let (name, subcommand_args) = match args.subcommand() {
-        (name, Some(args)) => (name, args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            return Ok(());
-        }
-    };
+    #[clap(long, short('q'), parse(from_occurrences))]
+    quiet: u64,
 
-    match commands::builtin()
-        .into_iter()
-        .find(|x| name == x.get_name())
-    {
-        Some(cmd) => cmd.execute(env, subcommand_args),
-        _ => {
-            cli.write_help(&mut std::io::stderr())?;
-            eprintln!();
-            eprintln!();
-            Err(DfxError::UnknownCommand(name.to_owned()))
-        }
-    }
+    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]))]
+    logmode: String,
+
+    #[clap(long)]
+    logfile: Option<String>,
+
+    #[clap(long)]
+    identity: Option<String>,
+
+    #[clap(subcommand)]
+    command: commands::Command,
 }
 
 fn is_warning_disabled(warning: &str) -> bool {
@@ -94,10 +50,10 @@ fn is_warning_disabled(warning: &str) -> bool {
 ///
 /// Note: the right return type for communicating this would be [Option<!>], but since the
 /// never type is experimental, we just assert on the calling site.
-fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
+fn maybe_redirect_dfx(version: &Version) -> Option<()> {
     // Verify we're using the same version as the dfx.json, and if not just redirect the
     // call to the cache.
-    if dfx_version() != env.get_version() {
+    if dfx_version() != version {
         // Show a warning to the user.
         if !is_warning_disabled("version_check") {
             eprintln!(
@@ -109,12 +65,12 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
                     "We are forwarding the command line to the old version. To disable this ",
                     "warning, set the DFX_WARNING=-version_check environment variable.\n"
                 ),
-                env.get_version(),
+                version,
                 dfx_version()
             );
         }
 
-        match crate::config::cache::call_cached_dfx(env.get_version()) {
+        match crate::config::cache::call_cached_dfx(version) {
             Ok(status) => std::process::exit(status.code().unwrap_or(0)),
             Err(e) => {
                 eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
@@ -129,17 +85,13 @@ fn maybe_redirect_dfx(env: &impl Environment) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(matches: &ArgMatches<'_>) -> (bool, slog::Logger) {
+fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
     // Create a logger with our argument matches.
-    let level = matches.occurrences_of("verbose") as i64 - matches.occurrences_of("quiet") as i64;
+    let level = opts.verbose as i64 - opts.quiet as i64;
 
-    let mode = match matches.value_of("logmode") {
-        Some("tee") => LoggingMode::Tee(PathBuf::from(
-            matches.value_of("logfile").unwrap_or("log.txt"),
-        )),
-        Some("file") => LoggingMode::File(PathBuf::from(
-            matches.value_of("logfile").unwrap_or("log.txt"),
-        )),
+    let mode = match opts.logmode.as_str() {
+        "tee" => LoggingMode::Tee(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
+        "file" => LoggingMode::File(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
         _ => LoggingMode::Stderr,
     };
 
@@ -148,38 +100,30 @@ fn setup_logging(matches: &ArgMatches<'_>) -> (bool, slog::Logger) {
 }
 
 fn main() {
+    let cli_opts = CliOpts::parse();
+    let (progress_bar, log) = setup_logging(&cli_opts);
+    let identity = cli_opts.identity;
+    let command = cli_opts.command;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
-            if maybe_redirect_dfx(&env).is_some() {
-                unreachable!();
-            }
-
-            let matches = cli(&env).get_matches();
-
-            let (progress_bar, log) = setup_logging(&matches);
-
-            let identity_name = matches.value_of("identity").map(String::from);
-
-            // Need to recreate the environment because we use it to get matches.
-            // TODO(hansl): resolve this double-create problem.
-            match EnvironmentImpl::new().map(|x| {
-                x.with_logger(log)
+            maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+            match EnvironmentImpl::new().map(|env| {
+                env.with_logger(log)
                     .with_progress_bar(progress_bar)
-                    .with_identity_override(identity_name)
+                    .with_identity_override(identity)
             }) {
                 Ok(env) => {
                     slog::trace!(
                         env.get_logger(),
                         "Trace mode enabled. Lots of logs coming up."
                     );
-                    exec(&env, &matches, &(cli(&env)))
+                    commands::exec(&env, command)
                 }
                 Err(e) => Err(e),
             }
         }
         Err(e) => Err(e),
     };
-
     if let Err(err) = result {
         eprintln!("{}", err);
 

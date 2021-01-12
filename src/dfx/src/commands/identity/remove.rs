@@ -1,23 +1,19 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::message::UserMessage;
-use clap::{App, Arg, ArgMatches, SubCommand};
+
+use clap::Clap;
 use slog::info;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("remove")
-        .about(UserMessage::RemoveIdentity.to_str())
-        .arg(
-            Arg::with_name("identity")
-                .help("The identity to remove.")
-                .required(true)
-                .takes_value(true),
-        )
+/// Removes an existing identity.
+#[derive(Clap)]
+pub struct RemoveOpts {
+    /// The identity to remove.
+    identity: String,
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let name = args.value_of("identity").unwrap();
+pub fn exec(env: &dyn Environment, opts: RemoveOpts) -> DfxResult {
+    let name = opts.identity.as_str();
 
     let log = env.get_logger();
     info!(log, r#"Removing identity "{}"."#, name);

@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.6.12"
+version = "0.6.17"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -19,14 +19,15 @@ actix-cors = "0.4.0"
 actix-files = "0.3.0"
 actix-server = "1.0.4"
 actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
+anyhow = "1.0.34"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = "0.6.7"
+candid = "0.6.12"
 chrono = "0.4.9"
 clap = "3.0.0-beta.2"
-ctrlc = { version = "3.1.6", features = [ "termination" ] }
 console = "0.7.7"
 crossbeam = "0.7.3"
+ctrlc = { version = "3.1.6", features = [ "termination" ] }
 delay = "0.3.0"
 dialoguer = "0.6.2"
 erased-serde = "0.3.10"
@@ -37,7 +38,6 @@ indicatif = "0.13.0"
 lazy-init = "0.3.0"
 lazy_static = "1.4.0"
 libflate = "0.1.27"
-hotwatch = "0.4.3"
 humanize-rs = "0.1.5"
 mime = "0.3.16"
 mockall = "0.6.0"
@@ -71,20 +71,26 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
+branch = "pshahi/update-create-settings"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
+
+[dependencies.ic-identity-hsm]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/update-create-settings"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
+branch = "pshahi/update-create-settings"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
+branch = "pshahi/update-create-settings"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [dev-dependencies]
 env_logger = "0.6"

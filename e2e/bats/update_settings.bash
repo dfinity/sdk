@@ -18,7 +18,7 @@ teardown() {
     rm -rf $(pwd)/home-for-test
 }
 
-@test "set controller" {
+@test "update controller" {
     # Create two identities and get their Principals
     assert_command dfx identity new alice
     assert_command dfx identity new bob
@@ -37,39 +37,33 @@ teardown() {
     ID=$(dfx canister id hello)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister set-controller hello bob
-    assert_match "Set \"bob\" as controller of \"hello\"."
+    assert_command dfx canister update-settings hello --controller bob
+    assert_match "Updated \"bob\" as controller of \"hello\"."
 
     # Juana is controller, Jose cannot reinstall
     assert_command_fail dfx canister install hello -m reinstall
-    if [ "$USE_IC_REF" ]
-    then
-        assert_match "${ALICE_PRINCIPAL} is not authorized to manage canister ${ID}"
-    else
-        assert_match "Only the controller of canister ${ID} can control it."
-    fi
 
     # Juana can reinstall
     assert_command dfx --identity bob canister install hello -m reinstall
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
-    assert_command dfx canister set-controller ${ID} ${ALICE_WALLET}
-    assert_match "Set \"${ALICE_WALLET}\" as controller of \"${ID}\"."
+    assert_command dfx canister update-settings ${ID} --controller ${ALICE_WALLET}
+    assert_match "Updated \"${ALICE_WALLET}\" as controller of \"${ID}\"."
     assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity alice canister set-controller hello ${BOB_WALLET}
-    assert_match "Set \"${BOB_WALLET}\" as controller of \"hello\"."
+    assert_command dfx --identity alice canister update-settings hello --controller ${BOB_WALLET}
+    assert_match "Updated \"${BOB_WALLET}\" as controller of \"hello\"."
 
-    assert_command dfx --identity bob canister set-controller ${ID} alice
-    assert_match "Set \"alice\" as controller of \"${ID}\"."
+    assert_command dfx --identity bob canister update-settings ${ID} --controller alice
+    assert_match "Updated \"alice\" as controller of \"${ID}\"."
 
     # Set controller using invalid principal/identity fails
-    assert_command_fail dfx --identity alice canister set-controller hello charlie
+    assert_command_fail dfx --identity alice canister update-settings hello --controller charlie
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
-    assert_command_fail dfx --identity alice canister set-controller hello_assets bob
+    assert_command_fail dfx --identity alice canister update-settings hello_assets --controller bob
     assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
 }

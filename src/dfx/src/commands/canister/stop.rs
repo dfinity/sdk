@@ -1,32 +1,25 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use anyhow::bail;
+use clap::Clap;
 use slog::info;
 use std::time::Duration;
-use tokio::runtime::Runtime;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("stop")
-        .about(UserMessage::StopCanister.to_str())
-        .arg(
-            Arg::with_name("canister_name")
-                .takes_value(true)
-                .required_unless("all")
-                .help(UserMessage::StopCanisterName.to_str())
-                .required(false),
-        )
-        .arg(
-            Arg::with_name("all")
-                .long("all")
-                .required_unless("canister_name")
-                .help(UserMessage::StopAll.to_str())
-                .takes_value(false),
-        )
+/// Stops a canister that is currently running on the Internet Computer network.
+#[derive(Clap)]
+pub struct CanisterStopOpts {
+    /// Specifies the name of the canister to stop.
+    /// You must specify either a canister name or the --all option.
+    canister_name: Option<String>,
+
+    /// Stops all of the canisters configured in the dfx.json file.
+    #[clap(long, required_unless_present("canister-name"))]
+    all: bool,
 }
 
 async fn stop_canister(env: &dyn Environment, canister_name: &str, timeout: Duration) -> DfxResult {
@@ -34,7 +27,7 @@ async fn stop_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
     let canister_id = canister_id_store.get(canister_name)?;
 
     info!(
-        env,
+        env.get_logger(),
         "Stopping code for canister {}, with canister_id {}",
         canister_name,
         canister_id.to_text(),
@@ -45,24 +38,21 @@ async fn stop_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
     Ok(())
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+pub async fn exec(env: &dyn Environment, opts: CanisterStopOpts) -> DfxResult {
+    let config = env.get_config_or_anyhow()?;
+    fetch_root_key_if_needed(env).await?;
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = args.value_of("canister_name") {
-        runtime.block_on(stop_canister(env, &canister_name, timeout))?;
-        Ok(())
-    } else if args.is_present("all") {
+    if let Some(canister_name) = opts.canister_name.as_deref() {
+        stop_canister(env, &canister_name, timeout).await
+    } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                runtime.block_on(stop_canister(env, &canister_name, timeout))?;
+                stop_canister(env, &canister_name, timeout).await?;
             }
         }
         Ok(())
     } else {
-        Err(DfxError::CanisterNameMissing())
+        bail!("Cannot find canister name.")
     }
 }

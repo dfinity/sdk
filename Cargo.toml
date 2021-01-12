@@ -6,17 +6,23 @@ members = [
 [patch.crates-io.ic-agent]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
+branch = "pshahi/update-create-settings"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
+
+[patch.crates-io.ic-identity-hsm]
+version = "0.1.0"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/update-create-settings"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
+branch = "pshahi/update-create-settings"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
 
 [patch.crates-io.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "6d91007286d97e6e1b5512528c56a97046a0bc8f"
+branch = "pshahi/update-create-settings"
+rev = "7e098b2bb4877c98f31588acc7715c19eb50cc9a"
