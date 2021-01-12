@@ -52,7 +52,7 @@
     "motoko": {
         "branch": "release",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "768f60113285995487f5f40f59035e292993b49f",
+        "rev": "8007fe46182f0846e56aaf4d1e408fb455b4aeaf",
         "type": "git"
     },
     "napalm": {
