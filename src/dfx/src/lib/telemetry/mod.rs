@@ -21,7 +21,10 @@ pub fn witness_telemetry_consent() -> DfxResult<()> {
     let file = get_telemetry_config_root()?.join("witness.blank");
     if !file.exists() {
         if File::create(&file).is_err() {
-            bail!("Cannot create telemetry consent witness file at '{}'.", file);
+            bail!(
+                "Cannot create telemetry consent witness file at '{}'.",
+                file
+            );
         }
         println!("\nThe DFINITY Canister SDK sends anonymous usage data to DFINITY Stiftung by\ndefault. If you wish to disable this behavior, then please set the environment\nvariable DFX_TELEMETRY_DISABLED=1. Learn more at https://sdk.dfinity.org.\n");
     } else if !file.is_file() {
