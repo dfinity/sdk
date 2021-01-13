@@ -1,11 +1,12 @@
 use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::Config;
 use crate::config::{cache, dfx_version};
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
+use anyhow::{anyhow, Context};
 use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{Logger, Record};
@@ -18,6 +19,7 @@ use std::time::Duration;
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Option<Arc<Config>>;
+    fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     fn is_in_project(&self) -> bool;
     /// Return a temporary directory for configuration if none exists
@@ -146,6 +148,12 @@ impl Environment for EnvironmentImpl {
         self.config.as_ref().map(|x| Arc::clone(x))
     }
 
+    fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
+        self.get_config().ok_or_else(|| anyhow!(
+            "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
+        ))
+    }
+
     fn is_in_project(&self) -> bool {
         self.config.is_some()
     }
@@ -230,6 +238,12 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_config()
     }
 
+    fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
+        self.get_config().ok_or_else(|| anyhow!(
+            "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
+        ))
+    }
+
     fn is_in_project(&self) -> bool {
         self.backend.is_in_project()
     }
@@ -281,7 +295,7 @@ pub struct AgentClient {
 
 impl AgentClient {
     pub fn new(logger: Logger, url: String) -> DfxResult<AgentClient> {
-        let url = reqwest::Url::parse(&url).map_err(|e| DfxError::InvalidUrl(url, e))?;
+        let url = reqwest::Url::parse(&url).context(format!("Invalid URL: {}", url))?;
 
         let result = Self {
             logger,
@@ -405,10 +419,12 @@ impl ic_agent::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent<I>(logger: Logger, url: &str, identity: Box<I>, timeout: Duration) -> Option<Agent>
-where
-    I: Identity + Send + Sync + 'static,
-{
+fn create_agent(
+    logger: Logger,
+    url: &str,
+    identity: Box<dyn Identity + Send + Sync>,
+    timeout: Duration,
+) -> Option<Agent> {
     AgentClient::new(logger, url.to_string())
         .ok()
         .and_then(|executor| {

@@ -80,7 +80,7 @@ teardown() {
     # Write has no return value. But we can _call_ read too.
     assert_command dfx canister call hello read --async
     assert_command dfx canister request-status $stdout
-    assert_eq "(1337)"
+    assert_eq "(1_337)"
 }
 
 @test "build + install + call -- counter_idl_mo" {
@@ -91,7 +91,7 @@ teardown() {
     dfx canister install --all
 
     assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=null}}, variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })'  --output idl
-    assert_eq "(43, true, \"uftu{[\", vec { 2; 3; 4 }, opt record { head = 43; tail = opt record { head = 44; tail = null } }, variant { cons = record { 43; variant { cons = record { 44; variant { nil } } } } })"
+    assert_eq "(43, true, \"uftu{[\", vec { 2; 3; 4;}, opt record { head = 43; tail = opt record { head = 44; tail = null;};}, variant { cons = record { 43; variant { cons = record { 44; variant { nil };} };} })"
 }
 
 @test "build + install + call -- matrix_multiply_mo" {

@@ -1,54 +1,41 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
+use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::create_canister;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
-use tokio::runtime::Runtime;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use anyhow::bail;
+use clap::Clap;
 
-pub fn construct() -> App<'static, 'static> {
-    SubCommand::with_name("create")
-        .about(UserMessage::CreateCanister.to_str())
-        .arg(
-            Arg::with_name("canister_name")
-                .takes_value(true)
-                .required_unless("all")
-                .help(UserMessage::CreateCanisterName.to_str())
-                .required(false),
-        )
-        .arg(
-            Arg::with_name("all")
-                .long("all")
-                .required_unless("canister_name")
-                .help(UserMessage::CreateAll.to_str())
-                .takes_value(false),
-        )
+/// Creates an empty canister on the Internet Computer and
+/// associates the Internet Computer assigned Canister ID to the canister name.
+#[derive(Clap)]
+pub struct CanisterCreateOpts {
+    /// Specifies the canister name. Either this or the --all flag are required.
+    canister_name: Option<String>,
+
+    /// Creates all canisters configured in dfx.json.
+    #[clap(long, required_unless_present("canister-name"))]
+    all: bool,
 }
 
-pub fn exec(env: &dyn Environment, args: &ArgMatches<'_>) -> DfxResult {
-    let config = env
-        .get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
-
+pub async fn exec(env: &dyn Environment, opts: CanisterCreateOpts) -> DfxResult {
+    let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
-    if let Some(canister_name) = args.value_of("canister_name") {
-        runtime.block_on(create_canister(env, canister_name, timeout))?;
-        Ok(())
-    } else if args.is_present("all") {
-        runtime.block_on(async {
-            // Create all canisters.
-            if let Some(canisters) = &config.get_config().canisters {
-                for canister_name in canisters.keys() {
-                    create_canister(env, canister_name, timeout).await?;
-                }
-            }
+    fetch_root_key_if_needed(env).await?;
 
-            Ok(())
-        })
+    if let Some(canister_name) = opts.canister_name.clone() {
+        create_canister(env, canister_name.as_str(), timeout).await
+    } else if opts.all {
+        // Create all canisters.
+        if let Some(canisters) = &config.get_config().canisters {
+            for canister_name in canisters.keys() {
+                create_canister(env, canister_name, timeout).await?;
+            }
+        }
+        Ok(())
     } else {
-        Err(DfxError::CanisterNameMissing())
+        bail!("Cannot find canister name.")
     }
 }

@@ -7,9 +7,10 @@ pub use deploy_canisters::deploy_canisters;
 pub use install_canister::install_canister;
 
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::IdentityManager;
 use crate::lib::waiter::waiter_with_timeout;
+use anyhow::anyhow;
 use candid::de::ArgumentDecoder;
 use candid::CandidType;
 use ic_types::Principal;
@@ -31,7 +32,7 @@ where
 {
     let agent = env
         .get_agent()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let mgr = ManagementCanister::create(agent);
 
     // Get the wallet canister.

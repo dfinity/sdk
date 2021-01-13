@@ -5,14 +5,18 @@
 use crate::config::dfinity::NetworkType;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult, IdentityErrorKind};
+use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
-use candid::CandidType;
+
+use anyhow::anyhow;
 use ic_agent::identity::BasicIdentity;
 use ic_agent::Signature;
+use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
+use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::{ManagementCanister, Wallet};
 use ic_utils::Canister;
 use serde::{Deserialize, Serialize};
@@ -23,10 +27,14 @@ use std::path::PathBuf;
 
 pub mod identity_manager;
 use crate::util::expiry_duration;
-pub use identity_manager::IdentityManager;
+pub use identity_manager::{
+    HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
+    IdentityManager,
+};
 
 const IDENTITY_PEM: &str = "identity.pem";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
+const HSM_SLOT_ID: u32 = 0;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
@@ -51,32 +59,51 @@ pub struct Identity {
 }
 
 impl Identity {
-    pub fn create(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
+    pub fn create(
+        manager: &IdentityManager,
+        name: &str,
+        parameters: IdentityCreationParameters,
+    ) -> DfxResult<Self> {
         let identity_dir = manager.get_identity_dir_path(name);
 
         if identity_dir.exists() {
-            return Err(DfxError::IdentityError(
-                IdentityErrorKind::IdentityAlreadyExists(),
-            ));
+            return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
         }
-        std::fs::create_dir_all(&identity_dir).map_err(|e| {
-            DfxError::IdentityError(IdentityErrorKind::CouldNotCreateIdentityDirectory(
+        std::fs::create_dir_all(&identity_dir).map_err(|err| {
+            DfxError::new(IdentityError::CannotCreateIdentityDirectory(
                 identity_dir.clone(),
-                e,
+                Box::new(DfxError::new(err)),
             ))
         })?;
 
-        let pem_file = identity_dir.join(IDENTITY_PEM);
-        identity_manager::generate_key(&pem_file)?;
+        match parameters {
+            IdentityCreationParameters::Pem() => {
+                let pem_file = manager.get_identity_pem_path(name);
+                identity_manager::generate_key(&pem_file)?;
+            }
+            IdentityCreationParameters::Hardware(parameters) => {
+                let identity_configuration = IdentityConfiguration {
+                    hsm: Some(parameters),
+                };
+                let json_file = manager.get_identity_json_path(name);
+                identity_manager::write_identity_configuration(
+                    &json_file,
+                    &identity_configuration,
+                )?;
+            }
+        };
 
         Self::load(manager, name)
     }
 
-    pub fn load(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
+    fn load_basic_identity(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
         let dir = manager.get_identity_dir_path(name);
         let pem_path = dir.join(IDENTITY_PEM);
         let inner = Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(|e| {
-            DfxError::IdentityError(IdentityErrorKind::AgentPemError(e, pem_path.clone()))
+            DfxError::new(IdentityError::CannotReadIdentityFile(
+                pem_path.clone(),
+                Box::new(DfxError::new(e)),
+            ))
         })?);
 
         Ok(Self {
@@ -84,6 +111,41 @@ impl Identity {
             inner,
             dir: manager.get_identity_dir_path(name),
         })
+    }
+
+    fn load_hardware_identity(
+        manager: &IdentityManager,
+        name: &str,
+        hsm: HardwareIdentityConfiguration,
+    ) -> DfxResult<Self> {
+        let inner = Box::new(
+            HardwareIdentity::new(
+                hsm.pkcs11_lib_path,
+                HSM_SLOT_ID.into(),
+                &hsm.key_id,
+                identity_manager::get_dfx_hsm_pin,
+            )
+            .map_err(DfxError::new)?,
+        );
+        Ok(Self {
+            name: name.to_string(),
+            inner,
+            dir: manager.get_identity_dir_path(name),
+        })
+    }
+
+    pub fn load(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
+        let json_path = manager.get_identity_json_path(name);
+        if json_path.exists() {
+            let hsm = identity_manager::read_identity_configuration(&json_path)?
+                .hsm
+                .ok_or_else(|| {
+                    anyhow!("No HardwareIdentityConfiguration for IdentityConfiguration.")
+                })?;
+            Identity::load_hardware_identity(manager, name, hsm)
+        } else {
+            Identity::load_basic_identity(manager, name)
+        }
     }
 
     /// Get the name of this identity.
@@ -184,11 +246,13 @@ impl Identity {
     ) -> DfxResult<Principal> {
         let mgr = ManagementCanister::create(
             env.get_agent()
-                .ok_or(DfxError::CommandMustBeRunInAProject)?,
+                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
         );
 
+        fetch_root_key_if_needed(env).await?;
+
         info!(
-            env,
+            env.get_logger(),
             "Creating a wallet canister on the {} network.", network.name
         );
 
@@ -202,24 +266,8 @@ impl Identity {
             }
         }
 
-        #[derive(CandidType)]
-        struct Input {
-            num_cycles: candid::Nat,
-            num_icpt: candid::Nat,
-        }
-
-        #[derive(Deserialize)]
-        struct Output {
-            canister_id: Principal,
-        }
-
-        let (Output { canister_id },) = mgr
-            .update_("dev_create_canister_with_funds")
-            .with_arg(Input {
-                num_cycles: candid::Nat::from(5_000_000_000_000u64),
-                num_icpt: candid::Nat::from(5_000u64),
-            })
-            .build()
+        let (canister_id,) = mgr
+            .provisional_create_canister_with_cycles(None)
             .call_and_wait(waiter_with_timeout(expiry_duration()))
             .await?;
 
@@ -230,7 +278,7 @@ impl Identity {
         self.set_wallet_id(env, network, canister_id.clone())?;
 
         info!(
-            env,
+            env.get_logger(),
             r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
             network.name,
             self.name,
@@ -249,11 +297,15 @@ impl Identity {
         // IF the network is local, we ignore the error and create a new wallet for the
         // identity.
         match self.wallet_canister_id(env, network) {
-            err @ Err(DfxError::CouldNotFindWalletForIdentity(..)) => {
+            Err(_) => {
                 if network.is_local && create {
                     self.create_wallet(env, network).await
                 } else {
-                    err
+                    Err(anyhow!(
+                        "Could not find wallet {} on network {}.",
+                        self.name.clone(),
+                        network.name.clone(),
+                    ))
                 }
             }
             x => x,
@@ -267,7 +319,8 @@ impl Identity {
     ) -> DfxResult<Principal> {
         let wallet_path = self.get_wallet_config_file(env, network)?;
         if !wallet_path.exists() {
-            return Err(DfxError::CouldNotFindWalletForIdentity(
+            return Err(anyhow!(
+                "Could not find wallet {} on network {}.",
                 self.name.clone(),
                 network.name.clone(),
             ));
@@ -280,13 +333,21 @@ impl Identity {
         };
 
         let wallet_network = config.identities.get(&self.name).ok_or_else(|| {
-            DfxError::CouldNotFindWalletForIdentity(self.name.clone(), network.name.clone())
+            anyhow!(
+                "Could not find wallet {} on network {}.",
+                self.name.clone(),
+                network.name.clone()
+            )
         })?;
         Ok(wallet_network
             .networks
             .get(&network.name)
             .ok_or_else(|| {
-                DfxError::CouldNotFindWalletForIdentity(self.name.clone(), network.name.clone())
+                anyhow!(
+                    "Could not find wallet {} on network {}.",
+                    self.name.clone(),
+                    network.name.clone()
+                )
             })?
             .clone())
     }
@@ -300,7 +361,7 @@ impl Identity {
         Ok(ic_utils::Canister::builder()
             .with_agent(
                 env.get_agent()
-                    .ok_or(DfxError::CommandMustBeRunInAProject)?,
+                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
             )
             .with_canister_id(self.get_or_create_wallet(env, network, create).await?)
             .with_interface(ic_utils::interfaces::Wallet)

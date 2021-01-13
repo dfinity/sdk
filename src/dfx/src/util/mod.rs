@@ -1,4 +1,6 @@
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
+use crate::{error_invalid_argument, error_invalid_data, error_unknown};
+
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
@@ -54,15 +56,12 @@ pub fn print_idl_blob(
                 eprintln!("Error deserializing blob 0x{}", hex_string);
             }
             if output_type == "idl" {
-                println!(
-                    "{}",
-                    candid::parser::value::pretty::pp_args(&result?).pretty(usize::MAX)
-                );
+                println!("{:?}", result?);
             } else {
                 println!("{}", result?);
             }
         }
-        v => return Err(DfxError::Unknown(format!("Invalid output type: {}", v))),
+        v => return Err(error_unknown!("Invalid output type: {}", v)),
     }
     Ok(())
 }
@@ -112,7 +111,7 @@ pub fn blob_from_arguments(
     match arg_type {
         "raw" => {
             let bytes = hex::decode(&arguments.unwrap_or("")).map_err(|e| {
-                DfxError::InvalidArgument(format!("Argument is not a valid hex string: {}", e))
+                error_invalid_argument!("Argument is not a valid hex string: {}", e)
             })?;
             Ok(bytes)
         }
@@ -120,9 +119,7 @@ pub fn blob_from_arguments(
             let arguments = arguments.unwrap_or("()");
             let typed_args = match method_type {
                 None => candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
-                    .map_err(|e| {
-                        DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
-                    })?
+                    .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
                     .to_bytes(),
                 Some((env, func)) => {
                     let first_char = arguments.chars().next();
@@ -142,17 +139,13 @@ pub fn blob_from_arguments(
                             candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
                         }
                     });
-                    args.map_err(|e| {
-                        DfxError::InvalidArgument(format!("Invalid Candid values: {}", e))
-                    })?
-                    .to_bytes_with_types(&env, &func.args)
+                    args.map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
+                        .to_bytes_with_types(&env, &func.args)
                 }
             }
-            .map_err(|e| {
-                DfxError::InvalidData(format!("Unable to serialize Candid values: {}", e))
-            })?;
+            .map_err(|e| error_invalid_data!("Unable to serialize Candid values: {}", e))?;
             Ok(typed_args)
         }
-        v => Err(DfxError::Unknown(format!("Invalid type: {}", v))),
+        v => Err(error_unknown!("Invalid type: {}", v)),
     }
 }

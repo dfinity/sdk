@@ -1,11 +1,12 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
-use candid::Principal;
+use anyhow::anyhow;
+use ic_types::principal::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
@@ -20,8 +21,7 @@ pub async fn create_canister(
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
 
-    env.get_config()
-        .ok_or(DfxError::CommandMustBeRunInAProject)?;
+    let _ = env.get_config_or_anyhow();
 
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
@@ -52,7 +52,7 @@ pub async fn create_canister(
 
             let mgr = ManagementCanister::create(
                 env.get_agent()
-                    .ok_or(DfxError::CommandMustBeRunInAProject)?,
+                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
             );
 
             info!(log, "Creating the canister using the wallet canister...");
@@ -61,10 +61,27 @@ pub async fn create_canister(
                 canister_id: Principal,
             }
 
-            let (Output { canister_id: cid },): (Output,) = wallet
-                .call_forward(mgr.update_("create_canister").build(), 0)?
-                .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
+            let (Output { canister_id: cid },): (Output,) = if network_name == "ic" {
+                wallet
+                    .call_forward(mgr.update_("create_canister").build(), 0)?
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?
+            } else {
+                #[derive(candid::CandidType)]
+                struct Argument {
+                    amount: Option<candid::Nat>,
+                }
+
+                wallet
+                    .call_forward(
+                        mgr.update_("provisional_create_canister_with_cycles")
+                            .with_arg(Argument { amount: None })
+                            .build(),
+                        0,
+                    )?
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?
+            };
             let canister_id = cid.to_text();
             info!(
                 log,

@@ -1,20 +1,10 @@
-type device = record {
-  name: text;
-  id: text;
-  public_key: text;
-};
-
-type Unit = vec nat8;
-
 type EventKind = variant {
-  UnitSent: record {
+  CyclesSent: record {
     to: principal;
-    unit: Unit;
     amount: nat64;
   };
-  UnitReceived: record {
+  CyclesReceived: record {
     from: principal;
-    unit: Unit;
     amount: nat64;
   };
   CustodianAdded: record {
@@ -23,6 +13,13 @@ type EventKind = variant {
   CustodianRemoved: record {
     custodian: principal;
   };
+  CanisterCreated: record {
+    canister: principal;
+  };
+  CanisterCalled: record {
+    canister: principal;
+    method_name: text;
+  }
 };
 
 type event = record {
@@ -41,17 +38,24 @@ service : {
   authorize: (principal) -> ();
   deauthorize: (principal) -> ();
 
-  // WebAuthn Support
-  register: (text, text, text) -> ();
-  get_devices: () -> (vec device) query;
-
   // Cycle Management
-  cycle_balance: () -> (nat64) query;
-  send_cycles: (principal, nat64) -> ();
-  receive_cycles: () -> ();
+  wallet_balance: () -> (record { amount: nat64 }) query;
+  wallet_send: (record { canister: principal; amount: nat64 }) -> ();
+  wallet_receive: () -> (record { accepted: nat64 });  // Endpoint for receiving cycles.
+
+  // Managing canister
+  wallet_create_canister: (record {
+    cycles: nat64;
+    controller: opt principal;  // If omitted, set the controller to this wallet.
+  }) -> (record { canister_id: principal });
 
   // Call Forwarding
-  call: (principal, text, blob, nat64) -> (blob);
+  wallet_call: (record {
+    canister: principal;
+    method_name: text;
+    args: blob;
+    cycles: nat64;
+  }) -> (record { return: blob });
 
   // Events
   get_events: () -> (vec event) query;

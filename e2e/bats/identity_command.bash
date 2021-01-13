@@ -82,6 +82,24 @@ teardown() {
     assert_match "Identity already exists"
 }
 
+@test "identity new: create an HSM-backed identity" {
+    assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
+    assert_command jq -r .hsm.pkcs11_lib_path $HOME/.config/dfx/identity/bob/identity.json
+    assert_eq "/something/else/somewhere.so"
+    assert_command jq -r .hsm.key_id $HOME/.config/dfx/identity/bob/identity.json
+    assert_eq "abcd4321"
+}
+
+@test "identity new: key_id must be hex digits" {
+    assert_command_fail dfx identity new --hsm-pkcs11-lib-path xxx --hsm-key-id abcx bob
+    assert_match "Key id must contain only hex digits"
+}
+
+@test "identity new: key_id must be an even number of digits" {
+    assert_command_fail dfx identity new --hsm-pkcs11-lib-path xxx --hsm-key-id fed64 bob
+    assert_match "Key id must consist of an even number of hex digits"
+}
+
 ##
 ## dfx identity remove
 ##
@@ -130,6 +148,17 @@ teardown() {
     assert_command_fail dfx identity remove anonymous
 }
 
+@test "identity remove: can remove an HSM-backed identity" {
+    assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
+    assert_command jq -r .hsm.pkcs11_lib_path $HOME/.config/dfx/identity/bob/identity.json
+    assert_eq "/something/else/somewhere.so"
+    assert_command jq -r .hsm.key_id $HOME/.config/dfx/identity/bob/identity.json
+    assert_eq "abcd4321"
+    assert_command ls $HOME/.config/dfx/identity/bob
+
+    assert_command dfx identity remove bob
+    assert_command_fail ls $HOME/.config/dfx/identity/bob
+}
 
 ##
 ## dfx identity rename
@@ -190,6 +219,17 @@ teardown() {
   assert_command dfx identity new alice
     assert_command_fail dfx identity rename alice anonymous
     assert_match "Cannot create an anonymous identity"
+}
+
+@test "identity rename: can rename an HSM-backed identity" {
+    assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
+    assert_command dfx identity rename bob alice
+    assert_command_fail ls $HOME/.config/dfx/identity/bob
+
+    assert_command jq -r .hsm.pkcs11_lib_path $HOME/.config/dfx/identity/alice/identity.json
+    assert_eq "/something/else/somewhere.so"
+    assert_command jq -r .hsm.key_id $HOME/.config/dfx/identity/alice/identity.json
+    assert_eq "abcd4321"
 }
 
 ##

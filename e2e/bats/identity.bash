@@ -104,8 +104,8 @@ teardown() {
     # but alice, the initializer, can store assets:
     assert_command dfx --identity alice canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
     assert_eq '()'
-    assert_command dfx canister call e2e_project_assets retrieve '("B")'
-    assert_eq '(vec { 88; 87; 86 })'
+    assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
+    assert_eq '(blob "XWV")'
 }
 
 @test "after renaming an identity, the renamed identity's wallet is still initializer" {
@@ -132,8 +132,8 @@ teardown() {
       '(principal "'$(dfx canister id e2e_project)'", "amInitializer", blob "\44\49\44\4c\00\00", 0: nat64)'
     assert_eq '(vec { 68; 73; 68; 76; 0; 1; 126; 1 })'  # True in DIDL.
 
-    assert_command dfx --identity bob canister call e2e_project_assets store '("B", vec { 40; 67 })'
+    assert_command dfx --identity bob canister call e2e_project_assets store '("B", blob "hello")'
     assert_eq '()'
-    assert_command dfx canister call e2e_project_assets retrieve '("B")'
-    assert_eq '(vec { 40; 67 })'
+    assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
+    assert_eq '(blob "hello")'
 }

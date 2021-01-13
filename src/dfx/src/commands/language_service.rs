@@ -1,13 +1,14 @@
 use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME};
+use crate::error_invalid_data;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::message::UserMessage;
+use crate::lib::error::DfxResult;
 use crate::lib::package_arguments::{self, PackageArguments};
-use clap::{App, AppSettings, Arg, ArgMatches, FromArgMatches, IntoApp};
+
+use anyhow::{anyhow, bail};
+use clap::{AppSettings, Clap};
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
-const FORCE_TTY: &str = "force-tty";
 
 /// Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the
 /// end-user.
@@ -23,21 +24,13 @@ pub struct LanguageServiceOpts {
     force_tty: bool,
 }
 
-pub fn construct() -> App {
-    IntoApp::<LanguageServiceOpts>::into_app()
-        .name("_language-service")
-        .setting(AppSettings::Hidden) // Hide it from help menus as it shouldn't be used by users.
-}
-
 // Don't read anything from stdin or output anything to stdout while this function is being
 // executed or LSP will become very unhappy
-pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
-    let opts: LanguageServiceOpts = LanguageServiceOpts::from_arg_matches(args);
+pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
     let force_tty = opts.force_tty;
-
     // Are we being run from a terminal? That's most likely not what we want
     if atty::is(atty::Stream::Stdout) && !force_tty {
-        Err(DfxError::LanguageServerFromATerminal)
+        Err(anyhow!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag."))
     } else if let Some(config) = env.get_config() {
         let main_path = get_main_path(config.get_config(), opts.canister)?;
         let packtool = &config
@@ -48,42 +41,40 @@ pub fn exec(env: &dyn Environment, args: &ArgMatches) -> DfxResult {
         let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
         run_ide(env, main_path, package_arguments)
     } else {
-        Err(DfxError::CommandMustBeRunInAProject)
+        Err(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
     }
 }
 
-fn get_main_path(
-    config: &ConfigInterface,
-    canister_name: Option<String>,
-) -> Result<String, DfxError> {
+fn get_main_path(config: &ConfigInterface, canister_name: Option<String>) -> DfxResult<String> {
     // TODO try and point at the actual dfx.json path
     let dfx_json = CONFIG_FILE_NAME;
 
     let (canister_name, canister): (String, ConfigCanistersCanister) =
         match (config.canisters.as_ref(), canister_name) {
-            (None, _) => Err(DfxError::InvalidData(format!(
+            (None, _) => Err(error_invalid_data!(
                 "Missing field 'canisters' in {0}",
                 dfx_json
-            ))),
-
-            (Some(canisters), Some(cn)) => {
-                let c = canisters.get(cn).ok_or_else(|| {
-                    DfxError::InvalidArgument(format!(
+            )),
+            (Some(canisters), Some(canister_name)) => {
+                let c = canisters.get(canister_name.as_str()).ok_or_else(|| {
+                    error_invalid_data!(
                         "Canister {0} cannot not be found in {1}",
-                        cn, dfx_json
-                    ))
+                        canister_name,
+                        dfx_json
+                    )
                 })?;
-                Ok((cn.to_string(), c.clone()))
+                Ok((canister_name.to_string(), c.clone()))
             }
             (Some(canisters), None) => {
                 if canisters.len() == 1 {
                     let (n, c) = canisters.iter().next().unwrap();
                     Ok((n.to_string(), c.clone()))
                 } else {
-                    Err(DfxError::InvalidData(format!(
+                    Err(error_invalid_data!(
                     "There are multiple canisters in {0}, please select one using the {1} argument",
-                    dfx_json, CANISTER_ARG
-                )))
+                    dfx_json,
+                    CANISTER_ARG
+                ))
                 }
             }
         }?;
@@ -93,10 +84,11 @@ fn get_main_path(
         .get("main")
         .and_then(|v| v.as_str())
         .ok_or_else(|| {
-            DfxError::InvalidData(format!(
+            error_invalid_data!(
                 "Canister {0} lacks a 'main' element in {1}",
-                canister_name, dfx_json
-            ))
+                canister_name,
+                dfx_json
+            )
         })
         .map(|s| s.to_owned())
 }
@@ -119,10 +111,11 @@ fn run_ide(
         .output()?;
 
     if !output.status.success() {
-        Err(DfxError::IdeError(
-            String::from_utf8_lossy(&output.stdout).to_string()
-                + &String::from_utf8_lossy(&output.stderr),
-        ))
+        bail!(
+            "The Motoko Language Server failed.\nStdout:\n{0}\nStderr:\n{1}",
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        )
     } else {
         Ok(())
     }

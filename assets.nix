@@ -12,6 +12,7 @@ let
     cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
     cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
     cp ${pkgs.motoko.moc}/bin/moc $out
+    cp ${pkgs.ic-ref}/bin/* $out
 
     # Install bootstrap
     mkdir $out/bootstrap

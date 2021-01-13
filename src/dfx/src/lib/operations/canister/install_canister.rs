@@ -1,13 +1,15 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::IdentityManager;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::waiter::waiter_with_timeout;
+
+use anyhow::{anyhow, Context};
 use ic_agent::{Agent, Identity};
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::*;
+use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
 use slog::info;
@@ -26,10 +28,10 @@ pub async fn install_canister(
 ) -> DfxResult {
     let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
-    let canister_id = canister_info.get_canister_id().map_err(|_| {
-        DfxError::CannotFindBuildOutputForCanister(canister_info.get_name().to_owned())
-    })?;
-
+    let canister_id = canister_info.get_canister_id().context(format!(
+        "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
+        canister_info.get_name().to_owned()
+    ))?;
     info!(
         log,
         "Installing code for canister {}, with canister_id {}",
@@ -64,7 +66,7 @@ pub async fn install_canister(
     // Get the wallet canister.
     let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
     let network = env.get_network_descriptor().expect("no network descriptor");
-    info!(env, "identity: {}", identity.name());
+    info!(log, "identity: {}", identity.name());
     let wallet = identity.get_wallet(env, network, true).await?;
 
     wallet
@@ -76,9 +78,12 @@ pub async fn install_canister(
         .await?;
 
     if canister_info.get_type() == "assets" {
-        let self_id = identity.sender()?;
+        let self_id = identity
+            .as_ref()
+            .sender()
+            .map_err(|err| anyhow!("{}", err))?;
         info!(
-            env,
+            log,
             "Authorizing ourselves ({}) to the asset canister...", self_id
         );
         let canister = Canister::builder()
@@ -93,7 +98,7 @@ pub async fn install_canister(
             .call_and_wait(waiter_with_timeout(timeout))
             .await?;
 
-        info!(env, "Uploading assets to asset canister...");
+        info!(log, "Uploading assets to asset canister...");
         post_install_store_assets(&canister_info, &agent, timeout).await?;
     }
 

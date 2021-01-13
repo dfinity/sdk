@@ -1,4 +1,5 @@
-use crate::lib::error::{DfxError, DfxResult};
+use crate::error_invalid_data;
+use crate::lib::error::DfxResult;
 
 use serde::{Deserialize, Serialize};
 use std::default::Default;
@@ -26,7 +27,7 @@ impl SchedulerConfig {
     pub fn validate(self) -> DfxResult<Self> {
         if self.exec_gas >= self.round_gas_max {
             let message = "Round gas limit must exceed message gas limit.";
-            Err(DfxError::InvalidData(message.to_string()))
+            Err(error_invalid_data!("{}", message))
         } else {
             Ok(self)
         }
@@ -58,7 +59,7 @@ pub struct ReplicaConfig {
 }
 
 impl ReplicaConfig {
-    pub fn new(state_root: PathBuf) -> Self {
+    pub fn new(state_root: &Path) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
