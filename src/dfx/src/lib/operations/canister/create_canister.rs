@@ -47,10 +47,15 @@ pub async fn create_canister(
                 .get_agent()
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
             let mgr = ManagementCanister::create(agent);
-            let (cid,) = mgr
-                .create_canister()
-                .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
+            let (cid,) = if network_name == "ic" {
+                mgr.create_canister()
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?
+            } else {
+                mgr.provisional_create_canister_with_cycles(None)
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?
+            };
             let canister_id = cid.to_text();
             info!(
                 log,
