@@ -1,0 +1,3 @@
+The DFINITY Canister SDK sends anonymous usage data to DFINITY Stiftung by
+default. If you wish to disable this behavior, then please set the environment
+variable DFX_TELEMETRY_DISABLED=1. Learn more at https://sdk.dfinity.org.

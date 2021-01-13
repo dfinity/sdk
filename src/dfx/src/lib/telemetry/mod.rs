@@ -4,6 +4,7 @@ use crate::lib::error::DfxResult;
 use anyhow::bail;
 use atty::Stream;
 use std::fs::File;
+use std::include_str;
 use std::path::PathBuf;
 
 pub fn get_telemetry_config_root() -> DfxResult<PathBuf> {
@@ -28,7 +29,7 @@ pub fn witness_telemetry_consent() -> DfxResult<()> {
     if atty::is(Stream::Stderr) {
         let file = get_telemetry_config_root()?.join("witness.blank");
         if !file.exists() {
-            eprintln!("\nThe DFINITY Canister SDK sends anonymous usage data to DFINITY Stiftung by\ndefault. If you wish to disable this behavior, then please set the environment\nvariable DFX_TELEMETRY_DISABLED=1. Learn more at https://sdk.dfinity.org.\n");
+            eprintln!("\n{}", include_str!("consent.ext"));
             if File::create(&file).is_err() {
                 bail!(
                     "Cannot create telemetry consent witness file at '{}'.",
