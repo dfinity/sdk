@@ -11,11 +11,11 @@ teardown() {
 }
 
 @test 'dfx renders telemetry consent message' {
-    export DFX_CONFIG_ROOT=$(pwd)
-    test ! -f .config/dfx/telemetry/witness.blank
-    assert_command dfx identity whoami
-    test -f .config/dfx/telemetry/witness.blank
-    # [[ "$stderr" =~ 'SDK sends anonymous usage data' ]]
+    # export DFX_CONFIG_ROOT=$(pwd)
+    # test ! -f .config/dfx/telemetry/witness.blank
     # assert_command dfx identity whoami
-    # ! [[ "$stderr" =~ 'SDK sends anonymous usage data' ]]
+    # test -f .config/dfx/telemetry/witness.blank
+    # assert_match 'SDK sends anonymous usage data' "$stderr"
+    # assert_command dfx identity whoami
+    # assert_not_match 'SDK sends anonymous usage data' "$stderr"
 }
