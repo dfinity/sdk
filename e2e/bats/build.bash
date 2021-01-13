@@ -92,10 +92,9 @@ teardown() {
 
 @test "build succeeds when requested network is configured" {
     dfx_start
-    dfx_set_wallet
-
     webserver_port=$(cat .dfx/webserver-port)
     cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+    dfx_set_wallet
 
     assert_command dfx canister --network actuallylocal create --all
     assert_command dfx build --network actuallylocal
@@ -111,10 +110,10 @@ teardown() {
 
 @test "build output for non-local network is in expected directory" {
   dfx_start
-  dfx_set_wallet
-
   webserver_port=$(cat .dfx/webserver-port)
   cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+  dfx_set_wallet
+
   dfx canister --network actuallylocal create --all
   assert_command dfx build --network actuallylocal
   assert_command ls .dfx/actuallylocal/canisters/e2e_project/

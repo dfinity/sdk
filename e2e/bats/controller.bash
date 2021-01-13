@@ -42,12 +42,6 @@ teardown() {
 
     # Juana is controller, Jose cannot reinstall
     assert_command_fail dfx canister install hello -m reinstall
-    if [ "$USE_IC_REF" ]
-    then
-        assert_match "${ALICE_PRINCIPAL} is not authorized to manage canister ${ID}"
-    else
-        assert_match "Only the controller of canister ${ID} can control it."
-    fi
 
     # Juana can reinstall
     assert_command dfx --identity bob canister install hello -m reinstall
