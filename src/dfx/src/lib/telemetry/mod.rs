@@ -29,7 +29,7 @@ pub fn witness_telemetry_consent() -> DfxResult<()> {
     if atty::is(Stream::Stderr) {
         let file = get_telemetry_config_root()?.join("witness.blank");
         if !file.exists() {
-            eprintln!("\n{}", include_str!("consent.ext"));
+            eprintln!("\n{}", include_str!("consent.txt"));
             if File::create(&file).is_err() {
                 bail!(
                     "Cannot create telemetry consent witness file at '{}'.",
