@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "aa3b1564425b5c37b5a06213dbaf3639632ffd86",
-        "sha256": "0vnnnpq1kyjs0bmz8af6jmyrpl7sn6nyc9irc9yv7rla64zmnbn5",
+        "rev": "8e1ad08eee7a2053f9ab39050e4085b13c7abd72",
+        "sha256": "1pl4sf05pz6mwj6fg0jqz456dc594iiq5hdnb2h6dwyp7dqq5xxv",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/aa3b1564425b5c37b5a06213dbaf3639632ffd86.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/8e1ad08eee7a2053f9ab39050e4085b13c7abd72.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-js-monorepo": {
@@ -44,9 +44,9 @@
         "type": "git"
     },
     "ic-ref": {
+        "branch": "release-0.15",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "4f4e3a151b621b902e44e18a860c20493698abc4",
-        "tag": "0.14.0",
+        "rev": "1f9680de8c9b70565ac2f787ad5e82776745772b",
         "type": "git"
     },
     "motoko": {
