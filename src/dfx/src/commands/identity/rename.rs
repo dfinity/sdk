@@ -22,7 +22,7 @@ pub fn exec(env: &dyn Environment, opts: RenameOpts) -> DfxResult {
     let log = env.get_logger();
     info!(log, r#"Renaming identity "{}" to "{}"."#, from, to);
 
-    let renamed_default = IdentityManager::new(env)?.rename(from, to)?;
+    let renamed_default = IdentityManager::new(env)?.rename(env, from, to)?;
 
     info!(log, r#"Renamed identity "{}" to "{}"."#, from, to);
     if renamed_default {

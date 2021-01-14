@@ -239,6 +239,47 @@ impl Identity {
         Ok(())
     }
 
+    fn rename_wallet_global_config_key(
+        &self,
+        renamed_identity: &str,
+        wallet_path: PathBuf,
+    ) -> DfxResult {
+        let mut buffer = Vec::new();
+        std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
+        let mut config = serde_json::from_slice::<WalletGlobalConfig>(&buffer)?;
+        let identities = &mut config.identities;
+        let v = identities.remove(&self.name).unwrap_or(WalletNetworkMap {
+            networks: BTreeMap::new(),
+        });
+        identities.insert(renamed_identity.to_string(), v);
+        std::fs::create_dir_all(wallet_path.parent().unwrap())?;
+        std::fs::write(&wallet_path, &serde_json::to_string_pretty(&config)?)?;
+        Ok(())
+    }
+
+    // used for dfx identity rename foo bar
+    pub fn map_wallets_to_renamed_identity(
+        &self,
+        env: &dyn Environment,
+        renamed_identity: &str,
+    ) -> DfxResult {
+        let persistent_wallet_path = get_config_dfx_dir_path()?
+            .join("identity")
+            .join(&self.name)
+            .join(WALLET_CONFIG_FILENAME);
+        if persistent_wallet_path.exists() {
+            self.rename_wallet_global_config_key(renamed_identity, persistent_wallet_path)?;
+        }
+        let local_wallet_path = env
+            .get_temp_dir()
+            .join("local")
+            .join(WALLET_CONFIG_FILENAME);
+        if local_wallet_path.exists() {
+            self.rename_wallet_global_config_key(renamed_identity, local_wallet_path)?;
+        }
+        Ok(())
+    }
+
     async fn create_wallet(
         &self,
         env: &dyn Environment,
