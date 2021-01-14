@@ -63,7 +63,7 @@ impl Identity {
         manager: &IdentityManager,
         name: &str,
         parameters: IdentityCreationParameters,
-    ) -> DfxResult<Self> {
+    ) -> DfxResult {
         let identity_dir = manager.get_identity_dir_path(name);
 
         if identity_dir.exists() {
@@ -79,21 +79,16 @@ impl Identity {
         match parameters {
             IdentityCreationParameters::Pem() => {
                 let pem_file = manager.get_identity_pem_path(name);
-                identity_manager::generate_key(&pem_file)?;
+                identity_manager::generate_key(&pem_file)
             }
             IdentityCreationParameters::Hardware(parameters) => {
                 let identity_configuration = IdentityConfiguration {
                     hsm: Some(parameters),
                 };
                 let json_file = manager.get_identity_json_path(name);
-                identity_manager::write_identity_configuration(
-                    &json_file,
-                    &identity_configuration,
-                )?;
+                identity_manager::write_identity_configuration(&json_file, &identity_configuration)
             }
-        };
-
-        Self::load(manager, name)
+        }
     }
 
     fn load_basic_identity(manager: &IdentityManager, name: &str) -> DfxResult<Self> {

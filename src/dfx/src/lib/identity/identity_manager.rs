@@ -109,8 +109,7 @@ impl IdentityManager {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
 
-        let _ = Identity::create(self, name, parameters)?;
-        Ok(())
+        Identity::create(self, name, parameters)
     }
 
     /// Return a sorted list of all available identity names
