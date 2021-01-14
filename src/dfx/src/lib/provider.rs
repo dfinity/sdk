@@ -1,4 +1,4 @@
-use crate::config::dfinity::ConfigNetwork;
+use crate::config::dfinity::{ConfigNetwork, NetworkType};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
@@ -74,7 +74,18 @@ pub fn get_network_descriptor<'a>(
                 r#type: local_provider.r#type,
             })
         }
-        None => Err(anyhow!("ComputeNetworkNotFound({})", network_name)),
+        None => {
+            // Allow a URL to be specified as a network (if it's parseable as a URL).
+            if let Ok(url) = parse_provider_url(&network_name) {
+                Ok(NetworkDescriptor {
+                    name: network_name.clone(),
+                    providers: vec![url],
+                    r#type: NetworkType::Ephemeral,
+                })
+            } else {
+                Err(anyhow!("ComputeNetworkNotFound({})", network_name))
+            }
+        }
     }
 }
 
