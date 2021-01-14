@@ -6,15 +6,16 @@
 , dfx
 }:
 let
-    inherit (pkgs) lib;
+  inherit (pkgs) lib;
 
-    args = {
-      inherit pkgs dfx system use_ic_ref;
+  args = {
+    inherit pkgs dfx system use_ic_ref;
 
-      utils = lib.gitOnlySource ./utils;
-      assets = lib.gitOnlySource ./assets;
-    };
-in [
-    ( import ./tests-dfx args )
-    ( import ./tests-replica args )
+    utils = lib.gitOnlySource ./utils;
+    assets = lib.gitOnlySource ./assets;
+  };
+in
+[
+  (import ./tests-dfx args)
+  (import ./tests-replica args)
 ]
