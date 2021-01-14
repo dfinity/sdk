@@ -25,6 +25,7 @@ let
             gnutar
             gzip
             jq
+            mitmproxy
             netcat
             ps
             python3
