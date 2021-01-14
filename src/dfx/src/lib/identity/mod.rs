@@ -330,11 +330,11 @@ impl Identity {
         network: &NetworkDescriptor,
         create: bool,
     ) -> DfxResult<Principal> {
-        // IF the network is local, we ignore the error and create a new wallet for the
+        // If the network is not the IC, we ignore the error and create a new wallet for the
         // identity.
         match self.wallet_canister_id(env, network) {
             Err(_) => {
-                if network.is_local && create {
+                if !network.is_ic && create {
                     self.create_wallet(env, network).await
                 } else {
                     Err(anyhow!(

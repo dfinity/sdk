@@ -60,7 +60,7 @@ pub fn get_network_descriptor<'a>(
                 name: network_name.to_string(),
                 providers: provider_urls,
                 r#type: network_provider.r#type,
-                is_local: false,
+                is_ic: network_name == "ic" || network_name == "https://gw.dfinity.network",
             })
         }
         Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
@@ -73,7 +73,7 @@ pub fn get_network_descriptor<'a>(
                 name: network_name.to_string(),
                 providers: provider_urls,
                 r#type: local_provider.r#type,
-                is_local: true,
+                is_ic: false,
             })
         }
         None => Err(anyhow!("ComputeNetworkNotFound({})", network_name)),

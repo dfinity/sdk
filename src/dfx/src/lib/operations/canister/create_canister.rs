@@ -61,7 +61,7 @@ pub async fn create_canister(
                 canister_id: Principal,
             }
 
-            let (Output { canister_id: cid },): (Output,) = if network_name == "ic" {
+            let (Output { canister_id: cid },): (Output,) = if network.is_ic {
                 wallet
                     .call_forward(mgr.update_("create_canister").build(), 0)?
                     .call_and_wait(waiter_with_timeout(timeout))

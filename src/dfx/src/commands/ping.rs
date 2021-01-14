@@ -35,7 +35,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                 name: "-ping-".to_string(),
                 providers: vec![url],
                 r#type: NetworkType::Ephemeral,
-                is_local: false,
+                is_ic: network_name == "ic" || network_name == "https://gw.dfinity.network",
             };
             Ok(network_descriptor)
         })?;

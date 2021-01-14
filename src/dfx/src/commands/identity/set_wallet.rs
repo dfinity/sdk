@@ -59,9 +59,9 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts) -> DfxResult {
 
     identity.set_wallet_id(env, &network, canister_id)?;
 
-    // Try to check the canister_id for a `wallet_balance()` if the network is local and available.
+    // Try to check the canister_id for a `wallet_balance()` if the network is not the IC and available.
     // Otherwise we just trust the user.
-    if network.is_local || force {
+    if !network.is_ic || force {
         let agent = env
             .get_agent()
             .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
