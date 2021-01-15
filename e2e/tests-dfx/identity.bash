@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load utils/_
+load ./utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
@@ -36,7 +36,7 @@ teardown() {
 
     if [ "$PRINCPAL_ID" -ne "$SENDER_ID" ]; then
       echo "IDs did not match: Principal '${PRINCPAL_ID}' != Sender '${SENDER_ID}'..." | fail
-    fi  
+    fi
 }
 
 @test "calls and query receive the same principal from dfx" {
@@ -56,7 +56,7 @@ teardown() {
     assert_command dfx canister call e2e_project isMyself "$ID"
     assert_eq '(true)'
     assert_command dfx canister call e2e_project isMyself "$ID_CALL"
-    assert_eq '(false)'    
+    assert_eq '(false)'
 }
 
 @test "dfx ping creates the default identity on first run" {

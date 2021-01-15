@@ -25,7 +25,7 @@ teardown() {
 
     if [ "$PRINCPAL_ID_JOSE" -eq "$PRINCPAL_ID_JUANA" ]; then
       echo "IDs should not match: Jose '${PRINCPAL_ID_JOSE}' == Juana '${PRINCPAL_ID_JUANA}'..." | fail
-    fi  
+    fi
 }
 
 ##
