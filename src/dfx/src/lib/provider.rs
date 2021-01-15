@@ -77,8 +77,15 @@ pub fn get_network_descriptor<'a>(
         None => {
             // Allow a URL to be specified as a network (if it's parseable as a URL).
             if let Ok(url) = parse_provider_url(&network_name) {
+                // Replace any non-ascii-alphanumeric characters with `_`, to create an
+                // OS-friendly directory name for it.
+                let name = network_name
+                    .chars()
+                    .map(|x| if x.is_ascii_alphanumeric() { x } else { '_' })
+                    .collect();
+
                 Ok(NetworkDescriptor {
-                    name: network_name.clone(),
+                    name,
                     providers: vec![url],
                     r#type: NetworkType::Ephemeral,
                 })
