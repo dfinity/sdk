@@ -90,6 +90,12 @@ teardown() {
     assert_command dfx build --network local
 }
 
+@test "build succeeds with URL as network parameter" {
+    dfx_start
+    dfx canister --network http://127.0.0.1:${REPLICA_PORT} create --all
+    assert_command dfx build --network http://127.0.0.1:${REPLICA_PORT}
+}
+
 @test "build succeeds when requested network is configured" {
     dfx_start
 

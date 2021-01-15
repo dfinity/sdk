@@ -65,3 +65,10 @@ teardown() {
     cat <<<$(jq .networks.arbitrary.providers=[\"127.0.0.1:22113\"] dfx.json) >dfx.json
     assert_command_fail dfx ping arbitrary
 }
+
+@test "dfx ping can have a URL for network to ping" {
+    dfx_start --host 127.0.0.1:12346
+
+    assert_command dfx ping http://127.0.0.1:12346
+    assert_match "\"ic_api_version\""
+}
