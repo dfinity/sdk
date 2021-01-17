@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load utils/_
+load ./utils/_
 
 setup() {
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
@@ -26,7 +26,7 @@ teardown() {
     assert_match "Canister hello's status is Stopped."
     assert_command_fail dfx canister call $(dfx canister id hello) greet '("Names are difficult")'
     assert_match "is stopped"
-    
+
     # Start
     assert_command dfx canister start hello
     assert_command dfx canister status hello
