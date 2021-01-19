@@ -43,18 +43,15 @@ async fn canister_status(
         "0.14.0" => {
             let mgr = ManagementCanister::create(agent);
             let (status,) = mgr
-            .canister_status(&canister_id)
-            .call_and_wait(waiter_with_timeout(timeout))
-            .await?;
+                .canister_status(&canister_id)
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
             status.status
-        },
-        _ => canister::get_canister_status(env, canister_id, timeout).await?
+        }
+        _ => canister::get_canister_status(env, canister_id, timeout).await?,
     };
 
-    info!(
-        log,
-        "Canister {}'s status is {}.", canister_name, status
-    );
+    info!(log, "Canister {}'s status is {}.", canister_name, status);
     Ok(())
 }
 
