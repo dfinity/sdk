@@ -18,7 +18,7 @@ mod whoami;
 #[derive(Clap)]
 #[clap(name("identity"))]
 pub struct IdentityOpt {
-    // Override the compute network to connect to. By default, the local network is used.
+    /// Override the compute network to connect to. By default, the local network is used.
     #[clap(long)]
     network: Option<String>,
 
