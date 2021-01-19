@@ -9,8 +9,8 @@
 rec {
   dfx = import ./dfx.nix { inherit pkgs assets; };
 
-  e2e-tests = import ./e2e/bats { inherit pkgs dfx; };
-  e2e-tests-ic-ref = import ./e2e/bats { inherit pkgs dfx; use_ic_ref = true; };
+  e2e-tests = import ./e2e { inherit pkgs dfx system; };
+  e2e-tests-ic-ref = import ./e2e { inherit pkgs dfx system; use_ic_ref = true; };
 
   # Agents in varous languages
   agent-js-monorepo = pkgs.agent-js-monorepo;

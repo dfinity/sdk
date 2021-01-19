@@ -1,4 +1,4 @@
-use crate::config::dfinity::ConfigNetwork;
+use crate::config::dfinity::{ConfigNetwork, NetworkType};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
@@ -76,7 +76,25 @@ pub fn get_network_descriptor<'a>(
                 is_ic: false,
             })
         }
-        None => Err(anyhow!("ComputeNetworkNotFound({})", network_name)),
+        None => {
+            // Allow a URL to be specified as a network (if it's parseable as a URL).
+            if let Ok(url) = parse_provider_url(&network_name) {
+                // Replace any non-ascii-alphanumeric characters with `_`, to create an
+                // OS-friendly directory name for it.
+                let name = network_name
+                    .chars()
+                    .map(|x| if x.is_ascii_alphanumeric() { x } else { '_' })
+                    .collect();
+
+                Ok(NetworkDescriptor {
+                    name,
+                    providers: vec![url],
+                    r#type: NetworkType::Ephemeral,
+                })
+            } else {
+                Err(anyhow!("ComputeNetworkNotFound({})", network_name))
+            }
+        }
     }
 }
 
