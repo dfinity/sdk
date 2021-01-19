@@ -26,7 +26,6 @@ pub async fn install_canister(
     mode: InstallMode,
     memory_allocation: Option<MemoryAllocation>,
     timeout: Duration,
-    // ic_api_version: String,
 ) -> DfxResult {
     let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
