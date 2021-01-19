@@ -90,6 +90,7 @@ pub fn get_network_descriptor<'a>(
                     name,
                     providers: vec![url],
                     r#type: NetworkType::Ephemeral,
+                    is_ic: network_name == "ic" || network_name == "https://gw.dfinity.network",
                 })
             } else {
                 Err(anyhow!("ComputeNetworkNotFound({})", network_name))
