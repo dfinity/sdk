@@ -120,6 +120,7 @@ teardown() {
 }
 
 @test "build output for non-local network is in expected directory" {
+  [ "$USE_IC_REF" ] && skip "Skip for ic-ref as its ic_api_version > 0.14.0, test with set controller with wallet"
   dfx_start
   webserver_port=$(cat .dfx/webserver-port)
   cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
@@ -131,7 +132,7 @@ teardown() {
 }
 
 @test "build with wallet output for non-local network is in expected directory" {
-  skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+  [ !"$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
   dfx_start
   webserver_port=$(cat .dfx/webserver-port)
   cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json

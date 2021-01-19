@@ -19,6 +19,7 @@ teardown() {
 }
 
 @test "set controller" {
+    [ "$USE_IC_REF" ] && skip "Skip for ic-ref as its ic_api_version > 0.14.0, test with set controller with wallet"
     # Create two identities and get their Principals
     assert_command dfx identity new jose
     assert_command dfx identity new juana
@@ -66,7 +67,7 @@ teardown() {
 }
 
 @test "set controller with wallet" {
-    skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+    [ !"$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     # Create two identities and get their Principals
     assert_command dfx identity new alice
     assert_command dfx identity new bob

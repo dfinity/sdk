@@ -75,6 +75,7 @@ teardown() {
 }
 
 @test "after using a specific identity while creating a canister, that identity is the initializer" {
+    [ "$USE_IC_REF" ] && skip "Skip for ic-ref as its ic_api_version > 0.14.0, test with set controller with wallet"
     install_asset identity
     dfx_start
     assert_command dfx identity new alice
@@ -104,7 +105,7 @@ teardown() {
 }
 
 @test "after using a specific identity while creating a canister, that wallet is the initializer" {
-    skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+    [ !"$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     install_asset identity
     dfx_start
     assert_command dfx identity new alice
