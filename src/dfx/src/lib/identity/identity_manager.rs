@@ -172,12 +172,12 @@ impl IdentityManager {
         let from_dir = self.get_identity_dir_path(from);
         let to_dir = self.get_identity_dir_path(to);
 
-        let from_id = self.instantiate_identity_from_name(from)?;
-        from_id.map_wallets_to_renamed_identity(env, to)?;
-
         if to_dir.exists() {
             return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
         }
+
+        let from_id = self.instantiate_identity_from_name(from)?;
+        from_id.map_wallets_to_renamed_identity(env, to)?;
 
         std::fs::rename(&from_dir, &to_dir).map_err(|err| {
             DfxError::new(IdentityError::CannotRenameIdentityDirectory(
