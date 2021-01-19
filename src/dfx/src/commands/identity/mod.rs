@@ -46,7 +46,7 @@ pub fn exec(env: &dyn Environment, opts: IdentityOpt) -> DfxResult {
         SubCommand::New(v) => new::exec(env, v),
         SubCommand::GetPrincipal(v) => principal::exec(env, v),
         SubCommand::Remove(v) => remove::exec(env, v),
-        SubCommand::Rename(v) => rename::exec(env, v, opts.network.clone()),
+        SubCommand::Rename(v) => rename::exec(env, v),
         SubCommand::SetWallet(v) => set_wallet::exec(env, v, opts.network.clone()),
         SubCommand::Use(v) => r#use::exec(env, v),
         SubCommand::Whoami(v) => whoami::exec(env, v),
