@@ -15,9 +15,10 @@ pub struct GetWalletOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>) -> DfxResult {
     let agent_env = create_agent_environment(env, network.clone())?;
-    fetch_root_key_if_needed(agent_env).await?;
-
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
+
+    runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;
+
     let ic_api_version = runtime.block_on(async { fetch_api_version(&agent_env).await })?;
 
     if ic_api_version == "0.14.0" {
