@@ -1,3 +1,4 @@
+use crate::lib::api_version::fetch_api_version;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -25,6 +26,7 @@ pub async fn install_canister(
     mode: InstallMode,
     memory_allocation: Option<MemoryAllocation>,
     timeout: Duration,
+    // ic_api_version: String,
 ) -> DfxResult {
     let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
@@ -44,59 +46,86 @@ pub async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm_module = std::fs::read(wasm_path)?;
 
-    #[derive(candid::CandidType)]
-    struct CanisterInstall {
-        mode: InstallMode,
-        canister_id: Principal,
-        wasm_module: Vec<u8>,
-        arg: Vec<u8>,
-        compute_allocation: Option<candid::Nat>,
-        memory_allocation: Option<candid::Nat>,
-    }
-
-    let install_args = CanisterInstall {
-        mode,
-        canister_id: canister_id.clone(),
-        wasm_module,
-        arg: args.to_vec(),
-        compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
-        memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
-    };
-
     // Get the wallet canister.
     let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
     let network = env.get_network_descriptor().expect("no network descriptor");
     info!(log, "identity: {}", identity.name());
-    let wallet = identity.get_wallet(env, network, true).await?;
 
-    wallet
-        .call_forward(
-            mgr.update_("install_code").with_arg(install_args).build(),
-            0,
-        )?
-        .call_and_wait(waiter_with_timeout(timeout))
-        .await?;
+    let ic_api_version = fetch_api_version(env).await?;
 
-    if canister_info.get_type() == "assets" {
-        let self_id = identity
-            .as_ref()
-            .sender()
-            .map_err(|err| anyhow!("{}", err))?;
-        info!(
-            log,
-            "Authorizing ourselves ({}) to the asset canister...", self_id
-        );
-        let canister = Canister::builder()
-            .with_agent(agent)
-            .with_canister_id(canister_id.clone())
-            .build()
-            .unwrap();
+    if ic_api_version == "0.14.0" {
+        let install_builder = mgr
+            .install_code(&canister_id, &wasm_module)
+            .with_raw_arg(args.to_vec())
+            .with_mode(mode);
 
-        // Before storing assets, make sure the DFX principal is in there first.
-        wallet
-            .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
+        let install_builder = if let Some(ca) = compute_allocation {
+            install_builder.with_compute_allocation(ca)
+        } else {
+            install_builder
+        };
+        let install_builder = if let Some(ma) = memory_allocation {
+            install_builder.with_memory_allocation(ma)
+        } else {
+            install_builder
+        };
+        install_builder
+            .build()?
             .call_and_wait(waiter_with_timeout(timeout))
             .await?;
+    } else {
+        #[derive(candid::CandidType)]
+        struct CanisterInstall {
+            mode: InstallMode,
+            canister_id: Principal,
+            wasm_module: Vec<u8>,
+            arg: Vec<u8>,
+            compute_allocation: Option<candid::Nat>,
+            memory_allocation: Option<candid::Nat>,
+        }
+
+        let install_args = CanisterInstall {
+            mode,
+            canister_id: canister_id.clone(),
+            wasm_module,
+            arg: args.to_vec(),
+            compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
+            memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
+        };
+        let wallet = identity.get_wallet(env, network, true).await?;
+
+        wallet
+            .call_forward(
+                mgr.update_("install_code").with_arg(install_args).build(),
+                0,
+            )?
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await?;
+    }
+
+    if canister_info.get_type() == "assets" {
+        if ic_api_version != "0.14.0" {
+            let wallet = identity.get_wallet(env, network, true).await?;
+            let self_id = identity
+                .as_ref()
+                .sender()
+                .map_err(|err| anyhow!("{}", err))?;
+            info!(
+                log,
+                "Authorizing ourselves ({}) to the asset canister...", self_id
+            );
+            let canister = Canister::builder()
+                .with_agent(agent)
+                .with_canister_id(canister_id.clone())
+                .build()
+                .unwrap();
+
+            // Before storing assets, make sure the DFX principal is in there first.
+            wallet
+                .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
+        }
 
         info!(log, "Uploading assets to asset canister...");
         post_install_store_assets(&canister_info, &agent, timeout).await?;

@@ -1,3 +1,4 @@
+use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::IdentityManager;
@@ -48,39 +49,64 @@ pub async fn create_canister(
             // Get the wallet canister.
             let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
             let network = env.get_network_descriptor().expect("no network descriptor");
-            let wallet = identity.get_wallet(env, network, true).await?;
 
             let mgr = ManagementCanister::create(
                 env.get_agent()
                     .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
             );
 
-            info!(log, "Creating the canister using the wallet canister...");
-            #[derive(serde::Deserialize)]
-            struct Output {
-                canister_id: Principal,
-            }
+            let ic_api_version = fetch_api_version(env).await?;
 
-            let (Output { canister_id: cid },): (Output,) = if network.is_ic {
-                wallet
-                    .call_forward(mgr.update_("create_canister").build(), 0)?
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?
-            } else {
-                #[derive(candid::CandidType)]
-                struct Argument {
-                    amount: Option<candid::Nat>,
+            let cid = if network.is_ic {
+                if ic_api_version == "0.14.0" {
+                    let (cid,) = mgr
+                        .create_canister()
+                        .call_and_wait(waiter_with_timeout(timeout))
+                        .await?;
+                    cid
+                } else {
+                    info!(log, "Creating the canister using the wallet canister...");
+                    let wallet = identity.get_wallet(env, network, true).await?;
+                    let (create_result,) = wallet
+                        .wallet_create_canister(0_u64, None)
+                        .call_and_wait(waiter_with_timeout(timeout))
+                        .await?;
+                    create_result.canister_id
                 }
+            } else {
+                match ic_api_version.as_str() {
+                    "0.14.0" => {
+                        let (cid,) = mgr
+                            .provisional_create_canister_with_cycles(None)
+                            .call_and_wait(waiter_with_timeout(timeout))
+                            .await?;
+                        cid
+                    }
+                    _ => {
+                        info!(log, "Creating the canister using the wallet canister...");
+                        let wallet = identity.get_wallet(env, network, true).await?;
+                        #[derive(candid::CandidType)]
+                        struct Argument {
+                            amount: Option<candid::Nat>,
+                        }
 
-                wallet
-                    .call_forward(
-                        mgr.update_("provisional_create_canister_with_cycles")
-                            .with_arg(Argument { amount: None })
-                            .build(),
-                        0,
-                    )?
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?
+                        #[derive(serde::Deserialize)]
+                        struct Output {
+                            canister_id: Principal,
+                        }
+
+                        let (Output { canister_id: cid },): (Output,) = wallet
+                            .call_forward(
+                                mgr.update_("provisional_create_canister_with_cycles")
+                                    .with_arg(Argument { amount: None })
+                                    .build(),
+                                0_u64,
+                            )?
+                            .call_and_wait(waiter_with_timeout(timeout))
+                            .await?;
+                        cid
+                    }
+                }
             };
             let canister_id = cid.to_text();
             info!(

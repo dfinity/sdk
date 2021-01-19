@@ -1,13 +1,19 @@
+use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::set_controller;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
+use anyhow::anyhow;
 use clap::Clap;
+use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
+use ic_utils::call::AsyncCall;
+use ic_utils::interfaces::ManagementCanister;
 
 /// Sets the provided identity's name or its principal as the
 /// new controller of a canister on the Internet Computer network.
@@ -21,6 +27,10 @@ pub struct SetControllerOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
+    let timeout = expiry_duration();
+    fetch_root_key_if_needed(env).await?;
+    let ic_api_version = fetch_api_version(env).await?;
+
     let canister_id = match CanisterId::from_text(&opts.canister) {
         Ok(id) => id,
         Err(_) => CanisterIdStore::for_env(env)?.get(&opts.canister)?,
@@ -33,15 +43,28 @@ pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
             // and not its principal directly.
             let sender =
                 IdentityManager::new(env)?.instantiate_identity_from_name(&opts.new_controller)?;
-            let network = env.get_network_descriptor().expect("no network descriptor");
-            sender.get_or_create_wallet(env, &network, true).await?
+            if ic_api_version == "0.14.0" {
+                sender.sender().map_err(|err| anyhow!(err))?
+            } else {
+                let network = env.get_network_descriptor().expect("no network descriptor");
+                sender.get_or_create_wallet(env, &network, true).await?
+            }
         }
     };
 
-    let timeout = expiry_duration();
-    fetch_root_key_if_needed(env).await?;
+    if ic_api_version == "0.14.0" {
+        let agent = env
+            .get_agent()
+            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    set_controller(env, canister_id, controller_principal, timeout).await?;
+        let mgr = ManagementCanister::create(agent);
+
+        mgr.set_controller(&canister_id, &controller_principal)
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await?;
+    } else {
+        set_controller(env, canister_id, controller_principal, timeout).await?;
+    }
 
     println!(
         "Set {:?} as controller of {:?}.",

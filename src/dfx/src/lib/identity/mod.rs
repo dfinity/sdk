@@ -411,8 +411,8 @@ impl ic_agent::Identity for Identity {
         self.inner.sender()
     }
 
-    fn sign(&self, blob: &[u8], principal: &Principal) -> Result<Signature, String> {
-        self.inner.sign(blob, principal)
+    fn sign(&self, blob: &[u8]) -> Result<Signature, String> {
+        self.inner.sign(blob)
     }
 }
 
