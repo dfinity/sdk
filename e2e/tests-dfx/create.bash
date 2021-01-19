@@ -63,7 +63,7 @@ teardown() {
     webserver_port=$(cat .dfx/webserver-port)
     cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
 
-    dfx_set_wallet
+    assert_command dfx_set_wallet
     assert_command dfx canister --network actuallylocal create --all
 }
 

@@ -7,7 +7,7 @@ setup() {
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
     export RUST_BACKTRACE=1
 
-    run dfx identity new test_id
+    dfx identity new test_id
     dfx identity use test_id
     dfx_new
 }
@@ -34,7 +34,7 @@ teardown() {
     dfx_start
     webserver_port=$(cat .dfx/webserver-port)
     cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
-    dfx_set_wallet
+    assert_command dfx_set_wallet
 
     assert_command dfx canister --network actuallylocal create --all
 
@@ -65,7 +65,7 @@ teardown() {
 
     cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
     cat <<<$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json) >dfx.json
-    dfx_set_wallet
+    assert_command dfx_set_wallet
 
     assert_command dfx canister --network actuallylocal create --all
 
