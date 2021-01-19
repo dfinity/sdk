@@ -163,7 +163,13 @@ impl IdentityManager {
     /// Rename an identity.
     /// If renaming the selected (default) identity, changes that
     /// to refer to the new identity name.
-    pub fn rename(&self, env: &dyn Environment, from: &str, to: &str) -> DfxResult<bool> {
+    pub fn rename(
+        &self,
+        env: &dyn Environment,
+        from: &str,
+        to: &str,
+        ic_api_version: String,
+    ) -> DfxResult<bool> {
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
@@ -172,8 +178,10 @@ impl IdentityManager {
         let from_dir = self.get_identity_dir_path(from);
         let to_dir = self.get_identity_dir_path(to);
 
-        let from_id = self.instantiate_identity_from_name(from)?;
-        from_id.map_wallets_to_renamed_identity(env, to)?;
+        if ic_api_version != "0.14.0" {
+            let from_id = self.instantiate_identity_from_name(from)?;
+            from_id.map_wallets_to_renamed_identity(env, to)?;
+        }
 
         if to_dir.exists() {
             return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
