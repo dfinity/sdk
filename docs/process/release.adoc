@@ -392,7 +392,8 @@ link:https://dfinity.slack.com/archives/CUXGQBABF/p1594954197000100[_#build-noti
 about the successful publishing of the dfx tarballs.
 
 . Install the build using the `DFX_VERSION=<version>` environment variable.
-. Run through the link:https://staging--eloquent-poitras-af14f0.netlify.app/docs/quickstart/quickstart.html[_Quick start_] steps.
+. Run through the link:https://sdk.dfinity.org/docs/quickstart/local-quickstart.html[_Quick start - Local development_] steps.
+. Run through link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#ping-the-network[Check the connection to the network] and link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#net-deploy[Register, build, and deploy the application] steps to deploy to the network.
 . Notify link:https://app.slack.com/client/T43F9UHS5/CGA566TPV[#eng-sdk] team members that the new build is ready for manual installation and testing.
 . Update the link:https://docs.google.com/spreadsheets/d/1pIblGqIeqapzptOtDb4h0LjJKDFIYXRxJrX9VaphfjA/edit#gid=725289684[_release notes_] spreadsheet and documentation based on the Go/No-go list of merged PRs.
 +
