@@ -3,6 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::provider::{create_agent_environment, get_network_descriptor};
+use crate::lib::root_key::fetch_root_key_if_needed;
 
 use clap::Clap;
 use slog::info;
@@ -14,13 +15,16 @@ pub struct GetWalletOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>) -> DfxResult {
     let agent_env = create_agent_environment(env, network.clone())?;
-    let log = agent_env.get_logger();
+    fetch_root_key_if_needed(agent_env).await?;
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     let ic_api_version = runtime.block_on(async { fetch_api_version(&agent_env).await })?;
 
     if ic_api_version == "0.14.0" {
-        info!(log, "Unsupported replica api version '{}'", ic_api_version);
+        info!(
+            agent_env.get_logger(),
+            "Unsupported replica api version '{}'", ic_api_version
+        );
     } else {
         let identity = IdentityManager::new(&agent_env)?.instantiate_selected_identity()?;
         let network = get_network_descriptor(&agent_env, network)?;

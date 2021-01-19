@@ -285,8 +285,6 @@ impl Identity {
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
         );
 
-        fetch_root_key_if_needed(env).await?;
-
         info!(
             env.get_logger(),
             "Creating a wallet canister on the {} network.", network.name
