@@ -34,7 +34,7 @@ To get permission for your account to access `+dfinity-lab+` and `+dfinity+` rep
 +
 If you don't have a VPN connection set up for your computer, you'll need to follow the instructions in link:https://www.notion.so/How-to-get-VPN-access-to-our-data-center-services-1c9b123152d740508eec25e7ac982259[How to get VPN access to our data center services].
 
-- You must have Nix installed and configured.
+- You must have link:https://github.com/dfinity-lab/dfinity/blob/master/CONTRIBUTING.adoc#install-and-configure-nix[Nix installed and configured].
 +
 NOTE: If you are installing Nix for the first time, building the cache can take hours and might timeout depending on the reliability of your network connection.
 
