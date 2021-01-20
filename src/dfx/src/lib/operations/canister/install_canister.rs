@@ -50,7 +50,6 @@ pub async fn install_canister(
         .expect("no selected identity")
         .to_string();
     let network = env.get_network_descriptor().expect("no network descriptor");
-    info!(log, "identity: {}", identity_name);
 
     let ic_api_version = fetch_api_version(env).await?;
 
