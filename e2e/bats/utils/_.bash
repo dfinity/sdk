@@ -61,7 +61,7 @@ dfx_start() {
         else
             dfx start --background "$@" 3>&-
         fi
-
+        local project_dir=${pwd}
         local dfx_config_root=.dfx/replica-configuration
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f ${dfx_config_root}/replica-1.port
@@ -74,8 +74,6 @@ dfx_start() {
 
     printf "Replica Configured Port: %s\n" "${port}"
     printf "Webserver Configured Port: %s\n" "${webserver_port}"
-
-    export REPLICA_PORT=${webserver_port}
 
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \

@@ -1,21 +1,15 @@
 ## 300_license.sh
 
 confirm_license() {
-    local header notice prompt
-    header="
-    \x1b[1mThe DFINITY Canister SDK\x1b[0m
+    local prompt header license
+    header="\n DFINITY SDK \n Please READ the following license: \n\n"
 
-    Please READ the following NOTICE:"
-    notice='Copyright 2021 DFINITY Stiftung. All Rights Reserved.
+    license="DFINITY Foundation -- All rights reserved. This is an ALPHA version
+of the DFINITY Canister Software Development Kit (SDK). Permission is hereby granted
+to use AS IS and only subject to the Alpha DFINITY Canister SDK License Agreement which
+can be found here [https://sdk.dfinity.org/sdk-license-agreement.txt]. It comes with NO WARRANTY.\n"
 
-The DFINITY Canister SDK (the \"Software\") is licensed under the Alpha DFINITY
-Canister SDK License Agreement (the \"License\"). You may not use the Software
-except in compliance with the License. You may obtain a copy of the License at
-
-    https://sdk.dfinity.org/sdk-license-agreement.txt
-
-The Software is provided to you AS IS and WITHOUT WARRANTY.'
-    prompt="Do you agree and wish to install the DFINITY Canister SDK [y/N]?"
+    prompt='Do you agree and wish to install the DFINITY ALPHA SDK [y/N]?'
 
     # we test if there is a terminal present (that is, STDIN is a TTY)
     # Just -t 0 alone doesn't work for SSH connections, so test for a socket
@@ -24,8 +18,8 @@ The Software is provided to you AS IS and WITHOUT WARRANTY.'
         printf "%s\n" "Hint: Run  sh -ci \"\$(curl -fsSL $SDK_WEBSITE/install.sh)\""
         exit 0
     fi
-    printf "%b\n\n" "$header"
-    printf "%b\n\n" "$notice"
+    printf "%b" "$header"
+    printf "%b\n\n" "$license"
     printf "%b\n" "$prompt"
     while true; do
         read -r resp

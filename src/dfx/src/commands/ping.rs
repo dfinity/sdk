@@ -16,9 +16,6 @@ use tokio::runtime::Runtime;
 #[derive(Clap)]
 pub struct PingOpts {
     /// The provider to use.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
     network: Option<String>,
 }
 

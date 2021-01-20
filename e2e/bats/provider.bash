@@ -47,9 +47,3 @@ teardown() {
   cat <<<$(jq 'del(.networks)' dfx.json) >dfx.json
   dfx_start
 }
-
-@test "network as URL creates the expected name" {
-    dfx_start
-    dfx canister --network http://127.0.0.1:${REPLICA_PORT} create --all
-    [ -d ".dfx/http___127_0_0_1_${REPLICA_PORT}" ]
-}

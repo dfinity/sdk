@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ./utils/_
+load utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
@@ -88,12 +88,6 @@ teardown() {
   dfx_start
   dfx canister --network local create --all
   assert_command dfx build --network local
-}
-
-@test "build succeeds with URL as network parameter" {
-    dfx_start
-    dfx canister --network http://127.0.0.1:${REPLICA_PORT} create --all
-    assert_command dfx build --network http://127.0.0.1:${REPLICA_PORT}
 }
 
 @test "build succeeds when requested network is configured" {

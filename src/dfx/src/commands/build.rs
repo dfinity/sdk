@@ -23,9 +23,6 @@ pub struct CanisterBuildOpts {
     check: bool,
 
     /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
     #[clap(long)]
     network: Option<String>,
 }

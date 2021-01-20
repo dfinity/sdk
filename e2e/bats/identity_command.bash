@@ -25,7 +25,7 @@ teardown() {
 
     if [ "$PRINCPAL_ID_JOSE" -eq "$PRINCPAL_ID_JUANA" ]; then
       echo "IDs should not match: Jose '${PRINCPAL_ID_JOSE}' == Juana '${PRINCPAL_ID_JUANA}'..." | fail
-    fi
+    fi  
 }
 
 ##
@@ -324,8 +324,6 @@ teardown() {
     assert_command rmdir $TEMPORARY_HOME/.config/dfx/identity/default
     assert_command rmdir $TEMPORARY_HOME/.config/dfx/identity
     assert_command rm $TEMPORARY_HOME/.config/dfx/identity.json
-    # assert_command rm $TEMPORARY_HOME/.config/dfx/telemetry/witness.blank
-    # assert_command rmdir $TEMPORARY_HOME/.config/dfx/telemetry
     assert_command rmdir $TEMPORARY_HOME/.config/dfx
     assert_command rmdir $TEMPORARY_HOME/.config
 

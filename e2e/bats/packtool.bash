@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ./utils/_
+load utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
