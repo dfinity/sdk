@@ -397,21 +397,23 @@ impl Identity {
             .unwrap())
     }
 
+    #[allow(clippy::needless_lifetimes)]
     pub async fn get_wallet_canister<'env>(
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
         name: String,
-    ) -> DfxResult<Canister<'_, Wallet>> {
+    ) -> DfxResult<Canister<'env, Wallet>> {
         let wallet_canister_id = Identity::wallet_canister_id(env, network, name)?;
         Identity::build_wallet_canister(wallet_canister_id, env)
     }
 
+    #[allow(clippy::needless_lifetimes)]
     pub async fn get_or_create_wallet_canister<'env>(
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
         name: String,
         create: bool,
-    ) -> DfxResult<Canister<'_, Wallet>> {
+    ) -> DfxResult<Canister<'env, Wallet>> {
         let wallet_canister_id = Identity::get_or_create_wallet(env, network, name, create).await?;
         Identity::build_wallet_canister(wallet_canister_id, env)
     }
