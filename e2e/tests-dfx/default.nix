@@ -2,6 +2,8 @@
 , system ? builtins.currentSystem
 , dfx ? import ../../dfx.nix { inherit pkgs; }
 , use_ic_ref ? false
+, assets
+, utils
 }:
 let
   inherit (pkgs) lib;
@@ -35,8 +37,8 @@ let
           ] ++ lib.optional use_ic_ref ic-ref;
           BATSLIB = pkgs.sources.bats-support;
           USE_IC_REF = use_ic_ref;
-          utils = lib.gitOnlySource ./utils;
-          assets = lib.gitOnlySource ./assets;
+          assets = assets;
+          utils = utils;
           test = here + "/${fileName}";
         } ''
           export HOME=$(pwd)

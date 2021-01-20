@@ -30,7 +30,7 @@ teardown() {
     dfx canister create --all
     #install of tertiary dependency canister will fail since its not built
     assert_command_fail dfx canister install canister_a
-    #specify build for primary canister 
+    #specify build for primary canister
     dfx build canister_c
 
     #validate tertiary transitive dependency is built and callable
