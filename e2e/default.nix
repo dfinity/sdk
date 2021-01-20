@@ -15,7 +15,6 @@ let
     assets = lib.gitOnlySource ./assets;
   };
 in
-[
-  (import ./tests-dfx args)
-  (import ./tests-replica args)
-]
+{ dfx = import ./tests-dfx args;
+  replica = import ./tests-replica args;
+}
