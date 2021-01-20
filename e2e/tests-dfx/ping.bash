@@ -67,8 +67,8 @@ teardown() {
 }
 
 @test "dfx ping can have a URL for network to ping" {
-    dfx_start --host 127.0.0.1:12346
-
-    assert_command dfx ping http://127.0.0.1:12346
+    dfx_start
+    webserver_port=$(cat .dfx/webserver-port)
+    assert_command dfx ping http://127.0.0.1:$webserver_port
     assert_match "\"ic_api_version\""
 }

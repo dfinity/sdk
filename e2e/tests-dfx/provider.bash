@@ -50,6 +50,7 @@ teardown() {
 
 @test "network as URL creates the expected name" {
     dfx_start
-    dfx canister --network http://127.0.0.1:${REPLICA_PORT} create --all
-    [ -d ".dfx/http___127_0_0_1_${REPLICA_PORT}" ]
+    webserver_port=$(cat .dfx/webserver-port)
+    dfx canister --network http://127.0.0.1:$webserver_port create --all
+    [ -d ".dfx/http___127_0_0_1_$webserver_port" ]
 }
