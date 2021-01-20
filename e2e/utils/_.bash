@@ -75,8 +75,6 @@ dfx_start() {
     printf "Replica Configured Port: %s\n" "${port}"
     printf "Webserver Configured Port: %s\n" "${webserver_port}"
 
-    export REPLICA_PORT=$(cat .dfx/webserver-port)
-
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
