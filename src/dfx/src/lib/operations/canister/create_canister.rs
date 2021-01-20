@@ -68,13 +68,9 @@ pub async fn create_canister(
                     cid
                 } else {
                     info!(log, "Creating the canister using the wallet canister...");
-                    let wallet = Identity::get_or_create_wallet_canister(
-                        env,
-                        network,
-                        identity_name.clone(),
-                        true,
-                    )
-                    .await?;
+                    let wallet =
+                        Identity::get_or_create_wallet_canister(env, network, &identity_name, true)
+                            .await?;
                     let (create_result,) = wallet
                         .wallet_create_canister(0_u64, None)
                         .call_and_wait(waiter_with_timeout(timeout))
@@ -95,7 +91,7 @@ pub async fn create_canister(
                         let wallet = Identity::get_or_create_wallet_canister(
                             env,
                             network,
-                            identity_name.clone(),
+                            &identity_name,
                             true,
                         )
                         .await?;

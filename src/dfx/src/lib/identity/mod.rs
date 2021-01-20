@@ -151,14 +151,14 @@ impl Identity {
     fn get_wallet_config_file(
         env: &dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
     ) -> DfxResult<PathBuf> {
         Ok(match network.r#type {
             NetworkType::Persistent => {
                 // Using the global
                 get_config_dfx_dir_path()?
                     .join("identity")
-                    .join(&name)
+                    .join(name)
                     .join(WALLET_CONFIG_FILENAME)
             }
             NetworkType::Ephemeral => env
@@ -171,7 +171,7 @@ impl Identity {
     fn wallet_config(
         env: &dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
     ) -> DfxResult<(PathBuf, WalletGlobalConfig)> {
         let wallet_path = Identity::get_wallet_config_file(env, network, name)?;
 
@@ -193,15 +193,17 @@ impl Identity {
     pub fn set_wallet_id(
         env: &dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
         id: Principal,
     ) -> DfxResult {
-        let (wallet_path, mut config) = Identity::wallet_config(env, network, name.clone())?;
+        let (wallet_path, mut config) = Identity::wallet_config(env, network, name)?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
-        let network_map = identities.entry(name).or_insert(WalletNetworkMap {
-            networks: BTreeMap::new(),
-        });
+        let network_map = identities
+            .entry(name.to_string())
+            .or_insert(WalletNetworkMap {
+                networks: BTreeMap::new(),
+            });
 
         network_map.networks.insert(network.name.clone(), id);
 
@@ -214,14 +216,16 @@ impl Identity {
     pub fn remove_wallet_id(
         env: &dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
     ) -> DfxResult {
-        let (wallet_path, mut config) = Identity::wallet_config(env, network, name.clone())?;
+        let (wallet_path, mut config) = Identity::wallet_config(env, network, name)?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
-        let network_map = identities.entry(name).or_insert(WalletNetworkMap {
-            networks: BTreeMap::new(),
-        });
+        let network_map = identities
+            .entry(name.to_string())
+            .or_insert(WalletNetworkMap {
+                networks: BTreeMap::new(),
+            });
 
         network_map.networks.remove(&network.name);
 
@@ -274,7 +278,7 @@ impl Identity {
     async fn create_wallet(
         env: &dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
     ) -> DfxResult<Principal> {
         let mgr = ManagementCanister::create(
             env.get_agent()
@@ -305,7 +309,7 @@ impl Identity {
             .call_and_wait(waiter_with_timeout(expiry_duration()))
             .await?;
 
-        Identity::set_wallet_id(env, network, name.clone(), canister_id.clone())?;
+        Identity::set_wallet_id(env, network, name, canister_id.clone())?;
 
         info!(
             env.get_logger(),
@@ -321,19 +325,19 @@ impl Identity {
     pub async fn get_or_create_wallet(
         env: &dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
         create: bool,
     ) -> DfxResult<Principal> {
         // If the network is not the IC, we ignore the error and create a new wallet for the
         // identity.
-        match Identity::wallet_canister_id(env, network, name.clone()) {
+        match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
                 if !network.is_ic && create {
                     Identity::create_wallet(env, network, name).await
                 } else {
                     Err(anyhow!(
-                        "Could not find wallet {} on network {}.",
-                        name.clone(),
+                        "Could not find wallet for \"{}\" on \"{}\" network.",
+                        name,
                         network.name.clone(),
                     ))
                 }
@@ -345,12 +349,12 @@ impl Identity {
     fn wallet_canister_id(
         env: &dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
     ) -> DfxResult<Principal> {
-        let wallet_path = Identity::get_wallet_config_file(env, network, name.clone())?;
+        let wallet_path = Identity::get_wallet_config_file(env, network, name)?;
         if !wallet_path.exists() {
             return Err(anyhow!(
-                "Could not find wallet {} on network {}.",
+                "Could not find wallet for \"{}\" on \"{}\" network.",
                 name,
                 network.name.clone(),
             ));
@@ -362,10 +366,10 @@ impl Identity {
             serde_json::from_slice::<WalletGlobalConfig>(&buffer)?
         };
 
-        let wallet_network = config.identities.get(&name).ok_or_else(|| {
+        let wallet_network = config.identities.get(name).ok_or_else(|| {
             anyhow!(
-                "Could not find wallet {} on network {}.",
-                name.clone(),
+                "Could not find wallet for \"{}\" on \"{}\" network.",
+                name,
                 network.name.clone()
             )
         })?;
@@ -374,8 +378,8 @@ impl Identity {
             .get(&network.name)
             .ok_or_else(|| {
                 anyhow!(
-                    "Could not find wallet {} on network {}.",
-                    name.clone(),
+                    "Could not find wallet for \"{}\" on \"{}\" network.",
+                    name,
                     network.name.clone()
                 )
             })?
@@ -401,7 +405,7 @@ impl Identity {
     pub async fn get_wallet_canister<'env>(
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
     ) -> DfxResult<Canister<'env, Wallet>> {
         let wallet_canister_id = Identity::wallet_canister_id(env, network, name)?;
         Identity::build_wallet_canister(wallet_canister_id, env)
@@ -411,7 +415,7 @@ impl Identity {
     pub async fn get_or_create_wallet_canister<'env>(
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
-        name: String,
+        name: &str,
         create: bool,
     ) -> DfxResult<Canister<'env, Wallet>> {
         let wallet_canister_id = Identity::get_or_create_wallet(env, network, name, create).await?;

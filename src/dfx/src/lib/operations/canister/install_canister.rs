@@ -92,7 +92,7 @@ pub async fn install_canister(
             compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
             memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
         };
-        let wallet = DfxIdentity::get_wallet_canister(env, network, identity_name.clone()).await?;
+        let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
 
         wallet
             .call_forward(
@@ -105,13 +105,16 @@ pub async fn install_canister(
 
     if canister_info.get_type() == "assets" {
         if ic_api_version != "0.14.0" {
-            let wallet = DfxIdentity::get_wallet_canister(env, network, identity_name).await?;
+            let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
             let self_id = env
                 .get_selected_identity_principal()
                 .expect("selected identity not instantiated");
+            let identity_name = env
+                .get_selected_identity()
+                .expect("selected identity not instantiated");
             info!(
                 log,
-                "Authorizing ourselves ({}) to the asset canister...", self_id
+                "Authorizing our identity ({}) to the asset canister...", identity_name
             );
             let canister = Canister::builder()
                 .with_agent(agent)

@@ -38,7 +38,7 @@ where
     // Get the wallet canister.
     let network = env.get_network_descriptor().expect("no network descriptor");
     let identity_name = env.get_selected_identity().expect("no selected identity");
-    let wallet = Identity::get_wallet_canister(env, network, identity_name.to_string()).await?;
+    let wallet = Identity::get_wallet_canister(env, network, &identity_name).await?;
 
     let out: O = wallet
         .call_forward(mgr.update_(method).with_arg(arg).build(), 0)?

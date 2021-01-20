@@ -49,8 +49,7 @@ pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
                 sender.sender().map_err(|err| anyhow!(err))?
             } else {
                 let network = env.get_network_descriptor().expect("no network descriptor");
-                DfxIdentity::get_or_create_wallet(env, &network, identity_name.clone(), true)
-                    .await?
+                DfxIdentity::get_or_create_wallet(env, &network, &identity_name, true).await?
             }
         }
     };

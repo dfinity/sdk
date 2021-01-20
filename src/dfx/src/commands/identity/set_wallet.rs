@@ -64,7 +64,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
             canister_id
         );
 
-        Identity::set_wallet_id(env, &network, identity_name.clone(), canister_id)?;
+        Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
 
         // Try to check the canister_id for a `wallet_balance()` if the network is not the IC and available.
         // Otherwise we just trust the user.
@@ -82,7 +82,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                         "Checking availability of the canister on the network..."
                     );
 
-                    let canister = Identity::get_wallet_canister(env, &network, identity_name.clone()).await?;
+                    let canister = Identity::get_wallet_canister(env, &network, &identity_name).await?;
                     let balance = canister.wallet_balance().call().await;
 
                     match balance {
