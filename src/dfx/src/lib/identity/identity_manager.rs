@@ -18,7 +18,7 @@ const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 const IDENTITY_PEM: &str = "identity.pem";
 const IDENTITY_JSON: &str = "identity.json";
-const HSM_SLOT_ID: u32 = 0;
+const HSM_SLOT_INDEX: usize = 0;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Configuration {
@@ -135,7 +135,7 @@ impl IdentityManager {
         Ok(Box::new(
             HardwareIdentity::new(
                 hsm.pkcs11_lib_path,
-                HSM_SLOT_ID.into(),
+                HSM_SLOT_INDEX,
                 &hsm.key_id,
                 get_dfx_hsm_pin,
             )
