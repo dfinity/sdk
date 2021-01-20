@@ -1,7 +1,7 @@
 use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::IdentityManager;
+use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
@@ -46,8 +46,6 @@ pub async fn create_canister(
             Ok(())
         }
         None => {
-            // Get the wallet canister.
-            let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
             let network = env.get_network_descriptor().expect("no network descriptor");
 
             let mgr = ManagementCanister::create(
@@ -56,6 +54,10 @@ pub async fn create_canister(
             );
 
             let ic_api_version = fetch_api_version(env).await?;
+            let identity_name = env
+                .get_selected_identity()
+                .expect("no selected identity")
+                .to_string();
 
             let cid = if network.is_ic {
                 if ic_api_version == "0.14.0" {
@@ -66,7 +68,13 @@ pub async fn create_canister(
                     cid
                 } else {
                     info!(log, "Creating the canister using the wallet canister...");
-                    let wallet = identity.get_wallet(env, network, true).await?;
+                    let wallet = Identity::get_or_create_wallet_canister(
+                        env,
+                        network,
+                        identity_name.clone(),
+                        true,
+                    )
+                    .await?;
                     let (create_result,) = wallet
                         .wallet_create_canister(0_u64, None)
                         .call_and_wait(waiter_with_timeout(timeout))
@@ -84,7 +92,13 @@ pub async fn create_canister(
                     }
                     _ => {
                         info!(log, "Creating the canister using the wallet canister...");
-                        let wallet = identity.get_wallet(env, network, true).await?;
+                        let wallet = Identity::get_or_create_wallet_canister(
+                            env,
+                            network,
+                            identity_name.clone(),
+                            true,
+                        )
+                        .await?;
                         #[derive(candid::CandidType)]
                         struct Argument {
                             amount: Option<candid::Nat>,

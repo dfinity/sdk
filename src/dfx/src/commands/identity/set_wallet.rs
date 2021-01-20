@@ -2,7 +2,7 @@ use crate::lib::api_version::fetch_api_version;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::identity::identity_manager::IdentityManager;
+use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 
@@ -38,7 +38,10 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
     if ic_api_version == "0.14.0" {
         info!(log, "Unsupported replica api version '{}'", ic_api_version);
     } else {
-        let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+        let identity_name = agent_env
+            .get_selected_identity()
+            .expect("no selected identity")
+            .to_string();
 
         let network = get_network_descriptor(&agent_env, network)?;
 
@@ -56,12 +59,12 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         info!(
             log,
             "Setting wallet for identity '{}' on network '{}' to id '{}'",
-            identity.name(),
+            identity_name,
             network.name,
             canister_id
         );
 
-        identity.set_wallet_id(env, &network, canister_id)?;
+        Identity::set_wallet_id(env, &network, identity_name.clone(), canister_id)?;
 
         // Try to check the canister_id for a `wallet_balance()` if the network is not the IC and available.
         // Otherwise we just trust the user.
@@ -79,7 +82,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                         "Checking availability of the canister on the network..."
                     );
 
-                    let canister = identity.get_wallet(env, &network, false).await?;
+                    let canister = Identity::get_wallet_canister(env, &network, identity_name.clone()).await?;
                     let balance = canister.wallet_balance().call().await;
 
                     match balance {

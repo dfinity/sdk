@@ -8,7 +8,7 @@ pub use install_canister::install_canister;
 
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::IdentityManager;
+use crate::lib::identity::Identity;
 use crate::lib::waiter::waiter_with_timeout;
 use anyhow::anyhow;
 use candid::de::ArgumentDecoder;
@@ -36,9 +36,9 @@ where
     let mgr = ManagementCanister::create(agent);
 
     // Get the wallet canister.
-    let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
     let network = env.get_network_descriptor().expect("no network descriptor");
-    let wallet = identity.get_wallet(env, network, false).await?;
+    let identity_name = env.get_selected_identity().expect("no selected identity");
+    let wallet = Identity::get_wallet_canister(env, network, identity_name.to_string()).await?;
 
     let out: O = wallet
         .call_forward(mgr.update_(method).with_arg(arg).build(), 0)?

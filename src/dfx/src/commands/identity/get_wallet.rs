@@ -1,7 +1,7 @@
 use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
+use crate::lib::identity::Identity;
 use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 
@@ -27,15 +27,16 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
             "Unsupported replica api version '{}'", ic_api_version
         );
     } else {
-        let identity = IdentityManager::new(&agent_env)?.instantiate_selected_identity()?;
+        let identity_name = agent_env
+            .get_selected_identity()
+            .expect("no selected identity")
+            .to_string();
         let network = get_network_descriptor(&agent_env, network)?;
 
         runtime.block_on(async {
             println!(
                 "{}",
-                identity
-                    .get_or_create_wallet(&agent_env, &network, true)
-                    .await?
+                Identity::get_or_create_wallet(&agent_env, &network, identity_name, true).await?
             );
             DfxResult::Ok(())
         })?;

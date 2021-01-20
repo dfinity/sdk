@@ -1,9 +1,11 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
-use crate::lib::identity::Identity;
+use crate::lib::identity::Identity as DfxIdentity;
 
+use anyhow::anyhow;
 use anyhow::Context;
+use ic_types::Principal;
 use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
@@ -55,6 +57,7 @@ pub struct IdentityManager {
     identity_root_path: PathBuf,
     configuration: Configuration,
     selected_identity: String,
+    selected_identity_principal: Option<Principal>,
 }
 
 impl IdentityManager {
@@ -79,6 +82,7 @@ impl IdentityManager {
             identity_root_path,
             configuration,
             selected_identity,
+            selected_identity_principal: None,
         };
 
         if let Some(identity) = identity_override {
@@ -88,15 +92,27 @@ impl IdentityManager {
         Ok(mgr)
     }
 
+    pub fn get_selected_identity_principal(&self) -> Option<Principal> {
+        self.selected_identity_principal.clone()
+    }
+
     /// Create an Identity instance for use with an Agent
-    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<Identity>> {
-        self.instantiate_identity_from_name(self.selected_identity.as_str())
+    pub fn instantiate_selected_identity(&mut self) -> DfxResult<Box<DfxIdentity>> {
+        let name = self.selected_identity.clone();
+        self.instantiate_identity_from_name(name.as_str())
     }
 
     /// Provide a valid Identity name and create its Identity instance for use with an Agent
-    pub fn instantiate_identity_from_name(&self, identity_name: &str) -> DfxResult<Box<Identity>> {
+    pub fn instantiate_identity_from_name(
+        &mut self,
+        identity_name: &str,
+    ) -> DfxResult<Box<DfxIdentity>> {
         self.require_identity_exists(identity_name)?;
-        Ok(Box::new(Identity::load(self, identity_name)?))
+        let identity = Box::new(DfxIdentity::load(self, identity_name)?);
+        use ic_agent::identity::Identity;
+        self.selected_identity_principal =
+            Some(identity.sender().map_err(|err| anyhow!("{}", err))?);
+        Ok(identity)
     }
 
     /// Create a new identity (name -> generated key)
@@ -109,7 +125,7 @@ impl IdentityManager {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
 
-        Identity::create(self, name, parameters)
+        DfxIdentity::create(self, name, parameters)
     }
 
     /// Return a sorted list of all available identity names
@@ -163,7 +179,7 @@ impl IdentityManager {
     /// Rename an identity.
     /// If renaming the selected (default) identity, changes that
     /// to refer to the new identity name.
-    pub fn rename(&self, env: &dyn Environment, from: &str, to: &str) -> DfxResult<bool> {
+    pub fn rename(&mut self, env: &dyn Environment, from: &str, to: &str) -> DfxResult<bool> {
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }

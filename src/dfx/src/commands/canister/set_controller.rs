@@ -2,6 +2,7 @@ use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
+use crate::lib::identity::Identity as DfxIdentity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::set_controller;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -41,13 +42,15 @@ pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
         Err(_) => {
             // If this is not a textual principal format, use the wallet of the person
             // and not its principal directly.
-            let sender =
-                IdentityManager::new(env)?.instantiate_identity_from_name(&opts.new_controller)?;
+            let identity_name = &opts.new_controller;
+            let sender = IdentityManager::new(env)?
+                .instantiate_identity_from_name(&identity_name.clone())?;
             if ic_api_version == "0.14.0" {
                 sender.sender().map_err(|err| anyhow!(err))?
             } else {
                 let network = env.get_network_descriptor().expect("no network descriptor");
-                sender.get_or_create_wallet(env, &network, true).await?
+                DfxIdentity::get_or_create_wallet(env, &network, identity_name.clone(), true)
+                    .await?
             }
         }
     };

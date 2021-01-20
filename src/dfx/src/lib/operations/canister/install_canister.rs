@@ -2,12 +2,12 @@ use crate::lib::api_version::fetch_api_version;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::IdentityManager;
+use crate::lib::identity::Identity as DfxIdentity;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::{anyhow, Context};
-use ic_agent::{Agent, Identity};
+use anyhow::Context;
+use ic_agent::Agent;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
@@ -45,10 +45,12 @@ pub async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm_module = std::fs::read(wasm_path)?;
 
-    // Get the wallet canister.
-    let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+    let identity_name = env
+        .get_selected_identity()
+        .expect("no selected identity")
+        .to_string();
     let network = env.get_network_descriptor().expect("no network descriptor");
-    info!(log, "identity: {}", identity.name());
+    info!(log, "identity: {}", identity_name);
 
     let ic_api_version = fetch_api_version(env).await?;
 
@@ -91,7 +93,7 @@ pub async fn install_canister(
             compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
             memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
         };
-        let wallet = identity.get_wallet(env, network, true).await?;
+        let wallet = DfxIdentity::get_wallet_canister(env, network, identity_name.clone()).await?;
 
         wallet
             .call_forward(
@@ -104,11 +106,10 @@ pub async fn install_canister(
 
     if canister_info.get_type() == "assets" {
         if ic_api_version != "0.14.0" {
-            let wallet = identity.get_wallet(env, network, true).await?;
-            let self_id = identity
-                .as_ref()
-                .sender()
-                .map_err(|err| anyhow!("{}", err))?;
+            let wallet = DfxIdentity::get_wallet_canister(env, network, identity_name).await?;
+            let self_id = env
+                .get_selected_identity_principal()
+                .expect("selected identity not instantiated");
             info!(
                 log,
                 "Authorizing ourselves ({}) to the asset canister...", self_id
