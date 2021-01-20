@@ -401,7 +401,7 @@ impl Identity {
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
         name: String,
-    ) -> DfxResult<Canister<'env, Wallet>> {
+    ) -> DfxResult<Canister<'_, Wallet>> {
         let wallet_canister_id = Identity::wallet_canister_id(env, network, name)?;
         Identity::build_wallet_canister(wallet_canister_id, env)
     }
@@ -411,7 +411,7 @@ impl Identity {
         network: &NetworkDescriptor,
         name: String,
         create: bool,
-    ) -> DfxResult<Canister<'env, Wallet>> {
+    ) -> DfxResult<Canister<'_, Wallet>> {
         let wallet_canister_id = Identity::get_or_create_wallet(env, network, name, create).await?;
         Identity::build_wallet_canister(wallet_canister_id, env)
     }
