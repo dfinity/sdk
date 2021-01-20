@@ -5,7 +5,10 @@ load ./utils/_
 setup() {
     # We want to work from a temporary directory, different for every test.
     cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
-    export RUST_BACKTRACE=1
+
+    # Each test gets its own home directory in order to have its own identities.
+    mkdir $(pwd)/home-for-test
+    export HOME=$(pwd)/home-for-test
 
     dfx identity new test_id
     dfx identity use test_id
