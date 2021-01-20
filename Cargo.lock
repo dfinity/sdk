@@ -1040,7 +1040,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.6.18"
+version = "0.6.20"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1890,9 +1890,9 @@ checksum = "a91d884b6667cd606bb5a69aa0c99ba811a115fc68915e7056ec08a46e93199a"
 
 [[package]]
 name = "lazy-init"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e71f2233af239a915476da8ee21a57331d82b9880c78220451ece7cb5862d313"
+checksum = "23517540be87a91d06324e6bf6286ba8214171123ee8862ae9a5e7d938d71815"
 
 [[package]]
 name = "lazy_static"
