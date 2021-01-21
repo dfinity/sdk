@@ -48,7 +48,9 @@ pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
             if ic_api_version == "0.14.0" {
                 sender.sender().map_err(|err| anyhow!(err))?
             } else {
-                let network = env.get_network_descriptor().expect("no network descriptor");
+                let network = env
+                    .get_network_descriptor()
+                    .expect("No network descriptor.");
                 DfxIdentity::get_or_create_wallet(env, &network, &identity_name, true).await?
             }
         }

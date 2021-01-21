@@ -45,11 +45,10 @@ pub async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm_module = std::fs::read(wasm_path)?;
 
-    let identity_name = env
-        .get_selected_identity()
-        .expect("no selected identity")
-        .to_string();
-    let network = env.get_network_descriptor().expect("no network descriptor");
+    let identity_name = env.get_selected_identity().expect("No selected identity.");
+    let network = env
+        .get_network_descriptor()
+        .expect("No network descriptor.");
 
     let ic_api_version = fetch_api_version(env).await?;
 
@@ -108,10 +107,7 @@ pub async fn install_canister(
             let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
             let self_id = env
                 .get_selected_identity_principal()
-                .expect("selected identity not instantiated");
-            let identity_name = env
-                .get_selected_identity()
-                .expect("selected identity not instantiated");
+                .expect("Selected identity not instantiated.");
             info!(
                 log,
                 "Authorizing our identity ({}) to the asset canister...", identity_name

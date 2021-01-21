@@ -29,7 +29,7 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
     } else {
         let identity_name = agent_env
             .get_selected_identity()
-            .expect("no selected identity")
+            .expect("No selected identity.")
             .to_string();
         let network = get_network_descriptor(&agent_env, network)?;
 

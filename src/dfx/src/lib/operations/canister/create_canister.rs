@@ -46,7 +46,9 @@ pub async fn create_canister(
             Ok(())
         }
         None => {
-            let network = env.get_network_descriptor().expect("no network descriptor");
+            let network = env
+                .get_network_descriptor()
+                .expect("No network descriptor.");
 
             let mgr = ManagementCanister::create(
                 env.get_agent()
@@ -56,7 +58,7 @@ pub async fn create_canister(
             let ic_api_version = fetch_api_version(env).await?;
             let identity_name = env
                 .get_selected_identity()
-                .expect("no selected identity")
+                .expect("No selected identity.")
                 .to_string();
 
             let cid = if network.is_ic {
