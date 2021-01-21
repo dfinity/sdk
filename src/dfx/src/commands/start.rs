@@ -160,14 +160,14 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     // hope we do not need to.
     if state_root.is_dir() {
         fs::remove_dir_all(state_root).context(format!(
-            "Cannot remove directroy at '{}'.",
+            "Cannot remove directory at '{}'.",
             state_root.display()
         ))?;
     }
     let local_dir = temp_dir.join("local");
     if local_dir.is_dir() {
         fs::remove_dir_all(&local_dir).context(format!(
-            "Cannot remove directroy at '{}'.",
+            "Cannot remove directory at '{}'.",
             local_dir.display()
         ))?;
     }

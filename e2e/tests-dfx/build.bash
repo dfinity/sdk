@@ -85,9 +85,9 @@ teardown() {
 }
 
 @test "build succeeds with network parameter" {
-    dfx_start
-    dfx canister --network local create --all
-    assert_command dfx build --network local
+  dfx_start
+  dfx canister --network local create --all
+  assert_command dfx build --network local
 }
 
 @test "build succeeds with URL as network parameter" {
@@ -98,13 +98,24 @@ teardown() {
 }
 
 @test "build succeeds when requested network is configured" {
-    dfx_start
+  dfx_start
 
-    webserver_port=$(cat .dfx/webserver-port)
-    cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+  webserver_port=$(cat .dfx/webserver-port)
+  cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
 
-    assert_command dfx canister --network actuallylocal create --all
-    assert_command dfx build --network actuallylocal
+  assert_command dfx canister --network actuallylocal create --all
+  assert_command dfx build --network actuallylocal
+}
+
+@test "build with wallet succeeds when requested network is configured" {
+  skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+  dfx_start
+  webserver_port=$(cat .dfx/webserver-port)
+  cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+  assert_command dfx_set_wallet
+
+  assert_command dfx canister --network actuallylocal create --all
+  assert_command dfx build --network actuallylocal
 }
 
 @test "build output for local network is in expected directory" {
@@ -116,12 +127,26 @@ teardown() {
 }
 
 @test "build output for non-local network is in expected directory" {
+  [ "$USE_IC_REF" ] && skip "Skip for ic-ref as its ic_api_version > 0.14.0, test with set controller with wallet"
   dfx_start
   webserver_port=$(cat .dfx/webserver-port)
   cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+
   dfx canister --network actuallylocal create --all
   assert_command dfx build --network actuallylocal
   assert_command ls .dfx/actuallylocal/canisters/e2e_project/
   assert_command ls .dfx/actuallylocal/canisters/e2e_project/e2e_project.wasm
 }
 
+@test "build with wallet output for non-local network is in expected directory" {
+  [ !"$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+  dfx_start
+  webserver_port=$(cat .dfx/webserver-port)
+  cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+  assert_command dfx_set_wallet
+
+  dfx canister --network actuallylocal create --all
+  assert_command dfx build --network actuallylocal
+  assert_command ls .dfx/actuallylocal/canisters/e2e_project/
+  assert_command ls .dfx/actuallylocal/canisters/e2e_project/e2e_project.wasm
+}

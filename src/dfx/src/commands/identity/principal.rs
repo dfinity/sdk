@@ -4,6 +4,7 @@ use crate::lib::identity::identity_manager::IdentityManager;
 
 use anyhow::anyhow;
 use clap::Clap;
+use ic_agent::identity::Identity;
 
 /// Shows the textual representation of the Principal associated with the current identity.
 #[derive(Clap)]

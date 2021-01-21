@@ -8,6 +8,7 @@ use crate::lib::progress_bar::ProgressBar;
 
 use anyhow::{anyhow, Context};
 use ic_agent::{Agent, Identity};
+use ic_types::Principal;
 use semver::Version;
 use slog::{Logger, Record};
 use std::collections::BTreeMap;
@@ -51,6 +52,10 @@ pub trait Environment {
     fn log<'a>(&self, record: &Record<'a>) {
         self.get_logger().log(record);
     }
+
+    fn get_selected_identity(&self) -> Option<&String>;
+
+    fn get_selected_identity_principal(&self) -> Option<Principal>;
 }
 
 pub struct EnvironmentImpl {
@@ -203,12 +208,21 @@ impl Environment for EnvironmentImpl {
     fn new_progress(&self, _message: &str) -> ProgressBar {
         ProgressBar::discard()
     }
+
+    fn get_selected_identity(&self) -> Option<&String> {
+        None
+    }
+
+    fn get_selected_identity_principal(&self) -> Option<Principal> {
+        None
+    }
 }
 
 pub struct AgentEnvironment<'a> {
     backend: &'a dyn Environment,
     agent: Agent,
     network_descriptor: NetworkDescriptor,
+    identity_manager: IdentityManager,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -217,7 +231,8 @@ impl<'a> AgentEnvironment<'a> {
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
     ) -> DfxResult<Self> {
-        let identity = IdentityManager::new(backend)?.instantiate_selected_identity()?;
+        let mut identity_manager = IdentityManager::new(backend)?;
+        let identity = identity_manager.instantiate_selected_identity()?;
 
         let agent_url = network_descriptor.providers.first().unwrap();
         Ok(AgentEnvironment {
@@ -225,6 +240,7 @@ impl<'a> AgentEnvironment<'a> {
             agent: create_agent(backend.get_logger().clone(), agent_url, identity, timeout)
                 .expect("Failed to construct agent."),
             network_descriptor,
+            identity_manager,
         })
     }
 }
@@ -282,6 +298,14 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn new_progress(&self, message: &str) -> ProgressBar {
         self.backend.new_progress(message)
+    }
+
+    fn get_selected_identity(&self) -> Option<&String> {
+        Some(self.identity_manager.get_selected_identity_name())
+    }
+
+    fn get_selected_identity_principal(&self) -> Option<Principal> {
+        self.identity_manager.get_selected_identity_principal()
     }
 }
 

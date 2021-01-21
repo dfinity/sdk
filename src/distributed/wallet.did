@@ -1,0 +1,62 @@
+type EventKind = variant {
+  CyclesSent: record {
+    to: principal;
+    amount: nat64;
+  };
+  CyclesReceived: record {
+    from: principal;
+    amount: nat64;
+  };
+  CustodianAdded: record {
+    custodian: principal;
+  };
+  CustodianRemoved: record {
+    custodian: principal;
+  };
+  CanisterCreated: record {
+    canister: principal;
+  };
+  CanisterCalled: record {
+    canister: principal;
+    method_name: text;
+  }
+};
+
+type event = record {
+  id: nat32;
+  timestamp: nat64;
+  kind: EventKind;
+};
+
+service : {
+  // Controller Management
+  get_controller: () -> (principal) query;
+  set_controller: (principal) -> ();
+
+  // Custodian Management
+  get_custodians: () -> (vec principal) query;
+  authorize: (principal) -> ();
+  deauthorize: (principal) -> ();
+
+  // Cycle Management
+  wallet_balance: () -> (record { amount: nat64 }) query;
+  wallet_send: (record { canister: principal; amount: nat64 }) -> ();
+  wallet_receive: () -> (record { accepted: nat64 });  // Endpoint for receiving cycles.
+
+  // Managing canister
+  wallet_create_canister: (record {
+    cycles: nat64;
+    controller: opt principal;  // If omitted, set the controller to this wallet.
+  }) -> (record { canister_id: principal });
+
+  // Call Forwarding
+  wallet_call: (record {
+    canister: principal;
+    method_name: text;
+    args: blob;
+    cycles: nat64;
+  }) -> (record { return: blob });
+
+  // Events
+  get_events: () -> (vec event) query;
+}

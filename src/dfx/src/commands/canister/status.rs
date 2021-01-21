@@ -1,6 +1,8 @@
+use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
@@ -31,20 +33,25 @@ async fn canister_status(
     canister_name: &str,
     timeout: Duration,
 ) -> DfxResult {
-    let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id = canister_id_store.get(canister_name)?;
 
-    let (status,) = mgr
-        .canister_status(&canister_id)
-        .call_and_wait(waiter_with_timeout(timeout))
-        .await?;
-    info!(
-        log,
-        "Canister {}'s status is {}.", canister_name, status.status
-    );
+    let ic_api_version = fetch_api_version(env).await?;
 
+    let status = match ic_api_version.as_str() {
+        "0.14.0" => {
+            let mgr = ManagementCanister::create(agent);
+            let (status,) = mgr
+                .canister_status(&canister_id)
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
+            status.status
+        }
+        _ => canister::get_canister_status(env, canister_id, timeout).await?,
+    };
+
+    info!(log, "Canister {}'s status is {}.", canister_name, status);
     Ok(())
 }
 
@@ -55,7 +62,6 @@ pub async fn exec(env: &dyn Environment, opts: CanisterStatusOpts) -> DfxResult 
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
-
     let timeout = expiry_duration();
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
