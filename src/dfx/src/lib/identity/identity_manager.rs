@@ -169,7 +169,7 @@ impl IdentityManager {
 
         let dir = self.get_identity_dir_path(name);
         std::fs::remove_dir(&dir).context(format!(
-            "Cannot remove identity directroy at '{}'.",
+            "Cannot remove identity directory at '{}'.",
             dir.display()
         ))?;
 
