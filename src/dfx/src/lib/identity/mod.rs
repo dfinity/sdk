@@ -235,7 +235,7 @@ impl Identity {
     }
 
     fn rename_wallet_global_config_key(
-        &self,
+        originial_identity: &str,
         renamed_identity: &str,
         wallet_path: PathBuf,
     ) -> DfxResult {
@@ -243,9 +243,11 @@ impl Identity {
         std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
         let mut config = serde_json::from_slice::<WalletGlobalConfig>(&buffer)?;
         let identities = &mut config.identities;
-        let v = identities.remove(&self.name).unwrap_or(WalletNetworkMap {
-            networks: BTreeMap::new(),
-        });
+        let v = identities
+            .remove(originial_identity)
+            .unwrap_or(WalletNetworkMap {
+                networks: BTreeMap::new(),
+            });
         identities.insert(renamed_identity.to_string(), v);
         std::fs::create_dir_all(wallet_path.parent().unwrap())?;
         std::fs::write(&wallet_path, &serde_json::to_string_pretty(&config)?)?;
@@ -254,23 +256,31 @@ impl Identity {
 
     // used for dfx identity rename foo bar
     pub fn map_wallets_to_renamed_identity(
-        &self,
         env: &dyn Environment,
+        originial_identity: &str,
         renamed_identity: &str,
     ) -> DfxResult {
         let persistent_wallet_path = get_config_dfx_dir_path()?
             .join("identity")
-            .join(&self.name)
+            .join(originial_identity)
             .join(WALLET_CONFIG_FILENAME);
         if persistent_wallet_path.exists() {
-            self.rename_wallet_global_config_key(renamed_identity, persistent_wallet_path)?;
+            Identity::rename_wallet_global_config_key(
+                originial_identity,
+                renamed_identity,
+                persistent_wallet_path,
+            )?;
         }
         let local_wallet_path = env
             .get_temp_dir()
             .join("local")
             .join(WALLET_CONFIG_FILENAME);
         if local_wallet_path.exists() {
-            self.rename_wallet_global_config_key(renamed_identity, local_wallet_path)?;
+            Identity::rename_wallet_global_config_key(
+                originial_identity,
+                renamed_identity,
+                local_wallet_path,
+            )?;
         }
         Ok(())
     }
