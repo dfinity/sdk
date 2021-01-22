@@ -71,26 +71,26 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "es-95-hsm-ci-tests"
-rev = "39d50818bebab6888ab4bfd5b760ea8dc1e76e1a"
+branch = "next"
+rev = "ca3905e2c614ac84e4bfa2802143fc4f78ff4f2b"
 
 [dependencies.ic-identity-hsm]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "es-95-hsm-ci-tests"
-rev = "39d50818bebab6888ab4bfd5b760ea8dc1e76e1a"
+branch = "next"
+rev = "ca3905e2c614ac84e4bfa2802143fc4f78ff4f2b"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "es-95-hsm-ci-tests"
-rev = "39d50818bebab6888ab4bfd5b760ea8dc1e76e1a"
+branch = "next"
+rev = "ca3905e2c614ac84e4bfa2802143fc4f78ff4f2b"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "es-95-hsm-ci-tests"
-rev = "39d50818bebab6888ab4bfd5b760ea8dc1e76e1a"
+branch = "next"
+rev = "ca3905e2c614ac84e4bfa2802143fc4f78ff4f2b"
 
 [dev-dependencies]
 env_logger = "0.6"
