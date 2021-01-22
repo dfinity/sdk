@@ -65,7 +65,7 @@ impl ReplicaWebserverCoordinator {
         providers.push(replica_api_uri);
         info!(
             self.logger,
-            "Starting webserver on port {} for replica at {:?}", port, ic_replica_bind_addr
+            "Starting webserver for replica at {:?}", ic_replica_bind_addr
         );
 
         run_webserver(
