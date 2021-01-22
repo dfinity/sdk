@@ -1,6 +1,9 @@
-use crate::actors::replica::signals::outbound::ReplicaReadySignal;
-use crate::actors::replica::signals::PortReadySubscribe;
+use crate::actors::replica;
 use crate::actors::replica::Replica;
+use crate::actors::replica::signals::outbound::ReplicaReadySignal;
+use crate::actors::emulator;
+use crate::actors::emulator::Emulator;
+use crate::actors::emulator::signals::outbound::EmulatorReadySignal;
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -20,7 +23,9 @@ use std::path::PathBuf;
 
 pub struct Config {
     pub logger: Option<Logger>,
-    pub replica_addr: Addr<Replica>,
+    // one of the two should be Some
+    pub replica_addr: Option<Addr<Replica>>,
+    pub ic_ref_addr: Option<Addr<Emulator>>,
     pub shutdown_controller: Addr<ShutdownController>,
     pub bind: SocketAddr,
     pub serve_dir: PathBuf,
@@ -78,9 +83,12 @@ impl Actor for ReplicaWebserverCoordinator {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        self.config
-            .replica_addr
-            .do_send(PortReadySubscribe(ctx.address().recipient()));
+        if let Some(addr) = &self.config.replica_addr {
+            addr.do_send(replica::signals::PortReadySubscribe(ctx.address().recipient()))
+        }
+        if let Some(addr) = &self.config.ic_ref_addr {
+            addr.do_send(emulator::signals::PortReadySubscribe(ctx.address().recipient()))
+        }
         self.config
             .shutdown_controller
             .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
@@ -114,6 +122,35 @@ impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
         }
     }
 }
+
+impl Handler<EmulatorReadySignal> for ReplicaWebserverCoordinator {
+    type Result = ();
+
+    fn handle(&mut self, msg: EmulatorReadySignal, ctx: &mut Self::Context) {
+        debug!(self.logger, "emulator ready on {}", msg.port);
+
+        if let Some(server) = &self.server {
+            ctx.wait(wrap_future(server.stop(true)));
+            self.server = None;
+            ctx.address().do_send(msg);
+        } else {
+            match self.start_server(msg.port) {
+                Ok(server) => {
+                    self.server = Some(server);
+                }
+                Err(e) => {
+                    error!(
+                        self.logger,
+                        "Unable to start webserver on port {}: {}", msg.port, e
+                    );
+                    ctx.wait(wrap_future(delay_for(Duration::from_secs(2))));
+                    ctx.address().do_send(msg);
+                }
+            }
+        }
+    }
+}
+
 
 impl Handler<Shutdown> for ReplicaWebserverCoordinator {
     type Result = ResponseFuture<Result<(), ()>>;

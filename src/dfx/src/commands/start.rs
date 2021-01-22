@@ -1,5 +1,6 @@
 use crate::actors;
 use crate::actors::replica::Replica;
+use crate::actors::emulator::Emulator;
 use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
 use crate::actors::shutdown_controller;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -38,6 +39,10 @@ pub struct StartOpts {
     /// Cleans the state of the current project.
     #[clap(long)]
     clean: bool,
+
+    /// Runs a dedicated emulator instead of the replica
+    #[clap(long)]
+    emulator: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -138,14 +143,21 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
 
     let shutdown_controller = start_shutdown_controller(env)?;
 
-    let replica = start_replica(env, &state_root, shutdown_controller.clone())?;
+    let replica_addr =
+        if opts.emulator { None }
+        else { Some(start_replica(env, &state_root, shutdown_controller.clone())?)};
+
+    let ic_ref_addr =
+        if opts.emulator { Some(start_emulator(env, shutdown_controller.clone())?)}
+        else { None };
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,
         network_descriptor,
         address_and_port,
         build_output_root,
-        replica,
+        replica_addr,
+        ic_ref_addr,
         shutdown_controller,
     )?;
 
@@ -214,12 +226,37 @@ fn start_replica(
     Ok(actors::replica::Replica::new(actor_config).start())
 }
 
+fn start_emulator(
+    env: &dyn Environment,
+    shutdown_controller: Addr<ShutdownController>,
+) -> DfxResult<Addr<Emulator>> {
+    let ic_ref_path = env.get_cache().get_binary_command_path("ic-ref")?;
+
+    let temp_dir = env.get_temp_dir();
+    let emulator_port_path = temp_dir.join("ic-ref.port");
+
+    // Touch the port file. This ensures it is empty prior to
+    // handing it over to ic-ref. If we read the file and it has
+    // contents we shall assume it is due to our spawned ic-ref
+    // process.
+    std::fs::write(&emulator_port_path, "")?;
+
+    let actor_config = actors::emulator::Config {
+        ic_ref_path,
+        write_port_to: emulator_port_path,
+        shutdown_controller,
+        logger: Some(env.get_logger().clone()),
+    };
+    Ok(actors::emulator::Emulator::new(actor_config).start())
+}
+
 fn start_webserver_coordinator(
     env: &dyn Environment,
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     build_output_root: PathBuf,
-    replica_addr: Addr<Replica>,
+    replica_addr: Option<Addr<Replica>>,
+    ic_ref_addr: Option<Addr<Emulator>>,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
     let serve_dir = env.get_cache().get_binary_command_path("bootstrap")?;
@@ -229,6 +266,7 @@ fn start_webserver_coordinator(
     let actor_config = actors::replica_webserver_coordinator::Config {
         logger: Some(env.get_logger().clone()),
         replica_addr,
+        ic_ref_addr,
         shutdown_controller,
         bind,
         serve_dir,
