@@ -33,7 +33,7 @@ pub use identity_manager::{
 
 const IDENTITY_PEM: &str = "identity.pem";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
-const HSM_SLOT_ID: u32 = 0;
+const HSM_SLOT_INDEX: usize = 0;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
@@ -115,7 +115,7 @@ impl Identity {
         let inner = Box::new(
             HardwareIdentity::new(
                 hsm.pkcs11_lib_path,
-                HSM_SLOT_ID.into(),
+                HSM_SLOT_INDEX,
                 &hsm.key_id,
                 identity_manager::get_dfx_hsm_pin,
             )
