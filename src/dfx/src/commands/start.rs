@@ -1,6 +1,6 @@
 use crate::actors;
-use crate::actors::replica::Replica;
 use crate::actors::emulator::Emulator;
+use crate::actors::replica::Replica;
 use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
 use crate::actors::shutdown_controller;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -143,13 +143,21 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
 
     let shutdown_controller = start_shutdown_controller(env)?;
 
-    let replica_addr =
-        if opts.emulator { None }
-        else { Some(start_replica(env, &state_root, shutdown_controller.clone())?)};
+    let replica_addr = if opts.emulator {
+        None
+    } else {
+        Some(start_replica(
+            env,
+            &state_root,
+            shutdown_controller.clone(),
+        )?)
+    };
 
-    let ic_ref_addr =
-        if opts.emulator { Some(start_emulator(env, shutdown_controller.clone())?)}
-        else { None };
+    let ic_ref_addr = if opts.emulator {
+        Some(start_emulator(env, shutdown_controller.clone())?)
+    } else {
+        None
+    };
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,

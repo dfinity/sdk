@@ -114,12 +114,7 @@ impl Emulator {
 
         let (sender, receiver) = unbounded();
 
-        let handle = emulator_start_thread(
-            logger,
-            self.config.clone(),
-            addr,
-            receiver,
-        )?;
+        let handle = emulator_start_thread(logger, self.config.clone(), addr, receiver)?;
 
         self.thread_join = Some(handle);
         self.stop_sender = Some(sender);
@@ -178,7 +173,11 @@ impl Handler<signals::PortReadySubscribe> for Emulator {
 impl Handler<signals::EmulatorRestarted> for Emulator {
     type Result = ();
 
-    fn handle(&mut self, msg: signals::EmulatorRestarted, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: signals::EmulatorRestarted,
+        _ctx: &mut Self::Context,
+    ) -> Self::Result {
         self.port = Some(msg.port);
         self.send_ready_signal(msg.port);
     }
@@ -264,7 +263,6 @@ fn emulator_start_thread(
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting emulator...");
             let mut child = cmd.spawn().expect("Could not start emulator.");
-
 
             let port = Emulator::wait_for_port_file(&config.write_port_to).unwrap();
             addr.do_send(signals::EmulatorRestarted { port });

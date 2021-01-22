@@ -1,9 +1,9 @@
-use crate::actors::replica;
-use crate::actors::replica::Replica;
-use crate::actors::replica::signals::outbound::ReplicaReadySignal;
 use crate::actors::emulator;
-use crate::actors::emulator::Emulator;
 use crate::actors::emulator::signals::outbound::EmulatorReadySignal;
+use crate::actors::emulator::Emulator;
+use crate::actors::replica;
+use crate::actors::replica::signals::outbound::ReplicaReadySignal;
+use crate::actors::replica::Replica;
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -84,10 +84,14 @@ impl Actor for ReplicaWebserverCoordinator {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         if let Some(addr) = &self.config.replica_addr {
-            addr.do_send(replica::signals::PortReadySubscribe(ctx.address().recipient()))
+            addr.do_send(replica::signals::PortReadySubscribe(
+                ctx.address().recipient(),
+            ))
         }
         if let Some(addr) = &self.config.ic_ref_addr {
-            addr.do_send(emulator::signals::PortReadySubscribe(ctx.address().recipient()))
+            addr.do_send(emulator::signals::PortReadySubscribe(
+                ctx.address().recipient(),
+            ))
         }
         self.config
             .shutdown_controller
@@ -150,7 +154,6 @@ impl Handler<EmulatorReadySignal> for ReplicaWebserverCoordinator {
         }
     }
 }
-
 
 impl Handler<Shutdown> for ReplicaWebserverCoordinator {
     type Result = ResponseFuture<Result<(), ()>>;
