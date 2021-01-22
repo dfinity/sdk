@@ -36,7 +36,7 @@ dfx_start() {
     if [ "$USE_IC_REF" ]
     then
         if [[ "$@" == "" ]]; then
-            dfx start --emulator --background 3>&-
+            dfx start --emulator --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
         else
             batslib_decorate "no arguments to dfx start --emulator supported yet"
             fail
