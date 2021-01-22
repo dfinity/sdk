@@ -8,7 +8,7 @@ confirm_license() {
         printf "%s\n" "Hint: Run  sh -ci \"\$(curl -fsSL $SDK_WEBSITE/install.sh)\""
         exit 0
     fi
-    cat << EOF
+    cat <<EOF
 
 The DFINITY Canister SDK
 
