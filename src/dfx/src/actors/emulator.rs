@@ -250,7 +250,7 @@ fn emulator_start_thread(
 
         // form the ic-start command here similar to emulator command
         let mut cmd = std::process::Command::new(ic_ref_path);
-        cmd.args(&[ "--pick-port" ]);
+        cmd.args(&["--pick-port"]);
         cmd.args(&[
             "--write-port-to",
             &config.write_port_to.to_string_lossy().to_string(),
