@@ -1,6 +1,8 @@
+use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
@@ -31,7 +33,6 @@ async fn delete_canister(
     canister_name: &str,
     timeout: Duration,
 ) -> DfxResult {
-    let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id = canister_id_store.get(canister_name)?;
@@ -42,9 +43,16 @@ async fn delete_canister(
         canister_id.to_text(),
     );
 
-    mgr.delete_canister(&canister_id)
-        .call_and_wait(waiter_with_timeout(timeout))
-        .await?;
+    let ic_api_version = fetch_api_version(env).await?;
+
+    if ic_api_version == "0.14.0" {
+        let mgr = ManagementCanister::create(agent);
+        mgr.delete_canister(&canister_id)
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await?;
+    } else {
+        canister::delete_canister(env, canister_id, timeout).await?;
+    }
 
     canister_id_store.remove(canister_name)?;
 
@@ -65,7 +73,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterDeleteOpts) -> DfxResult 
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                delete_canister(env, &agent, &canister_name, timeout).await?;
+                delete_canister(env, &agent, canister_name, timeout).await?;
             }
         }
         Ok(())

@@ -3,11 +3,13 @@ use crate::lib::error::DfxResult;
 
 use clap::Clap;
 
+mod get_wallet;
 mod list;
 mod new;
 mod principal;
 mod remove;
 mod rename;
+mod set_wallet;
 mod r#use;
 mod whoami;
 
@@ -16,28 +18,36 @@ mod whoami;
 #[derive(Clap)]
 #[clap(name("identity"))]
 pub struct IdentityOpt {
+    /// Override the compute network to connect to. By default, the local network is used.
+    #[clap(long)]
+    network: Option<String>,
+
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Clap)]
 enum SubCommand {
+    GetWallet(get_wallet::GetWalletOpts),
     List(list::ListOpts),
     New(new::NewIdentityOpts),
     GetPrincipal(principal::GetPrincipalOpts),
     Remove(remove::RemoveOpts),
     Rename(rename::RenameOpts),
+    SetWallet(set_wallet::SetWalletOpts),
     Use(r#use::UseOpts),
     Whoami(whoami::WhoAmIOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: IdentityOpt) -> DfxResult {
     match opts.subcmd {
+        SubCommand::GetWallet(v) => get_wallet::exec(env, v, opts.network.clone()),
         SubCommand::List(v) => list::exec(env, v),
         SubCommand::New(v) => new::exec(env, v),
         SubCommand::GetPrincipal(v) => principal::exec(env, v),
         SubCommand::Remove(v) => remove::exec(env, v),
         SubCommand::Rename(v) => rename::exec(env, v),
+        SubCommand::SetWallet(v) => set_wallet::exec(env, v, opts.network.clone()),
         SubCommand::Use(v) => r#use::exec(env, v),
         SubCommand::Whoami(v) => whoami::exec(env, v),
     }

@@ -154,6 +154,7 @@ async fn install_canisters(
             timeout,
         )
         .await;
+
         match result {
             Err(err)
                 if (match err.downcast_ref::<AgentError>() {
@@ -172,7 +173,7 @@ async fn install_canisters(
                 };
                 warn!(
                     env.get_logger(),
-                    "replica error. attempting {}", mode_description
+                    "Replica error. attempting {}", mode_description
                 );
                 install_canister(
                     env,

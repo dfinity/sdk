@@ -1,11 +1,11 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
+use crate::lib::identity::Identity as DfxIdentity;
 
-use anyhow::{anyhow, Context};
-use ic_agent::identity::BasicIdentity;
-use ic_agent::Identity;
-use ic_identity_hsm::HardwareIdentity;
+use anyhow::anyhow;
+use anyhow::Context;
+use ic_types::Principal;
 use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
@@ -16,9 +16,10 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
+
+/// TODO: move this to identity/mod.rs
 const IDENTITY_PEM: &str = "identity.pem";
 const IDENTITY_JSON: &str = "identity.json";
-const HSM_SLOT_INDEX: usize = 0;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Configuration {
@@ -31,7 +32,7 @@ fn default_identity() -> String {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-struct IdentityConfiguration {
+pub struct IdentityConfiguration {
     pub hsm: Option<HardwareIdentityConfiguration>,
 }
 
@@ -56,6 +57,7 @@ pub struct IdentityManager {
     identity_root_path: PathBuf,
     configuration: Configuration,
     selected_identity: String,
+    selected_identity_principal: Option<Principal>,
 }
 
 impl IdentityManager {
@@ -80,6 +82,7 @@ impl IdentityManager {
             identity_root_path,
             configuration,
             selected_identity,
+            selected_identity_principal: None,
         };
 
         if let Some(identity) = identity_override {
@@ -89,58 +92,27 @@ impl IdentityManager {
         Ok(mgr)
     }
 
+    pub fn get_selected_identity_principal(&self) -> Option<Principal> {
+        self.selected_identity_principal.clone()
+    }
+
     /// Create an Identity instance for use with an Agent
-    pub fn instantiate_selected_identity(&self) -> DfxResult<Box<dyn Identity + Send + Sync>> {
-        self.instantiate_identity_from_name(self.selected_identity.as_str())
+    pub fn instantiate_selected_identity(&mut self) -> DfxResult<Box<DfxIdentity>> {
+        let name = self.selected_identity.clone();
+        self.instantiate_identity_from_name(name.as_str())
     }
 
     /// Provide a valid Identity name and create its Identity instance for use with an Agent
     pub fn instantiate_identity_from_name(
-        &self,
+        &mut self,
         identity_name: &str,
-    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
-        let json_path = self.get_identity_json_path(identity_name);
-        if json_path.exists() {
-            let hsm = read_identity_configuration(&json_path)?
-                .hsm
-                .ok_or_else(|| {
-                    anyhow!("No HardwareIdentityConfiguration for IdentityConfiguration.")
-                })?;
-            self.instantiate_hardware_identity(hsm)
-        } else {
-            self.instantiate_basic_identity_from_name(identity_name)
-        }
-    }
-
-    pub fn instantiate_basic_identity_from_name(
-        &self,
-        identity_name: &str,
-    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
+    ) -> DfxResult<Box<DfxIdentity>> {
         self.require_identity_exists(identity_name)?;
-        let pem_path = self.get_identity_pem_path(identity_name);
-        Ok(Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(
-            |err| {
-                DfxError::new(IdentityError::CannotReadIdentityFile(
-                    pem_path.clone(),
-                    Box::new(DfxError::new(err)),
-                ))
-            },
-        )?))
-    }
-
-    pub fn instantiate_hardware_identity(
-        &self,
-        hsm: HardwareIdentityConfiguration,
-    ) -> DfxResult<Box<dyn Identity + Send + Sync>> {
-        Ok(Box::new(
-            HardwareIdentity::new(
-                hsm.pkcs11_lib_path,
-                HSM_SLOT_INDEX,
-                &hsm.key_id,
-                get_dfx_hsm_pin,
-            )
-            .map_err(DfxError::new)?,
-        ))
+        let identity = Box::new(DfxIdentity::load(self, identity_name)?);
+        use ic_agent::identity::Identity;
+        self.selected_identity_principal =
+            Some(identity.sender().map_err(|err| anyhow!("{}", err))?);
+        Ok(identity)
     }
 
     /// Create a new identity (name -> generated key)
@@ -152,31 +124,8 @@ impl IdentityManager {
         if name == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
-        let identity_dir = self.get_identity_dir_path(name);
 
-        if identity_dir.exists() {
-            return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
-        }
-        std::fs::create_dir_all(&identity_dir).map_err(|err| {
-            DfxError::new(IdentityError::CannotCreateIdentityDirectory(
-                identity_dir.clone(),
-                Box::new(DfxError::new(err)),
-            ))
-        })?;
-
-        match parameters {
-            IdentityCreationParameters::Pem() => {
-                let pem_file = self.get_identity_pem_path(name);
-                generate_key(&pem_file)
-            }
-            IdentityCreationParameters::Hardware(parameters) => {
-                let identity_configuration = IdentityConfiguration {
-                    hsm: Some(parameters),
-                };
-                let json_file = self.get_identity_json_path(name);
-                write_identity_configuration(&json_file, &identity_configuration)
-            }
-        }
+        DfxIdentity::create(self, name, parameters)
     }
 
     /// Return a sorted list of all available identity names
@@ -220,7 +169,7 @@ impl IdentityManager {
 
         let dir = self.get_identity_dir_path(name);
         std::fs::remove_dir(&dir).context(format!(
-            "Cannot remove identity directroy at '{}'.",
+            "Cannot remove identity directory at '{}'.",
             dir.display()
         ))?;
 
@@ -230,7 +179,7 @@ impl IdentityManager {
     /// Rename an identity.
     /// If renaming the selected (default) identity, changes that
     /// to refer to the new identity name.
-    pub fn rename(&self, from: &str, to: &str) -> DfxResult<bool> {
+    pub fn rename(&mut self, env: &dyn Environment, from: &str, to: &str) -> DfxResult<bool> {
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
@@ -242,6 +191,8 @@ impl IdentityManager {
         if to_dir.exists() {
             return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
         }
+
+        DfxIdentity::map_wallets_to_renamed_identity(env, from, to)?;
 
         std::fs::rename(&from_dir, &to_dir).map_err(|err| {
             DfxError::new(IdentityError::CannotRenameIdentityDirectory(
@@ -290,20 +241,20 @@ impl IdentityManager {
         }
     }
 
-    fn get_identity_dir_path(&self, identity: &str) -> PathBuf {
+    pub fn get_identity_dir_path(&self, identity: &str) -> PathBuf {
         self.identity_root_path.join(&identity)
     }
 
-    fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
+    pub fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_PEM)
     }
 
-    fn get_identity_json_path(&self, identity: &str) -> PathBuf {
+    pub fn get_identity_json_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_JSON)
     }
 }
 
-fn get_dfx_hsm_pin() -> Result<String, String> {
+pub(super) fn get_dfx_hsm_pin() -> Result<String, String> {
     std::env::var("DFX_HSM_PIN")
         .map_err(|_| "There is no DFX_HSM_PIN environment variable.".to_string())
 }
@@ -388,7 +339,7 @@ fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
     Ok(())
 }
 
-fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConfiguration> {
+pub(super) fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConfiguration> {
     let content = std::fs::read_to_string(&path).context(format!(
         "Cannot read identity configuration file at '{}'.",
         PathBuf::from(path).display()
@@ -396,7 +347,10 @@ fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConfiguration> 
     serde_json::from_str(&content).map_err(DfxError::from)
 }
 
-fn write_identity_configuration(path: &Path, config: &IdentityConfiguration) -> DfxResult {
+pub(super) fn write_identity_configuration(
+    path: &Path,
+    config: &IdentityConfiguration,
+) -> DfxResult {
     let content = serde_json::to_string_pretty(&config)?;
     std::fs::write(&path, content).context(format!(
         "Cannot write identity configuration file at '{}'.",
@@ -415,7 +369,7 @@ fn remove_identity_file(file: &Path) -> DfxResult {
     Ok(())
 }
 
-fn generate_key(pem_file: &Path) -> DfxResult {
+pub(super) fn generate_key(pem_file: &Path) -> DfxResult {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
         .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
