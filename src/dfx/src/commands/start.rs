@@ -1,6 +1,7 @@
 use crate::actors;
 use crate::actors::emulator::Emulator;
 use crate::actors::replica::Replica;
+use crate::actors::replica_webserver_coordinator::signals::PortReadySubscribe;
 use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
 use crate::actors::shutdown_controller;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -12,7 +13,7 @@ use crate::lib::provider::get_network_descriptor;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
-use actix::{Actor, Addr};
+use actix::{Actor, Addr, Recipient};
 use anyhow::{anyhow, bail, Context};
 use clap::Clap;
 use delay::{Delay, Waiter};
@@ -143,20 +144,12 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
 
     let shutdown_controller = start_shutdown_controller(env)?;
 
-    let replica_addr = if opts.emulator {
-        None
+    let port_ready_subscribe: Recipient<PortReadySubscribe> = if opts.emulator {
+        let emulator = start_emulator(env, shutdown_controller.clone())?;
+        emulator.recipient()
     } else {
-        Some(start_replica(
-            env,
-            &state_root,
-            shutdown_controller.clone(),
-        )?)
-    };
-
-    let ic_ref_addr = if opts.emulator {
-        Some(start_emulator(env, shutdown_controller.clone())?)
-    } else {
-        None
+        let replica = start_replica(env, &state_root, shutdown_controller.clone())?;
+        replica.recipient()
     };
 
     let _webserver_coordinator = start_webserver_coordinator(
@@ -164,8 +157,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
         network_descriptor,
         address_and_port,
         build_output_root,
-        replica_addr,
-        ic_ref_addr,
+        port_ready_subscribe,
         shutdown_controller,
     )?;
 
@@ -263,8 +255,7 @@ fn start_webserver_coordinator(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     build_output_root: PathBuf,
-    replica_addr: Option<Addr<Replica>>,
-    ic_ref_addr: Option<Addr<Emulator>>,
+    port_ready_subscribe: Recipient<PortReadySubscribe>,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
     let serve_dir = env.get_cache().get_binary_command_path("bootstrap")?;
@@ -273,8 +264,7 @@ fn start_webserver_coordinator(
 
     let actor_config = actors::replica_webserver_coordinator::Config {
         logger: Some(env.get_logger().clone()),
-        replica_addr,
-        ic_ref_addr,
+        port_ready_subscribe,
         shutdown_controller,
         bind,
         serve_dir,

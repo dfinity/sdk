@@ -1,3 +1,4 @@
+use crate::actors::replica_webserver_coordinator::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -17,20 +18,6 @@ use std::time::Duration;
 
 pub mod signals {
     use actix::prelude::*;
-
-    pub mod outbound {
-        use super::*;
-
-        #[derive(Message)]
-        #[rtype(result = "()")]
-        pub struct EmulatorReadySignal {
-            pub port: u16,
-        }
-    }
-
-    #[derive(Message)]
-    #[rtype(result = "()")]
-    pub struct PortReadySubscribe(pub Recipient<outbound::EmulatorReadySignal>);
 
     /// A message sent to the Emulator when the process is restarted. Since we're
     /// restarting inside our own actor, this message should not be exposed.
@@ -72,7 +59,7 @@ pub struct Emulator {
     thread_join: Option<JoinHandle<()>>,
 
     /// Ready Signal subscribers.
-    ready_subscribers: Vec<Recipient<signals::outbound::EmulatorReadySignal>>,
+    ready_subscribers: Vec<Recipient<PortReadySignal>>,
 }
 
 impl Emulator {
@@ -123,7 +110,7 @@ impl Emulator {
 
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(signals::outbound::EmulatorReadySignal { port });
+            let _ = sub.do_send(PortReadySignal { port });
         }
     }
 }
@@ -155,15 +142,13 @@ impl Actor for Emulator {
     }
 }
 
-impl Handler<signals::PortReadySubscribe> for Emulator {
+impl Handler<PortReadySubscribe> for Emulator {
     type Result = ();
 
-    fn handle(&mut self, msg: signals::PortReadySubscribe, _: &mut Self::Context) {
+    fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
-            let _ = msg
-                .0
-                .do_send(signals::outbound::EmulatorReadySignal { port });
+            let _ = msg.0.do_send(PortReadySignal { port });
         }
 
         self.ready_subscribers.push(msg.0);
