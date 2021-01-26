@@ -54,7 +54,7 @@ teardown() {
     dfx_start
     dfx canister create --all
     assert_command dfx build
-    assert_match "warning, this pattern of type"
+    assert_match "warning \[M0145\], this pattern of type"
 }
 
 @test "build fails on unknown imports" {
