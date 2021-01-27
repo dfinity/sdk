@@ -9,7 +9,7 @@ echo "Updating version in src/dfx/Cargo.toml"
 sed -i '0,/^version = ".*"/s//version = "$NEW_DFX_VERSION"/' src/dfx/Cargo.toml
 
 echo "Building dfx with cargo."
-#cargo build
+cargo build
 
 echo "Appending version to public/manifest.json"
 # Append the new version to `public/manifest.json` by appending it to the `versions` list.
