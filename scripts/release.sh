@@ -13,4 +13,7 @@ echo $1 | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$' || die "'$1' is not a valid sema
 export NEW_DFX_VERSION=$1
 
 echo "Building release: $NEW_DFX_VERSION"
-nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$(envsubst < scripts/release-nix-command.sh)"
+COMMAND=$(envsubst < scripts/release-nix-command.sh)
+echo "$COMMAND"
+echo "Starting nix-shell."
+nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$COMMAND"
