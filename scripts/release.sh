@@ -30,6 +30,7 @@ get_parameters() {
     echo $1 | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$' || die "'$1' is not a valid semantic version"
 
     export NEW_DFX_VERSION=$1
+    export DRY_RUN_ECHO=${DRY_RUN:-'echo'}
 }
 
 pre_release_check() {
@@ -176,8 +177,8 @@ EOF
 
 update_stable_branch() {
     announce 'Updating stable branch'
-    
-    nix-shell --option extra-binary-caches https://cache.dfinity.systems --command '
+
+    NIX_COMMAND=$(envsubst <<"EOF"
         set -e
 
         export NEW_DFX_VERSION=$(jq -r .versions[-1] public/manifest.json)
@@ -190,27 +191,65 @@ update_stable_branch() {
         echo "NEW_DFX_VERSION is $NEW_DFX_VERSION"
 
         echo "Switching to the stable branch."
-        echo git switch stable
+        $DRY_RUN_ECHO echo git switch stable
 
         echo "Pulling the remove stable branch into the local stable branch."
-        echo git pull origin stable
+        $DRY_RUN_ECHO echo git pull origin stable
 
         echo "Pulling the merged changes into the stable branch."
-        echo git pull origin master --ff-only
+        $DRY_RUN_ECHO echo git pull origin master --ff-only
 
         echo "Creating a new tag $NEW_DFX_VERSION"
-        echo git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
+        $DRY_RUN_ECHO echo git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
 
         echo "Displaying tags"
         git log -1
         git describe --always
 
         echo "Pushing tag $NEW_DFX_VERSION"
-        echo git push origin NEW_DFX_VERSION
+        $DRY_RUN_ECHO echo git push origin NEW_DFX_VERSION
 
         echo "Updating the stable branch."
-        echo git push origin stable
-    '
+        $DRY_RUN_ECHO echo git push origin stable
+EOF
+)
+
+    nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
+}
+
+publish_javascript_agent() {
+    announce 'publishing JavaScript agent'
+
+    NIX_COMMAND=$(envsubst <<"EOF"
+        set -e
+
+        (
+            cd $(mktemp -d)
+            tar -xvf "$agent_js_rc_npm_packed"
+            cd package
+
+            npm version $NEW_DFX_VERSION
+
+            diff <(find types src \( -name \*.d.ts -o -name \*.js \) -a \! -name \*.test.\* | sort) <(npm publish --dry-run 2>&1 | egrep 'npm notice [0-9.]*k?B' | awk '{ print $4 }' | grep -v package.json | grep -v README.md | sort) && echo Success
+
+            echo "Logging in to npm"
+            until $DRY_RUN_ECHO npm login ; do
+                echo "Failed to log in to npm.  Try again, or Ctrl-C if you give up."
+            done
+
+            echo "Publishing to npm"
+            until $DRY_RUN_ECHO npm publish ; do
+                echo "Failed to publish to npm.  Press enter to try again, or Ctrl-C to stop."
+                read
+            done
+
+            echo "Logging out of npm"
+            $DRY_RUN_ECHO npm logout
+        )
+EOF
+)
+
+    nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
 }
 
 get_parameters $*
@@ -219,6 +258,8 @@ build_release_candidate
 # validate_default_project
 build_release_branch
 update_stable_branch
+publish_javascript_agent
+
 
 echo "All done!"
 exit 0
