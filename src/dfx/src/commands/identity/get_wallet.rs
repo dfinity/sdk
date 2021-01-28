@@ -9,7 +9,7 @@ use clap::Clap;
 use slog::info;
 use tokio::runtime::Runtime;
 
-/// Get the canister ID of your wallet (or fail if there's no wallet) on a network.
+/// Gets the canister ID for the wallet associated with your identity on a network.
 #[derive(Clap)]
 pub struct GetWalletOpts {}
 
