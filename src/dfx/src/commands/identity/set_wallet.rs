@@ -14,7 +14,7 @@ use ic_utils::interfaces::wallet::BalanceResult;
 use slog::{error, info};
 use tokio::runtime::Runtime;
 
-/// Set the wallet for your identity on a network.
+/// Sets the wallet canister ID to use for your identity on a network.
 #[derive(Clap)]
 pub struct SetWalletOpts {
     /// The Canister ID of the wallet to associate with this identity.
