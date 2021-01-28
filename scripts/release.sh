@@ -7,6 +7,24 @@ die () {
     exit 1
 }
 
+announce() {
+    term_green
+    echo
+    echo "======================================="
+    echo "= $1"
+    echo "======================================="
+    echo
+    term_reset
+}
+
+term_green() {
+  tput setaf 2
+}
+
+term_reset() {
+  tput sgr0
+}
+
 get_parameters() {
     [ "$#" -eq 1 ] || die "Usage: $0 <n.n.n>"
     echo $1 | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$' || die "'$1' is not a valid semantic version"
@@ -15,7 +33,7 @@ get_parameters() {
 }
 
 pre_release_check() {
-    echo "Ensuring dfx and replica are not running."
+    announce "Ensuring dfx and replica are not running."
     if [[ $(ps -ef | grep -v grep | grep -E 'replica|dfx') ]] ; then
         echo "dfx and replica cannot still be running.  kill them and try again."
         exit 1
@@ -23,7 +41,7 @@ pre_release_check() {
 }
 
 build_release_candidate() {
-    echo "Building dfx release candidate."
+    announce "Building dfx release candidate."
     x="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
     echo $x
     export sdk_rc=$x
@@ -48,7 +66,7 @@ build_release_candidate() {
 wait_for_response() {
     expected="$1"
     while true; do
-        echo "All good? type '$expected' if it worked."
+        echo "All good?  Type '$expected' to continue."
         read answer
         if [ "$answer" == "$expected" ]; then
             break
@@ -57,7 +75,7 @@ wait_for_response() {
 }
 
 validate_default_project() {
-    echo "Validating default project."
+    announce "Validating default project."
     PROJECTDIR=$(mktemp -d -t dfx-release-XXXXXXXX)
     trap 'rm -rf -- "$PROJECTDIR"' EXIT
 
@@ -123,7 +141,7 @@ validate_default_project() {
 build_release_branch() {
     export BRANCH=$USER/release-$NEW_DFX_VERSION
 
-    echo "Building branch $BRANCH for release $NEW_DFX_VERSION"
+    announce "Building branch $BRANCH for release $NEW_DFX_VERSION"
     NIX_COMMAND=$(envsubst <<"EOF"
         set -e
 
@@ -152,6 +170,8 @@ EOF
     # echo "$NIX_COMMAND"
     echo "Starting nix-shell."
     nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
+
+    wait_for_response 'PR approved'
 }
 
 get_parameters $*
@@ -161,3 +181,4 @@ build_release_candidate
 build_release_branch
 
 echo "All done!"
+exit 0
