@@ -100,7 +100,6 @@ trap 'rm -rf -- "$PROJECTDIR"' EXIT
     echo
 
     $dfx_rc stop
-
 )
 
 echo "All done!"
