@@ -10,9 +10,9 @@ die () {
 announce() {
     term_green
     echo
-    echo "======================================="
+    echo "===================================================================="
     echo "= $1"
-    echo "======================================="
+    echo "===================================================================="
     echo
     term_reset
 }
@@ -32,6 +32,9 @@ get_parameters() {
     export NEW_DFX_VERSION=$1
     export BRANCH=$USER/release-$NEW_DFX_VERSION
     export DRY_RUN_ECHO=${DRY_RUN:-'echo DRY RUN: '}
+    dry_run_explain=${DRY_RUN:-" (dry run)"}
+
+    announce "Building release $NEW_DFX_VERSION as branch $BRANCH $dry_run_explain"
 }
 
 pre_release_check() {
@@ -42,6 +45,13 @@ pre_release_check() {
     fi
 }
 
+#
+# build the release candidate and export these environment variables:
+#    sdk_rc                  SDK release candidate
+#    dfx_rc                    - dfx executable within
+#    agent_js_rc             JavaScript agent release candidate
+#    agent_js_rc_npm_packed    - npm unpacked
+#
 build_release_candidate() {
     announce "Building dfx release candidate."
     x="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
@@ -93,6 +103,10 @@ validate_default_project() {
 
         echo "Starting the local 'replica' as a background process."
         $dfx_rc start --background
+
+        echo "Installing webpack and webpack-cli"
+        npm install webpack webpack-cli
+        npm install terser-webpack-plugin
 
         echo "Deploying canisters."
         $dfx_rc deploy
@@ -262,7 +276,7 @@ EOF
 get_parameters $*
 pre_release_check
 build_release_candidate
-# validate_default_project
+validate_default_project
 build_release_branch
 update_stable_branch
 publish_javascript_agent
