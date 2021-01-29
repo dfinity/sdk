@@ -31,8 +31,14 @@ get_parameters() {
 
     export NEW_DFX_VERSION=$1
     export BRANCH=$USER/release-$NEW_DFX_VERSION
-    export DRY_RUN_ECHO=${DRY_RUN:-'echo DRY RUN: '}
-    dry_run_explain=${DRY_RUN:-" (dry run)"}
+
+    if [[ "$DRY_RUN" == '' ]]; then
+        export DRY_RUN_ECHO='echo -not-dry-run-:'
+        dry_run_explain=' (not really dry)'
+    else
+        export DRY_RUN_ECHO='echo DRY RUN: '
+        dry_run_explain=' (dry run)'
+    fi
 
     announce "Building release $NEW_DFX_VERSION as branch $BRANCH $dry_run_explain"
 }
@@ -78,6 +84,7 @@ build_release_candidate() {
 wait_for_response() {
     expected="$1"
     while true; do
+        echo
         echo "All good?  Type '$expected' to continue."
         read answer
         if [ "$answer" == "$expected" ]; then
@@ -161,7 +168,7 @@ build_release_branch() {
         set -e
 
         echo "Switching to branch: $BRANCH"
-        $DRY_RUN_ECHO echo git switch -c $BRANCH
+        $DRY_RUN_ECHO git switch -c $BRANCH
 
         echo "Updating version in src/dfx/Cargo.toml"
         # update first version in src/dfx/Cargo.toml to be NEW_DFX_VERSION
@@ -175,9 +182,9 @@ build_release_branch() {
         cat <<<$(jq --indent 4 '.versions += ["$NEW_DFX_VERSION"]' public/manifest.json) >public/manifest.json
 
         echo "Creating release branch: $BRANCH"
-        $DRY_RUN_ECHO echo git add --all
-        $DRY_RUN_ECHO echo git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
-        $DRY_RUN_ECHO echo git push origin $BRANCH
+        $DRY_RUN_ECHO git add --all
+        $DRY_RUN_ECHO git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
+        $DRY_RUN_ECHO git push origin $BRANCH
 
         echo "Please open a pull request, review and approve it, and then label automerge-squash."
 EOF
@@ -196,28 +203,28 @@ update_stable_branch() {
         set -e
 
         echo "Switching to the stable branch."
-        $DRY_RUN_ECHO echo git switch stable
+        $DRY_RUN_ECHO git switch stable
 
         echo "Pulling the remove stable branch into the local stable branch."
-        $DRY_RUN_ECHO echo git pull origin stable
+        $DRY_RUN_ECHO git pull origin stable
 
         # This seems like a race condition in our release process.
         # A PR could have been merged to master.
         echo "Pulling the merged changes into the stable branch."
-        $DRY_RUN_ECHO echo git pull origin master --ff-only
+        $DRY_RUN_ECHO git pull origin master --ff-only
 
         echo "Creating a new tag $NEW_DFX_VERSION"
-        $DRY_RUN_ECHO echo git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
+        $DRY_RUN_ECHO git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
 
         echo "Displaying tags"
         git log -1
         git describe --always
 
         echo "Pushing tag $NEW_DFX_VERSION"
-        $DRY_RUN_ECHO echo git push origin NEW_DFX_VERSION
+        $DRY_RUN_ECHO git push origin $NEW_DFX_VERSION
 
         echo "Updating the stable branch."
-        $DRY_RUN_ECHO echo git push origin stable
+        $DRY_RUN_ECHO git push origin stable
 EOF
 )
 
@@ -245,27 +252,32 @@ publish_javascript_agent() {
             if diff <(find types src \( -name \*.d.ts -o -name \*.js \) -a \! -name \*.test.\* | sort) <(npm publish --dry-run 2>&1 | egrep 'npm notice [0-9.]*k?B' | awk '{ print $4 }' | grep -v package.json | grep -v README.md | sort) ; then
                 echo "  - No discrepancies to report."
             else
-                echo "  - There were differences.  Type 'continue anyway' to ignore them:"
-                read confirmation
-                if [ "${Q}confirmation" != "continue anyway" ]; then
-                    echo "Stopping."
-                    exit 1
-                fi
+                while true; do
+                    echo "  - There were differences.  Type 'continue anyway' to ignore them or 'stop' to stop:"
+                    read confirmation
+                    if [[ "${Q}confirmation" == "continue anyway" ]]; then
+                        echo "Onward!"
+                        break
+                    elif [[ "${Q}confirmation" == "stop" ]]; then
+                        echo "Stopping."
+                        exit 1
+                    fi
+                done
             fi
 
             echo "Logging in to npm"
-            until $DRY_RUN_ECHO echo npm login ; do
+            until $DRY_RUN_ECHO npm login ; do
                 echo "Failed to log in to npm.  Try again, or Ctrl-C if you give up."
             done
 
             echo "Publishing to npm"
-            until $DRY_RUN_ECHO echo npm publish ; do
+            until $DRY_RUN_ECHO npm publish ; do
                 echo "Failed to publish to npm.  Press enter to try again, or Ctrl-C to stop."
                 read
             done
 
             echo "Logging out of npm"
-            $DRY_RUN_ECHO echo npm logout
+            $DRY_RUN_ECHO npm logout
         )
 EOF
 )

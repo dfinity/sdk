@@ -83,7 +83,7 @@ and then skip to "Notification and post-build validation":
 +
 [source, bash]
 ----
-DRY_RUN='' ./scripts/release.sh <n.n.n>
+./scripts/release.sh <n.n.n>
 ----
 
 === Build DFX and the JavaScript agent binaries
