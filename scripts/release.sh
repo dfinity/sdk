@@ -30,7 +30,8 @@ get_parameters() {
     echo $1 | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$' || die "'$1' is not a valid semantic version"
 
     export NEW_DFX_VERSION=$1
-    export DRY_RUN_ECHO=${DRY_RUN:-'echo'}
+    export BRANCH=$USER/release-$NEW_DFX_VERSION
+    export DRY_RUN_ECHO=${DRY_RUN:-'echo DRY RUN: '}
 }
 
 pre_release_check() {
@@ -44,23 +45,23 @@ pre_release_check() {
 build_release_candidate() {
     announce "Building dfx release candidate."
     x="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
-    echo $x
     export sdk_rc=$x
-    echo $sdk_rc
-
     export dfx_rc="$sdk_rc/bin/dfx"
 
-    echo "Checking for dfx release candidate."
+    echo "Checking for dfx release candidate at $dfx_rc"
     test -x $dfx_rc
 
     echo "Deleting existing dfx cache to make sure not to use a stale binary."
     $dfx_rc cache delete
 
     echo "Building the JavaScript agent."
-    export agent_js_rc="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
-    export agent_js_rc_npm_packed="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent-*.tgz)"
+    x="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
+    export agent_js_rc=$x
 
-    echo "Checking for the packed JS agent."
+    x="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent-*.tgz)"
+    export agent_js_rc_npm_packed=$x
+
+    echo "Checking for the packed JS agent at $agent_js_rc_npm_packed"
     test -f $agent_js_rc_npm_packed
 }
 
@@ -140,14 +141,13 @@ validate_default_project() {
 }
 
 build_release_branch() {
-    export BRANCH=$USER/release-$NEW_DFX_VERSION
 
     announce "Building branch $BRANCH for release $NEW_DFX_VERSION"
     NIX_COMMAND=$(envsubst <<"EOF"
         set -e
 
         echo "Switching to branch: $BRANCH"
-        echo git switch -c $BRANCH
+        $DRY_RUN_ECHO echo git switch -c $BRANCH
 
         echo "Updating version in src/dfx/Cargo.toml"
         # update first version in src/dfx/Cargo.toml to be NEW_DFX_VERSION
@@ -161,9 +161,9 @@ build_release_branch() {
         cat <<<$(jq --indent 4 '.versions += ["$NEW_DFX_VERSION"]' public/manifest.json) >public/manifest.json
 
         echo "Creating release branch: $BRANCH"
-        echo git add --all
-        echo git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
-        echo git push origin $BRANCH
+        $DRY_RUN_ECHO echo git add --all
+        $DRY_RUN_ECHO echo git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
+        $DRY_RUN_ECHO echo git push origin $BRANCH
 
         echo "Please open a pull request, review and approve it, and then label automerge-squash."
 EOF
@@ -181,21 +181,14 @@ update_stable_branch() {
     NIX_COMMAND=$(envsubst <<"EOF"
         set -e
 
-        export NEW_DFX_VERSION=$(jq -r .versions[-1] public/manifest.json)
-        export EXPECTED_BRANCH_NAME=$USER/release-$NEW_DFX_VERSION
-        if [[ "$(git branch --show-current)" != "$EXPECTED_BRANCH_NAME" ]]; then
-            echo "This script must be run from the release branch $EXPECTED_BRANCH_NAME in order to release $NEW_DFX_VERSION"
-            exit 1
-        fi
-
-        echo "NEW_DFX_VERSION is $NEW_DFX_VERSION"
-
         echo "Switching to the stable branch."
         $DRY_RUN_ECHO echo git switch stable
 
         echo "Pulling the remove stable branch into the local stable branch."
         $DRY_RUN_ECHO echo git pull origin stable
 
+        # This seems like a race condition in our release process.
+        # A PR could have been merged to master.
         echo "Pulling the merged changes into the stable branch."
         $DRY_RUN_ECHO echo git pull origin master --ff-only
 
@@ -220,6 +213,10 @@ EOF
 publish_javascript_agent() {
     announce 'publishing JavaScript agent'
 
+    # The 'confirmation' variable will be set by read, so make sure that
+    # 'envsubst' does not substitute it with an empty string:
+    export Q='$'
+
     NIX_COMMAND=$(envsubst <<"EOF"
         set -e
 
@@ -230,21 +227,31 @@ publish_javascript_agent() {
 
             npm version $NEW_DFX_VERSION
 
-            diff <(find types src \( -name \*.d.ts -o -name \*.js \) -a \! -name \*.test.\* | sort) <(npm publish --dry-run 2>&1 | egrep 'npm notice [0-9.]*k?B' | awk '{ print $4 }' | grep -v package.json | grep -v README.md | sort) && echo Success
+            echo "check that every .js file has a .d.ts assigned and that every .js and .d.ts file has a source file that is not a test:"
+            if diff <(find types src \( -name \*.d.ts -o -name \*.js \) -a \! -name \*.test.\* | sort) <(npm publish --dry-run 2>&1 | egrep 'npm notice [0-9.]*k?B' | awk '{ print $4 }' | grep -v package.json | grep -v README.md | sort) ; then
+                echo "  - No discrepancies to report."
+            else
+                echo "  - There were differences.  Type 'continue anyway' to ignore them:"
+                read confirmation
+                if [ "${Q}confirmation" != "continue anyway" ]; then
+                    echo "Stopping."
+                    exit 1
+                fi
+            fi
 
             echo "Logging in to npm"
-            until $DRY_RUN_ECHO npm login ; do
+            until $DRY_RUN_ECHO echo npm login ; do
                 echo "Failed to log in to npm.  Try again, or Ctrl-C if you give up."
             done
 
             echo "Publishing to npm"
-            until $DRY_RUN_ECHO npm publish ; do
+            until $DRY_RUN_ECHO echo npm publish ; do
                 echo "Failed to publish to npm.  Press enter to try again, or Ctrl-C to stop."
                 read
             done
 
             echo "Logging out of npm"
-            $DRY_RUN_ECHO npm logout
+            $DRY_RUN_ECHO echo npm logout
         )
 EOF
 )
@@ -259,7 +266,6 @@ build_release_candidate
 build_release_branch
 update_stable_branch
 publish_javascript_agent
-
 
 echo "All done!"
 exit 0
