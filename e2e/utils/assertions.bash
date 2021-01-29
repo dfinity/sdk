@@ -151,7 +151,7 @@ assert_no_dfx_start_or_replica_processes() {
     ! ( ps | grep "[/[:space:]]dfx start" )
     if [ -e .dfx/replica-configuration/replica-pid ];
     then
-      ! ps "$(cat .dfx/replica-configuration/replica-pid)"
+      ! ( kill -0 $(cat .dfx/replica-configuration/replica-pid) 2>/dev/null )
     fi
 }
 

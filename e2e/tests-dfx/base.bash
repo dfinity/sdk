@@ -35,5 +35,5 @@ teardown() {
     dfx_start
     dfx canister create --all
     assert_command_fail dfx build
-    assert_match 'import error, package "base" not defined'
+    assert_match 'import error \[M0010\], package "base" not defined'
 }
