@@ -294,4 +294,4 @@ update_stable_branch
 publish_javascript_agent
 
 echo "All done!"
-exit 0
+
