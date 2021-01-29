@@ -33,8 +33,8 @@ get_parameters() {
     export BRANCH=$USER/release-$NEW_DFX_VERSION
 
     if [[ "$DRY_RUN" == '' ]]; then
-        export DRY_RUN_ECHO='echo -not-dry-run-:'
-        dry_run_explain=' (not really dry)'
+        export DRY_RUN_ECHO=''
+        dry_run_explain=''
     else
         export DRY_RUN_ECHO='echo DRY RUN: '
         dry_run_explain=' (dry run)'
