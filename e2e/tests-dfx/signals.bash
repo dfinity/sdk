@@ -31,7 +31,6 @@ dfx_replica_kills_replica() {
 
     # wait for replica to start
     assert_file_eventually_exists .dfx/config/port.txt 15s
-    assert_file_eventually_exists .dfx/replica-configuration/replica-pid 15s
 
     kill -$signal $DFX_PID
 
