@@ -56,7 +56,7 @@ pre_release_check() {
 #    sdk_rc                  SDK release candidate
 #    dfx_rc                    - dfx executable within
 #    agent_js_rc             JavaScript agent release candidate
-#    agent_js_rc_npm_packed    - npm unpacked
+#    agent_js_rc_npm_packed    - npm packed
 #
 build_release_candidate() {
     announce "Building dfx release candidate."
