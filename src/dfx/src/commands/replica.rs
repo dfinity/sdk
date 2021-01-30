@@ -125,13 +125,16 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     })
     .start();
 
+    let replica_configuration_dir = env.get_temp_dir().join("replica-configuration");
+    std::fs::create_dir_all(&replica_configuration_dir)?;
+
     let _replica_addr = actors::replica::Replica::new(actors::replica::Config {
         ic_starter_path: ic_starter_pathbuf,
         replica_config: config,
         replica_path: replica_pathbuf,
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
-        replica_configuration_dir: env.get_temp_dir().join("replica-configuration"),
+        replica_configuration_dir,
     })
     .start();
 
