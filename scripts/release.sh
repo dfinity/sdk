@@ -27,7 +27,7 @@ term_reset() {
 
 get_parameters() {
     [ "$#" -eq 1 ] || die "Usage: $0 <n.n.n>"
-    echo $1 | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$' || die "'$1' is not a valid semantic version"
+    echo "$1" | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$' || die "'$1' is not a valid semantic version"
 
     export NEW_DFX_VERSION=$1
     export BRANCH=$USER/release-$NEW_DFX_VERSION
@@ -45,7 +45,7 @@ get_parameters() {
 
 pre_release_check() {
     announce "Ensuring dfx and replica are not running."
-    if [[ $(ps -ef | grep -v grep | grep -E 'replica|dfx') ]] ; then
+    if pgrep dfx replica ; then
         echo "dfx and replica cannot still be running.  kill them and try again."
         exit 1
     fi
@@ -65,7 +65,7 @@ build_release_candidate() {
     export dfx_rc="$sdk_rc/bin/dfx"
 
     echo "Checking for dfx release candidate at $dfx_rc"
-    test -x $dfx_rc
+    test -x "$dfx_rc"
 
     echo "Deleting existing dfx cache to make sure not to use a stale binary."
     $dfx_rc cache delete
@@ -74,11 +74,11 @@ build_release_candidate() {
     x="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
     export agent_js_rc=$x
 
-    x="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent-*.tgz)"
+    x="$(sh -c 'echo "$1"' sh "$agent_js_rc"/dfinity-agent-*.tgz)"
     export agent_js_rc_npm_packed=$x
 
     echo "Checking for the packed JS agent at $agent_js_rc_npm_packed"
-    test -f $agent_js_rc_npm_packed
+    test -f "$agent_js_rc_npm_packed"
 }
 
 wait_for_response() {
@@ -86,7 +86,7 @@ wait_for_response() {
     while true; do
         echo
         echo "All good?  Type '$expected' to continue."
-        read answer
+        read -r answer
         if [ "$answer" == "$expected" ]; then
             break
         fi
@@ -99,7 +99,7 @@ validate_default_project() {
     trap 'rm -rf -- "$PROJECTDIR"' EXIT
 
     (
-        cd $PROJECTDIR
+        cd "$PROJECTDIR"
 
         echo "Creating new project."
         $dfx_rc new hello_world
@@ -121,8 +121,10 @@ validate_default_project() {
         echo "Calling the canister."
         $dfx_rc canister call hello_world greet everyone
 
-        export hello_world_assets_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_assets)"
-        export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_world)"
+        hello_world_assets_canister_id=$($dfx_rc canister id hello_world_assets)
+        hello_world_canister_id=$($dfx_rc canister id hello_world)
+        export hello_world_assets_url="http://localhost:8000/?canisterId=$hello_world_assets_canister_id"
+        export hello_world_candid_url="http://localhost:8000/candid?canisterId=$hello_world_canister_id"
 
         echo
         echo "=================================================="
@@ -248,13 +250,13 @@ publish_javascript_agent() {
 
             npm version $NEW_DFX_VERSION
 
-            echo "check that every .js file has a .d.ts assigned and that every .js and .d.ts file has a source file that is not a test:"
+            echo "Check that every .js file has a .d.ts assigned and that every .js and .d.ts file has a source file that is not a test:"
             if diff <(find types src \( -name \*.d.ts -o -name \*.js \) -a \! -name \*.test.\* | sort) <(npm publish --dry-run 2>&1 | egrep 'npm notice [0-9.]*k?B' | awk '{ print $4 }' | grep -v package.json | grep -v README.md | sort) ; then
                 echo "  - No discrepancies to report."
             else
                 while true; do
                     echo "  - There were differences.  Type 'continue anyway' to ignore them or 'stop' to stop:"
-                    read confirmation
+                    read -r confirmation
                     if [[ "${Q}confirmation" == "continue anyway" ]]; then
                         echo "Onward!"
                         break
@@ -285,7 +287,7 @@ EOF
     nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
 }
 
-get_parameters $*
+get_parameters "$@"
 pre_release_check
 build_release_candidate
 validate_default_project
