@@ -287,13 +287,15 @@ EOF
     nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
 }
 
-get_parameters "$@"
-pre_release_check
-build_release_candidate
-validate_default_project
-build_release_branch
-update_stable_branch
-publish_javascript_agent
+{
+    get_parameters "$@"
+    pre_release_check
+    build_release_candidate
+    validate_default_project
+    build_release_branch
+    update_stable_branch
+    publish_javascript_agent
 
-echo "All done!"
-
+    echo "All done!"
+    exit
+}
