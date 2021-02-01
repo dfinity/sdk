@@ -1,9 +1,9 @@
-source ${BATSLIB}/load.bash
-load utils/assertions
+load ${BATSLIB}/load.bash
+load ../utils/assertions
 
 # Takes a name of the asset folder, and copy those files to the current project.
 install_asset() {
-    ASSET_ROOT=${BATS_TEST_DIRNAME}/assets/$1/
+    ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
     cp -R $ASSET_ROOT/* .
     # set write perms to overwrite local bind in assets which have a dfx.json
     chmod -R a+w .

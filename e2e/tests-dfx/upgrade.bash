@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load utils/_
+load ../utils/_
 
 RANDOM_EMPHEMERAL_PORT=$(shuf -i 49152-65535 -n 1)
 

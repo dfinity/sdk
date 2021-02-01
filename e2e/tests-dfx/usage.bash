@@ -1,4 +1,4 @@
-load utils/_
+load ../utils/_
 
 teardown() {
     dfx_stop
