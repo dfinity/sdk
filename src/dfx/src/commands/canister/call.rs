@@ -10,6 +10,7 @@ use anyhow::{anyhow, bail, Context};
 use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
+use std::path::PathBuf;
 
 /// Calls a method on a deployed canister.
 #[derive(Clap)]
@@ -47,24 +48,36 @@ pub struct CanisterCallOpts {
     output: Option<String>,
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
+fn get_local_cid_and_candid_path(
+    env: &dyn Environment,
+    canister_name: &str,
+    maybe_canister_id: Option<CanisterId>,
+) -> DfxResult<(CanisterId, Option<PathBuf>)> {
     let config = env.get_config_or_anyhow()?;
-    let canister_name = opts.canister_name.as_str();
-    let method_name = opts.method_name.as_str();
+    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
+    Ok((
+        canister_info.get_canister_id()?,
+        canister_info.get_output_idl_path(),
+    ))
+}
 
-    let (canister_id, maybe_candid_path) = match CanisterId::from_text(canister_name) {
+pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
+    let callee_canister = opts.canister_name.as_str();
+    let method_name = opts.method_name.as_str();
+    let canister_id_store = CanisterIdStore::for_env(env)?;
+
+    let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
         Ok(id) => {
-            // TODO fetch candid file from canister
-            (id, None)
+            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
+                get_local_cid_and_candid_path(env, canister_name, Some(id))?
+            } else {
+                // TODO fetch candid file from remote canister
+                (id, None)
+            }
         }
         Err(_) => {
-            let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
-
-            let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
-            (
-                canister_info.get_canister_id()?,
-                canister_info.get_output_idl_path(),
-            )
+            let canister_id = canister_id_store.get(callee_canister)?;
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
         }
     };
 
