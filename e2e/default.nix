@@ -18,4 +18,5 @@ in
 {
   dfx = import ./tests-dfx args;
   replica = import ./tests-replica args;
+  recurseForDerivations = true;
 }
