@@ -41,7 +41,9 @@ in
     USE_IC_REF = use_ic_ref;
     assets = args.assets;
     utils = args.utils;
-  } '' '';
+  } ''
+    touch $out
+  '';
 
 
   recurseForDerivations = true;
