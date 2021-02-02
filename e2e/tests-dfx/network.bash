@@ -111,7 +111,7 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"']' dfx.json)" >dfx.json
+    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 
     assert_command_fail dfx build --network actuallylocal
     assert_match "Cannot find canister id. Please issue 'dfx canister --network actuallylocal create e2e_project"
