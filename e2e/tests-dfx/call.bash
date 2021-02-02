@@ -27,6 +27,6 @@ teardown() {
     dfx canister create --all
     dfx build
     dfx canister install hello
-    assert_command dfx canister call hello greet --random '{ value = Some ["DFINITY"] }'
+    assert_command dfx canister call hello greet --random '{ value = Some ["\"DFINITY\""] }'
     assert_match '("Hello, DFINITY!")'
 }
