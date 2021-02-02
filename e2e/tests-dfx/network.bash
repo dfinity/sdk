@@ -4,7 +4,7 @@ load ./utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)"
 
     # Each test gets its own home directory in order to have its own identities.
     mkdir $(pwd)/home-for-test
@@ -91,13 +91,13 @@ teardown() {
 @test "create stores canister ids for configured-persistent local networks in canister_ids.json" {
     dfx_start
 
-    cat <<<$(jq .networks.local.type=\"persistent\" dfx.json) >dfx.json
+    cat <<<"$(jq .networks.local.type=\"persistent\" dfx.json)" >dfx.json
 
     assert_command dfx canister --network local create --all
 
     # canister creates writes to a spinner (stderr), not stdout
     assert_command dfx canister --network local id e2e_project
-    assert_match $(cat canister_ids.json | jq -r .e2e_project.local)
+    assert_match "$(jq -r .e2e_project.local <canister_ids.json)"
 }
 
 @test "failure message does not include network if for local network" {
@@ -110,7 +110,7 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
-    cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"']' dfx.json)" >dfx.json
 
     assert_command_fail dfx build --network actuallylocal
     assert_match "Cannot find canister id. Please issue 'dfx canister --network actuallylocal create e2e_project"

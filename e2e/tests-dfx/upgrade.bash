@@ -11,10 +11,10 @@ setup() {
 
 @test "upgrade succeeds" {
     latest_version="0.4.7"
-    latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr A-Z a-z)/"
+    latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr '[:upper:]' '[:lower:]')/"
     dfx_archive_file_name="dfx-$latest_version.tar.gz"
     mkdir -p "$latest_version_dir"
-    cp $(which dfx) .
+    cp "$(which dfx)" .
     version=$(./dfx --version)
     tar -czf "$latest_version_dir/$dfx_archive_file_name" dfx
     echo '{

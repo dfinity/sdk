@@ -4,7 +4,7 @@ load utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)"
 
     dfx_new hello
 }
@@ -32,7 +32,7 @@ dfx_replica_kills_replica() {
     # wait for replica to start
     assert_file_eventually_exists .dfx/config/port.txt 15s
 
-    kill -$signal $DFX_PID
+    kill -"$signal" "$DFX_PID"
 
     assert_process_exits $DFX_PID 15s
     assert_no_dfx_start_or_replica_processes
