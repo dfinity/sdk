@@ -4,7 +4,7 @@ load ./utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)"
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     # Each test gets its own home directory in order to have its own identities.
     x=$(pwd)/home-for-test
@@ -24,6 +24,7 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 
     assert_command dfx canister --network actuallylocal create --all
@@ -37,6 +38,7 @@ teardown() {
     skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     dfx_start
     webserver_port=$(cat .dfx/webserver-port)
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
     assert_command dfx_set_wallet
 
@@ -51,7 +53,9 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    # shellcheck disable=SC2094
     cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json)" >dfx.json
 
     assert_command dfx canister --network actuallylocal create --all
@@ -67,7 +71,9 @@ teardown() {
 
     webserver_port=$(cat .dfx/webserver-port)
 
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    # shellcheck disable=SC2094
     cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json)" >dfx.json
     assert_command dfx_set_wallet
 
@@ -92,6 +98,7 @@ teardown() {
 @test "create stores canister ids for configured-persistent local networks in canister_ids.json" {
     dfx_start
 
+    # shellcheck disable=SC2094
     cat <<<"$(jq .networks.local.type=\"persistent\" dfx.json)" >dfx.json
 
     assert_command dfx canister --network local create --all
@@ -111,6 +118,7 @@ teardown() {
     dfx_start
 
     webserver_port=$(cat .dfx/webserver-port)
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 
     assert_command_fail dfx build --network actuallylocal

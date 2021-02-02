@@ -6,7 +6,7 @@ RANDOM_EMPHEMERAL_PORT=$(shuf -i 49152-65535 -n 1)
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit 1
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 }
 
 @test "upgrade succeeds" {

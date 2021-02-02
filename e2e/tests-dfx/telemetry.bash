@@ -3,7 +3,7 @@
 load utils/_
 
 setup() {
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)"
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 }
 
 teardown() {

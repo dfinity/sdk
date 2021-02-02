@@ -22,7 +22,7 @@ teardown() {
 
 @test "returns the right error if not in a project" {
     # Make sure we're in an empty directory.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)"
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     assert_command_fail dfx build
     assert_match "must be run in a project"
