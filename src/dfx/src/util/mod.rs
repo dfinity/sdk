@@ -145,20 +145,21 @@ pub fn blob_from_arguments(
                         });
                         args.map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
                             .to_bytes_with_types(&env, &func.args)
+                    } else if func.args.is_empty() {
+                        use candid::Encode;
+                        Encode!()
                     } else {
-                        if func.args.is_empty() {
-                            use candid::Encode;
-                            Encode!()
-                        } else {
-                            use rand::Rng;
-                            let mut rng = rand::thread_rng();
-                            let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                            let random = random.unwrap_or("{=}");
-                            let config = candid::parser::configs::Configs::from_dhall(random)?;
-                            let args = IDLArgs::any(&seed, &config, &env, &func.args)?;
-                            println!("Unspecified argument, sending the following random argument:\n{}\n", args);
-                            args.to_bytes_with_types(&env, &func.args)
-                        }
+                        use rand::Rng;
+                        let mut rng = rand::thread_rng();
+                        let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
+                        let random = random.unwrap_or("{=}");
+                        let config = candid::parser::configs::Configs::from_dhall(random)?;
+                        let args = IDLArgs::any(&seed, &config, &env, &func.args)?;
+                        println!(
+                            "Unspecified argument, sending the following random argument:\n{}\n",
+                            args
+                        );
+                        args.to_bytes_with_types(&env, &func.args)
                     }
                 }
             }
