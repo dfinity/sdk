@@ -155,7 +155,7 @@ pub fn blob_from_arguments(
                         let random = random.unwrap_or("{=}");
                         let config = candid::parser::configs::Configs::from_dhall(random)?;
                         let args = IDLArgs::any(&seed, &config, &env, &func.args)?;
-                        println!(
+                        eprintln!(
                             "Unspecified argument, sending the following random argument:\n{}\n",
                             args
                         );
