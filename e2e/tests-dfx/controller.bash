@@ -7,15 +7,16 @@ setup() {
     cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)"
 
     # Each test gets its own home directory in order to have its own identities.
-    mkdir $(pwd)/home-for-test
-    export HOME=$(pwd)/home-for-test
+    x=$(pwd)/home-for-test
+    mkdir "$x"
+    export HOME="$x"
 
     dfx_new hello
 }
 
 teardown() {
     dfx_stop
-    rm -rf $(pwd)/home-for-test
+    rm -rf "$(pwd)/home-for-test"
 }
 
 @test "set controller" {
@@ -46,15 +47,15 @@ teardown() {
 
     assert_command dfx identity use juana
     # Set controller using canister id and principal
-    assert_command dfx canister set-controller ${ID} ${JOSE_PRINCIPAL}
+    assert_command dfx canister set-controller "${ID}" "${JOSE_PRINCIPAL}"
     assert_match "Set \"${JOSE_PRINCIPAL}\" as controller of \"${ID}\"."
     assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity jose canister set-controller hello ${JUANA_PRINCIPAL}
+    assert_command dfx --identity jose canister set-controller hello "${JUANA_PRINCIPAL}"
     assert_match "Set \"${JUANA_PRINCIPAL}\" as controller of \"hello\"."
 
-    assert_command dfx --identity juana canister set-controller ${ID} jose
+    assert_command dfx --identity juana canister set-controller "${ID}" jose
     assert_match "Set \"jose\" as controller of \"${ID}\"."
 
     # Set controller using invalid principal/identity fails
@@ -67,12 +68,10 @@ teardown() {
 }
 
 @test "set controller with wallet" {
-    [ !"$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
-    # Create two identities and get their Principals
+    [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+    # Create two identities
     assert_command dfx identity new alice
     assert_command dfx identity new bob
-    ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
-    BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
 
     assert_command dfx identity use alice
 
@@ -97,15 +96,15 @@ teardown() {
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
-    assert_command dfx canister set-controller ${ID} ${ALICE_WALLET}
+    assert_command dfx canister set-controller "${ID}" "${ALICE_WALLET}"
     assert_match "Set \"${ALICE_WALLET}\" as controller of \"${ID}\"."
     assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity alice canister set-controller hello ${BOB_WALLET}
+    assert_command dfx --identity alice canister set-controller hello "${BOB_WALLET}"
     assert_match "Set \"${BOB_WALLET}\" as controller of \"hello\"."
 
-    assert_command dfx --identity bob canister set-controller ${ID} alice
+    assert_command dfx --identity bob canister set-controller "${ID}" alice
     assert_match "Set \"alice\" as controller of \"${ID}\"."
 
     # Set controller using invalid principal/identity fails

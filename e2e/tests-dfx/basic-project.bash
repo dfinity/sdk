@@ -35,6 +35,7 @@ teardown() {
     # Using call --async and request-status.
     assert_command dfx canister call --async hello greet Blueberry
     # At this point $output is the request ID.
+    # shellcheck disable=SC2154
     assert_command dfx canister request-status "$stdout"
     assert_eq '("Hello, Blueberry!")'
 }

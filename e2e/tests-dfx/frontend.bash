@@ -29,7 +29,7 @@ teardown() {
 
     dfx_start --host 127.0.0.1:12345
 
-    cat <<<$(jq '.networks.local.bind="127.0.0.1:12345"' dfx.json) >dfx.json
+    cat <<<"$(jq '.networks.local.bind="127.0.0.1:12345"' dfx.json)" >dfx.json
 
     dfx canister create --all
     dfx build e2e_project
