@@ -4,7 +4,7 @@ load utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd /x/"$(mktemp -d -t dfx-e2e-XXXXXXXX)"
+    cd /x/"$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     dfx_new
 }
