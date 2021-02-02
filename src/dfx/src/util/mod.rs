@@ -104,6 +104,7 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
 
 pub fn blob_from_arguments(
     arguments: Option<&str>,
+    random: Option<&str>,
     arg_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
 ) -> DfxResult<Vec<u8>> {
@@ -152,9 +153,10 @@ pub fn blob_from_arguments(
                             use rand::Rng;
                             let mut rng = rand::thread_rng();
                             let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                            let config = candid::parser::configs::Configs::from_dhall("{=}")?;
+                            let random = random.unwrap_or("{=}");
+                            let config = candid::parser::configs::Configs::from_dhall(random)?;
                             let args = IDLArgs::any(&seed, &config, &env, &func.args)?;
-                            println!("Unspecified method arguments, sending the following random arguments:\n{}", args);
+                            println!("Unspecified argument, sending the following random argument:\n{}\n", args);
                             args.to_bytes_with_types(&env, &func.args)
                         }
                     }

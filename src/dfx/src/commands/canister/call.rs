@@ -38,6 +38,10 @@ pub struct CanisterCallOpts {
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
 
+    /// Specifies the config for generating random argument.
+    #[clap(long, conflicts_with("argument"))]
+    random: Option<String>,
+
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     r#type: Option<String>,
@@ -111,7 +115,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, arg_type, &method_type)?;
+    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
