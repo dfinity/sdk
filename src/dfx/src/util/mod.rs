@@ -116,31 +116,48 @@ pub fn blob_from_arguments(
             Ok(bytes)
         }
         "idl" => {
-            let arguments = arguments.unwrap_or("()");
             let typed_args = match method_type {
-                None => candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
-                    .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
-                    .to_bytes(),
+                None => {
+                    let arguments = arguments.unwrap_or("()");
+                    candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
+                        .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
+                        .to_bytes()
+                }
                 Some((env, func)) => {
-                    let first_char = arguments.chars().next();
-                    let is_candid_format = first_char.map_or(false, |c| c == '(');
-                    // If parsing fails and method expects a single value, try parsing as IDLValue.
-                    // If it still fails, and method expects a text type, send arguments as text.
-                    let args = arguments.parse::<IDLArgs>().or_else(|_| {
-                        if func.args.len() == 1 && !is_candid_format {
-                            let is_quote = first_char.map_or(false, |c| c == '"');
-                            if candid::types::Type::Text == func.args[0] && !is_quote {
-                                Ok(IDLValue::Text(arguments.to_string()))
+                    if let Some(arguments) = arguments {
+                        let first_char = arguments.chars().next();
+                        let is_candid_format = first_char.map_or(false, |c| c == '(');
+                        // If parsing fails and method expects a single value, try parsing as IDLValue.
+                        // If it still fails, and method expects a text type, send arguments as text.
+                        let args = arguments.parse::<IDLArgs>().or_else(|_| {
+                            if func.args.len() == 1 && !is_candid_format {
+                                let is_quote = first_char.map_or(false, |c| c == '"');
+                                if candid::types::Type::Text == func.args[0] && !is_quote {
+                                    Ok(IDLValue::Text(arguments.to_string()))
+                                } else {
+                                    candid::pretty_parse::<IDLValue>("Candid argument", &arguments)
+                                }
+                                .map(|v| IDLArgs::new(&[v]))
                             } else {
-                                candid::pretty_parse::<IDLValue>("Candid argument", &arguments)
+                                candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
                             }
-                            .map(|v| IDLArgs::new(&[v]))
+                        });
+                        args.map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
+                            .to_bytes_with_types(&env, &func.args)
+                    } else {
+                        if func.args.is_empty() {
+                            use candid::Encode;
+                            Encode!()
                         } else {
-                            candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
+                            use rand::Rng;
+                            let mut rng = rand::thread_rng();
+                            let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
+                            let config = candid::parser::configs::Configs::from_dhall("{=}")?;
+                            let args = IDLArgs::any(&seed, &config, &env, &func.args)?;
+                            println!("Unspecified method arguments, sending the following random arguments:\n{}", args);
+                            args.to_bytes_with_types(&env, &func.args)
                         }
-                    });
-                    args.map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
-                        .to_bytes_with_types(&env, &func.args)
+                    }
                 }
             }
             .map_err(|e| error_invalid_data!("Unable to serialize Candid values: {}", e))?;
