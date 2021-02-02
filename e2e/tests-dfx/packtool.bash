@@ -24,6 +24,7 @@ teardown() {
 
 @test "build succeeds if packtool is configured" {
     install_asset packtool
+    # shellcheck disable=SC1091
     source configure_packtool.bash
 
     dfx_start
@@ -33,6 +34,7 @@ teardown() {
 
 @test "project calls dependencies made available by packtool" {
     install_asset packtool
+    # shellcheck disable=SC1091
     source configure_packtool.bash
 
     dfx_start
