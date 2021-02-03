@@ -15,21 +15,12 @@ on:
 
 jobs:
   check_macos:
+    # ubuntu-latest has shellcheck 0.4.6, while macos-latest has 0.7.1
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install shellcheck
         run: brew install shellcheck && shellcheck -V
-      - name: Check e2e scripts
-        run: shellcheck e2e/tests-dfx/*.bash e2e/tests-replica/*.bash
-      - name: Check release script
-        run: shellcheck scripts/release.sh
-  check_ubuntu:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install shellcheck
-        run: sudo apt-get install -f shellcheck && shellcheck -V
       - name: Check e2e scripts
         run: shellcheck e2e/tests-dfx/*.bash e2e/tests-replica/*.bash
       - name: Check release script
