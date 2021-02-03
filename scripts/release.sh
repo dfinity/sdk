@@ -188,14 +188,14 @@ build_release_branch() {
         $DRY_RUN_ECHO git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
         $DRY_RUN_ECHO git push origin $BRANCH
 
-        echo "Please open a pull request, review and approve it, and then label automerge-squash."
+        echo "Please open a pull request, review and approve it, label automerge-squash, and wait for it to be merged."
 EOF
     )
     # echo "$NIX_COMMAND"
     echo "Starting nix-shell."
     nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
 
-    wait_for_response 'PR approved'
+    wait_for_response 'PR merged'
 }
 
 update_stable_branch() {

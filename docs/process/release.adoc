@@ -80,7 +80,7 @@ git checkout master && git pull
 
 Instead of following the steps below, you can instead run this command
 and then skip to "Notification and post-build validation":
-+
+
 [source, bash]
 ----
 ./scripts/release.sh <n.n.n>
