@@ -18,8 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Check shell scripts
-        run: |
-          apt-get shellcheck
-          shellcheck e2e/tests-dfx/*.bash e2e/tests-replica/*.bash
-          shellcheck scripts/release.sh
+      - name: Install shellcheck
+        run: sudo apt-get install -f shellcheck
+      - name: Check e2e scripts
+        run: shellcheck e2e/tests-dfx/*.bash e2e/tests-replica/*.bash
+      - name: Check release script
+        run: shellcheck scripts/release.sh
