@@ -15,11 +15,11 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install shellcheck
-        run: sudo apt-get install -f shellcheck
+        run: brew install shellcheck
       - name: Check e2e scripts
         run: shellcheck e2e/tests-dfx/*.bash e2e/tests-replica/*.bash
       - name: Check release script
