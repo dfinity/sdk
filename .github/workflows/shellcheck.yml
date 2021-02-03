@@ -1,0 +1,22 @@
+name: Check shell scripts
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - 'e2e/**'
+      - '.github/**'
+      - 'scripts/release.sh'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check shell scripts
+        run: |
+          apt-get shellcheck
+          shellcheck e2e/tests-dfx/*.bash e2e/tests-replica/*.bash
+          shellcheck scripts/release.sh
