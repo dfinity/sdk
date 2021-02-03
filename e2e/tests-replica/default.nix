@@ -63,4 +63,4 @@ builtins.listToAttrs
               (builtins.readDir here)
           )
       )
-  )
+  ) // { recurseForDerivations = true; }
