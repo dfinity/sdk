@@ -7,31 +7,60 @@ type EventKind = variant {
     from: principal;
     amount: nat64;
   };
-  CustodianAdded: record {
-    custodian: principal;
+  AddressAdded: record {
+    id: principal;
+    name: opt text;
+    role: Role;
   };
-  CustodianRemoved: record {
-    custodian: principal;
+  AddressRemoved: record {
+    id: principal;
   };
   CanisterCreated: record {
     canister: principal;
+    cycles: nat64;
   };
   CanisterCalled: record {
     canister: principal;
     method_name: text;
+    cycles: nat64;
   }
 };
 
-type event = record {
+type Event = record {
   id: nat32;
   timestamp: nat64;
   kind: EventKind;
 };
 
+type Role = variant {
+  Contact;
+  Custodian;
+  Controller;
+};
+
+type Kind = variant {
+  Unknown;
+  User;
+  Canister;
+};
+
+// An entry in the address book. It must have an ID and a role.
+type AddressEntry = record {
+  id: principal;
+  name: opt text;
+  kind: Kind;
+  role: Role;
+};
+
 service : {
+  // Wallet Name
+  name: () -> (record { name: opt text; }) query;
+  set_name: (text) -> ();
+
   // Controller Management
-  get_controller: () -> (principal) query;
-  set_controller: (principal) -> ();
+  get_controllers: () -> (vec principal) query;
+  add_controller: (principal) -> ();
+  remove_controller: (principal) -> ();
 
   // Custodian Management
   get_custodians: () -> (vec principal) query;
@@ -57,6 +86,12 @@ service : {
     cycles: nat64;
   }) -> (record { return: blob });
 
+  // Address book
+  add_address: (address: AddressEntry) -> ();
+  list_address: () -> (vec AddressEntry);
+  remove_address: (address: principal) -> ();
+
   // Events
-  get_events: () -> (vec event) query;
+  get_events: (opt record { from: opt nat32; to: opt nat32; }) -> (vec Event) query;
+  get_chart: (opt record { count: nat32; precision: nat64; } ) -> (vec record { nat64; nat64; }) query;
 }
