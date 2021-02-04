@@ -179,6 +179,7 @@ fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
         .arg("install")
         .arg("--quiet")
         .arg("--no-progress")
+        .arg("--no-fund")
         .stdout(std::process::Stdio::inherit())
         .stderr(std::process::Stdio::inherit())
         .current_dir(location)
