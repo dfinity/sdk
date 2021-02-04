@@ -36,6 +36,7 @@ impl ProgressBar {
     }
 
     forward_fn_impl!(finish_with_message, message: &str);
+    forward_fn_impl!(set_message, message: &str);
 
     pub fn discard() -> Self {
         ProgressBar { bar: None }

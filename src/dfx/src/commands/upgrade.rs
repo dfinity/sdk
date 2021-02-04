@@ -116,18 +116,19 @@ pub fn get_latest_version(
         .map(|v| v.clone())
 }
 
-fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxResult<()> {
+fn get_latest_release(
+    env: &dyn Environment,
+    release_root: &str,
+    version: &Version,
+    arch: &str,
+) -> DfxResult<()> {
     let url = reqwest::Url::parse(&format!(
         "{0}/downloads/dfx/{1}/{2}/dfx-{1}.tar.gz",
         release_root, version, arch
     ))
     .map_err(|e| error_invalid_argument!("invalid release root: {}", e))?;
 
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-
-    b.set_message(format!("Downloading {}", url).as_str());
-    b.enable_steady_tick(80);
+    let b = env.new_spinner(format!("Downloading {}", url).as_str());
     let mut response = reqwest::blocking::get(url).map_err(DfxError::new)?;
     let mut decoder = Decoder::new(&mut response)
         .map_err(|e| error_invalid_data!("unable to gunzip file: {}", e))?;
@@ -163,7 +164,7 @@ pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
 
     if latest_version > current_version {
         println!("New version available: {}", latest_version);
-        get_latest_release(release_root, &latest_version, os_arch)?;
+        get_latest_release(env, release_root, &latest_version, os_arch)?;
     } else {
         println!("Already up to date");
     }
