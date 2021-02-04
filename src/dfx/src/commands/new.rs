@@ -254,14 +254,12 @@ fn scaffold_frontend_code(
 
             // Install node modules. Error is not blocking, we just show a message instead.
             if node_installed {
-                let b = env.new_spinner("Installing node dependencies...");
+                eprintln!("Installing node dependencies...");
 
                 if npm_install(project_name)?.wait().is_ok() {
-                    b.finish_with_message("Done.");
+                    eprintln!("Done.");
                 } else {
-                    b.finish_with_message(
-                        "An error occured. See the messages above for more details.",
-                    );
+                    eprintln!("An error occurred. See the logs above for more details.");
                 }
             }
         }
