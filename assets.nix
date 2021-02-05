@@ -16,7 +16,7 @@ let
 
     # Install bootstrap
     mkdir $out/bootstrap
-    cp -R ${bootstrap-js.dist}/* $out/bootstrap/
+    cp -R ${bootstrap-js}/* $out/bootstrap/
   '';
 in
 pkgs.runCommandNoCCLocal "assets" {} ''
