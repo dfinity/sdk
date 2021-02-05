@@ -1,7 +1,7 @@
 { pkgs ? import ../. { inherit system; }, system ? builtins.currentSystem }:
-pkgs.runCommandNoCC "agent-js-monorepo-package-bootstrap" {
-  nativeBuildInputs = with pkgs; [
-    nodejs
+pkgs.runCommandNoCC "assets-bootstrap" {
+  nativeBuildInputs = [
+    pkgs.nodejs
   ];
 } ''
 
