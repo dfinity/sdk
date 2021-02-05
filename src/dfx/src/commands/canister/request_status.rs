@@ -36,7 +36,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     let Replied::CallReplied(blob) = async {
         waiter.start();
         loop {
-            match agent.request_status_raw(&request_id, None).await? {
+            match agent.request_status_raw(&request_id).await? {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
                     reject_code,
