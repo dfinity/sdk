@@ -13,7 +13,6 @@ rec {
   e2e-tests-ic-ref = import ./e2e { inherit pkgs dfx system; use_ic_ref = true; };
 
   # Agents in varous languages
-  agent-js-monorepo = pkgs.agent-js-monorepo;
   agent-js = import ./nix/agent-js/agent-js.nix { inherit system pkgs; };
 
   # Bootstrap frontend.
