@@ -12,7 +12,7 @@ pkgs.runCommandNoCC "assets-bootstrap" {
     mkdir -p $out
     cd $out
 
-    npm pack @dfinity/bootstrap@${version}
+    npm pack @dfinity/bootstrap@$version
     tar xzvf dfinity-bootstrap-*.tgz package/dist/
     rm dfinity-bootstrap-*.tgz
     mv package/dist/* .
