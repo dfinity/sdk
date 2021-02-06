@@ -224,11 +224,18 @@ fn start_webserver_coordinator(
 ) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
     // If there is a @dfinity/bootstrap node package installed at the root
     // of dfx.json, use that.
-    let dfx_root = env.get_config()?.get_path().parent().unwrap();
-    let dfx_root = dfx_root.join("node_modules/@dfinity/bootstrap/dist");
+    let serve_dir = if let Some(config) = env.get_config() {
+        let dfx_root = config
+            .get_path()
+            .parent()
+            .unwrap()
+            .join("node_modules/@dfinity/bootstrap/dist");
 
-    let serve_dir = if dfx_root.exists() {
-        dfx_root
+        if dfx_root.exists() {
+            dfx_root
+        } else {
+            env.get_cache().get_binary_command_path("bootstrap")?
+        }
     } else {
         env.get_cache().get_binary_command_path("bootstrap")?
     };
