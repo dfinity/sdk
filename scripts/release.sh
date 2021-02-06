@@ -71,6 +71,15 @@ build_release_candidate() {
     $dfx_rc cache delete
 
     echo "Building the JavaScript agent."
+    (
+      cd $(mktemp -d)
+      git clone agent-js
+      cd agent-js
+      lerna pack
+
+      # cleanup
+      yes | rm -rf $(pwd)
+    )
     x="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
     export agent_js_rc=$x
 
@@ -107,6 +116,7 @@ validate_default_project() {
 
         echo "Installing the locally-build JavaScript agent."
         npm install "$agent_js_rc_npm_packed"
+        npm install "$bootstrap_js_npm_packed"
 
         echo "Starting the local 'replica' as a background process."
         $dfx_rc start --background
