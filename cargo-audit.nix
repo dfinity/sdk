@@ -12,5 +12,5 @@ pkgs.lib.cargo-security-audit {
   name = "dfinity-sdk";
   cargoLock = ./Cargo.lock;
   db = RustSec-advisory-db;
-  ignores = [ ];
+  ignores = [];
 }
