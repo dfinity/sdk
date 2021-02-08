@@ -1,0 +1,241 @@
+= FeatureTemplate Design Doc
+// Author field:
+Eric Swanson <eric.swanson@dfinity.org>
+v0.1, 2021-02-03
+:draft:
+:toc:
+
+== Overview
+
+Rework the asset canister so that it can store assets that are larger than
+the message ingress limit.
+
+Also, support link:https://www.notion.so/Design-HTTP-Canisters-Queries-d6bc980830a947a88bf9148a25169613[Http Canister Queries]
+by associating additional metadata with each asset, and content encodings.
+
+== Background
+
+The asset storage canister at present is a rudimentary key/value store of static blob data.
+
+The update call requires passing asset contents in their entirety, which
+limits their size to the message ingress limit.
+
+The asset storage canister is written in Motoko, and as such does not have access to
+(for example) compression libraries.
+
+=== Problem Statement
+
+The main purpose is to make it so asset content length can exceed the message ingress limit.
+
+=== Requirements
+
+* Can upload assets of any size (within reason)
+* Support upcoming http server
+
+
+== Prior Art
+
+S3 rest interface
+
+* https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html
+** returns Content-Type and so forth along with the body
+** Note that S3 does not directly support directory structure
+
+== Detailed Design
+
+=== Assets
+
+Store per asset:
+
+* Key
+** an arbitrary string that identifies the asset
+* Content type
+* Content for one or more content encodings
+** Content encoding
+** Content blob
+
+=== Implementation
+
+We will implement the canister in Rust.
+
+Note that at present the Rust CDK does not have libraries for data structures stored in stable memory.
+
+We'll use a link:https://crates.io/crates/fat32[FAT32 library] to map a FAT32 volume onto
+a block of stable memory in order to store both asset metadata and content blobs.
+
+Directory structure on this FAT32 filesystem:
+
+----
+/meta
+  hex/digits/of/asset/key
+/content
+  file_id.dat
+----
+
+==== The `meta` directory
+
+Since keys are of arbitrary length and can contain characters that are not valid
+in FAT32 filenames, we will convert the asset key into hex digits representing the UTF-8 bytes,
+and split these hex digits into groups of 8 characters, naming directories and finally a filename.
+
+Each files will store a single Candid record:
+[source, candid]
+----
+record {
+  content_type: text;
+  file_id: nat32;
+};
+----
+
+==== The `content` directory
+
+Content files are just named by number.  To choose file numbers, we can start with
+a monotonically increasing value.
+
+
+=== Considered Solutions
+
+==== Motoko canister
+
+* does not support things like compression libraries
+* stable memory means contents can easily survive an upgrade
+* need special handling for deleted assets
+
+==== Rust canister with unstable memory
+
+* This would be a reasonable implementation and would not require changing the interface
+* requires uploading all assets on every upgrade
+** but only if they are not all already there
+* canister-level "upgrade" would only needed when the asset canister wasm changes
+
+=== Public API
+
+[source,candid]
+----
+
+type AcceptEncoding = text;
+type Contents = blob;
+type FileId = nat32;
+type Key = text;
+type Offset = nat;
+type TotalLength = nat;
+
+type AssetOperationKind = variant {
+  Create: record {
+    key: Key;
+    content_type: text;
+  };
+  SetContent: record {
+    key: Key;
+    content_encoding: text;
+    file_id: FileId;
+  };
+  UnsetContent: record {
+    key: Key;
+    content_encoding: text;
+  };
+  Delete: record {
+    key: Key;
+  };
+  SetAcl: record {
+    key: Key;
+    tbd: text;
+  };
+  SetExpiry: record {
+    key: Key;
+    tbd: text;
+  };
+  Clear;
+  GarbageCollect;
+};
+
+service: {
+
+  get: (Key, vec AcceptEncoding) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
+  list: () -> (vec Path) query;
+
+  // future? list: (regex or prefix) -> (vec Path) query;
+
+  // allocate space for files
+  create_files: (vec TotalLength) -> (vec FileId);
+
+  // upload part of a file's content
+  write_file(FileId, Offset, Contents) -> ();
+
+  // Perform all operations successfully, or reject
+  batch: (vec AssetOperationKind) -> ();
+
+  // we may break out the individual operations publicly here
+
+  // Single call to create an asset with content for a single content encoding that
+  // fits within the message ingress limit.
+  store: (Key, record {
+                 content_type: text;
+                 content_encoding: text;
+                 contents: blob;} ) -> ();
+}
+
+----
+
+=== Security Considerations
+
+For the time being, security controls will continue to be:
+- assets writable only by canister owner
+- assets readable by anyone
+
+=== Performance Considerations
+
+Retrieval requires reading the content out of stable memory into a blob before
+returning it.
+
+Depending on the number of assets (files) we expect an asset canister to hold,
+we may want to split up the content files into subdirectories.
+
+The size of the stable memory block in the canister will need to be
+roughly double the size required to hold only the assets, because
+during upgrades all of the new assets will briefly be stored along
+with all of the previous assets.
+
+The `dfx install` process could be smarter, for example only uploading
+changed assets.  This would require more metadata, such as a hash
+per content type/content blob.
+
+
+== Breaking Changes
+
+This feature breaks the signature of the `store` method.
+
+=== Deprecation
+
+This feature deprecates the `retrieve` method.
+
+
+== Documentation
+////
+:required:
+
+How will this feature be documented? Which people need to be involved?
+////
+
+== Lifecycle
+
+=== Integration Plan
+
+The JavaScript agent will need to change in order to use the new interface.
+
+The process that `dfx install` uses to synchronize assets to an asset canister will
+be more complex.
+
+=== Maintenance Plan
+////
+:required:
+
+How do you plan to maintain this feature for the next years? Can the
+APIs be cleanly evolved? Can Breaking Changes in the future be avoided?
+
+If this is a service, what is the update and monitoring strategy?
+
+If this is a package, how do we plan to publish and deploy it? This includes
+version numbering.
+////
+
