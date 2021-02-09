@@ -75,19 +75,27 @@ rev = "ea35a3e4a36387409f4251a7bb67e41c769a3b2e"
 
 [dependencies.ic-agent]
 version = "0.1.0"
-path = "/Users/prithvishahi/dev/agent-rs/ic-agent"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/fresh-expiry-on-read-state"	
+rev = "63757dd278716722efc0fbacd8281612372446f9"
 
 [dependencies.ic-identity-hsm]
 version = "0.1.0"
-path = "/Users/prithvishahi/dev/agent-rs/ic-identity-hsm"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/fresh-expiry-on-read-state"	
+rev = "63757dd278716722efc0fbacd8281612372446f9"
 
 [dependencies.ic-types]
 version = "0.1.2"
-path = "/Users/prithvishahi/dev/agent-rs/ic-types"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/fresh-expiry-on-read-state"	
+rev = "63757dd278716722efc0fbacd8281612372446f9"
 
 [dependencies.ic-utils]
 version = "0.1.0"
-path = "/Users/prithvishahi/dev/agent-rs/ic-utils"
+git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/fresh-expiry-on-read-state"	
+rev = "63757dd278716722efc0fbacd8281612372446f9"
 
 [dev-dependencies]
 env_logger = "0.6"
