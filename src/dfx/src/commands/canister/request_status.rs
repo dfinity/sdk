@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
+use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators;
 use crate::util::{expiry_duration, print_idl_blob};
 
@@ -32,9 +32,10 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
 
     let timeout = expiry_duration();
 
-    let mut waiter = waiter_with_timeout(timeout);
+    let mut waiter = waiter_with_exponential_backoff();
     let Replied::CallReplied(blob) = async {
         waiter.start();
+        let mut request_accepted = false;
         loop {
             match agent.request_status_raw(&request_id).await? {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
@@ -48,8 +49,19 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                     }))
                 }
                 RequestStatusResponse::Unknown => (),
-                RequestStatusResponse::Received => (),
-                RequestStatusResponse::Processing => (),
+                RequestStatusResponse::Received | RequestStatusResponse::Processing => {
+                    // The system will return Unknown until the request is accepted
+                    // and we generally cannot know how long that will take.
+                    // State transitions between Received and Processing may be
+                    // instantaneous. Therefore, once we know the request is accepted,
+                    // we restart the waiter so the request does not time out.
+                    if !request_accepted {
+                        waiter
+                            .restart()
+                            .map_err(|_| DfxError::new(AgentError::WaiterRestartError()))?;
+                        request_accepted = true;
+                    }
+                }
                 RequestStatusResponse::Done => {
                     return Err(DfxError::new(AgentError::RequestStatusDoneNoReply(
                         String::from(request_id),

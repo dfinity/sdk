@@ -1080,8 +1080,7 @@ dependencies = [
 [[package]]
 name = "delay"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da251be9c00cade565f17c1ce87232ad626e32c506774288ca4970094642693d"
+source = "git+https://github.com/p-shahi/rs-delay.git?branch=pshahi/add-restart#ea35a3e4a36387409f4251a7bb67e41c769a3b2e"
 
 [[package]]
 name = "derivative"
@@ -1815,7 +1814,6 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/fresh-expiry-on-read-state#cf8f62c9079ac74dbd9e067cf57dc7f505654bda"
 dependencies = [
  "async-trait",
  "base32",
@@ -1845,7 +1843,6 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/fresh-expiry-on-read-state#cf8f62c9079ac74dbd9e067cf57dc7f505654bda"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1860,7 +1857,6 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/fresh-expiry-on-read-state#cf8f62c9079ac74dbd9e067cf57dc7f505654bda"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1872,7 +1868,6 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/fresh-expiry-on-read-state#cf8f62c9079ac74dbd9e067cf57dc7f505654bda"
 dependencies = [
  "async-trait",
  "candid",

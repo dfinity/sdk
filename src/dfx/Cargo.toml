@@ -28,7 +28,6 @@ clap = "3.0.0-beta.2"
 console = "0.7.7"
 crossbeam = "0.7.3"
 ctrlc = { version = "3.1.6", features = [ "termination" ] }
-delay = "0.3.0"
 dialoguer = "0.6.2"
 erased-serde = "0.3.10"
 flate2 = "1.0.11"
@@ -68,29 +67,27 @@ url = "2.1.0"
 walkdir = "2.2.9"
 wasmparser = "0.45.0"
 
+[dependencies.delay]
+version = "0.3.0"
+git = "https://github.com/p-shahi/rs-delay.git"
+branch = "pshahi/add-restart"
+rev = "ea35a3e4a36387409f4251a7bb67e41c769a3b2e"
+
 [dependencies.ic-agent]
 version = "0.1.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/fresh-expiry-on-read-state"
-rev = "cf8f62c9079ac74dbd9e067cf57dc7f505654bda"
+path = "/Users/prithvishahi/dev/agent-rs/ic-agent"
 
 [dependencies.ic-identity-hsm]
 version = "0.1.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/fresh-expiry-on-read-state"
-rev = "cf8f62c9079ac74dbd9e067cf57dc7f505654bda"
+path = "/Users/prithvishahi/dev/agent-rs/ic-identity-hsm"
 
 [dependencies.ic-types]
 version = "0.1.2"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/fresh-expiry-on-read-state"
-rev = "cf8f62c9079ac74dbd9e067cf57dc7f505654bda"
+path = "/Users/prithvishahi/dev/agent-rs/ic-types"
 
 [dependencies.ic-utils]
 version = "0.1.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/fresh-expiry-on-read-state"
-rev = "cf8f62c9079ac74dbd9e067cf57dc7f505654bda"
+path = "/Users/prithvishahi/dev/agent-rs/ic-utils"
 
 [dev-dependencies]
 env_logger = "0.6"
