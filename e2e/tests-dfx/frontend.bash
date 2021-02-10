@@ -4,7 +4,7 @@ load utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     dfx_new_frontend
 }
@@ -29,7 +29,8 @@ teardown() {
 
     dfx_start --host 127.0.0.1:12345
 
-    cat <<<$(jq '.networks.local.bind="127.0.0.1:12345"' dfx.json) >dfx.json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.networks.local.bind="127.0.0.1:12345"' dfx.json)" >dfx.json
 
     dfx canister create --all
     dfx build e2e_project

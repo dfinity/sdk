@@ -4,7 +4,7 @@ load ./utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     dfx_new
 }
@@ -24,6 +24,7 @@ teardown() {
 
 @test "build succeeds if packtool is configured" {
     install_asset packtool
+    # shellcheck disable=SC1091
     source configure_packtool.bash
 
     dfx_start
@@ -33,6 +34,7 @@ teardown() {
 
 @test "project calls dependencies made available by packtool" {
     install_asset packtool
+    # shellcheck disable=SC1091
     source configure_packtool.bash
 
     dfx_start

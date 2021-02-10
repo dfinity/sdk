@@ -4,7 +4,7 @@ load utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
     export RUST_BACKTRACE=1
 
     dfx_new
@@ -22,35 +22,38 @@ teardown() {
   dfx build
 
   # Start a replica manually on a specific port.
-  $(dfx cache show)/replica --config '
+  "$(dfx cache show)/replica" --config '
     [http_handler]
     write_port_to="port"
   ' &
   echo $! > replica.pid # Use a local file for the replica.
   sleep 5 # Wait for replica to be available.
 
-  export PORT=$(cat port)
-  dfx canister --provider http://localhost:$PORT install --all
-  dfx canister --provider http://localhost:$PORT call e2e_project greet '("Blueberry")'
-  assert_command_fail dfx canister call --provider http://localhost:$PORT e2e_project greet '("Blueberry")'
+  x=$(cat port)
+  export PORT="$x"
+  dfx canister --provider "http://localhost:$PORT" install --all
+  dfx canister --provider "http://localhost:$PORT" call e2e_project greet '("Blueberry")'
+  assert_command_fail dfx canister call --provider "http://localhost:$PORT" e2e_project greet '("Blueberry")'
   assert_command_fail dfx canister call e2e_project greet '("Blueberry")'
 }
 
 @test "uses local bind address if there is no local network" {
   [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-  cat <<<$(jq 'del(.networks.local)' dfx.json) >dfx.json
+  # shellcheck disable=SC2094
+  cat <<<"$(jq 'del(.networks.local)' dfx.json)" >dfx.json
   dfx_start
 }
 
 @test "uses local bind address if there are no networks" {
   [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-  cat <<<$(jq 'del(.networks)' dfx.json) >dfx.json
+  # shellcheck disable=SC2094
+  cat <<<"$(jq 'del(.networks)' dfx.json)" >dfx.json
   dfx_start
 }
 
 @test "network as URL creates the expected name" {
     dfx_start
     webserver_port=$(cat .dfx/webserver-port)
-    dfx canister --network http://127.0.0.1:$webserver_port create --all
+    dfx canister --network "http://127.0.0.1:$webserver_port" create --all
     [ -d ".dfx/http___127_0_0_1_$webserver_port" ]
 }

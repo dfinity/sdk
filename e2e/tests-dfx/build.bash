@@ -4,7 +4,7 @@ load ./utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
     export RUST_BACKTRACE=1
 
     dfx_new
@@ -93,15 +93,16 @@ teardown() {
 @test "build succeeds with URL as network parameter" {
     dfx_start
     webserver_port=$(cat .dfx/webserver-port)
-    dfx canister --network http://127.0.0.1:$webserver_port create --all
-    assert_command dfx build --network http://127.0.0.1:$webserver_port
+    dfx canister --network "http://127.0.0.1:$webserver_port" create --all
+    assert_command dfx build --network "http://127.0.0.1:$webserver_port"
 }
 
 @test "build succeeds when requested network is configured" {
   dfx_start
 
   webserver_port=$(cat .dfx/webserver-port)
-  cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+  # shellcheck disable=SC2094
+  cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 
   assert_command dfx canister --network actuallylocal create --all
   assert_command dfx build --network actuallylocal
@@ -111,7 +112,8 @@ teardown() {
   skip "Skip until updating to Replica with ic_api_version > 0.14.0"
   dfx_start
   webserver_port=$(cat .dfx/webserver-port)
-  cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+  # shellcheck disable=SC2094
+  cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
   assert_command dfx_set_wallet
 
   assert_command dfx canister --network actuallylocal create --all
@@ -130,7 +132,8 @@ teardown() {
   [ "$USE_IC_REF" ] && skip "Skip for ic-ref as its ic_api_version > 0.14.0, test with set controller with wallet"
   dfx_start
   webserver_port=$(cat .dfx/webserver-port)
-  cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+  # shellcheck disable=SC2094
+  cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 
   dfx canister --network actuallylocal create --all
   assert_command dfx build --network actuallylocal
@@ -139,10 +142,11 @@ teardown() {
 }
 
 @test "build with wallet output for non-local network is in expected directory" {
-  [ !"$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+  [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
   dfx_start
   webserver_port=$(cat .dfx/webserver-port)
-  cat <<<$(jq .networks.actuallylocal.providers=[\"http://127.0.0.1:$webserver_port\"] dfx.json) >dfx.json
+  # shellcheck disable=SC2094
+  cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
   assert_command dfx_set_wallet
 
   dfx canister --network actuallylocal create --all

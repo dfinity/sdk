@@ -222,7 +222,24 @@ fn start_webserver_coordinator(
     replica_addr: Addr<Replica>,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
-    let serve_dir = env.get_cache().get_binary_command_path("bootstrap")?;
+    // If there is a @dfinity/bootstrap node package installed at the root
+    // of dfx.json, use that.
+    let serve_dir = if let Some(config) = env.get_config() {
+        let dfx_root = config
+            .get_path()
+            .parent()
+            .unwrap()
+            .join("node_modules/@dfinity/bootstrap/dist");
+
+        if dfx_root.exists() {
+            dfx_root
+        } else {
+            env.get_cache().get_binary_command_path("bootstrap")?
+        }
+    } else {
+        env.get_cache().get_binary_command_path("bootstrap")?
+    };
+
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
