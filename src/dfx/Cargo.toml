@@ -71,26 +71,26 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "ca3905e2c614ac84e4bfa2802143fc4f78ff4f2b"
+branch = "pshahi/update-wallet"
+rev = "c3f65b0c549c4dc75ec0756494b361b0b6b6765f"
 
 [dependencies.ic-identity-hsm]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "ca3905e2c614ac84e4bfa2802143fc4f78ff4f2b"
+branch = "pshahi/update-wallet"
+rev = "c3f65b0c549c4dc75ec0756494b361b0b6b6765f"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "ca3905e2c614ac84e4bfa2802143fc4f78ff4f2b"
+branch = "pshahi/update-wallet"
+rev = "c3f65b0c549c4dc75ec0756494b361b0b6b6765f"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "ca3905e2c614ac84e4bfa2802143fc4f78ff4f2b"
+branch = "pshahi/update-wallet"
+rev = "c3f65b0c549c4dc75ec0756494b361b0b6b6765f"
 
 [dev-dependencies]
 env_logger = "0.6"

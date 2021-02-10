@@ -54,7 +54,7 @@ type AddressEntry = record {
 
 service : {
   // Wallet Name
-  name: () -> (record { name: opt text; }) query;
+  name: () -> (opt text) query;
   set_name: (text) -> ();
 
   // Controller Management
@@ -88,7 +88,7 @@ service : {
 
   // Address book
   add_address: (address: AddressEntry) -> ();
-  list_address: () -> (vec AddressEntry);
+  list_addresses: () -> (vec AddressEntry) query;
   remove_address: (address: principal) -> ();
 
   // Events
