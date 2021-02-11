@@ -17,5 +17,6 @@ pub mod provider;
 pub mod replica_config;
 pub mod root_key;
 pub mod telemetry;
+pub mod toolchain;
 pub mod waiter;
 pub mod webserver;
