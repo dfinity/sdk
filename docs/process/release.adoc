@@ -86,9 +86,9 @@ and then skip to "Notification and post-build validation":
 ./scripts/release.sh <n.n.n>
 ----
 
-=== Build DFX and the JavaScript agent binaries
+=== Build DFX
 
-Verify that you can build DFX and the JavaScript agent from the `+master+` branch without errors.
+Verify that you can build DFX from the `+master+` branch without errors.
 
 . Build the `dfx` binary by running the following command:
 +
