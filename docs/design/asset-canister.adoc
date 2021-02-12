@@ -115,62 +115,77 @@ a monotonically increasing value.
 [source,candid]
 ----
 
-type AcceptEncoding = text;
+type AcceptEncodings = vec text;
 type Contents = blob;
 type FileId = text;
 type Key = text;
 type Offset = nat;
 type TotalLength = nat;
 
-type AssetOperationKind = variant {
-  // Create a new asset.  Contents will be attached later with SetContent.
-  // What happens if an asset already exists, and/or has a different content type?
-  // Do we leave it to the caller to Delete first?
-  Create: record {
-    key: Key;
-    content_type: text;
-  };
+// Create a new asset.  Contents will be attached later with SetContent.
+//   - No-op if asset already exists with the same content type.
+//   - Error if asset already exists with a different content type (delete first).
+type CreateAssetOperation = record {
+  key: Key;
+  content_type: text;
+};
 
-  // Add or change content for an asset, by content type
-  SetContent: record {
-    key: Key;
-    content_encoding: text;
-    file_id: FileId;
-  };
-  // Remove content for an asset, by content type
-  UnsetContent: record {
-    key: Key;
-    content_encoding: text;
-  };
-  Delete: record {
-    key: Key;
-  };
+// Add or change content for an asset, by content type
+type SetAssetContentOperation = record {
+  key: Key;
+  content_encoding: text;
+  file_id: FileId;
+};
 
-  // Future: set up access control
-  SetAcl: record {
-    key: Key;
-    tbd: text;
-  };
-  // Future: set a time after which to delete an asset
-  SetExpiry: record {
-    key: Key;
-    tbd: text;
-  };
+// Remove content for an asset, by content type
+type UnsetAssetContentOperation = record {
+  key: Key;
+  content_encoding: text;
+};
 
-  // Delete all assets
-  Clear;
+// Delete an asset
+type DeleteAssetOperation = record {
+  key: Key;
+};
 
-  // Delete content files that are not referenced by any asset
-  // Delete empty directories
-  GarbageCollect;
+// Future: set up access control
+type SetAssetAclOperation = record {
+  key: Key;
+  tbd: text;
+};
+
+// Future: set a time after which to delete an asset
+type SetAssetExpiryOperation = record {
+  key: Key;
+  tbd: text;
+};
+
+// Reset everything
+type ClearOperation = record {};
+
+// Delete content files that are not referenced by any asset
+// Delete empty directories
+type GarbageCollectOperation = record {};
+
+type BatchOperationKind = variant {
+  Create: CreateAssetOperation;
+  SetContent: SetAssetContentOperation;
+
+  UnsetContent: UnsetAssetContentOperation;
+  Delete: DeleteAssetOperation;
+
+  SetAcl: SetAssetAclOperation;
+  SetExpiry: SetAssetExpiryOperation;
+
+  Clear: ClearOperation;
+
+  GarbageCollect: GarbageCollectOperation;
 };
 
 service: {
 
-  get: (Key, vec AcceptEncoding) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
-  list: () -> (vec Path) query;
-
-  // future? list: (regex or prefix) -> (vec Path) query;
+  get: (Key, AcceptEncodings) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
+  list: () -> (vec record { key: Key, content_type: Text }) query;
 
   // allocate space for files
   create_files: (vec TotalLength) -> (vec FileId);
@@ -179,16 +194,28 @@ service: {
   write_file(FileId, Offset, Contents) -> ();
 
   // Perform all operations successfully, or reject
-  batch: (vec AssetOperationKind) -> ();
+  batch: (vec BatchOperationKind) -> ();
 
-  // we may break out the individual operations publicly here
+  create_asset: (CreateAssetOperation) -> ();
+  set_asset_content: (SetAssetContentOperation) -> ();
+  unset_asset_content: (UnsetAssetContentOperation) -> ();
+
+  delete_asset: (DeleteAssetOperation) -> ();
+
+  set_asset_acl: (SetAssetAclOperation) -> ();
+  set_asset_expiry: (SetAssetExpiryOperation) -> ();
+
+  clear: (ClearOperation) -> ();
+  gc: (GarbageCollectOperation) -> ();
 
   // Single call to create an asset with content for a single content encoding that
   // fits within the message ingress limit.
-  store: (Key, record {
-                 content_type: text;
-                 content_encoding: text;
-                 contents: blob;} ) -> ();
+  store: (record {
+    key: Key;
+    content_type: text;
+    content_encoding: text;
+    contents: blob;
+  }) -> ();
 }
 
 ----
@@ -215,6 +242,13 @@ with all of the previous assets.
 The `dfx install` process could be smarter, for example only uploading
 changed assets.  This would require more metadata, such as a hash
 per content type/content blob.
+
+These API methods are structured to facilitate efficient upload of many assets
+within a single block:
+
+* `create_files` (call once)
+* `write_file` (call many times concurrently)
+* `batch` (call once)
 
 
 == Breaking Changes
