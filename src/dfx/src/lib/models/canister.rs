@@ -390,11 +390,16 @@ fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
 /// Create a canister JavaScript DID and Actor Factory.
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
     let output_did_js_path = canister_info.get_build_idl_path().with_extension("did.js");
+    let output_did_ts_path = canister_info
+        .get_build_idl_path()
+        .with_extension("did.d.ts");
     let output_canister_js_path = canister_info.get_build_idl_path().with_extension("js");
 
     let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())?;
     let content = candid::bindings::javascript::compile(&env, &ty);
     std::fs::write(output_did_js_path, content)?;
+    let content = candid::bindings::typescript::compile(&env, &ty);
+    std::fs::write(output_did_ts_path, content)?;
 
     let mut language_bindings = assets::language_bindings()?;
     for f in language_bindings.entries()? {
