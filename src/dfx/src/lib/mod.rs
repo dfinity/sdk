@@ -8,6 +8,7 @@ pub mod identity;
 pub mod installers;
 pub mod locations;
 pub mod logger;
+pub mod manifest;
 pub mod models;
 pub mod network;
 pub mod operations;

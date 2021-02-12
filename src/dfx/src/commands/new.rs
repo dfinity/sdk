@@ -1,8 +1,8 @@
-use super::upgrade::{get_latest_version, is_upgrade_necessary};
 use crate::config::dfinity::CONFIG_FILE_NAME;
 use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
 use crate::util::clap::validators::project_name_validator;
 

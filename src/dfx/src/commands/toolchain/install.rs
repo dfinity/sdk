@@ -14,7 +14,7 @@ pub struct ToolchainInstall {
 
 pub fn exec(_env: &dyn Environment, opts: ToolchainInstall) -> DfxResult {
     for s in opts.toolchains {
-        let _result = s.parse::<Toolchain>()?;
+        let toolchain = s.parse::<Toolchain>()?;
         println!("Installing toolchain: {}", toolchain);
     }
     Ok(())
