@@ -260,13 +260,6 @@ This feature breaks the signature of the `store` method.
 This feature deprecates the `retrieve` method.
 
 
-== Documentation
-////
-:required:
-
-How will this feature be documented? Which people need to be involved?
-////
-
 == Lifecycle
 
 === Integration Plan
@@ -277,15 +270,5 @@ The process that `dfx install` uses to synchronize assets to an asset canister w
 be more complex.
 
 === Maintenance Plan
-////
-:required:
 
-How do you plan to maintain this feature for the next years? Can the
-APIs be cleanly evolved? Can Breaking Changes in the future be avoided?
-
-If this is a service, what is the update and monitoring strategy?
-
-If this is a package, how do we plan to publish and deploy it? This includes
-version numbering.
-////
-
+The API operation parameters are passed as a record in order to facilitate future changes.
