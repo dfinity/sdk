@@ -83,13 +83,15 @@ Each files will store a single Candid record:
 ----
 record {
   content_type: text;
-  file_id: nat32;
+  file_id: text;
 };
 ----
 
 ==== The `content` directory
 
-Content files are just named by number.  To choose file numbers, we can start with
+At the API level, file ids are text, a temporary handle.
+
+In practice, file ids will be numbers. To choose them, we can start with
 a monotonically increasing value.
 
 
@@ -115,21 +117,27 @@ a monotonically increasing value.
 
 type AcceptEncoding = text;
 type Contents = blob;
-type FileId = nat32;
+type FileId = text;
 type Key = text;
 type Offset = nat;
 type TotalLength = nat;
 
 type AssetOperationKind = variant {
+  // Create a new asset.  Contents will be attached later with SetContent.
+  // What happens if an asset already exists, and/or has a different content type?
+  // Do we leave it to the caller to Delete first?
   Create: record {
     key: Key;
     content_type: text;
   };
+
+  // Add or change content for an asset, by content type
   SetContent: record {
     key: Key;
     content_encoding: text;
     file_id: FileId;
   };
+  // Remove content for an asset, by content type
   UnsetContent: record {
     key: Key;
     content_encoding: text;
@@ -137,15 +145,23 @@ type AssetOperationKind = variant {
   Delete: record {
     key: Key;
   };
+
+  // Future: set up access control
   SetAcl: record {
     key: Key;
     tbd: text;
   };
+  // Future: set a time after which to delete an asset
   SetExpiry: record {
     key: Key;
     tbd: text;
   };
+
+  // Delete all assets
   Clear;
+
+  // Delete content files that are not referenced by any asset
+  // Delete empty directories
   GarbageCollect;
 };
 
