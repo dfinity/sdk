@@ -17,8 +17,8 @@ by associating additional metadata with each asset, and content encodings.
 
 The asset storage canister at present is a rudimentary key/value store of static blob data.
 
-The update call requires passing asset contents in their entirety, which
-limits their size to the message ingress limit.
+The update call requires passing the asset content blob in its entirety, which
+limits asset size to the message ingress limit.
 
 The asset storage canister is written in Motoko, and as such does not have access to
 (for example) compression libraries.
@@ -31,7 +31,6 @@ The main purpose is to make it so asset content length can exceed the message in
 
 * Can upload assets of any size (within reason)
 * Support upcoming http server
-
 
 == Prior Art
 
