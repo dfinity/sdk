@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::toolchain::ToolchainDesc;
+use crate::lib::toolchain::Toolchain;
 
 use clap::Clap;
 
@@ -13,8 +13,9 @@ pub struct ToolchainInstall {
 }
 
 pub fn exec(_env: &dyn Environment, opts: ToolchainInstall) -> DfxResult {
-    for tc in opts.toolchains {
-        let _tcd = tc.parse::<ToolchainDesc>()?;
+    for s in opts.toolchains {
+        let _result = s.parse::<Toolchain>()?;
+        println!("Installing toolchain: {}", toolchain);
     }
     Ok(())
 }
