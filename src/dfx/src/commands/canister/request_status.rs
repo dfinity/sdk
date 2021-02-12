@@ -3,7 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators;
-use crate::util::{expiry_duration, print_idl_blob};
+use crate::util::print_idl_blob;
 
 use anyhow::{anyhow, Context};
 use clap::Clap;
@@ -29,8 +29,6 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
-
-    let timeout = expiry_duration();
 
     let mut waiter = waiter_with_exponential_backoff();
     let Replied::CallReplied(blob) = async {

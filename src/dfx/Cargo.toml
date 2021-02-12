@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.6.22"
+version = "0.6.23"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -22,7 +22,7 @@ actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
 anyhow = "1.0.34"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = { version = "0.6.14", features = [ "random" ] }
+candid = { version = "0.6.15", features = [ "random" ] }
 chrono = "0.4.9"
 clap = "3.0.0-beta.2"
 console = "0.7.7"
@@ -71,26 +71,22 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/fresh-expiry-on-read-state"	
-rev = "2a662278643ed54990ee32391093354a40cd20f8"
+rev = "6652a800969e7e09ecdf40ed16a2d78abecde7d3"
 
 [dependencies.ic-identity-hsm]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/fresh-expiry-on-read-state"	
-rev = "2a662278643ed54990ee32391093354a40cd20f8"
+rev = "6652a800969e7e09ecdf40ed16a2d78abecde7d3"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/fresh-expiry-on-read-state"	
-rev = "2a662278643ed54990ee32391093354a40cd20f8"
+rev = "6652a800969e7e09ecdf40ed16a2d78abecde7d3"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/fresh-expiry-on-read-state"	
-rev = "2a662278643ed54990ee32391093354a40cd20f8"
+rev = "6652a800969e7e09ecdf40ed16a2d78abecde7d3"
 
 [dev-dependencies]
 env_logger = "0.6"
