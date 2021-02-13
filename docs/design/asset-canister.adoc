@@ -82,7 +82,10 @@ Each files will store a single Candid record:
 ----
 record {
   content_type: text;
-  file_id: text;
+  content: vec record {
+    content_encoding: text;
+    file_id: text;
+  };
 };
 ----
 
