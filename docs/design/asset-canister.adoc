@@ -66,36 +66,40 @@ Directory structure on this FAT32 filesystem:
 
 ----
 /meta
-  hex/digits/of/asset/key
+  hex/digits/of/asset/key.can
 /content
-  file_id.dat
+  ${blob_id}.dat
 ----
 
 ==== The `meta` directory
+
+This directory stores metadata for each asset.
 
 Since keys are of arbitrary length and can contain characters that are not valid
 in FAT32 filenames, we will convert the asset key into hex digits representing the UTF-8 bytes,
 and split these hex digits into groups of 8 characters, naming directories and finally a filename.
 
-Each files will store a single Candid record:
+Each file will store a single Candid record:
 [source, candid]
 ----
 record {
   content_type: text;
   content: vec record {
     content_encoding: text;
-    file_id: text;
+    blob_id: text;
   };
 };
 ----
 
 ==== The `content` directory
 
-At the API level, file ids are text, a temporary handle.
+This directory stores asset content per content encoding, in individual files.
 
-In practice, file ids will be numbers. To choose them, we can start with
+At the API level, blob ids are text (a temporary handle), only used
+until the blob data is "set" on the asset.
+
+In practice, blob ids will be numbers. To choose them, we can start with
 a monotonically increasing value.
-
 
 === Considered Solutions
 
@@ -112,6 +116,11 @@ a monotonically increasing value.
 ** but only if they are not all already there
 * canister-level "upgrade" would only needed when the asset canister wasm changes
 
+==== Blob ids
+
+Another option would be `timestamp/sequence`, assuming only one `create_blobs` call per
+canister per block height.
+
 === Public API
 
 [source,candid]
@@ -119,7 +128,7 @@ a monotonically increasing value.
 
 type AcceptEncodings = vec text;
 type Contents = blob;
-type FileId = text;
+type BlobId = text;
 type Key = text;
 type Offset = nat;
 type TotalLength = nat;
@@ -136,7 +145,7 @@ type CreateAssetOperation = record {
 type SetAssetContentOperation = record {
   key: Key;
   content_encoding: text;
-  file_id: FileId;
+  blob_id: BlobId;
 };
 
 // Remove content for an asset, by content type
@@ -189,11 +198,11 @@ service: {
   get: (Key, AcceptEncodings) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
   list: () -> (vec record { key: Key, content_type: Text }) query;
 
-  // allocate space for files
-  create_files: (vec TotalLength) -> (vec FileId);
+  // allocate space for content
+  create_blobs: (vec TotalLength) -> (vec BlobId);
 
-  // upload part of a file's content
-  write_file(FileId, Offset, Contents) -> ();
+  // upload part of a blob's content
+  write_blob(BlobId, Offset, Contents) -> ();
 
   // Perform all operations successfully, or reject
   batch: (vec BatchOperationKind) -> ();
@@ -233,8 +242,8 @@ For the time being, security controls will continue to be:
 Retrieval requires reading the content out of stable memory into a blob before
 returning it.
 
-Depending on the number of assets (files) we expect an asset canister to hold,
-we may want to split up the content files into subdirectories.
+Depending on the number of asset content blobs we expect an asset canister to hold,
+we may want to split up the files that store content into subdirectories.
 
 The size of the stable memory block in the canister will need to be
 roughly double the size required to hold only the assets, because
@@ -248,8 +257,8 @@ per content type/content blob.
 These API methods are structured to facilitate efficient upload of many assets
 within a single block:
 
-* `create_files` (call once)
-* `write_file` (call many times concurrently)
+* `create_blobs` (call once)
+* `write_blob` (call many times concurrently)
 * `batch` (call once)
 
 
