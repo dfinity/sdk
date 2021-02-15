@@ -196,10 +196,6 @@ type SetAssetExpiryOperation = record {
 // Reset everything
 type ClearOperation = record {};
 
-// Delete content files that are not referenced by any asset
-// Delete empty directories
-type GarbageCollectOperation = record {};
-
 type BatchOperationKind = variant {
   Create: CreateAssetOperation;
   SetContent: SetAssetContentOperation;
@@ -211,8 +207,6 @@ type BatchOperationKind = variant {
   SetExpiry: SetAssetExpiryOperation;
 
   Clear: ClearOperation;
-
-  GarbageCollect: GarbageCollectOperation;
 };
 
 service: {
@@ -239,7 +233,6 @@ service: {
   set_asset_expiry: (SetAssetExpiryOperation) -> ();
 
   clear: (ClearOperation) -> ();
-  gc: (GarbageCollectOperation) -> ();
 
   // Single call to create an asset with content for a single content encoding that
   // fits within the message ingress limit.
