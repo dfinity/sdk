@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 
 use clap::Clap;
 
+mod deploy_wallet;
 mod get_wallet;
 mod list;
 mod new;
@@ -28,6 +29,7 @@ pub struct IdentityOpt {
 
 #[derive(Clap)]
 enum SubCommand {
+    DeployWallet(deploy_wallet::DeployWalletOpts),
     GetWallet(get_wallet::GetWalletOpts),
     List(list::ListOpts),
     New(new::NewIdentityOpts),
@@ -41,6 +43,7 @@ enum SubCommand {
 
 pub fn exec(env: &dyn Environment, opts: IdentityOpt) -> DfxResult {
     match opts.subcmd {
+        SubCommand::DeployWallet(v) => deploy_wallet::exec(env, v, opts.network.clone()),
         SubCommand::GetWallet(v) => get_wallet::exec(env, v, opts.network.clone()),
         SubCommand::List(v) => list::exec(env, v),
         SubCommand::New(v) => new::exec(env, v),

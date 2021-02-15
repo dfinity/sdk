@@ -285,10 +285,11 @@ impl Identity {
         Ok(())
     }
 
-    async fn create_wallet(
+    pub async fn create_wallet(
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
+        some_canister_id: Option<Principal>,
     ) -> DfxResult<Principal> {
         let mgr = ManagementCanister::create(
             env.get_agent()
@@ -310,10 +311,15 @@ impl Identity {
             }
         }
 
-        let (canister_id,) = mgr
-            .provisional_create_canister_with_cycles(None)
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
-            .await?;
+        let canister_id = match some_canister_id {
+            Some(id) => id,
+            None => {
+                mgr.provisional_create_canister_with_cycles(None)
+                    .call_and_wait(waiter_with_timeout(expiry_duration()))
+                    .await?
+                    .0
+            }
+        };
 
         mgr.install_code(&canister_id, wasm.as_slice())
             .call_and_wait(waiter_with_timeout(expiry_duration()))
@@ -343,7 +349,7 @@ impl Identity {
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
                 if !network.is_ic && create {
-                    Identity::create_wallet(env, network, name).await
+                    Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(anyhow!(
                         "Could not find wallet for \"{}\" on \"{}\" network.",
