@@ -105,17 +105,17 @@ a monotonically increasing value.
 
 ==== Motoko canister
 
-* currently there is not a large body of Motoko libraries for things like compression
-** though compression will probably be better done in dfx anyway
-* stable memory means contents can easily survive an upgrade
-** use of stable memory implies a need to deal with deleted assets
+* The API would be easy to implement using existing stable-memory data structures
+* Currently there is not a large body of Motoko libraries for things like compression
+** Though compression would probably be better done in dfx anyway
 
 ==== Rust canister with unstable memory
 
 * This would be a reasonable implementation and would not require changing the interface
-* requires uploading all assets on every upgrade
-** but only if they are not all already there
-* canister-level "upgrade" would only needed when the asset canister wasm changes
+* Would require uploading all assets on every upgrade
+(but only if they are not all already there)
+* Canister-level "upgrade" would only needed when the asset canister wasm changes
+(that it is not obvious how to detect that)
 
 ==== Blob ids
 
