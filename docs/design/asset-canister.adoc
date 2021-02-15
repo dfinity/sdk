@@ -105,9 +105,10 @@ a monotonically increasing value.
 
 ==== Motoko canister
 
-* does not support things like compression libraries
+* currently there is not a large body of Motoko libraries for things like compression
+** though compression will probably be better done in dfx anyway
 * stable memory means contents can easily survive an upgrade
-* need special handling for deleted assets
+** use of stable memory implies a need to deal with deleted assets
 
 ==== Rust canister with unstable memory
 
@@ -132,6 +133,14 @@ type BlobId = text;
 type Key = text;
 type Offset = nat;
 type TotalLength = nat;
+
+type AssetInfo = record {
+  key: Key;
+  content_type: text;
+  encoding_details: vec record {
+    content_encoding: text;
+  };
+};
 
 // Create a new asset.  Contents will be attached later with SetContent.
 //   - No-op if asset already exists with the same content type.
@@ -196,7 +205,7 @@ type BatchOperationKind = variant {
 service: {
 
   get: (Key, AcceptEncodings) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
-  list: () -> (vec record { key: Key, content_type: Text }) query;
+  list: () -> (vec AssetInfo) query;
 
   // allocate space for content
   create_blobs: (vec TotalLength) -> (vec BlobId);
