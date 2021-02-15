@@ -150,14 +150,14 @@ type CreateAssetOperation = record {
   content_type: text;
 };
 
-// Add or change content for an asset, by content type
+// Add or change content for an asset, by content encoding
 type SetAssetContentOperation = record {
   key: Key;
   content_encoding: text;
   blob_id: BlobId;
 };
 
-// Remove content for an asset, by content type
+// Remove content for an asset, by content encoding
 type UnsetAssetContentOperation = record {
   key: Key;
   content_encoding: text;
