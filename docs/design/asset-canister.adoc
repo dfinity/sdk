@@ -64,20 +64,19 @@ We will implement the canister in Motoko using existing stable memory data struc
 
 ==== Rust canister with stable memory block
 
+These notes refer to a proposed implementation mapping a FAT32 volume onto a block of stable memory.
+
 * Affords access to general Rust libraries
 * Adds complexity in managing data in stable memory
 ** Asset keys are not valid FAT32 paths
-** Blobs storage in files implies management of those files and allocation of their filenames
+** Blob storage in files implies management of those files and allocation of their filenames
 * Performance considerations:
 ** Retrieval requires reading the content out of stable memory into a blob before
-returning it
-*** (since content would not be stored in contiguous memory)
+returning it, since content would not be stored in contiguous memory.
 ** Depending on the number of asset content blobs we expect an asset canister to hold,
-we might have to split up the files that store content into subdirectories.
+it might be necesary to split up the files that store content into subdirectories.
 
 ===== FAT32 implementation notes (rejected)
-
-These are notes for how we could have implemented this in a Rust canister using a block of stable memory.
 
 Note that at present the Rust CDK does not have libraries for data structures stored in stable memory.
 
