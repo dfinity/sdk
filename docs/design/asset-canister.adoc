@@ -20,9 +20,6 @@ The asset storage canister at present is a rudimentary key/value store of static
 The update call requires passing the asset content blob in its entirety, which
 limits asset size to the message ingress limit.
 
-The asset storage canister is written in Motoko, and as such does not have access to
-(for example) compression libraries.
-
 === Problem Statement
 
 The main purpose is to make it so asset content length can exceed the message ingress limit.
@@ -55,7 +52,7 @@ Store per asset:
 
 === Implementation
 
-We will implement the canister in Motoko using existing stable memory data structures such as RBTree.
+We will implement the canister in Motoko using existing stable memory data structures such as RBTree or Trie.
 
 === Considered Solutions
 
@@ -74,8 +71,7 @@ We will implement the canister in Motoko using existing stable memory data struc
 * Performance considerations:
 ** Retrieval requires reading the content out of stable memory into a blob before
 returning it
-*** (since content is not stored in contiguous memory)
-** General overhead of traversing logical directory paths
+*** (since content would not be stored in contiguous memory)
 ** Depending on the number of asset content blobs we expect an asset canister to hold,
 we might have to split up the files that store content into subdirectories.
 
@@ -266,7 +262,6 @@ For the time being, security controls will continue to be:
 
 === Performance Considerations
 
-
 The size of the stable memory block in the canister will need to be
 roughly double the size required to hold only the assets, because
 during upgrades all of the new assets will briefly be stored along
@@ -291,7 +286,6 @@ This feature breaks the signature of the `store` method.
 === Deprecation
 
 This feature deprecates the `retrieve` method.
-
 
 == Lifecycle
 
