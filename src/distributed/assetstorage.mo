@@ -4,7 +4,7 @@ import Array "mo:base/Array";
 import Text "mo:base/Text";
 import Tree "mo:base/RBTree";
 
-shared {caller = creator} actor class () {
+shared ({caller = creator}) actor class () {
 
     public type Path = Text;
     public type Contents = Blob;
@@ -13,7 +13,7 @@ shared {caller = creator} actor class () {
 
     let db: Tree.RBTree<Path, Contents> = Tree.RBTree(Text.compare);
 
-    public shared { caller } func authorize(other: Principal) : async () {
+    public shared ({ caller }) func authorize(other: Principal) : async () {
         if (isSafe(caller)) {
             authorized := Array.append<Principal>(authorized, [other]);
         } else {
@@ -21,7 +21,7 @@ shared {caller = creator} actor class () {
         }
     };
 
-    public shared { caller } func store(path : Path, contents : Contents) : async () {
+    public shared ({ caller }) func store(path : Path, contents : Contents) : async () {
         if (isSafe(caller)) {
             db.put(path, contents);
         } else {
