@@ -29,7 +29,7 @@ The main purpose is to make it so asset content length can exceed the message in
 
 === Requirements
 
-* Can upload assets of any size (within reason)
+* Can upload assets of any size (within reason, say <2GB)
 * Support upcoming http server
 
 == Prior Art
@@ -55,11 +55,37 @@ Store per asset:
 
 === Implementation
 
-We will implement the canister in Rust.
+We will implement the canister in Motoko using existing stable memory data structures such as RBTree.
+
+=== Considered Solutions
+
+==== Motoko canister
+
+* The API will be straightforward to implement using existing stable-memory data structures
+* Currently there is not a large body of Motoko libraries for things like compression
+** Mitigated by: compression would probably be better done in dfx anyway
+
+==== Rust canister with stable memory block
+
+* Affords access to general Rust libraries
+* Adds complexity in managing data in stable memory
+** Asset keys are not valid FAT32 paths
+** Blobs storage in files implies management of those files and allocation of their filenames
+* Performance considerations:
+** Retrieval requires reading the content out of stable memory into a blob before
+returning it
+*** (since content is not stored in contiguous memory)
+** General overhead of traversing logical directory paths
+** Depending on the number of asset content blobs we expect an asset canister to hold,
+we might have to split up the files that store content into subdirectories.
+
+===== FAT32 implementation notes (rejected)
+
+These are notes for how we could have implemented this in a Rust canister using a block of stable memory.
 
 Note that at present the Rust CDK does not have libraries for data structures stored in stable memory.
 
-We'll use a link:https://crates.io/crates/fat32[FAT32 library] to map a FAT32 volume onto
+We would use a link:https://crates.io/crates/fat32[FAT32 library] to map a FAT32 volume onto
 a block of stable memory in order to store both asset metadata and content blobs.
 
 Directory structure on this FAT32 filesystem:
@@ -71,7 +97,7 @@ Directory structure on this FAT32 filesystem:
   ${blob_id}.dat
 ----
 
-==== The `meta` directory
+====== The `meta` directory
 
 This directory stores metadata for each asset.
 
@@ -91,7 +117,7 @@ record {
 };
 ----
 
-==== The `content` directory
+====== The `content` directory
 
 This directory stores asset content per content encoding, in individual files.
 
@@ -101,26 +127,18 @@ until the blob data is "set" on the asset.
 In practice, blob ids will be numbers. To choose them, we can start with
 a monotonically increasing value.
 
-=== Considered Solutions
+====== Blob ids
 
-==== Motoko canister
-
-* The API would be easy to implement using existing stable-memory data structures
-* Currently there is not a large body of Motoko libraries for things like compression
-** Mitigated by: compression would probably be better done in dfx anyway
+Another option would be `timestamp/sequence`, assuming only one `create_blobs` call per
+canister per block height.
 
 ==== Rust canister with unstable memory
 
 * This would be a reasonable implementation and would not require changing the interface
 * Would require uploading all assets on every upgrade
 ** Mitigated by: only if any asset changed (not detectable at present)
-* Canister-level "upgrade" would only needed when the asset canister wasm changes
+* Canister-level "upgrade" would only be needed when the asset canister wasm changes
 ** It is not obvious how to detect this
-
-==== Blob ids
-
-Another option would be `timestamp/sequence`, assuming only one `create_blobs` call per
-canister per block height.
 
 === Public API
 
@@ -248,11 +266,6 @@ For the time being, security controls will continue to be:
 
 === Performance Considerations
 
-Retrieval requires reading the content out of stable memory into a blob before
-returning it.
-
-Depending on the number of asset content blobs we expect an asset canister to hold,
-we may want to split up the files that store content into subdirectories.
 
 The size of the stable memory block in the canister will need to be
 roughly double the size required to hold only the assets, because
