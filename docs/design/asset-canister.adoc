@@ -140,12 +140,9 @@ canister per block height.
 [source,candid]
 ----
 
-type AcceptEncodings = vec text;
 type Contents = blob;
 type BlobId = text;
 type Key = text;
-type Offset = nat;
-type TotalLength = nat;
 
 type AssetInfo = record {
   key: Key;
@@ -211,14 +208,17 @@ type BatchOperationKind = variant {
 
 service: {
 
-  get: (Key, AcceptEncodings) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
-  list: () -> (vec AssetInfo) query;
+  get: (record { key: Key, accept_encodings: vec text}) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
+  list: (record {}) -> (vec AssetInfo) query;
 
   // allocate space for content
-  create_blobs: (vec TotalLength) -> (vec BlobId);
+  //
+  // first deletes all blobs created by an earlier call to create_blobs(), that have not been set to an asset,
+  // only if write_blob() has not been called for any of those blobs within the past 5 minutes.
+  create_blobs: (record { blob_info: vec record { length: nat32 } } ) -> (record { blob_ids: vec BlobId });
 
   // upload part of a blob's content
-  write_blob(BlobId, Offset, Contents) -> ();
+  write_blob: (record { blob_id: BlobId; offset: nat32; contents: blob }) -> ();
 
   // Perform all operations successfully, or reject
   batch: (vec BatchOperationKind) -> ();
