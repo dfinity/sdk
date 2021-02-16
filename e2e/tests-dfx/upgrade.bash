@@ -6,15 +6,15 @@ RANDOM_EMPHEMERAL_PORT=$(shuf -i 49152-65535 -n 1)
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit 1
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 }
 
 @test "upgrade succeeds" {
     latest_version="0.4.7"
-    latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr A-Z a-z)/"
+    latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr '[:upper:]' '[:lower:]')/"
     dfx_archive_file_name="dfx-$latest_version.tar.gz"
     mkdir -p "$latest_version_dir"
-    cp $(which dfx) .
+    cp "$(which dfx)" .
     version=$(./dfx --version)
     tar -czf "$latest_version_dir/$dfx_archive_file_name" dfx
     echo '{

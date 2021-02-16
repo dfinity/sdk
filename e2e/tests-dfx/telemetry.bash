@@ -3,7 +3,7 @@
 load utils/_
 
 setup() {
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 }
 
 teardown() {
@@ -18,4 +18,5 @@ teardown() {
     # assert_match 'SDK sends anonymous usage data' "$stderr"
     # assert_command dfx identity whoami
     # assert_not_match 'SDK sends anonymous usage data' "$stderr"
+    true
 }
