@@ -4,18 +4,20 @@ load ../utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     # Each test gets its own home directory in order to have its own identities.
-    mkdir $(pwd)/home-for-test
-    export HOME=$(pwd)/home-for-test
+    x=$(pwd)/home-for-test
+    mkdir "$x"
+    export HOME="$x"
 
     dfx_new
 }
 
 teardown() {
     dfx_stop
-    rm -rf $(pwd)/home-for-test
+    x=$(pwd)/home-for-test
+    rm -rf "$x"
 }
 
 
@@ -63,7 +65,9 @@ teardown() {
     install_asset identity
     dfx_start
     assert_command dfx ping
+    # shellcheck disable=SC2154
     assert_match 'Creating the "default" identity.' "$stderr"
+    # shellcheck disable=SC2154
     assert_match "ic_api_version" "$stdout"
 }
 
@@ -105,7 +109,7 @@ teardown() {
 }
 
 @test "after using a specific identity while creating a canister, that wallet is the initializer" {
-    [ !"$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+    [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     install_asset identity
     dfx_start
     assert_command dfx identity new alice
@@ -119,7 +123,7 @@ teardown() {
     assert_eq '(false)'
 
     assert_command dfx --identity alice canister call \
-      $(dfx --identity alice identity get-wallet) wallet_call \
+      "$(dfx --identity alice identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
 
@@ -167,7 +171,7 @@ teardown() {
 }
 
 @test "after renaming an identity, the renamed identity's wallet is still initializer" {
-    [ !"$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+    [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     install_asset identity
     dfx_start
     assert_command dfx identity new alice
@@ -176,7 +180,7 @@ teardown() {
     assert_command dfx --identity alice build
     assert_command dfx --identity alice canister install --all
     assert_command dfx --identity alice canister call \
-      $(dfx --identity alice identity get-wallet) wallet_call \
+      "$(dfx --identity alice identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
     assert_command dfx canister call e2e_project amInitializer
@@ -187,7 +191,7 @@ teardown() {
     assert_command dfx identity whoami
     assert_eq 'default'
     assert_command dfx --identity bob canister call \
-      $(dfx --identity bob identity get-wallet) wallet_call \
+      "$(dfx --identity bob identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
 

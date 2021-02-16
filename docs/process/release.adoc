@@ -76,6 +76,16 @@ For example, changes to the external network for onboarded developers are curren
 git checkout master && git pull
 ----
 
+=== Single-step script-based release process
+
+Instead of following the steps below, you can instead run this command
+and then skip to "Notification and post-build validation":
+
+[source, bash]
+----
+./scripts/release.sh <n.n.n>
+----
+
 === Build DFX and the JavaScript agent binaries
 
 Verify that you can build DFX and the JavaScript agent from the `+master+` branch without errors.

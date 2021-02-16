@@ -4,7 +4,7 @@ load ../utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     dfx_new hello
 }
@@ -27,8 +27,8 @@ teardown() {
 
     echo "replica pid is $REPLICA_PID"
 
-    kill -KILL $REPLICA_PID
-    assert_process_exits $REPLICA_PID 15s
+    kill -KILL "$REPLICA_PID"
+    assert_process_exits "$REPLICA_PID" 15s
 
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
