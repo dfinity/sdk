@@ -340,8 +340,9 @@ impl Identity {
                 Ok(canister_id)
             }
             Ok(x) => {
-                eprintln!(
-                    "Wallet {} already exists for {} on {} network.",
+                info!(
+                    env.get_logger(),
+                    r#"The wallet canister "{}"" already exists for user "{}" on "{}" network."#,
                     x.to_text(),
                     name,
                     network.name
