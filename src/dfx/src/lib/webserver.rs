@@ -43,6 +43,8 @@ struct CandidData {
 enum Format {
     #[serde(rename = "js")]
     Javascript,
+    #[serde(rename = "ts")]
+    Typescript,
 }
 
 #[derive(Deserialize)]
@@ -80,6 +82,10 @@ async fn candid(
         Some(Format::Javascript) => {
             let (env, ty) = check_candid_file(&candid_path).map_err(ErrorInternalServerError)?;
             candid::bindings::javascript::compile(&env, &ty)
+        }
+        Some(Format::Typescript) => {
+            let (env, ty) = check_candid_file(&candid_path).map_err(ErrorInternalServerError)?;
+            candid::bindings::typescript::compile(&env, &ty)
         }
     };
     let response = HttpResponse::Ok().body(content);

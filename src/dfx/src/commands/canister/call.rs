@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
+use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, bail, Context};
@@ -37,6 +37,10 @@ pub struct CanisterCallOpts {
 
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
+
+    /// Specifies the config for generating random argument.
+    #[clap(long, conflicts_with("argument"))]
+    random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
@@ -111,7 +115,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, arg_type, &method_type)?;
+    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -141,7 +145,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
             .update(&canister_id, method_name)
             .with_arg(&arg_value)
             .expire_after(timeout)
-            .call_and_wait(waiter_with_timeout(timeout))
+            .call_and_wait(waiter_with_exponential_backoff())
             .await?;
 
         print_idl_blob(&blob, output_type, &method_type)
