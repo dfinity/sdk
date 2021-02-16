@@ -208,7 +208,11 @@ type BatchOperationKind = variant {
 
 service: {
 
-  get: (record { key: Key, accept_encodings: vec text}) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
+  get: (record {
+    key: Key,
+    accept_encodings: vec text
+  }) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
+
   list: (record {}) -> (vec AssetInfo) query;
 
   // allocate space for content
@@ -236,12 +240,7 @@ service: {
 
   // Single call to create an asset with content for a single content encoding that
   // fits within the message ingress limit.
-  store: (record {
-    key: Key;
-    content_type: text;
-    content_encoding: text;
-    contents: blob;
-  }) -> ();
+  store: (record { key: Key; content_type: text; content_encoding: text; contents: blob }) -> ();
 }
 
 ----
