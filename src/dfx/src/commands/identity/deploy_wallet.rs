@@ -13,7 +13,7 @@ use tokio::runtime::Runtime;
 #[derive(Clap)]
 pub struct DeployWalletOpts {
     /// The ID of the canister where the wallet WASM will be deployed.
-    canister_id: Option<String>,
+    canister_id: String,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<String>) -> DfxResult {
@@ -28,9 +28,7 @@ pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<Strin
         .to_string();
     let network = get_network_descriptor(&agent_env, network)?;
 
-    let canister_id = opts
-        .canister_id
-        .ok_or_else(|| anyhow!("Canister id not provided."))?;
+    let canister_id = opts.canister_id;
     match CanisterId::from_text(&canister_id) {
         Ok(id) => {
             runtime.block_on(async {
