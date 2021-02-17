@@ -4,7 +4,7 @@ load ../utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
     export RUST_BACKTRACE=1
 
     dfx_new hello
@@ -35,7 +35,8 @@ teardown() {
     # Using call --async and request-status.
     assert_command dfx canister call --async hello greet Blueberry
     # At this point $output is the request ID.
-    assert_command dfx canister request-status $stdout
+    # shellcheck disable=SC2154
+    assert_command dfx canister request-status "$stdout"
     assert_eq '("Hello, Blueberry!")'
 }
 
@@ -71,7 +72,7 @@ teardown() {
     assert_eq "(3)"
 
     assert_command dfx canister call hello inc --async
-    assert_command dfx canister request-status $stdout
+    assert_command dfx canister request-status "$stdout"
 
     # Call write.
     assert_command dfx canister call hello write 1337
@@ -79,7 +80,7 @@ teardown() {
 
     # Write has no return value. But we can _call_ read too.
     assert_command dfx canister call hello read --async
-    assert_command dfx canister request-status $stdout
+    assert_command dfx canister request-status "$stdout"
     assert_eq "(1_337)"
 }
 

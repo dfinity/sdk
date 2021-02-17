@@ -4,7 +4,7 @@ load ../utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
     dfx_new hello
 }
 
@@ -31,4 +31,14 @@ teardown() {
 
     assert_command_fail dfx bootstrap --port 8000
     assert_match "Cannot forward API calls to the same bootstrap server"
+}
+
+@test "uses local bootstrap if installed" {
+    mkdir -p node_modules/@dfinity/bootstrap/dist
+    echo "Hello World" > node_modules/@dfinity/bootstrap/dist/index.html
+
+    dfx_start
+    PORT=$(cat .dfx/webserver-port)
+    assert_command curl http://localhost:"$PORT"/
+    assert_match "Hello World"
 }
