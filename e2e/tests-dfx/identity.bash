@@ -200,3 +200,19 @@ teardown() {
     assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
     assert_eq '(blob "hello")'
 }
+
+@test "deploy wallet" {
+    [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
+
+    dfx_start
+    dfx canister create abc
+    ID=$(dfx canister id abc)
+    assert_command dfx identity deploy-wallet ${ID}
+    GET_WALLET_RES=$(dfx identity get-wallet)
+    assert_eq $ID $GET_WALLET_RES
+
+    dfx canister create def
+    ID_TWO=$(dfx canister id def)
+    assert_command_fail dfx identity deploy-wallet ${ID_TWO}
+    assert_match "The wallet canister \"${ID}\" already exists for user \"default\" on \"local\" network."
+}
