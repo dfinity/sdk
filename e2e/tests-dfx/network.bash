@@ -23,9 +23,7 @@ teardown() {
 @test "create stores canister ids for default-persistent networks in canister_ids.json" {
     dfx_start
 
-    webserver_port=$(cat .dfx/webserver-port)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    setup_actuallylocal_network
 
     assert_command dfx canister --network actuallylocal create --all
 
@@ -37,9 +35,7 @@ teardown() {
 @test "create with wallet stores canister ids for default-persistent networks in canister_ids.json" {
     skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     dfx_start
-    webserver_port=$(cat .dfx/webserver-port)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    setup_actuallylocal_network
     assert_command dfx_set_wallet
 
     assert_command dfx canister --network actuallylocal create --all
@@ -52,9 +48,7 @@ teardown() {
 @test "create stores canister ids for configured-ephemeral networks in canister_ids.json" {
     dfx_start
 
-    webserver_port=$(cat .dfx/webserver-port)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    setup_actuallylocal_network
     # shellcheck disable=SC2094
     cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json)" >dfx.json
 
@@ -69,10 +63,7 @@ teardown() {
     skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     dfx_start
 
-    webserver_port=$(cat .dfx/webserver-port)
-
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    setup_actuallylocal_network
     # shellcheck disable=SC2094
     cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json)" >dfx.json
     assert_command dfx_set_wallet
@@ -117,9 +108,7 @@ teardown() {
 @test "failure message does include network if for non-local network" {
     dfx_start
 
-    webserver_port=$(cat .dfx/webserver-port)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    setup_actuallylocal_network
 
     assert_command_fail dfx build --network actuallylocal
     assert_match "Cannot find canister id. Please issue 'dfx canister --network actuallylocal create e2e_project"
