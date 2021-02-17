@@ -1,4 +1,5 @@
 import Error "mo:base/Error";
+import H "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Array "mo:base/Array";
 import Text "mo:base/Text";
@@ -15,6 +16,7 @@ shared ({caller = creator}) actor class () {
     public type ContentType = Text;
     public type Offset = Nat;
     public type TotalLength = Nat;
+
 
     public type CreateAssetOperation = {
         key: Key;
@@ -49,6 +51,21 @@ shared ({caller = creator}) actor class () {
     stable var authorized: [Principal] = [creator];
 
     let db: Tree.RBTree<Path, Contents> = Tree.RBTree(Text.compare);
+
+    type Asset = {
+      content_type: Text;
+    };
+
+    stable var asset_entries : [(Key, Asset)] = [];
+    let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
+
+    system func preupgrade() {
+        asset_entries := Iter.toArray(assets.entries());
+    };
+
+    system func postupgrade() {
+        asset_entries := [];
+    };
 
     public shared ({ caller }) func authorize(other: Principal) : async () {
         if (isSafe(caller)) {
@@ -87,7 +104,10 @@ shared ({caller = creator}) actor class () {
             key: Key;
             accept_encodings: [Text]
     }) : async ( { contents: Blob; content_type: Text; content_encoding: Text } ) {
-       throw Error.reject("get: not implemented");
+        switch (assets.get(arg.key)) {
+        case null throw Error.reject("not found");
+        case (?asset) throw Error.reject("found but not implemented");
+        };
     };
 
     public func create_blobs( arg: {
@@ -129,27 +149,4 @@ shared ({caller = creator}) actor class () {
     public func clear(op: ClearOperation) : async () {
         throw Error.reject("clear: not implemented");
     };
-
-    public func create(arg:{
-            path: Path;
-            contents: Contents;
-            total_length: TotalLength;
-            content_type: ContentType;
-            content_encoding: ContentEncoding;
-            commit: Commit}) : async () {
-       throw Error.reject("not implemented");
-    };
-
-    public func write(path: Path, offset: Offset, contents: Contents) : async () {
-       throw Error.reject("not implemented");
-    };
-
-    public func commit(path: Path) : async () {
-       throw Error.reject("not implemented");
-    };
-
-    public func commit_many(paths: [Path]) : async () {
-       throw Error.reject("not implemented");
-    };
-
 };
