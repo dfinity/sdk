@@ -209,11 +209,14 @@ teardown() {
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 
+    # get a Canister ID to install the wasm onto
     dfx canister --network actuallylocal create abc
+    # set controller to user
+    dfx canister set-controller abc default
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
-    rm $HOME/.config/dfx/identity/default/wallets.json
+    rm "$HOME"/.config/dfx/identity/default/wallets.json
 
     ID=$(dfx canister --network actuallylocal id abc)
     assert_command dfx identity --network actuallylocal deploy-wallet "${ID}"
