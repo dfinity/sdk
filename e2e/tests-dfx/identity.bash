@@ -213,7 +213,7 @@ teardown() {
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
-    rm .dfx/local/wallets.json
+    rm $HOME/.config/dfx/identity/default/wallets.json
 
     ID=$(dfx canister --network actuallylocal id abc)
     assert_command dfx identity --network actuallylocal deploy-wallet "${ID}"
