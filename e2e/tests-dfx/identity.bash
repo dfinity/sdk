@@ -200,31 +200,3 @@ teardown() {
     assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
     assert_eq '(blob "hello")'
 }
-
-@test "deploy wallet" {
-    [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
-
-    dfx_start
-    webserver_port=$(cat .dfx/webserver-port)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
-
-    # get a Canister ID to install the wasm onto
-    dfx canister --network actuallylocal create abc
-    # set controller to user
-    dfx canister set-controller abc default
-
-    # We're testing on a local network so the create command actually creates a wallet
-    # Delete this file to force associate wallet created by deploy-wallet to identity
-    rm "$HOME"/.config/dfx/identity/default/wallets.json
-
-    ID=$(dfx canister --network actuallylocal id abc)
-    assert_command dfx identity --network actuallylocal deploy-wallet "${ID}"
-    GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)
-    assert_eq "$ID" "$GET_WALLET_RES"
-
-    dfx canister --network actuallylocal create def
-    ID_TWO=$(dfx canister --network actuallylocal id def)
-    assert_command_fail dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
-    assert_match "The wallet canister \"${ID}\" already exists for user \"default\" on \"local\" network."
-}
