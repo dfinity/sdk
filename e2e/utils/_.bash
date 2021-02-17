@@ -110,3 +110,9 @@ dfx_set_wallet() {
   export WALLET_CANISTER_ID=$(dfx identity get-wallet)
   dfx identity  --network actuallylocal set-wallet --canister-name ${WALLET_CANISTER_ID} --force
 }
+
+setup_actuallylocal_network() {
+    webserver_port=$(cat .dfx/webserver-port)
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+}
