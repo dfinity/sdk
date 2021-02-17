@@ -28,11 +28,15 @@ teardown() {
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 
-    # get a Canister ID to install the wasm onto
-    dfx canister --network actuallylocal create abc
-    ID=$(dfx canister --network actuallylocal id abc)
+    # get a Canister IDs to install the wasm onto
+    dfx canister --network actuallylocal create dummy_canister1
+    ID=$(dfx canister --network actuallylocal id dummy_canister1)
+    dfx canister --network actuallylocal create dummy_canister2
+    ID_TWO=$(dfx canister --network actuallylocal id dummy_canister2)
+
     # set controller to user
-    dfx canister --network actuallylocal set-controller abc default
+    dfx canister --network actuallylocal set-controller dummy_canister1 $(dfx identity get-principal)
+    dfx canister --network actuallylocal set-controller dummy_canister2 $(dfx identity get-principal)
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
@@ -42,8 +46,6 @@ teardown() {
     GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)
     assert_eq "$ID" "$GET_WALLET_RES"
 
-    dfx canister --network actuallylocal create def
-    ID_TWO=$(dfx canister --network actuallylocal id def)
-    assert_command_fail dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
-    assert_match "The wallet canister \"${ID}\" already exists for user \"default\" on \"local\" network."
+    assert_command dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
+    assert_match "The wallet canister \"${ID}\"\ already exists for user \"default\" on \"actuallylocal\" network."
 }
