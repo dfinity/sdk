@@ -1,8 +1,10 @@
+import Array "mo:base/Array";
 import Error "mo:base/Error";
 import H "mo:base/HashMap";
+import Int "mo:base/Int";
 import Iter "mo:base/Iter";
-import Array "mo:base/Array";
 import Text "mo:base/Text";
+import Time "mo:base/Time";
 import Tree "mo:base/RBTree";
 
 shared ({caller = creator}) actor class () {
@@ -66,6 +68,23 @@ shared ({caller = creator}) actor class () {
     system func postupgrade() {
         asset_entries := [];
     };
+
+    // blobs data doesn't need to be stable
+    type BlobInfo = {
+        batch_id: Nat;
+        blob: Blob;
+    };
+    var next_blob_id = 1;
+    let blobs = H.HashMap<Text, BlobInfo>(7, Text.equal, Text.hash);
+    func alloc_blob_id() : Nat {
+        let result = next_blob_id;
+        next_blob_id += 1;
+        result
+    };
+
+    var next_batch_id = 1;
+    type Time = Int;
+    let batch_expiry = H.HashMap<Int, Time>(7, Int.equal, Int.hash);
 
     public shared ({ caller }) func authorize(other: Principal) : async () {
         if (isSafe(caller)) {
