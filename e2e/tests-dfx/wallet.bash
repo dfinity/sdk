@@ -35,8 +35,8 @@ teardown() {
     ID_TWO=$(dfx canister --network actuallylocal id dummy_canister2)
 
     # set controller to user
-    dfx canister --network actuallylocal set-controller dummy_canister1 $(dfx identity get-principal)
-    dfx canister --network actuallylocal set-controller dummy_canister2 $(dfx identity get-principal)
+    dfx canister --network actuallylocal set-controller dummy_canister1 "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal set-controller dummy_canister2 "$(dfx identity get-principal)"
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
