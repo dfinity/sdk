@@ -210,6 +210,11 @@ teardown() {
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 
     dfx canister --network actuallylocal create abc
+
+    # We're testing on a local network so the create command actually creates a wallet
+    # Delete this file to force associate wallet created by deploy-wallet to identity
+    rm .dfx/local/wallets.json
+
     ID=$(dfx canister --network actuallylocal id abc)
     assert_command dfx identity --network actuallylocal deploy-wallet "${ID}"
     GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)
