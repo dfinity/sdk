@@ -3,12 +3,14 @@ import Error "mo:base/Error";
 import H "mo:base/HashMap";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
+import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Tree "mo:base/RBTree";
 
 shared ({caller = creator}) actor class () {
 
+    public type BatchId = Int;
     public type BlobId = Text;
     public type Key = Text;
     public type Path = Text;
@@ -76,15 +78,24 @@ shared ({caller = creator}) actor class () {
     };
     var next_blob_id = 1;
     let blobs = H.HashMap<Text, BlobInfo>(7, Text.equal, Text.hash);
-    func alloc_blob_id() : Nat {
+    func alloc_blob_id() : BlobId {
         let result = next_blob_id;
         next_blob_id += 1;
-        result
+        Int.toText(result)
     };
 
+    // We track when each group of blobs should expire,
+    // so that they don't consume space after an interrupted install.
+    let BATCH_EXPIRY_NANOS = 5 * 1000 * 1000;
     var next_batch_id = 1;
     type Time = Int;
     let batch_expiry = H.HashMap<Int, Time>(7, Int.equal, Int.hash);
+
+    func start_batch(): BatchId {
+        let batch_id = next_batch_id;
+        next_batch_id += 1;
+        let expires = Time.now() + BATCH_EXPIRY_NANOS;
+    };
 
     public shared ({ caller }) func authorize(other: Principal) : async () {
         if (isSafe(caller)) {
@@ -129,11 +140,21 @@ shared ({caller = creator}) actor class () {
         };
     };
 
+    func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
+      #ok(alloc_blob_id())
+    };
+
     public func create_blobs( arg: {
             blob_info: [ {
                 length: Nat32
             } ]
     } ) : async ( { blob_ids: [BlobId] } ) {
+        let batch_id = start_batch();
+
+        let createBlobInBatch = func (arg: { length: Nat32 }) : Result.Result<BlobId, Text> {
+          createBlob(batch_id, arg.length)
+        };
+
         throw Error.reject("create_blobs: not implemented");
     };
 
