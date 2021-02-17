@@ -26,7 +26,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_network
 
-    # get a Canister IDs to install the wasm onto
+    # get Canister IDs to install the wasm onto
     dfx canister --network actuallylocal create dummy_canister1
     ID=$(dfx canister --network actuallylocal id dummy_canister1)
     dfx canister --network actuallylocal create dummy_canister2
