@@ -205,14 +205,18 @@ teardown() {
     [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
 
     dfx_start
-    dfx canister create abc
-    ID=$(dfx canister id abc)
-    assert_command dfx identity deploy-wallet "${ID}"
-    GET_WALLET_RES=$(dfx identity get-wallet)
+    webserver_port=$(cat .dfx/webserver-port)
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+
+    dfx canister --network actuallylocal create abc
+    ID=$(dfx canister --network actuallylocal id abc)
+    assert_command dfx identity --network actuallylocal deploy-wallet "${ID}"
+    GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)
     assert_eq "$ID" "$GET_WALLET_RES"
 
-    dfx canister create def
-    ID_TWO=$(dfx canister id def)
-    assert_command_fail dfx identity deploy-wallet "${ID_TWO}"
+    dfx canister --network actuallylocal create def
+    ID_TWO=$(dfx canister --network actuallylocal id def)
+    assert_command_fail dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
     assert_match "The wallet canister \"${ID}\" already exists for user \"default\" on \"local\" network."
 }
