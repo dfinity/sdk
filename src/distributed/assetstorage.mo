@@ -8,6 +8,7 @@ import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import Nat32 "mo:base/Nat32";
 import Result "mo:base/Result";
+import SHM "StableHashMap";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Tree "mo:base/RBTree";
@@ -60,9 +61,19 @@ shared ({caller = creator}) actor class () {
 
     let db: Tree.RBTree<Path, Contents> = Tree.RBTree(Text.compare);
 
-    type Asset = {
-      content_type: Text;
-    };
+  type AssetEncoding = {
+    contentEncoding: Text;
+    content: [Word8];
+  };
+
+  type Asset = {
+    contentType: Text;
+    encodings: SHM.StableHashMap<Text, AssetEncoding>;
+  };
+
+  func getAssetEncoding(asset : Asset, acceptEncodings : [Text]) : ?AssetEncoding {
+    null
+  };
 
     stable var asset_entries : [(Key, Asset)] = [];
     let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
@@ -95,6 +106,11 @@ shared ({caller = creator}) actor class () {
         #ok()
       }
     };
+
+    public func takeBuffer() : [Word8] {
+      let x = Array.freeze(buffer);
+      x
+    };
   };
 
   var nextBlobId = 1;
@@ -104,6 +120,17 @@ shared ({caller = creator}) actor class () {
     let result = nextBlobId;
     nextBlobId += 1;
     Int.toText(result)
+  };
+
+  func takeBlob(blobId: BlobId) : ?[Word8] {
+    switch (blobs.remove(blobId)) {
+      case null null;
+      case (?blobBuffer) {
+        let b: [Word8] = blobBuffer.takeBuffer();
+        //let blob : Blob = b;
+        ?b
+      }
+    }
   };
 
   // We track when each group of blobs should expire,
@@ -152,16 +179,39 @@ shared ({caller = creator}) actor class () {
         func eq(value: Principal): Bool = value == caller;
         Array.find(authorized, eq) != null
     };
+  public query func get2() : async( { contents: Blob } ) {
+    throw Error.reject("nyi");
+  };
 
   public query func get(arg:{
     key: Key;
     accept_encodings: [Text]
-  }) : async ( { contents: Blob; content_type: Text; content_encoding: Text } ) {
+  }) : async ( { contents: [Word8]; content_type: Text; content_encoding: Text } ) {
     switch (assets.get(arg.key)) {
     case null throw Error.reject("not found");
-    case (?asset) throw Error.reject("found but not implemented");
+    case (?asset) {
+      switch (getAssetEncoding(asset, arg.accept_encodings)) {
+        case null throw Error.reject("no such encoding");
+        case (?encoding) {
+          {
+            contents = encoding.content;
+            content_type = asset.contentType;
+            content_encoding = encoding.contentEncoding;
+          }
+        }
+      };
+      };
     };
   };
+
+  //func arrayToBlob(a : [Word8]) : Blob {
+  //  a
+  //};
+
+
+  //func nat8ArrayToBlob(a : [Nat8]) : Blob {
+  //  a
+  //};
 
   func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
     let blobId = allocBlobId();
@@ -209,13 +259,39 @@ shared ({caller = creator}) actor class () {
         throw Error.reject("batch: not implemented");
     };
 
-    public func create_asset(op: CreateAssetOperation) : async () {
-        throw Error.reject("create_asset: not implemented");
-    };
+  public func create_asset(arg: CreateAssetOperation) : async () {
+    switch (assets.get(arg.key)) {
+      case null {
+        let asset : Asset = {
+          contentType = arg.content_type;
+          encodings = SHM.StableHashMap<Text, AssetEncoding>();
+        };
+        assets.put( (arg.key, asset) );
+      };
+      case (?asset) {
+        if (asset.contentType != arg.content_type)
+          throw Error.reject("create_asset: content type mismatch");
 
-    public func set_asset_content(op: SetAssetContentOperation) : async () {
+      }
+    }
+  };
+
+  public func set_asset_content(arg: SetAssetContentOperation) : async () {
+    switch (assets.get(arg.key), takeBlob(arg.blob_id)) {
+      case (null,null) throw Error.reject("Asset and Blob not found");
+      case (null,?blob) throw Error.reject("Asset not found");
+      case (?asset,null) throw Error.reject("Blob not found");
+      case (?asset,?blob) {
+        let encoding : AssetEncoding = {
+          contentEncoding = arg.content_encoding;
+          content = blob;
+        };
+
+        //asset.encodings.put((arg.content_encoding, encoding));
         throw Error.reject("set_asset_content: not implemented");
+      };
     };
+  };
 
     public func unset_asset_content(op: UnsetAssetContentOperation) : async () {
         throw Error.reject("unset_asset_content: not implemented");
