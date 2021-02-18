@@ -1,3 +1,4 @@
+use crate::lib::dist;
 use crate::lib::error::{DfxError, DfxResult};
 
 use anyhow::bail;
@@ -15,12 +16,7 @@ pub enum Toolchain {
     MajorMinorToolchain(u8, u8),
 
     /// Tag such as 'latest'
-    TagToolchain(Tag),
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum Tag {
-    Latest,
+    TagToolchain(String),
 }
 
 impl FromStr for Toolchain {
@@ -37,7 +33,7 @@ impl FromStr for Toolchain {
             Ok(Toolchain::MajorMinorToolchain(major, minor))
         } else {
             match s {
-                "latest" => Ok(Toolchain::TagToolchain(Tag::Latest)),
+                "latest" => Ok(Toolchain::TagToolchain("latest".to_string())),
                 _ => bail!("Invalid toolchain name: {}", s),
             }
         }
@@ -49,8 +45,46 @@ impl fmt::Display for Toolchain {
         match self {
             Self::CompleteVersionToolchain(v) => write!(f, "{}", v),
             Self::MajorMinorToolchain(major, minor) => write!(f, "{0}.{1}", major, minor),
-            Self::TagToolchain(t) => write!(f, "{:?}", t),
+            Self::TagToolchain(t) => write!(f, "{}", t),
         }
+    }
+}
+
+impl Toolchain {
+    pub fn install(&self) -> DfxResult<()> {
+        eprintln!("Installing toolchain: {}", self);
+        let resolved_version: Version = match self {
+            Toolchain::CompleteVersionToolchain(v) => v.clone(),
+            Toolchain::MajorMinorToolchain(major, minor) => get_compatible_version(major, minor)?,
+            Toolchain::TagToolchain(t) => get_tag_version(t)?,
+        };
+        eprintln!("Compatible SDK version found: {}", resolved_version);
+        dist::install_version(&resolved_version)?;
+        Ok(())
+    }
+}
+
+fn get_compatible_version(major: &u8, minor: &u8) -> DfxResult<Version> {
+    let manifest = dist::get_manifest()?;
+    let versions = manifest.get_versions();
+    let req = VersionReq::parse(&format!("{}.{}", major, minor)).unwrap();
+    let compatible_version = versions.iter().filter(|v| req.matches(v)).max();
+    match compatible_version {
+        Some(v) => Ok(v.clone()),
+        None => bail!(
+            "Failed to get compatible SDK version for {}.{}",
+            major,
+            minor
+        ),
+    }
+}
+
+fn get_tag_version(tag: &str) -> DfxResult<Version> {
+    let manifest = dist::get_manifest()?;
+    let tag_version = manifest.get_tag_version(tag);
+    match tag_version {
+        Some(v) => Ok(v.clone()),
+        None => bail!("Failed to get compatible SDK version for tag {}", tag),
     }
 }
 
@@ -70,7 +104,7 @@ mod tests {
         );
         assert_eq!(
             Toolchain::from_str("latest").unwrap(),
-            Toolchain::TagToolchain(Tag::Latest)
+            Toolchain::TagToolchain("latest".to_string())
         );
     }
 

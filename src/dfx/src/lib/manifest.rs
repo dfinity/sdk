@@ -55,6 +55,7 @@ pub struct Manifest {
 }
 
 impl Manifest {
+    #[allow(dead_code)]
     pub fn get_tags(&self) -> Vec<&String> {
         self.tags.keys().collect()
     }
