@@ -6,7 +6,7 @@ use anyhow::bail;
 use semver::{Version, VersionReq};
 use std::fmt;
 use std::fmt::Formatter;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 pub static TOOLCHAINS_ROOT: &str = ".dfinity/toolchains/";
@@ -59,11 +59,7 @@ impl Toolchain {
     pub fn update(&self) -> DfxResult<()> {
         eprintln!("Syncing toolchain: {}", self.to_string());
 
-        let home = std::env::var("HOME")?;
-        let home = Path::new(&home);
-        let toolchains_dir = home.join(TOOLCHAINS_ROOT);
-        std::fs::create_dir_all(&toolchains_dir)?;
-        let toolchain_path = toolchains_dir.join(self.to_string());
+        let toolchain_path = self.get_path()?;
 
         let mut installed_version: Option<Version> = None;
         if let Ok(meta) = std::fs::symlink_metadata(&toolchain_path) {
@@ -112,6 +108,40 @@ impl Toolchain {
 
         Ok(())
     }
+
+    pub fn uninstall(&self) -> DfxResult<()> {
+        eprintln!("Uninstalling toolchain: {}", self);
+        let toolchain_path = self.get_path()?;
+        if toolchain_path.exists() {
+            std::fs::remove_file(toolchain_path)?;
+            eprintln!("Toolchain {} uninstalled", self);
+        } else {
+            eprintln!("Toolchain {} has not been installed", self);
+        }
+        Ok(())
+    }
+
+    pub fn get_path(&self) -> DfxResult<PathBuf> {
+        let home = std::env::var("HOME")?;
+        let home = Path::new(&home);
+        let toolchains_dir = home.join(TOOLCHAINS_ROOT);
+        std::fs::create_dir_all(&toolchains_dir)?;
+        Ok(toolchains_dir.join(self.to_string()))
+    }
+}
+
+pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
+    let home = std::env::var("HOME")?;
+    let home = Path::new(&home);
+    let toolchains_dir = home.join(TOOLCHAINS_ROOT);
+    let mut toolchains = vec![];
+    for entry in std::fs::read_dir(toolchains_dir)? {
+        let entry = entry?;
+        if let Some(name) = entry.file_name().to_str() {
+            toolchains.push(name.parse::<Toolchain>()?);
+        }
+    }
+    Ok(toolchains)
 }
 
 fn is_version_available(v: &Version) -> DfxResult<Version> {
