@@ -12,6 +12,7 @@ import SHM "StableHashMap";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Tree "mo:base/RBTree";
+import Word8 "mo:base/Word8";
 
 shared ({caller = creator}) actor class () {
 
@@ -63,7 +64,7 @@ shared ({caller = creator}) actor class () {
 
   type AssetEncoding = {
     contentEncoding: Text;
-    content: [Word8];
+    content: [Nat8];
   };
 
   type Asset = {
@@ -87,7 +88,7 @@ shared ({caller = creator}) actor class () {
     };
 
   // blob data doesn't need to be stable
-  class BlobBuffer(initBatchId: Nat, initBuffer: [var Word8]) {
+  class BlobBuffer(initBatchId: Nat, initBuffer: [var Nat8]) {
     let batchId = initBatchId;
     let buffer = initBuffer;
 
@@ -100,14 +101,14 @@ shared ({caller = creator}) actor class () {
           " exceeds blob size of " # Nat.toText(buffer.size()))
       } else {
         for (b in data.bytes()) {
-          buffer[index] := b;
+          buffer[index] := Nat8.fromNat(Word8.toNat(b));
           index += 1;
         };
         #ok()
       }
     };
 
-    public func takeBuffer() : [Word8] {
+    public func takeBuffer() : [Nat8] {
       let x = Array.freeze(buffer);
       x
     };
@@ -122,11 +123,11 @@ shared ({caller = creator}) actor class () {
     Int.toText(result)
   };
 
-  func takeBlob(blobId: BlobId) : ?[Word8] {
+  func takeBlob(blobId: BlobId) : ?[Nat8] {
     switch (blobs.remove(blobId)) {
       case null null;
       case (?blobBuffer) {
-        let b: [Word8] = blobBuffer.takeBuffer();
+        let b: [Nat8] = blobBuffer.takeBuffer();
         //let blob : Blob = b;
         ?b
       }
@@ -186,7 +187,7 @@ shared ({caller = creator}) actor class () {
   public query func get(arg:{
     key: Key;
     accept_encodings: [Text]
-  }) : async ( { contents: [Word8]; content_type: Text; content_encoding: Text } ) {
+  }) : async ( { contents: [Nat8]; content_type: Text; content_encoding: Text } ) {
     switch (assets.get(arg.key)) {
     case null throw Error.reject("not found");
     case (?asset) {
@@ -216,7 +217,7 @@ shared ({caller = creator}) actor class () {
   func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
     let blobId = allocBlobId();
 
-    let blob = Array.init<Word8>(Nat32.toNat(length), 0);
+    let blob = Array.init<Nat8>(Nat32.toNat(length), 0);
     let blobBuffer = BlobBuffer(batchId, blob);
 
     blobs.put(blobId, blobBuffer);
