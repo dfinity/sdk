@@ -3,6 +3,8 @@ import Error "mo:base/Error";
 import H "mo:base/HashMap";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
+import Nat8 "mo:base/Nat8";
+import Nat32 "mo:base/Nat32";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
@@ -10,7 +12,7 @@ import Tree "mo:base/RBTree";
 
 shared ({caller = creator}) actor class () {
 
-    public type BatchId = Int;
+    public type BatchId = Nat;
     public type BlobId = Text;
     public type Key = Text;
     public type Path = Text;
@@ -71,13 +73,14 @@ shared ({caller = creator}) actor class () {
         asset_entries := [];
     };
 
-    // blobs data doesn't need to be stable
-    type BlobInfo = {
-        batch_id: Nat;
-        blob: Blob;
+    // blob data doesn't need to be stable
+    class BlobBuffer(initBatchId: Nat, initBlob: [var Nat8]) {
+        let batchId = initBatchId;
+        let blob = initBlob;
     };
+
     var next_blob_id = 1;
-    let blobs = H.HashMap<Text, BlobInfo>(7, Text.equal, Text.hash);
+    let blobs = H.HashMap<Text, BlobBuffer>(7, Text.equal, Text.hash);
     func alloc_blob_id() : BlobId {
         let result = next_blob_id;
         next_blob_id += 1;
@@ -95,6 +98,7 @@ shared ({caller = creator}) actor class () {
         let batch_id = next_batch_id;
         next_batch_id += 1;
         let expires = Time.now() + BATCH_EXPIRY_NANOS;
+        batch_id
     };
 
     public shared ({ caller }) func authorize(other: Principal) : async () {
@@ -141,13 +145,24 @@ shared ({caller = creator}) actor class () {
     };
 
     func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
-      #ok(alloc_blob_id())
+        let blobId = alloc_blob_id();
+
+        let blob = Array.init<Nat8>(Nat32.toNat(length), 0);
+        let blobBuffer = BlobBuffer(batchId, blob);
+
+        blobs.put(blobId, blobBuffer);
+
+        #ok(blobId)
     };
 
+    //type BlobParameters = {
+    //    length: Nat32
+    //};
+    //type CreateBlobsResult = {
+    //    blob_ids: [BlobId]
+    //};
     public func create_blobs( arg: {
-            blob_info: [ {
-                length: Nat32
-            } ]
+            blob_info: [ { length: Nat32 } ]
     } ) : async ( { blob_ids: [BlobId] } ) {
         let batch_id = start_batch();
 
@@ -155,7 +170,10 @@ shared ({caller = creator}) actor class () {
           createBlob(batch_id, arg.length)
         };
 
-        throw Error.reject("create_blobs: not implemented");
+        switch(Array.mapResult<{length: Nat32}, BlobId, Text>(arg.blob_info, createBlobInBatch)) {
+          case (#ok(ids)) { { blob_ids = ids } };
+          case (#err(err)) throw Error.reject(err);
+        }
     };
 
     public func write_blob( arg: {
