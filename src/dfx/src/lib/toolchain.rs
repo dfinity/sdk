@@ -1,3 +1,4 @@
+use crate::config::cache;
 use crate::lib::dist;
 use crate::lib::error::{DfxError, DfxResult};
 
@@ -5,7 +6,10 @@ use anyhow::bail;
 use semver::{Version, VersionReq};
 use std::fmt;
 use std::fmt::Formatter;
+use std::path::Path;
 use std::str::FromStr;
+
+pub static TOOLCHAINS_ROOT: &str = ".dfinity/toolchains/";
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Toolchain {
@@ -51,16 +55,71 @@ impl fmt::Display for Toolchain {
 }
 
 impl Toolchain {
-    pub fn install(&self) -> DfxResult<()> {
-        eprintln!("Installing toolchain: {}", self);
+    // Update the toolchain, install it if nonexisting
+    pub fn update(&self) -> DfxResult<()> {
+        eprintln!("Syncing toolchain: {}", self.to_string());
+
+        let home = std::env::var("HOME")?;
+        let home = Path::new(&home);
+        let toolchains_dir = home.join(TOOLCHAINS_ROOT);
+        std::fs::create_dir_all(&toolchains_dir)?;
+        let toolchain_path = toolchains_dir.join(self.to_string());
+
+        let mut installed_version: Option<Version> = None;
+        if let Ok(meta) = std::fs::symlink_metadata(&toolchain_path) {
+            match meta.file_type().is_symlink() {
+                true => {
+                    let src = std::fs::read_link(&toolchain_path)?;
+                    let src_name = src.file_name().unwrap().to_str().unwrap();
+                    installed_version = Some(Version::parse(src_name).unwrap());
+                    eprintln!(
+                        "Toolchain {0} has been installed with SDK version {1}",
+                        self, src_name
+                    );
+                }
+                false => bail!("{:?} should be a symlink to a SDK version", toolchain_path),
+            }
+        }
+
         let resolved_version: Version = match self {
-            Toolchain::CompleteVersionToolchain(v) => v.clone(),
+            Toolchain::CompleteVersionToolchain(v) => is_version_available(v)?,
             Toolchain::MajorMinorToolchain(major, minor) => get_compatible_version(major, minor)?,
             Toolchain::TagToolchain(t) => get_tag_version(t)?,
         };
-        eprintln!("Compatible SDK version found: {}", resolved_version);
-        dist::install_version(&resolved_version)?;
+        eprintln!("The latest compatible SDK version is {}", resolved_version);
+
+        let mut status = "unchanged";
+        if installed_version.is_none() {
+            status = "installed";
+        } else if installed_version.unwrap() != resolved_version {
+            status = "updated";
+        }
+
+        if status != "unchanged" {
+            match cache::is_version_installed(&resolved_version.to_string())? {
+                true => eprintln!("SDK version {} already installed", resolved_version),
+                false => dist::install_version(&resolved_version)?,
+            };
+
+            let cache_path = cache::get_bin_cache(&resolved_version.to_string())?;
+            std::os::unix::fs::symlink(cache_path, toolchain_path)?;
+        }
+
+        eprintln!(
+            "Toolchain {0} {1} - SDK version {2}",
+            self, status, resolved_version
+        );
+
         Ok(())
+    }
+}
+
+fn is_version_available(v: &Version) -> DfxResult<Version> {
+    let manifest = dist::get_manifest()?;
+    let versions = manifest.get_versions();
+    match versions.contains(v) {
+        true => Ok(v.clone()),
+        false => bail!("SDK Version {} is not available from the server"),
     }
 }
 
