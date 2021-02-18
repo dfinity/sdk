@@ -2,7 +2,23 @@
 
 == DFX
 
-- feat: add deploy wallet subcommand to identity #1414
+- fix: onboarding related fixups (#1420)
+
+Now that the Mercury Alpha application subnetwork is up and we are getting ready to onboard devs, the dfx error message for wallet creation has changed:
+For example,
+[source, bash]
+----
+dfx canister --network=alpha create hello
+Creating canister "hello"...
+Creating the canister using the wallet canister...
+Creating a wallet canister on the alpha network.
+Unable to create a wallet canister on alpha:
+The Replica returned an error: code 3, message: "Sender not authorized to use method."
+Wallet canisters on alpha may only be created by an administrator.
+Please submit your Principal ("dfx identity get-principal") in the intake form to have one created for you.
+----
+
+- feat: add deploy wallet subcommand to identity (#1414)
 
 This feature adds the deploy-wallet subcommand to the dfx identity.
 The User provides the ID of the canister onto which the wallet WASM is deployed.
