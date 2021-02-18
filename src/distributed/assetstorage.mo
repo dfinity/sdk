@@ -1,4 +1,5 @@
 import Array "mo:base/Array";
+import Buffer "mo:base/Buffer";
 import Error "mo:base/Error";
 import H "mo:base/HashMap";
 import Int "mo:base/Int";
@@ -96,27 +97,28 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-    var next_blob_id = 1;
-    let blobs = H.HashMap<Text, BlobBuffer>(7, Text.equal, Text.hash);
-    func alloc_blob_id() : BlobId {
-        let result = next_blob_id;
-        next_blob_id += 1;
-        Int.toText(result)
-    };
+  var nextBlobId = 1;
+  let blobs = H.HashMap<Text, BlobBuffer>(7, Text.equal, Text.hash);
 
-    // We track when each group of blobs should expire,
-    // so that they don't consume space after an interrupted install.
-    let BATCH_EXPIRY_NANOS = 5 * 1000 * 1000;
-    var next_batch_id = 1;
-    type Time = Int;
-    let batch_expiry = H.HashMap<Int, Time>(7, Int.equal, Int.hash);
+  func allocBlobId() : BlobId {
+    let result = nextBlobId;
+    nextBlobId += 1;
+    Int.toText(result)
+  };
 
-    func start_batch(): BatchId {
-        let batch_id = next_batch_id;
-        next_batch_id += 1;
-        let expires = Time.now() + BATCH_EXPIRY_NANOS;
-        batch_id
-    };
+  // We track when each group of blobs should expire,
+  // so that they don't consume space after an interrupted install.
+  let BATCH_EXPIRY_NANOS = 5 * 1000 * 1000;
+  var next_batch_id = 1;
+  type Time = Int;
+  let batch_expiry = H.HashMap<Int, Time>(7, Int.equal, Int.hash);
+
+  func startBatch(): BatchId {
+    let batch_id = next_batch_id;
+    next_batch_id += 1;
+    let expires = Time.now() + BATCH_EXPIRY_NANOS;
+    batch_id
+  };
 
     public shared ({ caller }) func authorize(other: Principal) : async () {
         if (isSafe(caller)) {
@@ -151,54 +153,48 @@ shared ({caller = creator}) actor class () {
         Array.find(authorized, eq) != null
     };
 
-    public query func get(arg:{
-            key: Key;
-            accept_encodings: [Text]
-    }) : async ( { contents: Blob; content_type: Text; content_encoding: Text } ) {
-        switch (assets.get(arg.key)) {
-        case null throw Error.reject("not found");
-        case (?asset) throw Error.reject("found but not implemented");
-        };
+  public query func get(arg:{
+    key: Key;
+    accept_encodings: [Text]
+  }) : async ( { contents: Blob; content_type: Text; content_encoding: Text } ) {
+    switch (assets.get(arg.key)) {
+    case null throw Error.reject("not found");
+    case (?asset) throw Error.reject("found but not implemented");
+    };
+  };
+
+  func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
+    let blobId = allocBlobId();
+
+    let blob = Array.init<Word8>(Nat32.toNat(length), 0);
+    let blobBuffer = BlobBuffer(batchId, blob);
+
+    blobs.put(blobId, blobBuffer);
+
+    #ok(blobId)
+  };
+
+  public func create_blobs( arg: {
+    blob_info: [ { length: Nat32 } ]
+  } ) : async ( { blob_ids: [BlobId] } ) {
+    let batchId = startBatch();
+
+    let createBlobInBatch = func (arg: { length: Nat32 }) : Result.Result<BlobId, Text> {
+      createBlob(batchId, arg.length)
     };
 
-    func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
-        let blobId = alloc_blob_id();
+    switch (Array.mapResult<{length: Nat32}, BlobId, Text>(arg.blob_info, createBlobInBatch)) {
+      case (#ok(ids)) { { blob_ids = ids } };
+      case (#err(err)) throw Error.reject(err);
+    }
+  };
 
-        let blob = Array.init<Word8>(Nat32.toNat(length), 0);
-        let blobBuffer = BlobBuffer(batchId, blob);
-
-        blobs.put(blobId, blobBuffer);
-
-        #ok(blobId)
-    };
-
-    //type BlobParameters = {
-    //    length: Nat32
-    //};
-    //type CreateBlobsResult = {
-    //    blob_ids: [BlobId]
-    //};
-    public func createBlobs( arg: {
-            blobInfo: [ { length: Nat32 } ]
-    } ) : async ( { blobIds: [BlobId] } ) {
-        let batchId = start_batch();
-
-        let createBlobInBatch = func (arg: { length: Nat32 }) : Result.Result<BlobId, Text> {
-          createBlob(batchId, arg.length)
-        };
-
-        switch (Array.mapResult<{length: Nat32}, BlobId, Text>(arg.blobInfo, createBlobInBatch)) {
-          case (#ok(ids)) { { blobIds = ids } };
-          case (#err(err)) throw Error.reject(err);
-        }
-    };
-
-  public func writeBlob( arg: {
-    blobId: BlobId;
+  public func write_blob( arg: {
+    blob_id: BlobId;
     offset: Nat32;
     contents: Blob
   } ) : async () {
-    switch (blobs.get(arg.blobId)) {
+    switch (blobs.get(arg.blob_id)) {
       case null throw Error.reject("Blob not found");
       case (?blobBuffer) {
         switch (blobBuffer.setData(arg.offset, arg.contents)) {
@@ -213,19 +209,19 @@ shared ({caller = creator}) actor class () {
         throw Error.reject("batch: not implemented");
     };
 
-    public func createAsset(op: CreateAssetOperation) : async () {
+    public func create_asset(op: CreateAssetOperation) : async () {
         throw Error.reject("create_asset: not implemented");
     };
 
-    public func setAssetContent(op: SetAssetContentOperation) : async () {
+    public func set_asset_content(op: SetAssetContentOperation) : async () {
         throw Error.reject("set_asset_content: not implemented");
     };
 
-    public func unsetAssetContent(op: UnsetAssetContentOperation) : async () {
+    public func unset_asset_content(op: UnsetAssetContentOperation) : async () {
         throw Error.reject("unset_asset_content: not implemented");
     };
 
-    public func deleteAsset(op: DeleteAssetOperation) : async () {
+    public func delete_asset(op: DeleteAssetOperation) : async () {
         throw Error.reject("delete_asset: not implemented");
     };
 
