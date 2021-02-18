@@ -1,3 +1,29 @@
+= 0.6.24
+
+== DFX
+
+- feat: add deploy wallet subcommand to identity #1414
+
+This feature adds the deploy-wallet subcommand to the dfx identity.
+The User provides the ID of the canister onto which the wallet WASM is deployed.
+
+[source, bash]
+----
+dfx identity deploy-wallet --help
+dfx-identity-deploy-wallet
+Installs the wallet WASM to the provided canister id
+
+USAGE:
+    dfx identity deploy-wallet <canister-id>
+
+ARGS:
+    <canister-id>    The ID of the canister where the wallet WASM will be deployed
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+----
+
 = 0.6.22
 
 == DFX

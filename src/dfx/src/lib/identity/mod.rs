@@ -285,51 +285,71 @@ impl Identity {
         Ok(())
     }
 
-    async fn create_wallet(
+    pub async fn create_wallet(
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
+        some_canister_id: Option<Principal>,
     ) -> DfxResult<Principal> {
-        let mgr = ManagementCanister::create(
-            env.get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-        );
+        match Identity::wallet_canister_id(env, network, name) {
+            Err(_) => {
+                let mgr = ManagementCanister::create(
+                    env.get_agent()
+                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
+                );
 
-        info!(
-            env.get_logger(),
-            "Creating a wallet canister on the {} network.", network.name
-        );
+                info!(
+                    env.get_logger(),
+                    "Creating a wallet canister on the {} network.", network.name
+                );
 
-        let mut canister_assets = util::assets::wallet_canister()?;
-        let mut wasm = Vec::new();
+                let mut canister_assets = util::assets::wallet_canister()?;
+                let mut wasm = Vec::new();
 
-        for file in canister_assets.entries()? {
-            let mut file = file?;
-            if file.header().path()?.ends_with("wallet.wasm") {
-                file.read_to_end(&mut wasm)?;
+                for file in canister_assets.entries()? {
+                    let mut file = file?;
+                    if file.header().path()?.ends_with("wallet.wasm") {
+                        file.read_to_end(&mut wasm)?;
+                    }
+                }
+
+                let canister_id = match some_canister_id {
+                    Some(id) => id,
+                    None => {
+                        mgr.provisional_create_canister_with_cycles(None)
+                            .call_and_wait(waiter_with_timeout(expiry_duration()))
+                            .await?
+                            .0
+                    }
+                };
+
+                mgr.install_code(&canister_id, wasm.as_slice())
+                    .call_and_wait(waiter_with_timeout(expiry_duration()))
+                    .await?;
+
+                Identity::set_wallet_id(env, network, name, canister_id.clone())?;
+
+                info!(
+                    env.get_logger(),
+                    r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
+                    network.name,
+                    name,
+                    canister_id,
+                );
+
+                Ok(canister_id)
+            }
+            Ok(x) => {
+                info!(
+                    env.get_logger(),
+                    r#"The wallet canister "{}" already exists for user "{}" on "{}" network."#,
+                    x.to_text(),
+                    name,
+                    network.name
+                );
+                Ok(x)
             }
         }
-
-        let (canister_id,) = mgr
-            .provisional_create_canister_with_cycles(None)
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
-            .await?;
-
-        mgr.install_code(&canister_id, wasm.as_slice())
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
-            .await?;
-
-        Identity::set_wallet_id(env, network, name, canister_id.clone())?;
-
-        info!(
-            env.get_logger(),
-            r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
-            network.name,
-            name,
-            canister_id,
-        );
-
-        Ok(canister_id)
     }
 
     pub async fn get_or_create_wallet(
@@ -343,7 +363,7 @@ impl Identity {
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
                 if !network.is_ic && create {
-                    Identity::create_wallet(env, network, name).await
+                    Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(anyhow!(
                         "Could not find wallet for \"{}\" on \"{}\" network.",
