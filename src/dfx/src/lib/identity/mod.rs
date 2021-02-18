@@ -343,7 +343,12 @@ impl Identity {
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
                 if !network.is_ic && create {
-                    Identity::create_wallet(env, network, name).await
+                    Identity::create_wallet(env, network, name).await.map_err(|err|
+                        anyhow!("Unable to create a wallet canister on {}:\n{}\nWallet canisters on {} may only be created by an administrator.\nPlease submit your Principal (\"dfx identity get-principal\") here https://dfinity.typeform to have one created for you.",
+                            network.name,
+                            err,
+                            network.name,)
+                    )
                 } else {
                     Err(anyhow!(
                         "Could not find wallet for \"{}\" on \"{}\" network.",
