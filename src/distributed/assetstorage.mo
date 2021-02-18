@@ -3,6 +3,7 @@ import Error "mo:base/Error";
 import H "mo:base/HashMap";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
+import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import Nat32 "mo:base/Nat32";
 import Result "mo:base/Result";
@@ -73,11 +74,27 @@ shared ({caller = creator}) actor class () {
         asset_entries := [];
     };
 
-    // blob data doesn't need to be stable
-    class BlobBuffer(initBatchId: Nat, initBlob: [var Nat8]) {
-        let batchId = initBatchId;
-        let blob = initBlob;
+  // blob data doesn't need to be stable
+  class BlobBuffer(initBatchId: Nat, initBuffer: [var Word8]) {
+    let batchId = initBatchId;
+    let buffer = initBuffer;
+
+    public func setData(offset: Nat32, data: Blob): Result.Result<(), Text> {
+      var index: Nat = Nat32.toNat(offset);
+
+      if (index + data.size() > buffer.size()) {
+        #err("overflow: offset " # Nat32.toText(offset) #
+          " + data size " # Nat.toText(data.size()) #
+          " exceeds blob size of " # Nat.toText(buffer.size()))
+      } else {
+        for (b in data.bytes()) {
+          buffer[index] := b;
+          index += 1;
+        };
+        #ok()
+      }
     };
+  };
 
     var next_blob_id = 1;
     let blobs = H.HashMap<Text, BlobBuffer>(7, Text.equal, Text.hash);
@@ -147,7 +164,7 @@ shared ({caller = creator}) actor class () {
     func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
         let blobId = alloc_blob_id();
 
-        let blob = Array.init<Nat8>(Nat32.toNat(length), 0);
+        let blob = Array.init<Word8>(Nat32.toNat(length), 0);
         let blobBuffer = BlobBuffer(batchId, blob);
 
         blobs.put(blobId, blobBuffer);
@@ -161,46 +178,54 @@ shared ({caller = creator}) actor class () {
     //type CreateBlobsResult = {
     //    blob_ids: [BlobId]
     //};
-    public func create_blobs( arg: {
-            blob_info: [ { length: Nat32 } ]
-    } ) : async ( { blob_ids: [BlobId] } ) {
-        let batch_id = start_batch();
+    public func createBlobs( arg: {
+            blobInfo: [ { length: Nat32 } ]
+    } ) : async ( { blobIds: [BlobId] } ) {
+        let batchId = start_batch();
 
         let createBlobInBatch = func (arg: { length: Nat32 }) : Result.Result<BlobId, Text> {
-          createBlob(batch_id, arg.length)
+          createBlob(batchId, arg.length)
         };
 
-        switch(Array.mapResult<{length: Nat32}, BlobId, Text>(arg.blob_info, createBlobInBatch)) {
-          case (#ok(ids)) { { blob_ids = ids } };
+        switch (Array.mapResult<{length: Nat32}, BlobId, Text>(arg.blobInfo, createBlobInBatch)) {
+          case (#ok(ids)) { { blobIds = ids } };
           case (#err(err)) throw Error.reject(err);
         }
     };
 
-    public func write_blob( arg: {
-            blob_id: BlobId;
-            offset: Nat32;
-            contents: Blob
-    } ) : async () {
-        throw Error.reject("write_blob: not implemented");
-    };
+  public func writeBlob( arg: {
+    blobId: BlobId;
+    offset: Nat32;
+    contents: Blob
+  } ) : async () {
+    switch (blobs.get(arg.blobId)) {
+      case null throw Error.reject("Blob not found");
+      case (?blobBuffer) {
+        switch (blobBuffer.setData(arg.offset, arg.contents)) {
+          case (#ok) {};
+          case (#err(text)) throw Error.reject(text);
+        }
+      };
+    }
+  };
 
-    public func batch(ops: [BatchOperationKind]) : async() {
+    public func batch(ops: [BatchOperationKind]) : async () {
         throw Error.reject("batch: not implemented");
     };
 
-    public func create_asset(op: CreateAssetOperation) : async () {
+    public func createAsset(op: CreateAssetOperation) : async () {
         throw Error.reject("create_asset: not implemented");
     };
 
-    public func set_asset_content(op: SetAssetContentOperation) : async () {
+    public func setAssetContent(op: SetAssetContentOperation) : async () {
         throw Error.reject("set_asset_content: not implemented");
     };
 
-    public func unset_asset_content(op: UnsetAssetContentOperation) : async () {
+    public func unsetAssetContent(op: UnsetAssetContentOperation) : async () {
         throw Error.reject("unset_asset_content: not implemented");
     };
 
-    public func delete_asset(op: DeleteAssetOperation) : async () {
+    public func deleteAsset(op: DeleteAssetOperation) : async () {
         throw Error.reject("delete_asset: not implemented");
     };
 
