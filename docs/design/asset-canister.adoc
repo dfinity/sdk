@@ -207,7 +207,7 @@ service: {
     contents: blob; // may be the entirely of the content, or just chunk index 0
     content_type: text;
     content_encoding: text,
-    chunks: nat32
+    chunks: nat
   }) query;
 
   // if get() returned chunks > 1, call this to retrieve them.
@@ -215,7 +215,7 @@ service: {
   get_chunk: (record {
     key: Key,
     content_encoding: text,
-    index: nat32
+    index: nat
   }) -> (record { contents: blob }) query;
 
   list: (record {}) -> (vec record {
@@ -231,13 +231,13 @@ service: {
   // first deletes all encodings created by an earlier call to create_encodings(), that have not been set to an asset,
   // only if set_encoding_chunk() has not been called for any of those encodings within the past 5 minutes.
   create_encodings: (record {
-    encoding_info: vec record { chunks: nat32 }
+    encoding_info: vec record { chunks: nat }
   }) -> (record {
     encoding_ids: vec EncodingId
   });
 
   // upload part of an encoding's content
-  set_encoding_chunk: (record { encoding_id: EncodingId; index: nat32; contents: blob }) -> ();
+  set_encoding_chunk: (record { encoding_id: EncodingId; index: nat; contents: blob }) -> ();
 
   // Perform all operations successfully, or reject
   batch: (vec BatchOperationKind) -> ();
