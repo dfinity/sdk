@@ -23,20 +23,20 @@ teardown() {
     test -z "$(ls -A "$HOME")"
 
     assert_command dfx toolchain install 0.6.23
-    test -d $HOME/.cache/dfinity/versions
-    test -d $HOME/.dfinity/toolchains
-    test -L $HOME/.dfinity/toolchains/0.6.23
+    test -d "$HOME/.cache/dfinity/versions"
+    test -d "$HOME/.dfinity/toolchains"
+    test -L "$HOME/.dfinity/toolchains/0.6.23"
     assert_command dfx toolchain install 0.6.23
 
     assert_command dfx toolchain list
     assert_eq 0.6.23
 
     assert_command dfx toolchain default 0.6.23
-    test -L $HOME/.dfinity/default
-    test -e $HOME/.dfinity/default
+    test -L "$HOME/.dfinity/default"
+    test -e "$HOME/.dfinity/default"
 
     assert_command dfx toolchain uninstall 0.6.23
-    test ! -e $HOME/.dfinity/toolchains/0.6.23
+    test ! -e "$HOME/.dfinity/toolchains/0.6.23"
 }
 
 @test "dfx toolchain : 0.6" {
@@ -45,20 +45,20 @@ teardown() {
     test -z "$(ls -A "$HOME")"
 
     assert_command dfx toolchain install 0.6
-    test -d $HOME/.cache/dfinity/versions
-    test -d $HOME/.dfinity/toolchains
-    test -L $HOME/.dfinity/toolchains/0.6
+    test -d "$HOME/.cache/dfinity/versions"
+    test -d "$HOME/.dfinity/toolchains"
+    test -L "$HOME/.dfinity/toolchains/0.6"
     assert_command dfx toolchain install 0.6
 
     assert_command dfx toolchain list
     assert_eq 0.6
 
     assert_command dfx toolchain default 0.6
-    test -L $HOME/.dfinity/default
-    test -e $HOME/.dfinity/default
+    test -L "$HOME/.dfinity/default"
+    test -e "$HOME/.dfinity/default"
 
     assert_command dfx toolchain uninstall 0.6
-    test ! -e $HOME/.dfinity/toolchains/0.6
+    test ! -e "$HOME/.dfinity/toolchains/0.6"
 }
 
 @test "dfx toolchain : latest" {
@@ -67,18 +67,18 @@ teardown() {
     test -z "$(ls -A "$HOME")"
 
     assert_command dfx toolchain install latest
-    test -d $HOME/.cache/dfinity/versions
-    test -d $HOME/.dfinity/toolchains
-    test -L $HOME/.dfinity/toolchains/latest
+    test -d "$HOME/.cache/dfinity/versions"
+    test -d "$HOME/.dfinity/toolchains"
+    test -L "$HOME/.dfinity/toolchains/latest"
     assert_command dfx toolchain install latest
 
     assert_command dfx toolchain list
     assert_eq latest
 
     assert_command dfx toolchain default latest
-    test -L $HOME/.dfinity/default
-    test -e $HOME/.dfinity/default
+    test -L "$HOME/.dfinity/default"
+    test -e "$HOME/.dfinity/default"
 
     assert_command dfx toolchain uninstall latest
-    test ! -e $HOME/.dfinity/toolchains/latest
+    test ! -e "$HOME/.dfinity/toolchains/latest"
 }
