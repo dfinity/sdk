@@ -4,7 +4,6 @@ use crate::{error_invalid_argument, error_invalid_data};
 
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
-use reqwest;
 use semver::Version;
 use std::fs;
 use std::io::Write;

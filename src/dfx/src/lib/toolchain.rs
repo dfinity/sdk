@@ -31,10 +31,10 @@ impl FromStr for Toolchain {
             Ok(Toolchain::CompleteVersionToolchain(v))
         } else if VersionReq::parse(s).is_ok()
             && s.chars().all(|c| c.is_ascii_digit() || c == '.')
-            && s.split(".").count() == 2
+            && s.split('.').count() == 2
         {
-            let major = s.split(".").nth(0).unwrap().parse::<u8>()?;
-            let minor = s.split(".").nth(1).unwrap().parse::<u8>()?;
+            let major = s.split('.').next().unwrap().parse::<u8>()?;
+            let minor = s.split('.').nth(1).unwrap().parse::<u8>()?;
             Ok(Toolchain::MajorMinorToolchain(major, minor))
         } else {
             match s {
