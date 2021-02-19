@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 pub static TOOLCHAINS_ROOT: &str = ".dfinity/toolchains/";
+pub static DEFAULT_PATH: &str = ".dfinity/default";
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Toolchain {
@@ -128,6 +129,14 @@ impl Toolchain {
         std::fs::create_dir_all(&toolchains_dir)?;
         Ok(toolchains_dir.join(self.to_string()))
     }
+
+    pub fn set_default(&self) -> DfxResult<()> {
+        self.update()?;
+        let default_path = get_default_path()?;
+        let toolchain_path = self.get_path()?;
+        std::os::unix::fs::symlink(toolchain_path, default_path)?;
+        Ok(())
+    }
 }
 
 pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
@@ -142,6 +151,21 @@ pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
         }
     }
     Ok(toolchains)
+}
+
+pub fn get_default_toolchain() -> DfxResult<Toolchain> {
+    let default_path = get_default_path()?;
+    let toolchain_path = std::fs::read_link(&default_path)?;
+    let toolchain_name = toolchain_path.file_name().unwrap().to_str().unwrap();
+    toolchain_name.parse::<Toolchain>()
+}
+
+fn get_default_path() -> DfxResult<PathBuf> {
+    let home = std::env::var("HOME")?;
+    let home = Path::new(&home);
+    let default_path = home.join(DEFAULT_PATH);
+    std::fs::create_dir_all(&default_path)?;
+    Ok(default_path)
 }
 
 fn is_version_available(v: &Version) -> DfxResult<Version> {
