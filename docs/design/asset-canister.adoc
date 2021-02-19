@@ -48,17 +48,18 @@ Store per asset:
 * Content type
 * Content for one or more content encodings
 ** Content encoding
-** Content blob
+** The actual content (bytes)
+*** Split up into chunks for retrieval
 
 === Implementation
 
-We will implement the canister in Motoko using existing stable memory data structures such as RBTree or Trie.
+We will implement the canister in Motoko, because the canister's functionality
+is within the realm of what might be found in a typical application canister.
 
 === Considered Solutions
 
 ==== Motoko canister
 
-* The API will be straightforward to implement using existing stable-memory data structures
 * Currently there is not a large body of Motoko libraries for things like compression
 ** Mitigated by: compression would probably be better done in dfx anyway
 
@@ -140,17 +141,8 @@ canister per block height.
 [source,candid]
 ----
 
-type Contents = blob;
-type BlobId = text;
+type EncodingId = text;
 type Key = text;
-
-type AssetInfo = record {
-  key: Key;
-  content_type: text;
-  encoding_details: vec record {
-    content_encoding: text;
-  };
-};
 
 // Create a new asset.  Contents will be attached later with SetContent.
 //   - No-op if asset already exists with the same content type.
@@ -164,7 +156,7 @@ type CreateAssetOperation = record {
 type SetAssetContentOperation = record {
   key: Key;
   content_encoding: text;
-  blob_id: BlobId;
+  encoding_id: EncodingId;
 };
 
 // Remove content for an asset, by content encoding
@@ -211,18 +203,41 @@ service: {
   get: (record {
     key: Key,
     accept_encodings: vec text
-  }) -> (record { contents: blob; content_type: text; content_encoding: text }) query;
+  }) -> (record {
+    contents: blob; // may be the entirely of the content, or just chunk index 0
+    content_type: text;
+    content_encoding: text,
+    chunks: nat32
+  }) query;
 
-  list: (record {}) -> (vec AssetInfo) query;
+  // if get() returned chunks > 1, call this to retrieve them.
+  // chunks may or may not be split up at the same boundaries as presented to set_encoding_chunk().
+  get_chunk: (record {
+    key: Key,
+    content_encoding: text,
+    index: nat32
+  }) -> (record { contents: blob }) query;
 
-  // allocate space for content
+  list: (record {}) -> (vec record {
+    key: Key;
+    content_type: text;
+    encodings: vec record {
+      content_encoding: text;
+    };
+  }) query;
+
+  // allocate space for content encodings
   //
-  // first deletes all blobs created by an earlier call to create_blobs(), that have not been set to an asset,
-  // only if write_blob() has not been called for any of those blobs within the past 5 minutes.
-  create_blobs: (record { blob_info: vec record { length: nat32 } } ) -> (record { blob_ids: vec BlobId });
+  // first deletes all encodings created by an earlier call to create_encodings(), that have not been set to an asset,
+  // only if set_encoding_chunk() has not been called for any of those encodings within the past 5 minutes.
+  create_encodings: (record {
+    encoding_info: vec record { chunks: nat32 }
+  }) -> (record {
+    encoding_ids: vec EncodingId
+  });
 
-  // upload part of a blob's content
-  write_blob: (record { blob_id: BlobId; offset: nat32; contents: blob }) -> ();
+  // upload part of an encoding's content
+  set_encoding_chunk: (record { encoding_id: EncodingId; index: nat32; contents: blob }) -> ();
 
   // Perform all operations successfully, or reject
   batch: (vec BatchOperationKind) -> ();
