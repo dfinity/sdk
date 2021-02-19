@@ -32,9 +32,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "master",
+        "branch": "basvandijk/minor-nixpkgs-upgrade-2020-02-19",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "97af0a53b2e9b288311380434efaa2ed2b1f1d40",
+        "rev": "6093bd24d0f41b958a75aacd8ce06aaf041b077d",
         "type": "git"
     },
     "dfinity": {
