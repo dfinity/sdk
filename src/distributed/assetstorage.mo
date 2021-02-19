@@ -78,6 +78,8 @@ shared ({caller = creator}) actor class () {
 
     stable var asset_entries : [(Key, Asset)] = [];
     let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
+    let assets_manipulator = SHM.StableHashMapManipulator<Key, Asset>(7, Text.equal, Text.hash);
+    let encodings_manipulator = SHM.StableHashMapManipulator<Text, AssetEncoding>(7, Text.equal, Text.hash);
 
     system func preupgrade() {
         asset_entries := Iter.toArray(assets.entries());
@@ -164,12 +166,27 @@ shared ({caller = creator}) actor class () {
         };
     };
 
-    public query func retrieve(path : Path) : async Contents {
-        switch (db.get(path)) {
-        case null throw Error.reject("not found");
-        case (?contents) contents;
-        };
+  //public query func retrieveX(path : Path) : async Contents {
+  //  let arg = {
+  //    key = path;
+  //    accept_encodings = [];
+  //  };
+  //  let x = get(arg);
+  //  x.contents
+  //};
+  public query func retrieve(path : Path) : async [Nat8] {
+    switch (assets.get(path)) {
+    case null throw Error.reject("not found");
+    case (?asset) {
+      switch (getAssetEncoding(asset, [])) {
+        case null throw Error.reject("no such encoding");
+        case (?encoding) {
+          encoding.content
+        }
+      };
+      };
     };
+  };
 
     public query func list() : async [Path] {
         let iter = Iter.map<(Path, Contents), Path>(db.entries(), func (path, _) = path);
@@ -288,7 +305,7 @@ shared ({caller = creator}) actor class () {
           content = blob;
         };
 
-        //asset.encodings.put((arg.content_encoding, encoding));
+        encodings_manipulator.put(asset.encodings, arg.content_encoding, encoding);
         throw Error.reject("set_asset_content: not implemented");
       };
     };
