@@ -73,6 +73,12 @@ shared ({caller = creator}) actor class () {
   };
 
   func getAssetEncoding(asset : Asset, acceptEncodings : [Text]) : ?AssetEncoding {
+    for (acceptEncoding in acceptEncodings.vals()) {
+      switch (encodings_manipulator.get(asset.encodings, acceptEncoding)) {
+        case null {};
+        case (?assetEncoding) return ?assetEncoding;
+      }
+    };
     null
   };
 
@@ -306,7 +312,6 @@ shared ({caller = creator}) actor class () {
         };
 
         encodings_manipulator.put(asset.encodings, arg.content_encoding, encoding);
-        throw Error.reject("set_asset_content: not implemented");
       };
     };
   };
@@ -322,4 +327,7 @@ shared ({caller = creator}) actor class () {
     public func clear(op: ClearOperation) : async () {
         throw Error.reject("clear: not implemented");
     };
+
+    public func version_4() : async() {
+    }
 };

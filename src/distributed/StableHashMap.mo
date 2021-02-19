@@ -21,6 +21,18 @@ public class StableHashMapManipulator<K, V>(
   keyHash: K -> Hash.Hash
 ) {
 
+  /// Gets the entry with the key `k` and returns its associated value if it
+  /// existed or `null` otherwise.
+  public func get(shm: StableHashMap<K, V>, k:K) : ?V {
+    let h = Prim.word32ToNat(keyHash(k));
+    let m = shm.table.size();
+    let v = if (m > 0) {
+      AssocList.find<K,V>(shm.table[h % m], k, keyEq)
+    } else {
+      null
+    };
+  };
+
   /// Insert the value `v` at key `k`. Overwrites an existing entry with key `k`
   public func put(m: StableHashMap<K, V>, k : K, v : V) = ignore replace(m, k, v);
 
