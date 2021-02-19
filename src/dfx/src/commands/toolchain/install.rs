@@ -4,6 +4,7 @@ use crate::lib::toolchain::Toolchain;
 
 use clap::Clap;
 
+/// Install or update given toolchain(s)
 #[derive(Clap)]
 #[clap(name("install"))]
 pub struct ToolchainInstall {

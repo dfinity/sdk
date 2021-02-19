@@ -5,6 +5,7 @@ use crate::lib::toolchain::Toolchain;
 
 use clap::Clap;
 
+/// Set default toolchain or get current default toolchain
 #[derive(Clap)]
 #[clap(name("default"))]
 pub struct ToolchainDefault {

@@ -4,6 +4,7 @@ use crate::lib::toolchain;
 
 use clap::Clap;
 
+/// List installed toolchains
 #[derive(Clap)]
 #[clap(name("list"))]
 pub struct ToolchainList {}

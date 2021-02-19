@@ -4,6 +4,7 @@ use crate::lib::toolchain::Toolchain;
 
 use clap::Clap;
 
+/// Uninstall toolchain(s)
 #[derive(Clap)]
 #[clap(name("uninstall"))]
 pub struct ToolchainUninstall {
