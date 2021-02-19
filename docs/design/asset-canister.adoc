@@ -141,7 +141,8 @@ canister per block height.
 [source,candid]
 ----
 
-type EncodingId = text;
+type BatchId = nat;
+type ChunkId = nat;
 type Key = text;
 
 // Create a new asset.  Contents will be attached later with SetContent.
@@ -156,7 +157,7 @@ type CreateAssetOperation = record {
 type SetAssetContentOperation = record {
   key: Key;
   content_encoding: text;
-  encoding_id: EncodingId;
+  chunk_ids: vec ChunkId;
 };
 
 // Remove content for an asset, by content encoding
@@ -186,14 +187,14 @@ type SetAssetExpiryOperation = record {
 type ClearOperation = record {};
 
 type BatchOperationKind = variant {
-  Create: CreateAssetOperation;
-  SetContent: SetAssetContentOperation;
+  CreateAsset: CreateAssetOperation;
+  SetAssetContent: SetAssetContentOperation;
 
-  UnsetContent: UnsetAssetContentOperation;
-  Delete: DeleteAssetOperation;
+  UnsetAssetContent: UnsetAssetContentOperation;
+  DeleteAsset: DeleteAssetOperation;
 
-  SetAcl: SetAssetAclOperation;
-  SetExpiry: SetAssetExpiryOperation;
+  SetAssetAcl: SetAssetAclOperation;
+  SetAssetExpiry: SetAssetExpiryOperation;
 
   Clear: ClearOperation;
 };
@@ -204,14 +205,14 @@ service: {
     key: Key,
     accept_encodings: vec text
   }) -> (record {
-    content: blob; // may be the entirely of the content, or just chunk index 0
+    content: blob; // may be the entirety of the content, or just chunk index 0
     content_type: text;
     content_encoding: text,
-    chunk_count: nat
+    total_length: nat // all chunks except last have size == content.size()
   }) query;
 
   // if get() returned chunks > 1, call this to retrieve them.
-  // chunks may or may not be split up at the same boundaries as presented to set_encoding_chunk().
+  // chunks may or may not be split up at the same boundaries as presented to create_chunk().
   get_chunk: (record {
     key: Key,
     content_encoding: text,
@@ -226,21 +227,12 @@ service: {
     };
   }) query;
 
-  // allocate space for content encodings
-  //
-  // first deletes all encodings created by an earlier call to create_encodings(), that have not been set to an asset,
-  // only if set_encoding_chunk() has not been called for any of those encodings recently.
-  create_encodings: (record {
-    encoding_info: vec record { chunks: nat }
-  }) -> (record {
-    encoding_ids: vec EncodingId
-  });
+  create_batch() -> (record { batch_id: BatchId });
 
-  // upload part of an encoding's content
-  set_encoding_chunk: (record { encoding_id: EncodingId; index: nat; content: blob }) -> ();
+  create_chunk: (record { batch_id: BatchId; content: blob }) -> (record { chunk_id: nat });
 
   // Perform all operations successfully, or reject
-  batch: (vec BatchOperationKind) -> ();
+  batch: (record { batch_id: BatchId; ops: vec BatchOperationKind }) -> ();
 
   create_asset: (CreateAssetOperation) -> ();
   set_asset_content: (SetAssetContentOperation) -> ();
