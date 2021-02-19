@@ -1,4 +1,3 @@
-use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -44,15 +43,7 @@ async fn stop_canister(
         canister_id.to_text(),
     );
 
-    let ic_api_version = fetch_api_version(env).await?;
-    if ic_api_version == "0.14.0" {
-        let mgr = ManagementCanister::create(agent);
-        mgr.stop_canister(&canister_id)
-            .call_and_wait(waiter_with_timeout(timeout))
-            .await?;
-    } else {
-        canister::stop_canister(env, canister_id, timeout).await?;
-    }
+    canister::stop_canister(env, canister_id, timeout).await?;
 
     Ok(())
 }

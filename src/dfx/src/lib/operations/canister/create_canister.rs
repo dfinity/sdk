@@ -1,4 +1,3 @@
-use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
@@ -54,31 +53,20 @@ pub async fn create_canister(
                     .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
             );
 
-            let ic_api_version = fetch_api_version(env).await?;
             let identity_name = env
                 .get_selected_identity()
                 .expect("No selected identity.")
                 .to_string();
 
-            // Both Sodium & the local Replica ic_api_version is 0.14.0
-            // Explicitly disable wallet workflow for them
-            let cid = if network.is_ic || ic_api_version == "0.14.0" {
-                let (cid,) = mgr
-                    .create_canister()
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?;
-                cid
-            } else {
-                info!(log, "Creating the canister using the wallet canister...");
-                let wallet =
-                    Identity::get_or_create_wallet_canister(env, network, &identity_name, true)
-                        .await?;
-                let (create_result,) = wallet
-                    .wallet_create_canister(1000000000001_u64, None)
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?;
-                create_result.canister_id
-            };
+            info!(log, "Creating the canister using the wallet canister...");
+            let wallet =
+                Identity::get_or_create_wallet_canister(env, network, &identity_name, true).await?;
+            let (create_result,) = wallet
+                .wallet_create_canister(1000000000001_u64, None)
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
+            let cid = create_result.canister_id;
+
             let canister_id = cid.to_text();
             info!(
                 log,
