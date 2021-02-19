@@ -18,6 +18,7 @@ shared ({caller = creator}) actor class () {
 
     public type BatchId = Nat;
     public type BlobId = Text;
+    public type EncodingId = Text;
     public type Key = Text;
     public type Path = Text;
     public type Commit = Bool;
@@ -131,6 +132,14 @@ shared ({caller = creator}) actor class () {
     Int.toText(result)
   };
 
+  var nextEncodingId = 1;
+  let encodings = H.HashMap<Text, [var ?Blob]>(7, Text.equal, Text.hash);
+  func allocEncodingId() : EncodingId {
+    let result = nextEncodingId;
+    nextEncodingId += 1;
+    Int.toText(result)
+  };
+
   func takeBlob(blobId: BlobId) : ?[Nat8] {
     switch (blobs.remove(blobId)) {
       case null null;
@@ -142,9 +151,13 @@ shared ({caller = creator}) actor class () {
     }
   };
 
+  type Batch = {
+      expiry : Time;
+  };
+
   // We track when each group of blobs should expire,
   // so that they don't consume space after an interrupted install.
-  let BATCH_EXPIRY_NANOS = 5 * 1000 * 1000;
+  let BATCH_EXPIRY_NANOS = 5 * 60 * 1000 * 1000;
   var next_batch_id = 1;
   type Time = Int;
   let batch_expiry = H.HashMap<Int, Time>(7, Int.equal, Int.hash);
@@ -248,6 +261,14 @@ shared ({caller = creator}) actor class () {
     #ok(blobId)
   };
 
+  func createEncoding(batch: Batch, chunks: Nat32) : Result.Result<EncodingId, Text> {
+    let encodingId = allocEncodingId();
+    let chunkArray = Array.init<?Blob>(Nat32.toNat(chunks), null);
+    encodings.put(encodingId, chunkArray);
+
+    #ok(encodingId)
+  };
+
   public func create_blobs( arg: {
     blob_info: [ { length: Nat32 } ]
   } ) : async ( { blob_ids: [BlobId] } ) {
@@ -259,6 +280,21 @@ shared ({caller = creator}) actor class () {
 
     switch (Array.mapResult<{length: Nat32}, BlobId, Text>(arg.blob_info, createBlobInBatch)) {
       case (#ok(ids)) { { blob_ids = ids } };
+      case (#err(err)) throw Error.reject(err);
+    }
+  };
+
+  public func create_encodings( arg: {
+    encoding_info: [ { chunks: Nat32 } ]
+  } ) : async ( { encoding_ids: [EncodingId] } ) {
+    let batch : Batch = {
+      expiry = Time.now() + BATCH_EXPIRY_NANOS;
+    };
+    let createEncodingInBatch = func (arg: { chunks: Nat32 }) : Result.Result<EncodingId, Text> {
+      createEncoding(batch, arg.chunks)
+    };
+    switch (Array.mapResult<{chunks: Nat32}, EncodingId, Text>(arg.encoding_info, createEncodingInBatch)) {
+      case (#ok(ids)) { { encoding_ids = ids } };
       case (#err(err)) throw Error.reject(err);
     }
   };
@@ -276,6 +312,17 @@ shared ({caller = creator}) actor class () {
           case (#err(text)) throw Error.reject(text);
         }
       };
+    }
+  };
+
+  public func set_encoding_chunk( arg: {
+    encoding_id: EncodingId;
+    index: Nat;
+    contents: Blob;
+  } ) : async () {
+    switch (encodings.get(arg.encoding_id)) {
+      case null throw Error.reject("Encoding not found");
+      case (?encodingChunks) encodingChunks[arg.index] := ?arg.contents;
     }
   };
 
