@@ -204,10 +204,10 @@ service: {
     key: Key,
     accept_encodings: vec text
   }) -> (record {
-    contents: blob; // may be the entirely of the content, or just chunk index 0
+    content: blob; // may be the entirely of the content, or just chunk index 0
     content_type: text;
     content_encoding: text,
-    chunks: nat
+    chunk_count: nat
   }) query;
 
   // if get() returned chunks > 1, call this to retrieve them.
@@ -216,7 +216,7 @@ service: {
     key: Key,
     content_encoding: text,
     index: nat
-  }) -> (record { contents: blob }) query;
+  }) -> (record { content: blob }) query;
 
   list: (record {}) -> (vec record {
     key: Key;
@@ -229,7 +229,7 @@ service: {
   // allocate space for content encodings
   //
   // first deletes all encodings created by an earlier call to create_encodings(), that have not been set to an asset,
-  // only if set_encoding_chunk() has not been called for any of those encodings within the past 5 minutes.
+  // only if set_encoding_chunk() has not been called for any of those encodings recently.
   create_encodings: (record {
     encoding_info: vec record { chunks: nat }
   }) -> (record {
@@ -237,7 +237,7 @@ service: {
   });
 
   // upload part of an encoding's content
-  set_encoding_chunk: (record { encoding_id: EncodingId; index: nat; contents: blob }) -> ();
+  set_encoding_chunk: (record { encoding_id: EncodingId; index: nat; content: blob }) -> ();
 
   // Perform all operations successfully, or reject
   batch: (vec BatchOperationKind) -> ();
@@ -255,7 +255,7 @@ service: {
 
   // Single call to create an asset with content for a single content encoding that
   // fits within the message ingress limit.
-  store: (record { key: Key; content_type: text; content_encoding: text; contents: blob }) -> ();
+  store: (record { key: Key; content_type: text; content_encoding: text; content: blob }) -> ();
 }
 
 ----
