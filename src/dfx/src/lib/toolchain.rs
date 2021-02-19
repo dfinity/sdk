@@ -99,6 +99,9 @@ impl Toolchain {
             };
 
             let cache_path = cache::get_bin_cache(&resolved_version.to_string())?;
+            if toolchain_path.exists() {
+                std::fs::remove_file(&toolchain_path)?;
+            }
             std::os::unix::fs::symlink(cache_path, toolchain_path)?;
         }
 
@@ -134,7 +137,11 @@ impl Toolchain {
         self.update()?;
         let default_path = get_default_path()?;
         let toolchain_path = self.get_path()?;
+        if default_path.exists() {
+            std::fs::remove_file(&default_path)?;
+        }
         std::os::unix::fs::symlink(toolchain_path, default_path)?;
+        eprintln!("Default toolchain set to {}", self);
         Ok(())
     }
 }
@@ -155,6 +162,9 @@ pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
 
 pub fn get_default_toolchain() -> DfxResult<Toolchain> {
     let default_path = get_default_path()?;
+    if !default_path.exists() {
+        bail!("Default toolchain not set");
+    }
     let toolchain_path = std::fs::read_link(&default_path)?;
     let toolchain_name = toolchain_path.file_name().unwrap().to_str().unwrap();
     toolchain_name.parse::<Toolchain>()
@@ -164,7 +174,8 @@ fn get_default_path() -> DfxResult<PathBuf> {
     let home = std::env::var("HOME")?;
     let home = Path::new(&home);
     let default_path = home.join(DEFAULT_PATH);
-    std::fs::create_dir_all(&default_path)?;
+    let parent = default_path.parent().unwrap();
+    std::fs::create_dir_all(parent)?;
     Ok(default_path)
 }
 
@@ -173,7 +184,7 @@ fn is_version_available(v: &Version) -> DfxResult<Version> {
     let versions = manifest.get_versions();
     match versions.contains(v) {
         true => Ok(v.clone()),
-        false => bail!("SDK Version {} is not available from the server"),
+        false => bail!("SDK Version {} is not available from the server", v),
     }
 }
 
