@@ -7,7 +7,6 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use anyhow::anyhow;
 use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
-use slog::info;
 use tokio::runtime::Runtime;
 
 /// Installs the wallet WASM to the provided canister id.

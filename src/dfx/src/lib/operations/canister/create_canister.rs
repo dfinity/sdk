@@ -5,9 +5,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::anyhow;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
 use std::time::Duration;
@@ -47,11 +45,6 @@ pub async fn create_canister(
             let network = env
                 .get_network_descriptor()
                 .expect("No network descriptor.");
-
-            let mgr = ManagementCanister::create(
-                env.get_agent()
-                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-            );
 
             let identity_name = env
                 .get_selected_identity()

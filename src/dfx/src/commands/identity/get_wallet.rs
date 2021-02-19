@@ -5,7 +5,6 @@ use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use clap::Clap;
-use slog::info;
 use tokio::runtime::Runtime;
 
 /// Gets the canister ID for the wallet associated with your identity on a network.

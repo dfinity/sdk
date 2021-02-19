@@ -1,19 +1,15 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::identity::Identity as DfxIdentity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::set_controller;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use clap::Clap;
 use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
-use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::ManagementCanister;
 
 /// Sets the provided identity's name or its principal as the
 /// new controller of a canister on the Internet Computer network.
