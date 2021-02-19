@@ -375,6 +375,6 @@ shared ({caller = creator}) actor class () {
         throw Error.reject("clear: not implemented");
     };
 
-    public func version_4() : async() {
+    public func version_5() : async() {
     }
 };
