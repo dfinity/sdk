@@ -9,8 +9,8 @@ use std::fmt::Formatter;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-pub static TOOLCHAINS_ROOT: &str = ".dfinity/toolchains/";
-pub static DEFAULT_PATH: &str = ".dfinity/default";
+const TOOLCHAINS_ROOT: &str = ".dfinity/toolchains/";
+const DEFAULT_PATH: &str = ".dfinity/default";
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Toolchain {
