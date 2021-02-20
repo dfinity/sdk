@@ -229,7 +229,7 @@ service: {
 
   create_batch() -> (record { batch_id: BatchId });
 
-  create_chunk: (record { batch_id: BatchId; content: blob }) -> (record { chunk_id: nat });
+  create_chunk: (record { batch_id: BatchId; content: blob }) -> (record { chunk_id: ChunkId });
 
   // Perform all operations successfully, or reject
   batch: (record { batch_id: BatchId; ops: vec BatchOperationKind }) -> ();
