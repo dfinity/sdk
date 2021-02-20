@@ -18,6 +18,7 @@ shared ({caller = creator}) actor class () {
 
     public type BatchId = Nat;
     public type BlobId = Text;
+    public type ChunkId = Nat;
     public type EncodingId = Text;
     public type Key = Text;
     public type Path = Text;
@@ -29,32 +30,33 @@ shared ({caller = creator}) actor class () {
     public type TotalLength = Nat;
 
 
-    public type CreateAssetOperation = {
+    public type CreateAssetArguments = {
         key: Key;
         content_type: Text;
     };
-    public type SetAssetContentOperation = {
+    public type SetAssetContentArguments = {
         key: Key;
         content_encoding: Text;
-        blob_id: BlobId;
+        chunk_ids: [ChunkId]
     };
-    public type UnsetAssetContentOperation = {
+    public type UnsetAssetContentArguments = {
         key: Key;
         content_encoding: Text;
     };
-    public type DeleteAssetOperation = {
+    public type DeleteAssetArguments = {
         key: Key;
     };
-    public type ClearOperation = {
+    public type ClearArguments = {
     };
 
     public type BatchOperationKind = {
-        #create: CreateAssetOperation;
-        #set_content: SetAssetContentOperation;
-        #unset_content: UnsetAssetContentOperation;
+        #create_asset: CreateAssetArguments;
+        #set_asset_content: SetAssetContentArguments;
+        #unset_asset_content: UnsetAssetContentArguments;
 
-        #delete: DeleteAssetOperation;
-        #clear: ClearOperation;
+        #delete_asset: DeleteAssetArguments;
+
+        #clear: ClearArguments;
     };
 
 
@@ -65,7 +67,8 @@ shared ({caller = creator}) actor class () {
 
   type AssetEncoding = {
     contentEncoding: Text;
-    content: [Nat8];
+    content: [Blob];
+    totalLength: Nat;
   };
 
   type Asset = {
@@ -77,24 +80,25 @@ shared ({caller = creator}) actor class () {
     for (acceptEncoding in acceptEncodings.vals()) {
       switch (encodings_manipulator.get(asset.encodings, acceptEncoding)) {
         case null {};
-        case (?assetEncoding) return ?assetEncoding;
+        case (?encodings) return ?encodings;
       }
     };
     null
   };
 
-    stable var asset_entries : [(Key, Asset)] = [];
-    let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
-    let assets_manipulator = SHM.StableHashMapManipulator<Key, Asset>(7, Text.equal, Text.hash);
-    let encodings_manipulator = SHM.StableHashMapManipulator<Text, AssetEncoding>(7, Text.equal, Text.hash);
 
-    system func preupgrade() {
-        asset_entries := Iter.toArray(assets.entries());
-    };
+  stable var asset_entries : [(Key, Asset)] = [];
+  let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
+  let assets_manipulator = SHM.StableHashMapManipulator<Key, Asset>(7, Text.equal, Text.hash);
+  let encodings_manipulator = SHM.StableHashMapManipulator<Text, AssetEncoding>(7, Text.equal, Text.hash);
 
-    system func postupgrade() {
-        asset_entries := [];
-    };
+  system func preupgrade() {
+    asset_entries := Iter.toArray(assets.entries());
+  };
+
+  system func postupgrade() {
+    asset_entries := [];
+  };
 
   // blob data doesn't need to be stable
   class BlobBuffer(initBatchId: Nat, initBuffer: [var Nat8]) {
@@ -123,13 +127,32 @@ shared ({caller = creator}) actor class () {
     };
   };
 
+  type Chunk = {
+    batch: Batch;
+    content: Blob;
+  };
+
   var nextBlobId = 1;
   let blobs = H.HashMap<Text, BlobBuffer>(7, Text.equal, Text.hash);
+
+  var nextChunkId = 1;
+  let chunks = H.HashMap<Int, Chunk>(7, Int.equal, Int.hash);
 
   func allocBlobId() : BlobId {
     let result = nextBlobId;
     nextBlobId += 1;
     Int.toText(result)
+  };
+
+  func createChunk(batch: Batch, content: Blob) : ChunkId {
+    let chunkId = nextChunkId;
+    nextChunkId += 1;
+    let chunk : Chunk = {
+      batch = batch;
+      content = content;
+    };
+    chunks.put(chunkId, chunk);
+    chunkId
   };
 
   var nextEncodingId = 1;
@@ -151,6 +174,13 @@ shared ({caller = creator}) actor class () {
     }
   };
 
+  func takeChunk(chunkId: ChunkId): Result.Result<Blob, Text> {
+    switch (chunks.remove(chunkId)) {
+      case null #err("chunk not found");
+      case (?chunk) #ok(chunk.content);
+    }
+  };
+
   type Batch = {
       expiry : Time;
   };
@@ -160,12 +190,15 @@ shared ({caller = creator}) actor class () {
   let BATCH_EXPIRY_NANOS = 5 * 60 * 1000 * 1000;
   var next_batch_id = 1;
   type Time = Int;
-  let batch_expiry = H.HashMap<Int, Time>(7, Int.equal, Int.hash);
+  let batches = H.HashMap<Int, Batch>(7, Int.equal, Int.hash);
 
   func startBatch(): BatchId {
     let batch_id = next_batch_id;
     next_batch_id += 1;
-    let expires = Time.now() + BATCH_EXPIRY_NANOS;
+    let batch : Batch = {
+      expiry = Time.now() + BATCH_EXPIRY_NANOS;
+    };
+    batches.put(batch_id, batch);
     batch_id
   };
 
@@ -185,22 +218,14 @@ shared ({caller = creator}) actor class () {
         };
     };
 
-  //public query func retrieveX(path : Path) : async Contents {
-  //  let arg = {
-  //    key = path;
-  //    accept_encodings = [];
-  //  };
-  //  let x = get(arg);
-  //  x.contents
-  //};
-  public query func retrieve(path : Path) : async [Nat8] {
+  public query func retrieve(path : Path) : async Blob {
     switch (assets.get(path)) {
     case null throw Error.reject("not found");
     case (?asset) {
-      switch (getAssetEncoding(asset, [])) {
+      switch (getAssetEncoding(asset, ["identity"])) {
         case null throw Error.reject("no such encoding");
         case (?encoding) {
-          encoding.content
+          encoding.content[0]
         }
       };
       };
@@ -223,32 +248,51 @@ shared ({caller = creator}) actor class () {
   public query func get(arg:{
     key: Key;
     accept_encodings: [Text]
-  }) : async ( { contents: [Nat8]; content_type: Text; content_encoding: Text } ) {
+  }) : async ( {
+    content: Blob;
+    content_type: Text;
+    content_encoding: Text;
+    total_length: Nat;
+  } ) {
     switch (assets.get(arg.key)) {
-    case null throw Error.reject("not found");
-    case (?asset) {
-      switch (getAssetEncoding(asset, arg.accept_encodings)) {
-        case null throw Error.reject("no such encoding");
-        case (?encoding) {
-          {
-            contents = encoding.content;
-            content_type = asset.contentType;
-            content_encoding = encoding.contentEncoding;
+      case null throw Error.reject("not found");
+      case (?asset) {
+        switch (getAssetEncoding(asset, arg.accept_encodings)) {
+          case null throw Error.reject("no such encoding");
+          case (?encoding) {
+            {
+              content = encoding.content[0];
+              content_type = asset.contentType;
+              content_encoding = encoding.contentEncoding;
+              total_length = encoding.totalLength;
+            }
           }
-        }
-      };
+        };
       };
     };
   };
 
-  //func arrayToBlob(a : [Word8]) : Blob {
-  //  a
-  //};
-
-
-  //func nat8ArrayToBlob(a : [Nat8]) : Blob {
-  //  a
-  //};
+  public query func get_chunk(arg:{
+    key: Key;
+    content_encoding: Text;
+    index: Nat;
+  }) : async ( {
+    content: Blob
+  }) {
+    switch (assets.get(arg.key)) {
+      case null throw Error.reject("not found");
+      case (?asset) {
+        switch (encodings_manipulator.get(asset.encodings, arg.content_encoding)) {
+          case null throw Error.reject("no such encoding");
+          case (?encoding) {
+            {
+              content = encoding.content[arg.index];
+            }
+          }
+        };
+      };
+    };
+  };
 
   func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
     let blobId = allocBlobId();
@@ -326,11 +370,35 @@ shared ({caller = creator}) actor class () {
     }
   };
 
+  public func create_batch() : async ({
+    batch_id: BatchId
+  }) {
+    {
+      batch_id = startBatch();
+    }
+  };
+
+  public func create_chunk( arg: {
+    batch_id: BatchId;
+    content: Blob;
+  } ) : async ({
+    chunk_id: ChunkId
+  }) {
+    switch (batches.get(arg.batch_id)) {
+      case null throw Error.reject("batch not found");
+      case (?batch) {
+        {
+          chunk_id = createChunk(batch, arg.content)
+        }
+      }
+    }
+  };
+
     public func batch(ops: [BatchOperationKind]) : async () {
         throw Error.reject("batch: not implemented");
     };
 
-  public func create_asset(arg: CreateAssetOperation) : async () {
+  public func create_asset(arg: CreateAssetArguments) : async () {
     switch (assets.get(arg.key)) {
       case null {
         let asset : Asset = {
@@ -347,34 +415,42 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  public func set_asset_content(arg: SetAssetContentOperation) : async () {
-    switch (assets.get(arg.key), takeBlob(arg.blob_id)) {
-      case (null,null) throw Error.reject("Asset and Blob not found");
-      case (null,?blob) throw Error.reject("Asset not found");
-      case (?asset,null) throw Error.reject("Blob not found");
-      case (?asset,?blob) {
-        let encoding : AssetEncoding = {
-          contentEncoding = arg.content_encoding;
-          content = blob;
-        };
+  func addBlobLength(acc: Nat, blob: Blob): Nat {
+    acc + blob.size()
+  };
 
-        encodings_manipulator.put(asset.encodings, arg.content_encoding, encoding);
+  public func set_asset_content(arg: SetAssetContentArguments) : async () {
+    switch (assets.get(arg.key)) {
+      case null throw Error.reject("Asset not found");
+      case (?asset) {
+        switch (Array.mapResult<ChunkId, Blob, Text>(arg.chunk_ids, takeChunk)) {
+          case (#ok(chunks)) {
+            let encoding : AssetEncoding = {
+              contentEncoding = arg.content_encoding;
+              content = chunks;
+              totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, addBlobLength);
+            };
+
+            encodings_manipulator.put(asset.encodings, arg.content_encoding, encoding);
+          };
+          case (#err(err)) throw Error.reject(err);
+        };
       };
     };
   };
 
-    public func unset_asset_content(op: UnsetAssetContentOperation) : async () {
+    public func unset_asset_content(op: UnsetAssetContentArguments) : async () {
         throw Error.reject("unset_asset_content: not implemented");
     };
 
-    public func delete_asset(op: DeleteAssetOperation) : async () {
+    public func delete_asset(op: DeleteAssetArguments) : async () {
         throw Error.reject("delete_asset: not implemented");
     };
 
-    public func clear(op: ClearOperation) : async () {
+    public func clear(op: ClearArguments) : async () {
         throw Error.reject("clear: not implemented");
     };
 
-    public func version_5() : async() {
+    public func version_8() : async() {
     }
 };
