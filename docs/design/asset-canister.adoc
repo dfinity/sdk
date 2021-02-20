@@ -148,55 +148,55 @@ type Key = text;
 // Create a new asset.  Contents will be attached later with SetContent.
 //   - No-op if asset already exists with the same content type.
 //   - Error if asset already exists with a different content type (delete first).
-type CreateAssetOperation = record {
+type CreateAssetArguments = record {
   key: Key;
   content_type: text;
 };
 
 // Add or change content for an asset, by content encoding
-type SetAssetContentOperation = record {
+type SetAssetContentArguments = record {
   key: Key;
   content_encoding: text;
   chunk_ids: vec ChunkId;
 };
 
 // Remove content for an asset, by content encoding
-type UnsetAssetContentOperation = record {
+type UnsetAssetContentArguments = record {
   key: Key;
   content_encoding: text;
 };
 
 // Delete an asset
-type DeleteAssetOperation = record {
+type DeleteAssetArguments = record {
   key: Key;
 };
 
 // Future: set up access control
-type SetAssetAclOperation = record {
+type SetAssetAclArguments = record {
   key: Key;
   tbd: text;
 };
 
 // Future: set a time after which to delete an asset
-type SetAssetExpiryOperation = record {
+type SetAssetExpiryArguments = record {
   key: Key;
   tbd: text;
 };
 
 // Reset everything
-type ClearOperation = record {};
+type ClearArguments = record {};
 
 type BatchOperationKind = variant {
-  CreateAsset: CreateAssetOperation;
-  SetAssetContent: SetAssetContentOperation;
+  CreateAsset: CreateAssetArguments;
+  SetAssetContent: SetAssetContentArguments;
 
-  UnsetAssetContent: UnsetAssetContentOperation;
-  DeleteAsset: DeleteAssetOperation;
+  UnsetAssetContent: UnsetAssetContentArguments;
+  DeleteAsset: DeleteAssetArguments;
 
-  SetAssetAcl: SetAssetAclOperation;
-  SetAssetExpiry: SetAssetExpiryOperation;
+  SetAssetAcl: SetAssetAclArguments;
+  SetAssetExpiry: SetAssetExpiryArguments;
 
-  Clear: ClearOperation;
+  Clear: ClearArguments;
 };
 
 service: {
@@ -234,16 +234,16 @@ service: {
   // Perform all operations successfully, or reject
   batch: (record { batch_id: BatchId; ops: vec BatchOperationKind }) -> ();
 
-  create_asset: (CreateAssetOperation) -> ();
-  set_asset_content: (SetAssetContentOperation) -> ();
-  unset_asset_content: (UnsetAssetContentOperation) -> ();
+  create_asset: (CreateAssetArguments) -> ();
+  set_asset_content: (SetAssetContentArguments) -> ();
+  unset_asset_content: (UnsetAssetContentArguments) -> ();
 
-  delete_asset: (DeleteAssetOperation) -> ();
+  delete_asset: (DeleteAssetArguments) -> ();
 
-  set_asset_acl: (SetAssetAclOperation) -> ();
-  set_asset_expiry: (SetAssetExpiryOperation) -> ();
+  set_asset_acl: (SetAssetAclArguments) -> ();
+  set_asset_expiry: (SetAssetExpiryArguments) -> ();
 
-  clear: (ClearOperation) -> ();
+  clear: (ClearArguments) -> ();
 
   // Single call to create an asset with content for a single content encoding that
   // fits within the message ingress limit.
