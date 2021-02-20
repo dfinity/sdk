@@ -141,7 +141,7 @@ impl Toolchain {
             std::fs::remove_file(&default_path)?;
         }
         std::os::unix::fs::symlink(toolchain_path, default_path)?;
-        eprintln!("Default toolchain set to {}", self);
+        println!("Default toolchain set to {}", self);
         Ok(())
     }
 }
