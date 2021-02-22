@@ -6,30 +6,16 @@
 
 Added a new option to the canister create command which allows the user to specify the initial cycle balance of a canister created by their wallet.
 This option is a no-op for the Sodium network.
+Added option to `dfx canister create` and `dfx deploy`: `--with-cycles <with-cycles>`
+    Specifies the initial cycle balance to deposit into the newly
+    created canister. The specified amount needs to take the
+    canister create fee into account. This amount is deducted
+    from the wallet's cycle balance
 
 [source, bash]
 ----
-dfx canister create --help
-dfx-canister-create
-Creates an empty canister on the Internet Computer and associates the Internet Computer assigned
-Canister ID to the canister name
-
-USAGE:
-    dfx canister create [FLAGS] [OPTIONS] [canister-name]
-
-ARGS:
-    <canister-name>    Specifies the canister name. Either this or the --all flag are required
-
-FLAGS:
-        --all        Creates all canisters configured in dfx.json
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
-OPTIONS:
-        --with-cycles <with-cycles>    Specifies the initial cycle balance to deposit into the newly
-                                       created canister. The specified amount needs to take the
-                                       canister create fee into account. This amount is deducted
-                                       from the wallet's cycle balance
+dfx canister create --with-cycles 8000000000 some_canister
+dfx canister deploy --with-cycles 8000000000
 ----
 
 - feat: install `dfx` by version or tag (#1426)
