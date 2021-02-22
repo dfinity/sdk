@@ -15,7 +15,7 @@ Added option to `dfx canister create` and `dfx deploy`: `--with-cycles <with-cyc
 [source, bash]
 ----
 dfx canister create --with-cycles 8000000000 some_canister
-dfx canister deploy --with-cycles 8000000000
+dfx deploy --with-cycles 8000000000
 ----
 
 - feat: install `dfx` by version or tag (#1426)
