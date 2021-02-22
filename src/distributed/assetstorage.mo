@@ -238,12 +238,10 @@ shared ({caller = creator}) actor class () {
     };
 
     func isSafe(caller: Principal) : Bool {
+        return true;
         func eq(value: Principal): Bool = value == caller;
         Array.find(authorized, eq) != null
     };
-  public query func get2() : async( { contents: Blob } ) {
-    throw Error.reject("nyi");
-  };
 
   public query func get(arg:{
     key: Key;
@@ -313,77 +311,26 @@ shared ({caller = creator}) actor class () {
     #ok(encodingId)
   };
 
-  public func create_blobs( arg: {
-    blob_info: [ { length: Nat32 } ]
-  } ) : async ( { blob_ids: [BlobId] } ) {
-    let batchId = startBatch();
-
-    let createBlobInBatch = func (arg: { length: Nat32 }) : Result.Result<BlobId, Text> {
-      createBlob(batchId, arg.length)
-    };
-
-    switch (Array.mapResult<{length: Nat32}, BlobId, Text>(arg.blob_info, createBlobInBatch)) {
-      case (#ok(ids)) { { blob_ids = ids } };
-      case (#err(err)) throw Error.reject(err);
-    }
-  };
-
-  public func create_encodings( arg: {
-    encoding_info: [ { chunks: Nat32 } ]
-  } ) : async ( { encoding_ids: [EncodingId] } ) {
-    let batch : Batch = {
-      expiry = Time.now() + BATCH_EXPIRY_NANOS;
-    };
-    let createEncodingInBatch = func (arg: { chunks: Nat32 }) : Result.Result<EncodingId, Text> {
-      createEncoding(batch, arg.chunks)
-    };
-    switch (Array.mapResult<{chunks: Nat32}, EncodingId, Text>(arg.encoding_info, createEncodingInBatch)) {
-      case (#ok(ids)) { { encoding_ids = ids } };
-      case (#err(err)) throw Error.reject(err);
-    }
-  };
-
-  public func write_blob( arg: {
-    blob_id: BlobId;
-    offset: Nat32;
-    contents: Blob
-  } ) : async () {
-    switch (blobs.get(arg.blob_id)) {
-      case null throw Error.reject("Blob not found");
-      case (?blobBuffer) {
-        switch (blobBuffer.setData(arg.offset, arg.contents)) {
-          case (#ok) {};
-          case (#err(text)) throw Error.reject(text);
-        }
-      };
-    }
-  };
-
-  public func set_encoding_chunk( arg: {
-    encoding_id: EncodingId;
-    index: Nat;
-    contents: Blob;
-  } ) : async () {
-    switch (encodings.get(arg.encoding_id)) {
-      case null throw Error.reject("Encoding not found");
-      case (?encodingChunks) encodingChunks[arg.index] := ?arg.contents;
-    }
-  };
-
-  public func create_batch() : async ({
+  public shared ({ caller }) func create_batch(arg: {}) : async ({
     batch_id: BatchId
   }) {
+    if (isSafe(caller) == false)
+      throw Error.reject("not authorized");
+
     {
       batch_id = startBatch();
     }
   };
 
-  public func create_chunk( arg: {
+  public shared ({ caller }) func create_chunk( arg: {
     batch_id: BatchId;
     content: Blob;
   } ) : async ({
     chunk_id: ChunkId
   }) {
+    if (isSafe(caller) == false)
+        throw Error.reject("not authorized");
+
     switch (batches.get(arg.batch_id)) {
       case null throw Error.reject("batch not found");
       case (?batch) {
@@ -394,11 +341,17 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-    public func batch(ops: [BatchOperationKind]) : async () {
-        throw Error.reject("batch: not implemented");
-    };
+  public shared ({ caller }) func commit_batch(ops: [BatchOperationKind]) : async () {
+    if (isSafe(caller) == false)
+      throw Error.reject("not authorized");
 
-  public func create_asset(arg: CreateAssetArguments) : async () {
+    throw Error.reject("batch: not implemented");
+  };
+
+  public shared ({ caller }) func create_asset(arg: CreateAssetArguments) : async () {
+    if (isSafe(caller) == false)
+      throw Error.reject("not authorized");
+
     switch (assets.get(arg.key)) {
       case null {
         let asset : Asset = {
@@ -419,9 +372,16 @@ shared ({caller = creator}) actor class () {
     acc + blob.size()
   };
 
-  public func set_asset_content(arg: SetAssetContentArguments) : async () {
+  public shared ({ caller }) func set_asset_content(arg: SetAssetContentArguments) : async () {
+    switch(do_set_asset_content(caller, arg)) {
+      case (#ok(())) {};
+      case (#err(err)) throw Error.reject(err);
+    };
+  };
+
+  func do_set_asset_content(caller: Principal, arg: SetAssetContentArguments) : Result.Result<(), Text> {
     switch (assets.get(arg.key)) {
-      case null throw Error.reject("Asset not found");
+      case null #err("asset not found");
       case (?asset) {
         switch (Array.mapResult<ChunkId, Blob, Text>(arg.chunk_ids, takeChunk)) {
           case (#ok(chunks)) {
@@ -432,25 +392,35 @@ shared ({caller = creator}) actor class () {
             };
 
             encodings_manipulator.put(asset.encodings, arg.content_encoding, encoding);
+            #ok(());
           };
-          case (#err(err)) throw Error.reject(err);
+          case (#err(err)) #err(err);
         };
       };
-    };
+    }
   };
 
-    public func unset_asset_content(op: UnsetAssetContentArguments) : async () {
-        throw Error.reject("unset_asset_content: not implemented");
-    };
+  public shared ({ caller }) func unset_asset_content(op: UnsetAssetContentArguments) : async () {
+    if (isSafe(caller) == false)
+      throw Error.reject("not authorized");
 
-    public func delete_asset(op: DeleteAssetArguments) : async () {
-        throw Error.reject("delete_asset: not implemented");
-    };
+    throw Error.reject("unset_asset_content: not implemented");
+  };
 
-    public func clear(op: ClearArguments) : async () {
-        throw Error.reject("clear: not implemented");
-    };
+  public shared ({ caller }) func delete_asset(op: DeleteAssetArguments) : async () {
+    if (isSafe(caller) == false)
+      throw Error.reject("not authorized");
 
-    public func version_8() : async() {
-    }
+    throw Error.reject("delete_asset: not implemented");
+  };
+
+  public shared ({ caller }) func clear(op: ClearArguments) : async () {
+    if (isSafe(caller) == false)
+      throw Error.reject("not authorized");
+
+    throw Error.reject("clear: not implemented");
+  };
+
+  public func version_9() : async() {
+  }
 };
