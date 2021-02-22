@@ -2,6 +2,21 @@
 
 == DFX
 
+- feat: install `dfx` by version or tag (#1426)
+
+This feature adds a new dfx command `toolchain` which have intuitive subcommands.
+The toolchain specifiers can be a complete version number, major minor version, or a tag name.
+
+[source, bash]
+----
+dfx toolchain install 0.6.24 # complete version
+dfx toolchain install 0.6    # major minor
+dfx toolchain install latest # tag name
+dfx toolchain default latest
+dfx toolchain list
+dfx toolchain uninstall latest
+----
+
 - fix: onboarding related fixups (#1420)
 
 Now that the Mercury Alpha application subnetwork is up and we are getting ready to onboard devs, the dfx error message for wallet creation has changed:
