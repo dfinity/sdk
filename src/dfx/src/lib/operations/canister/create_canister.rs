@@ -16,6 +16,7 @@ pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
     timeout: Duration,
+    with_cycles: Option<&str>,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
@@ -68,8 +69,12 @@ pub async fn create_canister(
                     .await?;
                 create_result.canister_id
             } else {
+                let cycles = match with_cycles {
+                    None => 1000000000001_u64,
+                    Some(amount) => amount.parse::<u64>()?,
+                };
                 wallet
-                    .wallet_create_canister(1000000000001_u64, None)
+                    .wallet_create_canister(cycles, None)
                     .call_and_wait(waiter_with_timeout(timeout))
                     .await?
                     .0
