@@ -232,7 +232,7 @@ service: {
   create_chunk: (record { batch_id: BatchId; content: blob }) -> (record { chunk_id: ChunkId });
 
   // Perform all operations successfully, or reject
-  commit_batch: (record { batch_id: BatchId; ops: vec BatchOperationKind }) -> ();
+  commit_batch: (record { batch_id: BatchId; operations: vec BatchOperationKind }) -> ();
 
   create_asset: (CreateAssetArguments) -> ();
   set_asset_content: (SetAssetContentArguments) -> ();
