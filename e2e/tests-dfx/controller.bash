@@ -36,8 +36,8 @@ teardown() {
     ID=$(dfx canister id hello)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister set-controller hello bob
-    assert_match "Set \"bob\" as controller of \"hello\"."
+    assert_command dfx canister set-controller hello "${BOB_WALLET}"
+    assert_match "Set \"${BOB_WALLET}\" as controller of \"hello\"."
 
     # Juana is controller, Jose cannot reinstall
     assert_command_fail dfx canister install hello -m reinstall
