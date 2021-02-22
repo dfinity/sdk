@@ -47,7 +47,7 @@ pub struct HardwareIdentityConfiguration {
 
 pub enum IdentityCreationParameters {
     Pem(),
-
+    PemFile(PathBuf),
     Hardware(HardwareIdentityConfiguration),
 }
 
@@ -388,6 +388,17 @@ pub(super) fn generate_key(pem_file: &Path) -> DfxResult {
 
     fs::set_permissions(&pem_file, permissions)?;
 
+    Ok(())
+}
+
+pub(super) fn import(src_pem_file: &Path, dst_pem_file: &Path) -> DfxResult {
+    // TODO: Validate PEM file.
+    std::fs::copy(&src_pem_file, &dst_pem_file).map_err(|err| {
+        DfxError::new(IdentityError::CannotImportIdentityFile(
+            src_pem_file.to_path_buf(),
+            Box::new(DfxError::new(err)),
+        ))
+    })?;
     Ok(())
 }
 

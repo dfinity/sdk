@@ -80,6 +80,10 @@ impl Identity {
                 let pem_file = manager.get_identity_pem_path(name);
                 identity_manager::generate_key(&pem_file)
             }
+            IdentityCreationParameters::PemFile(src_pem_file) => {
+                let dst_pem_file = manager.get_identity_pem_path(name);
+                identity_manager::import(&src_pem_file, &dst_pem_file)
+            }
             IdentityCreationParameters::Hardware(parameters) => {
                 let identity_configuration = IdentityConfiguration {
                     hsm: Some(parameters),
