@@ -1,4 +1,3 @@
-use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
@@ -49,36 +48,34 @@ pub async fn create_canister(
                 .get_network_descriptor()
                 .expect("No network descriptor.");
 
-            let mgr = ManagementCanister::create(
-                env.get_agent()
-                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-            );
-
-            let ic_api_version = fetch_api_version(env).await?;
             let identity_name = env
                 .get_selected_identity()
                 .expect("No selected identity.")
                 .to_string();
 
-            // Both Sodium & the local Replica ic_api_version is 0.14.0
-            // Explicitly disable wallet workflow for them
-            let cid = if network.is_ic || ic_api_version == "0.14.0" {
-                let (cid,) = mgr
-                    .create_canister()
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?;
-                cid
-            } else {
-                info!(log, "Creating the canister using the wallet canister...");
-                let wallet =
-                    Identity::get_or_create_wallet_canister(env, network, &identity_name, true)
-                        .await?;
-                let (create_result,) = wallet
-                    .wallet_create_canister(1000000000001_u64, None)
+            info!(log, "Creating the canister using the wallet canister...");
+            let wallet =
+                Identity::get_or_create_wallet_canister(env, network, &identity_name, true).await?;
+            let cid = if network.is_ic {
+                // Provisional commands are whitelisted on production
+                let mgr = ManagementCanister::create(
+                    env.get_agent()
+                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
+                );
+                let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) = wallet
+                    .call_forward(mgr.update_("create_canister").build(), 0)?
                     .call_and_wait(waiter_with_timeout(timeout))
                     .await?;
                 create_result.canister_id
+            } else {
+                wallet
+                    .wallet_create_canister(1000000000001_u64, None)
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?
+                    .0
+                    .canister_id
             };
+
             let canister_id = cid.to_text();
             info!(
                 log,

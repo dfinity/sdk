@@ -1,4 +1,3 @@
-use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
@@ -6,7 +5,6 @@ use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use clap::Clap;
-use slog::info;
 use tokio::runtime::Runtime;
 
 /// Gets the canister ID for the wallet associated with your identity on a network.
@@ -19,27 +17,19 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
 
     runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;
 
-    let ic_api_version = runtime.block_on(async { fetch_api_version(&agent_env).await })?;
+    let identity_name = agent_env
+        .get_selected_identity()
+        .expect("No selected identity.")
+        .to_string();
+    let network = get_network_descriptor(&agent_env, network)?;
 
-    if ic_api_version == "0.14.0" {
-        info!(
-            agent_env.get_logger(),
-            "Unsupported replica api version '{}'", ic_api_version
+    runtime.block_on(async {
+        println!(
+            "{}",
+            Identity::get_or_create_wallet(&agent_env, &network, &identity_name, true).await?
         );
-    } else {
-        let identity_name = agent_env
-            .get_selected_identity()
-            .expect("No selected identity.")
-            .to_string();
-        let network = get_network_descriptor(&agent_env, network)?;
+        DfxResult::Ok(())
+    })?;
 
-        runtime.block_on(async {
-            println!(
-                "{}",
-                Identity::get_or_create_wallet(&agent_env, &network, &identity_name, true).await?
-            );
-            DfxResult::Ok(())
-        })?;
-    }
     Ok(())
 }

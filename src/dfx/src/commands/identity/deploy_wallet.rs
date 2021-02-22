@@ -1,4 +1,3 @@
-use crate::lib::api_version::fetch_api_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
@@ -8,7 +7,6 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use anyhow::anyhow;
 use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
-use slog::info;
 use tokio::runtime::Runtime;
 
 /// Installs the wallet WASM to the provided canister id.
@@ -24,34 +22,26 @@ pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<Strin
 
     runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;
 
-    let ic_api_version = runtime.block_on(async { fetch_api_version(&agent_env).await })?;
-    if ic_api_version == "0.14.0" {
-        info!(
-            agent_env.get_logger(),
-            "Unsupported replica api version '{}'", ic_api_version
-        );
-    } else {
-        let identity_name = agent_env
-            .get_selected_identity()
-            .expect("No selected identity.")
-            .to_string();
-        let network = get_network_descriptor(&agent_env, network)?;
+    let identity_name = agent_env
+        .get_selected_identity()
+        .expect("No selected identity.")
+        .to_string();
+    let network = get_network_descriptor(&agent_env, network)?;
 
-        let canister_id = opts.canister_id;
-        match CanisterId::from_text(&canister_id) {
-            Ok(id) => {
-                runtime.block_on(async {
-                    Identity::create_wallet(&agent_env, &network, &identity_name, Some(id)).await?;
-                    DfxResult::Ok(())
-                })?;
-            }
-            Err(err) => {
-                anyhow!(format!(
-                    "Cannot convert {} to a valid canister id. Candid error: {}",
-                    canister_id, err
-                ));
-            }
-        };
-    }
+    let canister_id = opts.canister_id;
+    match CanisterId::from_text(&canister_id) {
+        Ok(id) => {
+            runtime.block_on(async {
+                Identity::create_wallet(&agent_env, &network, &identity_name, Some(id)).await?;
+                DfxResult::Ok(())
+            })?;
+        }
+        Err(err) => {
+            anyhow!(format!(
+                "Cannot convert {} to a valid canister id. Candid error: {}",
+                canister_id, err
+            ));
+        }
+    };
     Ok(())
 }

@@ -21,8 +21,6 @@ teardown() {
 }
 
 @test "deploy wallet" {
-    [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
-
     dfx_start
     setup_actuallylocal_network
 
