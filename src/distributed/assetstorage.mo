@@ -221,16 +221,16 @@ shared ({caller = creator}) actor class () {
 
   public query func retrieve(path : Path) : async Blob {
     switch (assets_manipulator.get(assets, path)) {
-    case null throw Error.reject("not found");
-    case (?asset) {
-      switch (getAssetEncoding(asset, ["identity"])) {
-        case null throw Error.reject("no such encoding");
-        case (?encoding) {
-          encoding.content[0]
-        }
+      case null throw Error.reject("not found");
+      case (?asset) {
+        switch (getAssetEncoding(asset, ["identity"])) {
+          case null throw Error.reject("no such encoding");
+          case (?encoding) {
+            encoding.content[0]
+          }
+        };
       };
-      };
-    };
+    }
   };
 
     public query func list() : async [Path] {
@@ -254,7 +254,7 @@ shared ({caller = creator}) actor class () {
     total_length: Nat;
   } ) {
     switch (assets_manipulator.get(assets, arg.key)) {
-      case null throw Error.reject("not found");
+      case null throw Error.reject("asset not found");
       case (?asset) {
         switch (getAssetEncoding(asset, arg.accept_encodings)) {
           case null throw Error.reject("no such encoding");
@@ -279,7 +279,7 @@ shared ({caller = creator}) actor class () {
     content: Blob
   }) {
     switch (assets_manipulator.get(assets, arg.key)) {
-      case null throw Error.reject("not found");
+      case null throw Error.reject("asset not found");
       case (?asset) {
         switch (encodings_manipulator.get(asset.encodings, arg.content_encoding)) {
           case null throw Error.reject("no such encoding");
@@ -291,25 +291,6 @@ shared ({caller = creator}) actor class () {
         };
       };
     };
-  };
-
-  func createBlob(batchId: BatchId, length: Nat32) : Result.Result<BlobId, Text> {
-    let blobId = allocBlobId();
-
-    let blob = Array.init<Nat8>(Nat32.toNat(length), 0);
-    let blobBuffer = BlobBuffer(batchId, blob);
-
-    blobs.put(blobId, blobBuffer);
-
-    #ok(blobId)
-  };
-
-  func createEncoding(batch: Batch, chunks: Nat32) : Result.Result<EncodingId, Text> {
-    let encodingId = allocEncodingId();
-    let chunkArray = Array.init<?Blob>(Nat32.toNat(chunks), null);
-    encodings.put(encodingId, chunkArray);
-
-    #ok(encodingId)
   };
 
   public shared ({ caller }) func create_batch(arg: {}) : async ({
@@ -353,6 +334,13 @@ shared ({caller = creator}) actor class () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
+    switch(do_create_asset(arg)) {
+      case (#ok(())) {};
+      case (#err(err)) throw Error.reject(err);
+    };
+  };
+
+  func do_create_asset(arg: CreateAssetArguments) : Result.Result<(), Text> {
     switch (assets_manipulator.get(assets, arg.key)) {
       case null {
         let asset : Asset = {
@@ -363,10 +351,10 @@ shared ({caller = creator}) actor class () {
       };
       case (?asset) {
         if (asset.contentType != arg.content_type)
-          throw Error.reject("create_asset: content type mismatch");
-
+          return #err("create_asset: content type mismatch");
       }
-    }
+    };
+    #ok(())
   };
 
   func addBlobLength(acc: Nat, blob: Blob): Nat {
@@ -374,13 +362,16 @@ shared ({caller = creator}) actor class () {
   };
 
   public shared ({ caller }) func set_asset_content(arg: SetAssetContentArguments) : async () {
-    switch(do_set_asset_content(caller, arg)) {
+    if (isSafe(caller) == false)
+      throw Error.reject("not authorized");
+
+    switch(do_set_asset_content(arg)) {
       case (#ok(())) {};
       case (#err(err)) throw Error.reject(err);
     };
   };
 
-  func do_set_asset_content(caller: Principal, arg: SetAssetContentArguments) : Result.Result<(), Text> {
+  func do_set_asset_content(arg: SetAssetContentArguments) : Result.Result<(), Text> {
     switch (assets_manipulator.get(assets, arg.key)) {
       case null #err("asset not found");
       case (?asset) {
