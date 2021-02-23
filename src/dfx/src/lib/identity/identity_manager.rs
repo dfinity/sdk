@@ -3,9 +3,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::Identity as DfxIdentity;
 
-use anyhow::anyhow;
-use anyhow::Context;
+use anyhow::{anyhow, bail, Context};
 use ic_types::Principal;
+use openssl::ec::EcKey;
+use openssl::nid::Nid;
 use pem::{encode, Pem};
 use ring::{rand, signature};
 use serde::{Deserialize, Serialize};
@@ -391,14 +392,29 @@ pub(super) fn generate_key(pem_file: &Path) -> DfxResult {
     Ok(())
 }
 
-pub(super) fn import(src_pem_file: &Path, dst_pem_file: &Path) -> DfxResult {
-    // TODO: Validate PEM file.
-    std::fs::copy(&src_pem_file, &dst_pem_file).map_err(|err| {
-        DfxError::new(IdentityError::CannotImportIdentityFile(
-            src_pem_file.to_path_buf(),
-            Box::new(DfxError::new(err)),
-        ))
-    })?;
+pub(super) fn import_pem_file(src_pem_file: &Path, dst_pem_file: &Path) -> DfxResult {
+    std::fs::copy(&src_pem_file, &dst_pem_file).context(format!(
+        "Cannot copy PEM file from '{}' to '{}'.",
+        PathBuf::from(src_pem_file).display(),
+        PathBuf::from(dst_pem_file).display(),
+    ))?;
+    Ok(())
+}
+
+pub(super) fn validate_pem_file(pem_file: &Path) -> DfxResult {
+    let contents = std::fs::read(&pem_file).context(format!(
+        "Cannot read PEM file at '{}'.",
+        PathBuf::from(pem_file).display()
+    ))?;
+    let private_key = EcKey::private_key_from_pem(&contents).context(format!(
+        "Cannot decode PEM file at '{}'.",
+        PathBuf::from(pem_file).display()
+    ))?;
+    let named_curve = private_key.group().curve_name();
+    let is_secp256k1 = named_curve == Some(Nid::SECP256K1);
+    if !is_secp256k1 {
+        bail!("This functionality is currently restricted to secp256k1 private keys.");
+    }
     Ok(())
 }
 

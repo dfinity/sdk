@@ -33,7 +33,4 @@ pub enum IdentityError {
 
     #[error("Cannot read identity file at '{0}': {1}")]
     CannotReadIdentityFile(PathBuf, Box<DfxError>),
-
-    #[error("Cannot import identity file at '{0}': {1}")]
-    CannotImportIdentityFile(PathBuf, Box<DfxError>),
 }
