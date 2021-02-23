@@ -10,7 +10,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail, Context};
 use ic_agent::identity::BasicIdentity;
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
@@ -64,23 +64,29 @@ impl Identity {
         parameters: IdentityCreationParameters,
     ) -> DfxResult {
         let identity_dir = manager.get_identity_dir_path(name);
-
         if identity_dir.exists() {
-            return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
+            bail!("Identity already exists.");
         }
-        std::fs::create_dir_all(&identity_dir).map_err(|err| {
-            DfxError::new(IdentityError::CannotCreateIdentityDirectory(
-                identity_dir.clone(),
-                Box::new(DfxError::new(err)),
+        fn create(identity_dir: PathBuf) -> DfxResult {
+            std::fs::create_dir_all(&identity_dir).context(format!(
+                "Cannot create identity directory at '{0}'.",
+                identity_dir.display(),
             ))
-        })?;
-
+        };
         match parameters {
             IdentityCreationParameters::Pem() => {
+                create(identity_dir)?;
                 let pem_file = manager.get_identity_pem_path(name);
                 identity_manager::generate_key(&pem_file)
             }
+            IdentityCreationParameters::PemFile(src_pem_file) => {
+                identity_manager::validate_pem_file(&src_pem_file)?;
+                create(identity_dir)?;
+                let dst_pem_file = manager.get_identity_pem_path(name);
+                identity_manager::import_pem_file(&src_pem_file, &dst_pem_file)
+            }
             IdentityCreationParameters::Hardware(parameters) => {
+                create(identity_dir)?;
                 let identity_configuration = IdentityConfiguration {
                     hsm: Some(parameters),
                 };
