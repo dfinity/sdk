@@ -124,19 +124,7 @@ teardown() {
   assert_command ls .dfx/local/canisters/e2e_project/e2e_project.wasm
 }
 
-@test "build output for non-local network is in expected directory" {
-  [ "$USE_IC_REF" ] && skip "Skip for ic-ref as its ic_api_version > 0.14.0, test with set controller with wallet"
-  dfx_start
-  setup_actuallylocal_network
-
-  dfx canister --network actuallylocal create --all
-  assert_command dfx build --network actuallylocal
-  assert_command ls .dfx/actuallylocal/canisters/e2e_project/
-  assert_command ls .dfx/actuallylocal/canisters/e2e_project/e2e_project.wasm
-}
-
 @test "build with wallet output for non-local network is in expected directory" {
-  [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
   dfx_start
   setup_actuallylocal_network
   assert_command dfx_set_wallet

@@ -10,7 +10,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail, Context};
 use ic_agent::identity::BasicIdentity;
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
@@ -64,23 +64,29 @@ impl Identity {
         parameters: IdentityCreationParameters,
     ) -> DfxResult {
         let identity_dir = manager.get_identity_dir_path(name);
-
         if identity_dir.exists() {
-            return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
+            bail!("Identity already exists.");
         }
-        std::fs::create_dir_all(&identity_dir).map_err(|err| {
-            DfxError::new(IdentityError::CannotCreateIdentityDirectory(
-                identity_dir.clone(),
-                Box::new(DfxError::new(err)),
+        fn create(identity_dir: PathBuf) -> DfxResult {
+            std::fs::create_dir_all(&identity_dir).context(format!(
+                "Cannot create identity directory at '{0}'.",
+                identity_dir.display(),
             ))
-        })?;
-
+        };
         match parameters {
             IdentityCreationParameters::Pem() => {
+                create(identity_dir)?;
                 let pem_file = manager.get_identity_pem_path(name);
                 identity_manager::generate_key(&pem_file)
             }
+            IdentityCreationParameters::PemFile(src_pem_file) => {
+                identity_manager::validate_pem_file(&src_pem_file)?;
+                create(identity_dir)?;
+                let dst_pem_file = manager.get_identity_pem_path(name);
+                identity_manager::import_pem_file(&src_pem_file, &dst_pem_file)
+            }
             IdentityCreationParameters::Hardware(parameters) => {
+                create(identity_dir)?;
                 let identity_configuration = IdentityConfiguration {
                     hsm: Some(parameters),
                 };
@@ -316,10 +322,18 @@ impl Identity {
                 let canister_id = match some_canister_id {
                     Some(id) => id,
                     None => {
-                        mgr.provisional_create_canister_with_cycles(None)
-                            .call_and_wait(waiter_with_timeout(expiry_duration()))
-                            .await?
-                            .0
+                        if network.is_ic {
+                            // Provisional commands are whitelisted on production
+                            mgr.create_canister()
+                                .call_and_wait(waiter_with_timeout(expiry_duration()))
+                                .await?
+                                .0
+                        } else {
+                            mgr.provisional_create_canister_with_cycles(None)
+                                .call_and_wait(waiter_with_timeout(expiry_duration()))
+                                .await?
+                                .0
+                        }
                     }
                 };
 
@@ -362,7 +376,7 @@ impl Identity {
         // identity.
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
-                if !network.is_ic && create {
+                if create {
                     Identity::create_wallet(env, network, name, None).await.map_err(|err|
                         anyhow!("Unable to create a wallet canister on {}:\n{}\nWallet canisters on {} may only be created by an administrator.\nPlease submit your Principal (\"dfx identity get-principal\") in the intake form to have one created for you.",
                             network.name,

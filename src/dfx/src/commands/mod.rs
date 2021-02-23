@@ -16,6 +16,7 @@ mod ping;
 mod replica;
 mod start;
 mod stop;
+mod toolchain;
 mod upgrade;
 
 #[derive(Clap)]
@@ -34,6 +35,7 @@ pub enum Command {
     Replica(replica::ReplicaOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
+    Toolchain(toolchain::ToolchainOpts),
     Upgrade(upgrade::UpgradeOpts),
 }
 
@@ -52,6 +54,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Replica(v) => replica::exec(env, v),
         Command::Start(v) => start::exec(env, v),
         Command::Stop(v) => stop::exec(env, v),
+        Command::Toolchain(v) => toolchain::exec(env, v),
         Command::Upgrade(v) => upgrade::exec(env, v),
     }
 }

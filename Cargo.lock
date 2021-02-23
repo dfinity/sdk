@@ -1107,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.6.23"
+version = "0.6.24"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1143,6 +1143,7 @@ dependencies = [
  "mockall",
  "mockito",
  "net2",
+ "openssl",
  "pem 0.7.0",
  "petgraph",
  "proptest",

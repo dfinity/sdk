@@ -5,6 +5,7 @@ use clap::Clap;
 
 mod deploy_wallet;
 mod get_wallet;
+mod import;
 mod list;
 mod new;
 mod principal;
@@ -31,6 +32,7 @@ pub struct IdentityOpt {
 enum SubCommand {
     DeployWallet(deploy_wallet::DeployWalletOpts),
     GetWallet(get_wallet::GetWalletOpts),
+    Import(import::ImportOpts),
     List(list::ListOpts),
     New(new::NewIdentityOpts),
     GetPrincipal(principal::GetPrincipalOpts),
@@ -48,6 +50,7 @@ pub fn exec(env: &dyn Environment, opts: IdentityOpt) -> DfxResult {
         SubCommand::List(v) => list::exec(env, v),
         SubCommand::New(v) => new::exec(env, v),
         SubCommand::GetPrincipal(v) => principal::exec(env, v),
+        SubCommand::Import(v) => import::exec(env, v),
         SubCommand::Remove(v) => remove::exec(env, v),
         SubCommand::Rename(v) => rename::exec(env, v),
         SubCommand::SetWallet(v) => set_wallet::exec(env, v, opts.network.clone()),
