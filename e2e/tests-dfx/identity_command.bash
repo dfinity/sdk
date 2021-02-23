@@ -338,3 +338,12 @@ teardown() {
     assert_match "migrating key from"
     assert_eq "$(cat "$TEMPORARY_HOME"/.config/dfx/identity/default/identity.pem)" "$ORIGINAL_KEY"
 }
+
+@test "identity: import" {
+    openssl ecparam -name secp256k1 -genkey -out identity.pem
+    assert_command dfx identity import alice identity.pem
+    assert_match 'Creating identity: "alice".' "$stderr"
+    assert_match 'Created identity: "alice".' "$stderr"
+    assert_command diff identity.pem $TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem
+    assert_eq ""
+}
