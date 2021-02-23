@@ -16,54 +16,55 @@ import Word8 "mo:base/Word8";
 
 shared ({caller = creator}) actor class () {
 
-    public type BatchId = Nat;
-    public type BlobId = Text;
-    public type ChunkId = Nat;
-    public type EncodingId = Text;
-    public type Key = Text;
-    public type Path = Text;
-    public type Commit = Bool;
-    public type Contents = Blob;
-    public type ContentEncoding = Text;
-    public type ContentType = Text;
-    public type Offset = Nat;
-    public type TotalLength = Nat;
+  // old interface:
+  public type Path = Text;
+  public type Contents = Blob;
+
+  // new hotness
+  public type BatchId = Nat;
+  public type BlobId = Text;
+  public type ChunkId = Nat;
+  public type EncodingId = Text;
+  public type Key = Text;
+  public type ContentEncoding = Text;
+  public type ContentType = Text;
+  public type Offset = Nat;
+  public type TotalLength = Nat;
 
 
-    public type CreateAssetArguments = {
-        key: Key;
-        content_type: Text;
-    };
-    public type SetAssetContentArguments = {
-        key: Key;
-        content_encoding: Text;
-        chunk_ids: [ChunkId]
-    };
-    public type UnsetAssetContentArguments = {
-        key: Key;
-        content_encoding: Text;
-    };
-    public type DeleteAssetArguments = {
-        key: Key;
-    };
-    public type ClearArguments = {
-    };
+  public type CreateAssetArguments = {
+    key: Key;
+    content_type: Text;
+  };
+  public type SetAssetContentArguments = {
+    key: Key;
+    content_encoding: Text;
+    chunk_ids: [ChunkId]
+  };
+  public type UnsetAssetContentArguments = {
+    key: Key;
+    content_encoding: Text;
+  };
+  public type DeleteAssetArguments = {
+    key: Key;
+  };
+  public type ClearArguments = {
+  };
 
-    public type BatchOperationKind = {
-        #create_asset: CreateAssetArguments;
-        #set_asset_content: SetAssetContentArguments;
-        #unset_asset_content: UnsetAssetContentArguments;
+  public type BatchOperationKind = {
+    #create_asset: CreateAssetArguments;
+    #set_asset_content: SetAssetContentArguments;
+    #unset_asset_content: UnsetAssetContentArguments;
 
-        #delete_asset: DeleteAssetArguments;
+    #delete_asset: DeleteAssetArguments;
 
-        #clear: ClearArguments;
-    };
+    #clear: ClearArguments;
+  };
 
 
 
-    stable var authorized: [Principal] = [creator];
+  stable var authorized: [Principal] = [creator];
 
-    let db: Tree.RBTree<Path, Contents> = Tree.RBTree(Text.compare);
 
   type AssetEncoding = {
     contentEncoding: Text;
@@ -101,49 +102,13 @@ shared ({caller = creator}) actor class () {
     //asset_entries := [];
   };
 
-  // blob data doesn't need to be stable
-  class BlobBuffer(initBatchId: Nat, initBuffer: [var Nat8]) {
-    let batchId = initBatchId;
-    let buffer = initBuffer;
-
-    public func setData(offset: Nat32, data: Blob): Result.Result<(), Text> {
-      var index: Nat = Nat32.toNat(offset);
-
-      if (index + data.size() > buffer.size()) {
-        #err("overflow: offset " # Nat32.toText(offset) #
-          " + data size " # Nat.toText(data.size()) #
-          " exceeds blob size of " # Nat.toText(buffer.size()))
-      } else {
-        for (b in data.bytes()) {
-          buffer[index] := Nat8.fromNat(Word8.toNat(b));
-          index += 1;
-        };
-        #ok()
-      }
-    };
-
-    public func takeBuffer() : [Nat8] {
-      let x = Array.freeze(buffer);
-      x
-    };
-  };
-
   type Chunk = {
     batch: Batch;
     content: Blob;
   };
 
-  var nextBlobId = 1;
-  let blobs = H.HashMap<Text, BlobBuffer>(7, Text.equal, Text.hash);
-
   var nextChunkId = 1;
   let chunks = H.HashMap<Int, Chunk>(7, Int.equal, Int.hash);
-
-  func allocBlobId() : BlobId {
-    let result = nextBlobId;
-    nextBlobId += 1;
-    Int.toText(result)
-  };
 
   func createChunk(batch: Batch, content: Blob) : ChunkId {
     let chunkId = nextChunkId;
@@ -156,24 +121,8 @@ shared ({caller = creator}) actor class () {
     chunkId
   };
 
-  var nextEncodingId = 1;
-  let encodings = H.HashMap<Text, [var ?Blob]>(7, Text.equal, Text.hash);
-  func allocEncodingId() : EncodingId {
-    let result = nextEncodingId;
-    nextEncodingId += 1;
-    Int.toText(result)
-  };
-
-  func takeBlob(blobId: BlobId) : ?[Nat8] {
-    switch (blobs.remove(blobId)) {
-      case null null;
-      case (?blobBuffer) {
-        let b: [Nat8] = blobBuffer.takeBuffer();
-        //let blob : Blob = b;
-        ?b
-      }
-    }
-  };
+  //var nextEncodingId = 1;
+  //let encodings = H.HashMap<Text, [var ?Blob]>(7, Text.equal, Text.hash);
 
   func takeChunk(chunkId: ChunkId): Result.Result<Blob, Text> {
     switch (chunks.remove(chunkId)) {
@@ -203,21 +152,44 @@ shared ({caller = creator}) actor class () {
     batch_id
   };
 
-    public shared ({ caller }) func authorize(other: Principal) : async () {
-        if (isSafe(caller)) {
-            authorized := Array.append<Principal>(authorized, [other]);
-        } else {
-            throw Error.reject("not authorized");
-        }
+  public shared ({ caller }) func authorize(other: Principal) : async () {
+    if (isSafe(caller)) {
+      authorized := Array.append<Principal>(authorized, [other]);
+    } else {
+      throw Error.reject("not authorized");
+    }
+  };
+
+  public shared ({ caller }) func store(path : Path, contents : Contents) : async () {
+    if (isSafe(caller) == false) {
+      throw Error.reject("not authorized");
     };
 
-    public shared ({ caller }) func store(path : Path, contents : Contents) : async () {
-        if (isSafe(caller)) {
-            db.put(path, contents);
-        } else {
-            throw Error.reject("not authorized");
-        };
+    let batch_id = startBatch();
+    let chunk_id = switch (batches.get(batch_id)) {
+      case null throw Error.reject("batch not found");
+      case (?batch) createChunk(batch, contents)
     };
+
+    let create_asset_args : CreateAssetArguments = {
+      key = path;
+      content_type = "application/octet-stream"
+    };
+    switch(do_create_asset(create_asset_args)) {
+      case (#ok(())) {};
+      case (#err(msg)) throw Error.reject(msg);
+    };
+
+    let set_asset_content_args : SetAssetContentArguments = {
+      key = path;
+      content_encoding = "identity";
+      chunk_ids = [ chunk_id ];
+    };
+    switch(do_set_asset_content(set_asset_content_args)) {
+      case (#ok(())) {};
+      case (#err(msg)) throw Error.reject(msg);
+    };
+  };
 
   public query func retrieve(path : Path) : async Blob {
     switch (assets_manipulator.get(assets, path)) {
@@ -233,16 +205,16 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-    public query func list() : async [Path] {
-        let iter = Iter.map<(Path, Contents), Path>(db.entries(), func (path, _) = path);
-        Iter.toArray(iter)
-    };
+  public query func list() : async [Path] {
+    let iter = Iter.map<(Text, Asset), Path>(assets_manipulator.entries(assets), func (key, _) = key);
+    Iter.toArray(iter)
+  };
 
-    func isSafe(caller: Principal) : Bool {
-        return true;
-        func eq(value: Principal): Bool = value == caller;
-        Array.find(authorized, eq) != null
-    };
+  func isSafe(caller: Principal) : Bool {
+    //return true;
+    func eq(value: Principal): Bool = value == caller;
+    Array.find(authorized, eq) != null
+  };
 
   public query func get(arg:{
     key: Key;
@@ -311,7 +283,7 @@ shared ({caller = creator}) actor class () {
     chunk_id: ChunkId
   }) {
     if (isSafe(caller) == false)
-        throw Error.reject("not authorized");
+      throw Error.reject("not authorized");
 
     switch (batches.get(arg.batch_id)) {
       case null throw Error.reject("batch not found");
@@ -403,7 +375,7 @@ shared ({caller = creator}) actor class () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    throw Error.reject("delete_asset: not implemented");
+    assets_manipulator.delete(assets, op.key);
   };
 
   public shared ({ caller }) func clear(op: ClearArguments) : async () {
@@ -413,6 +385,6 @@ shared ({caller = creator}) actor class () {
     throw Error.reject("clear: not implemented");
   };
 
-  public func version_10() : async() {
+  public func version_11() : async() {
   }
 };

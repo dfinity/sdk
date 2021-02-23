@@ -21,6 +21,33 @@ public class StableHashMapManipulator<K, V>(
   keyHash: K -> Hash.Hash
 ) {
 
+  /// Returns the number of entries in this HashMap.
+  public func size(shm: StableHashMap<K, V>) : Nat = shm._count;
+
+  /// Deletes the entry with the key `k`. Doesn't do anything if the key doesn't
+  /// exist.
+  public func delete(shm: StableHashMap<K, V>, k : K) = ignore remove(shm, k);
+
+  /// Removes the entry with the key `k` and returns the associated value if it
+  /// existed or `null` otherwise.
+  public func remove(shm: StableHashMap<K, V>, k : K) : ?V {
+    let h = Prim.word32ToNat(keyHash(k));
+    let m = shm.table.size();
+    let pos = h % m;
+    if (m > 0) {
+      let (kvs2, ov) = AssocList.replace<K, V>(shm.table[pos], k, keyEq, null);
+      shm.table[pos] := kvs2;
+      switch(ov){
+      case null { };
+      case _ { shm._count -= 1; }
+      };
+      ov
+    } else {
+      null
+    };
+  };
+
+
   /// Gets the entry with the key `k` and returns its associated value if it
   /// existed or `null` otherwise.
   public func get(shm: StableHashMap<K, V>, k:K) : ?V {
@@ -77,6 +104,37 @@ public class StableHashMapManipulator<K, V>(
     case _ {}
     };
     ov
+  };
+
+  /// Returns an iterator over the key value pairs in this
+  /// HashMap. Does _not_ modify the HashMap.
+  public func entries(m: StableHashMap<K, V>) : Iter.Iter<(K,V)> {
+    if (m.table.size() == 0) {
+      object { public func next() : ?(K,V) { null } }
+    }
+    else {
+      object {
+        var kvs = m.table[0];
+        var nextTablePos = 1;
+        public func next () : ?(K,V) {
+          switch kvs {
+          case (?(kv, kvs2)) {
+                 kvs := kvs2;
+                 ?kv
+               };
+          case null {
+                 if (nextTablePos < m.table.size()) {
+                   kvs := m.table[nextTablePos];
+                   nextTablePos += 1;
+                   next()
+                 } else {
+                   null
+                 }
+               }
+          }
+        };
+      }
+    }
   };
 
 };
