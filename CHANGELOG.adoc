@@ -2,6 +2,42 @@
 
 == DFX
 
+- feat: add option to specify initial cycles for newly created canisters (#1433)
+
+Added option to `dfx canister create` and `dfx deploy` commands: `--with-cycles <with-cycles>`.
+This allows the user to specify the initial cycle balance of a canister created by their wallet.
+This option is a no-op for the Sodium network.
+
+[source, bash]
+----
+dfx canister create --with-cycles 8000000000 some_canister
+dfx deploy --with-cycles 8000000000
+----
+
+Help string:
+[source, bash]
+----
+Specifies the initial cycle balance to deposit into the newly
+created canister. The specified amount needs to take the
+canister create fee into account. This amount is deducted
+from the wallet's cycle balance
+----
+
+- feat: install `dfx` by version or tag (#1426)
+
+This feature adds a new dfx command `toolchain` which have intuitive subcommands.
+The toolchain specifiers can be a complete version number, major minor version, or a tag name.
+
+[source, bash]
+----
+dfx toolchain install 0.6.24 # complete version
+dfx toolchain install 0.6    # major minor
+dfx toolchain install latest # tag name
+dfx toolchain default latest
+dfx toolchain list
+dfx toolchain uninstall latest
+----
+
 - fix: onboarding related fixups (#1420)
 
 Now that the Mercury Alpha application subnetwork is up and we are getting ready to onboard devs, the dfx error message for wallet creation has changed:
