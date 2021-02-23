@@ -344,6 +344,6 @@ teardown() {
     assert_command dfx identity import alice identity.pem
     assert_match 'Creating identity: "alice".' "$stderr"
     assert_match 'Created identity: "alice".' "$stderr"
-    assert_command diff identity.pem $TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem
+    assert_command diff identity.pem "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
 }
