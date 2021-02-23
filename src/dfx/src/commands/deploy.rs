@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
 use clap::Clap;
@@ -29,6 +30,12 @@ pub struct DeployOpts {
     /// "http://localhost:12345/" is a valid network name.
     #[clap(long)]
     network: Option<String>,
+
+    /// Specifies the initial cycle balance to deposit into the newly created canister.
+    /// The specified amount needs to take the canister create fee into account.
+    /// This amount is deducted from the wallet's cycle balance.
+    #[clap(long, validator(cycle_amount_validator))]
+    with_cycles: Option<String>,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -38,6 +45,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let canister_name = opts.canister_name.as_deref();
     let argument = opts.argument.as_deref();
     let argument_type = opts.argument_type.as_deref();
+    let with_cycles = opts.with_cycles.as_deref();
 
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(fetch_root_key_if_needed(&env))?;
@@ -48,5 +56,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument,
         argument_type,
         timeout,
+        with_cycles,
     ))
 }

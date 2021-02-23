@@ -75,6 +75,7 @@ let
             # wabt-sys needs file in path, as well as cc (for cmake).
             pkgs.file
             cc
+            pkgs.gettext
             pkgs.coreutils
           ] ++ lib.optional pkgs.stdenv.isDarwin pkgs.stdenv.cc.bintools;
           inputsFrom = [ ws.shell ];

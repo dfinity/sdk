@@ -20,20 +20,7 @@ teardown() {
     dfx_stop
 }
 
-@test "create stores canister ids for default-persistent networks in canister_ids.json" {
-    dfx_start
-
-    setup_actuallylocal_network
-
-    assert_command dfx canister --network actuallylocal create --all
-
-    # canister creates writes to a spinner (stderr), not stdout
-    assert_command dfx canister --network actuallylocal id e2e_project
-    assert_match "$(jq -r .e2e_project.actuallylocal <canister_ids.json)"
-}
-
 @test "create with wallet stores canister ids for default-persistent networks in canister_ids.json" {
-    skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     dfx_start
     setup_actuallylocal_network
     assert_command dfx_set_wallet
@@ -45,22 +32,7 @@ teardown() {
     assert_match "$(jq -r .e2e_project.actuallylocal <canister_ids.json)"
 }
 
-@test "create stores canister ids for configured-ephemeral networks in canister_ids.json" {
-    dfx_start
-
-    setup_actuallylocal_network
-    # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json)" >dfx.json
-
-    assert_command dfx canister --network actuallylocal create --all
-
-    # canister creates writes to a spinner (stderr), not stdout
-    assert_command dfx canister --network actuallylocal id e2e_project
-    assert_match "$(jq -r .e2e_project.actuallylocal <.dfx/actuallylocal/canister_ids.json)"
-}
-
 @test "create with wallet stores canister ids for configured-ephemeral networks in canister_ids.json" {
-    skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     dfx_start
 
     setup_actuallylocal_network
