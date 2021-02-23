@@ -87,17 +87,18 @@ shared ({caller = creator}) actor class () {
   };
 
 
-  stable var asset_entries : [(Key, Asset)] = [];
-  let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
+  //stable var asset_entries : [(Key, Asset)] = [];
+  //let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
+  stable let assets : SHM.StableHashMap<Key, Asset> = SHM.StableHashMap<Key, Asset>();
   let assets_manipulator = SHM.StableHashMapManipulator<Key, Asset>(7, Text.equal, Text.hash);
   let encodings_manipulator = SHM.StableHashMapManipulator<Text, AssetEncoding>(7, Text.equal, Text.hash);
 
   system func preupgrade() {
-    asset_entries := Iter.toArray(assets.entries());
+    //asset_entries := Iter.toArray(assets.entries());
   };
 
   system func postupgrade() {
-    asset_entries := [];
+    //asset_entries := [];
   };
 
   // blob data doesn't need to be stable
@@ -219,7 +220,7 @@ shared ({caller = creator}) actor class () {
     };
 
   public query func retrieve(path : Path) : async Blob {
-    switch (assets.get(path)) {
+    switch (assets_manipulator.get(assets, path)) {
     case null throw Error.reject("not found");
     case (?asset) {
       switch (getAssetEncoding(asset, ["identity"])) {
@@ -252,7 +253,7 @@ shared ({caller = creator}) actor class () {
     content_encoding: Text;
     total_length: Nat;
   } ) {
-    switch (assets.get(arg.key)) {
+    switch (assets_manipulator.get(assets, arg.key)) {
       case null throw Error.reject("not found");
       case (?asset) {
         switch (getAssetEncoding(asset, arg.accept_encodings)) {
@@ -277,7 +278,7 @@ shared ({caller = creator}) actor class () {
   }) : async ( {
     content: Blob
   }) {
-    switch (assets.get(arg.key)) {
+    switch (assets_manipulator.get(assets, arg.key)) {
       case null throw Error.reject("not found");
       case (?asset) {
         switch (encodings_manipulator.get(asset.encodings, arg.content_encoding)) {
@@ -352,13 +353,13 @@ shared ({caller = creator}) actor class () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    switch (assets.get(arg.key)) {
+    switch (assets_manipulator.get(assets, arg.key)) {
       case null {
         let asset : Asset = {
           contentType = arg.content_type;
           encodings = SHM.StableHashMap<Text, AssetEncoding>();
         };
-        assets.put( (arg.key, asset) );
+        assets_manipulator.put(assets, arg.key, asset );
       };
       case (?asset) {
         if (asset.contentType != arg.content_type)
@@ -380,7 +381,7 @@ shared ({caller = creator}) actor class () {
   };
 
   func do_set_asset_content(caller: Principal, arg: SetAssetContentArguments) : Result.Result<(), Text> {
-    switch (assets.get(arg.key)) {
+    switch (assets_manipulator.get(assets, arg.key)) {
       case null #err("asset not found");
       case (?asset) {
         switch (Array.mapResult<ChunkId, Blob, Text>(arg.chunk_ids, takeChunk)) {
@@ -421,6 +422,6 @@ shared ({caller = creator}) actor class () {
     throw Error.reject("clear: not implemented");
   };
 
-  public func version_9() : async() {
+  public func version_10() : async() {
   }
 };
