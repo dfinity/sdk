@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ./utils/_
+load ../utils/_
 
 setup() {
     cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit

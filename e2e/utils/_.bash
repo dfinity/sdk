@@ -1,9 +1,9 @@
-source ${BATSLIB}/load.bash
-load utils/assertions
+load ${BATSLIB}/load.bash
+load ../utils/assertions
 
 # Takes a name of the asset folder, and copy those files to the current project.
 install_asset() {
-    ASSET_ROOT=${BATS_TEST_DIRNAME}/assets/$1/
+    ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
     cp -R $ASSET_ROOT/* .
     # set write perms to overwrite local bind in assets which have a dfx.json
     chmod -R a+w .
@@ -109,4 +109,10 @@ dfx_set_wallet() {
   dfx canister create --all
   export WALLET_CANISTER_ID=$(dfx identity get-wallet)
   dfx identity  --network actuallylocal set-wallet --canister-name ${WALLET_CANISTER_ID} --force
+}
+
+setup_actuallylocal_network() {
+    webserver_port=$(cat .dfx/webserver-port)
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 }

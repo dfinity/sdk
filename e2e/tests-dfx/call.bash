@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ./utils/_
+load ../utils/_
 
 setup() {
     cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
@@ -29,4 +29,13 @@ teardown() {
     dfx canister install hello
     assert_command dfx canister call hello greet --random '{ value = Some ["\"DFINITY\""] }'
     assert_match '("Hello, DFINITY!")'
+}
+
+@test "long call" {
+    install_asset recurse
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install hello
+    assert_command dfx canister call hello recurse 100
 }
