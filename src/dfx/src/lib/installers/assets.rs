@@ -16,7 +16,7 @@ use walkdir::WalkDir;
 const CREATE_BATCH: &str = "create_batch";
 const CREATE_CHUNK: &str = "create_chunk";
 const COMMIT_BATCH: &str = "commit_batch";
-const MAX_CHUNK_SIZE: usize = 300;
+const MAX_CHUNK_SIZE: usize = 1_900_000;
 
 #[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
 struct CreateBatchRequest {}
@@ -103,6 +103,28 @@ struct ChunkedAsset {
     chunk_ids: Vec<u128>,
 }
 
+// async fn create_chunk(agent: &Agent,
+// canister_id: &Principal,
+// timeout: Duration,
+// batch_id: u128,
+// content: &[u8]) -> DfxResult<u128> {
+//     let args = CreateChunkRequest { batch_id, content };
+//     let args = candid::Encode!(&args).expect("unable to encode create_chunk argument");
+//     println!("create chunk");
+//     agent
+//         .update(&canister_id, CREATE_CHUNK)
+//         .with_arg(args)
+//         .expire_after(timeout)
+//         .call_and_wait(waiter_with_timeout(timeout))
+//         .await
+//         .map_err(DfxError::from)
+//         .and_then(|response| {
+//             candid::Decode!(&response, CreateChunkResponse)
+//                 .map_err(DfxError::from)
+//                 .map(|x| x.chunk_id)
+//         })
+//
+// }
 async fn make_chunked_asset(
     agent: &Agent,
     canister_id: &Principal,
@@ -154,9 +176,11 @@ async fn make_chunked_assets(
 ) -> DfxResult<Vec<ChunkedAsset>> {
     let futs: Vec<_> = locs
         .into_iter()
-        .map(|loc| async { make_chunked_asset(agent, canister_id, timeout, batch_id, loc).await })
+        .map(|loc| make_chunked_asset(agent, canister_id, timeout, batch_id, loc))
         .collect();
-    try_join_all(futs).await
+    let fut = try_join_all(futs);
+    let result = fut.await;
+    result
 }
 
 async fn commit_batch(
