@@ -1,5 +1,6 @@
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
+import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import H "mo:base/HashMap";
 import Int "mo:base/Int";
@@ -52,16 +53,20 @@ shared ({caller = creator}) actor class () {
   };
 
   public type BatchOperationKind = {
-    #create_asset: CreateAssetArguments;
-    #set_asset_content: SetAssetContentArguments;
-    #unset_asset_content: UnsetAssetContentArguments;
+    #CreateAsset: CreateAssetArguments;
+    #SetAssetContent: SetAssetContentArguments;
+    #UnsetAssetContent: UnsetAssetContentArguments;
 
-    #delete_asset: DeleteAssetArguments;
+    #DeleteAsset: DeleteAssetArguments;
 
-    #clear: ClearArguments;
+    #Clear: ClearArguments;
   };
 
 
+  public type CommitBatchArguments = {
+    batch_id: BatchId;
+    operations: [BatchOperationKind];
+  };
 
   stable var authorized: [Principal] = [creator];
 
@@ -175,7 +180,7 @@ shared ({caller = creator}) actor class () {
       key = path;
       content_type = "application/octet-stream"
     };
-    switch(do_create_asset(create_asset_args)) {
+    switch(createAsset(create_asset_args)) {
       case (#ok(())) {};
       case (#err(msg)) throw Error.reject(msg);
     };
@@ -185,7 +190,7 @@ shared ({caller = creator}) actor class () {
       content_encoding = "identity";
       chunk_ids = [ chunk_id ];
     };
-    switch(do_set_asset_content(set_asset_content_args)) {
+    switch(setAssetContent(set_asset_content_args)) {
       case (#ok(())) {};
       case (#err(msg)) throw Error.reject(msg);
     };
@@ -295,24 +300,42 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  public shared ({ caller }) func commit_batch(ops: [BatchOperationKind]) : async () {
+  public shared ({ caller }) func commit_batch(args: CommitBatchArguments) : async () {
+    Debug.print("commit_batch (1)");
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    throw Error.reject("batch: not implemented");
+    Debug.print("commit_batch (2)");
+    for (op in args.operations.vals()) {
+      Debug.print("commit_batch (3)");
+
+      let r : Result.Result<(), Text> = switch(op) {
+        case (#CreateAsset(args)) { createAsset(args); };
+        case (#SetAssetContent(args)) { setAssetContent(args); };
+        case (#UnsetAssetContent(args)) { unsetAssetContent(args); };
+        case (#DeleteAsset(args)) { deleteAsset(args); };
+        case (#Clear(args)) { clearEverything(args); }
+      };
+      Debug.print("commit_batch (4)");
+      switch(r) {
+        case (#ok(())) {};
+        case (#err(msg)) throw Error.reject(msg);
+      };
+    }
   };
 
   public shared ({ caller }) func create_asset(arg: CreateAssetArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    switch(do_create_asset(arg)) {
+    switch(createAsset(arg)) {
       case (#ok(())) {};
       case (#err(err)) throw Error.reject(err);
     };
   };
 
-  func do_create_asset(arg: CreateAssetArguments) : Result.Result<(), Text> {
+  func createAsset(arg: CreateAssetArguments) : Result.Result<(), Text> {
+    Debug.print("createAsset()");
     switch (assets_manipulator.get(assets, arg.key)) {
       case null {
         let asset : Asset = {
@@ -329,21 +352,22 @@ shared ({caller = creator}) actor class () {
     #ok(())
   };
 
-  func addBlobLength(acc: Nat, blob: Blob): Nat {
-    acc + blob.size()
-  };
-
   public shared ({ caller }) func set_asset_content(arg: SetAssetContentArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    switch(do_set_asset_content(arg)) {
+    switch(setAssetContent(arg)) {
       case (#ok(())) {};
       case (#err(err)) throw Error.reject(err);
     };
   };
 
-  func do_set_asset_content(arg: SetAssetContentArguments) : Result.Result<(), Text> {
+  func addBlobLength(acc: Nat, blob: Blob): Nat {
+    acc + blob.size()
+  };
+
+  func setAssetContent(arg: SetAssetContentArguments) : Result.Result<(), Text> {
+    Debug.print("setAssetContent()");
     switch (assets_manipulator.get(assets, arg.key)) {
       case null #err("asset not found");
       case (?asset) {
@@ -364,27 +388,51 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  public shared ({ caller }) func unset_asset_content(op: UnsetAssetContentArguments) : async () {
+  public shared ({ caller }) func unset_asset_content(args: UnsetAssetContentArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    throw Error.reject("unset_asset_content: not implemented");
+    switch(unsetAssetContent(args)) {
+      case (#ok(())) {};
+      case (#err(err)) throw Error.reject(err);
+    };
   };
 
-  public shared ({ caller }) func delete_asset(op: DeleteAssetArguments) : async () {
+  func unsetAssetContent(args: UnsetAssetContentArguments) : Result.Result<(), Text> {
+    #err("unset_asset_content: not implemented");
+  };
+
+  public shared ({ caller }) func delete_asset(args: DeleteAssetArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    assets_manipulator.delete(assets, op.key);
+    switch(deleteAsset(args)) {
+      case (#ok(())) {};
+      case (#err(err)) throw Error.reject(err);
+    };
   };
 
-  public shared ({ caller }) func clear(op: ClearArguments) : async () {
+  func deleteAsset(args: DeleteAssetArguments) : Result.Result<(), Text> {
+    Debug.print("deleteAsset() enter");
+    assets_manipulator.delete(assets, args.key);
+    Debug.print("deleteAsset() leave");
+    #ok(())
+  };
+
+  public shared ({ caller }) func clear(args: ClearArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    throw Error.reject("clear: not implemented");
+    switch(clearEverything(args)) {
+      case (#ok(())) {};
+      case (#err(err)) throw Error.reject(err);
+    };
   };
 
-  public func version_12() : async() {
+  func clearEverything(args: ClearArguments) : Result.Result<(), Text> {
+    #err("clear: not implemented")
+  };
+
+  public func version_13() : async() {
   }
 };
