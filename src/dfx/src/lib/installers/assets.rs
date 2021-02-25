@@ -103,28 +103,29 @@ struct ChunkedAsset {
     chunk_ids: Vec<u128>,
 }
 
-// async fn create_chunk(agent: &Agent,
-// canister_id: &Principal,
-// timeout: Duration,
-// batch_id: u128,
-// content: &[u8]) -> DfxResult<u128> {
-//     let args = CreateChunkRequest { batch_id, content };
-//     let args = candid::Encode!(&args).expect("unable to encode create_chunk argument");
-//     println!("create chunk");
-//     agent
-//         .update(&canister_id, CREATE_CHUNK)
-//         .with_arg(args)
-//         .expire_after(timeout)
-//         .call_and_wait(waiter_with_timeout(timeout))
-//         .await
-//         .map_err(DfxError::from)
-//         .and_then(|response| {
-//             candid::Decode!(&response, CreateChunkResponse)
-//                 .map_err(DfxError::from)
-//                 .map(|x| x.chunk_id)
-//         })
-//
-// }
+async fn create_chunk(
+    agent: &Agent,
+    canister_id: &Principal,
+    timeout: Duration,
+    batch_id: u128,
+    content: &[u8],
+) -> DfxResult<u128> {
+    let args = CreateChunkRequest { batch_id, content };
+    let args = candid::Encode!(&args)?;
+    println!("create chunk");
+    agent
+        .update(&canister_id, CREATE_CHUNK)
+        .with_arg(args)
+        .expire_after(timeout)
+        .call_and_wait(waiter_with_timeout(timeout))
+        .await
+        .map_err(DfxError::from)
+        .and_then(|response| {
+            candid::Decode!(&response, CreateChunkResponse)
+                .map_err(DfxError::from)
+                .map(|x| x.chunk_id)
+        })
+}
 async fn make_chunked_asset(
     agent: &Agent,
     canister_id: &Principal,
@@ -139,23 +140,7 @@ async fn make_chunked_asset(
     );
     let chunks_futures: Vec<_> = content
         .chunks(MAX_CHUNK_SIZE)
-        .map(|content| async move {
-            let args = CreateChunkRequest { batch_id, content };
-            let args = candid::Encode!(&args).expect("unable to encode create_chunk argument");
-            println!("create chunk");
-            agent
-                .update(&canister_id, CREATE_CHUNK)
-                .with_arg(args)
-                .expire_after(timeout)
-                .call_and_wait(waiter_with_timeout(timeout))
-                .await
-                .map_err(DfxError::from)
-                .and_then(|response| {
-                    candid::Decode!(&response, CreateChunkResponse)
-                        .map_err(DfxError::from)
-                        .map(|x| x.chunk_id)
-                })
-        })
+        .map(|content| create_chunk(agent, canister_id, timeout, batch_id, content))
         .collect();
     println!("await chunk creation");
 
@@ -193,20 +178,23 @@ async fn commit_batch(
     let operations: Vec<_> = chunked_assets
         .into_iter()
         .map(|chunked_asset| {
+            let key = chunked_asset
+                .asset_location
+                .relative
+                .to_string_lossy()
+                .to_string();
             vec![
-                BatchOperationKind::DeleteAsset(DeleteAssetArguments {
-                    key: chunked_asset.asset_location.relative.to_string_lossy().to_string(),
-                }),
+                BatchOperationKind::DeleteAsset(DeleteAssetArguments { key: key.clone() }),
                 BatchOperationKind::CreateAsset(CreateAssetArguments {
-                    key: chunked_asset.asset_location.relative.to_string_lossy().to_string(),
+                    key: key.clone(),
                     content_type: "application/octet-stream".to_string(),
                 }),
                 BatchOperationKind::SetAssetContent(SetAssetContentArguments {
-                    key: chunked_asset.asset_location.relative.to_string_lossy().to_string(),
+                    key,
                     content_encoding: "identity".to_string(),
                     chunk_ids: chunked_asset.chunk_ids,
                 }),
-        ]
+            ]
         })
         .flatten()
         .collect();
@@ -253,6 +241,7 @@ pub async fn post_install_store_assets(
     let canister_id = info.get_canister_id().expect("Could not find canister ID.");
 
     let batch_id = create_batch(agent, &canister_id, timeout).await?;
+    println!("created batch {}", batch_id);
 
     let chunked_assets =
         make_chunked_assets(agent, &canister_id, timeout, batch_id, asset_locations).await?;
