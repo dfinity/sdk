@@ -276,6 +276,8 @@ shared ({caller = creator}) actor class () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
+    Debug.print("create_batch");
+
     {
       batch_id = startBatch();
     }
@@ -287,6 +289,7 @@ shared ({caller = creator}) actor class () {
   } ) : async ({
     chunk_id: ChunkId
   }) {
+    Debug.print("create_chunk(batch " # Int.toText(arg.batch_id) # ", " # Int.toText(arg.content.size()) # " bytes)");
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
@@ -301,13 +304,11 @@ shared ({caller = creator}) actor class () {
   };
 
   public shared ({ caller }) func commit_batch(args: CommitBatchArguments) : async () {
-    Debug.print("commit_batch (1)");
+    Debug.print("commit_batch (" # Int.toText(args.operations.size()) # ")");
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    Debug.print("commit_batch (2)");
     for (op in args.operations.vals()) {
-      Debug.print("commit_batch (3)");
 
       let r : Result.Result<(), Text> = switch(op) {
         case (#CreateAsset(args)) { createAsset(args); };
@@ -316,7 +317,6 @@ shared ({caller = creator}) actor class () {
         case (#DeleteAsset(args)) { deleteAsset(args); };
         case (#Clear(args)) { clearEverything(args); }
       };
-      Debug.print("commit_batch (4)");
       switch(r) {
         case (#ok(())) {};
         case (#err(msg)) throw Error.reject(msg);
@@ -335,7 +335,7 @@ shared ({caller = creator}) actor class () {
   };
 
   func createAsset(arg: CreateAssetArguments) : Result.Result<(), Text> {
-    Debug.print("createAsset()");
+    Debug.print("createAsset(" # arg.key # ")");
     switch (assets_manipulator.get(assets, arg.key)) {
       case null {
         let asset : Asset = {
@@ -367,7 +367,7 @@ shared ({caller = creator}) actor class () {
   };
 
   func setAssetContent(arg: SetAssetContentArguments) : Result.Result<(), Text> {
-    Debug.print("setAssetContent()");
+    Debug.print("setAssetContent(" # arg.key # ")");
     switch (assets_manipulator.get(assets, arg.key)) {
       case null #err("asset not found");
       case (?asset) {
@@ -413,9 +413,8 @@ shared ({caller = creator}) actor class () {
   };
 
   func deleteAsset(args: DeleteAssetArguments) : Result.Result<(), Text> {
-    Debug.print("deleteAsset() enter");
+    Debug.print("deleteAsset(" # args.key # ")");
     assets_manipulator.delete(assets, args.key);
-    Debug.print("deleteAsset() leave");
     #ok(())
   };
 
