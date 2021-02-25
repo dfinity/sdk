@@ -78,6 +78,15 @@ service : {
     controller: opt principal;  // If omitted, set the controller to this wallet.
   }) -> (record { canister_id: principal });
 
+  wallet_create_wallet: (record {
+    cycles: nat64;
+    controller: opt principal;  // If omitted, set the controller to this wallet.
+  }) -> (record {canister_id: principal });
+
+  wallet_store_wallet_wasm: (record {
+    wasm_module: blob;
+  }) -> ();
+
   // Call Forwarding
   wallet_call: (record {
     canister: principal;
