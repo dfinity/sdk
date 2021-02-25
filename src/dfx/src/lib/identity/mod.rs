@@ -341,6 +341,13 @@ impl Identity {
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
                     .await?;
 
+                let wallet = Identity::build_wallet_canister(canister_id.clone(), env)?;
+
+                wallet
+                    .wallet_store_wallet_wasm(wasm)
+                    .call_and_wait(waiter_with_timeout(expiry_duration()))
+                    .await?;
+
                 Identity::set_wallet_id(env, network, name, canister_id.clone())?;
 
                 info!(
