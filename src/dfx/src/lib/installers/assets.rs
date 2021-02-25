@@ -8,14 +8,15 @@ use futures::future::try_join_all;
 use ic_agent::Agent;
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::WalkDir;
 
-const GET: &str = "get";
+//const GET: &str = "get";
 const CREATE_BATCH: &str = "create_batch";
 const CREATE_CHUNK: &str = "create_chunk";
-const MAX_CHUNK_SIZE: usize = 1_900_000;
+const COMMIT_BATCH: &str = "commit_batch";
+const MAX_CHUNK_SIZE: usize = 300;
 
 #[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
 struct CreateBatchRequest {}
@@ -47,6 +48,48 @@ struct GetResponse {
     contents: Vec<u8>,
     content_type: String,
     content_encoding: String,
+}
+
+#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+struct CreateAssetArguments {
+    key: String,
+    content_type: String,
+}
+#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+struct SetAssetContentArguments {
+    key: String,
+    content_encoding: String,
+    chunk_ids: Vec<u128>,
+}
+#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+struct UnsetAssetContentArguments {
+    key: String,
+    content_encoding: String,
+}
+#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+struct DeleteAssetArguments {
+    key: String,
+}
+#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+struct ClearArguments {}
+
+#[derive(CandidType, Clone, Debug, Serialize, Deserialize)]
+enum BatchOperationKind {
+    CreateAsset(CreateAssetArguments),
+
+    SetAssetContent(SetAssetContentArguments),
+
+    UnsetAssetContent(UnsetAssetContentArguments),
+
+    DeleteAsset(DeleteAssetArguments),
+
+    Clear(ClearArguments),
+}
+
+#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+struct CommitBatchArguments {
+    batch_id: u128,
+    operations: Vec<BatchOperationKind>,
 }
 
 #[derive(Clone, Debug)]
@@ -116,6 +159,51 @@ async fn make_chunked_assets(
     try_join_all(futs).await
 }
 
+async fn commit_batch(
+    agent: &Agent,
+    canister_id: &Principal,
+    timeout: Duration,
+    batch_id: u128,
+    chunked_assets: Vec<ChunkedAsset>,
+) -> DfxResult {
+    let operations: Vec<_> = chunked_assets
+        .into_iter()
+        .map(|chunked_asset| {
+            vec![
+                BatchOperationKind::DeleteAsset(DeleteAssetArguments {
+                    key: chunked_asset.asset_location.relative.to_string_lossy().to_string(),
+                }),
+                BatchOperationKind::CreateAsset(CreateAssetArguments {
+                    key: chunked_asset.asset_location.relative.to_string_lossy().to_string(),
+                    content_type: "application/octet-stream".to_string(),
+                }),
+                BatchOperationKind::SetAssetContent(SetAssetContentArguments {
+                    key: chunked_asset.asset_location.relative.to_string_lossy().to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: chunked_asset.chunk_ids,
+                }),
+        ]
+        })
+        .flatten()
+        .collect();
+    let arg = CommitBatchArguments {
+        batch_id,
+        operations,
+    };
+    let arg = candid::Encode!(&arg)?;
+    println!("encoded arg: {:02X?}", arg);
+    let idl = candid::IDLArgs::from_bytes(&arg)?;
+    println!("{:?}", idl);
+    let x = agent
+        .update(&canister_id, COMMIT_BATCH)
+        .with_arg(arg)
+        .expire_after(timeout)
+        .call_and_wait(waiter_with_timeout(timeout))
+        .await;
+    x?;
+    Ok(())
+}
+
 pub async fn post_install_store_assets(
     info: &CanisterInfo,
     agent: &Agent,
@@ -146,39 +234,32 @@ pub async fn post_install_store_assets(
         make_chunked_assets(agent, &canister_id, timeout, batch_id, asset_locations).await?;
     println!("created all chunks");
 
-    // let mut futs: Vec<_> = vec![];
-    // for loc in asset_locations {
-    //     let y = make_chunked_asset(agent, &canister_id, timeout, batch_id, loc);
-    //     futs.append(y);
+    println!("committing batch");
+    commit_batch(agent, &canister_id, timeout, batch_id, chunked_assets).await?;
+    println!("committed");
+
+    // let walker = WalkDir::new(output_assets_path).into_iter();
+    // for entry in walker {
+    //     let entry = entry?;
+    //     if entry.file_type().is_file() {
+    //         let source = entry.path();
+    //         let relative: &Path = source
+    //             .strip_prefix(output_assets_path)
+    //             .expect("cannot strip prefix");
+    //         let content = &std::fs::read(&source)?;
+    //         let path = relative.to_string_lossy().to_string();
+    //         let blob = candid::Encode!(&path, &content)?;
+    //
+    //         let method_name = String::from("store");
+    //
+    //         agent
+    //             .update(&canister_id, &method_name)
+    //             .with_arg(&blob)
+    //             .expire_after(timeout)
+    //             .call_and_wait(waiter_with_timeout(timeout))
+    //             .await?;
+    //     }
     // }
-    // let chunked_asset_futures: Vec<_> = asset_locations
-    //     .into_iter()
-    //     .map(|loc| async { make_chunked_asset(agent, &canister_id, timeout, batch_id, loc) })
-    //     .collect();
-    // let x: Vec<ChunkedAsset> = try_join_all(chunked_asset_futures).await.unwrap();
-
-    let walker = WalkDir::new(output_assets_path).into_iter();
-    for entry in walker {
-        let entry = entry?;
-        if entry.file_type().is_file() {
-            let source = entry.path();
-            let relative: &Path = source
-                .strip_prefix(output_assets_path)
-                .expect("cannot strip prefix");
-            let content = &std::fs::read(&source)?;
-            let path = relative.to_string_lossy().to_string();
-            let blob = candid::Encode!(&path, &content)?;
-
-            let method_name = String::from("store");
-
-            agent
-                .update(&canister_id, &method_name)
-                .with_arg(&blob)
-                .expire_after(timeout)
-                .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
-        }
-    }
     Ok(())
 }
 
