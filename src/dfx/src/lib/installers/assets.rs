@@ -163,9 +163,7 @@ async fn make_chunked_assets(
         .into_iter()
         .map(|loc| make_chunked_asset(agent, canister_id, timeout, batch_id, loc))
         .collect();
-    let fut = try_join_all(futs);
-    let result = fut.await;
-    result
+    try_join_all(futs).await
 }
 
 async fn commit_batch(
