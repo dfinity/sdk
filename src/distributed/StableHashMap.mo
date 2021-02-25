@@ -33,8 +33,8 @@ public class StableHashMapManipulator<K, V>(
   public func remove(shm: StableHashMap<K, V>, k : K) : ?V {
     let h = Prim.word32ToNat(keyHash(k));
     let m = shm.table.size();
-    let pos = h % m;
     if (m > 0) {
+      let pos = h % m;
       let (kvs2, ov) = AssocList.replace<K, V>(shm.table[pos], k, keyEq, null);
       shm.table[pos] := kvs2;
       switch(ov){
