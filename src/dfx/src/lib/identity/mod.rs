@@ -11,7 +11,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
-use ic_agent::identity::BasicIdentity;
+use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
@@ -113,6 +113,23 @@ impl Identity {
         })
     }
 
+    fn load_secp256k1_identity(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
+        let dir = manager.get_identity_dir_path(name);
+        let pem_path = dir.join(IDENTITY_PEM);
+        let inner = Box::new(Secp256k1Identity::from_pem_file(&pem_path).map_err(|e| {
+            DfxError::new(IdentityError::CannotReadIdentityFile(
+                pem_path.clone(),
+                Box::new(DfxError::new(e)),
+            ))
+        })?);
+
+        Ok(Self {
+            name: name.to_string(),
+            inner,
+            dir: manager.get_identity_dir_path(name),
+        })
+    }
+
     fn load_hardware_identity(
         manager: &IdentityManager,
         name: &str,
@@ -144,7 +161,8 @@ impl Identity {
                 })?;
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            Identity::load_basic_identity(manager, name)
+            Identity::load_secp256k1_identity(manager, name)
+                .or(Identity::load_basic_identity(manager, name))
         }
     }
 
