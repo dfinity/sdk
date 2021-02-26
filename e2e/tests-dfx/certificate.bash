@@ -33,7 +33,7 @@ setup() {
         # shellcheck disable=SC2094
         cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$MITM_PORT"'"' dfx.json)" >dfx.json
 
-        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  --replacements '/~s/Hello,/Hullo,' &
+        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  --modify-body '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
         timeout 5 sh -c \
