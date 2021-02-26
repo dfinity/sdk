@@ -162,7 +162,7 @@ impl Identity {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
             Identity::load_secp256k1_identity(manager, name)
-                .or(Identity::load_basic_identity(manager, name))
+                .or_else(|_| Identity::load_basic_identity(manager, name))
         }
     }
 
