@@ -16,8 +16,8 @@ use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::{ManagementCanister, Wallet};
 use ic_utils::interfaces::management_canister::{InstallMode, MemoryAllocation};
+use ic_utils::interfaces::{ManagementCanister, Wallet};
 use ic_utils::Canister;
 use serde::{Deserialize, Serialize};
 use slog::info;
@@ -36,6 +36,7 @@ pub use identity_manager::{
 const IDENTITY_PEM: &str = "identity.pem";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
+const DEFAULT_MEM_ALLOCATION: u64 = 8000000000_u64; // 8gb
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
@@ -341,7 +342,7 @@ impl Identity {
 
                 mgr.install_code(&canister_id, wasm.as_slice())
                     .with_mode(InstallMode::Install)
-                    .with_memory_allocation(MemoryAllocation::try_from(8000000000_u64).expect(
+                    .with_memory_allocation(MemoryAllocation::try_from(DEFAULT_MEM_ALLOCATION).expect(
                         "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
                     ))
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
