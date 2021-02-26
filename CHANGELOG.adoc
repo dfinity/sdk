@@ -1,3 +1,12 @@
+= 0.6.25
+
+== Agents
+
+=== Rust Agent
+
+- feat: AgentError due to request::Error will now include the reqwest error message
+in addition to "Could not reach the server"
+
 = 0.6.24
 
 == DFX
