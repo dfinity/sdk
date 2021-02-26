@@ -6,6 +6,7 @@
 
 - feat: AgentError due to request::Error will now include the reqwest error message
 in addition to "Could not reach the server"
+- feat: Add secp256k1 support (dfx support to follow)
 
 = 0.6.24
 
