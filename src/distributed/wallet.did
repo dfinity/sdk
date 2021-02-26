@@ -23,6 +23,9 @@ type EventKind = variant {
     canister: principal;
     method_name: text;
     cycles: nat64;
+  };
+  WalletDeployed: record {
+    canister: principal;
   }
 };
 

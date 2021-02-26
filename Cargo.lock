@@ -1893,7 +1893,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=008902eb31afda87516b1bb175d6591582575644#008902eb31afda87516b1bb175d6591582575644"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/wallet_create#5cc421371226880702e81f857d80bbe90219343b"
 dependencies = [
  "async-trait",
  "base32",
@@ -1923,7 +1923,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=008902eb31afda87516b1bb175d6591582575644#008902eb31afda87516b1bb175d6591582575644"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/wallet_create#5cc421371226880702e81f857d80bbe90219343b"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1938,7 +1938,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=008902eb31afda87516b1bb175d6591582575644#008902eb31afda87516b1bb175d6591582575644"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/wallet_create#5cc421371226880702e81f857d80bbe90219343b"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1950,7 +1950,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=008902eb31afda87516b1bb175d6591582575644#008902eb31afda87516b1bb175d6591582575644"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/wallet_create#5cc421371226880702e81f857d80bbe90219343b"
 dependencies = [
  "async-trait",
  "candid",

@@ -72,21 +72,25 @@ wasmparser = "0.45.0"
 [dependencies.ic-agent]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/wallet_create"
 rev = "008902eb31afda87516b1bb175d6591582575644"
 
 [dependencies.ic-identity-hsm]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/wallet_create"
 rev = "008902eb31afda87516b1bb175d6591582575644"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/wallet_create"
 rev = "008902eb31afda87516b1bb175d6591582575644"
 
 [dependencies.ic-utils]
 version = "0.1.0"
 git = "https://github.com/dfinity/agent-rs.git"
+branch = "pshahi/wallet_create"
 rev = "008902eb31afda87516b1bb175d6591582575644"
 
 [dev-dependencies]
