@@ -4,12 +4,14 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::waiter::waiter_with_timeout;
 use candid::{CandidType, Decode, Encode};
 
+use delay::{Delay, Waiter};
 use futures::future::try_join_all;
 use ic_agent::Agent;
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
+use tokio::task;
 use walkdir::WalkDir;
 
 //const GET: &str = "get";
@@ -113,19 +115,43 @@ async fn create_chunk(
     let args = CreateChunkRequest { batch_id, content };
     let args = candid::Encode!(&args)?;
     println!("create chunk");
-    agent
-        .update(&canister_id, CREATE_CHUNK)
-        .with_arg(args)
-        .expire_after(timeout)
-        .call_and_wait(waiter_with_timeout(timeout))
-        .await
-        .map_err(DfxError::from)
-        .and_then(|response| {
-            candid::Decode!(&response, CreateChunkResponse)
-                .map_err(DfxError::from)
-                .map(|x| x.chunk_id)
-        })
+
+    let mut waiter = Delay::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .throttle(std::time::Duration::from_secs(1))
+        .build();
+    waiter.start();
+
+    loop {
+        match agent
+            .update(&canister_id, CREATE_CHUNK)
+            .with_arg(&args)
+            .expire_after(timeout)
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await
+            .map_err(DfxError::from)
+            .and_then(|response| {
+                candid::Decode!(&response, CreateChunkResponse)
+                    .map_err(DfxError::from)
+                    .map(|x| x.chunk_id)
+            }) {
+            Ok(chunk_id) => {
+                println!("created chunk {}", chunk_id);
+                break Ok(chunk_id);
+            }
+            Err(agent_err) => {
+                println!("agent error ({}) waiting to retry...", agent_err);
+                match waiter.wait() {
+                    Ok(()) => {
+                        println!("retrying...");
+                    }
+                    Err(_) => break Err(agent_err),
+                }
+            }
+        }
+    }
 }
+
 async fn make_chunked_asset(
     agent: &Agent,
     canister_id: &Principal,
@@ -138,6 +164,24 @@ async fn make_chunked_asset(
         "create chunks for {}",
         asset_location.source.to_string_lossy()
     );
+
+    // how to deal with lifetimes for agent and canister_id here
+    // this function won't exit until after the task is joined...
+    // let chunks_future_tasks: Vec<_> = content
+    //     .chunks(MAX_CHUNK_SIZE)
+    //     .map(|content| task::spawn(create_chunk(agent, canister_id, timeout, batch_id, content)))
+    //     .collect();
+    // println!("await chunk creation");
+    // let but_lifetimes = try_join_all(chunks_future_tasks)
+    //     .await?
+    //     .into_iter()
+    //     .collect::<DfxResult<Vec<u128>>>()
+    //     .map(|chunk_ids| ChunkedAsset {
+    //         asset_location,
+    //         chunk_ids,
+    //     });
+
+
     let chunks_futures: Vec<_> = content
         .chunks(MAX_CHUNK_SIZE)
         .map(|content| create_chunk(agent, canister_id, timeout, batch_id, content))
