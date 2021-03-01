@@ -165,6 +165,7 @@ async fn make_chunked_asset(
         asset_location.source.to_string_lossy()
     );
 
+    // ?? doesn't work
     // how to deal with lifetimes for agent and canister_id here
     // this function won't exit until after the task is joined...
     // let chunks_future_tasks: Vec<_> = content
@@ -180,20 +181,31 @@ async fn make_chunked_asset(
     //         asset_location,
     //         chunk_ids,
     //     });
+    // ?? doesn't work
 
+    // works (sometimes)
+    // let chunks_futures: Vec<_> = content
+    //     .chunks(MAX_CHUNK_SIZE)
+    //     .map(|content| create_chunk(agent, canister_id, timeout, batch_id, content))
+    //     .collect();
+    // println!("await chunk creation");
+    //
+    // try_join_all(chunks_futures)
+    //     .await
+    //     .map(|chunk_ids| ChunkedAsset {
+    //         asset_location,
+    //         chunk_ids,
+    //     })
+    // works (sometimes)
 
-    let chunks_futures: Vec<_> = content
-        .chunks(MAX_CHUNK_SIZE)
-        .map(|content| create_chunk(agent, canister_id, timeout, batch_id, content))
-        .collect();
-    println!("await chunk creation");
-
-    try_join_all(chunks_futures)
-        .await
-        .map(|chunk_ids| ChunkedAsset {
-            asset_location,
-            chunk_ids,
-        })
+    let mut chunk_ids: Vec<u128> = vec![];
+    for data_chunk in content.chunks(MAX_CHUNK_SIZE) {
+        chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, data_chunk).await?);
+    }
+    Ok(ChunkedAsset {
+        asset_location,
+        chunk_ids,
+    })
 }
 
 async fn make_chunked_assets(
@@ -203,11 +215,16 @@ async fn make_chunked_assets(
     batch_id: u128,
     locs: Vec<AssetLocation>,
 ) -> DfxResult<Vec<ChunkedAsset>> {
-    let futs: Vec<_> = locs
-        .into_iter()
-        .map(|loc| make_chunked_asset(agent, canister_id, timeout, batch_id, loc))
-        .collect();
-    try_join_all(futs).await
+    // let futs: Vec<_> = locs
+    //     .into_iter()
+    //     .map(|loc| make_chunked_asset(agent, canister_id, timeout, batch_id, loc))
+    //     .collect();
+    // try_join_all(futs).await
+    let mut chunked_assets = vec![];
+    for loc in locs {
+        chunked_assets.push(make_chunked_asset(agent, canister_id, timeout, batch_id, loc).await?);
+    }
+    Ok(chunked_assets)
 }
 
 async fn commit_batch(
