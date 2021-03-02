@@ -6,6 +6,13 @@
 , isMaster ? true
 , labels ? {}
 }:
+
+let
+  nixFmt = pkgs.lib.nixFmt {
+    excludeSuffix = [ "Cargo.nix" ];
+  };
+in
+
 rec {
   dfx = import ./dfx.nix { inherit pkgs assets; };
 
@@ -25,7 +32,8 @@ rec {
 
   distributed-canisters = import ./distributed-canisters.nix { inherit pkgs; };
 
-  inherit (pkgs) nix-fmt nix-fmt-check;
+  nix-fmt = nixFmt.fmt;
+  nix-fmt-check = nixFmt.check;
 
   install = import ./public { inherit pkgs src; };
 
