@@ -20,7 +20,7 @@ let
         }
       )
     ).mkDfinityWorkspace {
-      cargoFile = ./src/dfx/Cargo.nix;
+      cargoFile = ./Cargo.nix;
       crateOverrides = [
         (
           pkgs.rustBuilder.rustLib.makeOverride {
