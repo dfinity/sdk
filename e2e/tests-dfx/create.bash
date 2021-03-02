@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load utils/_
+load ../utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
@@ -52,18 +52,14 @@ teardown() {
 @test "create succeeds when requested network is configured" {
     dfx_start
 
-    webserver_port=$(cat .dfx/webserver-port)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    setup_actuallylocal_network
     assert_command dfx canister --network actuallylocal create --all
 }
 
 @test "create with wallet succeeds when requested network is configured" {
     skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     dfx_start
-    webserver_port=$(cat .dfx/webserver-port)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    setup_actuallylocal_network
 
     assert_command dfx_set_wallet
     assert_command dfx canister --network actuallylocal create --all

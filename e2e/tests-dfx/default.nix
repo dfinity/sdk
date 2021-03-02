@@ -45,11 +45,12 @@ let
 
           ln -s $utils utils
           ln -s $assets assets
-          ln -s $test test
+          mkdir test
+          ln -s $test test/test.bash
 
           # Timeout of 10 minutes is enough for now. Reminder; CI might be running with
           # less resources than a dev's computer, so e2e might take longer.
-          timeout --preserve-status 3600 bats test | tee $out
+          timeout --preserve-status 3600 bats test/test.bash | tee $out
         ''
       );
 in

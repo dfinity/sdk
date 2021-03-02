@@ -23,6 +23,7 @@ pub async fn deploy_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     timeout: Duration,
+    with_cycles: Option<&str>,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -38,7 +39,14 @@ pub async fn deploy_canisters(
         info!(log, "Deploying all canisters.");
     }
 
-    register_canisters(env, &canister_names, &initial_canister_id_store, timeout).await?;
+    register_canisters(
+        env,
+        &canister_names,
+        &initial_canister_id_store,
+        timeout,
+        with_cycles,
+    )
+    .await?;
 
     build_canisters(env, &canister_names, &config)?;
 
@@ -71,6 +79,7 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     timeout: Duration,
+    with_cycles: Option<&str>,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -82,7 +91,7 @@ async fn register_canisters(
     } else {
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
-            create_canister(env, &canister_name, timeout).await?;
+            create_canister(env, &canister_name, timeout, with_cycles).await?;
         }
     }
     Ok(())
