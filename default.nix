@@ -38,6 +38,6 @@ rec {
   };
 
   licenses = {
-    dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
+    dfx = pkgs.lib.runtime.runtimeLicensesReport dfx;
   };
 }

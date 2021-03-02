@@ -65,6 +65,8 @@ let
               );
             }
       )
+      (import ./cargo2nix/overlay)
+      (import ./cargo2nix.nix)
     ];
   };
 in

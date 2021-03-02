@@ -10,96 +10,46 @@
 , system ? builtins.currentSystem
 , assets ? import ./assets.nix { inherit pkgs; }
 }:
+
 let
-  lib = pkgs.lib;
-  workspace = pkgs.buildDfinityRustPackage {
-    name = "dfinity-sdk-rust";
-    srcDir = ./.;
-    regexes = [
-      ".*/assets/.*$"
-      ".*\.rs$"
-      ".*\.lalrpop$"
-      ".*Cargo\.toml$"
-      ".*Cargo\.lock$"
-      "^.cargo/config$"
-    ];
-    cargoTestCommands = _: [
-      ''cargo $cargo_options test $cargo_test_options --workspace''
-    ];
-    override = attrs: {
-      preConfigure = (attrs.preConfigure or "") + ''
-        unset SDKROOT
-      '';
-    };
-  };
-
-  # set DFX_ASSETS for the builds and shells
-  addAssets = ws:
-  # override all derivations and add DFX_ASSETS as an environment variable
+  workspace =
     (
-      lib.mapAttrs (
-        k: drv:
-          if !lib.isDerivation drv then drv else
-            drv.overrideAttrs (
-              _: {
-                DFX_ASSETS = assets;
-              }
-            )
-      ) ws
-    );
-
-  # add a `standalone` target stripped of nix references
-  addStandalone = ws:
-    ws // {
-      standalone = pkgs.lib.standaloneRust
-        {
-          drv = ws.build;
-          exename = "dfx";
-          usePackager = false;
-        };
+      pkgs.rustBuilder.overrideScope' (
+        self_rs: super_rs: {
+          inherit (pkgs.pkgsStatic.rustBuilder) makePackageSet;
+        }
+      )
+    ).mkDfinityWorkspace {
+      cargoFile = ./src/dfx/Cargo.nix;
+      crateOverrides = [
+        (
+          pkgs.rustBuilder.rustLib.makeOverride {
+            overrideAttrs = oldAttrs: {
+              OPENSSL_STATIC = true;
+              OPENSSL_LIB_DIR = "${pkgs.pkgsStatic.openssl.out}/lib";
+              OPENSSL_INCLUDE_DIR = "${pkgs.pkgsStatic.openssl.dev}/include";
+            };
+          }
+        )
+        (
+          pkgs.rustBuilder.rustLib.makeOverride {
+            registry = "unknown";
+            overrideAttrs = _: {
+              DFX_ASSETS = assets;
+            };
+          }
+        )
+      ];
     };
 
-  # Note that on Linux we need the static environment.
-  cc = if pkgs.stdenv.isLinux
-  then pkgs.pkgsStatic.stdenv.cc
-  else pkgs.stdenv.cc;
-
-  # fixup the shell for more convenient developer use
-  fixShell = ws:
-    ws // {
-      shell =
-        pkgs.mkCompositeShell {
-          name = "dfinity-sdk-rust-env";
-          nativeBuildInputs = [
-            pkgs.rls
-            # wabt-sys needs file in path, as well as cc (for cmake).
-            pkgs.file
-            cc
-            pkgs.gettext
-            pkgs.coreutils
-          ] ++ lib.optional pkgs.stdenv.isDarwin pkgs.stdenv.cc.bintools;
-          inputsFrom = [ ws.shell ];
-          shellHook = ''
-            # Set CARGO_HOME to minimize interaction with any environment outside nix
-            export CARGO_HOME=${if pkgs.lib.isHydra then "." else toString ./.}/.cargo-home
-
-            if [ ! -d "$CARGO_HOME" ]; then
-                mkdir -p $CARGO_HOME
-                echo "[net]
-                      git-fetch-with-cli = true" > $CARGO_HOME/config
-            fi
-
-            # Set environment variable for debug version.
-            export DFX_TIMESTAMP_DEBUG_MODE_ONLY=$(date +%s)
-
-            # the presence of this var breaks brotli-sys compilation
-            unset SDKROOT
-          '';
-        };
-    };
-
+  dfx = workspace.dfx.release;
 in
-fixShell (
-  addStandalone (addAssets workspace)
-    (throw "this argument is used to trigger the functor and shouldn't actually be evaluated.")
-)
+
+dfx // {
+  standalone = pkgs.lib.standaloneRust {
+    drv = dfx;
+    exename = "dfx";
+    usePackager = false;
+  };
+  shell = workspace.shell;
+}

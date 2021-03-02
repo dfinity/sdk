@@ -1,0 +1,67 @@
+name: "Automatically update Cargo.nix"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - Cargo.lock
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+        # NOTE: this checks out the actual branch (ref: github.head_ref)
+        # by default checkout@v2 will check out /refs/pulls/<pull id> which is
+        # the PR merged into master, leading to funky behavior, like different
+        # content for Cargo.nix.
+        # XXX: this means that GITHUB_SHA is inaccurate
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Install cargo2nix
+        # do this outside the caching step, since it's not very expensive and we can push updates this way
+        run: |
+          mkdir -p ~/.cargo/bin
+          if [ ! -e ~/.cargo/bin/cargo2nix ]; then
+            curl -L https://download.dfinity.systems/tools/cargo2nix -o ~/.cargo/bin/cargo2nix && chmod +x ~/.cargo/bin/cargo2nix
+          fi
+
+      - name: Cache cargo registry contents
+        uses: actions/cache@v2
+        env:
+          cache-name: cargo
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: crates.io-registry
+
+      - name: Regenerate Cargo.nix
+        env:
+          GITHUB_TOKEN: ${{ secrets.NIV_UPDATER_TOKEN }}
+          MESSAGE: automatically regenerate Cargo.nix for ${{ github.event.pull_request.head.sha }}
+        run: |
+          PATH="$PATH:$HOME/.cargo/bin"
+          git show --quiet HEAD
+
+          old_sha="$(git hash-object Cargo.nix)"
+          echo "Found old hash: $old_sha"
+
+          echo Running cargo2nix -f
+          cargo2nix -f
+          echo Done
+          if ! git diff --quiet; then
+            content=$(mktemp)
+            base64 Cargo.nix > "$content"
+            hub api -XPUT \
+              -F message="$MESSAGE" \
+              -F content=@"$content" \
+              -F sha="$old_sha" \
+              -F branch="${{ github.event.pull_request.head.ref }}" \
+              "/repos/$GITHUB_REPOSITORY/contents/Cargo.nix"
+            rm "$content"
+          else
+            echo "No diff, nothing to do."
+          fi
