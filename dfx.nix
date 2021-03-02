@@ -28,6 +28,10 @@ let
               OPENSSL_STATIC = true;
               OPENSSL_LIB_DIR = "${pkgs.pkgsStatic.openssl.out}/lib";
               OPENSSL_INCLUDE_DIR = "${pkgs.pkgsStatic.openssl.dev}/include";
+            } // pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin {
+              propagatedBuildInputs = oldAttrs.propagatedBuildInputs ++ [
+                pkgs.darwin.apple_sdk.frameworks.IOKit
+              ];
             };
           }
         )
