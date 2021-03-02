@@ -9,11 +9,13 @@ import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import Nat32 "mo:base/Nat32";
 import Result "mo:base/Result";
-import SHM "StableHashMap";
+import SHM "assetstorage/StableHashMap";
+import T "assetstorage/Types";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Tree "mo:base/RBTree";
 import Word8 "mo:base/Word8";
+
 
 shared ({caller = creator}) actor class () {
 
@@ -22,67 +24,12 @@ shared ({caller = creator}) actor class () {
   public type Contents = Blob;
 
   // new hotness
-  public type BatchId = Nat;
-  public type BlobId = Text;
-  public type ChunkId = Nat;
-  public type EncodingId = Text;
-  public type Key = Text;
-  public type ContentEncoding = Text;
-  public type ContentType = Text;
-  public type Offset = Nat;
-  public type TotalLength = Nat;
 
-
-  public type CreateAssetArguments = {
-    key: Key;
-    content_type: Text;
-  };
-  public type SetAssetContentArguments = {
-    key: Key;
-    content_encoding: Text;
-    chunk_ids: [ChunkId]
-  };
-  public type UnsetAssetContentArguments = {
-    key: Key;
-    content_encoding: Text;
-  };
-  public type DeleteAssetArguments = {
-    key: Key;
-  };
-  public type ClearArguments = {
-  };
-
-  public type BatchOperationKind = {
-    #CreateAsset: CreateAssetArguments;
-    #SetAssetContent: SetAssetContentArguments;
-    #UnsetAssetContent: UnsetAssetContentArguments;
-
-    #DeleteAsset: DeleteAssetArguments;
-
-    #Clear: ClearArguments;
-  };
-
-
-  public type CommitBatchArguments = {
-    batch_id: BatchId;
-    operations: [BatchOperationKind];
-  };
 
   stable var authorized: [Principal] = [creator];
 
 
-  type AssetEncoding = {
-    contentEncoding: Text;
-    content: [Blob];
-    totalLength: Nat;
-  };
-
-  type Asset = {
-    contentType: Text;
-    encodings: SHM.StableHashMap<Text, AssetEncoding>;
-  };
-
-  func getAssetEncoding(asset : Asset, acceptEncodings : [Text]) : ?AssetEncoding {
+  func getAssetEncoding(asset : T.Asset, acceptEncodings : [Text]) : ?T.AssetEncoding {
     for (acceptEncoding in acceptEncodings.vals()) {
       switch (encodings_manipulator.get(asset.encodings, acceptEncoding)) {
         case null {};
@@ -93,11 +40,11 @@ shared ({caller = creator}) actor class () {
   };
 
 
-  //stable var asset_entries : [(Key, Asset)] = [];
+  //stable var asset_entries : [(T.Key, T.Asset)] = [];
   //let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
-  stable let assets : SHM.StableHashMap<Key, Asset> = SHM.StableHashMap<Key, Asset>();
-  let assets_manipulator = SHM.StableHashMapManipulator<Key, Asset>(7, Text.equal, Text.hash);
-  let encodings_manipulator = SHM.StableHashMapManipulator<Text, AssetEncoding>(7, Text.equal, Text.hash);
+  stable let assets : SHM.StableHashMap<T.Key, T.Asset> = SHM.StableHashMap<T.Key, T.Asset>();
+  let assets_manipulator = SHM.StableHashMapManipulator<T.Key, T.Asset>(7, Text.equal, Text.hash);
+  let encodings_manipulator = SHM.StableHashMapManipulator<Text, T.AssetEncoding>(7, Text.equal, Text.hash);
 
   system func preupgrade() {
     //asset_entries := Iter.toArray(assets.entries());
@@ -107,18 +54,13 @@ shared ({caller = creator}) actor class () {
     //asset_entries := [];
   };
 
-  type Chunk = {
-    batch: Batch;
-    content: Blob;
-  };
-
   var nextChunkId = 1;
-  let chunks = H.HashMap<Int, Chunk>(7, Int.equal, Int.hash);
+  let chunks = H.HashMap<Int, T.Chunk>(7, Int.equal, Int.hash);
 
-  func createChunk(batch: Batch, content: Blob) : ChunkId {
+  func createChunk(batch: T.Batch, content: Blob) : T.ChunkId {
     let chunkId = nextChunkId;
     nextChunkId += 1;
-    let chunk : Chunk = {
+    let chunk : T.Chunk = {
       batch = batch;
       content = content;
     };
@@ -129,28 +71,23 @@ shared ({caller = creator}) actor class () {
   //var nextEncodingId = 1;
   //let encodings = H.HashMap<Text, [var ?Blob]>(7, Text.equal, Text.hash);
 
-  func takeChunk(chunkId: ChunkId): Result.Result<Blob, Text> {
+  func takeChunk(chunkId: T.ChunkId): Result.Result<Blob, Text> {
     switch (chunks.remove(chunkId)) {
       case null #err("chunk not found");
       case (?chunk) #ok(chunk.content);
     }
   };
 
-  type Batch = {
-      expiry : Time;
-  };
-
   // We track when each group of blobs should expire,
   // so that they don't consume space after an interrupted install.
   let BATCH_EXPIRY_NANOS = 5 * 60 * 1000 * 1000;
   var next_batch_id = 1;
-  type Time = Int;
-  let batches = H.HashMap<Int, Batch>(7, Int.equal, Int.hash);
+  let batches = H.HashMap<Int, T.Batch>(7, Int.equal, Int.hash);
 
-  func startBatch(): BatchId {
+  func startBatch(): T.BatchId {
     let batch_id = next_batch_id;
     next_batch_id += 1;
-    let batch : Batch = {
+    let batch : T.Batch = {
       expiry = Time.now() + BATCH_EXPIRY_NANOS;
     };
     batches.put(batch_id, batch);
@@ -176,7 +113,7 @@ shared ({caller = creator}) actor class () {
       case (?batch) createChunk(batch, contents)
     };
 
-    let create_asset_args : CreateAssetArguments = {
+    let create_asset_args : T.CreateAssetArguments = {
       key = path;
       content_type = "application/octet-stream"
     };
@@ -185,7 +122,7 @@ shared ({caller = creator}) actor class () {
       case (#err(msg)) throw Error.reject(msg);
     };
 
-    let set_asset_content_args : SetAssetContentArguments = {
+    let set_asset_content_args : T.SetAssetContentArguments = {
       key = path;
       content_encoding = "identity";
       chunk_ids = [ chunk_id ];
@@ -211,7 +148,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func list() : async [Path] {
-    let iter = Iter.map<(Text, Asset), Path>(assets_manipulator.entries(assets), func (key, _) = key);
+    let iter = Iter.map<(Text, T.Asset), Path>(assets_manipulator.entries(assets), func (key, _) = key);
     Iter.toArray(iter)
   };
 
@@ -222,7 +159,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func get(arg:{
-    key: Key;
+    key: T.Key;
     accept_encodings: [Text]
   }) : async ( {
     content: Blob;
@@ -249,7 +186,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func get_chunk(arg:{
-    key: Key;
+    key: T.Key;
     content_encoding: Text;
     index: Nat;
   }) : async ( {
@@ -271,7 +208,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public shared ({ caller }) func create_batch(arg: {}) : async ({
-    batch_id: BatchId
+    batch_id: T.BatchId
   }) {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
@@ -284,10 +221,10 @@ shared ({caller = creator}) actor class () {
   };
 
   public shared ({ caller }) func create_chunk( arg: {
-    batch_id: BatchId;
+    batch_id: T.BatchId;
     content: Blob;
   } ) : async ({
-    chunk_id: ChunkId
+    chunk_id: T.ChunkId
   }) {
     Debug.print("create_chunk(batch " # Int.toText(arg.batch_id) # ", " # Int.toText(arg.content.size()) # " bytes)");
     if (isSafe(caller) == false)
@@ -303,7 +240,7 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  public shared ({ caller }) func commit_batch(args: CommitBatchArguments) : async () {
+  public shared ({ caller }) func commit_batch(args: T.CommitBatchArguments) : async () {
     Debug.print("commit_batch (" # Int.toText(args.operations.size()) # ")");
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
@@ -324,7 +261,7 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  public shared ({ caller }) func create_asset(arg: CreateAssetArguments) : async () {
+  public shared ({ caller }) func create_asset(arg: T.CreateAssetArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
@@ -334,13 +271,13 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  func createAsset(arg: CreateAssetArguments) : Result.Result<(), Text> {
+  func createAsset(arg: T.CreateAssetArguments) : Result.Result<(), Text> {
     Debug.print("createAsset(" # arg.key # ")");
     switch (assets_manipulator.get(assets, arg.key)) {
       case null {
-        let asset : Asset = {
+        let asset : T.Asset = {
           contentType = arg.content_type;
-          encodings = SHM.StableHashMap<Text, AssetEncoding>();
+          encodings = SHM.StableHashMap<Text, T.AssetEncoding>();
         };
         assets_manipulator.put(assets, arg.key, asset );
       };
@@ -352,7 +289,7 @@ shared ({caller = creator}) actor class () {
     #ok(())
   };
 
-  public shared ({ caller }) func set_asset_content(arg: SetAssetContentArguments) : async () {
+  public shared ({ caller }) func set_asset_content(arg: T.SetAssetContentArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
@@ -366,14 +303,14 @@ shared ({caller = creator}) actor class () {
     acc + blob.size()
   };
 
-  func setAssetContent(arg: SetAssetContentArguments) : Result.Result<(), Text> {
+  func setAssetContent(arg: T.SetAssetContentArguments) : Result.Result<(), Text> {
     Debug.print("setAssetContent(" # arg.key # ")");
     switch (assets_manipulator.get(assets, arg.key)) {
       case null #err("asset not found");
       case (?asset) {
-        switch (Array.mapResult<ChunkId, Blob, Text>(arg.chunk_ids, takeChunk)) {
+        switch (Array.mapResult<T.ChunkId, Blob, Text>(arg.chunk_ids, takeChunk)) {
           case (#ok(chunks)) {
-            let encoding : AssetEncoding = {
+            let encoding : T.AssetEncoding = {
               contentEncoding = arg.content_encoding;
               content = chunks;
               totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, addBlobLength);
@@ -388,7 +325,7 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  public shared ({ caller }) func unset_asset_content(args: UnsetAssetContentArguments) : async () {
+  public shared ({ caller }) func unset_asset_content(args: T.UnsetAssetContentArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
@@ -398,11 +335,11 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  func unsetAssetContent(args: UnsetAssetContentArguments) : Result.Result<(), Text> {
+  func unsetAssetContent(args: T.UnsetAssetContentArguments) : Result.Result<(), Text> {
     #err("unset_asset_content: not implemented");
   };
 
-  public shared ({ caller }) func delete_asset(args: DeleteAssetArguments) : async () {
+  public shared ({ caller }) func delete_asset(args: T.DeleteAssetArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
@@ -412,13 +349,13 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  func deleteAsset(args: DeleteAssetArguments) : Result.Result<(), Text> {
+  func deleteAsset(args: T.DeleteAssetArguments) : Result.Result<(), Text> {
     Debug.print("deleteAsset(" # args.key # ")");
     assets_manipulator.delete(assets, args.key);
     #ok(())
   };
 
-  public shared ({ caller }) func clear(args: ClearArguments) : async () {
+  public shared ({ caller }) func clear(args: T.ClearArguments) : async () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
@@ -428,7 +365,7 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  func clearEverything(args: ClearArguments) : Result.Result<(), Text> {
+  func clearEverything(args: T.ClearArguments) : Result.Result<(), Text> {
     #err("clear: not implemented")
   };
 
