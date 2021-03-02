@@ -45,9 +45,11 @@ let
   dfx = workspace.dfx.release;
 in
 
-dfx // {
+rec {
+  inherit (workspace.dfx) debug;
+  build = workspace.dfx.release;
   standalone = pkgs.lib.standaloneRust {
-    drv = dfx;
+    drv = build;
     exename = "dfx";
     usePackager = false;
   };
