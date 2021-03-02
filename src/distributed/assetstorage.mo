@@ -9,7 +9,6 @@ import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import Nat32 "mo:base/Nat32";
 import Result "mo:base/Result";
-import SHM "assetstorage/StableHashMap";
 import T "assetstorage/Types";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
@@ -19,43 +18,48 @@ import Word8 "mo:base/Word8";
 
 shared ({caller = creator}) actor class () {
 
-  // old interface:
   public type Path = Text;
   public type Contents = Blob;
 
-  // new hotness
-
-
   stable var authorized: [Principal] = [creator];
 
+  stable var stable_assets : [(T.Key, T.StableAsset)] = [];
+  let assets : H.HashMap<T.Key, T.Asset> = H.HashMap<T.Key, T.Asset>(7, Text.equal, Text.hash);
+
+  var nextChunkId = 1;
+  let chunks = H.HashMap<Int, T.Chunk>(7, Int.equal, Int.hash);
+
+  // We track when each group of blobs should expire,
+  // so that they don't consume space after an interrupted install.
+  let BATCH_EXPIRY_NANOS = 5 * 60 * 1000 * 1000;
+  var nextBatchId = 1;
+  let batches = H.HashMap<Int, T.Batch>(7, Int.equal, Int.hash);
+
+  system func preupgrade() {
+    let stableIter = Iter.map(assets.entries(), func((k: T.Key, v: T.Asset)) : ((T.Key, T.StableAsset)) {
+       let fa : T.StableAsset = {
+         contentType = v.contentType;
+         encodings = Iter.toArray(v.encodings.entries());
+       };
+       (k, fa)
+     });
+
+    stable_assets := Iter.toArray(stableIter);
+  };
+
+  system func postupgrade() {
+    stable_assets := [];
+  };
 
   func getAssetEncoding(asset : T.Asset, acceptEncodings : [Text]) : ?T.AssetEncoding {
     for (acceptEncoding in acceptEncodings.vals()) {
-      switch (encodings_manipulator.get(asset.encodings, acceptEncoding)) {
+      switch (asset.encodings.get(acceptEncoding)) {
         case null {};
         case (?encodings) return ?encodings;
       }
     };
     null
   };
-
-
-  //stable var asset_entries : [(T.Key, T.Asset)] = [];
-  //let assets = H.fromIter(asset_entries.vals(), 7, Text.equal, Text.hash);
-  stable let assets : SHM.StableHashMap<T.Key, T.Asset> = SHM.StableHashMap<T.Key, T.Asset>();
-  let assets_manipulator = SHM.StableHashMapManipulator<T.Key, T.Asset>(7, Text.equal, Text.hash);
-  let encodings_manipulator = SHM.StableHashMapManipulator<Text, T.AssetEncoding>(7, Text.equal, Text.hash);
-
-  system func preupgrade() {
-    //asset_entries := Iter.toArray(assets.entries());
-  };
-
-  system func postupgrade() {
-    //asset_entries := [];
-  };
-
-  var nextChunkId = 1;
-  let chunks = H.HashMap<Int, T.Chunk>(7, Int.equal, Int.hash);
 
   func createChunk(batch: T.Batch, content: Blob) : T.ChunkId {
     let chunkId = nextChunkId;
@@ -68,9 +72,6 @@ shared ({caller = creator}) actor class () {
     chunkId
   };
 
-  //var nextEncodingId = 1;
-  //let encodings = H.HashMap<Text, [var ?Blob]>(7, Text.equal, Text.hash);
-
   func takeChunk(chunkId: T.ChunkId): Result.Result<Blob, Text> {
     switch (chunks.remove(chunkId)) {
       case null #err("chunk not found");
@@ -78,15 +79,10 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  // We track when each group of blobs should expire,
-  // so that they don't consume space after an interrupted install.
-  let BATCH_EXPIRY_NANOS = 5 * 60 * 1000 * 1000;
-  var next_batch_id = 1;
-  let batches = H.HashMap<Int, T.Batch>(7, Int.equal, Int.hash);
 
   func startBatch(): T.BatchId {
-    let batch_id = next_batch_id;
-    next_batch_id += 1;
+    let batch_id = nextBatchId;
+    nextBatchId += 1;
     let batch : T.Batch = {
       expiry = Time.now() + BATCH_EXPIRY_NANOS;
     };
@@ -134,7 +130,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func retrieve(path : Path) : async Blob {
-    switch (assets_manipulator.get(assets, path)) {
+    switch (assets.get(path)) {
       case null throw Error.reject("not found");
       case (?asset) {
         switch (getAssetEncoding(asset, ["identity"])) {
@@ -148,7 +144,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func list() : async [Path] {
-    let iter = Iter.map<(Text, T.Asset), Path>(assets_manipulator.entries(assets), func (key, _) = key);
+    let iter = Iter.map<(Text, T.Asset), Path>(assets.entries(), func (key, _) = key);
     Iter.toArray(iter)
   };
 
@@ -167,7 +163,7 @@ shared ({caller = creator}) actor class () {
     content_encoding: Text;
     total_length: Nat;
   } ) {
-    switch (assets_manipulator.get(assets, arg.key)) {
+    switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
         switch (getAssetEncoding(asset, arg.accept_encodings)) {
@@ -192,10 +188,10 @@ shared ({caller = creator}) actor class () {
   }) : async ( {
     content: Blob
   }) {
-    switch (assets_manipulator.get(assets, arg.key)) {
+    switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
-        switch (encodings_manipulator.get(asset.encodings, arg.content_encoding)) {
+        switch (asset.encodings.get(arg.content_encoding)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
             {
@@ -273,13 +269,13 @@ shared ({caller = creator}) actor class () {
 
   func createAsset(arg: T.CreateAssetArguments) : Result.Result<(), Text> {
     Debug.print("createAsset(" # arg.key # ")");
-    switch (assets_manipulator.get(assets, arg.key)) {
+    switch (assets.get(arg.key)) {
       case null {
         let asset : T.Asset = {
           contentType = arg.content_type;
-          encodings = SHM.StableHashMap<Text, T.AssetEncoding>();
+          encodings = H.HashMap<Text, T.AssetEncoding>(7, Text.equal, Text.hash);
         };
-        assets_manipulator.put(assets, arg.key, asset );
+        assets.put(arg.key, asset );
       };
       case (?asset) {
         if (asset.contentType != arg.content_type)
@@ -305,7 +301,7 @@ shared ({caller = creator}) actor class () {
 
   func setAssetContent(arg: T.SetAssetContentArguments) : Result.Result<(), Text> {
     Debug.print("setAssetContent(" # arg.key # ")");
-    switch (assets_manipulator.get(assets, arg.key)) {
+    switch (assets.get(arg.key)) {
       case null #err("asset not found");
       case (?asset) {
         switch (Array.mapResult<T.ChunkId, Blob, Text>(arg.chunk_ids, takeChunk)) {
@@ -316,7 +312,7 @@ shared ({caller = creator}) actor class () {
               totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, addBlobLength);
             };
 
-            encodings_manipulator.put(asset.encodings, arg.content_encoding, encoding);
+            asset.encodings.put(arg.content_encoding, encoding);
             #ok(());
           };
           case (#err(err)) #err(err);
@@ -351,7 +347,9 @@ shared ({caller = creator}) actor class () {
 
   func deleteAsset(args: T.DeleteAssetArguments) : Result.Result<(), Text> {
     Debug.print("deleteAsset(" # args.key # ")");
-    assets_manipulator.delete(assets, args.key);
+    if (assets.size() > 0) {   // avoid div/0 bug   https://github.com/dfinity/motoko-base/issues/228
+      assets.delete(args.key);
+    };
     #ok(())
   };
 

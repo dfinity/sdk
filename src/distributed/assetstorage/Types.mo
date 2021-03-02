@@ -1,4 +1,4 @@
-import SHM "StableHashMap";
+import H "mo:base/HashMap";
 import Time "mo:base/Time";
 
 module Types {
@@ -17,18 +17,22 @@ module Types {
     key: Key;
     content_type: Text;
   };
+
   public type SetAssetContentArguments = {
     key: Key;
     content_encoding: Text;
     chunk_ids: [ChunkId]
   };
+
   public type UnsetAssetContentArguments = {
     key: Key;
     content_encoding: Text;
   };
+
   public type DeleteAssetArguments = {
     key: Key;
   };
+
   public type ClearArguments = {
   };
 
@@ -41,7 +45,6 @@ module Types {
 
     #Clear: ClearArguments;
   };
-
 
   public type CommitBatchArguments = {
     batch_id: BatchId;
@@ -56,7 +59,12 @@ module Types {
 
   public type Asset = {
     contentType: Text;
-    encodings: SHM.StableHashMap<Text, AssetEncoding>;
+    encodings: H.HashMap<Text, AssetEncoding>;
+  };
+
+  public type StableAsset = {
+    contentType: Text;
+    encodings: [(Text, AssetEncoding)];
   };
 
   public type Chunk = {
@@ -67,6 +75,4 @@ module Types {
   public type Batch = {
       expiry : Time;
   };
-
-
 };
