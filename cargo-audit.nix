@@ -12,5 +12,15 @@ pkgs.lib.cargo-security-audit {
   name = "dfinity-sdk";
   cargoLock = ./Cargo.lock;
   db = RustSec-advisory-db;
-  ignores = [];
+  # Ignore this vulnerability for as we have an indirect dependency on it
+  # ID:       RUSTSEC-2020-0146
+  # Crate:    generic-array
+  # Version:  0.12.3
+  # Date:     2020-04-09
+  # URL:      https://rustsec.org/advisories/RUSTSEC-2020-0146
+  # Title:    arr! macro erases lifetimes
+  # Solution:  upgrade to >= 0.14.0
+  # Dependency tree:
+  # generic-array 0.12.3
+  ignores = [ "RUSTSEC-2020-0146" ];
 }
