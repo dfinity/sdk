@@ -31,6 +31,7 @@ let
             } // pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin {
               propagatedBuildInputs = oldAttrs.propagatedBuildInputs ++ [
                 pkgs.darwin.apple_sdk.frameworks.IOKit
+                pkgs.darwin.apple_sdk.frameworks.Security
               ];
             };
           }
