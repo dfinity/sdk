@@ -1,4 +1,6 @@
 import H "mo:base/HashMap";
+import Iter "mo:base/Iter";
+import Text "mo:base/Text";
 import Time "mo:base/Time";
 
 module Types {
@@ -67,12 +69,28 @@ module Types {
     encodings: [(Text, AssetEncoding)];
   };
 
+  public func fromAssetEntry((k: Key, v: Asset)) : ((Key, StableAsset)) {
+    let fa : StableAsset = {
+      contentType = v.contentType;
+      encodings = Iter.toArray(v.encodings.entries());
+    };
+    (k, fa)
+  };
+
+  public func fromStableAssetEntry((k: Key, v: StableAsset)) : ((Key, Asset)) {
+    let a : Asset = {
+      contentType = v.contentType;
+      encodings = H.fromIter(v.encodings.vals(), 7, Text.equal, Text.hash);
+    };
+    (k, a)
+  };
+
   public type Chunk = {
     batch: Batch;
     content: Blob;
   };
 
   public type Batch = {
-      expiry : Time;
+      var expiry : Time;
   };
 };
