@@ -4,6 +4,7 @@ use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 use candid::parser::typing::{check_prog, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
+use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
@@ -21,12 +22,13 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
     } else {
         TcpBuilder::new_v6()?
     };
-    Ok(tcp_builder
+    let listener = tcp_builder
         .bind(SocketAddr::new(ip, port))?
         .reuse_address(true)?
         .reuse_port(true)?
-        .to_tcp_listener()?
-        .local_addr()?)
+        .to_tcp_listener()?;
+    listener.set_linger(Some(Duration::from_secs(10)))?;
+    Ok(listener.local_addr()?)
 }
 
 pub fn expiry_duration() -> Duration {
