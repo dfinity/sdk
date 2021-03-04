@@ -10,6 +10,7 @@ use actix_cors::Cors;
 use actix_server::Server;
 use actix_web::client::{Client, ClientBuilder, Connector};
 use actix_web::error::ErrorInternalServerError;
+use actix_web::http::StatusCode;
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
@@ -178,6 +179,81 @@ async fn forward(
     Ok(client_resp.body(resp_body))
 }
 
+/// HTTP Request route. See
+/// https://www.notion.so/Design-HTTP-Canisters-Queries-d6bc980830a947a88bf9148a25169613
+async fn http_request(
+    req: HttpRequest,
+    mut payload: web::Payload,
+    client: web::Data<Client>,
+    actix_data: web::Data<Arc<Mutex<ForwardActixData>>>,
+) -> Result<HttpResponse, Error> {
+    let mut data = actix_data.lock().unwrap();
+    data.counter += 1;
+    let count = data.counter;
+
+    let mut url = data.providers[count % data.providers.len()].clone();
+    url.set_path(req.uri().path());
+    url.set_query(req.uri().query());
+
+    let forwarded_req = client
+        .request_from(url.as_str(), req.head())
+        .no_decompress()
+        .timeout(std::time::Duration::from_secs(
+            FORWARD_REQUEST_TIMEOUT_IN_SECS,
+        ));
+
+    let logger = data.logger.clone();
+
+    // TODO(hansl): move this all to async/await. Jeez....
+    // (PS: the reason I don't do this yet is moving actix to async/await is a bit more
+    //      involved than replacing this single function)
+    let mut req_body = web::BytesMut::new();
+    while let Some(item) = payload.next().await {
+        req_body.extend_from_slice(&item?);
+    }
+    debug!(
+        logger,
+        "Request ({}) to replica ({})",
+        indicatif::HumanBytes(req_body.len() as u64),
+        url,
+    );
+    trace!(logger, "  headers");
+    for (k, v) in req.head().headers.iter() {
+        trace!(logger, "      {}: {}", k, v.to_str().unwrap());
+    }
+    trace!(logger, "  body    {}", hex::encode(&req_body));
+    let mut response = forwarded_req
+        .send_body(req_body)
+        .await
+        .map_err(Error::from)?;
+
+    let mut payload = response.take_payload();
+    let mut resp_body = web::BytesMut::new();
+    while let Some(item) = payload.next().await {
+        resp_body.extend_from_slice(&item?);
+    }
+
+    let mut client_resp = HttpResponse::build(response.status());
+    for (header_name, header_value) in response
+        .headers()
+        .iter()
+        .filter(|(h, _)| *h != "connection" && *h != "content-length")
+    {
+        client_resp.header(header_name.clone(), header_value.clone());
+    }
+
+    debug!(
+        logger,
+        "Response ({}) with status code {}",
+        indicatif::HumanBytes(resp_body.len() as u64),
+        response.status().as_u16()
+    );
+    trace!(logger, "  type  {}", response.content_type());
+    trace!(logger, "  body  {}", hex::encode(&resp_body));
+
+    Ok(client_resp.body(resp_body))
+}
+
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
@@ -212,34 +288,39 @@ pub fn run_webserver(
         network_descriptor,
     });
 
-    let handler = HttpServer::new(move || {
-        App::new()
-            .data(
-                ClientBuilder::new()
-                    .connector(Connector::new().limit(1).finish())
-                    .finish(),
-            )
-            .data(forward_data.clone())
-            .data(candid_data.clone())
-            .wrap(
-                Cors::new()
-                    .allowed_methods(vec!["POST"])
-                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                    .allowed_header(http::header::CONTENT_TYPE)
-                    .send_wildcard()
-                    .max_age(3600)
-                    .finish(),
-            )
-            .wrap(middleware::Logger::default())
-            .service(web::scope("/api").default_service(web::to(forward)))
-            .service(web::resource("/_/candid").route(web::get().to(candid)))
-            .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
-    })
-    .max_connections(1)
-    .bind(bind)?
-    // N.B. This is an arbitrary timeout for now.
-    .shutdown_timeout(SHUTDOWN_WAIT_TIME)
-    .run();
+    let handler =
+        HttpServer::new(move || {
+            App::new()
+                .data(
+                    ClientBuilder::new()
+                        .connector(Connector::new().limit(1).finish())
+                        .finish(),
+                )
+                .data(forward_data.clone())
+                .data(candid_data.clone())
+                .wrap(
+                    Cors::new()
+                        .allowed_methods(vec!["POST"])
+                        .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                        .allowed_header(http::header::CONTENT_TYPE)
+                        .send_wildcard()
+                        .max_age(3600)
+                        .finish(),
+                )
+                .wrap(middleware::Logger::default())
+                .service(web::scope("/api").default_service(web::to(forward)))
+                .service(web::resource("/_/candid").route(web::get().to(candid)))
+                .service(web::resource("/_").route(
+                    web::get().to(|| HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)),
+                ))
+                .service(web::resource("/").route(web::get().to(http_request)))
+                .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
+        })
+        .max_connections(1)
+        .bind(bind)?
+        // N.B. This is an arbitrary timeout for now.
+        .shutdown_timeout(SHUTDOWN_WAIT_TIME)
+        .run();
 
     Ok(handler)
 }
