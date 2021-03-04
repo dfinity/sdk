@@ -105,6 +105,7 @@ pub async fn set_controller(
     canister_id: Principal,
     new_controller: Principal,
     timeout: Duration,
+    call_as_user: bool,
 ) -> DfxResult {
     #[derive(CandidType)]
     struct In {

@@ -27,6 +27,11 @@ pub struct CanisterOpts {
     #[clap(long)]
     network: Option<String>,
 
+    /// Bypass the wallet canister.
+    /// Perform the call with the user Identity as the Sender.
+    #[clap(long)]
+    call_as_user: bool,
+
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
@@ -56,7 +61,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
             SubCommand::Install(v) => install::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
-            SubCommand::SetController(v) => set_controller::exec(&agent_env, v).await,
+            SubCommand::SetController(v) => set_controller::exec(&agent_env, v, opts.call_as_user).await,
             SubCommand::Start(v) => start::exec(&agent_env, v).await,
             SubCommand::Status(v) => status::exec(&agent_env, v).await,
             SubCommand::Stop(v) => stop::exec(&agent_env, v).await,

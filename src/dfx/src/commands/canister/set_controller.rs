@@ -22,7 +22,7 @@ pub struct SetControllerOpts {
     new_controller: String,
 }
 
-pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: SetControllerOpts, call_as_user: bool) -> DfxResult {
     let timeout = expiry_duration();
     fetch_root_key_if_needed(env).await?;
 
