@@ -90,7 +90,23 @@ module Types {
     content: Blob;
   };
 
-  public type Batch = {
-      var expiry : Time;
+  object batch {
+    let expiryNanos = 300_000_000_000; // 5 * 60 * 1000 * 1000 * 1000;
+
+    public func nextExpireTime() : Time {
+      Time.now() + expiryNanos
+    }
+  };
+
+  public class Batch() {
+      var expiresAt : Time = batch.nextExpireTime();
+
+      public func refreshExpiry() {
+        expiresAt := batch.nextExpireTime();
+      };
+
+      public func expired(asOf : Time) : Bool {
+        expiresAt <= asOf
+      };
   };
 };

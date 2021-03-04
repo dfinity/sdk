@@ -1,5 +1,4 @@
 import Array "mo:base/Array";
-import Buffer "mo:base/Buffer";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import H "mo:base/HashMap";
@@ -7,14 +6,12 @@ import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
-import Nat32 "mo:base/Nat32";
 import Result "mo:base/Result";
 import T "assetstorage/Types";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Tree "mo:base/RBTree";
 import U "assetstorage/Utils";
-import Word8 "mo:base/Word8";
 
 
 shared ({caller = creator}) actor class () {
@@ -32,7 +29,7 @@ shared ({caller = creator}) actor class () {
 
   // We track when each group of blobs should expire,
   // so that they don't consume space after an interrupted install.
-  let BATCH_EXPIRY_NANOS = 5 * 60 * 1000 * 1000 * 1000;
+  //let batchExpiryNanos = 5 * 60 * 1000 * 1000 * 1000;
   var nextBatchId = 1;
   let batches = H.HashMap<Int, T.Batch>(7, Int.equal, Int.hash);
 
@@ -48,7 +45,7 @@ shared ({caller = creator}) actor class () {
     for (acceptEncoding in acceptEncodings.vals()) {
       switch (asset.encodings.get(acceptEncoding)) {
         case null {};
-        case (?encodings) return ?encodings;
+        case (?encoding) return ?encoding;
       }
     };
     null
@@ -62,7 +59,7 @@ shared ({caller = creator}) actor class () {
       content = content;
     };
 
-    batch.expiry := Time.now() + BATCH_EXPIRY_NANOS;
+    batch.refreshExpiry();
     chunks.put(chunkId, chunk);
 
     chunkId
@@ -79,9 +76,7 @@ shared ({caller = creator}) actor class () {
   func startBatch(): T.BatchId {
     let batch_id = nextBatchId;
     nextBatchId += 1;
-    let batch : T.Batch = {
-      var expiry = Time.now() + BATCH_EXPIRY_NANOS;
-    };
+    let batch = T.Batch();
     batches.put(batch_id, batch);
     batch_id
   };
@@ -90,7 +85,7 @@ shared ({caller = creator}) actor class () {
     let now = Time.now();
     let batchesToDelete: H.HashMap<Int, T.Batch> = H.mapFilter<Int, T.Batch, T.Batch>(batches, Int.equal, Int.hash,
       func(k: Int, batch: T.Batch) : ?T.Batch {
-        if (batch.expiry <= now)
+        if (batch.expired(now))
           ?batch
         else
           null
@@ -103,7 +98,7 @@ shared ({caller = creator}) actor class () {
     };
     let chunksToDelete = H.mapFilter<Int, T.Chunk, T.Chunk>(chunks, Int.equal, Int.hash,
       func(k: Int, chunk: T.Chunk) : ?T.Chunk {
-        if (chunk.batch.expiry <= now)
+        if (chunk.batch.expired(now))
           ?chunk
         else
           null
@@ -128,7 +123,7 @@ shared ({caller = creator}) actor class () {
       throw Error.reject("not authorized");
     };
 
-    let batch_id = startBatch();
+    let batch_id = startBatch(); // ew
     let chunk_id = switch (batches.get(batch_id)) {
       case null throw Error.reject("batch not found");
       case (?batch) createChunk(batch, contents)
@@ -236,6 +231,7 @@ shared ({caller = creator}) actor class () {
 
     Debug.print("create_batch");
     expireBatches();
+
     {
       batch_id = startBatch();
     }
@@ -279,7 +275,8 @@ shared ({caller = creator}) actor class () {
         case (#ok(())) {};
         case (#err(msg)) throw Error.reject(msg);
       };
-    }
+    };
+    batches.delete(args.batch_id);
   };
 
   public shared ({ caller }) func create_asset(arg: T.CreateAssetArguments) : async () {
