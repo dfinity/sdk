@@ -77,6 +77,7 @@ let
             cc
             pkgs.gettext
             pkgs.coreutils
+            pkgs.libiconv
           ] ++ lib.optional pkgs.stdenv.isDarwin pkgs.stdenv.cc.bintools;
           inputsFrom = [ ws.shell ];
           shellHook = ''
