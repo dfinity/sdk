@@ -5,13 +5,13 @@ use crate::lib::waiter::waiter_with_timeout;
 use candid::{CandidType, Decode, Encode};
 
 use delay::{Delay, Waiter};
-use futures::future::try_join_all;
+//use futures::future::try_join_all;
 use ic_agent::Agent;
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
-use tokio::task;
+//use tokio::task;
 use walkdir::WalkDir;
 
 //const GET: &str = "get";
