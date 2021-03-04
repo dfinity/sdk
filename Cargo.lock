@@ -78,9 +78,9 @@ dependencies = [
  "http",
  "log",
  "openssl",
- "rustls",
+ "rustls 0.18.1",
  "tokio-openssl",
- "tokio-rustls",
+ "tokio-rustls 0.14.1",
  "trust-dns-proto",
  "trust-dns-resolver",
  "webpki",
@@ -275,11 +275,11 @@ dependencies = [
  "actix-utils",
  "futures-util",
  "openssl",
- "rustls",
+ "rustls 0.18.1",
  "tokio-openssl",
- "tokio-rustls",
+ "tokio-rustls 0.14.1",
  "webpki",
- "webpki-roots",
+ "webpki-roots 0.20.0",
 ]
 
 [[package]]
@@ -333,7 +333,7 @@ dependencies = [
  "openssl",
  "pin-project 1.0.5",
  "regex",
- "rustls",
+ "rustls 0.18.1",
  "serde",
  "serde_json",
  "serde_urlencoded 0.7.0",
@@ -502,7 +502,7 @@ dependencies = [
  "openssl",
  "percent-encoding",
  "rand 0.7.3",
- "rustls",
+ "rustls 0.18.1",
  "serde",
  "serde_json",
  "serde_urlencoded 0.7.0",
@@ -1858,9 +1858,24 @@ dependencies = [
  "futures-util",
  "hyper 0.13.10",
  "log",
- "rustls",
+ "rustls 0.18.1",
  "tokio 0.2.25",
- "tokio-rustls",
+ "tokio-rustls 0.14.1",
+ "webpki",
+]
+
+[[package]]
+name = "hyper-rustls"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f9f7a97316d44c0af9b0301e65010573a853a9fc97046d7331d7f6bc0fd5a64"
+dependencies = [
+ "futures-util",
+ "hyper 0.14.4",
+ "log",
+ "rustls 0.19.0",
+ "tokio 1.2.0",
+ "tokio-rustls 0.22.0",
  "webpki",
 ]
 
@@ -1892,8 +1907,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=9b4e74a02e504e0e86302bd70fabd6288eb580f0#9b4e74a02e504e0e86302bd70fabd6288eb580f0"
+version = "0.2.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
 dependencies = [
  "async-trait",
  "base32",
@@ -1908,22 +1923,22 @@ dependencies = [
  "openssl",
  "pem 0.8.2",
  "rand 0.7.3",
- "reqwest 0.10.10",
+ "reqwest 0.11.0",
  "ring",
- "rustls",
+ "rustls 0.19.0",
  "serde",
  "serde_bytes",
  "serde_cbor",
  "simple_asn1",
  "thiserror",
  "url",
- "webpki-roots",
+ "webpki-roots 0.20.0",
 ]
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=9b4e74a02e504e0e86302bd70fabd6288eb580f0#9b4e74a02e504e0e86302bd70fabd6288eb580f0"
+version = "0.2.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1938,7 +1953,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=9b4e74a02e504e0e86302bd70fabd6288eb580f0#9b4e74a02e504e0e86302bd70fabd6288eb580f0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1949,8 +1964,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=9b4e74a02e504e0e86302bd70fabd6288eb580f0#9b4e74a02e504e0e86302bd70fabd6288eb580f0"
+version = "0.2.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
 dependencies = [
  "async-trait",
  "candid",
@@ -3299,7 +3314,7 @@ dependencies = [
  "http",
  "http-body 0.3.1",
  "hyper 0.13.10",
- "hyper-rustls",
+ "hyper-rustls 0.21.0",
  "hyper-tls 0.4.3",
  "ipnet",
  "js-sys",
@@ -3310,18 +3325,18 @@ dependencies = [
  "native-tls",
  "percent-encoding",
  "pin-project-lite 0.2.4",
- "rustls",
+ "rustls 0.18.1",
  "serde",
  "serde_json",
  "serde_urlencoded 0.7.0",
  "tokio 0.2.25",
- "tokio-rustls",
+ "tokio-rustls 0.14.1",
  "tokio-tls",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "webpki-roots",
+ "webpki-roots 0.20.0",
  "winreg 0.7.0",
 ]
 
@@ -3339,6 +3354,7 @@ dependencies = [
  "http",
  "http-body 0.4.0",
  "hyper 0.14.4",
+ "hyper-rustls 0.22.1",
  "hyper-tls 0.5.0",
  "ipnet",
  "js-sys",
@@ -3348,14 +3364,18 @@ dependencies = [
  "native-tls",
  "percent-encoding",
  "pin-project-lite 0.2.4",
+ "rustls 0.19.0",
  "serde",
+ "serde_json",
  "serde_urlencoded 0.7.0",
  "tokio 1.2.0",
  "tokio-native-tls",
+ "tokio-rustls 0.22.0",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+ "webpki-roots 0.21.0",
  "winreg 0.7.0",
 ]
 
@@ -3424,6 +3444,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d1126dcf58e93cee7d098dbda643b5f92ed724f1f6a63007c1116eed6700c81"
 dependencies = [
  "base64 0.12.3",
+ "log",
+ "ring",
+ "sct",
+ "webpki",
+]
+
+[[package]]
+name = "rustls"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "064fd21ff87c6e87ed4506e68beb42459caa4a0e2eb144932e6776768556980b"
+dependencies = [
+ "base64 0.13.0",
  "log",
  "ring",
  "sct",
@@ -4138,8 +4171,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e12831b255bcfa39dc0436b01e19fea231a37db570686c06ee72c423479f889a"
 dependencies = [
  "futures-core",
- "rustls",
+ "rustls 0.18.1",
  "tokio 0.2.25",
+ "webpki",
+]
+
+[[package]]
+name = "tokio-rustls"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc6844de72e57df1980054b38be3a9f4702aba4858be64dd700181a8a6d0e1b6"
+dependencies = [
+ "rustls 0.19.0",
+ "tokio 1.2.0",
  "webpki",
 ]
 
@@ -4570,6 +4614,15 @@ name = "webpki-roots"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f20dea7535251981a9670857150d571846545088359b28e4951d350bdaf179f"
+dependencies = [
+ "webpki",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82015b7e0b8bad8185994674a13a93306bea76cf5a16c5a181382fd3a5ec2376"
 dependencies = [
  "webpki",
 ]
