@@ -4,6 +4,9 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 
 module Types {
+  public type Contents = Blob;
+  public type Path = Text;
+
   public type BatchId = Nat;
   public type BlobId = Text;
   public type ChunkId = Nat;

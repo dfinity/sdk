@@ -1,37 +1,30 @@
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
-import H "mo:base/HashMap";
+import HashMap "mo:base/HashMap";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import Result "mo:base/Result";
-import T "assetstorage/Types";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Tree "mo:base/RBTree";
-import U "assetstorage/Utils";
+import B "Batches";
+import C "Chunks";
+import T "Types";
+import U "Utils";
 
 
 shared ({caller = creator}) actor class () {
 
-  public type Path = Text;
-  public type Contents = Blob;
-
   stable var authorized: [Principal] = [creator];
 
   stable var stableAssets : [(T.Key, T.StableAsset)] = [];
-  let assets = H.fromIter(Iter.map(stableAssets.vals(), T.fromStableAssetEntry), 7, Text.equal, Text.hash);
+  let assets = HashMap.fromIter(Iter.map(stableAssets.vals(), T.fromStableAssetEntry), 7, Text.equal, Text.hash);
 
-  var nextChunkId = 1;
-  let chunks = H.HashMap<Int, T.Chunk>(7, Int.equal, Int.hash);
-
-  // We track when each group of blobs should expire,
-  // so that they don't consume space after an interrupted install.
-  //let batchExpiryNanos = 5 * 60 * 1000 * 1000 * 1000;
-  var nextBatchId = 1;
-  let batches = H.HashMap<Int, T.Batch>(7, Int.equal, Int.hash);
+  let chunks = C.Chunks();
+  let batches = B.Batches();
 
   system func preupgrade() {
     stableAssets := Iter.toArray(Iter.map(assets.entries(), T.fromAssetEntry));
@@ -51,64 +44,6 @@ shared ({caller = creator}) actor class () {
     null
   };
 
-  func createChunk(batch: T.Batch, content: Blob) : T.ChunkId {
-    let chunkId = nextChunkId;
-    nextChunkId += 1;
-    let chunk : T.Chunk = {
-      batch = batch;
-      content = content;
-    };
-
-    batch.refreshExpiry();
-    chunks.put(chunkId, chunk);
-
-    chunkId
-  };
-
-  func takeChunk(chunkId: T.ChunkId): Result.Result<Blob, Text> {
-    switch (chunks.remove(chunkId)) {
-      case null #err("chunk not found");
-      case (?chunk) #ok(chunk.content);
-    }
-  };
-
-
-  func startBatch(): T.BatchId {
-    let batch_id = nextBatchId;
-    nextBatchId += 1;
-    let batch = T.Batch();
-    batches.put(batch_id, batch);
-    batch_id
-  };
-
-  func expireBatches() : () {
-    let now = Time.now();
-    let batchesToDelete: H.HashMap<Int, T.Batch> = H.mapFilter<Int, T.Batch, T.Batch>(batches, Int.equal, Int.hash,
-      func(k: Int, batch: T.Batch) : ?T.Batch {
-        if (batch.expired(now))
-          ?batch
-        else
-          null
-      }
-    );
-    for ((k,_) in batchesToDelete.entries()) {
-      Debug.print("delete expired batch " # Int.toText(k));
-
-      batches.delete(k);
-    };
-    let chunksToDelete = H.mapFilter<Int, T.Chunk, T.Chunk>(chunks, Int.equal, Int.hash,
-      func(k: Int, chunk: T.Chunk) : ?T.Chunk {
-        if (chunk.batch.expired(now))
-          ?chunk
-        else
-          null
-      }
-    );
-    for ((k,_) in chunksToDelete.entries()) {
-      Debug.print("delete expired chunk " # Int.toText(k));
-      chunks.delete(k);
-    };
-  };
 
   public shared ({ caller }) func authorize(other: Principal) : async () {
     if (isSafe(caller)) {
@@ -118,15 +53,15 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  public shared ({ caller }) func store(path : Path, contents : Contents) : async () {
+  public shared ({ caller }) func store(path : T.Path, contents : T.Contents) : async () {
     if (isSafe(caller) == false) {
       throw Error.reject("not authorized");
     };
 
-    let batch_id = startBatch(); // ew
+    let batch_id = batches.startBatch(); // ew
     let chunk_id = switch (batches.get(batch_id)) {
       case null throw Error.reject("batch not found");
-      case (?batch) createChunk(batch, contents)
+      case (?batch) chunks.create(batch, contents)
     };
 
     let create_asset_args : T.CreateAssetArguments = {
@@ -149,7 +84,7 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  public query func retrieve(path : Path) : async Blob {
+  public query func retrieve(path : T.Path) : async T.Contents {
     switch (assets.get(path)) {
       case null throw Error.reject("not found");
       case (?asset) {
@@ -163,8 +98,8 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  public query func list() : async [Path] {
-    let iter = Iter.map<(Text, T.Asset), Path>(assets.entries(), func (key, _) = key);
+  public query func list() : async [T.Path] {
+    let iter = Iter.map<(Text, T.Asset), T.Path>(assets.entries(), func (key, _) = key);
     Iter.toArray(iter)
   };
 
@@ -230,10 +165,12 @@ shared ({caller = creator}) actor class () {
       throw Error.reject("not authorized");
 
     Debug.print("create_batch");
-    expireBatches();
+
+    batches.deleteExpired();
+    chunks.deleteExpired();
 
     {
-      batch_id = startBatch();
+      batch_id = batches.startBatch();
     }
   };
 
@@ -251,7 +188,7 @@ shared ({caller = creator}) actor class () {
       case null throw Error.reject("batch not found");
       case (?batch) {
         {
-          chunk_id = createChunk(batch, arg.content)
+          chunk_id = chunks.create(batch, arg.content)
         }
       }
     }
@@ -295,7 +232,7 @@ shared ({caller = creator}) actor class () {
       case null {
         let asset : T.Asset = {
           contentType = arg.content_type;
-          encodings = H.HashMap<Text, T.AssetEncoding>(7, Text.equal, Text.hash);
+          encodings = HashMap.HashMap<Text, T.AssetEncoding>(7, Text.equal, Text.hash);
         };
         assets.put(arg.key, asset );
       };
@@ -349,7 +286,7 @@ shared ({caller = creator}) actor class () {
     switch (assets.get(arg.key)) {
       case null #err("asset not found");
       case (?asset) {
-        switch (Array.mapResult<T.ChunkId, Blob, Text>(arg.chunk_ids, takeChunk)) {
+        switch (Array.mapResult<T.ChunkId, Blob, Text>(arg.chunk_ids, chunks.take)) {
           case (#ok(chunks)) {
             if (chunkLengthsMatch(chunks) == false) {
               #err("chunk lengths do not match the size of the first chunk")
@@ -416,15 +353,13 @@ shared ({caller = creator}) actor class () {
     stableAssets := [];
     U.clearHashMap(assets);
 
-    nextBatchId := 1;
-    U.clearHashMap(batches);
-
-    nextChunkId := 1;
-    U.clearHashMap(chunks);
+    batches.reset();
+    chunks.reset();
 
     #ok(())
   };
 
   public func version_14() : async() {
-  }
+  };
+
 };
