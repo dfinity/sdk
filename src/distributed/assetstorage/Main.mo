@@ -10,8 +10,9 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Tree "mo:base/RBTree";
-import B "Batches";
-import C "Chunks";
+import A "Asset";
+import B "Batch";
+import C "Chunk";
 import T "Types";
 import U "Utils";
 
@@ -20,30 +21,19 @@ shared ({caller = creator}) actor class () {
 
   stable var authorized: [Principal] = [creator];
 
-  stable var stableAssets : [(T.Key, T.StableAsset)] = [];
-  let assets = HashMap.fromIter(Iter.map(stableAssets.vals(), T.fromStableAssetEntry), 7, Text.equal, Text.hash);
+  stable var stableAssets : [(T.Key, A.StableAsset)] = [];
+  let assets = HashMap.fromIter(Iter.map(stableAssets.vals(), A.toAssetEntry), 7, Text.equal, Text.hash);
 
   let chunks = C.Chunks();
   let batches = B.Batches();
 
   system func preupgrade() {
-    stableAssets := Iter.toArray(Iter.map(assets.entries(), T.fromAssetEntry));
+    stableAssets := Iter.toArray(Iter.map(assets.entries(), A.toStableAssetEntry));
   };
 
   system func postupgrade() {
     stableAssets := [];
   };
-
-  func getAssetEncoding(asset : T.Asset, acceptEncodings : [Text]) : ?T.AssetEncoding {
-    for (acceptEncoding in acceptEncodings.vals()) {
-      switch (asset.encodings.get(acceptEncoding)) {
-        case null {};
-        case (?encoding) return ?encoding;
-      }
-    };
-    null
-  };
-
 
   public shared ({ caller }) func authorize(other: Principal) : async () {
     if (isSafe(caller)) {
@@ -88,7 +78,7 @@ shared ({caller = creator}) actor class () {
     switch (assets.get(path)) {
       case null throw Error.reject("not found");
       case (?asset) {
-        switch (getAssetEncoding(asset, ["identity"])) {
+        switch (asset.getEncoding(["identity"])) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
             encoding.content[0]
@@ -99,7 +89,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func list() : async [T.Path] {
-    let iter = Iter.map<(Text, T.Asset), T.Path>(assets.entries(), func (key, _) = key);
+    let iter = Iter.map<(Text, A.Asset), T.Path>(assets.entries(), func (key, _) = key);
     Iter.toArray(iter)
   };
 
@@ -121,7 +111,7 @@ shared ({caller = creator}) actor class () {
     switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
-        switch (getAssetEncoding(asset, arg.accept_encodings)) {
+        switch (asset.getEncoding(arg.accept_encodings)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
             {
@@ -206,7 +196,7 @@ shared ({caller = creator}) actor class () {
         case (#SetAssetContent(args)) { setAssetContent(args); };
         case (#UnsetAssetContent(args)) { unsetAssetContent(args); };
         case (#DeleteAsset(args)) { deleteAsset(args); };
-        case (#Clear(args)) { clearEverything(args); }
+        case (#Clear(args)) { doClear(args); }
       };
       switch(r) {
         case (#ok(())) {};
@@ -230,10 +220,10 @@ shared ({caller = creator}) actor class () {
     Debug.print("createAsset(" # arg.key # ")");
     switch (assets.get(arg.key)) {
       case null {
-        let asset : T.Asset = {
-          contentType = arg.content_type;
-          encodings = HashMap.HashMap<Text, T.AssetEncoding>(7, Text.equal, Text.hash);
-        };
+        let asset = A.Asset(
+          arg.content_type,
+          HashMap.HashMap<Text, A.AssetEncoding>(7, Text.equal, Text.hash)
+        );
         assets.put(arg.key, asset );
       };
       case (?asset) {
@@ -271,13 +261,6 @@ shared ({caller = creator}) actor class () {
         return false;
       }
     };
-    //var i = 1;
-    //var last = chunks.size() - 1;
-    //while (i <= last) {
-    //  if (chunks[i].size() != expectedLength)
-    //    return false;
-    //  i += 1;
-    //};
     true
   };
 
@@ -291,7 +274,7 @@ shared ({caller = creator}) actor class () {
             if (chunkLengthsMatch(chunks) == false) {
               #err("chunk lengths do not match the size of the first chunk")
             } else {
-              let encoding : T.AssetEncoding = {
+              let encoding : A.AssetEncoding = {
                 contentEncoding = arg.content_encoding;
                 content = chunks;
                 totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, addBlobLength);
@@ -318,7 +301,14 @@ shared ({caller = creator}) actor class () {
   };
 
   func unsetAssetContent(args: T.UnsetAssetContentArguments) : Result.Result<(), Text> {
-    #err("unset_asset_content: not implemented");
+    Debug.print("unsetAssetContent(" # args.key # ")");
+    switch (assets.get(args.key)) {
+      case null #err("asset not found");
+      case (?asset) {
+        asset.encodings.delete(args.content_encoding);
+        #ok(())
+      };
+    };
   };
 
   public shared ({ caller }) func delete_asset(args: T.DeleteAssetArguments) : async () {
@@ -343,13 +333,13 @@ shared ({caller = creator}) actor class () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    switch(clearEverything(args)) {
+    switch(doClear(args)) {
       case (#ok(())) {};
       case (#err(err)) throw Error.reject(err);
     };
   };
 
-  func clearEverything(args: T.ClearArguments) : Result.Result<(), Text> {
+  func doClear(args: T.ClearArguments) : Result.Result<(), Text> {
     stableAssets := [];
     U.clearHashMap(assets);
 
@@ -359,7 +349,7 @@ shared ({caller = creator}) actor class () {
     #ok(())
   };
 
-  public func version_14() : async() {
+  public func version_15() : async() {
   };
 
 };
