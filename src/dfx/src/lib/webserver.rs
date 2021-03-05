@@ -10,18 +10,24 @@ use actix_cors::Cors;
 use actix_server::Server;
 use actix_web::client::{Client, ClientBuilder, Connector};
 use actix_web::error::ErrorInternalServerError;
-use actix_web::http::StatusCode;
+use actix_web::http::{StatusCode, Uri};
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
 use anyhow::anyhow;
 use crossbeam::channel::Sender;
 use futures::StreamExt;
+use ic_agent::Agent;
+use ic_types::Principal;
+use ic_utils::call::SyncCall;
+use ic_utils::interfaces::http_request::HeaderField;
 use serde::Deserialize;
 use slog::{debug, info, trace, Logger};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use tokio_compat_02::FutureExt;
 use url::Url;
 
 /// The amount of time to wait for the client to answer, in seconds.
@@ -38,6 +44,11 @@ struct ForwardActixData {
 struct CandidData {
     pub build_output_root: PathBuf,
     pub network_descriptor: NetworkDescriptor,
+}
+
+struct HttpRequestData {
+    pub bind: SocketAddr,
+    pub logger: slog::Logger,
 }
 
 #[derive(Deserialize)]
@@ -129,9 +140,6 @@ async fn forward(
 
     let logger = data.logger.clone();
 
-    // TODO(hansl): move this all to async/await. Jeez....
-    // (PS: the reason I don't do this yet is moving actix to async/await is a bit more
-    //      involved than replacing this single function)
     let mut req_body = web::BytesMut::new();
     while let Some(item) = payload.next().await {
         req_body.extend_from_slice(&item?);
@@ -179,79 +187,140 @@ async fn forward(
     Ok(client_resp.body(resp_body))
 }
 
+fn resolve_canister_id_from_hostname(hostname: &str) -> Option<Principal> {
+    let url = Uri::from_str(hostname).ok()?;
+
+    // Check if it's localhost or ic0.
+    match url.host()?.split('.').collect::<Vec<&str>>().as_slice() {
+        [.., maybe_canister_id, "localhost"] | [.., maybe_canister_id, "ic0", "app"] => {
+            if let Ok(canister_id) = Principal::from_text(maybe_canister_id) {
+                return Some(canister_id);
+            }
+        }
+        _ => {}
+    };
+
+    None
+}
+
+fn resolve_canister_id_from_query(url: &Uri) -> Option<Principal> {
+    let (_, canister_id) = url::form_urlencoded::parse(url.query()?.as_bytes())
+        .find(|(name, _)| name == "canisterId")?;
+    Principal::from_text(canister_id.as_ref()).ok()
+}
+
+fn resolve_canister_id(request: &HttpRequest) -> Option<Principal> {
+    // Look for subdomains if there's a host header.
+    if let Some(host_header) = request.headers().get("Host") {
+        if let Ok(host) = host_header.to_str() {
+            if let Some(canister_id) = resolve_canister_id_from_hostname(host) {
+                return Some(canister_id);
+            }
+        }
+    }
+
+    // Look into the URI.
+    if let Some(canister_id) = resolve_canister_id_from_query(request.uri()) {
+        return Some(canister_id);
+    }
+
+    // Look into the request by header.
+    if let Some(referer_header) = request.headers().get("referer") {
+        if let Ok(referer) = referer_header.to_str() {
+            if let Ok(referer_uri) = Uri::from_str(referer) {
+                if let Some(canister_id) = resolve_canister_id_from_query(&referer_uri) {
+                    return Some(canister_id);
+                }
+            }
+        }
+    }
+
+    None
+}
+
 /// HTTP Request route. See
 /// https://www.notion.so/Design-HTTP-Canisters-Queries-d6bc980830a947a88bf9148a25169613
 async fn http_request(
     req: HttpRequest,
     mut payload: web::Payload,
-    client: web::Data<Client>,
-    actix_data: web::Data<Arc<Mutex<ForwardActixData>>>,
+    http_request_data: web::Data<HttpRequestData>,
 ) -> Result<HttpResponse, Error> {
-    let mut data = actix_data.lock().unwrap();
-    data.counter += 1;
-    let count = data.counter;
+    let logger = http_request_data.logger.clone();
 
-    let mut url = data.providers[count % data.providers.len()].clone();
-    url.set_path(req.uri().path());
-    url.set_query(req.uri().query());
-
-    let forwarded_req = client
-        .request_from(url.as_str(), req.head())
-        .no_decompress()
-        .timeout(std::time::Duration::from_secs(
-            FORWARD_REQUEST_TIMEOUT_IN_SECS,
-        ));
-
-    let logger = data.logger.clone();
-
-    // TODO(hansl): move this all to async/await. Jeez....
-    // (PS: the reason I don't do this yet is moving actix to async/await is a bit more
-    //      involved than replacing this single function)
-    let mut req_body = web::BytesMut::new();
-    while let Some(item) = payload.next().await {
-        req_body.extend_from_slice(&item?);
-    }
-    debug!(
-        logger,
-        "Request ({}) to replica ({})",
-        indicatif::HumanBytes(req_body.len() as u64),
-        url,
-    );
-    trace!(logger, "  headers");
-    for (k, v) in req.head().headers.iter() {
-        trace!(logger, "      {}: {}", k, v.to_str().unwrap());
-    }
-    trace!(logger, "  body    {}", hex::encode(&req_body));
-    let mut response = forwarded_req
-        .send_body(req_body)
-        .await
-        .map_err(Error::from)?;
-
-    let mut payload = response.take_payload();
-    let mut resp_body = web::BytesMut::new();
-    while let Some(item) = payload.next().await {
-        resp_body.extend_from_slice(&item?);
-    }
-
-    let mut client_resp = HttpResponse::build(response.status());
-    for (header_name, header_value) in response
-        .headers()
-        .iter()
-        .filter(|(h, _)| *h != "connection" && *h != "content-length")
+    // We need to convert errors into 500s, which are regular Ok(Response).
+    let agent = match Agent::builder()
+        .with_url(format!(
+            "http://{}",
+            http_request_data.bind.ip().to_string()
+        ))
+        .build()
     {
-        client_resp.header(header_name.clone(), header_value.clone());
+        Ok(agent) => agent,
+        Err(err) => {
+            return Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(format!("Details: {:?}", err)));
+        }
+    };
+
+    let canister_id = match resolve_canister_id(&req) {
+        Some(canister_id) => canister_id,
+        None => {
+            return Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(format!("Could not find Canister ID from Request.")));
+        }
+    };
+
+    let canister = ic_utils::interfaces::HttpRequestCanister::create(&agent, canister_id.clone());
+
+    let method = req.method().to_string();
+    let uri = req.uri().to_string();
+    let headers = req
+        .headers()
+        .into_iter()
+        .filter_map(|(name, value)| {
+            Some(HeaderField(
+                name.to_string(),
+                value.to_str().ok()?.to_string(),
+            ))
+        })
+        .collect();
+    let mut body = web::BytesMut::new();
+    while let Some(item) = payload.next().await {
+        body.extend_from_slice(&item?);
     }
+    let body = body.to_vec();
 
     debug!(
         logger,
-        "Response ({}) with status code {}",
-        indicatif::HumanBytes(resp_body.len() as u64),
-        response.status().as_u16()
+        "Making call http_request to canister_id {}",
+        canister_id.to_text()
     );
-    trace!(logger, "  type  {}", response.content_type());
-    trace!(logger, "  body  {}", hex::encode(&resp_body));
 
-    Ok(client_resp.body(resp_body))
+    match canister
+        .http_request(method, uri, headers, body)
+        .call()
+        .compat()
+        .await
+    {
+        Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(format!("Details: {:?}", err))),
+        Ok((http_response,)) => {
+            if let Ok(status_code) = StatusCode::from_u16(http_response.status_code) {
+                let mut builder = HttpResponse::build(status_code);
+                for HeaderField(name, value) in http_response.headers {
+                    builder.header(&name, value);
+                }
+                Ok(builder.body(http_response.body))
+            } else {
+                Ok(
+                    HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR).body(format!(
+                        "Invalid status code: {}",
+                        http_response.status_code
+                    )),
+                )
+            }
+        }
+    }
 }
 
 /// Run the webserver in the current thread.
@@ -287,6 +356,10 @@ pub fn run_webserver(
         build_output_root,
         network_descriptor,
     });
+    let http_request_data = Arc::new(HttpRequestData {
+        bind: bind.clone(),
+        logger: logger.clone(),
+    });
 
     let handler =
         HttpServer::new(move || {
@@ -298,6 +371,7 @@ pub fn run_webserver(
                 )
                 .data(forward_data.clone())
                 .data(candid_data.clone())
+                .data(http_request_data.clone())
                 .wrap(
                     Cors::new()
                         .allowed_methods(vec!["POST"])
@@ -310,7 +384,7 @@ pub fn run_webserver(
                 .wrap(middleware::Logger::default())
                 .service(web::scope("/api").default_service(web::to(forward)))
                 .service(web::resource("/_/candid").route(web::get().to(candid)))
-                .service(web::resource("/_").route(
+                .service(web::resource("/_/").route(
                     web::get().to(|| HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)),
                 ))
                 .service(web::resource("/").route(web::get().to(http_request)))
