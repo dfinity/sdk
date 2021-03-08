@@ -1,5 +1,11 @@
 = 0.6.25
 
+== DFX
+
+- feat: add --call-as-user flag to allow a User Identity to directly access canister mgmt functions, bypass Wallet (#1476)
+
+Added `--call-as-user` flag to `dfx canister` and `dfx deploy`. This allows users to call canister management functionality with their Identity as the Sender (bypassing their Wallet canister.)
+
 == Agents
 
 === Rust Agent

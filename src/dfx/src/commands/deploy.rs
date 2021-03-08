@@ -37,7 +37,7 @@ pub struct DeployOpts {
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
 
-    /// Performs the call with the user Identity to sign and send messages.
+    /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
     #[clap(long)]
     call_as_user: bool,
