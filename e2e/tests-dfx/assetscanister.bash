@@ -14,7 +14,6 @@ teardown() {
 }
 
 @test "can store and retrieve assets by key" {
-  skip
     install_asset assetscanister
 
     dfx_start
@@ -68,5 +67,4 @@ teardown() {
 
     assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="large-asset.bin";content_encoding="identity";index=13})'
     assert_command_fail dfx canister call --query e2e_project_assets get_chunk '(record{key="large-asset.bin";content_encoding="identity";index=14})'
-
 }

@@ -1,8 +1,8 @@
 import Debug "mo:base/Debug";
+import HashMap "mo:base/HashMap";
 import Int "mo:base/Int";
 import Time "mo:base/Time";
 
-import H "mo:base/HashMap";
 import T "Types";
 import U "Utils";
 
@@ -34,7 +34,7 @@ public class Batch(initBatchId: T.BatchId) {
 // We delete expired batches so that they don't consume space forever after an interrupted install.
 public class Batches() {
   var nextBatchId = 1;
-  let batches = H.HashMap<Int, Batch>(7, Int.equal, Int.hash);
+  let batches = HashMap.HashMap<Int, Batch>(7, Int.equal, Int.hash);
 
   public func get(batchId: T.BatchId) : ?Batch {
     batches.get(batchId)
@@ -44,7 +44,7 @@ public class Batches() {
     batches.delete(batchId)
   };
 
-  public func startBatch(): Batch {
+  public func create(): Batch {
     let batchId = nextBatchId;
     nextBatchId += 1;
     let batch = Batch(batchId);

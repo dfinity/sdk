@@ -5,16 +5,13 @@ use crate::lib::waiter::waiter_with_timeout;
 use candid::{CandidType, Decode, Encode};
 
 use delay::{Delay, Waiter};
-//use futures::future::try_join_all;
 use ic_agent::Agent;
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
-//use tokio::task;
 use walkdir::WalkDir;
 
-//const GET: &str = "get";
 const CREATE_BATCH: &str = "create_batch";
 const CREATE_CHUNK: &str = "create_chunk";
 const COMMIT_BATCH: &str = "commit_batch";
@@ -114,7 +111,6 @@ async fn create_chunk(
 ) -> DfxResult<u128> {
     let args = CreateChunkRequest { batch_id, content };
     let args = candid::Encode!(&args)?;
-    println!("create chunk");
 
     let mut waiter = Delay::builder()
         .timeout(std::time::Duration::from_secs(30))
@@ -136,18 +132,12 @@ async fn create_chunk(
                     .map(|x| x.chunk_id)
             }) {
             Ok(chunk_id) => {
-                println!("created chunk {}", chunk_id);
                 break Ok(chunk_id);
             }
-            Err(agent_err) => {
-                println!("agent error ({}) waiting to retry...", agent_err);
-                match waiter.wait() {
-                    Ok(()) => {
-                        println!("retrying...");
-                    }
-                    Err(_) => break Err(agent_err),
-                }
-            }
+            Err(agent_err) => match waiter.wait() {
+                Ok(()) => {}
+                Err(_) => break Err(agent_err),
+            },
         }
     }
 }
@@ -160,12 +150,8 @@ async fn make_chunked_asset(
     asset_location: AssetLocation,
 ) -> DfxResult<ChunkedAsset> {
     let content = &std::fs::read(&asset_location.source)?;
-    println!(
-        "create chunks for {}",
-        asset_location.source.to_string_lossy()
-    );
 
-    // ?? doesn't work
+    // ?? doesn't work: rust lifetimes + task::spawn = tears
     // how to deal with lifetimes for agent and canister_id here
     // this function won't exit until after the task is joined...
     // let chunks_future_tasks: Vec<_> = content
@@ -183,7 +169,8 @@ async fn make_chunked_asset(
     //     });
     // ?? doesn't work
 
-    // works (sometimes)
+    // works (sometimes), does more work concurrently, but often doesn't work against bootstrap.
+    // (connection stuck in odd idle state: all agent requests return "channel closed" error.)
     // let chunks_futures: Vec<_> = content
     //     .chunks(MAX_CHUNK_SIZE)
     //     .map(|content| create_chunk(agent, canister_id, timeout, batch_id, content))
@@ -199,7 +186,18 @@ async fn make_chunked_asset(
     // works (sometimes)
 
     let mut chunk_ids: Vec<u128> = vec![];
-    for data_chunk in content.chunks(MAX_CHUNK_SIZE) {
+    let chunks = content.chunks(MAX_CHUNK_SIZE);
+    let (num_chunks, _) = chunks.size_hint();
+    let mut i: usize = 0;
+    for data_chunk in chunks {
+        i += 1;
+        println!(
+            "  {} {}/{} ({} bytes)",
+            &asset_location.relative.to_string_lossy(),
+            i,
+            num_chunks,
+            data_chunk.len()
+        );
         chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, data_chunk).await?);
     }
     Ok(ChunkedAsset {
@@ -215,6 +213,8 @@ async fn make_chunked_assets(
     batch_id: u128,
     locs: Vec<AssetLocation>,
 ) -> DfxResult<Vec<ChunkedAsset>> {
+    // this neat futures version works faster in parallel when it works,
+    // but does not work often when connecting through the bootstrap.
     // let futs: Vec<_> = locs
     //     .into_iter()
     //     .map(|loc| make_chunked_asset(agent, canister_id, timeout, batch_id, loc))
@@ -262,16 +262,12 @@ async fn commit_batch(
         operations,
     };
     let arg = candid::Encode!(&arg)?;
-    println!("encoded arg: {:02X?}", arg);
-    let idl = candid::IDLArgs::from_bytes(&arg)?;
-    println!("{:?}", idl);
-    let x = agent
+    agent
         .update(&canister_id, COMMIT_BATCH)
         .with_arg(arg)
         .expire_after(timeout)
         .call_and_wait(waiter_with_timeout(timeout))
-        .await;
-    x?;
+        .await?;
     Ok(())
 }
 
@@ -300,38 +296,12 @@ pub async fn post_install_store_assets(
     let canister_id = info.get_canister_id().expect("Could not find canister ID.");
 
     let batch_id = create_batch(agent, &canister_id, timeout).await?;
-    println!("created batch {}", batch_id);
 
     let chunked_assets =
         make_chunked_assets(agent, &canister_id, timeout, batch_id, asset_locations).await?;
-    println!("created all chunks");
 
-    println!("committing batch");
     commit_batch(agent, &canister_id, timeout, batch_id, chunked_assets).await?;
-    println!("committed");
 
-    // let walker = WalkDir::new(output_assets_path).into_iter();
-    // for entry in walker {
-    //     let entry = entry?;
-    //     if entry.file_type().is_file() {
-    //         let source = entry.path();
-    //         let relative: &Path = source
-    //             .strip_prefix(output_assets_path)
-    //             .expect("cannot strip prefix");
-    //         let content = &std::fs::read(&source)?;
-    //         let path = relative.to_string_lossy().to_string();
-    //         let blob = candid::Encode!(&path, &content)?;
-    //
-    //         let method_name = String::from("store");
-    //
-    //         agent
-    //             .update(&canister_id, &method_name)
-    //             .with_arg(&blob)
-    //             .expire_after(timeout)
-    //             .call_and_wait(waiter_with_timeout(timeout))
-    //             .await?;
-    //     }
-    // }
     Ok(())
 }
 
@@ -348,6 +318,5 @@ async fn create_batch(
         .call_and_wait(waiter_with_timeout(timeout))
         .await?;
     let create_batch_response = candid::Decode!(&response, CreateBatchResponse)?;
-    let batch_id = create_batch_response.batch_id;
-    Ok(batch_id)
+    Ok(create_batch_response.batch_id)
 }

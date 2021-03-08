@@ -9,6 +9,7 @@ import Nat8 "mo:base/Nat8";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
 import A "Asset";
 import B "Batch";
 import C "Chunk";
@@ -68,7 +69,7 @@ shared ({caller = creator}) actor class () {
       throw Error.reject("not authorized");
     };
 
-    let batch = batches.startBatch();
+    let batch = batches.create();
     let chunkId = chunks.create(batch, contents);
 
     let create_asset_args : T.CreateAssetArguments = {
@@ -101,9 +102,10 @@ shared ({caller = creator}) actor class () {
     Array.find(authorized, eq) != null
   };
 
-  // Choose a content encoding from among the accepted encodings and return
-  // its content, or the first chunk of its content.
-  // If content.size() > total_length, call get_chunk() get the rest of the content.
+  // 1. Choose a content encoding from among the accepted encodings.
+  // 2. Return its content, or the first chunk of its content.
+  //
+  // If content.size() > total_length, caller must call get_chunk() get the rest of the content.
   // All chunks except the last will have the same size as the first chunk.
   public query func get(arg:{
     key: T.Key;
@@ -162,13 +164,11 @@ shared ({caller = creator}) actor class () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    Debug.print("create_batch");
-
     batches.deleteExpired();
     chunks.deleteExpired();
 
     {
-      batch_id = batches.startBatch().batchId;
+      batch_id = batches.create().batchId;
     }
   };
 
@@ -178,7 +178,7 @@ shared ({caller = creator}) actor class () {
   } ) : async ({
     chunk_id: T.ChunkId
   }) {
-    Debug.print("create_chunk(batch " # Int.toText(arg.batch_id) # ", " # Int.toText(arg.content.size()) # " bytes)");
+    //Debug.print("create_chunk(batch " # Int.toText(arg.batch_id) # ", " # Int.toText(arg.content.size()) # " bytes)");
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
@@ -193,7 +193,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public shared ({ caller }) func commit_batch(args: T.CommitBatchArguments) : async () {
-    Debug.print("commit_batch (" # Int.toText(args.operations.size()) # ")");
+    //Debug.print("commit_batch (" # Int.toText(args.operations.size()) # ")");
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
@@ -224,7 +224,7 @@ shared ({caller = creator}) actor class () {
   };
 
   func createAsset(arg: T.CreateAssetArguments) : Result.Result<(), Text> {
-    Debug.print("createAsset(" # arg.key # ")");
+    //Debug.print("createAsset(" # arg.key # ")");
     switch (assets.get(arg.key)) {
       case null {
         let asset = A.Asset(
@@ -255,9 +255,9 @@ shared ({caller = creator}) actor class () {
     if (chunks.size() > 2) {
       let expectedLength = chunks[0].size();
       for (i in Iter.range(1, chunks.size()-2)) {
-        Debug.print("chunk at index " # Int.toText(i) # " has length " # Int.toText(chunks[i].size()) # " and expected is " # Int.toText(expectedLength) );
+        //Debug.print("chunk at index " # Int.toText(i) # " has length " # Int.toText(chunks[i].size()) # " and expected is " # Int.toText(expectedLength) );
         if (chunks[i].size() != expectedLength) {
-          Debug.print("chunk at index " # Int.toText(i) # " with length " # Int.toText(chunks[i].size()) # " does not match expected length " # Int.toText(expectedLength) );
+          //Debug.print("chunk at index " # Int.toText(i) # " with length " # Int.toText(chunks[i].size()) # " does not match expected length " # Int.toText(expectedLength) );
 
           return false;
         }
@@ -267,7 +267,7 @@ shared ({caller = creator}) actor class () {
   };
 
   func setAssetContent(arg: T.SetAssetContentArguments) : Result.Result<(), Text> {
-    Debug.print("setAssetContent(" # arg.key # ")");
+    //Debug.print("setAssetContent(" # arg.key # ")");
     switch (assets.get(arg.key)) {
       case null #err("asset not found");
       case (?asset) {
@@ -303,7 +303,7 @@ shared ({caller = creator}) actor class () {
   };
 
   func unsetAssetContent(args: T.UnsetAssetContentArguments) : Result.Result<(), Text> {
-    Debug.print("unsetAssetContent(" # args.key # ")");
+    //Debug.print("unsetAssetContent(" # args.key # ")");
     switch (assets.get(args.key)) {
       case null #err("asset not found");
       case (?asset) {
@@ -324,7 +324,7 @@ shared ({caller = creator}) actor class () {
   };
 
   func deleteAsset(args: T.DeleteAssetArguments) : Result.Result<(), Text> {
-    Debug.print("deleteAsset(" # args.key # ")");
+    //Debug.print("deleteAsset(" # args.key # ")");
     if (assets.size() > 0) {   // avoid div/0 bug   https://github.com/dfinity/motoko-base/issues/228
       assets.delete(args.key);
     };
@@ -350,8 +350,4 @@ shared ({caller = creator}) actor class () {
 
     #ok(())
   };
-
-  public func version_15() : async() {
-  };
-
 };

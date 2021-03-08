@@ -1,4 +1,3 @@
-import Debug "mo:base/Debug";
 import Hash "mo:base/Hash";
 import HashMap "mo:base/HashMap";
 import Int "mo:base/Int";
@@ -28,7 +27,6 @@ module Utils {
       }
     );
     for ((k,_) in entriesToDelete.entries()) {
-      Debug.print("delete expired");
       h.delete(k);
     };
   }

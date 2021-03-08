@@ -19,6 +19,7 @@ module {
     public let contentType = initContentType;
     let encodings = initEncodings;
 
+    // Naive encoding selection: of the accepted encodings, pick the first available.
     public func chooseEncoding(acceptEncodings : [Text]) : ?AssetEncoding {
       for (acceptEncoding in acceptEncodings.vals()) {
         switch (encodings.get(acceptEncoding)) {
@@ -41,11 +42,9 @@ module {
       encodings.delete(encodingType)
     };
 
-    public func toStableAsset() : StableAsset {
-      {
-        contentType = contentType;
-        encodings = Iter.toArray(encodings.entries());
-      }
+    public func toStableAsset() : StableAsset = {
+      contentType = contentType;
+      encodings = Iter.toArray(encodings.entries());
     };
   };
 
