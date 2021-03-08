@@ -17,6 +17,7 @@ pub async fn create_canister(
     canister_name: &str,
     timeout: Duration,
     with_cycles: Option<&str>,
+    call_as_user: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
@@ -57,7 +58,7 @@ pub async fn create_canister(
             info!(log, "Creating the canister using the wallet canister...");
             let wallet =
                 Identity::get_or_create_wallet_canister(env, network, &identity_name, true).await?;
-            let cid = if network.is_ic {
+            let cid = if network.is_ic || call_as_user {
                 // Provisional commands are whitelisted on production
                 let mgr = ManagementCanister::create(
                     env.get_agent()

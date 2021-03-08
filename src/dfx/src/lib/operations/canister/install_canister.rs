@@ -25,6 +25,7 @@ pub async fn install_canister(
     mode: InstallMode,
     memory_allocation: Option<MemoryAllocation>,
     timeout: Duration,
+    call_as_user: bool,
 ) -> DfxResult {
     let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
@@ -49,33 +50,54 @@ pub async fn install_canister(
         .get_network_descriptor()
         .expect("No network descriptor.");
 
-    #[derive(candid::CandidType)]
-    struct CanisterInstall {
-        mode: InstallMode,
-        canister_id: Principal,
-        wasm_module: Vec<u8>,
-        arg: Vec<u8>,
-        compute_allocation: Option<candid::Nat>,
-        memory_allocation: Option<candid::Nat>,
+    if call_as_user {
+        let install_builder = mgr
+            .install_code(&canister_id, &wasm_module)
+            .with_raw_arg(args.to_vec())
+            .with_mode(mode);
+        let install_builder = if let Some(ca) = compute_allocation {
+            install_builder.with_compute_allocation(ca)
+        } else {
+            install_builder
+        };
+        let install_builder = if let Some(ma) = memory_allocation {
+            install_builder.with_memory_allocation(ma)
+        } else {
+            install_builder
+        };
+        install_builder
+            .build()?
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await?;
+    } else {
+        #[derive(candid::CandidType)]
+        struct CanisterInstall {
+            mode: InstallMode,
+            canister_id: Principal,
+            wasm_module: Vec<u8>,
+            arg: Vec<u8>,
+            compute_allocation: Option<candid::Nat>,
+            memory_allocation: Option<candid::Nat>,
+        }
+
+        let install_args = CanisterInstall {
+            mode,
+            canister_id: canister_id.clone(),
+            wasm_module,
+            arg: args.to_vec(),
+            compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
+            memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
+        };
+        let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
+
+        wallet
+            .call_forward(
+                mgr.update_("install_code").with_arg(install_args).build(),
+                0,
+            )?
+            .call_and_wait(waiter_with_timeout(timeout))
+            .await?;
     }
-
-    let install_args = CanisterInstall {
-        mode,
-        canister_id: canister_id.clone(),
-        wasm_module,
-        arg: args.to_vec(),
-        compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
-        memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
-    };
-    let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
-
-    wallet
-        .call_forward(
-            mgr.update_("install_code").with_arg(install_args).build(),
-            0,
-        )?
-        .call_and_wait(waiter_with_timeout(timeout))
-        .await?;
 
     if canister_info.get_type() == "assets" {
         let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;

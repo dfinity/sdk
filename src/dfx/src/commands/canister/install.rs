@@ -78,7 +78,11 @@ fn get_memory_allocation(
         }))
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult {
+pub async fn exec(
+    env: &dyn Environment,
+    opts: CanisterInstallOpts,
+    call_as_user: bool,
+) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let agent = env
         .get_agent()
@@ -121,6 +125,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult
             mode,
             memory_allocation,
             timeout,
+            call_as_user,
         )
         .await
     } else if opts.all {
@@ -152,6 +157,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterInstallOpts) -> DfxResult
                     mode,
                     memory_allocation,
                     timeout,
+                    call_as_user,
                 )
                 .await?;
             }

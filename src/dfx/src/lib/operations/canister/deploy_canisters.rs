@@ -24,6 +24,7 @@ pub async fn deploy_canisters(
     argument_type: Option<&str>,
     timeout: Duration,
     with_cycles: Option<&str>,
+    call_as_user: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -45,6 +46,7 @@ pub async fn deploy_canisters(
         &initial_canister_id_store,
         timeout,
         with_cycles,
+        call_as_user,
     )
     .await?;
 
@@ -58,6 +60,7 @@ pub async fn deploy_canisters(
         argument,
         argument_type,
         timeout,
+        call_as_user,
     )
     .await?;
 
@@ -80,6 +83,7 @@ async fn register_canisters(
     canister_id_store: &CanisterIdStore,
     timeout: Duration,
     with_cycles: Option<&str>,
+    call_as_user: bool,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -91,7 +95,7 @@ async fn register_canisters(
     } else {
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
-            create_canister(env, &canister_name, timeout, with_cycles).await?;
+            create_canister(env, &canister_name, timeout, with_cycles, call_as_user).await?;
         }
     }
     Ok(())
@@ -105,6 +109,7 @@ fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Co
     canister_pool.build_or_fail(BuildConfig::from_config(&config)?)
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn install_canisters(
     env: &dyn Environment,
     canister_names: &[String],
@@ -113,6 +118,7 @@ async fn install_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     timeout: Duration,
+    call_as_user: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -161,6 +167,7 @@ async fn install_canisters(
             first_mode,
             memory_allocation,
             timeout,
+            call_as_user,
         )
         .await;
 
@@ -193,6 +200,7 @@ async fn install_canisters(
                     second_mode,
                     memory_allocation,
                     timeout,
+                    call_as_user,
                 )
                 .await
             }

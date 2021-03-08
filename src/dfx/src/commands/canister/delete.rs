@@ -26,6 +26,7 @@ async fn delete_canister(
     env: &dyn Environment,
     canister_name: &str,
     timeout: Duration,
+    call_as_user: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
@@ -37,25 +38,29 @@ async fn delete_canister(
         canister_id.to_text(),
     );
 
-    canister::delete_canister(env, canister_id, timeout).await?;
+    canister::delete_canister(env, canister_id, timeout, call_as_user).await?;
 
     canister_id_store.remove(canister_name)?;
 
     Ok(())
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterDeleteOpts) -> DfxResult {
+pub async fn exec(
+    env: &dyn Environment,
+    opts: CanisterDeleteOpts,
+    call_as_user: bool,
+) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
 
     fetch_root_key_if_needed(env).await?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
-        delete_canister(env, canister_name, timeout).await
+        delete_canister(env, canister_name, timeout, call_as_user).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                delete_canister(env, canister_name, timeout).await?;
+                delete_canister(env, canister_name, timeout, call_as_user).await?;
             }
         }
         Ok(())

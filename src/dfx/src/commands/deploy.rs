@@ -36,6 +36,11 @@ pub struct DeployOpts {
     /// This amount is deducted from the wallet's cycle balance.
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
+
+    /// Performs the call with the user Identity to sign and send messages.
+    /// Bypasses the Wallet canister.
+    #[clap(long)]
+    call_as_user: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -57,5 +62,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument_type,
         timeout,
         with_cycles,
+        opts.call_as_user,
     ))
 }

@@ -22,7 +22,12 @@ pub struct CanisterStopOpts {
     all: bool,
 }
 
-async fn stop_canister(env: &dyn Environment, canister_name: &str, timeout: Duration) -> DfxResult {
+async fn stop_canister(
+    env: &dyn Environment,
+    canister_name: &str,
+    timeout: Duration,
+    call_as_user: bool,
+) -> DfxResult {
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id = canister_id_store.get(canister_name)?;
@@ -34,23 +39,23 @@ async fn stop_canister(env: &dyn Environment, canister_name: &str, timeout: Dura
         canister_id.to_text(),
     );
 
-    canister::stop_canister(env, canister_id, timeout).await?;
+    canister::stop_canister(env, canister_id, timeout, call_as_user).await?;
 
     Ok(())
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterStopOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: CanisterStopOpts, call_as_user: bool) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
 
     fetch_root_key_if_needed(env).await?;
     let timeout = expiry_duration();
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
-        stop_canister(env, &canister_name, timeout).await
+        stop_canister(env, &canister_name, timeout, call_as_user).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                stop_canister(env, &canister_name, timeout).await?;
+                stop_canister(env, &canister_name, timeout, call_as_user).await?;
             }
         }
         Ok(())

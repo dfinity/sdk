@@ -27,8 +27,8 @@ pub struct CanisterOpts {
     #[clap(long)]
     network: Option<String>,
 
-    /// Bypass the wallet canister.
-    /// Perform the call with the user Identity as the Sender.
+    /// Performs the call with the user Identity to sign and send messages.
+    /// Bypasses the Wallet canister.
     #[clap(long)]
     call_as_user: bool,
 
@@ -53,18 +53,19 @@ enum SubCommand {
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.clone())?;
     let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let call_as_user = opts.call_as_user;
     runtime.block_on(async {
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(&agent_env, v).await,
-            SubCommand::Create(v) => create::exec(&agent_env, v).await,
-            SubCommand::Delete(v) => delete::exec(&agent_env, v).await,
+            SubCommand::Create(v) => create::exec(&agent_env, v, call_as_user).await,
+            SubCommand::Delete(v) => delete::exec(&agent_env, v, call_as_user).await,
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
-            SubCommand::Install(v) => install::exec(&agent_env, v).await,
+            SubCommand::Install(v) => install::exec(&agent_env, v, call_as_user).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
-            SubCommand::SetController(v) => set_controller::exec(&agent_env, v, opts.call_as_user).await,
-            SubCommand::Start(v) => start::exec(&agent_env, v).await,
-            SubCommand::Status(v) => status::exec(&agent_env, v).await,
-            SubCommand::Stop(v) => stop::exec(&agent_env, v).await,
+            SubCommand::SetController(v) => set_controller::exec(&agent_env, v, call_as_user).await,
+            SubCommand::Start(v) => start::exec(&agent_env, v, call_as_user).await,
+            SubCommand::Status(v) => status::exec(&agent_env, v, call_as_user).await,
+            SubCommand::Stop(v) => stop::exec(&agent_env, v, call_as_user).await,
         }
     })
 }

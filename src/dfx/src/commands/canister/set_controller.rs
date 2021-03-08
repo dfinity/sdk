@@ -43,7 +43,14 @@ pub async fn exec(env: &dyn Environment, opts: SetControllerOpts, call_as_user: 
         }
     };
 
-    set_controller(env, canister_id, controller_principal, timeout).await?;
+    set_controller(
+        env,
+        canister_id,
+        controller_principal,
+        timeout,
+        call_as_user,
+    )
+    .await?;
 
     println!(
         "Set {:?} as controller of {:?}.",
