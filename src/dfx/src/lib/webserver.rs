@@ -27,7 +27,6 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use tokio_compat_02::FutureExt;
 use url::Url;
 
 /// The amount of time to wait for the client to answer, in seconds.
@@ -247,6 +246,7 @@ async fn http_request(
 ) -> Result<HttpResponse, Error> {
     let logger = http_request_data.logger.clone();
 
+    eprintln!("---: {:#?}", req);
     // We need to convert errors into 500s, which are regular Ok(Response).
     let agent = match Agent::builder()
         .with_url(format!(
@@ -299,7 +299,6 @@ async fn http_request(
     match canister
         .http_request(method, uri, headers, body)
         .call()
-        .compat()
         .await
     {
         Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
@@ -388,7 +387,7 @@ pub fn run_webserver(
                     web::get().to(|| HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)),
                 ))
                 .service(web::resource("/").route(web::get().to(http_request)))
-                .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
+            // .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
         })
         .max_connections(1)
         .bind(bind)?

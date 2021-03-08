@@ -63,6 +63,7 @@ sysinfo = "0.9.6"
 tar = "0.4.26"
 tempfile = "3.1.0"
 thiserror = "1.0.20"
+tokio = { version = "1.2.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
@@ -72,25 +73,26 @@ wasmparser = "0.45.0"
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "af775550faf4bd32d9804d9d0190d35ee3eb2434"
+rev = "e77bcd2aa8e173b0d7a5b9fae8f9e42211b85110"
+features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "af775550faf4bd32d9804d9d0190d35ee3eb2434"
+rev = "e77bcd2aa8e173b0d7a5b9fae8f9e42211b85110"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "af775550faf4bd32d9804d9d0190d35ee3eb2434"
+rev = "e77bcd2aa8e173b0d7a5b9fae8f9e42211b85110"
 
 [dependencies.ic-utils]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "af775550faf4bd32d9804d9d0190d35ee3eb2434"
+rev = "e77bcd2aa8e173b0d7a5b9fae8f9e42211b85110"
 
 [dev-dependencies]
 env_logger = "0.6"
