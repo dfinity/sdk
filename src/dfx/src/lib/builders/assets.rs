@@ -238,11 +238,13 @@ fn build_frontend(
                     format!("CANISTER_CANDID_PATH_{}", canister.get_name()),
                     candid_path,
                 );
-                cmd.env(
-                    format!("CANISTER_ID_{}", canister.get_name()),
-                    canister.canister_id().to_text(),
-                );
             }
+        }
+        for canister in pool.get_canister_list() {
+            cmd.env(
+                format!("CANISTER_ID_{}", canister.get_name()),
+                canister.canister_id().to_text(),
+            );
         }
 
         cmd.current_dir(project_root)
