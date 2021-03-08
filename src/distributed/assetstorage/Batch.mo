@@ -17,7 +17,8 @@ object batch {
 
 // A batch associates a bunch of chunks that are being uploaded, so that none
 // of them time out or all of them do.
-public class Batch() {
+public class Batch(initBatchId: T.BatchId) {
+  public let batchId = initBatchId;
   var expiresAt : T.Time = batch.nextExpireTime();
 
   public func refreshExpiry() {
@@ -43,21 +44,17 @@ public class Batches() {
     batches.delete(batchId)
   };
 
-  public func startBatch(): T.BatchId {
-    let batch_id = nextBatchId;
+  public func startBatch(): Batch {
+    let batchId = nextBatchId;
     nextBatchId += 1;
-    let batch = Batch();
-    batches.put(batch_id, batch);
-    batch_id
+    let batch = Batch(batchId);
+    batches.put(batchId, batch);
+    batch
   };
 
   public func deleteExpired() : () {
     let now = Time.now();
-    U.deleteFromHashMap(batches, Int.equal, Int.hash,
-      func(k: Int, batch: Batch) : Bool {
-        batch.isExpired(now)
-      }
-    );
+    U.deleteFromHashMap(batches, Int.equal, Int.hash, func(k: Int, batch: Batch) : Bool = batch.isExpired(now));
   };
 
   public func reset() {

@@ -9,7 +9,6 @@ import Nat8 "mo:base/Nat8";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import Tree "mo:base/RBTree";
 import A "Asset";
 import B "Batch";
 import C "Chunk";
@@ -43,16 +42,34 @@ shared ({caller = creator}) actor class () {
     }
   };
 
+  // Retrieve an asset's contents by name.  Only returns the first chunk of an asset's
+  // contents, even if there were more than one chunk.
+  // To handle larger assets, use get() and get_chunk().
+  public query func retrieve(path : T.Path) : async T.Contents {
+    switch (assets.get(path)) {
+      case null throw Error.reject("not found");
+      case (?asset) {
+        switch (asset.getEncoding("identity")) {
+          case null throw Error.reject("no identity encoding");
+          case (?encoding) encoding.content[0];
+        };
+      };
+    }
+  };
+
+  // Store an asset of limited size, with
+  //   content-type: "application/octet-stream"
+  //   content-encoding: "identity"
+  // This deprecated function is backwards-compatible with an older interface and will be replaced
+  // with a function of the same name but that allows specification of the content type and encoding.
+  // Prefer to use create_batch(), create_chunk(), commit_batch().
   public shared ({ caller }) func store(path : T.Path, contents : T.Contents) : async () {
     if (isSafe(caller) == false) {
       throw Error.reject("not authorized");
     };
 
-    let batch_id = batches.startBatch(); // ew
-    let chunk_id = switch (batches.get(batch_id)) {
-      case null throw Error.reject("batch not found");
-      case (?batch) chunks.create(batch, contents)
-    };
+    let batch = batches.startBatch();
+    let chunkId = chunks.create(batch, contents);
 
     let create_asset_args : T.CreateAssetArguments = {
       key = path;
@@ -63,29 +80,15 @@ shared ({caller = creator}) actor class () {
       case (#err(msg)) throw Error.reject(msg);
     };
 
-    let set_asset_content_args : T.SetAssetContentArguments = {
+    let args : T.SetAssetContentArguments = {
       key = path;
       content_encoding = "identity";
-      chunk_ids = [ chunk_id ];
+      chunk_ids = [ chunkId ];
     };
-    switch(setAssetContent(set_asset_content_args)) {
+    switch(setAssetContent(args)) {
       case (#ok(())) {};
       case (#err(msg)) throw Error.reject(msg);
     };
-  };
-
-  public query func retrieve(path : T.Path) : async T.Contents {
-    switch (assets.get(path)) {
-      case null throw Error.reject("not found");
-      case (?asset) {
-        switch (asset.getEncoding(["identity"])) {
-          case null throw Error.reject("no such encoding");
-          case (?encoding) {
-            encoding.content[0]
-          }
-        };
-      };
-    }
   };
 
   public query func list() : async [T.Path] {
@@ -94,11 +97,14 @@ shared ({caller = creator}) actor class () {
   };
 
   func isSafe(caller: Principal) : Bool {
-    return true;
     func eq(value: Principal): Bool = value == caller;
     Array.find(authorized, eq) != null
   };
 
+  // Choose a content encoding from among the accepted encodings and return
+  // its content, or the first chunk of its content.
+  // If content.size() > total_length, call get_chunk() get the rest of the content.
+  // All chunks except the last will have the same size as the first chunk.
   public query func get(arg:{
     key: T.Key;
     accept_encodings: [Text]
@@ -111,7 +117,7 @@ shared ({caller = creator}) actor class () {
     switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
-        switch (asset.getEncoding(arg.accept_encodings)) {
+        switch (asset.chooseEncoding(arg.accept_encodings)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
             {
@@ -126,6 +132,7 @@ shared ({caller = creator}) actor class () {
     };
   };
 
+  // Get subsequent chunks of an asset encoding's content, after get().
   public query func get_chunk(arg:{
     key: T.Key;
     content_encoding: Text;
@@ -136,7 +143,7 @@ shared ({caller = creator}) actor class () {
     switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
-        switch (asset.encodings.get(arg.content_encoding)) {
+        switch (asset.getEncoding(arg.content_encoding)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
             {
@@ -148,6 +155,7 @@ shared ({caller = creator}) actor class () {
     };
   };
 
+  // All chunks are associated with a batch until committed with commit_batch.
   public shared ({ caller }) func create_batch(arg: {}) : async ({
     batch_id: T.BatchId
   }) {
@@ -160,7 +168,7 @@ shared ({caller = creator}) actor class () {
     chunks.deleteExpired();
 
     {
-      batch_id = batches.startBatch();
+      batch_id = batches.startBatch().batchId;
     }
   };
 
@@ -174,13 +182,13 @@ shared ({caller = creator}) actor class () {
     if (isSafe(caller) == false)
       throw Error.reject("not authorized");
 
-    switch (batches.get(arg.batch_id)) {
+    let chunkId = switch (batches.get(arg.batch_id)) {
       case null throw Error.reject("batch not found");
-      case (?batch) {
-        {
-          chunk_id = chunks.create(batch, arg.content)
-        }
-      }
+      case (?batch) chunks.create(batch, arg.content)
+    };
+
+    {
+      chunk_id = chunkId;
     }
   };
 
@@ -190,7 +198,6 @@ shared ({caller = creator}) actor class () {
       throw Error.reject("not authorized");
 
     for (op in args.operations.vals()) {
-
       let r : Result.Result<(), Text> = switch(op) {
         case (#CreateAsset(args)) { createAsset(args); };
         case (#SetAssetContent(args)) { setAssetContent(args); };
@@ -244,22 +251,17 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  func addBlobLength(acc: Nat, blob: Blob): Nat {
-    acc + blob.size()
-  };
-
   func chunkLengthsMatch(chunks: [Blob]): Bool {
-    if (chunks.size() == 0)
-      return true;
+    if (chunks.size() > 2) {
+      let expectedLength = chunks[0].size();
+      for (i in Iter.range(1, chunks.size()-2)) {
+        Debug.print("chunk at index " # Int.toText(i) # " has length " # Int.toText(chunks[i].size()) # " and expected is " # Int.toText(expectedLength) );
+        if (chunks[i].size() != expectedLength) {
+          Debug.print("chunk at index " # Int.toText(i) # " with length " # Int.toText(chunks[i].size()) # " does not match expected length " # Int.toText(expectedLength) );
 
-    let expectedLength = chunks[0].size();
-    for (i in Iter.range(1, chunks.size()-2)) {
-      Debug.print("chunk at index " # Int.toText(i) # " has length " # Int.toText(chunks[i].size()) # " and expected is " # Int.toText(expectedLength) );
-      if (chunks[i].size() != expectedLength) {
-        Debug.print("chunk at index " # Int.toText(i) # " with length " # Int.toText(chunks[i].size()) # " does not match expected length " # Int.toText(expectedLength) );
-
-        return false;
-      }
+          return false;
+        }
+      };
     };
     true
   };
@@ -277,11 +279,11 @@ shared ({caller = creator}) actor class () {
               let encoding : A.AssetEncoding = {
                 contentEncoding = arg.content_encoding;
                 content = chunks;
-                totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, addBlobLength);
+                totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, func (acc: Nat, blob: Blob): Nat {
+                  acc + blob.size()
+                });
               };
-
-              asset.encodings.put(arg.content_encoding, encoding);
-              #ok(());
+              #ok(asset.setEncoding(arg.content_encoding, encoding));
             };
           };
           case (#err(err)) #err(err);
@@ -305,7 +307,7 @@ shared ({caller = creator}) actor class () {
     switch (assets.get(args.key)) {
       case null #err("asset not found");
       case (?asset) {
-        asset.encodings.delete(args.content_encoding);
+        asset.unsetEncoding(args.content_encoding);
         #ok(())
       };
     };

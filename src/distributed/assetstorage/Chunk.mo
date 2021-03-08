@@ -52,11 +52,7 @@ public class Chunks() {
   public func deleteExpired() : () {
     let now = Time.now();
 
-    U.deleteFromHashMap(chunks, Int.equal, Int.hash,
-      func(k: Int, chunk: Chunk) : Bool {
-        chunk.batch.isExpired(now)
-      }
-    );
+    U.deleteFromHashMap(chunks, Int.equal, Int.hash, func(k: Int, chunk: Chunk) : Bool = chunk.batch.isExpired(now));
   };
 }
 
