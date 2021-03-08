@@ -100,25 +100,27 @@ pub async fn install_canister(
     }
 
     if canister_info.get_type() == "assets" {
-        let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
-        let self_id = env
-            .get_selected_identity_principal()
-            .expect("Selected identity not instantiated.");
-        info!(
-            log,
-            "Authorizing our identity ({}) to the asset canister...", identity_name
-        );
-        let canister = Canister::builder()
-            .with_agent(agent)
-            .with_canister_id(canister_id.clone())
-            .build()
-            .unwrap();
+        if !call_as_user {
+            let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
+            let self_id = env
+                .get_selected_identity_principal()
+                .expect("Selected identity not instantiated.");
+            info!(
+                log,
+                "Authorizing our identity ({}) to the asset canister...", identity_name
+            );
+            let canister = Canister::builder()
+                .with_agent(agent)
+                .with_canister_id(canister_id.clone())
+                .build()
+                .unwrap();
 
-        // Before storing assets, make sure the DFX principal is in there first.
-        wallet
-            .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
-            .call_and_wait(waiter_with_timeout(timeout))
-            .await?;
+            // Before storing assets, make sure the DFX principal is in there first.
+            wallet
+                .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
+        }
 
         info!(log, "Uploading assets to asset canister...");
         post_install_store_assets(&canister_info, &agent, timeout).await?;

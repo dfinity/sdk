@@ -11,7 +11,7 @@ setup() {
     mkdir "$x"
     export HOME="$x"
 
-    dfx_new
+    dfx_new hello
 }
 
 teardown() {
@@ -45,3 +45,26 @@ teardown() {
     assert_command dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
     assert_match "The wallet canister \"${ID}\"\ already exists for user \"default\" on \"actuallylocal\" network."
 }
+
+@test "bypass wallet call as user" {
+    install_asset greet
+    dfx_start
+    assert_command dfx canister --call-as-user create --all
+    assert_command dfx build
+    assert_command dfx canister --call-as-user install hello
+    assert_command dfx canister --call-as-user call "$(dfx canister id hello)" greet '("DFINITY")'
+    assert_match '("Hello, DFINITY!")'
+    # Wallet should not have been created/should not exist
+    assert_command_fail test -f .dfx/local/wallets.json
+}
+
+@test "bypass wallet call as user: deploy" {
+    install_asset greet
+    dfx_start
+    assert_command dfx deploy --call-as-user
+    assert_command dfx canister --call-as-user call "$(dfx canister id hello)" greet '("DFINITY")'
+    assert_match '("Hello, DFINITY!")'
+    # Wallet should not have been created/should not exist
+    assert_command_fail test -f .dfx/local/wallets.json
+}
+

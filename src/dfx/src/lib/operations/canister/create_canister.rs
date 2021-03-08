@@ -55,31 +55,48 @@ pub async fn create_canister(
                 .expect("No selected identity.")
                 .to_string();
 
-            info!(log, "Creating the canister using the wallet canister...");
-            let wallet =
-                Identity::get_or_create_wallet_canister(env, network, &identity_name, true).await?;
-            let cid = if network.is_ic || call_as_user {
-                // Provisional commands are whitelisted on production
-                let mgr = ManagementCanister::create(
-                    env.get_agent()
-                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-                );
-                let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) = wallet
-                    .call_forward(mgr.update_("create_canister").build(), 0)?
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?;
-                create_result.canister_id
+            let mgr = ManagementCanister::create(
+                env.get_agent()
+                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
+            );
+            let cid = if call_as_user {
+                if network.is_ic {
+                    // Provisional commands are whitelisted on production
+                    mgr.create_canister()
+                        .call_and_wait(waiter_with_timeout(timeout))
+                        .await?
+                        .0
+                } else {
+                    // amount has been validated by cycle_amount_validator
+                    let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
+                    mgr.provisional_create_canister_with_cycles(cycles)
+                        .call_and_wait(waiter_with_timeout(timeout))
+                        .await?
+                        .0
+                }
             } else {
-                let cycles = match with_cycles {
-                    None => 1000000000001_u64,
-                    Some(amount) => amount.parse::<u64>()?,
-                };
-                wallet
-                    .wallet_create_canister(cycles, None)
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?
-                    .0
-                    .canister_id
+                info!(log, "Creating the canister using the wallet canister...");
+                let wallet =
+                    Identity::get_or_create_wallet_canister(env, network, &identity_name, true)
+                        .await?;
+                if network.is_ic {
+                    // Provisional commands are whitelisted on production
+                    let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) = wallet
+                        .call_forward(mgr.update_("create_canister").build(), 0)?
+                        .call_and_wait(waiter_with_timeout(timeout))
+                        .await?;
+                    create_result.canister_id
+                } else {
+                    // amount has been validated by cycle_amount_validator
+                    let cycles = with_cycles
+                        .map_or(1000000000001_u64, |amount| amount.parse::<u64>().unwrap());
+                    wallet
+                        .wallet_create_canister(cycles, None)
+                        .call_and_wait(waiter_with_timeout(timeout))
+                        .await?
+                        .0
+                        .canister_id
+                }
             };
 
             let canister_id = cid.to_text();
