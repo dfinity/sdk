@@ -107,7 +107,6 @@ teardown() {
 }
 
 @test "build with wallet succeeds when requested network is configured" {
-  skip "Skip until updating to Replica with ic_api_version > 0.14.0"
   dfx_start
   setup_actuallylocal_network
   assert_command dfx_set_wallet

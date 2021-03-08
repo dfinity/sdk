@@ -17,7 +17,6 @@ use tokio::runtime::Runtime;
 #[derive(Clap)]
 pub struct SetWalletOpts {
     /// The Canister ID of the wallet to associate with this identity.
-    #[clap(long)]
     canister_name: String,
 
     /// Skip verification that the ID points to a correct wallet canister. Only useful for the local network.
