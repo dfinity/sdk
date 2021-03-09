@@ -274,7 +274,7 @@ async fn http_request(
         Some(canister_id) => canister_id,
         None => {
             return Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(format!("Could not find Canister ID from Request.")));
+                .body("Could not find Canister ID from Request.".to_string()));
         }
     };
 
@@ -362,7 +362,7 @@ pub fn run_webserver(
         network_descriptor,
     });
     let http_request_data = Arc::new(HttpRequestData {
-        bind: bind.clone(),
+        bind,
         logger: logger.clone(),
     });
 
