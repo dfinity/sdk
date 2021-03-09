@@ -2,12 +2,12 @@ use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::waiter::waiter_with_timeout;
-use candid::{CandidType, Decode, Encode};
+use candid::{CandidType, Decode, Encode, Nat};
 
 use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use ic_types::Principal;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::WalkDir;
@@ -17,78 +17,78 @@ const CREATE_CHUNK: &str = "create_chunk";
 const COMMIT_BATCH: &str = "commit_batch";
 const MAX_CHUNK_SIZE: usize = 1_900_000;
 
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 struct CreateBatchRequest {}
 
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug, Deserialize)]
 struct CreateBatchResponse {
-    batch_id: u128,
+    batch_id: Nat,
 }
 
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug, Deserialize)]
 struct CreateChunkRequest<'a> {
-    batch_id: u128,
+    batch_id: Nat,
     #[serde(with = "serde_bytes")]
     content: &'a [u8],
 }
 
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug, Deserialize)]
 struct CreateChunkResponse {
-    chunk_id: u128,
+    chunk_id: Nat,
 }
 
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 struct GetRequest {
     key: String,
     accept_encodings: Vec<String>,
 }
 
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 struct GetResponse {
     contents: Vec<u8>,
     content_type: String,
     content_encoding: String,
 }
 
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 struct CreateAssetArguments {
     key: String,
     content_type: String,
 }
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 struct SetAssetContentArguments {
     key: String,
     content_encoding: String,
-    chunk_ids: Vec<u128>,
+    chunk_ids: Vec<Nat>,
 }
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 struct UnsetAssetContentArguments {
     key: String,
     content_encoding: String,
 }
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 struct DeleteAssetArguments {
     key: String,
 }
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 struct ClearArguments {}
 
-#[derive(CandidType, Clone, Debug, Serialize, Deserialize)]
+#[derive(CandidType, Debug)]
 enum BatchOperationKind {
     CreateAsset(CreateAssetArguments),
 
     SetAssetContent(SetAssetContentArguments),
 
-    UnsetAssetContent(UnsetAssetContentArguments),
+    _UnsetAssetContent(UnsetAssetContentArguments),
 
     DeleteAsset(DeleteAssetArguments),
 
-    Clear(ClearArguments),
+    _Clear(ClearArguments),
 }
 
-#[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
-struct CommitBatchArguments {
-    batch_id: u128,
+#[derive(CandidType, Debug)]
+struct CommitBatchArguments<'a> {
+    batch_id: &'a Nat,
     operations: Vec<BatchOperationKind>,
 }
 
@@ -100,16 +100,17 @@ struct AssetLocation {
 
 struct ChunkedAsset {
     asset_location: AssetLocation,
-    chunk_ids: Vec<u128>,
+    chunk_ids: Vec<Nat>,
 }
 
 async fn create_chunk(
     agent: &Agent,
     canister_id: &Principal,
     timeout: Duration,
-    batch_id: u128,
+    batch_id: &Nat,
     content: &[u8],
-) -> DfxResult<u128> {
+) -> DfxResult<Nat> {
+    let batch_id = batch_id.clone();
     let args = CreateChunkRequest { batch_id, content };
     let args = candid::Encode!(&args)?;
 
@@ -147,7 +148,7 @@ async fn make_chunked_asset(
     agent: &Agent,
     canister_id: &Principal,
     timeout: Duration,
-    batch_id: u128,
+    batch_id: &Nat,
     asset_location: AssetLocation,
 ) -> DfxResult<ChunkedAsset> {
     let content = &std::fs::read(&asset_location.source)?;
@@ -186,16 +187,14 @@ async fn make_chunked_asset(
     //     })
     // works (sometimes)
 
-    let mut chunk_ids: Vec<u128> = vec![];
+    let mut chunk_ids: Vec<Nat> = vec![];
     let chunks = content.chunks(MAX_CHUNK_SIZE);
     let (num_chunks, _) = chunks.size_hint();
-    let mut i: usize = 0;
-    for data_chunk in chunks {
-        i += 1;
+    for (i, data_chunk) in chunks.enumerate() {
         println!(
             "  {} {}/{} ({} bytes)",
             &asset_location.relative.to_string_lossy(),
-            i,
+            i+1,
             num_chunks,
             data_chunk.len()
         );
@@ -211,7 +210,7 @@ async fn make_chunked_assets(
     agent: &Agent,
     canister_id: &Principal,
     timeout: Duration,
-    batch_id: u128,
+    batch_id: &Nat,
     locs: Vec<AssetLocation>,
 ) -> DfxResult<Vec<ChunkedAsset>> {
     // this neat futures version works faster in parallel when it works,
@@ -232,7 +231,7 @@ async fn commit_batch(
     agent: &Agent,
     canister_id: &Principal,
     timeout: Duration,
-    batch_id: u128,
+    batch_id: &Nat,
     chunked_assets: Vec<ChunkedAsset>,
 ) -> DfxResult {
     let operations: Vec<_> = chunked_assets
@@ -299,18 +298,14 @@ pub async fn post_install_store_assets(
     let batch_id = create_batch(agent, &canister_id, timeout).await?;
 
     let chunked_assets =
-        make_chunked_assets(agent, &canister_id, timeout, batch_id, asset_locations).await?;
+        make_chunked_assets(agent, &canister_id, timeout, &batch_id, asset_locations).await?;
 
-    commit_batch(agent, &canister_id, timeout, batch_id, chunked_assets).await?;
+    commit_batch(agent, &canister_id, timeout, &batch_id, chunked_assets).await?;
 
     Ok(())
 }
 
-async fn create_batch(
-    agent: &Agent,
-    canister_id: &Principal,
-    timeout: Duration,
-) -> DfxResult<u128> {
+async fn create_batch(agent: &Agent, canister_id: &Principal, timeout: Duration) -> DfxResult<Nat> {
     let create_batch_args = CreateBatchRequest {};
     let response = agent
         .update(&canister_id, CREATE_BATCH)
