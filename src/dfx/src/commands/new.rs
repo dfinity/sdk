@@ -149,10 +149,9 @@ fn write_files_from_entries<R: Sized + Read>(
         let mut v = Vec::new();
         file.read_to_end(&mut v).map_err(DfxError::from)?;
 
-        let v = match core::str::from_utf8(&v) {
-            Err(_) => v,
-            Ok(s) => {
-                let mut s = String::from(s);
+        let v = match String::from_utf8(v) {
+            Err(err) => err.into_bytes(),
+            Ok(mut s) => {
                 // Perform replacements.
                 variables.iter().for_each(|(name, value)| {
                     let pattern = "{".to_owned() + name + "}";
