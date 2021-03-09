@@ -399,7 +399,7 @@ impl AgentClient {
     }
 }
 
-impl ic_agent::PasswordManager for AgentClient {
+impl ic_agent::agent::http_transport::PasswordManager for AgentClient {
     fn cached(&self, _url: &str) -> Result<Option<(String, String)>, String> {
         // Support for HTTP Auth if necessary (tries to contact first, then do the HTTP Auth
         // flow).
@@ -455,7 +455,7 @@ fn create_agent(
             Agent::builder()
                 .with_url(url)
                 .with_boxed_identity(identity)
-                .with_password_manager(executor)
+                // .with_password_manager(executor)
                 .with_ingress_expiry(Some(timeout))
                 .build()
                 .ok()
