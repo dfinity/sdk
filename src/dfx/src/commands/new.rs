@@ -157,7 +157,7 @@ fn write_files_from_entries<R: Sized + Read>(
                     let pattern = "{".to_owned() + name + "}";
                     s = s.replace(pattern.as_str(), value);
                 });
-                s.as_bytes().to_vec()
+                s.into_bytes()
             }
         };
 
