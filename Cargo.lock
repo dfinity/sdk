@@ -3333,11 +3333,7 @@ dependencies = [
  "mime_guess",
  "native-tls",
  "percent-encoding",
-<<<<<<< HEAD
- "pin-project-lite 0.2.4",
-=======
  "pin-project-lite 0.2.6",
->>>>>>> hansl/http-request
  "rustls 0.18.1",
  "serde",
  "serde_json",
@@ -3376,11 +3372,7 @@ dependencies = [
  "mime",
  "native-tls",
  "percent-encoding",
-<<<<<<< HEAD
- "pin-project-lite 0.2.4",
-=======
  "pin-project-lite 0.2.6",
->>>>>>> hansl/http-request
  "rustls 0.19.0",
  "serde",
  "serde_json",
