@@ -1906,7 +1906,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=enzoh/secp256k1#9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=enzoh/secp256k1#5634e8ea0239e64c7476b9c86fb3887669148ce8"
 dependencies = [
  "async-trait",
  "base32",
@@ -1937,7 +1937,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=enzoh/secp256k1#9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=enzoh/secp256k1#5634e8ea0239e64c7476b9c86fb3887669148ce8"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1952,7 +1952,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=enzoh/secp256k1#9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=enzoh/secp256k1#5634e8ea0239e64c7476b9c86fb3887669148ce8"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1964,7 +1964,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=enzoh/secp256k1#9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=enzoh/secp256k1#5634e8ea0239e64c7476b9c86fb3887669148ce8"
 dependencies = [
  "async-trait",
  "candid",

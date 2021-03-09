@@ -75,26 +75,26 @@ webpki-roots = "0.21.0"
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "enzoh/secp256k1"
-rev = "9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
+rev = "5634e8ea0239e64c7476b9c86fb3887669148ce8"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "enzoh/secp256k1"
-rev = "9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
+rev = "5634e8ea0239e64c7476b9c86fb3887669148ce8"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "enzoh/secp256k1"
-rev = "9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
+rev = "5634e8ea0239e64c7476b9c86fb3887669148ce8"
 
 [dependencies.ic-utils]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "enzoh/secp256k1"
-rev = "9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
+rev = "5634e8ea0239e64c7476b9c86fb3887669148ce8"
 
 [dev-dependencies]
 env_logger = "0.6"
