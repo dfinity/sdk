@@ -6,6 +6,7 @@ use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
+use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, bail, Context};
@@ -56,6 +57,11 @@ pub struct CanisterCallOpts {
     #[clap(long, conflicts_with("async"),
         possible_values(&["idl", "raw", "pp"]))]
     output: Option<String>,
+
+    /// Specifies the amount of cycles to send on the call.
+    /// Deducted from the wallet.
+    #[clap(long, validator(cycle_amount_validator))]
+    with_cycles: Option<String>,
 }
 
 fn get_local_cid_and_candid_path(
@@ -80,13 +86,7 @@ async fn request_id_via_wallet_call(
 ) -> DfxResult<ic_agent::RequestId>
 where
 {
-    #[derive(Deserialize)]
-    struct Out {
-        #[allow(dead_code)]
-        r#return: CallResult,
-    }
-
-    let call_forwarder: CallForwarder<'_, '_, (Out,)> =
+    let call_forwarder: CallForwarder<'_, '_, (CallResult,)> =
         wallet.call(canister, method_name, args, cycles);
     call_forwarder
         .call()
@@ -157,14 +157,10 @@ pub async fn exec(
 
     let timeout = expiry_duration();
 
-    #[derive(CandidType, Deserialize)]
-    struct In {
-        canister: CanisterId,
-        method_name: String,
-        #[serde(with = "serde_bytes")]
-        args: Vec<u8>,
-        cycles: u64,
-    }
+    let identity_name = env.get_selected_identity().expect("No selected identity.");
+    let network = env
+        .get_network_descriptor()
+        .expect("No network descriptor.");
 
     if is_query {
         let blob = agent
@@ -191,10 +187,6 @@ pub async fn exec(
                     Identity::build_wallet_canister(id.clone(), env)?
                 } else {
                     // CallSender::SelectedIdWallet(some_id)
-                    let identity_name = env.get_selected_identity().expect("No selected identity.");
-                    let network = env
-                        .get_network_descriptor()
-                        .expect("No network descriptor.");
                     Identity::get_wallet_canister(env, network, &identity_name).await?
                 };
                 // This is overkill, wallet.call should accept a Principal parameter
@@ -204,7 +196,6 @@ pub async fn exec(
                     .with_canister_id(canister_id)
                     .build()
                     .unwrap();
-                //
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
@@ -231,24 +222,36 @@ pub async fn exec(
                     Identity::build_wallet_canister(id.clone(), env)?
                 } else {
                     // CallSender::SelectedIdWallet(some_id)
-                    let identity_name = env.get_selected_identity().expect("No selected identity.");
-                    let network = env
-                        .get_network_descriptor()
-                        .expect("No network descriptor.");
                     Identity::get_wallet_canister(env, network, &identity_name).await?
                 };
-                let (blob,): (Vec<u8>,) = wallet
+
+                // amount has been validated by cycle_amount_validator
+                let cycles = opts
+                    .with_cycles
+                    .as_deref()
+                    .map_or(0_u64, |amount| amount.parse::<u64>().unwrap());
+
+                #[derive(CandidType, Deserialize)]
+                struct In {
+                    canister: CanisterId,
+                    method_name: String,
+                    #[serde(with = "serde_bytes")]
+                    args: Vec<u8>,
+                    cycles: u64,
+                }
+
+                let (result,): (CallResult,) = wallet
                     .update_("wallet_call")
                     .with_arg(In {
                         canister: canister_id,
                         method_name: method_name.to_string(),
                         args: arg_value,
-                        cycles: 0_u64,
+                        cycles,
                     })
                     .build()
                     .call_and_wait(waiter_with_exponential_backoff())
                     .await?;
-                blob
+                result.r#return
             }
         };
 
