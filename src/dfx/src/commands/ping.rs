@@ -50,7 +50,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let runtime = Runtime::new().expect("Unable to create a runtime");
     let status = runtime.block_on(agent.status())?;
     println!("{}", status);
 

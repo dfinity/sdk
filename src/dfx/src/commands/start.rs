@@ -41,7 +41,7 @@ pub struct StartOpts {
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let agent = Agent::builder().with_url(frontend_url).build()?;
 
@@ -76,7 +76,7 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
         .timeout(std::time::Duration::from_secs(30))
         .throttle(std::time::Duration::from_secs(1))
         .build();
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let runtime = Runtime::new().expect("Unable to create a runtime");
     let port = runtime.block_on(async {
         waiter.start();
         let mut contents = String::new();

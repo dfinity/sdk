@@ -246,13 +246,20 @@ async fn http_request(
     req: HttpRequest,
     mut payload: web::Payload,
     http_request_data: web::Data<Arc<HttpRequestData>>,
+    actix_data: web::Data<Arc<Mutex<ForwardActixData>>>,
 ) -> Result<HttpResponse, Error> {
     let logger = http_request_data.logger.clone();
-    let transport = http_transport::ActixWebClientHttpTransport::create(format!(
-        "http://{}",
-        http_request_data.bind.ip().to_string()
-    ))
-    .map_err(|err| actix_web::error::InternalError::new(err, StatusCode::INTERNAL_SERVER_ERROR))?;
+    let url = {
+        let mut data = actix_data.lock().unwrap();
+        data.counter += 1;
+        let count = data.counter;
+        data.providers[count % data.providers.len()].clone()
+    };
+
+    let transport = http_transport::ReqwestHttpReplicaV1Transport::create(url.to_string())
+        .map_err(|err| {
+            actix_web::error::InternalError::new(err, StatusCode::INTERNAL_SERVER_ERROR)
+        })?;
 
     // We need to convert errors into 500s, which are regular Ok(Response).
     let agent = match Agent::builder().with_transport(transport).build() {
@@ -364,7 +371,7 @@ pub fn run_webserver(
             App::new()
                 .data(
                     ClientBuilder::new()
-                        .connector(Connector::new().limit(1).finish())
+                        .connector(Connector::new().limit(10).finish())
                         .finish(),
                 )
                 .data(forward_data.clone())
@@ -385,10 +392,9 @@ pub fn run_webserver(
                 .service(web::resource("/_/").route(
                     web::get().to(|| HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)),
                 ))
-                .service(web::resource("/").route(web::get().to(http_request)))
-            // .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
+                .default_service(web::get().to(http_request))
         })
-        .max_connections(1)
+        .max_connections(10)
         .bind(bind)?
         // N.B. This is an arbitrary timeout for now.
         .shutdown_timeout(SHUTDOWN_WAIT_TIME)
@@ -403,7 +409,7 @@ pub fn webserver(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
-    serve_dir: &Path,
+    _serve_dir: &Path,
     inform_parent: Sender<Server>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     // Verify that we cannot bind to a port that we forward to.
@@ -424,7 +430,6 @@ pub fn webserver(
     std::thread::Builder::new()
         .name("Frontend".into())
         .spawn({
-            let serve_dir = serve_dir.to_path_buf();
             move || {
                 let _sys = System::new("dfx-frontend-http-server");
                 let server = run_webserver(
@@ -433,7 +438,7 @@ pub fn webserver(
                     network_descriptor,
                     bind,
                     clients_api_uri,
-                    serve_dir,
+                    PathBuf::new(),
                 )
                 .unwrap();
 
