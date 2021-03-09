@@ -23,6 +23,9 @@ let
       ".*Cargo\.lock$"
       "^.cargo/config$"
     ];
+    nativeBuildInputs = [
+      pkgs.libiconv
+    ];
     cargoTestCommands = _: [
       ''cargo $cargo_options test $cargo_test_options --workspace''
     ];
@@ -77,6 +80,7 @@ let
             cc
             pkgs.gettext
             pkgs.coreutils
+            pkgs.libiconv
           ] ++ lib.optional pkgs.stdenv.isDarwin pkgs.stdenv.cc.bintools;
           inputsFrom = [ ws.shell ];
           shellHook = ''
