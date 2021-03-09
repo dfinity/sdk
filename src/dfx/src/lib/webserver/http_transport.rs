@@ -78,7 +78,7 @@ impl ReqwestHttpReplicaV1Transport {
         let (status, headers, body) = self.request(http_request.try_clone().unwrap()).await?;
 
         if status == reqwest::StatusCode::UNAUTHORIZED {
-            return Err(AgentError::CannotUseAuthenticationOnNonSecureUrl());
+            Err(AgentError::CannotUseAuthenticationOnNonSecureUrl())
         } else if status.is_client_error() || status.is_server_error() {
             Err(AgentError::HttpError(HttpErrorPayload {
                 status: status.into(),
