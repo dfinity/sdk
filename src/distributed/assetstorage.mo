@@ -64,7 +64,7 @@ shared ({caller = creator}) actor class () {
         let content = getContent(request.url);
 
         switch (content) {
-            case null {{ status_code = 404; headers = []; body = "File not found: " # request.url }};
+            case null {{ status_code = 404; headers = []; body = blob ("File not found: " # request.url) }};
             case (?c) {{ status_code = 200; headers = []; body = c }};
         }
     };
