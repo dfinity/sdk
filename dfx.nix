@@ -30,9 +30,6 @@ let
       preConfigure = (attrs.preConfigure or "") + ''
         unset SDKROOT
       '';
-      nativeBuildInputs = (
-        attrs.nativeBuildInputs or []
-      ) ++ lib.optional pkgs.stdenv.isDarwin pkgs.darwin.libiconv;
     };
   };
 
