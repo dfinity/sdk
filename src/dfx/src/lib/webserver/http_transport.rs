@@ -75,18 +75,11 @@ impl ReqwestHttpReplicaV1Transport {
 
         *http_request.body_mut() = body.map(reqwest::Body::from);
 
-        loop {
-            let (status, _, _) = self.request(http_request.try_clone().unwrap()).await?;
-            // If the server returned UNAUTHORIZED, and it is the first time we replay the call,
-            // check if we can get the username/password for the HTTP Auth.
-            if status == reqwest::StatusCode::UNAUTHORIZED {
-                return Err(AgentError::CannotUseAuthenticationOnNonSecureUrl());
-            } else {
-                break;
-            }
-        }
+        let (status, headers, body) = self.request(http_request.try_clone().unwrap()).await?;
 
-        if status.is_client_error() || status.is_server_error() {
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            return Err(AgentError::CannotUseAuthenticationOnNonSecureUrl());
+        } else if status.is_client_error() || status.is_server_error() {
             Err(AgentError::HttpError(HttpErrorPayload {
                 status: status.into(),
                 content_type: headers
