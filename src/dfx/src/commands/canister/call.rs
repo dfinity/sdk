@@ -12,7 +12,6 @@ use anyhow::{anyhow, bail, Context};
 use candid::{CandidType, Deserialize};
 use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
-use ic_utils::call::SyncCall;
 use ic_utils::canister::{Argument, Canister};
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::Wallet;
@@ -84,6 +83,16 @@ fn get_local_cid_and_candid_path(
         canister_info.get_canister_id()?,
         canister_info.get_output_idl_path(),
     ))
+}
+
+async fn do_wallet_call(wallet: &Canister<'_, Wallet>, args: &CallIn) -> DfxResult<Vec<u8>> {
+    let (result,): (CallResult,) = wallet
+        .update_("wallet_call")
+        .with_arg(args)
+        .build()
+        .call_and_wait(waiter_with_exponential_backoff())
+        .await?;
+    Ok(result.r#return)
 }
 
 async fn request_id_via_wallet_call(
@@ -183,19 +192,16 @@ pub async fn exec(
             }
             CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
                 let wallet = wallet_for_call_sender(env, call_sender, some_id).await?;
-
-                let (result,): (CallResult,) = wallet
-                    .query_("wallet_call")
-                    .with_arg(CallIn {
+                do_wallet_call(
+                    &wallet,
+                    &CallIn {
                         canister: canister_id,
                         method_name: method_name.to_string(),
                         args: arg_value,
                         cycles,
-                    })
-                    .build()
-                    .call()
-                    .await?;
-                result.r#return
+                    },
+                )
+                .await?
             }
         };
         print_idl_blob(&blob, output_type, &method_type)
@@ -238,19 +244,16 @@ pub async fn exec(
             }
             CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
                 let wallet = wallet_for_call_sender(env, call_sender, some_id).await?;
-
-                let (result,): (CallResult,) = wallet
-                    .update_("wallet_call")
-                    .with_arg(CallIn {
+                do_wallet_call(
+                    &wallet,
+                    &CallIn {
                         canister: canister_id,
                         method_name: method_name.to_string(),
                         args: arg_value,
                         cycles,
-                    })
-                    .build()
-                    .call_and_wait(waiter_with_exponential_backoff())
-                    .await?;
-                result.r#return
+                    },
+                )
+                .await?
             }
         };
 
