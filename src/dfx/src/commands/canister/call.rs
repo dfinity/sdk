@@ -10,9 +10,11 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_i
 
 use anyhow::{anyhow, bail, Context};
 use candid::{CandidType, Deserialize};
-use candid::de::ArgumentDecoder;
 use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
+use ic_utils::canister::{Argument, Canister};
+use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
+use ic_utils::interfaces::Wallet;
 use std::option::Option;
 use std::path::PathBuf;
 
@@ -69,10 +71,34 @@ fn get_local_cid_and_candid_path(
     ))
 }
 
-pub async fn exec<O> (env: &dyn Environment, opts: CanisterCallOpts, call_sender: &CallSender) -> DfxResult
+async fn request_id_via_wallet_call(
+    wallet: &Canister<'_, Wallet>,
+    canister: &Canister<'_>,
+    method_name: &str,
+    args: Argument,
+    cycles: u64,
+) -> DfxResult<ic_agent::RequestId>
 where
-    O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
+    #[derive(Deserialize)]
+    struct Out {
+        #[allow(dead_code)]
+        r#return: CallResult,
+    }
+
+    let call_forwarder: CallForwarder<'_, '_, (Out,)> =
+        wallet.call(canister, method_name, args, cycles);
+    call_forwarder
+        .call()
+        .await
+        .map_err(|err| anyhow!("Agent error {}", err))
+}
+
+pub async fn exec(
+    env: &dyn Environment,
+    opts: CanisterCallOpts,
+    call_sender: &CallSender,
+) -> DfxResult {
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
@@ -149,21 +175,45 @@ where
         print_idl_blob(&blob, output_type, &method_type)
             .context("Invalid data: Invalid IDL blob.")?;
     } else if opts.r#async {
-        let request_id = agent
-            .update(&canister_id, method_name)
-            .with_arg(&arg_value)
-            .call()
-            .await?;
+        let request_id = match call_sender {
+            CallSender::SelectedId => {
+                agent
+                    .update(&canister_id, method_name)
+                    .with_arg(&arg_value)
+                    .call()
+                    .await?
+            }
+            CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
+                let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
+                    let id = some_id
+                        .as_ref()
+                        .expect("Wallet canister id should have been provided here.");
+                    Identity::build_wallet_canister(id.clone(), env)?
+                } else {
+                    // CallSender::SelectedIdWallet(some_id)
+                    let identity_name = env.get_selected_identity().expect("No selected identity.");
+                    let network = env
+                        .get_network_descriptor()
+                        .expect("No network descriptor.");
+                    Identity::get_wallet_canister(env, network, &identity_name).await?
+                };
+                // This is overkill, wallet.call should accept a Principal parameter
+                // Why do we need to construct a Canister?
+                let canister = Canister::builder()
+                    .with_agent(agent)
+                    .with_canister_id(canister_id)
+                    .build()
+                    .unwrap();
+                //
+                let mut args = Argument::default();
+                args.set_raw_arg(arg_value);
+
+                request_id_via_wallet_call(&wallet, &canister, method_name, args, 0_u64).await?
+            }
+        };
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
     } else {
-        // let blob = agent
-        //     .update(&canister_id, method_name)
-        //     .with_arg(&arg_value)
-        //     .expire_after(timeout)
-        //     .call_and_wait(waiter_with_exponential_backoff())
-        //     .await?;
-
         let blob = match call_sender {
             CallSender::SelectedId => {
                 agent
@@ -187,7 +237,7 @@ where
                         .expect("No network descriptor.");
                     Identity::get_wallet_canister(env, network, &identity_name).await?
                 };
-                let blob: O = wallet
+                let (blob,): (Vec<u8>,) = wallet
                     .update_("wallet_call")
                     .with_arg(In {
                         canister: canister_id,
