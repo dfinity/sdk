@@ -5,6 +5,8 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
 
+mod http_transport;
+
 use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
@@ -73,6 +75,7 @@ async fn candid(
     let network_descriptor = &data.network_descriptor;
     let store =
         CanisterIdStore::for_network(&network_descriptor).map_err(ErrorInternalServerError)?;
+
     let candid_path = store
         .get_name(&id)
         .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
@@ -242,19 +245,17 @@ fn resolve_canister_id(request: &HttpRequest) -> Option<Principal> {
 async fn http_request(
     req: HttpRequest,
     mut payload: web::Payload,
-    http_request_data: web::Data<HttpRequestData>,
+    http_request_data: web::Data<Arc<HttpRequestData>>,
 ) -> Result<HttpResponse, Error> {
     let logger = http_request_data.logger.clone();
+    let transport = http_transport::ActixWebClientHttpTransport::create(format!(
+        "http://{}",
+        http_request_data.bind.ip().to_string()
+    ))
+    .map_err(|err| actix_web::error::InternalError::new(err, StatusCode::INTERNAL_SERVER_ERROR))?;
 
-    eprintln!("---: {:#?}", req);
     // We need to convert errors into 500s, which are regular Ok(Response).
-    let agent = match Agent::builder()
-        .with_url(format!(
-            "http://{}",
-            http_request_data.bind.ip().to_string()
-        ))
-        .build()
-    {
+    let agent = match Agent::builder().with_transport(transport).build() {
         Ok(agent) => agent,
         Err(err) => {
             return Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
@@ -329,12 +330,10 @@ pub fn run_webserver(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     providers: Vec<url::Url>,
-    serve_dir: PathBuf,
+    _serve_dir: PathBuf,
 ) -> DfxResult<Server> {
-    info!(logger, "binding to: {:?}", bind);
-
     const SHUTDOWN_WAIT_TIME: u64 = 60;
-
+    info!(logger, "binding to: {:?}", bind);
     info!(
         logger,
         "replica(s): {}",
