@@ -5,7 +5,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use candid::Encode;
 
 use ic_agent::Agent;
-use std::path::Path;
+use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::WalkDir;
 
@@ -22,9 +22,14 @@ pub async fn post_install_store_assets(
         let entry = entry?;
         if entry.file_type().is_file() {
             let source = entry.path();
-            let relative: &Path = source
-                .strip_prefix(output_assets_path)
-                .expect("cannot strip prefix");
+            let relative = PathBuf::from("/")
+                .join(
+                    source
+                        .strip_prefix(output_assets_path)
+                        .expect("cannot strip prefix"),
+                )
+                .canonicalize()
+                .expect("Cannot canonicalize a path");
             let content = &std::fs::read(&source)?;
             let path = relative.to_string_lossy().to_string();
             let blob = candid::Encode!(&path, &content)?;
