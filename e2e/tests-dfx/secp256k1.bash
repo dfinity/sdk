@@ -7,7 +7,7 @@ setup() {
     x=$(mktemp -d -t dfx-identity-home-XXXXXXXX)
     export TEMPORARY_HOME="$x"
     export HOME="$TEMPORARY_HOME"
-    cd $HOME
+    cd $HOME || exit
 }
 
 teardown() {
