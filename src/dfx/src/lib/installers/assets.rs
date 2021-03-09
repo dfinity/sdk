@@ -194,7 +194,7 @@ async fn make_chunked_asset(
         println!(
             "  {} {}/{} ({} bytes)",
             &asset_location.relative.to_string_lossy(),
-            i+1,
+            i + 1,
             num_chunks,
             data_chunk.len()
         );
