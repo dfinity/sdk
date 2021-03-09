@@ -43,7 +43,11 @@ pub struct StartOpts {
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let agent = Agent::builder().with_url(frontend_url).build()?;
+    let agent = Agent::builder()
+        .with_transport(
+            ic_agent::agent::http_transport::ReqwestHttpReplicaV1Transport::create(frontend_url)?,
+        )
+        .build()?;
 
     // wait for frontend to come up
     let mut waiter = Delay::builder()
