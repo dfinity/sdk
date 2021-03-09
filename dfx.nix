@@ -77,8 +77,7 @@ let
             cc
             pkgs.gettext
             pkgs.coreutils
-          ] ++ lib.optional pkgs.stdenv.isDarwin pkgs.stdenv.cc.bintools
-            ++ ( inherit (darwin) libiconv );
+          ] ++ lib.optionals pkgs.stdenv.isDarwin [ pkgs.stdenv.cc.bintools pkgs.darwin.libiconv ];
           inputsFrom = [ ws.shell ];
           shellHook = ''
             # Set CARGO_HOME to minimize interaction with any environment outside nix
