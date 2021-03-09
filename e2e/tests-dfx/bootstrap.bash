@@ -34,6 +34,8 @@ teardown() {
 }
 
 @test "supports http requests" {
+    cd ..  # Undo the `dfx_new hello` step above.
+    dfx_new
     install_asset assetscanister
 
     dfx_start
