@@ -70,9 +70,22 @@ shared ({caller = creator}) actor class () {
     };
 
     private func getContent(uri: Text): ?Blob {
-        let splitted = Text.split(uri, #char '?');
-        let array = Iter.toArray<Text>(splitted);
-        let path = array[0];
+        var path = "";
+        var first = true;
+        label l for (c : Char in uri.chars()) {
+            if (first) {
+                first := true;
+                // Remove the `/` if it's the first character.
+                if (c != '/') {
+                    path := path # Text.fromChar(c);
+                }
+            } else if (c == '?') {
+                break l;
+            } else {
+                path := path # Text.fromChar(c);
+            };
+        };
+
         switch (db.get(path)) {
             case null db.get("/index.html");
             case (?contents) ?contents;
