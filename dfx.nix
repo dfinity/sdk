@@ -23,9 +23,6 @@ let
       ".*Cargo\.lock$"
       "^.cargo/config$"
     ];
-    nativeBuildInputs = [
-      pkgs.libiconv
-    ];
     cargoTestCommands = _: [
       ''cargo $cargo_options test $cargo_test_options --workspace''
     ];
