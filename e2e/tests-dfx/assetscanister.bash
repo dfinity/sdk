@@ -57,6 +57,7 @@ teardown() {
     ID=$(dfx canister id e2e_project_assets)
     PORT=$(cat .dfx/webserver-port)
     assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
+    # shellcheck disable=SC2154
     assert_eq "cherries
 it's cherry season
 CHERRIES" "$stdout"
