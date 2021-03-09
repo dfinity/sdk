@@ -33,18 +33,14 @@ teardown() {
     assert_match "Cannot forward API calls to the same bootstrap server"
 }
 
-@test "supports http requests" {
-    cd ..  # Undo the `dfx_new hello` step above.
-    dfx_new
-    install_asset assetscanister
-
+@test "bootstrap supports http requests" {
     dfx_start
     dfx canister create --all
     dfx build
-    dfx canister install e2e_project_assets
+    dfx canister install hello_assets
 
-    ID=$(dfx canister id e2e_project_assets)
+    ID=$(dfx canister id hello_assets)
     PORT=$(cat .dfx/webserver-port)
-    assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
-    assert_eq "cherries\0ait'\''s cherry season\0aCHERRIES"
+    assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+    assert_eq "This is a sample asset!"
 }
