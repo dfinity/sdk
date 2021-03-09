@@ -42,5 +42,6 @@ teardown() {
     ID=$(dfx canister id hello_assets)
     PORT=$(cat .dfx/webserver-port)
     assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
-    assert_eq "This is a sample asset!"
+    # shellcheck disable=SC2154
+    assert_eq "This is a sample asset!" "$stdout"
 }
