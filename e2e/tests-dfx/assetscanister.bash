@@ -45,14 +45,3 @@ teardown() {
 
     HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '("index.js", vec { 1; 2; 3; })'
 }
-
-@test "supports http requests" {
-    install_asset assetscanister
-
-    dfx_start
-    dfx deploy
-
-    ID=$(dfx canister id e2e_project_assets)
-    assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
-    assert_eq "cherries\0ait'\''s cherry season\0aCHERRIES"
-}

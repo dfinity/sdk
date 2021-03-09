@@ -33,11 +33,13 @@ teardown() {
     assert_match "Cannot forward API calls to the same bootstrap server"
 }
 
-@test "uses local bootstrap if installed" {
+@test "supports http requests" {
     install_asset assetscanister
 
     dfx_start
-    dfx deploy
+    dfx canister create --all
+    dfx build
+    dfx canister install hello
 
     ID=$(dfx canister id e2e_project_assets)
     PORT=$(cat .dfx/webserver-port)
