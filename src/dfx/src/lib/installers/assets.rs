@@ -28,6 +28,7 @@ struct CreateBatchResponse {
 #[derive(CandidType, Clone, Debug, Default, Serialize, Deserialize)]
 struct CreateChunkRequest<'a> {
     batch_id: u128,
+    #[serde(with = "serde_bytes")]
     content: &'a [u8],
 }
 
