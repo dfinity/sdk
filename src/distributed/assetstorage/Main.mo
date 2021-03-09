@@ -350,4 +350,38 @@ shared ({caller = creator}) actor class () {
 
     #ok(())
   };
+
+  public query func http_request(request: T.HttpRequest): async T.HttpResponse {
+    let path = getPath(request.url);
+
+    let assetEncoding: ?A.AssetEncoding = switch (getAssetEncoding(path)) {
+      case null getAssetEncoding("index.js");
+      case (?found) ?found;
+    };
+
+    switch (assetEncoding) {
+      case null {{ status_code = 404; headers = []; body = "" }};
+      case (?c) {
+        if (c.content.size() > 1)
+          throw Error.reject("asset too large");
+
+        { status_code = 200; headers = []; body = c.content[0] }
+      }
+    }
+  };
+
+  private func getPath(uri: Text): Text {
+    let splitted = Text.split(uri, #char '?');
+    let array = Iter.toArray<Text>(splitted);
+    let path = Text.trimStart(array[0], #char '/');
+    path
+  };
+
+  private func getAssetEncoding(path: Text): ?A.AssetEncoding {
+    switch (assets.get(path)) {
+      case null null;
+      case (?asset) asset.getEncoding("identity");
+    }
+  };
+
 };
