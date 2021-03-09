@@ -32,7 +32,7 @@ let
       '';
       nativeBuildInputs = (
         attrs.nativeBuildInputs or []
-      ) ++ lib.optional pkgs.stdenv.isDarwin self.pkgsStatic.libiconv;
+      ) ++ lib.optional pkgs.stdenv.isDarwin pkgs.pkgsStatic.libiconv;
     };
   };
 
