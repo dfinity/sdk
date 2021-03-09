@@ -1,3 +1,4 @@
+use crate::commands::command_utils::CallSender;
 use crate::config::dfinity::ConfigInterface;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -81,7 +82,7 @@ fn get_memory_allocation(
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterInstallOpts,
-    call_as_user: bool,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let agent = env
@@ -125,7 +126,7 @@ pub async fn exec(
             mode,
             memory_allocation,
             timeout,
-            call_as_user,
+            call_sender,
         )
         .await
     } else if opts.all {
@@ -157,7 +158,7 @@ pub async fn exec(
                     mode,
                     memory_allocation,
                     timeout,
-                    call_as_user,
+                    call_sender,
                 )
                 .await?;
             }

@@ -1,3 +1,4 @@
+use crate::commands::command_utils::CallSender;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
@@ -17,7 +18,7 @@ pub async fn create_canister(
     canister_name: &str,
     timeout: Duration,
     with_cycles: Option<&str>,
-    call_as_user: bool,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
@@ -55,47 +56,66 @@ pub async fn create_canister(
                 .expect("No selected identity.")
                 .to_string();
 
-            let mgr = ManagementCanister::create(
-                env.get_agent()
-                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-            );
-            let cid = if call_as_user {
-                if network.is_ic {
-                    // Provisional commands are whitelisted on production
-                    mgr.create_canister()
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await?
-                        .0
-                } else {
-                    // amount has been validated by cycle_amount_validator
-                    let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
-                    mgr.provisional_create_canister_with_cycles(cycles)
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await?
-                        .0
+            let agent = env
+                .get_agent()
+                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+            let mgr = ManagementCanister::create(agent);
+            let cid = match call_sender {
+                CallSender::SelectedId => {
+                    if network.is_ic {
+                        // Provisional commands are whitelisted on production
+                        mgr.create_canister()
+                            .call_and_wait(waiter_with_timeout(timeout))
+                            .await?
+                            .0
+                    } else {
+                        // amount has been validated by cycle_amount_validator
+                        let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
+                        mgr.provisional_create_canister_with_cycles(cycles)
+                            .call_and_wait(waiter_with_timeout(timeout))
+                            .await?
+                            .0
+                    }
                 }
-            } else {
-                info!(log, "Creating the canister using the wallet canister...");
-                let wallet =
-                    Identity::get_or_create_wallet_canister(env, network, &identity_name, true)
-                        .await?;
-                if network.is_ic {
-                    // Provisional commands are whitelisted on production
-                    let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) = wallet
-                        .call_forward(mgr.update_("create_canister").build(), 0)?
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await?;
-                    create_result.canister_id
-                } else {
-                    // amount has been validated by cycle_amount_validator
-                    let cycles = with_cycles
-                        .map_or(1000000000001_u64, |amount| amount.parse::<u64>().unwrap());
-                    wallet
-                        .wallet_create_canister(cycles, None)
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await?
-                        .0
-                        .canister_id
+                CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
+                    let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
+                        let id = some_id
+                            .as_ref()
+                            .expect("Wallet canister id should have been provided here.");
+                        Identity::build_wallet_canister(id.clone(), env)?
+                    } else {
+                        // CallSender::SelectedIdWallet(some_id)
+                        if let Some(id) = some_id {
+                            Identity::build_wallet_canister(id.clone(), env)?
+                        } else {
+                            Identity::get_or_create_wallet_canister(
+                                env,
+                                network,
+                                &identity_name,
+                                true,
+                            )
+                            .await?
+                        }
+                    };
+                    if network.is_ic {
+                        // Provisional commands are whitelisted on production
+                        let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) =
+                            wallet
+                                .call_forward(mgr.update_("create_canister").build(), 0)?
+                                .call_and_wait(waiter_with_timeout(timeout))
+                                .await?;
+                        create_result.canister_id
+                    } else {
+                        // amount has been validated by cycle_amount_validator
+                        let cycles = with_cycles
+                            .map_or(1000000000001_u64, |amount| amount.parse::<u64>().unwrap());
+                        wallet
+                            .wallet_create_canister(cycles, None)
+                            .call_and_wait(waiter_with_timeout(timeout))
+                            .await?
+                            .0
+                            .canister_id
+                    }
                 }
             };
 

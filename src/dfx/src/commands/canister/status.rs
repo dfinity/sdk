@@ -1,3 +1,4 @@
+use crate::commands::command_utils::CallSender;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -26,13 +27,13 @@ async fn canister_status(
     env: &dyn Environment,
     canister_name: &str,
     timeout: Duration,
-    call_as_user: bool,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id = canister_id_store.get(canister_name)?;
 
-    let status = canister::get_canister_status(env, canister_id, timeout, call_as_user).await?;
+    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
 
     info!(log, "Canister {}'s status is {}.", canister_name, status);
     Ok(())
@@ -41,7 +42,7 @@ async fn canister_status(
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterStatusOpts,
-    call_as_user: bool,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
 
@@ -49,11 +50,11 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
-        canister_status(env, &canister_name, timeout, call_as_user).await
+        canister_status(env, &canister_name, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                canister_status(env, &canister_name, timeout, call_as_user).await?;
+                canister_status(env, &canister_name, timeout, call_sender).await?;
             }
         }
         Ok(())

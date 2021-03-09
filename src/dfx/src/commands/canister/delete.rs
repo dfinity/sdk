@@ -1,3 +1,4 @@
+use crate::commands::command_utils::CallSender;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -26,7 +27,7 @@ async fn delete_canister(
     env: &dyn Environment,
     canister_name: &str,
     timeout: Duration,
-    call_as_user: bool,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
@@ -38,7 +39,7 @@ async fn delete_canister(
         canister_id.to_text(),
     );
 
-    canister::delete_canister(env, canister_id, timeout, call_as_user).await?;
+    canister::delete_canister(env, canister_id, timeout, &call_sender).await?;
 
     canister_id_store.remove(canister_name)?;
 
@@ -48,7 +49,7 @@ async fn delete_canister(
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterDeleteOpts,
-    call_as_user: bool,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
@@ -56,11 +57,11 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
-        delete_canister(env, canister_name, timeout, call_as_user).await
+        delete_canister(env, canister_name, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                delete_canister(env, canister_name, timeout, call_as_user).await?;
+                delete_canister(env, canister_name, timeout, call_sender).await?;
             }
         }
         Ok(())

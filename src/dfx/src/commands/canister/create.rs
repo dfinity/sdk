@@ -1,3 +1,4 @@
+use crate::commands::command_utils::CallSender;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::create_canister;
@@ -29,7 +30,7 @@ pub struct CanisterCreateOpts {
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCreateOpts,
-    call_as_user: bool,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
@@ -42,14 +43,14 @@ pub async fn exec(
             canister_name.as_str(),
             timeout,
             with_cycles,
-            call_as_user,
+            call_sender,
         )
         .await
     } else if opts.all {
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                create_canister(env, canister_name, timeout, with_cycles, call_as_user).await?;
+                create_canister(env, canister_name, timeout, with_cycles, call_sender).await?;
             }
         }
         Ok(())

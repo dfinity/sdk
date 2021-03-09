@@ -1,3 +1,4 @@
+use crate::commands::command_utils::CallSender;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -25,7 +26,7 @@ pub async fn install_canister(
     mode: InstallMode,
     memory_allocation: Option<MemoryAllocation>,
     timeout: Duration,
-    call_as_user: bool,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
@@ -50,77 +51,97 @@ pub async fn install_canister(
         .get_network_descriptor()
         .expect("No network descriptor.");
 
-    if call_as_user {
-        let install_builder = mgr
-            .install_code(&canister_id, &wasm_module)
-            .with_raw_arg(args.to_vec())
-            .with_mode(mode);
-        let install_builder = if let Some(ca) = compute_allocation {
-            install_builder.with_compute_allocation(ca)
-        } else {
+    match call_sender {
+        CallSender::SelectedId => {
+            let install_builder = mgr
+                .install_code(&canister_id, &wasm_module)
+                .with_raw_arg(args.to_vec())
+                .with_mode(mode);
+            let install_builder = if let Some(ca) = compute_allocation {
+                install_builder.with_compute_allocation(ca)
+            } else {
+                install_builder
+            };
+            let install_builder = if let Some(ma) = memory_allocation {
+                install_builder.with_memory_allocation(ma)
+            } else {
+                install_builder
+            };
             install_builder
-        };
-        let install_builder = if let Some(ma) = memory_allocation {
-            install_builder.with_memory_allocation(ma)
-        } else {
-            install_builder
-        };
-        install_builder
-            .build()?
-            .call_and_wait(waiter_with_timeout(timeout))
-            .await?;
-    } else {
-        #[derive(candid::CandidType)]
-        struct CanisterInstall {
-            mode: InstallMode,
-            canister_id: Principal,
-            wasm_module: Vec<u8>,
-            arg: Vec<u8>,
-            compute_allocation: Option<candid::Nat>,
-            memory_allocation: Option<candid::Nat>,
-        }
-
-        let install_args = CanisterInstall {
-            mode,
-            canister_id: canister_id.clone(),
-            wasm_module,
-            arg: args.to_vec(),
-            compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
-            memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
-        };
-        let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
-
-        wallet
-            .call_forward(
-                mgr.update_("install_code").with_arg(install_args).build(),
-                0,
-            )?
-            .call_and_wait(waiter_with_timeout(timeout))
-            .await?;
-    }
-
-    if canister_info.get_type() == "assets" {
-        if !call_as_user {
-            let wallet = DfxIdentity::get_wallet_canister(env, network, &identity_name).await?;
-            let self_id = env
-                .get_selected_identity_principal()
-                .expect("Selected identity not instantiated.");
-            info!(
-                log,
-                "Authorizing our identity ({}) to the asset canister...", identity_name
-            );
-            let canister = Canister::builder()
-                .with_agent(agent)
-                .with_canister_id(canister_id.clone())
-                .build()
-                .unwrap();
-
-            // Before storing assets, make sure the DFX principal is in there first.
-            wallet
-                .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
+                .build()?
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?;
         }
+        CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
+            let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
+                let id = some_id
+                    .as_ref()
+                    .expect("Wallet canister id should have been provided here.");
+                DfxIdentity::build_wallet_canister(id.clone(), env)?
+            } else {
+                // CallSender::SelectedIdWallet(some_id)
+                DfxIdentity::get_wallet_canister(env, network, &identity_name).await?
+            };
+            #[derive(candid::CandidType)]
+            struct CanisterInstall {
+                mode: InstallMode,
+                canister_id: Principal,
+                wasm_module: Vec<u8>,
+                arg: Vec<u8>,
+                compute_allocation: Option<candid::Nat>,
+                memory_allocation: Option<candid::Nat>,
+            }
+
+            let install_args = CanisterInstall {
+                mode,
+                canister_id: canister_id.clone(),
+                wasm_module,
+                arg: args.to_vec(),
+                compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
+                memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
+            };
+            wallet
+                .call_forward(
+                    mgr.update_("install_code").with_arg(install_args).build(),
+                    0,
+                )?
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
+        }
+    }
+
+    if canister_info.get_type() == "assets" {
+        match call_sender {
+            CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
+                let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
+                    let id = some_id
+                        .as_ref()
+                        .expect("Wallet canister id should have been provided here.");
+                    DfxIdentity::build_wallet_canister(id.clone(), env)?
+                } else {
+                    // CallSender::SelectedIdWallet(some_id)
+                    DfxIdentity::get_wallet_canister(env, network, &identity_name).await?
+                };
+                info!(
+                    log,
+                    "Authorizing our identity ({}) to the asset canister...", identity_name
+                );
+                let canister = Canister::builder()
+                    .with_agent(agent)
+                    .with_canister_id(canister_id.clone())
+                    .build()
+                    .unwrap();
+                let self_id = env
+                    .get_selected_identity_principal()
+                    .expect("Selected identity not instantiated.");
+                // Before storing assets, make sure the DFX principal is in there first.
+                wallet
+                    .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?;
+            }
+            _ => (),
+        };
 
         info!(log, "Uploading assets to asset canister...");
         post_install_store_assets(&canister_info, &agent, timeout).await?;

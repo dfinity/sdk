@@ -395,7 +395,7 @@ impl Identity {
         }
     }
 
-    fn wallet_canister_id(
+    pub fn wallet_canister_id(
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
@@ -435,7 +435,7 @@ impl Identity {
             .clone())
     }
 
-    fn build_wallet_canister(
+    pub fn build_wallet_canister(
         id: Principal,
         env: &dyn Environment,
     ) -> DfxResult<Canister<'_, Wallet>> {
