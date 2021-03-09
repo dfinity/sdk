@@ -79,7 +79,7 @@ impl std::fmt::Display for Status<'_> {
     }
 }
 
-pub fn create_file(log: &Logger, path: &Path, content: &str, dry_run: bool) -> DfxResult {
+pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> DfxResult {
     if !dry_run {
         if let Some(p) = path.parent() {
             std::fs::create_dir_all(p)?;
@@ -146,14 +146,21 @@ fn write_files_from_entries<R: Sized + Read>(
             continue;
         }
 
-        let mut s = String::new();
-        file.read_to_string(&mut s).map_err(DfxError::from)?;
+        let mut v = Vec::new();
+        file.read_to_end(&mut v).map_err(DfxError::from)?;
 
-        // Perform replacements.
-        variables.iter().for_each(|(name, value)| {
-            let pattern = "{".to_owned() + name + "}";
-            s = s.replace(pattern.as_str(), value);
-        });
+        let v = match core::str::from_utf8(&v) {
+            Err(_) => v,
+            Ok(s) => {
+                let mut s = String::from(s);
+                // Perform replacements.
+                variables.iter().for_each(|(name, value)| {
+                    let pattern = "{".to_owned() + name + "}";
+                    s = s.replace(pattern.as_str(), value);
+                });
+                s.as_bytes().to_vec()
+            }
+        };
 
         // Perform path replacements.
         let mut p = root
@@ -168,7 +175,7 @@ fn write_files_from_entries<R: Sized + Read>(
         });
 
         let p = PathBuf::from(p);
-        create_file(log, p.as_path(), s.as_str(), dry_run)?;
+        create_file(log, p.as_path(), &v, dry_run)?;
     }
 
     Ok(())
