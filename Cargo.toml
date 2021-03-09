@@ -6,23 +6,23 @@ members = [
 [patch.crates-io.ic-agent]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
+branch = "enzoh/secp256k1"
+rev = "9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
+branch = "enzoh/secp256k1"
+rev = "9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
+branch = "enzoh/secp256k1"
+rev = "9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
 
 [patch.crates-io.ic-utils]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
+branch = "enzoh/secp256k1"
+rev = "9bbe67ecf889aff43d84c065dc1ddafd713f96eb"
