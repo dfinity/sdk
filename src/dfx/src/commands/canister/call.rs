@@ -1,8 +1,7 @@
-use crate::commands::command_utils::CallSender;
+use crate::commands::command_utils::{wallet_for_call_sender, CallSender};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
+use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
@@ -13,6 +12,7 @@ use anyhow::{anyhow, bail, Context};
 use candid::{CandidType, Deserialize};
 use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
+use ic_utils::call::SyncCall;
 use ic_utils::canister::{Argument, Canister};
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::Wallet;
@@ -62,6 +62,15 @@ pub struct CanisterCallOpts {
     /// Deducted from the wallet.
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
+}
+
+#[derive(CandidType, Deserialize)]
+struct CallIn {
+    canister: CanisterId,
+    method_name: String,
+    #[serde(with = "serde_bytes")]
+    args: Vec<u8>,
+    cycles: u64,
 }
 
 fn get_local_cid_and_candid_path(
@@ -157,17 +166,38 @@ pub async fn exec(
 
     let timeout = expiry_duration();
 
-    let identity_name = env.get_selected_identity().expect("No selected identity.");
-    let network = env
-        .get_network_descriptor()
-        .expect("No network descriptor.");
+    // amount has been validated by cycle_amount_validator
+    let cycles = opts
+        .with_cycles
+        .as_deref()
+        .map_or(0_u64, |amount| amount.parse::<u64>().unwrap());
 
     if is_query {
-        let blob = agent
-            .query(&canister_id, method_name)
-            .with_arg(&arg_value)
-            .call()
-            .await?;
+        let blob = match call_sender {
+            CallSender::SelectedId => {
+                agent
+                    .query(&canister_id, method_name)
+                    .with_arg(&arg_value)
+                    .call()
+                    .await?
+            }
+            CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
+                let wallet = wallet_for_call_sender(env, call_sender, some_id).await?;
+
+                let (result,): (CallResult,) = wallet
+                    .query_("wallet_call")
+                    .with_arg(CallIn {
+                        canister: canister_id,
+                        method_name: method_name.to_string(),
+                        args: arg_value,
+                        cycles,
+                    })
+                    .build()
+                    .call()
+                    .await?;
+                result.r#return
+            }
+        };
         print_idl_blob(&blob, output_type, &method_type)
             .context("Invalid data: Invalid IDL blob.")?;
     } else if opts.r#async {
@@ -180,26 +210,18 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-                let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
-                    let id = some_id
-                        .as_ref()
-                        .expect("Wallet canister id should have been provided here.");
-                    Identity::build_wallet_canister(id.clone(), env)?
-                } else {
-                    // CallSender::SelectedIdWallet(some_id)
-                    Identity::get_wallet_canister(env, network, &identity_name).await?
-                };
+                let wallet = wallet_for_call_sender(env, call_sender, some_id).await?;
                 // This is overkill, wallet.call should accept a Principal parameter
                 // Why do we need to construct a Canister?
                 let canister = Canister::builder()
                     .with_agent(agent)
                     .with_canister_id(canister_id)
                     .build()
-                    .unwrap();
+                    .map_err(DfxError::from)?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
-                request_id_via_wallet_call(&wallet, &canister, method_name, args, 0_u64).await?
+                request_id_via_wallet_call(&wallet, &canister, method_name, args, cycles).await?
             }
         };
         eprint!("Request ID: ");
@@ -215,34 +237,11 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-                let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
-                    let id = some_id
-                        .as_ref()
-                        .expect("Wallet canister id should have been provided here.");
-                    Identity::build_wallet_canister(id.clone(), env)?
-                } else {
-                    // CallSender::SelectedIdWallet(some_id)
-                    Identity::get_wallet_canister(env, network, &identity_name).await?
-                };
-
-                // amount has been validated by cycle_amount_validator
-                let cycles = opts
-                    .with_cycles
-                    .as_deref()
-                    .map_or(0_u64, |amount| amount.parse::<u64>().unwrap());
-
-                #[derive(CandidType, Deserialize)]
-                struct In {
-                    canister: CanisterId,
-                    method_name: String,
-                    #[serde(with = "serde_bytes")]
-                    args: Vec<u8>,
-                    cycles: u64,
-                }
+                let wallet = wallet_for_call_sender(env, call_sender, some_id).await?;
 
                 let (result,): (CallResult,) = wallet
                     .update_("wallet_call")
-                    .with_arg(In {
+                    .with_arg(CallIn {
                         canister: canister_id,
                         method_name: method_name.to_string(),
                         args: arg_value,
