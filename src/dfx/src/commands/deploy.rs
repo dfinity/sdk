@@ -47,7 +47,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let argument_type = opts.argument_type.as_deref();
     let with_cycles = opts.with_cycles.as_deref();
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(

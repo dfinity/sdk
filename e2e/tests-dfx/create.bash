@@ -78,5 +78,5 @@ teardown() {
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://not-real.nowhere.test."]' dfx.json)" >dfx.json
     assert_command_fail dfx canister --network actuallylocal create --all
-    assert_match "Could not reach the server"
+    assert_match "dns error: failed to lookup address information"
 }

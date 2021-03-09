@@ -1,5 +1,9 @@
 = 0.6.25
 
+== DFX
+
+- feat: dfx now provides CANISTER_ID_<canister_name> environment variables for all canisters to "npm build" when building the frontend.
+
 == Agents
 
 === Rust Agent

@@ -33,12 +33,15 @@ teardown() {
     assert_match "Cannot forward API calls to the same bootstrap server"
 }
 
-@test "uses local bootstrap if installed" {
-    mkdir -p node_modules/@dfinity/bootstrap/dist
-    echo "Hello World" > node_modules/@dfinity/bootstrap/dist/index.html
-
+@test "bootstrap supports http requests" {
     dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install hello_assets
+
+    ID=$(dfx canister id hello_assets)
     PORT=$(cat .dfx/webserver-port)
-    assert_command curl http://localhost:"$PORT"/
-    assert_match "Hello World"
+    assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_eq "This is a sample asset!" "$stdout"
 }
