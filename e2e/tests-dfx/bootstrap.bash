@@ -34,11 +34,13 @@ teardown() {
 }
 
 @test "uses local bootstrap if installed" {
-    mkdir -p node_modules/@dfinity/bootstrap/dist
-    echo "Hello World" > node_modules/@dfinity/bootstrap/dist/index.html
+    install_asset assetscanister
 
     dfx_start
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_assets)
     PORT=$(cat .dfx/webserver-port)
-    assert_command curl http://localhost:"$PORT"/
-    assert_match "Hello World"
+    assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
+    assert_eq "cherries\0ait'\''s cherry season\0aCHERRIES"
 }
