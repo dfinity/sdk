@@ -63,7 +63,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     runtime.block_on(async {
         let call_sender = call_sender(&agent_env, &opts.wallet, opts.no_wallet).await?;
         match opts.subcmd {
-            SubCommand::Call(v) => call::exec(&agent_env, v).await,
+            SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,
             SubCommand::Create(v) => create::exec(&agent_env, v, &call_sender).await,
             SubCommand::Delete(v) => delete::exec(&agent_env, v, &call_sender).await,
             SubCommand::Id(v) => id::exec(&agent_env, v).await,

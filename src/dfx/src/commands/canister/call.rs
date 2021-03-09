@@ -1,12 +1,16 @@
+use crate::commands::command_utils::CallSender;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, bail, Context};
+use candid::{CandidType, Deserialize};
+use candid::de::ArgumentDecoder;
 use clap::Clap;
 use ic_types::principal::Principal as CanisterId;
 use std::option::Option;
@@ -65,7 +69,10 @@ fn get_local_cid_and_candid_path(
     ))
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
+pub async fn exec<O> (env: &dyn Environment, opts: CanisterCallOpts, call_sender: &CallSender) -> DfxResult
+where
+    O: for<'de> ArgumentDecoder<'de> + Sync + Send,
+{
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
@@ -124,6 +131,15 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
 
     let timeout = expiry_duration();
 
+    #[derive(CandidType, Deserialize)]
+    struct In {
+        canister: CanisterId,
+        method_name: String,
+        #[serde(with = "serde_bytes")]
+        args: Vec<u8>,
+        cycles: u64,
+    }
+
     if is_query {
         let blob = agent
             .query(&canister_id, method_name)
@@ -141,12 +157,50 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallOpts) -> DfxResult {
         eprint!("Request ID: ");
         println!("0x{}", String::from(request_id));
     } else {
-        let blob = agent
-            .update(&canister_id, method_name)
-            .with_arg(&arg_value)
-            .expire_after(timeout)
-            .call_and_wait(waiter_with_exponential_backoff())
-            .await?;
+        // let blob = agent
+        //     .update(&canister_id, method_name)
+        //     .with_arg(&arg_value)
+        //     .expire_after(timeout)
+        //     .call_and_wait(waiter_with_exponential_backoff())
+        //     .await?;
+
+        let blob = match call_sender {
+            CallSender::SelectedId => {
+                agent
+                    .update(&canister_id, method_name)
+                    .with_arg(&arg_value)
+                    .expire_after(timeout)
+                    .call_and_wait(waiter_with_exponential_backoff())
+                    .await?
+            }
+            CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
+                let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
+                    let id = some_id
+                        .as_ref()
+                        .expect("Wallet canister id should have been provided here.");
+                    Identity::build_wallet_canister(id.clone(), env)?
+                } else {
+                    // CallSender::SelectedIdWallet(some_id)
+                    let identity_name = env.get_selected_identity().expect("No selected identity.");
+                    let network = env
+                        .get_network_descriptor()
+                        .expect("No network descriptor.");
+                    Identity::get_wallet_canister(env, network, &identity_name).await?
+                };
+                let blob: O = wallet
+                    .update_("wallet_call")
+                    .with_arg(In {
+                        canister: canister_id,
+                        method_name: method_name.to_string(),
+                        args: arg_value,
+                        cycles: 0_u64,
+                    })
+                    .build()
+                    .call_and_wait(waiter_with_exponential_backoff())
+                    .await?;
+                blob
+            }
+        };
 
         print_idl_blob(&blob, output_type, &method_type)
             .context("Invalid data: Invalid IDL blob.")?;
