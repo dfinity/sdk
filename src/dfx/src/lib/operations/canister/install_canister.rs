@@ -1,8 +1,7 @@
-use crate::commands::command_utils::CallSender;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity as DfxIdentity;
+use crate::lib::identity::identity_utils::{wallet_for_call_sender, CallSender};
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::waiter::waiter_with_timeout;
 
@@ -46,11 +45,6 @@ pub async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm_module = std::fs::read(wasm_path)?;
 
-    let identity_name = env.get_selected_identity().expect("No selected identity.");
-    let network = env
-        .get_network_descriptor()
-        .expect("No network descriptor.");
-
     match call_sender {
         CallSender::SelectedId => {
             let install_builder = mgr
@@ -73,15 +67,8 @@ pub async fn install_canister(
                 .await?;
         }
         CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-            let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
-                let id = some_id
-                    .as_ref()
-                    .expect("Wallet canister id should have been provided here.");
-                DfxIdentity::build_wallet_canister(id.clone(), env)?
-            } else {
-                // CallSender::SelectedIdWallet(some_id)
-                DfxIdentity::get_wallet_canister(env, network, &identity_name).await?
-            };
+            let wallet = wallet_for_call_sender(env, call_sender, some_id, false).await?;
+
             #[derive(candid::CandidType)]
             struct CanisterInstall {
                 mode: InstallMode,
@@ -113,15 +100,8 @@ pub async fn install_canister(
     if canister_info.get_type() == "assets" {
         match call_sender {
             CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-                let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
-                    let id = some_id
-                        .as_ref()
-                        .expect("Wallet canister id should have been provided here.");
-                    DfxIdentity::build_wallet_canister(id.clone(), env)?
-                } else {
-                    // CallSender::SelectedIdWallet(some_id)
-                    DfxIdentity::get_wallet_canister(env, network, &identity_name).await?
-                };
+                let wallet = wallet_for_call_sender(env, call_sender, some_id, false).await?;
+                let identity_name = env.get_selected_identity().expect("No selected identity.");
                 info!(
                     log,
                     "Authorizing our identity ({}) to the asset canister...", identity_name

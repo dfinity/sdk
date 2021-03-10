@@ -1,7 +1,7 @@
-use crate::commands::command_utils::{wallet_for_call_sender, CallSender};
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::identity::identity_utils::{wallet_for_call_sender, CallSender};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
@@ -191,7 +191,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-                let wallet = wallet_for_call_sender(env, call_sender, some_id).await?;
+                let wallet = wallet_for_call_sender(env, call_sender, some_id, false).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -216,7 +216,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-                let wallet = wallet_for_call_sender(env, call_sender, some_id).await?;
+                let wallet = wallet_for_call_sender(env, call_sender, some_id, false).await?;
                 // This is overkill, wallet.call should accept a Principal parameter
                 // Why do we need to construct a Canister?
                 let canister = Canister::builder()
@@ -243,7 +243,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-                let wallet = wallet_for_call_sender(env, call_sender, some_id).await?;
+                let wallet = wallet_for_call_sender(env, call_sender, some_id, false).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

@@ -25,6 +25,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 pub mod identity_manager;
+pub mod identity_utils;
 use crate::util::expiry_duration;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,

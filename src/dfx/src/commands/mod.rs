@@ -7,7 +7,6 @@ mod bootstrap;
 mod build;
 mod cache;
 mod canister;
-pub mod command_utils;
 mod config;
 mod deploy;
 mod identity;

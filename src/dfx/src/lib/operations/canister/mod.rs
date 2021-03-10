@@ -6,10 +6,9 @@ pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
 pub use install_canister::install_canister;
 
-use crate::commands::command_utils::CallSender;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
+use crate::lib::identity::identity_utils::{wallet_for_call_sender, CallSender};
 use crate::lib::waiter::waiter_with_timeout;
 use anyhow::anyhow;
 use candid::de::ArgumentDecoder;
@@ -46,19 +45,7 @@ where
                 .await?
         }
         CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-            let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
-                let id = some_id
-                    .as_ref()
-                    .expect("Wallet canister id should have been provided here.");
-                Identity::build_wallet_canister(id.clone(), env)?
-            } else {
-                // CallSender::SelectedIdWallet(some_id)
-                let network = env
-                    .get_network_descriptor()
-                    .expect("No network descriptor.");
-                let identity_name = env.get_selected_identity().expect("No selected identity.");
-                Identity::get_wallet_canister(env, network, &identity_name).await?
-            };
+            let wallet = wallet_for_call_sender(env, call_sender, some_id, false).await?;
             let out: O = wallet
                 .call_forward(mgr.update_(method).with_arg(arg).build(), 0)?
                 .call_and_wait(waiter_with_timeout(timeout))

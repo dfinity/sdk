@@ -1,7 +1,6 @@
-use crate::commands::command_utils::CallSender;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
+use crate::lib::identity::identity_utils::{wallet_for_call_sender, CallSender};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
@@ -51,11 +50,6 @@ pub async fn create_canister(
                 .get_network_descriptor()
                 .expect("No network descriptor.");
 
-            let identity_name = env
-                .get_selected_identity()
-                .expect("No selected identity.")
-                .to_string();
-
             let agent = env
                 .get_agent()
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -78,25 +72,7 @@ pub async fn create_canister(
                     }
                 }
                 CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-                    let wallet = if call_sender == &CallSender::Wallet(some_id.clone()) {
-                        let id = some_id
-                            .as_ref()
-                            .expect("Wallet canister id should have been provided here.");
-                        Identity::build_wallet_canister(id.clone(), env)?
-                    } else {
-                        // CallSender::SelectedIdWallet(some_id)
-                        if let Some(id) = some_id {
-                            Identity::build_wallet_canister(id.clone(), env)?
-                        } else {
-                            Identity::get_or_create_wallet_canister(
-                                env,
-                                network,
-                                &identity_name,
-                                true,
-                            )
-                            .await?
-                        }
-                    };
+                    let wallet = wallet_for_call_sender(env, call_sender, some_id, true).await?;
                     if network.is_ic {
                         // Provisional commands are whitelisted on production
                         let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) =
