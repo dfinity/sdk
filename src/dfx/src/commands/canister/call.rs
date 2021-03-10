@@ -101,9 +101,7 @@ async fn request_id_via_wallet_call(
     method_name: &str,
     args: Argument,
     cycles: u64,
-) -> DfxResult<ic_agent::RequestId>
-where
-{
+) -> DfxResult<ic_agent::RequestId> {
     let call_forwarder: CallForwarder<'_, '_, (CallResult,)> =
         wallet.call(canister, method_name, args, cycles);
     call_forwarder
