@@ -21,7 +21,7 @@ teardown() {
 
     ID=$(dfx canister id e2e_project_assets)
     PORT=$(cat .dfx/webserver-port)
-    assert_command curl "http://localhost:${PORT}/?canisterId=${ID}"
+    assert_command curl http://localhost:"$PORT"/?canisterId="$ID"
     assert_match "logo.png"
 }
 
@@ -38,7 +38,7 @@ teardown() {
     dfx canister install --all
 
     ID=$(dfx canister id e2e_project_assets)
-    assert_command curl "http://localhost:${PORT}/?canisterId=${ID}"
+    assert_command curl http://localhost:12345/?canisterId="$ID"
     assert_match "<html>"
 
     assert_command_fail curl http://localhost:8000
