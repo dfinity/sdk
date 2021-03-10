@@ -10,8 +10,6 @@ setup() {
     x=$(pwd)/home-for-test
     mkdir "$x"
     export HOME="$x"
-
-    dfx_new hello
 }
 
 teardown() {
@@ -21,6 +19,7 @@ teardown() {
 }
 
 @test "deploy wallet" {
+    dfx_new hello
     dfx_start
     setup_actuallylocal_network
 
@@ -47,24 +46,34 @@ teardown() {
 }
 
 @test "bypass wallet call as user" {
-    install_asset greet
+    dfx_new
+    install_asset identity
     dfx_start
     assert_command dfx canister --no-wallet create --all
     assert_command dfx build
-    assert_command dfx canister --no-wallet install hello
-    assert_command dfx canister --no-wallet call "$(dfx canister id hello)" greet '("DFINITY")'
-    assert_match '("Hello, DFINITY!")'
-    # Wallet should not have been created/should not exist
-    assert_command_fail test -f .dfx/local/wallets.json
+    assert_command dfx canister --no-wallet install --all
+
+    CALL_RES=$(dfx canister --no-wallet call e2e_project fromCall)
+    CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
+    ID=$(dfx identity get-principal)
+    assert_eq "$CALLER" "$ID"
+
+    assert_command dfx canister --no-wallet call e2e_project amInitializer
+    assert_eq '(true)'
 }
 
 @test "bypass wallet call as user: deploy" {
-    install_asset greet
+    dfx_new
+    install_asset identity
     dfx_start
     assert_command dfx deploy --no-wallet
-    assert_command dfx canister --no-wallet call "$(dfx canister id hello)" greet '("DFINITY")'
-    assert_match '("Hello, DFINITY!")'
-    # Wallet should not have been created/should not exist
-    assert_command_fail test -f .dfx/local/wallets.json
+
+    CALL_RES=$(dfx canister --no-wallet call e2e_project fromCall)
+    CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
+    ID=$(dfx identity get-principal)
+    assert_eq "$CALLER" "$ID"
+
+    assert_command dfx canister --no-wallet call e2e_project amInitializer
+    assert_eq '(true)'
 }
 
