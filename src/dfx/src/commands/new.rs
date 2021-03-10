@@ -227,7 +227,7 @@ fn scaffold_frontend_code(
 
         let frontend_value: serde_json::Map<String, Value> = [(
             "entrypoint".to_string(),
-            ("src/".to_owned() + project_name_str + "_assets/public/index.html").into(),
+            ("src/".to_owned() + project_name_str + "_assets/src/index.html").into(),
         )]
         .iter()
         .cloned()
