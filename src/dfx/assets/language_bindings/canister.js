@@ -1,5 +1,3 @@
-import actorInterface from "ic:idl/{project_name}";
-
-export default ic.agent.makeActorFactory(actorInterface)({
-  canisterId: "{canister_id}",
-});
+import idlImport from './{canister_name}.did.js';
+export const IDL = idlImport;
+export const canisterId = "{canister_id}";
