@@ -44,8 +44,8 @@ where
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?
         }
-        CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-            let wallet = wallet_for_call_sender(env, call_sender, some_id, false).await?;
+        CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+            let wallet = wallet_for_call_sender(env, call_sender, wallet_id).await?;
             let out: O = wallet
                 .call_forward(mgr.update_(method).with_arg(arg).build(), 0)?
                 .call_and_wait(waiter_with_timeout(timeout))

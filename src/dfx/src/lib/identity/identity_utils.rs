@@ -10,8 +10,8 @@ use ic_utils::interfaces::Wallet;
 #[derive(Debug, PartialEq)]
 pub enum CallSender {
     SelectedId,
-    SelectedIdWallet(Option<Principal>),
-    Wallet(Option<Principal>),
+    SelectedIdWallet(Principal),
+    Wallet(Principal),
 }
 
 // Determine whether the selected Identity, the selected Identitys wallet,
@@ -26,14 +26,11 @@ pub async fn call_sender(
             .get_network_descriptor()
             .expect("No network descriptor.");
         let identity_name = env.get_selected_identity().expect("No selected identity.");
-        let some_id = match Identity::wallet_canister_id(env, network, &identity_name) {
-            Ok(id) => Some(id),
-            Err(_) => None,
-        };
-        CallSender::SelectedIdWallet(some_id)
+        let wallet =
+            Identity::get_or_create_wallet_canister(env, network, &identity_name, true).await?;
+        CallSender::SelectedIdWallet(wallet.canister_id_().clone())
     } else if let Some(id) = wallet {
-        let id = Principal::from_text(&id)?;
-        CallSender::Wallet(Some(id))
+        CallSender::Wallet(Principal::from_text(&id)?)
     } else if no_wallet {
         CallSender::SelectedId
     } else {
@@ -46,23 +43,15 @@ pub async fn call_sender(
 pub async fn wallet_for_call_sender<'env>(
     env: &'env dyn Environment,
     call_sender: &CallSender,
-    some_id: &Option<Principal>,
-    create: bool,
+    wallet_id: &Principal,
 ) -> DfxResult<Canister<'env, Wallet>> {
-    let network = env
-        .get_network_descriptor()
-        .expect("No network descriptor.");
-    let identity_name = env.get_selected_identity().expect("No selected identity.");
-    if call_sender == &CallSender::Wallet(some_id.clone()) {
-        let id = some_id
-            .as_ref()
-            .expect("Wallet canister id should have been provided here.");
-        Identity::build_wallet_canister(id.clone(), env)
-    } else if call_sender == &CallSender::SelectedIdWallet(some_id.clone()) {
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, create).await
+    if call_sender == &CallSender::Wallet(wallet_id.clone())
+        || call_sender == &CallSender::SelectedIdWallet(wallet_id.clone())
+    {
+        Identity::build_wallet_canister(wallet_id.clone(), env)
     } else {
         Err(anyhow!(
-            "Attempted get a wallet for an invalid CallSender variant: {:?}",
+            "Attempted to get a wallet for an invalid CallSender variant: {:?}",
             call_sender
         ))
     }

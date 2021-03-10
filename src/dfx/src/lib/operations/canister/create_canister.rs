@@ -71,8 +71,8 @@ pub async fn create_canister(
                             .0
                     }
                 }
-                CallSender::Wallet(some_id) | CallSender::SelectedIdWallet(some_id) => {
-                    let wallet = wallet_for_call_sender(env, call_sender, some_id, true).await?;
+                CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+                    let wallet = wallet_for_call_sender(env, call_sender, wallet_id).await?;
                     if network.is_ic {
                         // Provisional commands are whitelisted on production
                         let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) =
