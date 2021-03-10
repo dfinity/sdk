@@ -276,7 +276,7 @@ For example:
 ----
 +
 *Ensure* `tags.latest` remains the same.
-
+. Exit `nix-shell` to continue.
 
 ==== Create a pull request and tag
 
@@ -405,14 +405,17 @@ about the successful publishing of the dfx tarballs.
 . Run through the link:https://sdk.dfinity.org/docs/quickstart/local-quickstart.html[_Quick start - Local development_] steps.
 . Run through link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#ping-the-network[Check the connection to the network] and link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#net-deploy[Register, build, and deploy the application] steps to deploy to the network.
 . Notify link:https://app.slack.com/client/T43F9UHS5/CGA566TPV[#eng-sdk] team members that the new build is ready for manual installation and testing.
-. Update the link:https://docs.google.com/spreadsheets/d/1pIblGqIeqapzptOtDb4h0LjJKDFIYXRxJrX9VaphfjA/edit#gid=725289684[_release notes_] spreadsheet and documentation based on the Go/No-go list of merged PRs.
 +
-The driver only needs to add a tab to the spreadsheet.
-The DX Product team will walk through the list of merged PRs and work with the team to generate release note content.
+Remind them to add information about _features and fixes_ for release notes to their issues or PRs and to apply the changelog label to have the information included in the release notes.
 
 === Promoting a released version to Latest
 
-. Verify that release notes and documentation are ready for public consumption.
+Before promoting, check whether any features or fixes require documentation. 
+In some cases, we might promote a release without updating any documentation.
+However, it would be unusual to promote without any release notes.
+
+. Check whether any issues have the changelog label.
+. Check with DX product (sometimes referred to as Lisa) to hold back promotion because release notes or documentation are not ready for public consumption.
 . Open the `public/manifest.json` file in a text editor.
 . Under the `tags` key, change the version number associated with the `latest` key.
 +
