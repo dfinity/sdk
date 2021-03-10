@@ -14,6 +14,7 @@ teardown() {
 }
 
 @test "dfx start serves a frontend with static assets" {
+    skip "Need a build of @dfinity/agent that works with HTTP Query"
     dfx_start
     dfx canister create --all
     dfx build
@@ -27,6 +28,7 @@ teardown() {
 
 @test "dfx start serves a frontend on a port" {
     [ "$USE_IC_REF" ] && skip "dfx start cannot serve frontend when using ic-ref"
+    skip "Need a build of @dfinity/agent that works with HTTP Query"
 
     dfx_start --host 127.0.0.1:12345
 
