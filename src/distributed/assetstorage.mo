@@ -72,6 +72,8 @@ shared ({caller = creator}) actor class () {
     private func getContent(uri: Text): ?Blob {
         let splitted = Text.split(uri, #char '?');
         let array = Iter.toArray<Text>(splitted);
+        let path = array[0];
+
         switch (db.get(path)) {
             case null db.get("/index.html");
             case (?contents) ?contents;
