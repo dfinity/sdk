@@ -38,7 +38,7 @@ pub use identity_manager::{
 const IDENTITY_PEM: &str = "identity.pem";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
-const DEFAULT_MEM_ALLOCATION: u64 = 8000000000_u64; // 8gb
+const DEFAULT_MEM_ALLOCATION: u64 = 40000000_u64; // 40 MB
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
