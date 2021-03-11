@@ -92,9 +92,22 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  public query func list() : async [T.Path] {
+  func listKeys(): [T.Path] {
     let iter = Iter.map<(Text, A.Asset), T.Path>(assets.entries(), func (key, _) = key);
     Iter.toArray(iter)
+  };
+
+  // deprecated: the signature of this method will change, to take an empty record as
+  // a parameter and to return an array of records.
+  // For now, call keys() instead
+  public query func list() : async [T.Path] {
+    listKeys()
+  };
+
+  // Returns an array of the keys of all assets contained in the asset canister.
+  // This method will be deprecated after the signature of list() changes.
+  public query func keys() : async [T.Path] {
+    listKeys()
   };
 
   func isSafe(caller: Principal) : Bool {

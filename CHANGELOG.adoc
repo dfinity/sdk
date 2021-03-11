@@ -1,3 +1,19 @@
+= 0.6.26
+
+== Asset Canister
+
+- The asset canister can now store assets that exceed the message ingress limit (2 MB)
+- The existing interface is left in place for backwards-compatibility, but deprecated.
+- These methods are now deprecated:
+  - retrieve(): use get() and get_chunk() instead
+  - store(): use call create_batch(), create_chunk(), and commit_batch() instead
+  - list(): use keys() instead
+- A future update will:
+  - delete the retrieve() method, because it does not support large assets
+  - change the method signature of store()
+  - change the method signature of list()
+  - deprecate keys()
+
 = 0.6.25
 
 == DFX
