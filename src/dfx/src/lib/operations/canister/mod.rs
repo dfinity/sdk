@@ -8,7 +8,8 @@ pub use install_canister::install_canister;
 
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::{wallet_for_call_sender, CallSender};
+use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::identity::Identity;
 use crate::lib::waiter::waiter_with_timeout;
 use anyhow::anyhow;
 use candid::de::ArgumentDecoder;
@@ -45,7 +46,7 @@ where
                 .await?
         }
         CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-            let wallet = wallet_for_call_sender(env, call_sender, wallet_id).await?;
+            let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
             let out: O = wallet
                 .call_forward(mgr.update_(method).with_arg(arg).build(), 0)?
                 .call_and_wait(waiter_with_timeout(timeout))

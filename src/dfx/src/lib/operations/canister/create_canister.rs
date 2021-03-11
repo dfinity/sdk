@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::{wallet_for_call_sender, CallSender};
+use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
@@ -72,7 +73,7 @@ pub async fn create_canister(
                     }
                 }
                 CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                    let wallet = wallet_for_call_sender(env, call_sender, wallet_id).await?;
+                    let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
                     if network.is_ic {
                         // Provisional commands are whitelisted on production
                         let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) =

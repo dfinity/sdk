@@ -1,7 +1,8 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::{wallet_for_call_sender, CallSender};
+use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::identity::Identity;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::waiter::waiter_with_timeout;
 
@@ -67,7 +68,7 @@ pub async fn install_canister(
                 .await?;
         }
         CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-            let wallet = wallet_for_call_sender(env, call_sender, wallet_id).await?;
+            let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
 
             #[derive(candid::CandidType)]
             struct CanisterInstall {
@@ -100,7 +101,7 @@ pub async fn install_canister(
     if canister_info.get_type() == "assets" {
         match call_sender {
             CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                let wallet = wallet_for_call_sender(env, call_sender, wallet_id).await?;
+                let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
                 let identity_name = env.get_selected_identity().expect("No selected identity.");
                 info!(
                     log,

@@ -2,10 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
 
-use anyhow::anyhow;
 use ic_types::principal::Principal;
-use ic_utils::canister::Canister;
-use ic_utils::interfaces::Wallet;
 
 #[derive(Debug, PartialEq)]
 pub enum CallSender {
@@ -37,22 +34,4 @@ pub async fn call_sender(
         unreachable!()
     };
     Ok(sender)
-}
-
-#[allow(clippy::needless_lifetimes)]
-pub async fn wallet_for_call_sender<'env>(
-    env: &'env dyn Environment,
-    call_sender: &CallSender,
-    wallet_id: &Principal,
-) -> DfxResult<Canister<'env, Wallet>> {
-    if call_sender == &CallSender::Wallet(wallet_id.clone())
-        || call_sender == &CallSender::SelectedIdWallet(wallet_id.clone())
-    {
-        Identity::build_wallet_canister(wallet_id.clone(), env)
-    } else {
-        Err(anyhow!(
-            "Attempted to get a wallet for an invalid CallSender variant: {:?}",
-            call_sender
-        ))
-    }
 }
