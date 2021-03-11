@@ -6,7 +6,7 @@
 - The existing interface is left in place for backwards-compatibility, but deprecated.
 - These methods are now deprecated:
   - retrieve(): use get() and get_chunk() instead
-  - store(): use call create_batch(), create_chunk(), and commit_batch() instead
+  - store(): use create_batch(), create_chunk(), and commit_batch() instead
   - list(): use keys() instead
 - A future update will:
   - delete the retrieve() method, because it does not support large assets
