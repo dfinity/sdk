@@ -2,6 +2,12 @@
 
 == DFX
 
+=== feat: add --no-wallet flag and --wallet option to allow Users to bypass Wallet or specify a Wallet to use for calls (#1476)
+
+Added `--no-wallet` flag to `dfx canister` and `dfx deploy`. This allows users to call canister management functionality with their Identity as the Sender (bypassing their Wallet canister.)
+Added `--wallet` option to `dfx canister` and `dfx deploy`. This allows users to specify a wallet canister id to use as the Sender for calls.
+`--wallet` and `--no-wallet` conflict with each other. Omitting both will invoke the selected Identity's wallet canister to perform calls.
+
 === feat: implement the HTTP Request proposal in dfx' bootstrap webserver. +
 And add support for http requests in the base storage canister (with a default to `/index.html`).
 
