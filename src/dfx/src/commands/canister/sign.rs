@@ -3,6 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::signed_message::SignedMessageV1;
 //use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type};
 
@@ -11,7 +12,6 @@ use clap::Clap;
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{AgentError, RequestId};
 use ic_types::principal::Principal;
-use serde::{Deserialize, Serialize};
 use std::option::Option;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -60,39 +60,6 @@ fn get_local_cid_and_candid_path(
         canister_info.get_canister_id()?,
         canister_info.get_output_idl_path(),
     ))
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub(crate) struct SignedMessageV1 {
-    version: usize,
-    pub request_type: String,
-    pub sender: Principal,
-    pub canister_id: Principal,
-    pub method_name: String,
-    pub content: String, // hex::encode the Vec<u8>
-}
-
-impl SignedMessageV1 {
-    pub fn new(sender: Principal, canister_id: Principal, method_name: String) -> Self {
-        Self {
-            version: 1,
-            request_type: String::new(),
-            sender,
-            canister_id,
-            method_name,
-            content: String::new(),
-        }
-    }
-
-    pub fn with_request_type(mut self, request_type: String) -> Self {
-        self.request_type = request_type;
-        self
-    }
-
-    pub fn with_content(mut self, content: String) -> Self {
-        self.content = content;
-        self
-    }
 }
 
 struct SignReplicaV1Transport {
