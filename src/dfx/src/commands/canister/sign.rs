@@ -1,20 +1,22 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_exponential_backoff;
-use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
+//use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::util::{blob_from_arguments, expiry_duration, get_candid_type};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
 use clap::Clap;
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{AgentError, RequestId};
-use ic_types::principal::Principal as CanisterId;
-use std::future::Future;
+use ic_types::principal::Principal;
+use serde::{Deserialize, Serialize};
 use std::option::Option;
 use std::path::PathBuf;
 use std::pin::Pin;
+use std::{fs::File, path::Path};
+use std::{future::Future, io::Write};
 
 /// Sign a canister call to be sent
 #[derive(Clap)]
@@ -26,17 +28,12 @@ pub struct CanisterSignOpts {
     /// Specifies the method name to call on the canister.
     method_name: String,
 
-    /// Specifies not to wait for the result of the call to be returned by polling the replica.
-    /// Instead return a response ID.
-    #[clap(long)]
-    r#async: bool,
-
     /// Sends a query request to a canister.
-    #[clap(long, conflicts_with("async"))]
+    #[clap(long)]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("async"), conflicts_with("query"))]
+    #[clap(long, conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
@@ -51,11 +48,12 @@ pub struct CanisterSignOpts {
     r#type: Option<String>,
 }
 
+// TODO: extract this function to util
 fn get_local_cid_and_candid_path(
     env: &dyn Environment,
     canister_name: &str,
-    maybe_canister_id: Option<CanisterId>,
-) -> DfxResult<(CanisterId, Option<PathBuf>)> {
+    maybe_canister_id: Option<Principal>,
+) -> DfxResult<(Principal, Option<PathBuf>)> {
     let config = env.get_config_or_anyhow()?;
     let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
     Ok((
@@ -64,16 +62,72 @@ fn get_local_cid_and_candid_path(
     ))
 }
 
-struct SignReplicaV1Transport;
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub(crate) struct SignMessageV1 {
+    version: usize,
+    pub request_type: String,
+    pub sender: Principal,
+    pub canister_id: Principal,
+    pub method_name: String,
+    pub content: String, // hex::encode the Vec<u8>
+}
+
+impl SignMessageV1 {
+    pub fn new(sender: Principal, canister_id: Principal, method_name: String) -> Self {
+        Self {
+            version: 1,
+            request_type: String::new(),
+            sender,
+            canister_id,
+            method_name,
+            content: String::new(),
+        }
+    }
+
+    pub fn with_request_type(mut self, request_type: String) -> Self {
+        self.request_type = request_type;
+        self
+    }
+
+    pub fn with_content(mut self, content: String) -> Self {
+        self.content = content;
+        self
+    }
+}
+
+struct SignReplicaV1Transport {
+    file_name: String,
+    message_template: SignMessageV1,
+}
+
+impl SignReplicaV1Transport {
+    pub fn new<U: Into<String>>(file_name: U, message_template: SignMessageV1) -> Self {
+        Self {
+            file_name: file_name.into(),
+            message_template,
+        }
+    }
+}
 
 impl ReplicaV1Transport for SignReplicaV1Transport {
     fn read<'a>(
         &'a self,
         envelope: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(_: &SignReplicaV1Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
-            print!("read\n\n{}", hex::encode(envelope));
-            Err(AgentError::MessageError(String::new()))
+        async fn run(s: &SignReplicaV1Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
+            let message = s
+                .message_template
+                .clone()
+                .with_request_type("read".to_string())
+                .with_content(hex::encode(&envelope));
+            let json = serde_json::to_string(&message)
+                .map_err(|x| AgentError::TransportError(Box::new(x)))?;
+            let path = Path::new(&s.file_name);
+            let mut file =
+                File::create(&path).map_err(|x| AgentError::TransportError(Box::new(x)))?;
+            file.write_all(json.as_bytes())
+                .map_err(|x| AgentError::TransportError(Box::new(x)))?;
+            Err(AgentError::MessageError("read complete".to_string()))
         }
 
         Box::pin(run(self, envelope))
@@ -85,15 +139,19 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
         request_id: RequestId,
     ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
         async fn run(
-            _: &SignReplicaV1Transport,
+            s: &SignReplicaV1Transport,
             envelope: Vec<u8>,
             request_id: RequestId,
         ) -> Result<(), AgentError> {
-            print!(
-                "submit\n{}\n\n{}",
-                hex::encode(request_id.as_slice()),
-                hex::encode(envelope)
-            );
+            // print!(
+            //     "submit\n{}\n\n{}",
+            //     hex::encode(request_id.as_slice()),
+            //     hex::encode(envelope)
+            // );
+            println!("submit");
+            println!("file_name: {}", s.file_name);
+            println!("content: {}", hex::encode(envelope));
+            println!("request_id{}", hex::encode(request_id.as_slice()));
             Err(AgentError::MessageError(String::new()))
         }
 
@@ -118,7 +176,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
     let method_name = opts.method_name.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
+    let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
         Ok(id) => {
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
                 get_local_cid_and_candid_path(env, canister_name, Some(id))?
@@ -142,23 +200,19 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
     let arguments = opts.argument.as_deref();
     let arg_type = opts.r#type.as_deref();
     // let output_type = opts.output.as_deref();
-    let is_query = if opts.r#async {
-        false
-    } else {
-        match is_query_method {
-            Some(true) => !opts.update,
-            Some(false) => {
-                if opts.query {
-                    bail!(
-                        "Invalid method call: {} is not a query method.",
-                        method_name
-                    );
-                } else {
-                    false
-                }
+    let is_query = match is_query_method {
+        Some(true) => !opts.update,
+        Some(false) => {
+            if opts.query {
+                bail!(
+                    "Invalid method call: {} is not a query method.",
+                    method_name
+                );
+            } else {
+                false
             }
-            None => opts.query,
         }
+        None => opts.query,
     };
 
     // Get the argument, get the type, convert the argument to the type and return
@@ -168,40 +222,39 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env).await?;
+    //fetch_root_key_if_needed(env).await?;
+    let mut identity_manager = IdentityManager::new(env)?;
+    identity_manager.instantiate_selected_identity()?;
+    let sender = match identity_manager.get_selected_identity_principal() {
+        Some(p) => p,
+        None => bail!("Cannot get sender's principle"),
+    };
+
+    let message_template = SignMessageV1::new(sender, canister_id.clone(), method_name.to_string());
 
     let mut sign_agent = agent.clone();
-    sign_agent.set_transport(SignReplicaV1Transport);
+    sign_agent.set_transport(SignReplicaV1Transport::new(
+        "message.json",
+        message_template,
+    ));
 
     let timeout = expiry_duration(); // TODO: configurable
 
     if is_query {
-        let blob = agent
+        let res = sign_agent
             .query(&canister_id, method_name)
             .with_arg(&arg_value)
             .call()
-            .await?;
-        // print_idl_blob(&blob, output_type, &method_type)
-        //     .context("Invalid data: Invalid IDL blob.")?;
-        println!("{:?}", blob);
-    } else if opts.r#async {
-        let request_id = agent
-            .update(&canister_id, method_name)
-            .with_arg(&arg_value)
-            .call()
-            .await?;
-        eprint!("Request ID: ");
-        println!("0x{}", String::from(request_id));
+            .await;
+        println!("{:?}", res);
     } else {
-        let blob = agent
+        let request_id = sign_agent
             .update(&canister_id, method_name)
             .with_arg(&arg_value)
             .expire_after(timeout)
-            .call_and_wait(waiter_with_exponential_backoff())
+            .call()
             .await?;
-
-        // print_idl_blob(&blob, output_type, &method_type)
-        //     .context("Invalid data: Invalid IDL blob.")?;
+        println!("{:?}", request_id);
     }
 
     Ok(())
