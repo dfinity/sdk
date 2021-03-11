@@ -11,6 +11,7 @@ mod delete;
 mod id;
 mod install;
 mod request_status;
+mod send;
 mod set_controller;
 mod sign;
 mod start;
@@ -35,13 +36,14 @@ pub struct CanisterOpts {
 #[derive(Clap)]
 enum SubCommand {
     Call(call::CanisterCallOpts),
-    Sign(sign::CanisterSignOpts),
     Create(create::CanisterCreateOpts),
     Delete(delete::CanisterDeleteOpts),
     Id(id::CanisterIdOpts),
     Install(install::CanisterInstallOpts),
     RequestStatus(request_status::RequestStatusOpts),
+    Send(send::CanisterSendOpts),
     SetController(set_controller::SetControllerOpts),
+    Sign(sign::CanisterSignOpts),
     Start(start::CanisterStartOpts),
     Status(status::CanisterStatusOpts),
     Stop(stop::CanisterStopOpts),
@@ -53,13 +55,14 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     runtime.block_on(async {
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(&agent_env, v).await,
-            SubCommand::Sign(v) => sign::exec(&agent_env, v).await,
             SubCommand::Create(v) => create::exec(&agent_env, v).await,
             SubCommand::Delete(v) => delete::exec(&agent_env, v).await,
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
             SubCommand::Install(v) => install::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
+            SubCommand::Send(v) => send::exec(&agent_env, v).await,
             SubCommand::SetController(v) => set_controller::exec(&agent_env, v).await,
+            SubCommand::Sign(v) => sign::exec(&agent_env, v).await,
             SubCommand::Start(v) => start::exec(&agent_env, v).await,
             SubCommand::Status(v) => status::exec(&agent_env, v).await,
             SubCommand::Stop(v) => stop::exec(&agent_env, v).await,

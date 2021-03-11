@@ -85,7 +85,7 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
             let message = s
                 .message_template
                 .clone()
-                .with_request_type("read".to_string())
+                .with_call_type("query".to_string())
                 .with_content(hex::encode(&envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::TransportError(Box::new(x)))?;
@@ -202,7 +202,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
 
     let mut sign_agent = agent.clone();
     sign_agent.set_transport(SignReplicaV1Transport::new(
-        "message.json",
+        "message.json", // TODO: configurable
         message_template,
     ));
 
