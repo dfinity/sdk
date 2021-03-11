@@ -18,7 +18,7 @@ pub struct DeployWalletOpts {
 
 pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<String>) -> DfxResult {
     let agent_env = create_agent_environment(env, network.clone())?;
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;
 

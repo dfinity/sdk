@@ -21,10 +21,10 @@ teardown() {
     dfx build
     dfx canister install e2e_project_assets
 
-    assert_command dfx canister call --query e2e_project_assets retrieve '("binary/noise.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_assets retrieve '("/binary/noise.txt")' --output idl
     assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
 
-    assert_command dfx canister call --query e2e_project_assets retrieve '("text-with-newlines.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_assets retrieve '("/text-with-newlines.txt")' --output idl
     assert_eq '(blob "cherries\0ait'\''s cherry season\0aCHERRIES")'
 
     assert_command dfx canister call --update e2e_project_assets store '("AA", blob "hello, world!")'
@@ -44,4 +44,21 @@ teardown() {
     assert_command_fail dfx canister call --query e2e_project_assets retrieve '("C")'
 
     HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '("index.js", vec { 1; 2; 3; })'
+}
+
+@test "asset canister supports http requests" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install e2e_project_assets
+
+    ID=$(dfx canister id e2e_project_assets)
+    PORT=$(cat .dfx/webserver-port)
+    assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_eq "cherries
+it's cherry season
+CHERRIES" "$stdout"
 }
