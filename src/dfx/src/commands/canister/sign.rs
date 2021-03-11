@@ -63,7 +63,7 @@ fn get_local_cid_and_candid_path(
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub(crate) struct SignMessageV1 {
+pub(crate) struct SignedMessageV1 {
     version: usize,
     pub request_type: String,
     pub sender: Principal,
@@ -72,7 +72,7 @@ pub(crate) struct SignMessageV1 {
     pub content: String, // hex::encode the Vec<u8>
 }
 
-impl SignMessageV1 {
+impl SignedMessageV1 {
     pub fn new(sender: Principal, canister_id: Principal, method_name: String) -> Self {
         Self {
             version: 1,
@@ -97,11 +97,11 @@ impl SignMessageV1 {
 
 struct SignReplicaV1Transport {
     file_name: String,
-    message_template: SignMessageV1,
+    message_template: SignedMessageV1,
 }
 
 impl SignReplicaV1Transport {
-    pub fn new<U: Into<String>>(file_name: U, message_template: SignMessageV1) -> Self {
+    pub fn new<U: Into<String>>(file_name: U, message_template: SignedMessageV1) -> Self {
         Self {
             file_name: file_name.into(),
             message_template,
@@ -230,7 +230,8 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         None => bail!("Cannot get sender's principle"),
     };
 
-    let message_template = SignMessageV1::new(sender, canister_id.clone(), method_name.to_string());
+    let message_template =
+        SignedMessageV1::new(sender, canister_id.clone(), method_name.to_string());
 
     let mut sign_agent = agent.clone();
     sign_agent.set_transport(SignReplicaV1Transport::new(
