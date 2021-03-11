@@ -10,8 +10,6 @@ setup() {
     x=$(pwd)/home-for-test
     mkdir "$x"
     export HOME="$x"
-
-    dfx_new
 }
 
 teardown() {
@@ -21,6 +19,7 @@ teardown() {
 }
 
 @test "deploy wallet" {
+    dfx_new hello
     dfx_start
     setup_actuallylocal_network
 
@@ -45,3 +44,36 @@ teardown() {
     assert_command dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
     assert_match "The wallet canister \"${ID}\"\ already exists for user \"default\" on \"actuallylocal\" network."
 }
+
+@test "bypass wallet call as user" {
+    dfx_new
+    install_asset identity
+    dfx_start
+    assert_command dfx canister --no-wallet create --all
+    assert_command dfx build
+    assert_command dfx canister --no-wallet install --all
+
+    CALL_RES=$(dfx canister --no-wallet call e2e_project fromCall)
+    CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
+    ID=$(dfx identity get-principal)
+    assert_eq "$CALLER" "$ID"
+
+    assert_command dfx canister --no-wallet call e2e_project amInitializer
+    assert_eq '(true)'
+}
+
+@test "bypass wallet call as user: deploy" {
+    dfx_new
+    install_asset identity
+    dfx_start
+    assert_command dfx deploy --no-wallet
+
+    CALL_RES=$(dfx canister --no-wallet call e2e_project fromCall)
+    CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
+    ID=$(dfx identity get-principal)
+    assert_eq "$CALLER" "$ID"
+
+    assert_command dfx canister --no-wallet call e2e_project amInitializer
+    assert_eq '(true)'
+}
+

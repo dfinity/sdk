@@ -7,6 +7,7 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
 
@@ -25,6 +26,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 pub mod identity_manager;
+pub mod identity_utils;
 use crate::util::expiry_duration;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
@@ -299,11 +301,11 @@ impl Identity {
     ) -> DfxResult<Principal> {
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
+                fetch_root_key_if_needed(env).await?;
                 let mgr = ManagementCanister::create(
                     env.get_agent()
                         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
                 );
-
                 info!(
                     env.get_logger(),
                     "Creating a wallet canister on the {} network.", network.name
@@ -377,12 +379,7 @@ impl Identity {
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
                 if create {
-                    Identity::create_wallet(env, network, name, None).await.map_err(|err|
-                        anyhow!("Unable to create a wallet canister on {}:\n{}\nWallet canisters on {} may only be created by an administrator.\nPlease submit your Principal (\"dfx identity get-principal\") in the intake form to have one created for you.",
-                            network.name,
-                            err,
-                            network.name,)
-                    )
+                    Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(anyhow!(
                         "Could not find wallet for \"{}\" on \"{}\" network.",
@@ -395,7 +392,7 @@ impl Identity {
         }
     }
 
-    fn wallet_canister_id(
+    pub fn wallet_canister_id(
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
@@ -435,7 +432,7 @@ impl Identity {
             .clone())
     }
 
-    fn build_wallet_canister(
+    pub fn build_wallet_canister(
         id: Principal,
         env: &dyn Environment,
     ) -> DfxResult<Canister<'_, Wallet>> {
