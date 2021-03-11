@@ -30,7 +30,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
     let env = &agent_env;
     let log = env.get_logger();
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let identity_name = agent_env
         .get_selected_identity()

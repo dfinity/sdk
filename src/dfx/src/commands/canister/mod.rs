@@ -58,8 +58,7 @@ enum SubCommand {
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.clone())?;
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
-
+    let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         let call_sender = call_sender(&agent_env, &opts.wallet, opts.no_wallet).await?;
         match opts.subcmd {
