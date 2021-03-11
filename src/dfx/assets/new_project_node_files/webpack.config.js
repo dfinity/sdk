@@ -1,9 +1,10 @@
 const path = require("path");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require("terser-webpack-plugin");
 const dfxJson = require("./dfx.json");
 
 // List of all aliases for canisters. This creates the module alias for
-// the `import ... from "ic:canisters/xyz"` where xyz is the name of a
+// the `import ... from "@dfinity/ic/canisters/xyz"` where xyz is the name of a
 // canister.
 const aliases = Object.entries(dfxJson.canisters).reduce(
   (acc, [name, _value]) => {
@@ -19,8 +20,7 @@ const aliases = Object.entries(dfxJson.canisters).reduce(
 
     return {
       ...acc,
-      ["ic:canisters/" + name]: path.join(outputRoot, name + ".js"),
-      ["ic:idl/" + name]: path.join(outputRoot, name + ".did.js"),
+      ["dfx-generated/" + name]: path.join(outputRoot, name + ".js"),
     };
   },
   {}
@@ -37,10 +37,9 @@ function generateWebpackConfigForCanister(name, info) {
   return {
     mode: "production",
     entry: {
-      index: path.join(__dirname, info.frontend.entrypoint),
-    },
-    node: {
-      fs: "empty"
+      // The frontend.entrypoint points to the HTML file for this build, so we need
+      // to replace the extension to `.js`.
+      index: path.join(__dirname, info.frontend.entrypoint).replace(/\.html$/, ".js"),
     },
     devtool: "source-map",
     optimization: {
@@ -49,6 +48,14 @@ function generateWebpackConfigForCanister(name, info) {
     },
     resolve: {
       alias: aliases,
+      extensions: [".js", ".ts", ".jsx", ".tsx"],
+      fallback: {
+        "assert": require.resolve("assert/"),
+        "buffer": require.resolve("buffer/"),
+        "events": require.resolve("events/"),
+        "stream": require.resolve("stream-browserify/"),
+        "util": require.resolve("util/"),
+      },
     },
     output: {
       filename: "[name].js",
@@ -66,7 +73,13 @@ function generateWebpackConfigForCanister(name, info) {
     //    { test: /\.css$/, use: ['style-loader','css-loader'] }
     //  ]
     // },
-    plugins: [],
+    plugins: [
+      new HtmlWebpackPlugin({
+        template: path.join(__dirname, info.frontend.entrypoint),
+        filename: 'index.html',
+        chunks: ['index'],
+      }),
+    ],
   };
 }
 

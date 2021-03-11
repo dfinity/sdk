@@ -95,7 +95,7 @@ struct CommitBatchArguments<'a> {
 #[derive(Clone, Debug)]
 struct AssetLocation {
     source: PathBuf,
-    relative: PathBuf,
+    key: String,
 }
 
 struct ChunkedAsset {
@@ -193,7 +193,7 @@ async fn make_chunked_asset(
     for (i, data_chunk) in chunks.enumerate() {
         println!(
             "  {} {}/{} ({} bytes)",
-            &asset_location.relative.to_string_lossy(),
+            &asset_location.key,
             i + 1,
             num_chunks,
             data_chunk.len()
@@ -237,11 +237,7 @@ async fn commit_batch(
     let operations: Vec<_> = chunked_assets
         .into_iter()
         .map(|chunked_asset| {
-            let key = chunked_asset
-                .asset_location
-                .relative
-                .to_string_lossy()
-                .to_string();
+            let key = chunked_asset.asset_location.key;
             vec![
                 BatchOperationKind::DeleteAsset(DeleteAssetArguments { key: key.clone() }),
                 BatchOperationKind::CreateAsset(CreateAssetArguments {
@@ -286,9 +282,10 @@ pub async fn post_install_store_assets(
                 let source = e.path().to_path_buf();
                 let relative = source
                     .strip_prefix(output_assets_path)
-                    .expect("cannot strip prefix")
-                    .to_path_buf();
-                AssetLocation { source, relative }
+                    .expect("cannot strip prefix");
+                let key = String::from("/") + relative.to_string_lossy().as_ref();
+
+                AssetLocation { source, key }
             })
         })
         .collect();

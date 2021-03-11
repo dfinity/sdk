@@ -21,10 +21,10 @@ teardown() {
     dfx build
     dfx canister install e2e_project_assets
 
-    assert_command dfx canister call --query e2e_project_assets retrieve '("binary/noise.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_assets retrieve '("/binary/noise.txt")' --output idl
     assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
 
-    assert_command dfx canister call --query e2e_project_assets retrieve '("text-with-newlines.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_assets retrieve '("/text-with-newlines.txt")' --output idl
     assert_eq '(blob "cherries\0ait'\''s cherry season\0aCHERRIES")'
 
     assert_command dfx canister call --update e2e_project_assets store '("AA", blob "hello, world!")'
@@ -46,6 +46,23 @@ teardown() {
     HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '("index.js", vec { 1; 2; 3; })'
 }
 
+@test "asset canister supports http requests" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install e2e_project_assets
+
+    ID=$(dfx canister id e2e_project_assets)
+    PORT=$(cat .dfx/webserver-port)
+    assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_eq "cherries
+it's cherry season
+CHERRIES" "$stdout"
+}
+
 @test 'can store arbitrarily large files' {
     install_asset assetscanister
 
@@ -58,15 +75,15 @@ teardown() {
 
     dfx deploy
 
-    assert_command dfx canister call --query e2e_project_assets get '(record{key="large-asset.bin";accept_encodings=vec{"identity"}})'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
     assert_match 'total_length = 25_000_000'
     assert_match 'content_type = "application/octet-stream"'
     assert_match 'content_encoding = "identity"'
 
-    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="large-asset.bin";content_encoding="identity";index=4})'
+    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
 
-    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="large-asset.bin";content_encoding="identity";index=13})'
-    assert_command_fail dfx canister call --query e2e_project_assets get_chunk '(record{key="large-asset.bin";content_encoding="identity";index=14})'
+    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=13})'
+    assert_command_fail dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=14})'
 }
 
 @test "list() and keys() return asset keys" {
@@ -78,12 +95,12 @@ teardown() {
     dfx canister install e2e_project_assets
 
     assert_command dfx canister call --query e2e_project_assets list
-    assert_match 'binary/noise.txt'
-    assert_match 'text-with-newlines.txt'
-    assert_match 'sample-asset.txt'
+    assert_match '"/binary/noise.txt"'
+    assert_match '"/text-with-newlines.txt"'
+    assert_match '"/sample-asset.txt"'
 
     assert_command dfx canister call --query e2e_project_assets keys
-    assert_match 'binary/noise.txt'
-    assert_match 'text-with-newlines.txt'
-    assert_match 'sample-asset.txt'
+    assert_match '"/binary/noise.txt"'
+    assert_match '"/text-with-newlines.txt"'
+    assert_match '"/sample-asset.txt"'
 }

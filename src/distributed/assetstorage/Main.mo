@@ -368,7 +368,7 @@ shared ({caller = creator}) actor class () {
     let path = getPath(request.url);
 
     let assetEncoding: ?A.AssetEncoding = switch (getAssetEncoding(path)) {
-      case null getAssetEncoding("index.js");
+      case null getAssetEncoding("/index.html");
       case (?found) ?found;
     };
 
@@ -386,7 +386,7 @@ shared ({caller = creator}) actor class () {
   private func getPath(uri: Text): Text {
     let splitted = Text.split(uri, #char '?');
     let array = Iter.toArray<Text>(splitted);
-    let path = Text.trimStart(array[0], #char '/');
+    let path = array[0];
     path
   };
 
