@@ -43,8 +43,9 @@ struct GetRequest {
     accept_encodings: Vec<String>,
 }
 
-#[derive(CandidType, Debug)]
+#[derive(CandidType, Debug, Deserialize)]
 struct GetResponse {
+    #[serde(with = "serde_bytes")]
     contents: Vec<u8>,
     content_type: String,
     content_encoding: String,
