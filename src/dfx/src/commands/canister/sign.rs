@@ -8,13 +8,17 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_i
 
 use anyhow::{anyhow, bail, Context};
 use clap::Clap;
+use ic_agent::agent::ReplicaV1Transport;
+use ic_agent::{AgentError, RequestId};
 use ic_types::principal::Principal as CanisterId;
+use std::future::Future;
 use std::option::Option;
 use std::path::PathBuf;
+use std::pin::Pin;
 
 /// Sign a canister call to be sent
 #[derive(Clap)]
-pub struct CanisterCallSignOpts {
+pub struct CanisterSignOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.
     canister_name: String,
@@ -45,11 +49,6 @@ pub struct CanisterCallSignOpts {
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     r#type: Option<String>,
-
-    /// Specifies the format for displaying the method's return result.
-    #[clap(long, conflicts_with("async"),
-        possible_values(&["idl", "raw", "pp"]))]
-    output: Option<String>,
 }
 
 fn get_local_cid_and_candid_path(
@@ -65,7 +64,56 @@ fn get_local_cid_and_candid_path(
     ))
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterCallSignOpts) -> DfxResult {
+struct SignReplicaV1Transport;
+
+impl ReplicaV1Transport for SignReplicaV1Transport {
+    fn read<'a>(
+        &'a self,
+        envelope: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
+        async fn run(_: &SignReplicaV1Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
+            print!("read\n\n{}", hex::encode(envelope));
+            Err(AgentError::MessageError(String::new()))
+        }
+
+        Box::pin(run(self, envelope))
+    }
+
+    fn submit<'a>(
+        &'a self,
+        envelope: Vec<u8>,
+        request_id: RequestId,
+    ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
+        async fn run(
+            _: &SignReplicaV1Transport,
+            envelope: Vec<u8>,
+            request_id: RequestId,
+        ) -> Result<(), AgentError> {
+            print!(
+                "submit\n{}\n\n{}",
+                hex::encode(request_id.as_slice()),
+                hex::encode(envelope)
+            );
+            Err(AgentError::MessageError(String::new()))
+        }
+
+        Box::pin(run(self, envelope, request_id))
+    }
+
+    fn status<'a>(
+        &'a self,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
+        async fn run(_: &SignReplicaV1Transport) -> Result<Vec<u8>, AgentError> {
+            Err(AgentError::MessageError(
+                "status calls not supported".to_string(),
+            ))
+        }
+
+        Box::pin(run(self))
+    }
+}
+
+pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
@@ -93,7 +141,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallSignOpts) -> DfxResul
 
     let arguments = opts.argument.as_deref();
     let arg_type = opts.r#type.as_deref();
-    let output_type = opts.output.as_deref();
+    // let output_type = opts.output.as_deref();
     let is_query = if opts.r#async {
         false
     } else {
@@ -122,7 +170,10 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallSignOpts) -> DfxResul
 
     fetch_root_key_if_needed(env).await?;
 
-    let timeout = expiry_duration();
+    let mut sign_agent = agent.clone();
+    sign_agent.set_transport(SignReplicaV1Transport);
+
+    let timeout = expiry_duration(); // TODO: configurable
 
     if is_query {
         let blob = agent
@@ -130,9 +181,9 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallSignOpts) -> DfxResul
             .with_arg(&arg_value)
             .call()
             .await?;
-        agent
-            .print_idl_blob(&blob, output_type, &method_type)
-            .context("Invalid data: Invalid IDL blob.")?;
+        // print_idl_blob(&blob, output_type, &method_type)
+        //     .context("Invalid data: Invalid IDL blob.")?;
+        println!("{:?}", blob);
     } else if opts.r#async {
         let request_id = agent
             .update(&canister_id, method_name)
@@ -149,8 +200,8 @@ pub async fn exec(env: &dyn Environment, opts: CanisterCallSignOpts) -> DfxResul
             .call_and_wait(waiter_with_exponential_backoff())
             .await?;
 
-        print_idl_blob(&blob, output_type, &method_type)
-            .context("Invalid data: Invalid IDL blob.")?;
+        // print_idl_blob(&blob, output_type, &method_type)
+        //     .context("Invalid data: Invalid IDL blob.")?;
     }
 
     Ok(())

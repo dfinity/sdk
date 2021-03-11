@@ -6,13 +6,13 @@ use clap::Clap;
 use tokio::runtime::Runtime;
 
 mod call;
-mod call_sign;
 mod create;
 mod delete;
 mod id;
 mod install;
 mod request_status;
 mod set_controller;
+mod sign;
 mod start;
 mod status;
 mod stop;
@@ -35,7 +35,7 @@ pub struct CanisterOpts {
 #[derive(Clap)]
 enum SubCommand {
     Call(call::CanisterCallOpts),
-    CallSign(call_sign::CanisterCallSignOpts),
+    Sign(sign::CanisterSignOpts),
     Create(create::CanisterCreateOpts),
     Delete(delete::CanisterDeleteOpts),
     Id(id::CanisterIdOpts),
@@ -53,7 +53,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     runtime.block_on(async {
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(&agent_env, v).await,
-            SubCommand::CallSign(v) => call_sign::exec(&agent_env, v).await,
+            SubCommand::Sign(v) => sign::exec(&agent_env, v).await,
             SubCommand::Create(v) => create::exec(&agent_env, v).await,
             SubCommand::Delete(v) => delete::exec(&agent_env, v).await,
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
