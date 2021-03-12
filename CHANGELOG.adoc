@@ -19,7 +19,15 @@ This commit also upgrades tokio and reqwest in order to work correctly. There ar
 
 Renamed the `project_name` in our own generated assets to `canister_name`, for things that are generated during canister build (and not project generation).
 
----
+== Asset Canister
+
+=== feat: The asset canister can now store assets that exceed the message ingress limit (2 MB)
+
+* Please note that neither the JS agent nor the HTTP server have been updated yet to server such large assets.
+* The existing interface is left in place for backwards-compatibility, but deprecated:
+** retrieve(): use get() and get_chunk() instead
+** store(): use create_batch(), create_chunk(), and commit_batch() instead
+** list(): use keys() instead
 
 = 0.6.25
 
