@@ -60,6 +60,9 @@ teardown() {
 }
 
 @test "mitm attack - query: attack succeeds because there is no certificate to verify" {
-    assert_command dfx canister call certificate hello_query '("Buckaroo")'
+    # The wallet does not have a query call forward method (currently calls forward from wallet's update method)
+    # So call with users Identity as sender here
+    # There may need to be a query version of wallet_call
+    assert_command dfx canister --no-wallet call certificate hello_query '("Buckaroo")'
     assert_eq '("Hullo, Buckaroo!")'
 }

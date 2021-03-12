@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
+use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::set_controller;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -22,7 +23,11 @@ pub struct SetControllerOpts {
     new_controller: String,
 }
 
-pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
+pub async fn exec(
+    env: &dyn Environment,
+    opts: SetControllerOpts,
+    call_sender: &CallSender,
+) -> DfxResult {
     let timeout = expiry_duration();
     fetch_root_key_if_needed(env).await?;
 
@@ -43,7 +48,7 @@ pub async fn exec(env: &dyn Environment, opts: SetControllerOpts) -> DfxResult {
         }
     };
 
-    set_controller(env, canister_id, controller_principal, timeout).await?;
+    set_controller(env, canister_id, controller_principal, timeout, call_sender).await?;
 
     println!(
         "Set {:?} as controller of {:?}.",
