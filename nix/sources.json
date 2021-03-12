@@ -34,7 +34,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "79cb92b15060e1fb50c3d24ace426a590d15103b",
+        "rev": "613adfe1c71d2333e148b13f00b3532aa99b221d",
         "type": "git"
     },
     "dfinity": {
@@ -52,7 +52,7 @@
     "motoko": {
         "branch": "release",
         "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "43f3547ccbf7d48e5d25e1bf5222f11df8df2940",
+        "rev": "be50f210e439228baed13914b2093aa8e71ce2ed",
         "type": "git"
     },
     "napalm": {
