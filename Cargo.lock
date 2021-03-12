@@ -1140,6 +1140,7 @@ dependencies = [
  "lazy_static",
  "libflate",
  "mime",
+ "mime_guess",
  "mockall",
  "mockito",
  "net2",

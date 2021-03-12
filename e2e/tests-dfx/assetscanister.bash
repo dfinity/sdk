@@ -106,3 +106,35 @@ CHERRIES" "$stdout"
     assert_match '"/text-with-newlines.txt"'
     assert_match '"/sample-asset.txt"'
 }
+
+@test "identifies content type" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx canister create --all
+
+    touch src/e2e_project_assets/assets/index.html
+    touch src/e2e_project_assets/assets/logo.png
+    touch src/e2e_project_assets/assets/index.js
+    touch src/e2e_project_assets/assets/main.css
+    touch src/e2e_project_assets/assets/index.js.map
+    touch src/e2e_project_assets/assets/index.js.LICENSE.txt
+
+    dfx build
+    dfx canister install e2e_project_assets
+
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.html";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/html"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/logo.png";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "image/png"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "application/javascript"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/plain"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/main.css";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/css"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.map";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/plain"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.LICENSE.txt";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/plain"'
+}

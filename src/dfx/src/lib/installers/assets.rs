@@ -4,9 +4,11 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::waiter::waiter_with_timeout;
 use candid::{CandidType, Decode, Encode, Nat};
 
+use anyhow::anyhow;
 use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use ic_types::Principal;
+use mime::Mime;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -102,6 +104,7 @@ struct AssetLocation {
 struct ChunkedAsset {
     asset_location: AssetLocation,
     chunk_ids: Vec<Nat>,
+    media_type: Mime,
 }
 
 async fn create_chunk(
@@ -154,6 +157,15 @@ async fn make_chunked_asset(
 ) -> DfxResult<ChunkedAsset> {
     let content = &std::fs::read(&asset_location.source)?;
 
+    let media_type = mime_guess::from_path(&asset_location.source)
+        .first()
+        .ok_or_else(|| {
+            anyhow!(
+                "Unable to determine content type for '{}'.",
+                asset_location.source.to_string_lossy()
+            )
+        })?;
+
     // ?? doesn't work: rust lifetimes + task::spawn = tears
     // how to deal with lifetimes for agent and canister_id here
     // this function won't exit until after the task is joined...
@@ -201,9 +213,15 @@ async fn make_chunked_asset(
         );
         chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, data_chunk).await?);
     }
+    if chunk_ids.is_empty() {
+        println!("  {} 1/1 (0 bytes)", &asset_location.key);
+        let empty = vec![];
+        chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, &empty).await?);
+    }
     Ok(ChunkedAsset {
         asset_location,
         chunk_ids,
+        media_type,
     })
 }
 
@@ -243,7 +261,7 @@ async fn commit_batch(
                 BatchOperationKind::DeleteAsset(DeleteAssetArguments { key: key.clone() }),
                 BatchOperationKind::CreateAsset(CreateAssetArguments {
                     key: key.clone(),
-                    content_type: "application/octet-stream".to_string(),
+                    content_type: chunked_asset.media_type.to_string(),
                 }),
                 BatchOperationKind::SetAssetContent(SetAssetContentArguments {
                     key,
