@@ -24,6 +24,6 @@ teardown() {
     dfx canister create whoami
     dfx build
     dfx canister install whoami
-    assert_command dfx canister call whoami whoami
+    assert_command dfx canister --no-wallet call whoami whoami
     assert_match "$(dfx identity get-principal)"
 }
