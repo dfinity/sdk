@@ -12,19 +12,19 @@ pkgs.runCommandNoCCLocal "distributed-canisters" {
 } ''
   mkdir -p $out
 
-  for canister_mo in ${distributed}/*.mo; do
-    canister_name=$(basename -s .mo $canister_mo)
+  for canister_dir in $(find ${distributed} -mindepth 1 -maxdepth 1 -type d); do
+    canister_name=$(basename $canister_dir)
 
     build_dir=$out/$canister_name
     mkdir -p $build_dir
 
     $moc/bin/moc \
-       $canister_mo \
+       $canister_dir/Main.mo \
        -o $build_dir/$canister_name.did \
        --idl \
        --package base $base
     $moc/bin/moc \
-       $canister_mo \
+       $canister_dir/Main.mo \
        -o $build_dir/$canister_name.wasm \
        -c --release \
        --package base $base
