@@ -192,6 +192,14 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
+    let network = env
+        .get_network_descriptor()
+        .expect("Cannot get network descriptor from environment.")
+        .providers
+        .first()
+        .expect("Cannot get network provider (url).")
+        .to_string();
+
     let mut identity_manager = IdentityManager::new(env)?;
     identity_manager.instantiate_selected_identity()?;
     let sender = match identity_manager.get_selected_identity_principal() {
@@ -199,8 +207,12 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         None => bail!("Cannot get sender's principle"),
     }; // TODO: use call_sender?
 
-    let message_template =
-        SignedMessageV1::new(sender, canister_id.clone(), method_name.to_string());
+    let message_template = SignedMessageV1::new(
+        network,
+        sender,
+        canister_id.clone(),
+        method_name.to_string(),
+    );
 
     let mut sign_agent = agent.clone();
     sign_agent.set_transport(SignReplicaV1Transport::new(

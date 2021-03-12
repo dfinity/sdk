@@ -21,8 +21,8 @@ pub async fn exec(_env: &dyn Environment, _opts: CanisterSendOpts) -> DfxResult 
     file.read_to_string(&mut json)?;
     let message: SignedMessageV1 = serde_json::from_str(&json)?;
 
-    let replica = "http://localhost:8000/"; // TODO: configurable or be a field in the message?
-    let transport = ReqwestHttpReplicaV1Transport::create(replica)?;
+    let network = message.network; // TODO: configurable or be a field in the message?
+    let transport = ReqwestHttpReplicaV1Transport::create(network)?;
     let content = hex::decode(&message.content)?;
 
     match message.call_type.as_str() {
