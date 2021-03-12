@@ -1,3 +1,34 @@
+= 0.6.26
+
+== DFX
+
+=== feat: add --no-wallet flag and --wallet option to allow Users to bypass Wallet or specify a Wallet to use for calls (#1476)
+
+Added `--no-wallet` flag to `dfx canister` and `dfx deploy`. This allows users to call canister management functionality with their Identity as the Sender (bypassing their Wallet canister.)
+Added `--wallet` option to `dfx canister` and `dfx deploy`. This allows users to specify a wallet canister id to use as the Sender for calls.
+`--wallet` and `--no-wallet` conflict with each other. Omitting both will invoke the selected Identity's wallet canister to perform calls.
+
+=== feat: implement the HTTP Request proposal in dfx' bootstrap webserver. +
+And add support for http requests in the base storage canister (with a default to `/index.html`).
+
+This does not support other encodings than `identity` for now (and doesn't even return any headers). This support will be added to the upgraded asset storage canister built in #1482.
+
+Added a test that uses `curl localhost` to test that the asset storage AND the webserver properly support the http requests.
+
+This commit also upgrades tokio and reqwest in order to work correctly. There are also _some_ performance issues noted (this is slower than the `icx-http-server` for some reason), but those are not considered criticals and could be improved later on.
+
+Renamed the `project_name` in our own generated assets to `canister_name`, for things that are generated during canister build (and not project generation).
+
+== Asset Canister
+
+=== feat: The asset canister can now store assets that exceed the message ingress limit (2 MB)
+
+* Please note that neither the JS agent nor the HTTP server have been updated yet to server such large assets.
+* The existing interface is left in place for backwards-compatibility, but deprecated:
+** retrieve(): use get() and get_chunk() instead
+** store(): use create_batch(), create_chunk(), and commit_batch() instead
+** list(): use keys() instead
+
 = 0.6.25
 
 == DFX
