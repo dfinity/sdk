@@ -11,6 +11,7 @@ use ic_types::Principal;
 use mime::Mime;
 use openssl::sha::Sha256;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::WalkDir;
@@ -18,6 +19,7 @@ use walkdir::WalkDir;
 const CREATE_BATCH: &str = "create_batch";
 const CREATE_CHUNK: &str = "create_chunk";
 const COMMIT_BATCH: &str = "commit_batch";
+const LIST: &str = "list";
 const MAX_CHUNK_SIZE: usize = 1_900_000;
 
 #[derive(CandidType, Debug)]
@@ -52,6 +54,22 @@ struct GetResponse {
     contents: Vec<u8>,
     content_type: String,
     content_encoding: String,
+}
+
+#[derive(CandidType, Debug)]
+struct ListAssetsRequest {}
+
+#[derive(CandidType, Debug, Deserialize)]
+struct AssetEncodingDetails {
+    content_encoding: String,
+    sha256: Option<Vec<u8>>,
+}
+
+#[derive(CandidType, Debug, Deserialize)]
+struct AssetDetails {
+    key: String,
+    encodings: Vec<AssetEncodingDetails>,
+    content_type: String,
 }
 
 #[derive(CandidType, Debug)]
@@ -259,27 +277,36 @@ async fn commit_batch(
     timeout: Duration,
     batch_id: &Nat,
     chunked_assets: Vec<ChunkedAsset>,
+    current_assets: HashMap<String, AssetDetails>,
 ) -> DfxResult {
-    let operations: Vec<_> = chunked_assets
-        .into_iter()
-        .map(|chunked_asset| {
-            let key = chunked_asset.asset_location.key;
-            vec![
-                BatchOperationKind::DeleteAsset(DeleteAssetArguments { key: key.clone() }),
-                BatchOperationKind::CreateAsset(CreateAssetArguments {
-                    key: key.clone(),
-                    content_type: chunked_asset.media_type.to_string(),
-                }),
-                BatchOperationKind::SetAssetContent(SetAssetContentArguments {
-                    key,
-                    content_encoding: "identity".to_string(),
-                    chunk_ids: chunked_asset.chunk_ids,
-                    sha256: Some(chunked_asset.sha256),
-                }),
-            ]
-        })
-        .flatten()
+    let chunked_assets: HashMap<_, _> = chunked_assets
+        .iter()
+        .map(|e| (e.asset_location.key.clone(), e))
         .collect();
+    let mut operations = vec![];
+    for (key, _) in current_assets {
+        if !chunked_assets.contains_key(&key) {
+            operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
+                key: key.clone(),
+            }));
+        }
+    }
+    for (key, chunked_asset) in chunked_assets {
+        let mut ops = vec![
+            BatchOperationKind::DeleteAsset(DeleteAssetArguments { key: key.clone() }),
+            BatchOperationKind::CreateAsset(CreateAssetArguments {
+                key: key.clone(),
+                content_type: chunked_asset.media_type.to_string(),
+            }),
+            BatchOperationKind::SetAssetContent(SetAssetContentArguments {
+                key: key.clone(),
+                content_encoding: "identity".to_string(),
+                chunk_ids: chunked_asset.chunk_ids.clone(),
+                sha256: Some(chunked_asset.sha256.clone()),
+            }),
+        ];
+        operations.append(&mut ops);
+    }
     let arg = CommitBatchArguments {
         batch_id,
         operations,
@@ -319,12 +346,22 @@ pub async fn post_install_store_assets(
 
     let canister_id = info.get_canister_id().expect("Could not find canister ID.");
 
+    let current_assets = list_assets(agent, &canister_id, timeout).await?;
+
     let batch_id = create_batch(agent, &canister_id, timeout).await?;
 
     let chunked_assets =
         make_chunked_assets(agent, &canister_id, timeout, &batch_id, asset_locations).await?;
 
-    commit_batch(agent, &canister_id, timeout, &batch_id, chunked_assets).await?;
+    commit_batch(
+        agent,
+        &canister_id,
+        timeout,
+        &batch_id,
+        chunked_assets,
+        current_assets,
+    )
+    .await?;
 
     Ok(())
 }
@@ -339,4 +376,25 @@ async fn create_batch(agent: &Agent, canister_id: &Principal, timeout: Duration)
         .await?;
     let create_batch_response = candid::Decode!(&response, CreateBatchResponse)?;
     Ok(create_batch_response.batch_id)
+}
+
+async fn list_assets(
+    agent: &Agent,
+    canister_id: &Principal,
+    timeout: Duration,
+) -> DfxResult<HashMap<String, AssetDetails>> {
+    let args = ListAssetsRequest {};
+    let response = agent
+        .update(&canister_id, LIST)
+        .with_arg(candid::Encode!(&args)?)
+        .expire_after(timeout)
+        .call_and_wait(waiter_with_timeout(timeout))
+        .await?;
+
+    let assets: HashMap<_, _> = candid::Decode!(&response, Vec<AssetDetails>)?
+        .into_iter()
+        .map(|d| (d.key.clone(), d))
+        .collect();
+
+    Ok(assets)
 }
