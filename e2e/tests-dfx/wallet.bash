@@ -45,6 +45,15 @@ teardown() {
     assert_match "The wallet canister \"${ID}\"\ already exists for user \"default\" on \"actuallylocal\" network."
 }
 
+@test "wallet create wallet" {
+    dfx_new
+    dfx_start
+    WALLET_ID=$(dfx identity get-wallet)
+    CREATE_RES=$(dfx canister --no-wallet call "${WALLET_ID}" wallet_create_wallet "(record { cycles = (2000000000000:nat64); controller = opt principal \"$(dfx identity get-principal)\";})")
+    CHILD_ID=$(echo "${CREATE_RES}" | cut -d'"' -f 2)
+    assert_command dfx canister --no-wallet call "${CHILD_ID}" wallet_balance '()'
+}
+
 @test "bypass wallet call as user" {
     dfx_new
     install_asset identity
@@ -76,4 +85,3 @@ teardown() {
     assert_command dfx canister --no-wallet call e2e_project amInitializer
     assert_eq '(true)'
 }
-
