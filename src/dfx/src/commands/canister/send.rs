@@ -3,11 +3,11 @@ use crate::lib::error::DfxResult;
 use crate::lib::signed_message::SignedMessageV1;
 
 use clap::Clap;
-use ic_agent::agent::http_transport::ReqwestHttpReplicaV1Transport;
 use ic_agent::agent::ReplicaV1Transport;
+use ic_agent::{agent::http_transport::ReqwestHttpReplicaV1Transport, RequestId};
 
-use std::io::Read;
 use std::{fs::File, path::Path};
+use std::{io::Read, str::FromStr};
 
 /// Send a signed message
 #[derive(Clap)]
@@ -31,7 +31,12 @@ pub async fn exec(_env: &dyn Environment, _opts: CanisterSendOpts) -> DfxResult 
             eprint!("Result: ");
             println!("{}", hex::encode(result));
         }
-        "update" => {}
+        "update" => {
+            let request_id = RequestId::from_str(&message.request_id)?;
+            transport.submit(content, request_id).await?;
+            eprint!("Request ID: ");
+            println!("0x{}", String::from(request_id));
+        }
         _ => {}
     }
     Ok(())

@@ -110,16 +110,20 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
             envelope: Vec<u8>,
             request_id: RequestId,
         ) -> Result<(), AgentError> {
-            // print!(
-            //     "submit\n{}\n\n{}",
-            //     hex::encode(request_id.as_slice()),
-            //     hex::encode(envelope)
-            // );
-            println!("submit");
-            println!("file_name: {}", s.file_name);
-            println!("content: {}", hex::encode(envelope));
-            println!("request_id{}", hex::encode(request_id.as_slice()));
-            Err(AgentError::MessageError(String::new()))
+            let message = s
+                .message_template
+                .clone()
+                .with_call_type("update".to_string())
+                .with_request_id(request_id)
+                .with_content(hex::encode(&envelope));
+            let json = serde_json::to_string(&message)
+                .map_err(|x| AgentError::TransportError(Box::new(x)))?;
+            let path = Path::new(&s.file_name);
+            let mut file =
+                File::create(&path).map_err(|x| AgentError::TransportError(Box::new(x)))?;
+            file.write_all(json.as_bytes())
+                .map_err(|x| AgentError::TransportError(Box::new(x)))?;
+            Err(AgentError::MessageError("submit complete".to_string()))
         }
 
         Box::pin(run(self, envelope, request_id))
