@@ -16,6 +16,7 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::{fs::File, path::Path};
 use std::{future::Future, io::Write};
+use thiserror::Error;
 
 /// Sign a canister call to be sent
 #[derive(Clap)]
@@ -61,6 +62,12 @@ fn get_local_cid_and_candid_path(
     ))
 }
 
+#[derive(Error, Debug)]
+enum SerializeStatus {
+    #[error("{0}")]
+    Success(String),
+}
+
 struct SignReplicaV1Transport {
     file_name: String,
     message_template: SignedMessageV1,
@@ -87,13 +94,16 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
                 .with_call_type("query".to_string())
                 .with_content(hex::encode(&envelope));
             let json = serde_json::to_string(&message)
-                .map_err(|x| AgentError::TransportError(Box::new(x)))?;
+                .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let path = Path::new(&s.file_name);
             let mut file =
-                File::create(&path).map_err(|x| AgentError::TransportError(Box::new(x)))?;
+                File::create(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
             file.write_all(json.as_bytes())
-                .map_err(|x| AgentError::TransportError(Box::new(x)))?;
-            Err(AgentError::MessageError("read complete".to_string()))
+                .map_err(|x| AgentError::MessageError(x.to_string()))?;
+            Err(AgentError::TransportError(
+                SerializeStatus::Success(format!("Query message generated at {}", &s.file_name))
+                    .into(),
+            ))
         }
 
         Box::pin(run(self, envelope))
@@ -116,13 +126,16 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
                 .with_request_id(request_id)
                 .with_content(hex::encode(&envelope));
             let json = serde_json::to_string(&message)
-                .map_err(|x| AgentError::TransportError(Box::new(x)))?;
+                .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let path = Path::new(&s.file_name);
             let mut file =
-                File::create(&path).map_err(|x| AgentError::TransportError(Box::new(x)))?;
+                File::create(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
             file.write_all(json.as_bytes())
-                .map_err(|x| AgentError::TransportError(Box::new(x)))?;
-            Err(AgentError::MessageError("submit complete".to_string()))
+                .map_err(|x| AgentError::MessageError(x.to_string()))?;
+            Err(AgentError::TransportError(
+                SerializeStatus::Success(format!("Update message generated at {}", &s.file_name))
+                    .into(),
+            ))
         }
 
         Box::pin(run(self, envelope, request_id))
@@ -228,16 +241,32 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
             .with_arg(&arg_value)
             .call()
             .await;
-        println!("{:?}", res);
+        match res {
+            Err(AgentError::TransportError(b)) => {
+                eprintln!("{}", b);
+                Ok(())
+            }
+            Err(e) => bail!(e),
+            Ok(_) => unreachable!(),
+        }
     } else {
-        let request_id = sign_agent
+        let res = sign_agent
             .update(&canister_id, method_name)
             .with_arg(&arg_value)
             .expire_after(timeout)
             .call()
-            .await?;
-        println!("{:?}", request_id);
+            .await;
+        // if let Err(AgentError::TransportError(b)) = res {
+        //     eprintln!("{}", b);
+        //     return Ok(());
+        // }
+        match res {
+            Err(AgentError::TransportError(b)) => {
+                eprintln!("{}", b);
+                Ok(())
+            }
+            Err(e) => bail!(e),
+            Ok(_) => unreachable!(),
+        }
     }
-
-    Ok(())
 }
