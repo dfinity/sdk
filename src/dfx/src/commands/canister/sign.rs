@@ -4,7 +4,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::signed_message::SignedMessageV1;
-//use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type};
 
 use anyhow::{anyhow, bail};
@@ -193,7 +192,6 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    //fetch_root_key_if_needed(env).await?;
     let mut identity_manager = IdentityManager::new(env)?;
     identity_manager.instantiate_selected_identity()?;
     let sender = match identity_manager.get_selected_identity_principal() {
