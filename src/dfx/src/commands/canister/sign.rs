@@ -18,7 +18,7 @@ use std::{fs::File, path::Path};
 use std::{future::Future, io::Write};
 use thiserror::Error;
 
-/// Sign a canister call to be sent
+/// Sign a canister call and generate message file in json
 #[derive(Clap)]
 pub struct CanisterSignOpts {
     /// Specifies the name of the canister to build.
