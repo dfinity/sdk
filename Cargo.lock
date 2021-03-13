@@ -1907,7 +1907,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/switch_transport#b9d302122e4c01d0b3164b1aebd92239f29f5544"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#34d029ea775caea39b1ea0f5db1557b8668c1da3"
 dependencies = [
  "async-trait",
  "base32",
@@ -1938,7 +1938,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/switch_transport#b9d302122e4c01d0b3164b1aebd92239f29f5544"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#34d029ea775caea39b1ea0f5db1557b8668c1da3"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1953,7 +1953,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/switch_transport#b9d302122e4c01d0b3164b1aebd92239f29f5544"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#34d029ea775caea39b1ea0f5db1557b8668c1da3"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1965,7 +1965,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/switch_transport#b9d302122e4c01d0b3164b1aebd92239f29f5544"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#34d029ea775caea39b1ea0f5db1557b8668c1da3"
 dependencies = [
  "async-trait",
  "candid",

@@ -75,27 +75,27 @@ webpki-roots = "0.21.0"
 [dependencies.ic-agent]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "lwshang/switch_transport"
-#rev = "e77bcd2aa8e173b0d7a5b9fae8f9e42211b85110"
+branch = "next"
+rev = "34d029ea775caea39b1ea0f5db1557b8668c1da3"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "lwshang/switch_transport"
-#rev = "e77bcd2aa8e173b0d7a5b9fae8f9e42211b85110"
+branch = "next"
+rev = "34d029ea775caea39b1ea0f5db1557b8668c1da3"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "lwshang/switch_transport"
-#rev = "e77bcd2aa8e173b0d7a5b9fae8f9e42211b85110"
+branch = "next"
+rev = "34d029ea775caea39b1ea0f5db1557b8668c1da3"
 
 [dependencies.ic-utils]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "lwshang/switch_transport"
-#rev = "e77bcd2aa8e173b0d7a5b9fae8f9e42211b85110"
+branch = "next"
+rev = "34d029ea775caea39b1ea0f5db1557b8668c1da3"
 
 [dev-dependencies]
 env_logger = "0.6"
