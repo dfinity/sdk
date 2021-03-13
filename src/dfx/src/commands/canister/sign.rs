@@ -11,6 +11,7 @@ use clap::Clap;
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{AgentError, RequestId};
 use ic_types::principal::Principal;
+use slog::info;
 use std::option::Option;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -159,6 +160,7 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
 }
 
 pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
+    let log = env.get_logger();
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
@@ -252,7 +254,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {
-                eprintln!("{}", b);
+                info!(log, "{}", b);
                 Ok(())
             }
             Err(e) => bail!(e),
@@ -265,13 +267,9 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
             .expire_after(timeout)
             .call()
             .await;
-        // if let Err(AgentError::TransportError(b)) = res {
-        //     eprintln!("{}", b);
-        //     return Ok(());
-        // }
         match res {
             Err(AgentError::TransportError(b)) => {
-                eprintln!("{}", b);
+                info!(log, "{}", b);
                 Ok(())
             }
             Err(e) => bail!(e),

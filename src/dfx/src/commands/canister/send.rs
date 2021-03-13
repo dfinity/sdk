@@ -2,26 +2,32 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::signed_message::SignedMessageV1;
 
-use clap::Clap;
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV1Transport, RequestId};
 
+use anyhow::anyhow;
+use clap::Clap;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 
 /// Send a signed message
 #[derive(Clap)]
-pub struct CanisterSendOpts;
+pub struct CanisterSendOpts {
+    /// Specifies the file name of the message
+    file_name: String,
+}
 
-pub async fn exec(_env: &dyn Environment, _opts: CanisterSendOpts) -> DfxResult {
-    let file_name = "message.json"; // TODO: configurable
+pub async fn exec(_env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
+    let file_name = opts.file_name;
     let path = Path::new(&file_name);
-    let mut file = File::open(&path)?;
+    let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
     let mut json = String::new();
-    file.read_to_string(&mut json)?;
-    let message: SignedMessageV1 = serde_json::from_str(&json)?;
+    file.read_to_string(&mut json)
+        .map_err(|_| anyhow!("Cannot read the message file."))?;
+    let message: SignedMessageV1 =
+        serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
 
-    let network = message.network; // TODO: configurable or be a field in the message?
+    let network = message.network;
     let transport = ReqwestHttpReplicaV1Transport::create(network)?;
     let content = hex::decode(&message.content)?;
 
