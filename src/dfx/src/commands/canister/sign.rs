@@ -39,6 +39,10 @@ pub struct CanisterSignOpts {
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
 
+    /// Specifies the output file name.
+    #[clap(long, default_value("message.json"))]
+    output: String,
+
     /// Specifies the config for generating random argument.
     #[clap(long, conflicts_with("argument"))]
     random: Option<String>,
@@ -101,7 +105,7 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
             file.write_all(json.as_bytes())
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             Err(AgentError::TransportError(
-                SerializeStatus::Success(format!("Query message generated at {}", &s.file_name))
+                SerializeStatus::Success(format!("Query message generated at [{}]", &s.file_name))
                     .into(),
             ))
         }
@@ -133,7 +137,7 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
             file.write_all(json.as_bytes())
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             Err(AgentError::TransportError(
-                SerializeStatus::Success(format!("Update message generated at {}", &s.file_name))
+                SerializeStatus::Success(format!("Update message generated at [{}]", &s.file_name))
                     .into(),
             ))
         }
@@ -227,11 +231,16 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         method_name.to_string(),
     );
 
+    let file_name = opts.output;
+    if Path::new(&file_name).exists() {
+        bail!(
+            "[{}] already exists, please specify a different output file name.",
+            file_name
+        );
+    }
+
     let mut sign_agent = agent.clone();
-    sign_agent.set_transport(SignReplicaV1Transport::new(
-        "message.json", // TODO: configurable
-        message_template,
-    ));
+    sign_agent.set_transport(SignReplicaV1Transport::new(file_name, message_template));
 
     let timeout = expiry_duration(); // TODO: configurable
 
