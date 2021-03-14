@@ -70,7 +70,7 @@ impl SignedMessageV1 {
     pub fn validate(&self) -> DfxResult {
         let content = hex::decode(&self.content)?;
 
-        let cbor: serde_cbor::Value = serde_cbor::from_slice(&content)
+        let cbor: Value = serde_cbor::from_slice(&content)
             .map_err(|_| anyhow!("Invalid cbor data in the content of the message."))?;
 
         if let Value::Map(m) = cbor {

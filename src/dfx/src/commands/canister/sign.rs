@@ -61,7 +61,6 @@ pub struct CanisterSignOpts {
     file: String,
 }
 
-// TODO: extract this function to util
 fn get_local_cid_and_candid_path(
     env: &dyn Environment,
     canister_name: &str,
@@ -232,7 +231,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
     let sender = match identity_manager.get_selected_identity_principal() {
         Some(p) => p,
         None => bail!("Cannot get sender's principle"),
-    }; // TODO: use call_sender?
+    };
 
     let timeout = Duration::from_secs(opts.expire_after);
     let expiration_system_time = SystemTime::now()
