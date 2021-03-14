@@ -31,6 +31,8 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
     message.validate()?;
 
     info!(log, "Will send message:");
+    info!(log, "  Creation:    {}", message.creation);
+    info!(log, "  Expiration:  {}", message.expiration);
     info!(log, "  Network:     {}", message.network);
     info!(log, "  Call type:   {}", message.call_type);
     info!(log, "  Sender:      {}", message.sender);

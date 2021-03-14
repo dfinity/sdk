@@ -4,12 +4,18 @@ use serde::{Deserialize, Serialize};
 
 use super::error::DfxResult;
 use anyhow::{anyhow, bail};
+use chrono::{DateTime, TimeZone, Utc};
 use serde_cbor::Value;
 use std::convert::TryFrom;
+use std::time::Duration;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct SignedMessageV1 {
     version: usize,
+    #[serde(with = "date_time_utc")]
+    pub creation: DateTime<Utc>,
+    #[serde(with = "date_time_utc")]
+    pub expiration: DateTime<Utc>,
     pub network: String, // url of the network
     pub call_type: String,
     pub sender: String,
@@ -22,6 +28,8 @@ pub(crate) struct SignedMessageV1 {
 
 impl SignedMessageV1 {
     pub fn new(
+        creation: DateTime<Utc>,
+        expiration: DateTime<Utc>,
         network: String,
         sender: Principal,
         canister_id: Principal,
@@ -30,6 +38,8 @@ impl SignedMessageV1 {
     ) -> Self {
         Self {
             version: 1,
+            creation,
+            expiration,
             network,
             call_type: String::new(),
             sender: sender.to_string(),
@@ -67,6 +77,24 @@ impl SignedMessageV1 {
                 .get(&Value::Text("content".to_string()))
                 .ok_or_else(|| anyhow!("Invalid cbor content"))?;
             if let Value::Map(m) = cbor_content {
+                let ingress_expiry = m
+                    .get(&Value::Text("ingress_expiry".to_string()))
+                    .ok_or_else(|| anyhow!("Invalid cbor content"))?;
+                if let Value::Integer(s) = ingress_expiry {
+                    let seconds_since_epoch_cbor = Duration::from_nanos(*s as u64).as_secs();
+                    let expiration_from_cbor = Utc.timestamp(seconds_since_epoch_cbor as i64, 0);
+                    let diff = self.expiration.signed_duration_since(expiration_from_cbor);
+                    if diff > chrono::Duration::seconds(5) || diff < chrono::Duration::seconds(-5) {
+                        bail!(
+                            "Invalid message: expiration not match\njson: {}\ncbor: {}",
+                            self.expiration,
+                            expiration_from_cbor
+                        )
+                    }
+                    if Utc::now() > expiration_from_cbor {
+                        bail!("The message has been expired at: {}", expiration_from_cbor);
+                    }
+                }
                 let sender = m
                     .get(&Value::Text("sender".to_string()))
                     .ok_or_else(|| anyhow!("Invalid cbor content"))?;
@@ -133,5 +161,29 @@ impl SignedMessageV1 {
             bail!("Invalid cbor content");
         }
         Ok(())
+    }
+}
+
+mod date_time_utc {
+    use chrono::{DateTime, TimeZone, Utc};
+    use serde::{self, Deserialize, Deserializer, Serializer};
+
+    const FORMAT: &'static str = "%Y-%m-%d %H:%M:%S UTC";
+
+    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = format!("{}", date.format(FORMAT));
+        serializer.serialize_str(&s)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Utc.datetime_from_str(&s, FORMAT)
+            .map_err(serde::de::Error::custom)
     }
 }

@@ -4,9 +4,10 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::signed_message::SignedMessageV1;
-use crate::util::{blob_from_arguments, expiry_duration, get_candid_type};
+use crate::util::{blob_from_arguments, get_candid_type};
 
 use anyhow::{anyhow, bail};
+use chrono::Utc;
 use clap::Clap;
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{AgentError, RequestId};
@@ -15,6 +16,7 @@ use slog::info;
 use std::option::Option;
 use std::path::PathBuf;
 use std::pin::Pin;
+use std::time::{Duration, SystemTime};
 use std::{fs::File, path::Path};
 use std::{future::Future, io::Write};
 use thiserror::Error;
@@ -47,6 +49,10 @@ pub struct CanisterSignOpts {
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     r#type: Option<String>,
+
+    /// Specifies how long will the message be valid in seconds, default to be 300s (5 minutes)
+    #[clap(long, default_value("300"))]
+    expire_after: u64,
 
     /// Specifies the output file name.
     #[clap(long, default_value("message.json"))]
@@ -226,7 +232,19 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         None => bail!("Cannot get sender's principle"),
     }; // TODO: use call_sender?
 
+    let timeout = Duration::from_secs(opts.expire_after);
+    let expiration_system_time = SystemTime::now()
+        .checked_add(timeout)
+        .ok_or_else(|| anyhow!("Time wrapped around."))?;
+    let chorono_timeout = chrono::Duration::seconds(opts.expire_after as i64);
+    let creation = Utc::now();
+    let expiration = creation
+        .checked_add_signed(chorono_timeout)
+        .ok_or_else(|| anyhow!("Expiration datetime overflow."))?;
+
     let message_template = SignedMessageV1::new(
+        creation,
+        expiration,
         network,
         sender,
         canister_id.clone(),
@@ -245,12 +263,11 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
     let mut sign_agent = agent.clone();
     sign_agent.set_transport(SignReplicaV1Transport::new(file_name, message_template));
 
-    let timeout = expiry_duration(); // TODO: configurable
-
     if is_query {
         let res = sign_agent
             .query(&canister_id, method_name)
             .with_arg(&arg_value)
+            .expire_at(expiration_system_time)
             .call()
             .await;
         match res {
@@ -265,7 +282,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         let res = sign_agent
             .update(&canister_id, method_name)
             .with_arg(&arg_value)
-            .expire_after(timeout)
+            .expire_at(expiration_system_time)
             .call()
             .await;
         match res {
