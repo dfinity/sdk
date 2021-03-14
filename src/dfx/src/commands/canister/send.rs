@@ -7,6 +7,7 @@ use ic_agent::{agent::http_transport::ReqwestHttpReplicaV1Transport, RequestId};
 
 use anyhow::anyhow;
 use clap::Clap;
+use slog::info;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 
@@ -17,7 +18,8 @@ pub struct CanisterSendOpts {
     file_name: String,
 }
 
-pub async fn exec(_env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
+    let log = env.get_logger();
     let file_name = opts.file_name;
     let path = Path::new(&file_name);
     let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
@@ -27,6 +29,20 @@ pub async fn exec(_env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
     let message: SignedMessageV1 =
         serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
     message.validate()?;
+
+    info!(log, "Will send message:");
+    info!(log, "  Network:     {}", message.network);
+    info!(log, "  Call type:   {}", message.call_type);
+    info!(log, "  Sender:      {}", message.sender);
+    info!(log, "  Canister id: {}", message.canister_id);
+    info!(log, "  Method name: {}", message.method_name);
+    info!(log, "  Arg:         {:?}", message.arg);
+    info!(log, "\nOkay? [y/N]");
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+    if !["y", "yes"].contains(&input.to_lowercase().trim()) {
+        return Ok(());
+    }
 
     let network = message.network;
     let transport = ReqwestHttpReplicaV1Transport::create(network)?;
