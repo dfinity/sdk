@@ -40,10 +40,6 @@ pub struct CanisterSignOpts {
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
 
-    /// Specifies the output file name.
-    #[clap(long, default_value("message.json"))]
-    output: String, // TODO: distinguish with same name option in `canister call`
-
     /// Specifies the config for generating random argument.
     #[clap(long, conflicts_with("argument"))]
     random: Option<String>,
@@ -51,6 +47,10 @@ pub struct CanisterSignOpts {
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     r#type: Option<String>,
+
+    /// Specifies the output file name.
+    #[clap(long, default_value("message.json"))]
+    file: String,
 }
 
 // TODO: extract this function to util
@@ -234,7 +234,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         arg_value.clone(),
     );
 
-    let file_name = opts.output;
+    let file_name = opts.file;
     if Path::new(&file_name).exists() {
         bail!(
             "[{}] already exists, please specify a different output file name.",
