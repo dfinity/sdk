@@ -26,6 +26,9 @@ pub async fn exec(_env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
         .map_err(|_| anyhow!("Cannot read the message file."))?;
     let message: SignedMessageV1 =
         serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
+    message.validate()?;
+
+    println!("{:?}", message); // TODO: delete this line
 
     let network = message.network;
     let transport = ReqwestHttpReplicaV1Transport::create(network)?;

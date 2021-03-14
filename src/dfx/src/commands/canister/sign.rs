@@ -42,7 +42,7 @@ pub struct CanisterSignOpts {
 
     /// Specifies the output file name.
     #[clap(long, default_value("message.json"))]
-    output: String,
+    output: String, // TODO: distinguish with same name option in `canister call`
 
     /// Specifies the config for generating random argument.
     #[clap(long, conflicts_with("argument"))]
