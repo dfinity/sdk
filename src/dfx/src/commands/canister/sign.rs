@@ -6,19 +6,21 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::signed_message::SignedMessageV1;
 use crate::util::{blob_from_arguments, get_candid_type};
 
-use anyhow::{anyhow, bail};
-use chrono::Utc;
-use clap::Clap;
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{AgentError, RequestId};
 use ic_types::principal::Principal;
+
+use anyhow::{anyhow, bail};
+use chrono::Utc;
+use clap::Clap;
 use slog::info;
+use std::fs::File;
+use std::future::Future;
+use std::io::Write;
 use std::option::Option;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::time::{Duration, SystemTime};
-use std::{fs::File, path::Path};
-use std::{future::Future, io::Write};
 use thiserror::Error;
 
 /// Sign a canister call and generate message file in json
