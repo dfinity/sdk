@@ -231,6 +231,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         sender,
         canister_id.clone(),
         method_name.to_string(),
+        arg_value.clone(),
     );
 
     let file_name = opts.output;

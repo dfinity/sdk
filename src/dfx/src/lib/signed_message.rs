@@ -15,6 +15,7 @@ pub(crate) struct SignedMessageV1 {
     pub sender: String,
     pub canister_id: String,
     pub method_name: String,
+    pub arg: Vec<u8>,
     pub request_id: String, // only useful for update call
     pub content: String,    // hex::encode the Vec<u8>
 }
@@ -25,6 +26,7 @@ impl SignedMessageV1 {
         sender: Principal,
         canister_id: Principal,
         method_name: String,
+        arg: Vec<u8>,
     ) -> Self {
         Self {
             version: 1,
@@ -33,6 +35,7 @@ impl SignedMessageV1 {
             sender: sender.to_string(),
             canister_id: canister_id.to_string(),
             method_name,
+            arg,
             request_id: String::new(),
             content: String::new(),
         }
@@ -104,8 +107,21 @@ impl SignedMessageV1 {
                 if let Value::Text(s) = method_name {
                     if !s.eq(&self.method_name) {
                         bail!(
-                            "Invalid message: canister_id not match\njson: {}\ncbor: {}",
+                            "Invalid message: method_name not match\njson: {}\ncbor: {}",
                             self.method_name,
+                            s
+                        )
+                    }
+                }
+
+                let arg = m
+                    .get(&Value::Text("arg".to_string()))
+                    .ok_or_else(|| anyhow!("Invalid cbor content"))?;
+                if let Value::Bytes(s) = arg {
+                    if !s.eq(&self.arg) {
+                        bail!(
+                            "Invalid message: arg not match\njson: {:?}\ncbor: {:?}",
+                            self.arg,
                             s
                         )
                     }
