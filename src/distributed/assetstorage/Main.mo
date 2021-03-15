@@ -369,6 +369,8 @@ shared ({caller = creator}) actor class () {
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
     let path = getPath(request.url);
 
+    Debug.print("http_request " # path);
+
     let assetEncoding: ?A.AssetEncoding = switch (getAssetEncoding(path)) {
       case null getAssetEncoding("/index.html");
       case (?found) ?found;
