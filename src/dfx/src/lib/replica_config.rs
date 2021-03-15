@@ -36,6 +36,7 @@ impl SchedulerConfig {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ArtifactPoolConfig {
+    pub consensus_pool_backend: String,
     pub consensus_pool_path: PathBuf,
 }
 
@@ -76,6 +77,7 @@ impl ReplicaConfig {
                 crypto_root: state_root.join("crypto_store"),
             },
             artifact_pool: ArtifactPoolConfig {
+                consensus_pool_backend: "rocksdb".to_string(),
                 consensus_pool_path: state_root.join("consensus_pool"),
             },
         }
