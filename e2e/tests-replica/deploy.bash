@@ -81,10 +81,8 @@ teardown() {
     install_asset greet
     dfx_start
     assert_command dfx deploy
-    assert_match 'attempting install'
     assert_not_match 'attempting upgrade'
 
     assert_command dfx deploy
-    assert_not_match 'attempting install'
     assert_match 'attempting upgrade'
 }
