@@ -76,3 +76,15 @@ teardown() {
     assert_match 'Hello, World'
 }
 
+@test "dfx deploy installs on first invocation, upgrades on second" {
+    dfx_new hello
+    install_asset greet
+    dfx_start
+    assert_command dfx deploy
+    assert_match 'attempting install'
+    assert_not_match 'attempting upgrade'
+
+    assert_command dfx deploy
+    assert_not_match 'attempting install'
+    assert_match 'attempting upgrade'
+}
