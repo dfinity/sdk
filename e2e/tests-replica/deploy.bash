@@ -80,9 +80,20 @@ teardown() {
     dfx_new hello
     install_asset greet
     dfx_start
-    assert_command dfx deploy
-    assert_not_match 'attempting upgrade'
+
+    # In the normal case, whether for an initial install or a subsequent install,
+    # dfx deploy does the right thing, so it doesn't need to retry.
+    # Therefore, there is no "attempting (install|upgrade)" message.
 
     assert_command dfx deploy
-    assert_match 'attempting upgrade'
+    assert_not_match 'attempting'
+
+    assert_command dfx canister call hello greet '("First")'
+    assert_eq '("Hello, First!")'
+
+    assert_command dfx deploy
+    assert_not_match 'attempting'
+
+    assert_command dfx canister call hello greet '("Second")'
+    assert_eq '("Hello, Second!")'
 }
