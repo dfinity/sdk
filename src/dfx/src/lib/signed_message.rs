@@ -169,7 +169,7 @@ mod date_time_utc {
     use chrono::{DateTime, TimeZone, Utc};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
-    const FORMAT: &'static str = "%Y-%m-%d %H:%M:%S UTC";
+    const FORMAT: &str = "%Y-%m-%d %H:%M:%S UTC";
 
     pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
     where
