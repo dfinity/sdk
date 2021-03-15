@@ -14,9 +14,6 @@ The *validator* should be the person most familiar with the process and be able 
 A successful release is the result of coordination between automation, manual steps performed by team members, and a validation process.
 Our goal is to update this document with the latest information as we iterate to improve the release process.
 
-== Checklist
-Use this checklist to prepare a release candidate.
-
 === Participants
 - Driver / Primary
 - Validator / Secondary
@@ -58,12 +55,11 @@ to verify:
 
 image:is-master-green.png[]
 
-=== Start preparing a new release
+=== Update your repository with merged commits
 
 . Connect to VPN.
-
 . Open a terminal and `cd` into your local copy of the `sdk` repo.
-. Checkout the `master` branch and pull from remote.
+. Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
 +
 [source, bash]
 ----
@@ -73,22 +69,33 @@ git checkout master && git pull
 At this point, you are ready to build a release candidate.
 There are two ways you can build a release candidate:
 - Using the <<script,SCRIPT-BASED release process>> to automate the build process and skip manual testing.
-- Using the <<manual,MANUAL release process>> instructions to build and test the release.
+- Using the <<manual,MANUAL STEPS release process>> to build and test the release.
 
 [[script]]
 == SCRIPT-BASED release process
 
-To use the release script to automate building the release candidate, run the following command:
+To use the release script to automate building the release candidate:
 
+. Run the following command and substitute `<n.n.n>` with the version number for this release candidate:
++
 [source, bash]
 ----
 ./scripts/release.sh <n.n.n>
 ----
++
+For example, if releasing 0.7.0, you would run the following command:
++
+....
+./scripts/release.sh 0.7.0
+....
+. Follow the prompts displayed to complete the release process.
 
 After running this command to build the release candidate, follow the steps in <<post-build,Notification and post-build validations>> to complete the release process.
 
 [[manual]]
 == MANUAL STEPS release process
+
+The manual release process provides full instructions for building and testing the release candidate binaries to ensure everything is working before making a release available to internal or external developers. 
 
 === Build DFX and the JavaScript agent binaries
 
@@ -351,7 +358,7 @@ git push origin stable
 Pushing the branch second is an optimization.
 Hydra will spur into action when `stable` advances, so if the branch is already tagged, it won't require a second fetch.
 
-==== Publish Javascript agent to NPM
+==== Publish JavaScript agent to NPM
 
 . Create and switch to a new directory to release from by running the following commands:
 +
@@ -409,6 +416,8 @@ about the successful publishing of the `dfx` tarballs.
 . Run through the link:https://sdk.dfinity.org/docs/quickstart/local-quickstart.html[_Quick start - Local development_] steps.
 . Run through link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#ping-the-network[Check the connection to the network] and link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#net-deploy[Register, build, and deploy the application] steps to deploy to the network.
 . Notify link:https://app.slack.com/client/T43F9UHS5/CGA566TPV[#eng-sdk] team members that the new build is ready for manual installation and testing.
++
+Remind the SDK and Apps teams to add information about _features and fixes_ for release notes to their issues or PRs and to apply the changelog label to have the information included in the release notes.
 . Notify the link:https://forum.dfinity.org[Developer Forum] community if there are breaking changes.
 +
 If a release is known to have changes that are not backward-compatible, create a forum post to describe the change and any instructions for migrating to the new release.
