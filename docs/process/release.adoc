@@ -286,7 +286,7 @@ For example:
 ----
 +
 *Ensure* `tags.latest` remains the same.
-
+. Exit `nix-shell` to continue.
 
 ==== Create a pull request and tag
 
