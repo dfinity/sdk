@@ -34,13 +34,13 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "22217a2b10536080b7ca80f716f10e956179315b",
+        "rev": "5e3148ebaa87192e8fd4efb69f8d5f03e81812ae",
         "type": "git"
     },
     "dfinity": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "c696e342ed7504dc90d7e84b9a8124ce02212f99",
+        "rev": "2b4e26adfac9b5c47da02055c6471d551e3458df",
         "type": "git"
     },
     "ic-ref": {
