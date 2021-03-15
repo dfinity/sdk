@@ -17,7 +17,7 @@ pub struct CanisterSendOpts {
     file_name: String,
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
+pub async fn exec(_env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
     let file_name = opts.file_name;
     let path = Path::new(&file_name);
     let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;

@@ -6,6 +6,7 @@ pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
 pub use install_canister::install_canister;
 
+use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -14,11 +15,13 @@ use crate::lib::waiter::waiter_with_timeout;
 use anyhow::anyhow;
 use candid::de::ArgumentDecoder;
 use candid::CandidType;
+use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::interfaces::ManagementCanister;
 use serde::Deserialize;
+use std::path::PathBuf;
 use std::time::Duration;
 
 async fn do_management_call<A, O>(
@@ -176,4 +179,17 @@ pub async fn delete_canister(
     .await?;
 
     Ok(())
+}
+
+pub fn get_local_cid_and_candid_path(
+    env: &dyn Environment,
+    canister_name: &str,
+    maybe_canister_id: Option<CanisterId>,
+) -> DfxResult<(CanisterId, Option<PathBuf>)> {
+    let config = env.get_config_or_anyhow()?;
+    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
+    Ok((
+        canister_info.get_canister_id()?,
+        canister_info.get_output_idl_path(),
+    ))
 }

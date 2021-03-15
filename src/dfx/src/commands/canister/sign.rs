@@ -1,8 +1,8 @@
-use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::signed_message::SignedMessageV1;
 use crate::util::{blob_from_arguments, get_candid_type};
 
@@ -18,7 +18,7 @@ use std::fs::File;
 use std::future::Future;
 use std::io::Write;
 use std::option::Option;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::pin::Pin;
 use std::time::{Duration, SystemTime};
 use thiserror::Error;
@@ -59,19 +59,6 @@ pub struct CanisterSignOpts {
     /// Specifies the output file name.
     #[clap(long, default_value("message.json"))]
     file: String,
-}
-
-fn get_local_cid_and_candid_path(
-    env: &dyn Environment,
-    canister_name: &str,
-    maybe_canister_id: Option<Principal>,
-) -> DfxResult<(Principal, Option<PathBuf>)> {
-    let config = env.get_config_or_anyhow()?;
-    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
-    Ok((
-        canister_info.get_canister_id()?,
-        canister_info.get_output_idl_path(),
-    ))
 }
 
 #[derive(Error, Debug)]
