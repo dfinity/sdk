@@ -7,7 +7,6 @@ use ic_agent::{agent::http_transport::ReqwestHttpReplicaV1Transport, RequestId};
 
 use anyhow::anyhow;
 use clap::Clap;
-use slog::info;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 
@@ -19,7 +18,6 @@ pub struct CanisterSendOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
-    let log = env.get_logger();
     let file_name = opts.file_name;
     let path = Path::new(&file_name);
     let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
@@ -30,16 +28,16 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
         serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
     message.validate()?;
 
-    info!(log, "Will send message:");
-    info!(log, "  Creation:    {}", message.creation);
-    info!(log, "  Expiration:  {}", message.expiration);
-    info!(log, "  Network:     {}", message.network);
-    info!(log, "  Call type:   {}", message.call_type);
-    info!(log, "  Sender:      {}", message.sender);
-    info!(log, "  Canister id: {}", message.canister_id);
-    info!(log, "  Method name: {}", message.method_name);
-    info!(log, "  Arg:         {:?}", message.arg);
-    info!(log, "\nOkay? [y/N]");
+    eprintln!("Will send message:");
+    eprintln!("  Creation:    {}", message.creation);
+    eprintln!("  Expiration:  {}", message.expiration);
+    eprintln!("  Network:     {}", message.network);
+    eprintln!("  Call type:   {}", message.call_type);
+    eprintln!("  Sender:      {}", message.sender);
+    eprintln!("  Canister id: {}", message.canister_id);
+    eprintln!("  Method name: {}", message.method_name);
+    eprintln!("  Arg:         {:?}", message.arg);
+    eprintln!("\nOkay? [y/N]");
     let mut input = String::new();
     std::io::stdin().read_line(&mut input)?;
     if !["y", "yes"].contains(&input.to_lowercase().trim()) {
@@ -52,9 +50,12 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
 
     match message.call_type.as_str() {
         "query" => {
-            let result = transport.read(content).await?;
-            eprint!("Result: ");
-            println!("{}", hex::encode(result));
+            let response = transport.read(content).await?;
+            eprintln!(
+                "To see the content of response, copy-paste the encoded string into cbor.me."
+            );
+            eprint!("Response: ");
+            println!("{}", hex::encode(response));
         }
         "update" => {
             let request_id = RequestId::from_str(&message.request_id)?;
