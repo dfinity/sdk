@@ -20,7 +20,8 @@ teardown() {
     install_asset custom_canister
     dfx_start
     dfx deploy
-    for i in {1..50} do
+    for i in {1..50}
+    do
       dfx canister install --all --mode=reinstall
     done
 }
