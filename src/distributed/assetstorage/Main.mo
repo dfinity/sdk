@@ -1,4 +1,5 @@
 import Array "mo:base/Array";
+import Buffer "mo:base/Buffer";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import HashMap "mo:base/HashMap";
@@ -371,19 +372,33 @@ shared ({caller = creator}) actor class () {
 
     Debug.print("http_request " # path);
 
-    let assetEncoding: ?A.AssetEncoding = switch (getAssetEncoding(path)) {
-      case null getAssetEncoding("/index.html");
-      case (?found) ?found;
+    let (asset, assetEncoding): (?A.Asset, ?A.AssetEncoding) = switch (getAssetEncoding(path)) {
+      case (?(asset, found)) (?asset, ?found);
+      case (null) {
+        switch (getAssetEncoding("/index.html")) {
+          case (?(asset, assetEncoding)) (?asset, ?assetEncoding);
+          case (null) (null, null);
+        }
+      }
     };
 
-    switch (assetEncoding) {
-      case null {{ status_code = 404; headers = []; body = "" }};
-      case (?c) {
-        if (c.content.size() > 1)
-          throw Error.reject("asset too large");
+    switch (asset, assetEncoding) {
+      case (?a, ?c) {
+        //if (c.content.size() > 1)
+        //  throw Error.reject("asset too large");
+        let headers = Buffer.Buffer<(Text,Text)>(3);
+        headers.add(("Content-Type", a.contentType));
+        headers.add(("Content-Length", Nat.toText(c.totalLength)));
+        if (c.contentEncoding != "identity")
+          headers.add(("Content-Encoding", c.contentEncoding));
 
-        { status_code = 200; headers = []; body = c.content[0] }
-      }
+        {
+          status_code = 200;
+          headers = headers.toArray();
+          body = c.content[0]
+        }
+      };
+      case (_, _) {{ status_code = 404; headers = []; body = "" }};
     }
   };
 
@@ -394,10 +409,15 @@ shared ({caller = creator}) actor class () {
     path
   };
 
-  private func getAssetEncoding(path: Text): ?A.AssetEncoding {
+  private func getAssetEncoding(path: Text): ?(A.Asset, A.AssetEncoding) {
     switch (assets.get(path)) {
       case null null;
-      case (?asset) asset.getEncoding("identity");
+      case (?asset) {
+        switch (asset.getEncoding("identity")) {
+          case null null;
+          case (?assetEncoding) ?(asset, assetEncoding);
+        }
+      }
     }
   };
 

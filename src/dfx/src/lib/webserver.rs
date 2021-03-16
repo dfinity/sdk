@@ -18,6 +18,7 @@ use actix_web::{
 };
 use anyhow::anyhow;
 use crossbeam::channel::Sender;
+use futures::future::try_join_all;
 use futures::StreamExt;
 use ic_agent::Agent;
 use ic_types::Principal;
@@ -314,10 +315,17 @@ async fn http_request(
         Ok((http_response,)) => {
             if let Ok(status_code) = StatusCode::from_u16(http_response.status_code) {
                 let mut builder = HttpResponse::build(status_code);
-                for HeaderField(name, value) in http_response.headers {
-                    builder.header(&name, value);
+                match get_whole_body(&http_response.headers, http_response.body).await {
+                    Err(msg) =>
+                      Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                          .body(format!("Details: {}", msg))),
+                    Ok(body) => {
+                        for HeaderField(name, value) in http_response.headers {
+                            builder.header(&name, value);
+                    }
+                        Ok(builder.body(body))
+                    }
                 }
-                Ok(builder.body(http_response.body))
             } else {
                 Ok(
                     HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR).body(format!(
@@ -330,6 +338,41 @@ async fn http_request(
     }
 }
 
+async fn get_whole_body(headers: &Vec<HeaderField>, body: Vec<u8>) -> Result<Vec<u8>, String> {
+    let content_length: Option<usize> =
+        headers.iter().find_map(|header| {
+            if header.0 == "Content-Length" {
+                header.1.parse().ok()
+            } else {
+                None
+            }
+        });
+
+    let mut body = body;
+    if let Some(content_length) = content_length {
+        if body.len() < content_length {
+            println!("chunked");
+            let chunks = (content_length + body.len() - 1) / body.len();
+            println!("chunks: {}", chunks);
+            let mut chunk_futures: Vec<_> = vec!();
+            for chunk_index in 1..chunks {
+                chunk_futures.push(get_chunk(chunk_index));
+            }
+            let mut chunk_bodies = try_join_all(chunk_futures).await?;
+            let mut all_bodies = vec!(body);
+            all_bodies.append(&mut chunk_bodies);
+            let body: Vec<u8> = chunk_bodies.into_iter().flatten().collect();
+            return Ok(body);
+
+        }
+    }
+    Ok(body)
+}
+
+async fn get_chunk(index: usize) -> Result<Vec<u8>, String> {
+    // oof need path
+  Ok(vec!())
+}
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
