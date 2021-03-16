@@ -70,19 +70,19 @@ CHERRIES" "$stdout"
     dd if=/dev/urandom of=src/e2e_project_assets/assets/large-asset.bin bs=1000000 count=6
 
     dfx_start
-    dfx canister create --all
+    dfx canister --no-wallet create --all
     dfx build
-    dfx canister install e2e_project_assets
+    dfx canister --no-wallet install --memory-allocation 15mb e2e_project_assets
 
-    assert_command dfx canister call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
     assert_match 'total_length = 6_000_000'
     assert_match 'content_type = "application/octet-stream"'
     assert_match 'content_encoding = "identity"'
 
-    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2})'
 
-    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
-    assert_command_fail dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
 }
 
 @test "list() and keys() return asset keys" {
