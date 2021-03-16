@@ -18,7 +18,6 @@ use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::StatusCallResult;
 use ic_utils::interfaces::ManagementCanister;
-use serde::Deserialize;
 use std::time::Duration;
 
 async fn do_management_call<A, O>(
