@@ -67,15 +67,12 @@ CHERRIES" "$stdout"
     [ "$USE_IC_REF" ] && skip "skip for ic-ref" # this takes too long for ic-ref's wasm interpreter
 
     install_asset assetscanister
+    dd if=/dev/urandom of=src/e2e_project_assets/assets/large-asset.bin bs=1000000 count=6
 
     dfx_start
     dfx canister create --all
     dfx build
     dfx canister install e2e_project_assets
-
-    dd if=/dev/urandom of=src/e2e_project_assets/assets/large-asset.bin bs=1000000 count=6
-
-    dfx deploy --reinstall
 
     assert_command dfx canister call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
     assert_match 'total_length = 6_000_000'
