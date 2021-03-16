@@ -39,8 +39,8 @@
     },
     "dfinity": {
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "fc46573d03d0024b85eae4f93ce8dc823308fcfd",
-        "tag": "release-2020-11-26.RC01",
+        "rev": "11d8ecc2d6cef3be04f3d19dd9fd1b55dd0cb1f4",
+        "branch": "add-consensus-pool-db-flag",
         "type": "git"
     },
     "ic-ref": {
