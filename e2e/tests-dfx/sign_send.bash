@@ -14,7 +14,7 @@ teardown() {
   dfx_stop
 }
 
-@test "sign + send -- counter_mo" {
+@test "sign + send" {
     install_asset counter
     dfx_start
     dfx canister --no-wallet create --all
