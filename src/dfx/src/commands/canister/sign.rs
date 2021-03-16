@@ -26,8 +26,7 @@ use thiserror::Error;
 /// Sign a canister call and generate message file in json
 #[derive(Clap)]
 pub struct CanisterSignOpts {
-    /// Specifies the name of the canister to build.
-    /// You must specify either a canister name or the --all option.
+    /// Specifies the name of the canister to call.
     canister_name: String,
 
     /// Specifies the method name to call on the canister.
