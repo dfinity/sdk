@@ -38,9 +38,9 @@
         "type": "git"
     },
     "dfinity": {
-        "branch": "master",
+        "branch": "add-consensus-pool-db-flag",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "c696e342ed7504dc90d7e84b9a8124ce02212f99",
+        "rev": "bae804c20b14ec4da6f3cf574775c3d7b36d8f54",
         "type": "git"
     },
     "ic-ref": {

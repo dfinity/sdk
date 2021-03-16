@@ -287,7 +287,9 @@ shared ({caller = creator}) actor class () {
         switch (Array.mapResult<T.ChunkId, Blob, Text>(arg.chunk_ids, chunks.take)) {
           case (#ok(chunks)) {
             if (chunkLengthsMatch(chunks) == false) {
-              #err("chunk lengths do not match the size of the first chunk")
+              #err(arg.key # "(" # arg.content_encoding # "): chunk lengths do not match the size of the first chunk")
+            } else if (chunks.size() == 0) {
+              #err(arg.key # "(" # arg.content_encoding # "): must have at least one chunk")
             } else {
               let encoding : A.AssetEncoding = {
                 contentEncoding = arg.content_encoding;
