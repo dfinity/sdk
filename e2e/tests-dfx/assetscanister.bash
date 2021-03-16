@@ -75,7 +75,7 @@ CHERRIES" "$stdout"
 
     dd if=/dev/urandom of=src/e2e_project_assets/assets/large-asset.bin bs=1000000 count=6
 
-    # dfx deploy
+    dfx deploy --reinstall
 
     assert_command dfx canister call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
     assert_match 'total_length = 6_000_000'
