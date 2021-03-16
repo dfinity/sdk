@@ -181,7 +181,6 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
 
     let arguments = opts.argument.as_deref();
     let arg_type = opts.r#type.as_deref();
-    // let output_type = opts.output.as_deref();
     let is_query = match is_query_method {
         Some(true) => !opts.update,
         Some(false) => {
