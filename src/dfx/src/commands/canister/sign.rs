@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::signed_message::SignedMessageV1;
@@ -211,12 +210,9 @@ pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
         .expect("Cannot get network provider (url).")
         .to_string();
 
-    let mut identity_manager = IdentityManager::new(env)?;
-    identity_manager.instantiate_selected_identity()?;
-    let sender = match identity_manager.get_selected_identity_principal() {
-        Some(p) => p,
-        None => bail!("Cannot get sender's principle"),
-    };
+    let sender = env
+        .get_selected_identity_principal()
+        .expect("Selected identity not instantiated.");
 
     let timeout = Duration::from_secs(opts.expire_after);
     let expiration_system_time = SystemTime::now()
