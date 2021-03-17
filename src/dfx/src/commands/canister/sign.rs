@@ -3,25 +3,21 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
+use crate::lib::sign::sign_transport::SignReplicaV1Transport;
 use crate::lib::sign::signed_message::SignedMessageV1;
+
 use crate::util::{blob_from_arguments, get_candid_type};
 
-use ic_agent::agent::ReplicaV1Transport;
-use ic_agent::{AgentError, RequestId};
+use ic_agent::AgentError;
 use ic_types::principal::Principal;
 
 use anyhow::{anyhow, bail};
 use chrono::Utc;
 use clap::Clap;
 use slog::info;
-use std::fs::File;
-use std::future::Future;
-use std::io::Write;
 use std::option::Option;
 use std::path::Path;
-use std::pin::Pin;
 use std::time::{Duration, SystemTime};
-use thiserror::Error;
 
 /// Sign a canister call and generate message file in json
 #[derive(Clap)]
@@ -58,98 +54,6 @@ pub struct CanisterSignOpts {
     /// Specifies the output file name.
     #[clap(long, default_value("message.json"))]
     file: String,
-}
-
-#[derive(Error, Debug)]
-enum SerializeStatus {
-    #[error("{0}")]
-    Success(String),
-}
-
-struct SignReplicaV1Transport {
-    file_name: String,
-    message_template: SignedMessageV1,
-}
-
-impl SignReplicaV1Transport {
-    pub fn new<U: Into<String>>(file_name: U, message_template: SignedMessageV1) -> Self {
-        Self {
-            file_name: file_name.into(),
-            message_template,
-        }
-    }
-}
-
-impl ReplicaV1Transport for SignReplicaV1Transport {
-    fn read<'a>(
-        &'a self,
-        envelope: Vec<u8>,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(s: &SignReplicaV1Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
-            let message = s
-                .message_template
-                .clone()
-                .with_call_type("query".to_string())
-                .with_content(hex::encode(&envelope));
-            let json = serde_json::to_string(&message)
-                .map_err(|x| AgentError::MessageError(x.to_string()))?;
-            let path = Path::new(&s.file_name);
-            let mut file =
-                File::create(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
-            file.write_all(json.as_bytes())
-                .map_err(|x| AgentError::MessageError(x.to_string()))?;
-            Err(AgentError::TransportError(
-                SerializeStatus::Success(format!("Query message generated at [{}]", &s.file_name))
-                    .into(),
-            ))
-        }
-
-        Box::pin(run(self, envelope))
-    }
-
-    fn submit<'a>(
-        &'a self,
-        envelope: Vec<u8>,
-        request_id: RequestId,
-    ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
-        async fn run(
-            s: &SignReplicaV1Transport,
-            envelope: Vec<u8>,
-            request_id: RequestId,
-        ) -> Result<(), AgentError> {
-            let message = s
-                .message_template
-                .clone()
-                .with_call_type("update".to_string())
-                .with_request_id(request_id)
-                .with_content(hex::encode(&envelope));
-            let json = serde_json::to_string(&message)
-                .map_err(|x| AgentError::MessageError(x.to_string()))?;
-            let path = Path::new(&s.file_name);
-            let mut file =
-                File::create(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
-            file.write_all(json.as_bytes())
-                .map_err(|x| AgentError::MessageError(x.to_string()))?;
-            Err(AgentError::TransportError(
-                SerializeStatus::Success(format!("Update message generated at [{}]", &s.file_name))
-                    .into(),
-            ))
-        }
-
-        Box::pin(run(self, envelope, request_id))
-    }
-
-    fn status<'a>(
-        &'a self,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(_: &SignReplicaV1Transport) -> Result<Vec<u8>, AgentError> {
-            Err(AgentError::MessageError(
-                "status calls not supported".to_string(),
-            ))
-        }
-
-        Box::pin(run(self))
-    }
 }
 
 pub async fn exec(
