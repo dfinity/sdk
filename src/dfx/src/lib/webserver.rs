@@ -369,10 +369,6 @@ async fn get_whole_body(
     if let Some(content_length) = content_length {
         if body.len() < content_length {
             let chunk_count = (content_length + body.len() - 1) / body.len();
-            // let mut chunk_futures: Vec<_> = vec![];
-            // for chunk_index in 1..chunk_count {
-            //     chunk_futures.push(get_chunk(canister, &url, &content_encoding, chunk_index));
-            // }
             let chunk_futures: Vec<_> = (1..chunk_count)
                 .into_iter()
                 .map(|index| get_chunk(canister, &url, &content_encoding, index))
@@ -393,12 +389,12 @@ async fn get_chunk(
     content_encoding: &str,
     index: usize,
 ) -> Result<Vec<u8>, AgentError> {
-    let (r,) = canister
+    let (response,) = canister
         .http_get_chunk(url, content_encoding, index)
         .call()
         .await?;
 
-    Ok(r.chunk)
+    Ok(response.chunk)
 }
 /// Run the webserver in the current thread.
 pub fn run_webserver(
