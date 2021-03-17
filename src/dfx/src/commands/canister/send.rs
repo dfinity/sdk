@@ -45,9 +45,11 @@ pub async fn exec(
     eprintln!("  Canister id: {}", message.canister_id);
     eprintln!("  Method name: {}", message.method_name);
     eprintln!("  Arg:         {:?}", message.arg);
-    eprintln!("\nOkay? [y/N]");
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input)?;
+
+    let input = dialoguer::Input::<String>::new()
+        .with_prompt("Okay? [y/N]")
+        .interact()
+        .unwrap();
     if !["y", "yes"].contains(&input.to_lowercase().trim()) {
         return Ok(());
     }
