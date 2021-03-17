@@ -359,9 +359,7 @@ async fn get_whole_body(
     let mut body = body;
     let mut maybe_next_token = next_token;
 
-    while maybe_next_token.is_some() {
-        let next_token = maybe_next_token.unwrap();
-
+    while let Some(next_token) = maybe_next_token {
         let (response,) = canister
             .http_request_next(method, url, headers.clone(), request_body, next_token)
             .call()
@@ -374,19 +372,6 @@ async fn get_whole_body(
     Ok(body)
 }
 
-/*async fn get_chunk(
-    canister: &Canister<'_, HttpRequestCanister>,
-    url: &str,
-    content_encoding: &str,
-    index: usize,
-) -> Result<Vec<u8>, AgentError> {
-    let (response,) = canister
-        .http_get_chunk(url, content_encoding, index)
-        .call()
-        .await?;
-
-    Ok(response.chunk)
-}*/
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
