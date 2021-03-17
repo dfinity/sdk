@@ -18,9 +18,8 @@ use candid::CandidType;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::CanisterStatus;
+use ic_utils::interfaces::management_canister::StatusCallResult;
 use ic_utils::interfaces::ManagementCanister;
-use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -66,18 +65,13 @@ pub async fn get_canister_status(
     canister_id: Principal,
     timeout: Duration,
     call_sender: &CallSender,
-) -> DfxResult<CanisterStatus> {
+) -> DfxResult<StatusCallResult> {
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
     }
 
-    #[derive(Deserialize)]
-    struct Out {
-        status: CanisterStatus,
-    }
-
-    let (out,): (Out,) = do_management_call(
+    let (out,): (StatusCallResult,) = do_management_call(
         env,
         "canister_status",
         In { canister_id },
@@ -85,7 +79,7 @@ pub async fn get_canister_status(
         call_sender,
     )
     .await?;
-    Ok(out.status)
+    Ok(out)
 }
 
 pub async fn start_canister(
