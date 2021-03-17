@@ -375,8 +375,9 @@ shared ({caller = creator}) actor class () {
       case (null) getAssetAndEncoding("/index.html");
     };
 
+
     switch (assetAndEncoding) {
-      case null {{ status_code = 404; headers = []; body = "" }};
+      case null {{ status_code = 404; headers = []; body = ""; next_token = null }};
       case (?(asset, assetEncoding)) {
         let headers = Buffer.Buffer<(Text,Text)>(3);
         headers.add(("Content-Type", asset.contentType));
@@ -384,10 +385,36 @@ shared ({caller = creator}) actor class () {
         if (assetEncoding.contentEncoding != "identity")
           headers.add(("Content-Encoding", assetEncoding.contentEncoding));
 
+        let nextToken: ?T.HttpNextToken = switch(assetEncoding.content.size() > 1) {
+          case (false) null;
+          case (true) ?{
+            content_encoding = assetEncoding.contentEncoding;
+            index = 1;
+          }
+        };
+
+        let xx: ?T.HttpNextToken = if (assetEncoding.content.size() > 1) {
+          ?{
+            content_encoding = assetEncoding.contentEncoding;
+            index = 1;
+          };
+        } else {
+          null;
+        };
+        //var nextToken: ?T.HttpNextToken = null;
+        //if (assetEncoding.content.size() > 1) {
+        //  nextToken = ?{};
+        //};
+         // nextToken = ?{
+         //     index = 1;
+         // };
+
+
         {
           status_code = 200;
           headers = headers.toArray();
-          body = assetEncoding.content[0]
+          body = assetEncoding.content[0];
+          next_token = xx;
         }
       };
     }
@@ -395,16 +422,28 @@ shared ({caller = creator}) actor class () {
 
   // Get subsequent chunks of an asset encoding's content, after http_request().
   // Like get_chunk, but converts url to key
-  public query func http_get_chunk(request: T.HttpGetChunkRequest) : async T.HttpGetChunkResponse {
+  public query func http_request_next(request: T.HttpRequest, token: T.HttpNextToken) : async T.HttpNextResponse {
     let key = getKey(request.url);
     switch (assets.get(key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
-        switch (asset.getEncoding(request.content_encoding)) {
+        switch (asset.getEncoding(token.content_encoding)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
+            //var nextToken: ?T.HttpNextToken = null;
+            let nextToken: ?T.HttpNextToken = if (token.index + 1 < encoding.content.size()) {
+              ?{
+                content_encoding = token.content_encoding;
+                index = token.index + 1;
+              };
+            } else {
+              null;
+            };
+
+
             {
-              chunk = encoding.content[request.index];
+              body = encoding.content[token.index];
+              next_token = nextToken;
             }
           }
         };

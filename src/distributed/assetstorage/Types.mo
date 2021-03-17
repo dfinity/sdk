@@ -57,14 +57,23 @@ module Types {
     status_code: Nat16;
     headers: [HeaderField];
     body: Blob;
+    next_token: ?HttpNextToken;
   };
 
-  public type HttpGetChunkRequest = {
-    url: Text;
-    content_encoding: Text;
-    index: Nat; // 1+, chunk[0] was returned by http_request
+  public type HttpNextToken = {
+      content_encoding: Text;
+      index: Nat;
   };
-  public type HttpGetChunkResponse = {
-    chunk: Blob;
+
+  public type HttpNextRequest = {
+    method: Text;
+    url: Text;
+    headers: [HeaderField];
+    body: Blob;
+    token: HttpNextToken;
+  };
+  public type HttpNextResponse = {
+    body: Blob;
+    next_token: ?HttpNextToken;
   };
 };

@@ -17,8 +17,8 @@ use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
 use anyhow::anyhow;
+use candid::parser::value::IDLValue;
 use crossbeam::channel::Sender;
-use futures::future::try_join_all;
 use futures::StreamExt;
 use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
@@ -308,7 +308,7 @@ async fn http_request(
     );
 
     match canister
-        .http_request(method, &uri, headers, body)
+        .http_request(method.clone(), &uri, headers, &body)
         .call()
         .await
     {
@@ -317,17 +317,23 @@ async fn http_request(
         Ok((http_response,)) => {
             if let Ok(status_code) = StatusCode::from_u16(http_response.status_code) {
                 let mut builder = HttpResponse::build(status_code);
-                match get_whole_body(&canister, &uri, &http_response.headers, http_response.body)
-                    .await
+                for HeaderField(name, value) in &http_response.headers {
+                    builder.header(name, value.clone());
+                }
+                match get_whole_body(
+                    &canister,
+                    &method,
+                    &uri,
+                    http_response.headers,
+                    &body,
+                    http_response.body,
+                    http_response.next_token,
+                )
+                .await
                 {
                     Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
                         .body(format!("Details: {:?}", err))),
-                    Ok(body) => {
-                        for HeaderField(name, value) in http_response.headers {
-                            builder.header(&name, value);
-                        }
-                        Ok(builder.body(body))
-                    }
+                    Ok(body) => Ok(builder.body(body)),
                 }
             } else {
                 Ok(
@@ -343,46 +349,32 @@ async fn http_request(
 
 async fn get_whole_body(
     canister: &Canister<'_, HttpRequestCanister>,
+    method: &str,
     url: &str,
-    headers: &[HeaderField],
+    headers: Vec<HeaderField>,
+    request_body: &[u8],
     body: Vec<u8>,
+    next_token: Option<IDLValue>,
 ) -> Result<Vec<u8>, AgentError> {
-    let content_length: Option<usize> = headers.iter().find_map(|header| {
-        if header.0.to_lowercase() == "content-length" {
-            header.1.parse().ok()
-        } else {
-            None
-        }
-    });
-    let content_encoding = headers
-        .iter()
-        .find_map(|header| {
-            if header.0.to_lowercase() == "content-encoding" {
-                Some(header.1.clone())
-            } else {
-                None
-            }
-        })
-        .unwrap_or_else(|| "identity".into());
-
     let mut body = body;
-    if let Some(content_length) = content_length {
-        if body.len() < content_length {
-            let chunk_count = (content_length + body.len() - 1) / body.len();
-            let chunk_futures: Vec<_> = (1..chunk_count)
-                .map(|index| get_chunk(canister, &url, &content_encoding, index))
-                .collect();
-            let mut following_chunks = try_join_all(chunk_futures).await?;
-            let mut all_chunks = vec![body];
-            all_chunks.append(&mut following_chunks);
-            let new_body = all_chunks.into_iter().flatten().collect();
-            body = new_body;
-        }
+    let mut maybe_next_token = next_token;
+
+    while maybe_next_token.is_some() {
+        let next_token = maybe_next_token.unwrap();
+
+        let (response,) = canister
+            .http_request_next(method, url, headers.clone(), request_body, next_token)
+            .call()
+            .await?;
+        let mut add_body = response.body;
+        body.append(&mut add_body);
+        maybe_next_token = response.next_token;
     }
+
     Ok(body)
 }
 
-async fn get_chunk(
+/*async fn get_chunk(
     canister: &Canister<'_, HttpRequestCanister>,
     url: &str,
     content_encoding: &str,
@@ -394,7 +386,7 @@ async fn get_chunk(
         .await?;
 
     Ok(response.chunk)
-}
+}*/
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
