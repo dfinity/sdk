@@ -166,6 +166,7 @@ impl SignedMessageV1 {
 }
 
 mod date_time_utc {
+    // https://serde.rs/custom-date-format.html
     use chrono::{DateTime, TimeZone, Utc};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
