@@ -23,8 +23,8 @@ pub(crate) struct SignedMessageV1 {
     pub canister_id: String,
     pub method_name: String,
     pub arg: Vec<u8>,
-    pub request_id: String, // only useful for update call
-    pub content: String,    // hex::encode the Vec<u8>
+    pub request_id: Option<String>, // only useful for update call
+    pub content: String,            // hex::encode the Vec<u8>
 }
 
 impl SignedMessageV1 {
@@ -47,7 +47,7 @@ impl SignedMessageV1 {
             canister_id: canister_id.to_string(),
             method_name,
             arg,
-            request_id: String::new(),
+            request_id: None,
             content: String::new(),
         }
     }
@@ -58,7 +58,7 @@ impl SignedMessageV1 {
     }
 
     pub fn with_request_id(mut self, request_id: RequestId) -> Self {
-        self.request_id = String::from(request_id);
+        self.request_id = Some(String::from(request_id));
         self
     }
 

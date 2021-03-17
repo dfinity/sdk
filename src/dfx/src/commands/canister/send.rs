@@ -68,7 +68,11 @@ pub async fn exec(
             println!("{}", hex::encode(response));
         }
         "update" => {
-            let request_id = RequestId::from_str(&message.request_id)?;
+            let request_id = RequestId::from_str(
+                &message
+                    .request_id
+                    .expect("Cannot get request_id from the update message"),
+            )?;
             transport.submit(content, request_id).await?;
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
