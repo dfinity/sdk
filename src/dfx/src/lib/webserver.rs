@@ -2,6 +2,7 @@ use crate::error_unknown;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::locations::canister_did_location;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::named_canister;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
 
@@ -19,6 +20,7 @@ use actix_web::{
 use anyhow::anyhow;
 use crossbeam::channel::Sender;
 use futures::StreamExt;
+use ic_agent::agent::AgentError;
 use ic_agent::Agent;
 use ic_types::Principal;
 use ic_utils::call::SyncCall;
@@ -50,6 +52,7 @@ struct CandidData {
 struct HttpRequestData {
     pub bind: SocketAddr,
     pub logger: slog::Logger,
+    pub network_descriptor: NetworkDescriptor,
 }
 
 #[derive(Deserialize)]
@@ -282,7 +285,7 @@ async fn http_request(
 
     let method = req.method().to_string();
     let uri = req.uri().to_string();
-    let headers = req
+    let headers: Vec<_> = req
         .headers()
         .into_iter()
         .filter_map(|(name, value)| {
@@ -305,10 +308,42 @@ async fn http_request(
     );
 
     match canister
-        .http_request(method, uri, headers, body)
+        .http_request(method.clone(), uri.clone(), headers, body.clone())
         .call()
         .await
     {
+        Err(AgentError::ReplicaError {
+            reject_code,
+            reject_message,
+        }) if reject_code == 3 && reject_message.ends_with("\'http_request\'") => {
+            let network = &http_request_data.network_descriptor;
+            let id = named_canister::get_ui_canister_id(network).unwrap();
+            let canister = ic_utils::interfaces::HttpRequestCanister::create(&agent, id);
+            match canister
+                .http_request(method, uri, Vec::new(), body)
+                .call()
+                .await
+            {
+                Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(format!("Candid UI canister error: {:?}", err))),
+                Ok((http_response,)) => {
+                    if let Ok(status_code) = StatusCode::from_u16(http_response.status_code) {
+                        let mut builder = HttpResponse::build(status_code);
+                        for HeaderField(name, value) in http_response.headers {
+                            builder.header(&name, value);
+                        }
+                        Ok(builder.body(http_response.body))
+                    } else {
+                        Ok(
+                            HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR).body(format!(
+                                "Invalid status code: {}",
+                                http_response.status_code
+                            )),
+                        )
+                    }
+                }
+            }
+        }
         Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
             .body(format!("Details: {:?}", err))),
         Ok((http_response,)) => {
@@ -359,11 +394,13 @@ pub fn run_webserver(
     }));
     let candid_data = Arc::new(CandidData {
         build_output_root,
-        network_descriptor,
+        network_descriptor: network_descriptor.clone(),
     });
+
     let http_request_data = Arc::new(HttpRequestData {
         bind,
         logger: logger.clone(),
+        network_descriptor,
     });
 
     let handler =
