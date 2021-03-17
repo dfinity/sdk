@@ -74,7 +74,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
             SubCommand::Send(v) => send::exec(&agent_env, v).await,
             SubCommand::SetController(v) => set_controller::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Sign(v) => sign::exec(&agent_env, v).await,
+            SubCommand::Sign(v) => sign::exec(&agent_env, v, &call_sender).await,
             SubCommand::Start(v) => start::exec(&agent_env, v, &call_sender).await,
             SubCommand::Status(v) => status::exec(&agent_env, v, &call_sender).await,
             SubCommand::Stop(v) => stop::exec(&agent_env, v, &call_sender).await,

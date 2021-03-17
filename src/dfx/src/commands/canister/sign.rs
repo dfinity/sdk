@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::signed_message::SignedMessageV1;
@@ -151,8 +152,16 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
     }
 }
 
-pub async fn exec(env: &dyn Environment, opts: CanisterSignOpts) -> DfxResult {
+pub async fn exec(
+    env: &dyn Environment,
+    opts: CanisterSignOpts,
+    call_sender: &CallSender,
+) -> DfxResult {
     let log = env.get_logger();
+    if *call_sender != CallSender::SelectedId {
+        bail!("`sign` currently doesn't support proxy through wallet canister, please use `dfx canister --no-wallet sign ...`.");
+    }
+
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
