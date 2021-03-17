@@ -385,36 +385,11 @@ shared ({caller = creator}) actor class () {
         if (assetEncoding.contentEncoding != "identity")
           headers.add(("Content-Encoding", assetEncoding.contentEncoding));
 
-        let nextToken: ?T.HttpNextToken = switch(assetEncoding.content.size() > 1) {
-          case (false) null;
-          case (true) ?{
-            content_encoding = assetEncoding.contentEncoding;
-            index = 1;
-          }
-        };
-
-        let xx: ?T.HttpNextToken = if (assetEncoding.content.size() > 1) {
-          ?{
-            content_encoding = assetEncoding.contentEncoding;
-            index = 1;
-          };
-        } else {
-          null;
-        };
-        //var nextToken: ?T.HttpNextToken = null;
-        //if (assetEncoding.content.size() > 1) {
-        //  nextToken = ?{};
-        //};
-         // nextToken = ?{
-         //     index = 1;
-         // };
-
-
         {
           status_code = 200;
           headers = headers.toArray();
           body = assetEncoding.content[0];
-          next_token = xx;
+          next_token = makeNextToken(0, assetEncoding);
         }
       };
     }
@@ -430,24 +405,24 @@ shared ({caller = creator}) actor class () {
         switch (asset.getEncoding(token.content_encoding)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
-            //var nextToken: ?T.HttpNextToken = null;
-            let nextToken: ?T.HttpNextToken = if (token.index + 1 < encoding.content.size()) {
-              ?{
-                content_encoding = token.content_encoding;
-                index = token.index + 1;
-              };
-            } else {
-              null;
-            };
-
-
             {
               body = encoding.content[token.index];
-              next_token = nextToken;
+              next_token = makeNextToken(token.index, encoding);
             }
           }
         };
       };
+    };
+  };
+
+  private func makeNextToken(lastIndex: Nat, assetEncoding: A.AssetEncoding): ?T.HttpNextToken {
+    if (lastIndex + 1 < assetEncoding.content.size()) {
+      ?{
+        content_encoding = assetEncoding.contentEncoding;
+        index = lastIndex + 1;
+      };
+    } else {
+      null;
     };
   };
 
