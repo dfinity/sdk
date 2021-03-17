@@ -344,7 +344,7 @@ async fn http_request(
 async fn get_whole_body(
     canister: &Canister<'_, HttpRequestCanister>,
     url: &str,
-    headers: &Vec<HeaderField>,
+    headers: &[HeaderField],
     body: Vec<u8>,
 ) -> Result<Vec<u8>, AgentError> {
     let content_length: Option<usize> = headers.iter().find_map(|header| {
@@ -363,14 +363,13 @@ async fn get_whole_body(
                 None
             }
         })
-        .unwrap_or("identity".into());
+        .unwrap_or_else(|| "identity".into());
 
     let mut body = body;
     if let Some(content_length) = content_length {
         if body.len() < content_length {
             let chunk_count = (content_length + body.len() - 1) / body.len();
             let chunk_futures: Vec<_> = (1..chunk_count)
-                .into_iter()
                 .map(|index| get_chunk(canister, &url, &content_encoding, index))
                 .collect();
             let mut following_chunks = try_join_all(chunk_futures).await?;
