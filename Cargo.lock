@@ -1907,6 +1907,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.2.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/126-http-server-chunked-assets#e12dd87d6718060da88be124a9a529481fc0ae3b"
 dependencies = [
  "async-trait",
  "base32",
@@ -1937,6 +1938,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.2.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/126-http-server-chunked-assets#e12dd87d6718060da88be124a9a529481fc0ae3b"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1951,6 +1953,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/126-http-server-chunked-assets#e12dd87d6718060da88be124a9a529481fc0ae3b"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1962,6 +1965,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.2.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/126-http-server-chunked-assets#e12dd87d6718060da88be124a9a529481fc0ae3b"
 dependencies = [
  "async-trait",
  "candid",

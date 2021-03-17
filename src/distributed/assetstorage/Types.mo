@@ -58,4 +58,13 @@ module Types {
     headers: [HeaderField];
     body: Blob;
   };
+
+  public type HttpGetChunkRequest = {
+    url: Text;
+    content_encoding: Text;
+    index: Nat; // 1+, chunk[0] was returned by http_request
+  };
+  public type HttpGetChunkResponse = {
+    chunk: Blob;
+  };
 };

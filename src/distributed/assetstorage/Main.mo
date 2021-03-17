@@ -402,6 +402,26 @@ shared ({caller = creator}) actor class () {
     }
   };
 
+  // Get subsequent chunks of an asset encoding's content, after http_request().
+  // Like get_chunk, but converts url to key
+  public query func http_get_chunk(request: T.HttpGetChunkRequest) : async T.HttpGetChunkResponse {
+    Debug.print("http_get_chunk " # request.url);
+    let key = getPath(request.url);
+    switch (assets.get(key)) {
+      case null throw Error.reject("asset not found");
+      case (?asset) {
+        switch (asset.getEncoding(request.content_encoding)) {
+          case null throw Error.reject("no such encoding");
+          case (?encoding) {
+            {
+              chunk = encoding.content[request.index];
+            }
+          }
+        };
+      };
+    };
+  };
+
   private func getPath(uri: Text): Text {
     let splitted = Text.split(uri, #char '?');
     let array = Iter.toArray<Text>(splitted);
