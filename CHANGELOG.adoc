@@ -14,7 +14,12 @@ Users can use `dfx canister sign ...` to generated a signed canister call in a j
 
 Users can sign the message on an air-gapped computer which is secure to host private keys.
 
-Please note that `sign` and `send` currently don't proxy through wallet canister.
+==== Note
+
+* `sign` and `send` currently don't proxy through wallet canister. Users should use the subcommands with `dfx canister --no-wallet sign ...`.
+
+* The `sign` option `--expire-after` will set the `ingress_expiry` to a future timestamp which is current plus the duration.
+Then users can send the message during a 5 minutes time window ending in that `ingress_expiry` timestamp. Sending the message earlier or later than the time window will both result in a replica error.
 
 === feat: implement the HTTP Request proposal in dfx' bootstrap webserver. +
 And add support for http requests in the base storage canister (with a default to `/index.html`).
