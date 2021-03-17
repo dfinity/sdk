@@ -14,10 +14,11 @@ use ic_types::principal::Principal;
 use anyhow::{anyhow, bail};
 use chrono::Utc;
 use clap::Clap;
+use humanize_rs::duration;
 use slog::info;
 use std::option::Option;
 use std::path::Path;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 /// Sign a canister call and generate message file in json
 #[derive(Clap)]
@@ -48,8 +49,8 @@ pub struct CanisterSignOpts {
     r#type: Option<String>,
 
     /// Specifies how long will the message be valid in seconds, default to be 300s (5 minutes)
-    #[clap(long, default_value("300"))]
-    expire_after: u64,
+    #[clap(long, default_value("5m"))]
+    expire_after: String,
 
     /// Specifies the output file name.
     #[clap(long, default_value("message.json"))]
@@ -127,11 +128,13 @@ pub async fn exec(
         .get_selected_identity_principal()
         .expect("Selected identity not instantiated.");
 
-    let timeout = Duration::from_secs(opts.expire_after);
+    let timeout = duration::parse(&opts.expire_after)
+        .map_err(|_| anyhow!("Cannot parse expire_after as a duration (e.g. `1h`, `1h 30m`)"))?;
+    //let timeout = Duration::from_secs(opts.expire_after);
     let expiration_system_time = SystemTime::now()
         .checked_add(timeout)
         .ok_or_else(|| anyhow!("Time wrapped around."))?;
-    let chorono_timeout = chrono::Duration::seconds(opts.expire_after as i64);
+    let chorono_timeout = chrono::Duration::seconds(timeout.as_secs() as i64);
     let creation = Utc::now();
     let expiration = creation
         .checked_add_signed(chorono_timeout)
