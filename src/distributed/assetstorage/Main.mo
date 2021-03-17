@@ -376,6 +376,7 @@ shared ({caller = creator}) actor class () {
     };
 
     switch (assetAndEncoding) {
+      case null {{ status_code = 404; headers = []; body = "" }};
       case (?(asset, assetEncoding)) {
         let headers = Buffer.Buffer<(Text,Text)>(3);
         headers.add(("Content-Type", asset.contentType));
@@ -389,7 +390,6 @@ shared ({caller = creator}) actor class () {
           body = assetEncoding.content[0]
         }
       };
-      case null {{ status_code = 404; headers = []; body = "" }};
     }
   };
 
