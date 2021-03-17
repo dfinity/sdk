@@ -368,45 +368,35 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let path = getPath(request.url);
+    let key = getKey(request.url);
 
-    Debug.print("http_request " # path);
-
-    let (asset, assetEncoding): (?A.Asset, ?A.AssetEncoding) = switch (getAssetEncoding(path)) {
-      case (?(asset, found)) (?asset, ?found);
-      case (null) {
-        switch (getAssetEncoding("/index.html")) {
-          case (?(asset, assetEncoding)) (?asset, ?assetEncoding);
-          case (null) (null, null);
-        }
-      }
+    let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key)) {
+      case (?found) ?found;
+      case (null) getAssetAndEncoding("/index.html");
     };
 
-    switch (asset, assetEncoding) {
-      case (?a, ?c) {
-        //if (c.content.size() > 1)
-        //  throw Error.reject("asset too large");
+    switch (assetAndEncoding) {
+      case (?(asset, assetEncoding)) {
         let headers = Buffer.Buffer<(Text,Text)>(3);
-        headers.add(("Content-Type", a.contentType));
-        headers.add(("Content-Length", Nat.toText(c.totalLength)));
-        if (c.contentEncoding != "identity")
-          headers.add(("Content-Encoding", c.contentEncoding));
+        headers.add(("Content-Type", asset.contentType));
+        headers.add(("Content-Length", Nat.toText(assetEncoding.totalLength)));
+        if (assetEncoding.contentEncoding != "identity")
+          headers.add(("Content-Encoding", assetEncoding.contentEncoding));
 
         {
           status_code = 200;
           headers = headers.toArray();
-          body = c.content[0]
+          body = assetEncoding.content[0]
         }
       };
-      case (_, _) {{ status_code = 404; headers = []; body = "" }};
+      case null {{ status_code = 404; headers = []; body = "" }};
     }
   };
 
   // Get subsequent chunks of an asset encoding's content, after http_request().
   // Like get_chunk, but converts url to key
   public query func http_get_chunk(request: T.HttpGetChunkRequest) : async T.HttpGetChunkResponse {
-    Debug.print("http_get_chunk " # request.url);
-    let key = getPath(request.url);
+    let key = getKey(request.url);
     switch (assets.get(key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
@@ -422,14 +412,14 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  private func getPath(uri: Text): Text {
+  private func getKey(uri: Text): Text {
     let splitted = Text.split(uri, #char '?');
     let array = Iter.toArray<Text>(splitted);
     let path = array[0];
     path
   };
 
-  private func getAssetEncoding(path: Text): ?(A.Asset, A.AssetEncoding) {
+  private func getAssetAndEncoding(path: Text): ?(A.Asset, A.AssetEncoding) {
     switch (assets.get(path)) {
       case null null;
       case (?asset) {
