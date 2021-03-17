@@ -14,7 +14,6 @@ teardown() {
 }
 
 @test "can store and retrieve assets by key" {
-  skip
     install_asset assetscanister
 
     dfx_start
@@ -48,7 +47,6 @@ teardown() {
 }
 
 @test "asset canister supports http requests" {
-  skip
     install_asset assetscanister
 
     dfx_start
@@ -93,7 +91,6 @@ CHERRIES" "$stdout"
 }
 
 @test "list() and keys() return asset keys" {
-  skip
     install_asset assetscanister
 
     dfx_start
@@ -113,7 +110,6 @@ CHERRIES" "$stdout"
 }
 
 @test "identifies content type" {
-  skip
     install_asset assetscanister
 
     dfx_start
