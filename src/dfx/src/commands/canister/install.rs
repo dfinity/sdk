@@ -4,6 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::named_canister::NamedCanister;
 use crate::lib::operations::canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{compute_allocation_validator, memory_allocation_validator};
