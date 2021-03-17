@@ -68,6 +68,14 @@ impl SignedMessageV1 {
     }
 
     pub fn validate(&self) -> DfxResult {
+        if self.version != 1 {
+            bail!("Invalid message: version must be 1");
+        }
+
+        if !["query", "update"].contains(&self.call_type.as_str()) {
+            bail!("Invalid message: call_type must be `query` or `update`");
+        }
+
         let content = hex::decode(&self.content)?;
 
         let cbor: Value = serde_cbor::from_slice(&content)

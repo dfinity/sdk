@@ -71,7 +71,8 @@ pub async fn exec(
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
         }
-        _ => {}
+        // message.validate() guarantee that call_type must be query or update
+        _ => unreachable!(),
     }
     Ok(())
 }
