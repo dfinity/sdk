@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::signed_message::SignedMessageV1;
+use crate::lib::sign::signed_message::SignedMessageV1;
 
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV1Transport, RequestId};

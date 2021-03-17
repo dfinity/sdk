@@ -17,7 +17,7 @@ pub mod progress_bar;
 pub mod provider;
 pub mod replica_config;
 pub mod root_key;
-pub mod signed_message;
+pub mod sign;
 pub mod telemetry;
 pub mod toolchain;
 pub mod waiter;

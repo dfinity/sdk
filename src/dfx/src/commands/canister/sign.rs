@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
-use crate::lib::signed_message::SignedMessageV1;
+use crate::lib::sign::signed_message::SignedMessageV1;
 use crate::util::{blob_from_arguments, get_candid_type};
 
 use ic_agent::agent::ReplicaV1Transport;
