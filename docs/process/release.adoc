@@ -7,15 +7,12 @@ This document describes the release process for the DFINITY SDK, with step-by-st
 Before starting the release process, the team should conduct a brief Go/No-Go release review to evaluate the current state of fixes and features ready to be included in a release candidate.
 After reviewing the list of fixes and features, the team will decide whether to proceed with staging a build.
 
-If the new release is given the Go green light, two people who are familiar with the process—a *driver* and a *validator*—use the checklist in this document to stage or promote a release candidate.
+If the new release is given the Go green light, two people who are familiar with the process—a *driver* and a *validator*—use the steps in this document to stage or promote a release candidate.
 
 The *validator* should be the person most familiar with the process and be able to assist with debugging or resolving issues if the *driver* building the release runs into trouble.
 
 A successful release is the result of coordination between automation, manual steps performed by team members, and a validation process.
 Our goal is to update this document with the latest information as we iterate to improve the release process.
-
-== Checklist
-Use this checklist to prepare a release candidate.
 
 === Participants
 - Driver / Primary
@@ -25,10 +22,11 @@ Use this checklist to prepare a release candidate.
 
 Before you begin, verify the following prerequisites for the release process *driver*:
 
-- You must have a GitHub account and access to the `+dfinity-lab+` repositories.
+- You must have a GitHub account and access to the `+dfinity+` organization and core repositories like the `sdk` and `agent-js` repositories
 +
-For information about setting up a GitHub account, see link:
-To get permission for your account to access `+dfinity-lab+` and `+dfinity+` repositories, contact IT using the #help-it Slack channel or submit a JIRA ticket.
+For information about setting up a GitHub account, see link:https://docs.github.com/en/github/getting-started-with-github/signing-up-for-a-new-github-account[Signin up for a GitHub account]
+To get permission for your account to access `+dfinity-lab+` and `+dfinity+` repositories, see link:https://www.notion.so/How-to-Get-Github-Access-68c9ad72b5974fa9bbec003592677d02[How to get GitHub access).
+If you run into any issues accessing repositories, you can contact IT using the `#help-it` Slack channel and sending a message to `@firstresponder`.
 
 - You must have VPN access to the DFINITY VPN.
 +
@@ -57,77 +55,97 @@ to verify:
 
 image:is-master-green.png[]
 
-=== Notify the Community in case of a Breaking Release
-
-If a release is known to have changes that are not backward-compatible, create a forum post to describe the change and any instructions for migrating to the new release.
-
-Depending on the change, the notification might need to be posted in more than one topic channels.
-For example, changes to the external network for onboarded developers are currently posted in `https://forum.dfinity.org/c/tungsten-developer-network/25`.
-
-=== Start preparing a new release
+=== Update your repository with merged commits
 
 . Connect to VPN.
-
 . Open a terminal and `cd` into your local copy of the `sdk` repo.
-. Checkout the `master` branch and pull from remote.
+. Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
 +
 [source, bash]
 ----
 git checkout master && git pull
 ----
 
-=== Single-step script-based release process
+At this point, you are ready to build a release candidate.
+There are two ways you can build a release candidate:
+- Using the <<script,SCRIPT-BASED release process>> to automate the build process and skip manual testing.
+- Using the <<manual,MANUAL STEPS release process>> to build and test the release.
 
-Instead of following the steps below, you can instead run this command
-and then skip to "Notification and post-build validation":
+[[script]]
+== SCRIPT-BASED release process
 
+To use the release script to automate building the release candidate:
+
+. Run the following command and substitute `<n.n.n>` with the version number for this release candidate:
++
 [source, bash]
 ----
 ./scripts/release.sh <n.n.n>
 ----
++
+For example, if releasing 0.7.0, you would run the following command:
++
+....
+./scripts/release.sh 0.7.0
+....
+. Follow the prompts displayed to complete the release process.
+
+After running this command to build the release candidate, follow the steps in <<post-build,Notification and post-build validations>> to complete the release process.
+
+[[manual]]
+== MANUAL STEPS release process
+
+The manual release process provides full instructions for building and testing the release candidate binaries to ensure everything is working before making a release available to internal or external developers. 
 
 === Build DFX and the JavaScript agent binaries
 
 Verify that you can build DFX and the JavaScript agent from the `+master+` branch without errors.
 
+. Verify you're connected to VPN, if necessary. 
 . Build the `dfx` binary by running the following command:
 +
 [source, bash]
 ----
-# Make sure you're connected to VPN. This could take awhile, wait for it to be done.
 export sdk_rc="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
 export dfx_rc="$sdk_rc/bin/dfx"
 ----
 +
-This stores some shell variables. Make sure `$dfx_rc` points to a real file.
+The `nix-build` command can take a while to complete.
+Wait for it to be done.
+These commands create the binary then stores the binary in a shell variable. 
+. Make sure the `$dfx_rc` variable points to a real file by running the following command:
 +
 ```
 test -x $dfx_rc \
     && echo 'Please proceed.' \
     || echo 'Cant find executable $dfx_rc'="$dfx_rc"
-# You should see 'Please proceed'
 ```
-
++
+You should see 'Please proceed' returned.
 . Delete the existing `dfx` cache to ensure you're not using a stale binary.
 +
 [source, bash]
 ----
 $dfx_rc cache delete
 ----
-. Build the JavaScript agent by running the following command:
+. Build the JavaScript agent by running the following commands:
 +
 [source, bash]
 ----
 export agent_js_rc="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
 export agent_js_rc_npm_packed="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent-*.tgz)"
-
+----
+. Make sure the agent package was created by running the following command:
++
+[source,bash]
+----
 test -f $agent_js_rc_npm_packed \
     && echo 'Please proceed' \
     || echo 'Cannot find npm-packed dfinity-agent-*.tgz'
-# You should see 'Please proceed'
 ----
 +
-. Ensure `dfx` and `replica` are not running in the background by running the following commands:
+You should see 'Please proceed' returned.
+. Ensure `dfx` and `replica` are not running in the background by running the following command:
 +
 [source, bash]
 ----
@@ -140,77 +158,70 @@ If there are any `replica` or `dfx` processes running, use the `kill` command to
 
 Verify that you can build, deploy, and call the default `hello_world` project without errors.
 
-Generate a default new project.
-
-. cd into a tmp directory
+. Generate a default new project and change to the project directory by running the following commands:
 +
 [source, bash]
 ----
 $dfx_rc new hello_world
 cd hello_world
 ----
-. Install the locally-built JavaScript agent for the new project.
+. Install the locally-built JavaScript agent for the new project  by running the following command:
 +
 [source, bash]
 ----
 npm install "$agent_js_rc_npm_packed"
 ----
-. Start the local `replica` as a background process.
+. Start the local `replica` as a background process by running the following command:
 +
 [source, bash]
 ----
-$dfx_rc start --background
+$dfx_rc start --clean --background
 ----
-. Create, build, and install canisters by running:
+. Create, build, and install canisters by running the following command:
 +
 [source, bash]
 ----
 $dfx_rc deploy
 ----
-. Call the canister and verify the result.
+. Call the canister and verify the result by running the following command:
 +
 [source, bash]
 ----
 $dfx_rc canister call hello_world greet everyone
 ----
-. Save the canister URLs as shell variables, then print them
+. Save the canister URLs as shell variables, then print them by running the following commands:
 +
 [source, bash]
 ----
 export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_world)"
 export hello_world_assets_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_assets)"
-
-echo "For the next step, open the following URL in your web browser. Be sure to clear your cache first and/or use 'Private Browsing' mode."
-
-# This should print the Asset Canister URL you can use to 'Verify hello_world_assets'.
-echo "hello_world_assets_url: Open this in your web browser with empty cache or 'Private Browsing' mode"
+----
+. Open a web browser and clear your cache or switch to Private Browsing/Incognito mode.
+. Open the following URL in your web browser:
++
+[source,bash]
+----
 echo "$hello_world_assets_url"
 ----
 +
-. Verify hello_world_assets_url in a web browser.
-+
-.. Verify that you are prompted to type a greeting in a prompt window.
+. Verify that you are prompted to type a greeting in a prompt window.
 .. Type a greeting, then click *OK* to return the greeting in an alert window.
 .. Verify there are no errors in the console by opening the Developer Tools.
 +
-For example, in the browser, right-click>, then click Inspect and select Console to check for errors and warnings.
+For example, in the browser, right-click, then click Inspect and select Console to check for errors and warnings.
 Warnings can be ignored.
 
-. Verify the Candid UI.
-+
-To show the URL, run:
+. Verify the Candid UI by opening the following URL in your web browser:
 +
 [source, bash]
 ----
-# This should print the Candid UI URL you can use to 'Verify hello_world'.
-echo "hello_world_candid_url: Open this in your web browser with empty cache or 'Private Browsing' mode"
 echo "$hello_world_candid_url"
 ----
 +
 .. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
 .. Verify there are no errors in the console by opening the Developer Tools.
 +
-For example, in the browser, right-click>, then click Inspect and select Console to check for errors and warnings.
+For example, in the browser, right-click, then click Inspect and select Console to check for errors and warnings.
 Warnings can be ignored.
 . Stop the replica by running the following command:
 +
@@ -243,7 +254,7 @@ export NEW_DFX_VERSION=<n.n.n>
 ----
 nix-shell --option extra-binary-caches https://cache.dfinity.systems
 ----
-. Create a new branch for your changes by running the following commands:
+. Create a new branch for your changes by running the following command:
 +
 [source, nix-shell]
 ----
@@ -256,7 +267,6 @@ git switch -c $USER/release-$NEW_DFX_VERSION
 ----
 cargo build
 ----
-
 . Append the new version to `public/manifest.json` by appending it to the `versions` list.
 +
 For example:
@@ -276,7 +286,7 @@ For example:
 ----
 +
 *Ensure* `tags.latest` remains the same.
-
+. Exit `nix-shell` to continue.
 
 ==== Create a pull request and tag
 
@@ -348,7 +358,7 @@ git push origin stable
 Pushing the branch second is an optimization.
 Hydra will spur into action when `stable` advances, so if the branch is already tagged, it won't require a second fetch.
 
-==== Publish Javascript agent to NPM
+==== Publish JavaScript agent to NPM
 
 . Create and switch to a new directory to release from by running the following commands:
 +
@@ -395,22 +405,27 @@ ifdef::env-github[]
 :tada:
 endif::[]
 
-==== Notification and post-build validation
+[[post-build]]
+== Notification and post-build validation
 
 . Wait for the automatic slack message to
 link:https://dfinity.slack.com/archives/CUXGQBABF/p1594954197000100[_#build-notifications_]
-about the successful publishing of the dfx tarballs.
+about the successful publishing of the `dfx` tarballs.
 
 . Install the build using the `DFX_VERSION=<version>` environment variable.
 . Run through the link:https://sdk.dfinity.org/docs/quickstart/local-quickstart.html[_Quick start - Local development_] steps.
 . Run through link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#ping-the-network[Check the connection to the network] and link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#net-deploy[Register, build, and deploy the application] steps to deploy to the network.
 . Notify link:https://app.slack.com/client/T43F9UHS5/CGA566TPV[#eng-sdk] team members that the new build is ready for manual installation and testing.
-. Update the link:https://docs.google.com/spreadsheets/d/1pIblGqIeqapzptOtDb4h0LjJKDFIYXRxJrX9VaphfjA/edit#gid=725289684[_release notes_] spreadsheet and documentation based on the Go/No-go list of merged PRs.
 +
-The driver only needs to add a tab to the spreadsheet.
-The DX Product team will walk through the list of merged PRs and work with the team to generate release note content.
+Remind the SDK and Apps teams to add information about _features and fixes_ for release notes to their issues or PRs and to apply the changelog label to have the information included in the release notes.
+. Notify the link:https://forum.dfinity.org[Developer Forum] community if there are breaking changes.
++
+If a release is known to have changes that are not backward-compatible, create a forum post to describe the change and any instructions for migrating to the new release.
++
+Depending on the change, the notification might need to be posted in more than one topic channel.
+For example, changes to the external network for onboarded developers are currently posted in link:https://forum.dfinity.org/t/network-status-updates/928[Network status and updates] on the link:https://forum.dfinity.org[DFINITY Developer Forum].
 
-=== Promoting a released version to Latest
+== Promote a release candidate to production
 
 . Verify that release notes and documentation are ready for public consumption.
 . Open the `public/manifest.json` file in a text editor.
@@ -454,8 +469,7 @@ link:https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release[]
 Add a description and publish the tag for the latest release
 https://github.com/dfinity-lab/sdk/releases/new?tag=${NEW_DFX_VERSION}
 
-
-=== Release documentation
+== Release documentation
 
 link:https://github.com/dfinity/docs[Documentation repo]
 
