@@ -17,7 +17,7 @@ use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::{InstallMode, MemoryAllocation};
+use ic_utils::interfaces::management_canister::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, Wallet};
 use ic_utils::Canister;
 use serde::{Deserialize, Serialize};
