@@ -1,11 +1,12 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::sign::signed_message::SignedMessageV1;
 
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV1Transport, RequestId};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use clap::Clap;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
@@ -17,7 +18,14 @@ pub struct CanisterSendOpts {
     file_name: String,
 }
 
-pub async fn exec(_env: &dyn Environment, opts: CanisterSendOpts) -> DfxResult {
+pub async fn exec(
+    _env: &dyn Environment,
+    opts: CanisterSendOpts,
+    call_sender: &CallSender,
+) -> DfxResult {
+    if *call_sender != CallSender::SelectedId {
+        bail!("`sign` currently doesn't support proxy through wallet canister, please use `dfx canister --no-wallet send ...`.");
+    }
     let file_name = opts.file_name;
     let path = Path::new(&file_name);
     let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
