@@ -23,7 +23,6 @@ use ic_utils::Canister;
 use serde::{Deserialize, Serialize};
 use slog::info;
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 use std::io::Read;
 use std::path::PathBuf;
 
