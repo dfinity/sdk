@@ -38,7 +38,6 @@ pub use identity_manager::{
 const IDENTITY_PEM: &str = "identity.pem";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
-const DEFAULT_MEM_ALLOCATION: u64 = 40000000_u64; // 40 MB
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
@@ -344,9 +343,6 @@ impl Identity {
 
                 mgr.install_code(&canister_id, wasm.as_slice())
                     .with_mode(InstallMode::Install)
-                    .with_memory_allocation(MemoryAllocation::try_from(DEFAULT_MEM_ALLOCATION).expect(
-                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
-                    ))
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
                     .await?;
 
