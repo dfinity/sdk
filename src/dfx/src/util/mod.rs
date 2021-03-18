@@ -151,16 +151,18 @@ pub fn blob_from_arguments(
                         use candid::Encode;
                         Encode!()
                     } else if let Some(random) = random {
-                        let random = if random == "" { "{=}" } else { random };
+                        let random = if random == "" {
+                            eprintln!("Random schema is empty, using any random value instead.");
+                            "{=}"
+                        } else {
+                            random
+                        };
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
                         let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
                         let config = candid::parser::configs::Configs::from_dhall(random)?;
                         let args = IDLArgs::any(&seed, &config, &env, &func.args)?;
-                        eprintln!(
-                            "Unspecified argument, sending the following random argument:\n{}\n",
-                            args
-                        );
+                        eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(&env, &func.args)
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));

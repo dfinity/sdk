@@ -44,7 +44,7 @@ teardown() {
     dfx canister create --all
     dfx build
     dfx canister install hello
-    assert_command dfx canister call hello greet --random
+    assert_command dfx canister call hello greet --random ''
     assert_match '("Hello, .*!")'
 }
 
