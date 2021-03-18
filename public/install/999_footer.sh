@@ -176,6 +176,12 @@ get_architecture() {
         fi
     fi
 
+    if [ "$_ostype" = Darwin ] && [ "$_cputype" = arm64 ]; then
+      # Support for M1 Macs using Rosetta for the time being.
+      # We specialize on Darwin here because we cannot support ARM natively.
+      _cputype=x86_64
+    fi
+
     case "$_ostype" in
 
         Linux)
