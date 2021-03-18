@@ -8,25 +8,25 @@ version = "0.2.0"
 #path = "../agent-rs/ic-agent"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "ericswanson/126-http-server-chunked-assets"
-rev = "a2f62ad5434b47e1ff92618b289c9fa191b7f1f4"
+rev = "45590480377750ff71afef1db7e237df82d46fae"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.2.0"
 #path = "../agent-rs/ic-identity-hsm"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "ericswanson/126-http-server-chunked-assets"
-rev = "a2f62ad5434b47e1ff92618b289c9fa191b7f1f4"
+rev = "45590480377750ff71afef1db7e237df82d46fae"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
 #path = "../agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "ericswanson/126-http-server-chunked-assets"
-rev = "a2f62ad5434b47e1ff92618b289c9fa191b7f1f4"
+rev = "45590480377750ff71afef1db7e237df82d46fae"
 
 [patch.crates-io.ic-utils]
 version = "0.2.0"
 #path = "../agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "ericswanson/126-http-server-chunked-assets"
-rev = "a2f62ad5434b47e1ff92618b289c9fa191b7f1f4"
+rev = "45590480377750ff71afef1db7e237df82d46fae"
