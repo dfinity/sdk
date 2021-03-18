@@ -74,6 +74,10 @@ CHERRIES" "$stdout"
     dfx build
     dfx canister install --memory-allocation 15mb e2e_project_assets
 
+    # retrieve() refuses to serve just part of an asset
+    assert_command_fail dfx canister call --query e2e_project_assets retrieve '("/large-asset.bin")'
+    assert_match 'Asset too large.'
+
     assert_command dfx canister call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
     assert_match 'total_length = 6_000_000'
     assert_match 'content_type = "application/octet-stream"'

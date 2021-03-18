@@ -44,8 +44,8 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  // Retrieve an asset's contents by name.  Only returns the first chunk of an asset's
-  // contents, even if there were more than one chunk.
+  // Retrieve an asset's contents by name.
+  // Rejects requests for assets composed of more than one chunk.
   // To handle larger assets, use get() and get_chunk().
   public query func retrieve(path : T.Path) : async T.Contents {
     switch (assets.get(path)) {
@@ -53,7 +53,11 @@ shared ({caller = creator}) actor class () {
       case (?asset) {
         switch (asset.getEncoding("identity")) {
           case null throw Error.reject("no identity encoding");
-          case (?encoding) encoding.content[0];
+          case (?encoding) {
+            if (encoding.content.size() > 1)
+              throw Error.reject("Asset too large.  Use get() and get_chunk() instead.");
+            encoding.content[0];
+          }
         };
       };
     }
