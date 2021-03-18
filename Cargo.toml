@@ -5,24 +5,28 @@ members = [
 
 [patch.crates-io.ic-agent]
 version = "0.2.0"
+# path = "/Users/prithvishahi/dev/agent-rs/ic-agent/"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
+branch = "pshahi/read-state-canister-info"
+rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.2.0"
+# path = "/Users/prithvishahi/dev/agent-rs/ic-identity-hsm"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
+branch = "pshahi/read-state-canister-info"
+rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
+# path = "/Users/prithvishahi/dev/agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
+branch = "pshahi/read-state-canister-info"
+rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
 
 [patch.crates-io.ic-utils]
 version = "0.2.0"
+# path = "/Users/prithvishahi/dev/agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "8b8699d5ba757f9a9952a3a6ded9956df6b129b0"
+branch = "pshahi/read-state-canister-info"
+rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
