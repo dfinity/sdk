@@ -25,6 +25,18 @@ This commit also upgrades tokio and reqwest in order to work correctly. There ar
 
 Renamed the `project_name` in our own generated assets to `canister_name`, for things that are generated during canister build (and not project generation).
 
+=== feat: add support for ECDSA on secp256k1
+
+You can now a generate private key via OpenSSL or a simlar tool, import it into dfx, and use it to sign an ingress message.
+
+[source, bash]
+----
+openssl ecparam -name secp256k1 -genkey -out identity.pem
+dfx identity import <name> identity.pem
+dfx identity use <name>
+dfx canister call ...
+----
+
 == Asset Canister
 
 === feat: The asset canister can now store assets that exceed the message ingress limit (2 MB)
