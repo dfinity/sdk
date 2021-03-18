@@ -30,6 +30,9 @@ let
       preConfigure = (attrs.preConfigure or "") + ''
         unset SDKROOT
       '';
+      nativeBuildInputs = (
+        attrs.nativeBuildInputs or []
+      ) ++ lib.optional pkgs.stdenv.isDarwin pkgs.pkgsStatic.libiconv;
     };
   };
 
@@ -75,7 +78,9 @@ let
             # wabt-sys needs file in path, as well as cc (for cmake).
             pkgs.file
             cc
+            pkgs.gettext
             pkgs.coreutils
+            pkgs.libiconv
           ] ++ lib.optional pkgs.stdenv.isDarwin pkgs.stdenv.cc.bintools;
           inputsFrom = [ ws.shell ];
           shellHook = ''

@@ -1,0 +1,148 @@
+= 0.6.26
+
+== DFX
+
+=== feat: add --no-wallet flag and --wallet option to allow Users to bypass Wallet or specify a Wallet to use for calls (#1476)
+
+Added `--no-wallet` flag to `dfx canister` and `dfx deploy`. This allows users to call canister management functionality with their Identity as the Sender (bypassing their Wallet canister.)
+Added `--wallet` option to `dfx canister` and `dfx deploy`. This allows users to specify a wallet canister id to use as the Sender for calls.
+`--wallet` and `--no-wallet` conflict with each other. Omitting both will invoke the selected Identity's wallet canister to perform calls.
+
+=== feat: implement the HTTP Request proposal in dfx' bootstrap webserver. +
+And add support for http requests in the base storage canister (with a default to `/index.html`).
+
+This does not support other encodings than `identity` for now (and doesn't even return any headers). This support will be added to the upgraded asset storage canister built in #1482.
+
+Added a test that uses `curl localhost` to test that the asset storage AND the webserver properly support the http requests.
+
+This commit also upgrades tokio and reqwest in order to work correctly. There are also _some_ performance issues noted (this is slower than the `icx-http-server` for some reason), but those are not considered criticals and could be improved later on.
+
+Renamed the `project_name` in our own generated assets to `canister_name`, for things that are generated during canister build (and not project generation).
+
+== Asset Canister
+
+=== feat: The asset canister can now store assets that exceed the message ingress limit (2 MB)
+
+* Please note that neither the JS agent nor the HTTP server have been updated yet to server such large assets.
+* The existing interface is left in place for backwards-compatibility, but deprecated:
+** retrieve(): use get() and get_chunk() instead
+** store(): use create_batch(), create_chunk(), and commit_batch() instead
+** list(): use keys() instead
+
+= 0.6.25
+
+== DFX
+
+- feat: dfx now provides CANISTER_ID_<canister_name> environment variables for all canisters to "npm build" when building the frontend.
+
+== Agents
+
+=== Rust Agent
+
+- feat: AgentError due to request::Error will now include the reqwest error message
+in addition to "Could not reach the server"
+- feat: Add secp256k1 support (dfx support to follow)
+
+= 0.6.24
+
+== DFX
+
+- feat: add option to specify initial cycles for newly created canisters (#1433)
+
+Added option to `dfx canister create` and `dfx deploy` commands: `--with-cycles <with-cycles>`.
+This allows the user to specify the initial cycle balance of a canister created by their wallet.
+This option is a no-op for the Sodium network.
+
+[source, bash]
+----
+dfx canister create --with-cycles 8000000000 some_canister
+dfx deploy --with-cycles 8000000000
+----
+
+Help string:
+[source, bash]
+----
+Specifies the initial cycle balance to deposit into the newly
+created canister. The specified amount needs to take the
+canister create fee into account. This amount is deducted
+from the wallet's cycle balance
+----
+
+- feat: install `dfx` by version or tag (#1426)
+
+This feature adds a new dfx command `toolchain` which have intuitive subcommands.
+The toolchain specifiers can be a complete version number, major minor version, or a tag name.
+
+[source, bash]
+----
+dfx toolchain install 0.6.24 # complete version
+dfx toolchain install 0.6    # major minor
+dfx toolchain install latest # tag name
+dfx toolchain default latest
+dfx toolchain list
+dfx toolchain uninstall latest
+----
+
+- fix: onboarding related fixups (#1420)
+
+Now that the Mercury Alpha application subnetwork is up and we are getting ready to onboard devs, the dfx error message for wallet creation has changed:
+For example,
+[source, bash]
+----
+dfx canister --network=alpha create hello
+Creating canister "hello"...
+Creating the canister using the wallet canister...
+Creating a wallet canister on the alpha network.
+Unable to create a wallet canister on alpha:
+The Replica returned an error: code 3, message: "Sender not authorized to use method."
+Wallet canisters on alpha may only be created by an administrator.
+Please submit your Principal ("dfx identity get-principal") in the intake form to have one created for you.
+----
+
+- feat: add deploy wallet subcommand to identity (#1414)
+
+This feature adds the deploy-wallet subcommand to the dfx identity.
+The User provides the ID of the canister onto which the wallet WASM is deployed.
+
+[source, bash]
+----
+dfx identity deploy-wallet --help
+dfx-identity-deploy-wallet
+Installs the wallet WASM to the provided canister id
+
+USAGE:
+    dfx identity deploy-wallet <canister-id>
+
+ARGS:
+    <canister-id>    The ID of the canister where the wallet WASM will be deployed
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+----
+
+= 0.6.22
+
+== DFX
+
+- feat: dfx call random value when argument is not provided (#1376)
+
+- fix: canister call can take canister ids for local canisters even if … (#1368)
+- fix: address panic in dfx replica command (#1338)
+- fix: dfx new webpack.config.js does not encourage running 'js' through ts-… (#1341)
+
+== Sample apps
+
+- There have been updates, improvements, and new sample apps added to thelink:https://github.com/dfinity/examples/tree/master/motoko[examples] repository.
++
+All of Motoko sample apps in the link:https://github.com/dfinity/examples/tree/master/motoko[examples] repository have been updated to work with the latest release of the SDK.
++
+There are new sample apps to illustrate using arrays (link:https://github.com/dfinity/examples/tree/master/motoko/quicksort[Quicksort]) and building create/read/update/delete (CRUD) operations for a web application link:https://github.com/dfinity/examples/tree/master/motoko/superheroes[Superheroes].
+
+- The link:https://github.com/dfinity/linkedup:[LinkedUp] sample application has been updated to work with the latest release of Motoko and the SDK.
+
+== Motoko
+
+== Agents
+
+== Canister Development Kit (CDK)

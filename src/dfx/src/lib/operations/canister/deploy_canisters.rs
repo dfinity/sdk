@@ -3,6 +3,7 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::create_canister;
@@ -23,6 +24,8 @@ pub async fn deploy_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     timeout: Duration,
+    with_cycles: Option<&str>,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -38,7 +41,15 @@ pub async fn deploy_canisters(
         info!(log, "Deploying all canisters.");
     }
 
-    register_canisters(env, &canister_names, &initial_canister_id_store, timeout).await?;
+    register_canisters(
+        env,
+        &canister_names,
+        &initial_canister_id_store,
+        timeout,
+        with_cycles,
+        call_sender,
+    )
+    .await?;
 
     build_canisters(env, &canister_names, &config)?;
 
@@ -50,6 +61,7 @@ pub async fn deploy_canisters(
         argument,
         argument_type,
         timeout,
+        call_sender,
     )
     .await?;
 
@@ -71,6 +83,8 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     timeout: Duration,
+    with_cycles: Option<&str>,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -82,7 +96,7 @@ async fn register_canisters(
     } else {
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
-            create_canister(env, &canister_name, timeout).await?;
+            create_canister(env, &canister_name, timeout, with_cycles, &call_sender).await?;
         }
     }
     Ok(())
@@ -96,6 +110,7 @@ fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Co
     canister_pool.build_or_fail(BuildConfig::from_config(&config)?)
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn install_canisters(
     env: &dyn Environment,
     canister_names: &[String],
@@ -104,6 +119,7 @@ async fn install_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     timeout: Duration,
+    call_sender: &CallSender,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -152,6 +168,7 @@ async fn install_canisters(
             first_mode,
             memory_allocation,
             timeout,
+            &call_sender,
         )
         .await;
 
@@ -184,6 +201,7 @@ async fn install_canisters(
                     second_mode,
                     memory_allocation,
                     timeout,
+                    &call_sender,
                 )
                 .await
             }

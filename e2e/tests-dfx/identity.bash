@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ./utils/_
+load ../utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
@@ -78,8 +78,7 @@ teardown() {
     assert_match 'Creating the "default" identity.' "$stderr"
 }
 
-@test "after using a specific identity while creating a canister, that identity is the initializer" {
-    [ "$USE_IC_REF" ] && skip "Skip for ic-ref as its ic_api_version > 0.14.0, test with set controller with wallet"
+@test "after using a specific identity while creating a canister, that wallet is the initializer" {
     install_asset identity
     dfx_start
     assert_command dfx identity new alice
@@ -89,89 +88,36 @@ teardown() {
     assert_command dfx --identity alice build
     assert_command dfx --identity alice canister install --all
 
+    # The wallet is the initializer
     assert_command dfx --identity alice canister call e2e_project amInitializer
     assert_eq '(true)'
 
-    assert_command dfx --identity bob canister call e2e_project amInitializer
+    # The user Identity's principal is not the initializer
+    assert_command dfx --identity alice canister --no-wallet call e2e_project amInitializer
     assert_eq '(false)'
 
-    # these all fail (other identities are not initializer; cannot store assets):
-    assert_command_fail dfx --identity bob canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_command_fail dfx --identity default canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_command_fail dfx canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_command_fail dfx canister call e2e_project_assets retrieve '("B")'
-
-    # but alice, the initializer, can store assets:
-    assert_command dfx --identity alice canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_eq '()'
-    assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
-    assert_eq '(blob "XWV")'
-}
-
-@test "after using a specific identity while creating a canister, that wallet is the initializer" {
-    [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
-    install_asset identity
-    dfx_start
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
-
-    dfx --identity alice canister create --all
-    assert_command dfx --identity alice build
-    assert_command dfx --identity alice canister install --all
-
-    assert_command dfx --identity alice canister call e2e_project amInitializer
-    assert_eq '(false)'
-
-    assert_command dfx --identity alice canister call \
+    assert_command dfx --identity alice canister --no-wallet call \
       "$(dfx --identity alice identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
 
-    assert_command dfx --identity bob canister call e2e_project amInitializer
+    assert_command dfx --identity bob canister --no-wallet call e2e_project amInitializer
     assert_eq '(false)'
 
     # these all fail (other identities are not initializer; cannot store assets):
-    assert_command_fail dfx --identity bob canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_command_fail dfx --identity default canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_command_fail dfx canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_command_fail dfx canister call e2e_project_assets retrieve '("B")'
+    assert_command_fail dfx --identity bob canister --no-wallet call e2e_project_assets store '("B", vec { 88; 87; 86 })'
+    assert_command_fail dfx --identity default canister --no-wallet call e2e_project_assets store '("B", vec { 88; 87; 86 })'
+    assert_command_fail dfx canister --no-wallet call e2e_project_assets store '("B", vec { 88; 87; 86 })'
+    assert_command_fail dfx canister --no-wallet call e2e_project_assets retrieve '("B")'
 
     # but alice, the initializer, can store assets:
     assert_command dfx --identity alice canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
     assert_eq '()'
-    assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
+    assert_command dfx canister --no-wallet call --output idl e2e_project_assets retrieve '("B")'
     assert_eq '(blob "XWV")'
-}
-
-@test "after renaming an identity, the renamed identity is still initializer" {
-    [ "$USE_IC_REF" ] && skip "Skip for ic-ref as its ic_api_version > 0.14.0, test with set controller with wallet"
-    install_asset identity
-    dfx_start
-    assert_command dfx identity new alice
-
-    dfx --identity alice canister create --all
-    assert_command dfx --identity alice build
-    assert_command dfx --identity alice canister install --all
-    assert_command dfx --identity alice canister call e2e_project amInitializer
-    assert_eq '(true)'
-    assert_command dfx canister call e2e_project amInitializer
-    assert_eq '(false)'
-
-    assert_command dfx identity rename alice bob
-
-    assert_command dfx identity whoami
-    assert_eq 'default'
-    assert_command dfx --identity bob canister call e2e_project amInitializer
-    assert_eq '(true)'
-
-    assert_command dfx --identity bob canister call e2e_project_assets store '("B", blob "hello")'
-    assert_eq '()'
-    assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
-    assert_eq '(blob "hello")'
 }
 
 @test "after renaming an identity, the renamed identity's wallet is still initializer" {
-    [ ! "$USE_IC_REF" ] && skip "Skip until updating to Replica with ic_api_version > 0.14.0"
     install_asset identity
     dfx_start
     assert_command dfx identity new alice
@@ -179,24 +125,24 @@ teardown() {
     dfx --identity alice canister create --all
     assert_command dfx --identity alice build
     assert_command dfx --identity alice canister install --all
-    assert_command dfx --identity alice canister call \
+    assert_command dfx --identity alice canister --no-wallet call \
       "$(dfx --identity alice identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
-    assert_command dfx canister call e2e_project amInitializer
+    assert_command dfx canister --no-wallet call e2e_project amInitializer
     assert_eq '(false)'
 
     assert_command dfx identity rename alice bob
 
     assert_command dfx identity whoami
     assert_eq 'default'
-    assert_command dfx --identity bob canister call \
+    assert_command dfx --identity bob canister --no-wallet call \
       "$(dfx --identity bob identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
 
     assert_command dfx --identity bob canister call e2e_project_assets store '("B", blob "hello")'
     assert_eq '()'
-    assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
+    assert_command dfx canister --no-wallet call --output idl e2e_project_assets retrieve '("B")'
     assert_eq '(blob "hello")'
 }

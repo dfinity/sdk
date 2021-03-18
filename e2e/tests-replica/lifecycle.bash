@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ./utils/_
+load ../utils/_
 
 setup() {
     cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
@@ -18,19 +18,19 @@ teardown() {
     dfx build
     dfx canister install hello
     assert_command dfx canister status hello
-    assert_match "Canister hello's status is Running."
+    assert_match "Status: Running."
 
     # Stop
     assert_command dfx canister stop hello
     assert_command dfx canister status hello
-    assert_match "Canister hello's status is Stopped."
+    assert_match "Status: Stopped."
     assert_command_fail dfx canister call "$(dfx canister id hello)" greet '("Names are difficult")'
     assert_match "is stopped"
 
     # Start
     assert_command dfx canister start hello
     assert_command dfx canister status hello
-    assert_match "Canister hello's status is Running."
+    assert_match "Status: Running."
 
     # Call
     assert_command dfx canister call "$(dfx canister id hello)" greet '("Names are difficult")'

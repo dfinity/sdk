@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load utils/_
+load ../utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
@@ -33,11 +33,19 @@ teardown() {
     assert_eq '("Hello, Bongalo!")'
 
     # Using call --async and request-status.
-    assert_command dfx canister call --async hello greet Blueberry
+    # Call with user Identity as Sender
+    assert_command dfx canister --no-wallet call --async hello greet Blueberry
     # At this point $output is the request ID.
     # shellcheck disable=SC2154
     assert_command dfx canister request-status "$stdout"
     assert_eq '("Hello, Blueberry!")'
+
+    # Call using the wallet's call forwarding
+    assert_command dfx canister call --async hello greet Blueberry
+    # At this point $output is the request ID.
+    # shellcheck disable=SC2154
+    assert_command dfx canister request-status "$stdout"
+    assert_eq '(record { 153_986_224 = blob "DIDL\00\01q\11Hello, Blueberry!" })'
 }
 
 @test "build + install + call + request-status -- counter_mo" {
@@ -79,9 +87,16 @@ teardown() {
     assert_eq "()"
 
     # Write has no return value. But we can _call_ read too.
-    assert_command dfx canister call hello read --async
+    # Call with user Identity as Sender
+    assert_command dfx canister --no-wallet call hello read --async
     assert_command dfx canister request-status "$stdout"
     assert_eq "(1_337)"
+
+    # Call using the wallet's call forwarding
+    assert_command dfx canister call hello read --async
+    assert_command dfx canister request-status "$stdout"
+    assert_eq '(record { 153_986_224 = blob "DIDL\00\01}\b9\0a" })'
+
 }
 
 @test "build + install + call -- counter_idl_mo" {

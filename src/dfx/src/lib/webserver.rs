@@ -5,21 +5,29 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
 
+mod http_transport;
+
 use actix::System;
 use actix_cors::Cors;
 use actix_server::Server;
 use actix_web::client::{Client, ClientBuilder, Connector};
 use actix_web::error::ErrorInternalServerError;
+use actix_web::http::{StatusCode, Uri};
 use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
 use anyhow::anyhow;
 use crossbeam::channel::Sender;
 use futures::StreamExt;
+use ic_agent::Agent;
+use ic_types::Principal;
+use ic_utils::call::SyncCall;
+use ic_utils::interfaces::http_request::HeaderField;
 use serde::Deserialize;
 use slog::{debug, info, trace, Logger};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use url::Url;
 
@@ -39,10 +47,17 @@ struct CandidData {
     pub network_descriptor: NetworkDescriptor,
 }
 
+struct HttpRequestData {
+    pub bind: SocketAddr,
+    pub logger: slog::Logger,
+}
+
 #[derive(Deserialize)]
 enum Format {
     #[serde(rename = "js")]
     Javascript,
+    #[serde(rename = "ts")]
+    Typescript,
 }
 
 #[derive(Deserialize)]
@@ -60,6 +75,7 @@ async fn candid(
     let network_descriptor = &data.network_descriptor;
     let store =
         CanisterIdStore::for_network(&network_descriptor).map_err(ErrorInternalServerError)?;
+
     let candid_path = store
         .get_name(&id)
         .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
@@ -80,6 +96,10 @@ async fn candid(
         Some(Format::Javascript) => {
             let (env, ty) = check_candid_file(&candid_path).map_err(ErrorInternalServerError)?;
             candid::bindings::javascript::compile(&env, &ty)
+        }
+        Some(Format::Typescript) => {
+            let (env, ty) = check_candid_file(&candid_path).map_err(ErrorInternalServerError)?;
+            candid::bindings::typescript::compile(&env, &ty)
         }
     };
     let response = HttpResponse::Ok().body(content);
@@ -122,9 +142,6 @@ async fn forward(
 
     let logger = data.logger.clone();
 
-    // TODO(hansl): move this all to async/await. Jeez....
-    // (PS: the reason I don't do this yet is moving actix to async/await is a bit more
-    //      involved than replacing this single function)
     let mut req_body = web::BytesMut::new();
     while let Some(item) = payload.next().await {
         req_body.extend_from_slice(&item?);
@@ -172,6 +189,147 @@ async fn forward(
     Ok(client_resp.body(resp_body))
 }
 
+fn resolve_canister_id_from_hostname(hostname: &str) -> Option<Principal> {
+    let url = Uri::from_str(hostname).ok()?;
+
+    // Check if it's localhost or ic0.
+    match url.host()?.split('.').collect::<Vec<&str>>().as_slice() {
+        [.., maybe_canister_id, "localhost"] | [.., maybe_canister_id, "ic0", "app"] => {
+            if let Ok(canister_id) = Principal::from_text(maybe_canister_id) {
+                return Some(canister_id);
+            }
+        }
+        _ => {}
+    };
+
+    None
+}
+
+fn resolve_canister_id_from_query(url: &Uri) -> Option<Principal> {
+    let (_, canister_id) = url::form_urlencoded::parse(url.query()?.as_bytes())
+        .find(|(name, _)| name == "canisterId")?;
+    Principal::from_text(canister_id.as_ref()).ok()
+}
+
+fn resolve_canister_id(request: &HttpRequest) -> Option<Principal> {
+    // Look for subdomains if there's a host header.
+    if let Some(host_header) = request.headers().get("Host") {
+        if let Ok(host) = host_header.to_str() {
+            if let Some(canister_id) = resolve_canister_id_from_hostname(host) {
+                return Some(canister_id);
+            }
+        }
+    }
+
+    // Look into the URI.
+    if let Some(canister_id) = resolve_canister_id_from_query(request.uri()) {
+        return Some(canister_id);
+    }
+
+    // Look into the request by header.
+    if let Some(referer_header) = request.headers().get("referer") {
+        if let Ok(referer) = referer_header.to_str() {
+            if let Ok(referer_uri) = Uri::from_str(referer) {
+                if let Some(canister_id) = resolve_canister_id_from_query(&referer_uri) {
+                    return Some(canister_id);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// HTTP Request route. See
+/// https://www.notion.so/Design-HTTP-Canisters-Queries-d6bc980830a947a88bf9148a25169613
+async fn http_request(
+    req: HttpRequest,
+    mut payload: web::Payload,
+    http_request_data: web::Data<Arc<HttpRequestData>>,
+    actix_data: web::Data<Arc<Mutex<ForwardActixData>>>,
+) -> Result<HttpResponse, Error> {
+    let logger = http_request_data.logger.clone();
+    let url = {
+        let mut data = actix_data.lock().unwrap();
+        data.counter += 1;
+        let count = data.counter;
+        data.providers[count % data.providers.len()].clone()
+    };
+
+    let transport = http_transport::ReqwestHttpReplicaV1Transport::create(url.to_string())
+        .map_err(|err| {
+            actix_web::error::InternalError::new(err, StatusCode::INTERNAL_SERVER_ERROR)
+        })?;
+
+    // We need to convert errors into 500s, which are regular Ok(Response).
+    let agent = match Agent::builder().with_transport(transport).build() {
+        Ok(agent) => agent,
+        Err(err) => {
+            return Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(format!("Details: {:?}", err)));
+        }
+    };
+
+    let canister_id = match resolve_canister_id(&req) {
+        Some(canister_id) => canister_id,
+        None => {
+            return Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                .body("Could not find Canister ID from Request.".to_string()));
+        }
+    };
+
+    let canister = ic_utils::interfaces::HttpRequestCanister::create(&agent, canister_id.clone());
+
+    let method = req.method().to_string();
+    let uri = req.uri().to_string();
+    let headers = req
+        .headers()
+        .into_iter()
+        .filter_map(|(name, value)| {
+            Some(HeaderField(
+                name.to_string(),
+                value.to_str().ok()?.to_string(),
+            ))
+        })
+        .collect();
+    let mut body = web::BytesMut::new();
+    while let Some(item) = payload.next().await {
+        body.extend_from_slice(&item?);
+    }
+    let body = body.to_vec();
+
+    debug!(
+        logger,
+        "Making call http_request to canister_id {}",
+        canister_id.to_text()
+    );
+
+    match canister
+        .http_request(method, uri, headers, body)
+        .call()
+        .await
+    {
+        Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(format!("Details: {:?}", err))),
+        Ok((http_response,)) => {
+            if let Ok(status_code) = StatusCode::from_u16(http_response.status_code) {
+                let mut builder = HttpResponse::build(status_code);
+                for HeaderField(name, value) in http_response.headers {
+                    builder.header(&name, value);
+                }
+                Ok(builder.body(http_response.body))
+            } else {
+                Ok(
+                    HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR).body(format!(
+                        "Invalid status code: {}",
+                        http_response.status_code
+                    )),
+                )
+            }
+        }
+    }
+}
+
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
@@ -179,12 +337,10 @@ pub fn run_webserver(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     providers: Vec<url::Url>,
-    serve_dir: PathBuf,
+    _serve_dir: PathBuf,
 ) -> DfxResult<Server> {
-    info!(logger, "binding to: {:?}", bind);
-
     const SHUTDOWN_WAIT_TIME: u64 = 60;
-
+    info!(logger, "binding to: {:?}", bind);
     info!(
         logger,
         "replica(s): {}",
@@ -205,35 +361,44 @@ pub fn run_webserver(
         build_output_root,
         network_descriptor,
     });
+    let http_request_data = Arc::new(HttpRequestData {
+        bind,
+        logger: logger.clone(),
+    });
 
-    let handler = HttpServer::new(move || {
-        App::new()
-            .data(
-                ClientBuilder::new()
-                    .connector(Connector::new().limit(1).finish())
-                    .finish(),
-            )
-            .data(forward_data.clone())
-            .data(candid_data.clone())
-            .wrap(
-                Cors::new()
-                    .allowed_methods(vec!["POST"])
-                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-                    .allowed_header(http::header::CONTENT_TYPE)
-                    .send_wildcard()
-                    .max_age(3600)
-                    .finish(),
-            )
-            .wrap(middleware::Logger::default())
-            .service(web::scope("/api").default_service(web::to(forward)))
-            .service(web::resource("/_/candid").route(web::get().to(candid)))
-            .default_service(actix_files::Files::new("/", &serve_dir).index_file("index.html"))
-    })
-    .max_connections(1)
-    .bind(bind)?
-    // N.B. This is an arbitrary timeout for now.
-    .shutdown_timeout(SHUTDOWN_WAIT_TIME)
-    .run();
+    let handler =
+        HttpServer::new(move || {
+            App::new()
+                .data(
+                    ClientBuilder::new()
+                        .connector(Connector::new().limit(10).finish())
+                        .finish(),
+                )
+                .data(forward_data.clone())
+                .data(candid_data.clone())
+                .data(http_request_data.clone())
+                .wrap(
+                    Cors::new()
+                        .allowed_methods(vec!["POST"])
+                        .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                        .allowed_header(http::header::CONTENT_TYPE)
+                        .send_wildcard()
+                        .max_age(3600)
+                        .finish(),
+                )
+                .wrap(middleware::Logger::default())
+                .service(web::scope("/api").default_service(web::to(forward)))
+                .service(web::resource("/_/candid").route(web::get().to(candid)))
+                .service(web::resource("/_/").route(
+                    web::get().to(|| HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)),
+                ))
+                .default_service(web::get().to(http_request))
+        })
+        .max_connections(10)
+        .bind(bind)?
+        // N.B. This is an arbitrary timeout for now.
+        .shutdown_timeout(SHUTDOWN_WAIT_TIME)
+        .run();
 
     Ok(handler)
 }
@@ -244,7 +409,7 @@ pub fn webserver(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
-    serve_dir: &Path,
+    _serve_dir: &Path,
     inform_parent: Sender<Server>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     // Verify that we cannot bind to a port that we forward to.
@@ -265,7 +430,6 @@ pub fn webserver(
     std::thread::Builder::new()
         .name("Frontend".into())
         .spawn({
-            let serve_dir = serve_dir.to_path_buf();
             move || {
                 let _sys = System::new("dfx-frontend-http-server");
                 let server = run_webserver(
@@ -274,7 +438,7 @@ pub fn webserver(
                     network_descriptor,
                     bind,
                     clients_api_uri,
-                    serve_dir,
+                    PathBuf::new(),
                 )
                 .unwrap();
 

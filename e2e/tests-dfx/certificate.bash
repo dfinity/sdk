@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load ./utils/_
+load ../utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
@@ -29,11 +29,11 @@ setup() {
 
     while true
     do
-        MITM_PORT=$(python3 "${BATS_TEST_DIRNAME}/utils/get_ephemeral_port.py")
+        MITM_PORT=$(python3 "${BATS_TEST_DIRNAME}/../utils/get_ephemeral_port.py")
         # shellcheck disable=SC2094
         cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$MITM_PORT"'"' dfx.json)" >dfx.json
 
-        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  --replace '/~s/Hello,/Hullo,' &
+        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  --modify-body '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
         timeout 5 sh -c \
@@ -60,6 +60,9 @@ teardown() {
 }
 
 @test "mitm attack - query: attack succeeds because there is no certificate to verify" {
-    assert_command dfx canister call certificate hello_query '("Buckaroo")'
+    # The wallet does not have a query call forward method (currently calls forward from wallet's update method)
+    # So call with users Identity as sender here
+    # There may need to be a query version of wallet_call
+    assert_command dfx canister --no-wallet call certificate hello_query '("Buckaroo")'
     assert_eq '("Hullo, Buckaroo!")'
 }
