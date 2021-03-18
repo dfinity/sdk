@@ -43,6 +43,7 @@ pub struct CanisterCallOpts {
     update: bool,
 
     /// Specifies the argument to pass to the method.
+    #[clap(conflicts_with("random"))]
     argument: Option<String>,
 
     /// Specifies the config for generating random argument.

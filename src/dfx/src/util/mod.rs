@@ -151,6 +151,7 @@ pub fn blob_from_arguments(
                         use candid::Encode;
                         Encode!()
                     } else if let Some(random) = random {
+                        let random = if random == "" { "{=}" } else { random };
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
                         let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
