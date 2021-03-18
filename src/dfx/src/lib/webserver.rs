@@ -243,6 +243,27 @@ fn resolve_canister_id(request: &HttpRequest) -> Option<Principal> {
     None
 }
 
+fn replace_uri(
+    request: &HttpRequest,
+    canister_id: &Principal,
+    ui_canister_id: &Principal,
+) -> Option<String> {
+    let canister_id = canister_id.to_text();
+    let ui_canister_id = ui_canister_id.to_text();
+    let mut host = request.headers().get("Host")?.to_str().ok()?.to_string();
+    eprintln!("{}", host);
+    if let Some(start) = host.find(&canister_id) {
+        host.replace_range(start..start + canister_id.len(), &ui_canister_id);
+        host.push_str(&format!("/?id={}", canister_id));
+    } else {
+        host.push_str(&format!(
+            "/?canisterId={}&id={}",
+            ui_canister_id, canister_id
+        ));
+    }
+    Some(host)
+}
+
 /// HTTP Request route. See
 /// https://www.notion.so/Design-HTTP-Canisters-Queries-d6bc980830a947a88bf9148a25169613
 async fn http_request(
@@ -318,9 +339,14 @@ async fn http_request(
         }) if reject_code == 3 && reject_message.find("http_request").is_some() => {
             let network = &http_request_data.network_descriptor;
             let id = named_canister::get_ui_canister_id(network).unwrap();
-            let url = format!("/?canisterId={}&id={}", id, canister_id);
+            let uri = replace_uri(&req, &canister_id, &id).unwrap();
+            let scheme = String::from(if network.name == "local" {
+                "http://"
+            } else {
+                "https://"
+            });
             Ok(HttpResponse::TemporaryRedirect()
-                .header("Location", url)
+                .header("Location", scheme + &uri)
                 .finish())
         }
         Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)

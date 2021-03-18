@@ -19,6 +19,7 @@ use slog::info;
 use std::convert::TryFrom;
 use std::io::Read;
 
+const DEFAULT_MEM_ALLOCATION: u64 = 5000000_u64; // 5 MB
 const UI_CANISTER: &str = "__Candid_UI";
 
 pub async fn install_ui_canister(
@@ -40,7 +41,7 @@ pub async fn install_ui_canister(
     );
     info!(
         env.get_logger(),
-        "Creating UI canister on the \"{}\" network.", network.name
+        "Creating UI canister on the {} network.", network.name
     );
     let mut canister_assets = util::assets::ui_canister()?;
     let mut wasm = Vec::new();
@@ -69,6 +70,10 @@ pub async fn install_ui_canister(
     };
     mgr.install_code(&canister_id, wasm.as_slice())
         .with_mode(InstallMode::Install)
+        .with_memory_allocation(
+            MemoryAllocation::try_from(DEFAULT_MEM_ALLOCATION)
+                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively."),
+        )
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
     id_store.add(UI_CANISTER, canister_id.to_text())?;
