@@ -31,6 +31,13 @@ teardown() {
     assert_match '("Hello, DFINITY!")'
 }
 
+@test "error on empty arguments when the method requires some" {
+    install_asset greet
+    dfx_start
+    dfx deploy
+    assert_command_fail dfx canister call hello greet
+}
+
 @test "long call" {
     install_asset recurse
     dfx_start
