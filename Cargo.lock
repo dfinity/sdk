@@ -690,9 +690,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.6.16"
+version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9669668454dd04c144d6f6674b4266b6e8fd0ef75f0240f0d08ec60869f654aa"
+checksum = "219b042d74a01614c10e1a29ac83041731012871d7152f60b5c6499823d58488"
 dependencies = [
  "arbitrary",
  "byteorder",
@@ -712,15 +712,16 @@ dependencies = [
  "pretty 0.10.0",
  "rand 0.8.3",
  "serde",
+ "serde_bytes",
  "serde_dhall",
  "thiserror",
 ]
 
 [[package]]
 name = "candid_derive"
-version = "0.4.2"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5603430e22543ff48a72020277340132dea6653e6c91b47c9e1f90f91ae82c54"
+checksum = "8d7232a5dd836d83ae9ffd79061b42d729afab6f11bfaba7dc2a82575b686ae2"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -1893,7 +1894,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#447d4fadfe76a038bc2994d26b067e4a964d7996"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=hotfix/0.6.26#ed02bd8052872716e52ad6874e1f81dec131d83e"
 dependencies = [
  "async-trait",
  "base32",
@@ -1923,7 +1924,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#447d4fadfe76a038bc2994d26b067e4a964d7996"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=hotfix/0.6.26#ed02bd8052872716e52ad6874e1f81dec131d83e"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1938,7 +1939,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#447d4fadfe76a038bc2994d26b067e4a964d7996"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=hotfix/0.6.26#ed02bd8052872716e52ad6874e1f81dec131d83e"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1950,7 +1951,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#447d4fadfe76a038bc2994d26b067e4a964d7996"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=hotfix/0.6.26#ed02bd8052872716e52ad6874e1f81dec131d83e"
 dependencies = [
  "async-trait",
  "candid",
@@ -1958,6 +1959,7 @@ dependencies = [
  "ic-agent",
  "ic-types",
  "serde",
+ "serde_bytes",
  "thiserror",
 ]
 
