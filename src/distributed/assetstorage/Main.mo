@@ -1,5 +1,4 @@
 import Array "mo:base/Array";
-import Buffer "mo:base/Buffer";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import HashMap "mo:base/HashMap";
@@ -383,15 +382,9 @@ shared ({caller = creator}) actor class () {
     switch (assetAndEncoding) {
       case null {{ status_code = 404; headers = []; body = ""; next_token = null }};
       case (?(asset, assetEncoding)) {
-        let headers = Buffer.Buffer<(Text,Text)>(3);
-        headers.add(("Content-Type", asset.contentType));
-        headers.add(("Content-Length", Nat.toText(assetEncoding.totalLength)));
-        if (assetEncoding.contentEncoding != "identity")
-          headers.add(("Content-Encoding", assetEncoding.contentEncoding));
-
         {
           status_code = 200;
-          headers = headers.toArray();
+          headers = [];
           body = assetEncoding.content[0];
           next_token = makeNextToken(key, assetEncoding, 0);
         }
