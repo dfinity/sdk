@@ -12,12 +12,9 @@ rec {
   e2e-tests = import ./e2e { inherit pkgs dfx system; };
   e2e-tests-ic-ref = import ./e2e { inherit pkgs dfx system; use_ic_ref = true; };
 
-  # Bootstrap frontend.
-  bootstrap-js = import ./nix/bootstrap.nix { inherit system pkgs; };
-
   cargo-audit = import ./cargo-audit.nix { inherit pkgs RustSec-advisory-db; };
 
-  assets = import ./assets.nix { inherit pkgs bootstrap-js distributed-canisters; };
+  assets = import ./assets.nix { inherit pkgs distributed-canisters; };
 
   distributed-canisters = import ./distributed-canisters.nix { inherit pkgs; };
 

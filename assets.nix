@@ -1,5 +1,4 @@
 { pkgs ? import ./nix {}
-, bootstrap-js ? import ./nix/agent-js/bootstrap-js.nix { inherit pkgs; }
 , distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs; }
 }:
 let
@@ -13,10 +12,6 @@ let
     cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
     cp ${pkgs.motoko.moc}/bin/moc $out
     cp ${pkgs.ic-ref}/bin/* $out
-
-    # Install bootstrap
-    mkdir $out/bootstrap
-    cp -R ${bootstrap-js}/* $out/bootstrap/
   '';
 in
 pkgs.runCommandNoCCLocal "assets" {} ''
