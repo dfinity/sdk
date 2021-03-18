@@ -308,41 +308,20 @@ async fn http_request(
     );
 
     match canister
-        .http_request(method.clone(), uri.clone(), headers, body.clone())
+        .http_request(method, uri, headers, body)
         .call()
         .await
     {
         Err(AgentError::ReplicaError {
             reject_code,
             reject_message,
-        }) if reject_code == 3 && reject_message.ends_with("\'http_request\'") => {
+        }) if reject_code == 3 && reject_message.find("http_request").is_some() => {
             let network = &http_request_data.network_descriptor;
             let id = named_canister::get_ui_canister_id(network).unwrap();
-            let canister = ic_utils::interfaces::HttpRequestCanister::create(&agent, id);
-            match canister
-                .http_request(method, uri, Vec::new(), body)
-                .call()
-                .await
-            {
-                Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(format!("Candid UI canister error: {:?}", err))),
-                Ok((http_response,)) => {
-                    if let Ok(status_code) = StatusCode::from_u16(http_response.status_code) {
-                        let mut builder = HttpResponse::build(status_code);
-                        for HeaderField(name, value) in http_response.headers {
-                            builder.header(&name, value);
-                        }
-                        Ok(builder.body(http_response.body))
-                    } else {
-                        Ok(
-                            HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR).body(format!(
-                                "Invalid status code: {}",
-                                http_response.status_code
-                            )),
-                        )
-                    }
-                }
-            }
+            let url = format!("/?canisterId={}&id={}", id, canister_id);
+            Ok(HttpResponse::TemporaryRedirect()
+                .header("Location", url)
+                .finish())
         }
         Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
             .body(format!("Details: {:?}", err))),
