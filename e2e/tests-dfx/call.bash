@@ -21,16 +21,6 @@ teardown() {
     assert_match '("Hello, Names are difficult!")'
 }
 
-@test "call random value" {
-    install_asset greet
-    dfx_start
-    dfx canister create --all
-    dfx build
-    dfx canister install hello
-    assert_command dfx canister call hello greet --random '{ value = Some ["\"DFINITY\""] }'
-    assert_match '("Hello, DFINITY!")'
-}
-
 @test "long call" {
     install_asset recurse
     dfx_start
@@ -39,3 +29,4 @@ teardown() {
     dfx canister install hello
     assert_command dfx canister call hello recurse 100
 }
+

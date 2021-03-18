@@ -104,7 +104,7 @@ pub async fn exec(
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
         let arguments = opts.argument.as_deref();
         let arg_type = opts.argument_type.as_deref();
-        let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
+        let install_args = blob_from_arguments(arguments, arg_type, &init_type)?;
 
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),

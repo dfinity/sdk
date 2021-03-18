@@ -140,7 +140,7 @@ async fn install_canisters(
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-        let install_args = blob_from_arguments(argument, None, argument_type, &init_type)?;
+        let install_args = blob_from_arguments(argument, argument_type, &init_type)?;
 
         let config_interface = config.get_config();
         let compute_allocation =
