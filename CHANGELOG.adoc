@@ -21,7 +21,7 @@ Renamed the `project_name` in our own generated assets to `canister_name`, for t
 
 === feat: add support for ECDSA on secp256k1
 
-You can now a generate private key via OpenSSL, import it into dfx, and use it to sign an ingress message.
+You can now a generate private key via OpenSSL or a simlar tool, import it into dfx, and use it to sign an ingress message.
 
 [source, bash]
 ----
