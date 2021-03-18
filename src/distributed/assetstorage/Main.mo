@@ -393,7 +393,7 @@ shared ({caller = creator}) actor class () {
           status_code = 200;
           headers = headers.toArray();
           body = assetEncoding.content[0];
-          next_token = makeNextToken(0, assetEncoding);
+          next_token = makeNextToken(key, assetEncoding, 0);
         }
       };
     }
@@ -401,9 +401,8 @@ shared ({caller = creator}) actor class () {
 
   // Get subsequent chunks of an asset encoding's content, after http_request().
   // Like get_chunk, but converts url to key
-  public query func http_request_next(request: T.HttpRequest, token: T.HttpNextToken) : async T.HttpNextResponse {
-    let key = getKey(request.url);
-    switch (assets.get(key)) {
+  public query func http_request_next(token: T.HttpNextToken) : async T.HttpNextResponse {
+    switch (assets.get(token.key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
         switch (asset.getEncoding(token.content_encoding)) {
@@ -411,7 +410,7 @@ shared ({caller = creator}) actor class () {
           case (?encoding) {
             {
               body = encoding.content[token.index];
-              next_token = makeNextToken(token.index, encoding);
+              next_token = makeNextToken(token.key, encoding, token.index);
             }
           }
         };
@@ -419,9 +418,10 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  private func makeNextToken(lastIndex: Nat, assetEncoding: A.AssetEncoding): ?T.HttpNextToken {
+  private func makeNextToken(key: T.Key, assetEncoding: A.AssetEncoding, lastIndex: Nat): ?T.HttpNextToken {
     if (lastIndex + 1 < assetEncoding.content.size()) {
       ?{
+        key = key;
         content_encoding = assetEncoding.contentEncoding;
         index = lastIndex + 1;
       };

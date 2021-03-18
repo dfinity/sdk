@@ -308,7 +308,7 @@ async fn http_request(
     );
 
     match canister
-        .http_request(method.clone(), &uri, headers, &body)
+        .http_request(method, uri, headers, &body)
         .call()
         .await
     {
@@ -317,19 +317,11 @@ async fn http_request(
         Ok((http_response,)) => {
             if let Ok(status_code) = StatusCode::from_u16(http_response.status_code) {
                 let mut builder = HttpResponse::build(status_code);
-                for HeaderField(name, value) in &http_response.headers {
-                    builder.header(name, value.clone());
+                for HeaderField(name, value) in http_response.headers {
+                    builder.header(&name, value);
                 }
-                match get_whole_body(
-                    &canister,
-                    &method,
-                    &uri,
-                    http_response.headers,
-                    &body,
-                    http_response.body,
-                    http_response.next_token,
-                )
-                .await
+
+                match get_whole_body(&canister, http_response.body, http_response.next_token).await
                 {
                     Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
                         .body(format!("Details: {:?}", err))),
@@ -349,10 +341,6 @@ async fn http_request(
 
 async fn get_whole_body(
     canister: &Canister<'_, HttpRequestCanister>,
-    method: &str,
-    url: &str,
-    headers: Vec<HeaderField>,
-    request_body: &[u8],
     body: Vec<u8>,
     next_token: Option<IDLValue>,
 ) -> Result<Vec<u8>, AgentError> {
@@ -360,10 +348,7 @@ async fn get_whole_body(
     let mut maybe_next_token = next_token;
 
     while let Some(next_token) = maybe_next_token {
-        let (response,) = canister
-            .http_request_next(method, url, headers.clone(), request_body, next_token)
-            .call()
-            .await?;
+        let (response,) = canister.http_request_next(next_token).call().await?;
         let mut add_body = response.body;
         body.append(&mut add_body);
         maybe_next_token = response.next_token;

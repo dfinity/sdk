@@ -77,7 +77,7 @@ version = "0.2.0"
 #path = "../../../agent-rs/ic-agent"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "ericswanson/126-http-server-chunked-assets"
-rev = "45590480377750ff71afef1db7e237df82d46fae"
+rev = "60ba952fa6814580ed3d6f50a59364c199a1330c"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
@@ -85,21 +85,21 @@ version = "0.2.0"
 #path = "../../../agent-rs/ic-identity-hsm"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "ericswanson/126-http-server-chunked-assets"
-rev = "45590480377750ff71afef1db7e237df82d46fae"
+rev = "60ba952fa6814580ed3d6f50a59364c199a1330c"
 
 [dependencies.ic-types]
 version = "0.1.2"
 #path = "../../../agent-rs/ic-types"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "ericswanson/126-http-server-chunked-assets"
-rev = "45590480377750ff71afef1db7e237df82d46fae"
+rev = "60ba952fa6814580ed3d6f50a59364c199a1330c"
 
 [dependencies.ic-utils]
 version = "0.2.0"
 #path = "../../../agent-rs/ic-utils"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "ericswanson/126-http-server-chunked-assets"
-rev = "45590480377750ff71afef1db7e237df82d46fae"
+rev = "60ba952fa6814580ed3d6f50a59364c199a1330c"
 
 [dev-dependencies]
 env_logger = "0.6"

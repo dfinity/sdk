@@ -61,17 +61,11 @@ module Types {
   };
 
   public type HttpNextToken = {
+      key: Text;
       content_encoding: Text;
       index: Nat;
   };
 
-  public type HttpNextRequest = {
-    method: Text;
-    url: Text;
-    headers: [HeaderField];
-    body: Blob;
-    token: HttpNextToken;
-  };
   public type HttpNextResponse = {
     body: Blob;
     next_token: ?HttpNextToken;
