@@ -339,6 +339,7 @@ async fn http_request(
     }
 }
 
+// TODO: https://github.com/dfinity/sdk/issues/1524 Use HttpResponseBuilder.streaming()
 async fn get_whole_body(
     canister: &Canister<'_, HttpRequestCanister>,
     body: Vec<u8>,
