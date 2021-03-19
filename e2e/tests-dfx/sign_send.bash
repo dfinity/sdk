@@ -17,14 +17,12 @@ teardown() {
 @test "sign + send" {
     install_asset counter
     dfx_start
-    dfx canister --no-wallet create --all
-    dfx build
-    dfx canister --no-wallet install hello
+    dfx deploy
 
     assert_command dfx canister --no-wallet sign --query hello read
     assert_eq "Query message generated at [message.json]"
 
-    assert_command echo y | dfx canister --no-wallet send message.json
+    yes | assert_command dfx canister --no-wallet send message.json
     # stdout is not captured so cannot request-status using the request_id
 
     assert_command_fail dfx canister --no-wallet sign --query hello read
@@ -33,5 +31,5 @@ teardown() {
     assert_command dfx canister --no-wallet sign --update hello inc --file message-inc.json
     assert_eq "Update message generated at [message-inc.json]"
 
-    assert_command echo y | dfx canister --no-wallet send message-inc.json
+    yes | assert_command dfx canister --no-wallet send message-inc.json
 }

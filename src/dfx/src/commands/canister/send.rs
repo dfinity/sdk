@@ -46,11 +46,11 @@ pub async fn exec(
     eprintln!("  Method name: {}", message.method_name);
     eprintln!("  Arg:         {:?}", message.arg);
 
-    let input = dialoguer::Input::<String>::new()
-        .with_prompt("Okay? [y/N]")
-        .interact()
-        .unwrap();
-    if !["y", "yes"].contains(&input.to_lowercase().trim()) {
+    if !dialoguer::Confirm::new()
+        .default(false)
+        .with_prompt("Okay?")
+        .interact()?
+    {
         return Ok(());
     }
 
