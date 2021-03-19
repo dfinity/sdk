@@ -11,7 +11,7 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_i
 
 use anyhow::{anyhow, bail, Context};
 use candid::{CandidType, Deserialize};
-use clap::Clap;
+use clap::{ArgSettings, Clap};
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::canister::{Argument, Canister};
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
@@ -42,10 +42,11 @@ pub struct CanisterCallOpts {
     update: bool,
 
     /// Specifies the argument to pass to the method.
+    #[clap(conflicts_with("random"))]
     argument: Option<String>,
 
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"))]
+    #[clap(long, conflicts_with("argument"), setting = ArgSettings::AllowEmptyValues)]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
