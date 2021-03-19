@@ -158,6 +158,7 @@ type SetAssetContentArguments = record {
   key: Key;
   content_encoding: text;
   chunk_ids: vec ChunkId;
+  sha256: opt text;
 };
 
 // Remove content for an asset, by content encoding
@@ -202,21 +203,23 @@ type BatchOperationKind = variant {
 service: {
 
   get: (record {
-    key: Key,
-    accept_encodings: vec text
+    key: Key;
+    accept_encodings: vec text;
   }) -> (record {
     content: blob; // may be the entirety of the content, or just chunk index 0
     content_type: text;
-    content_encoding: text,
-    total_length: nat // all chunks except last have size == content.size()
+    content_encoding: text;
+    sha256: opt text;
+    total_length: nat; // all chunks except last have size == content.size()
   }) query;
 
   // if get() returned chunks > 1, call this to retrieve them.
   // chunks may or may not be split up at the same boundaries as presented to create_chunk().
   get_chunk: (record {
-    key: Key,
-    content_encoding: text,
-    index: nat
+    key: Key;
+    content_encoding: text;
+    index: nat;
+    sha256: opt text;
   }) -> (record { content: blob }) query;
 
   list: (record {}) -> (vec record {
