@@ -295,15 +295,23 @@ fn scaffold_frontend_code(
 }
 
 fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
-    let package_json: serde_json::Value =
-        reqwest::blocking::get("https://registry.npmjs.com/@dfinity/agent")?.json()?;
-
-    match package_json["dist-tags"][dist_tag] {
-        Value::String(ref v) => Ok(v.to_string()),
-        // At this point NPM changed their extended packageJson format and dfx is outrageously
-        // outdated. JavaScript is probably not a thing anymore, and the world moved on.
-        _ => unreachable!(),
-    }
+    std::process::Command::new("npm")
+        .arg("show")
+        .arg("@dfinity/agent")
+        .arg(&format!("dist-tags.{}", dist_tag))
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .current_dir(location)
+        .spawn()
+        .map_err(DfxError::from)
+        .and_then(|child| {
+            let mut result = String::new();
+            child
+                .stdout
+                .unwrap_or_else(|| unreachable!())
+                .read_to_string(&mut result)?;
+            Ok(result)
+        })
 }
 
 pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
