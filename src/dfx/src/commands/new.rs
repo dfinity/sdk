@@ -299,7 +299,7 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
         .arg("show")
         .arg("@dfinity/agent")
         .arg(&format!("dist-tags.{}", dist_tag))
-        .stdout(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::inherit())
         .spawn()
         .map_err(DfxError::from)
@@ -309,7 +309,7 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
                 .stdout
                 .unwrap_or_else(|| unreachable!())
                 .read_to_string(&mut result)?;
-            Ok(result)
+            Ok(result.trim().to_string())
         })
 }
 
