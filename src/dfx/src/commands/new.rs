@@ -301,7 +301,6 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
         .arg(&format!("dist-tags.{}", dist_tag))
         .stdout(std::process::Stdio::inherit())
         .stderr(std::process::Stdio::inherit())
-        .current_dir(location)
         .spawn()
         .map_err(DfxError::from)
         .and_then(|child| {
