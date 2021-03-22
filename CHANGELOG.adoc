@@ -1,3 +1,9 @@
+= 0.6.27
+
+== DFX
+
+=== feat: webserver can now serve large assets
+
 = 0.6.26
 
 == DFX
