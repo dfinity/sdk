@@ -74,28 +74,32 @@ webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
 version = "0.2.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/read-state-canister-info"
-rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
+#git = "https://github.com/dfinity/agent-rs.git"
+#branch = "pshahi/read-state-canister-info"
+#rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
+path = "/Users/prithvishahi/dev/agent-rs/ic-agent"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/read-state-canister-info"
-rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
+#git = "https://github.com/dfinity/agent-rs.git"
+#branch = "pshahi/read-state-canister-info"
+#rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
+path = "/Users/prithvishahi/dev/agent-rs/ic-identity-hsm"
 
 [dependencies.ic-types]
 version = "0.1.2"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/read-state-canister-info"
-rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
+#git = "https://github.com/dfinity/agent-rs.git"
+#branch = "pshahi/read-state-canister-info"
+#rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
+path = "/Users/prithvishahi/dev/agent-rs/ic-types"
 
 [dependencies.ic-utils]
 version = "0.2.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "pshahi/read-state-canister-info"
-rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
+#git = "https://github.com/dfinity/agent-rs.git"
+#branch = "pshahi/read-state-canister-info"
+#rev = "d3875a64b15f24665b5048787c9e7fb1b0eb5a3c"
+path = "/Users/prithvishahi/dev/agent-rs/ic-utils"
 
 [dev-dependencies]
 env_logger = "0.6"

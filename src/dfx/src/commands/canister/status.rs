@@ -35,12 +35,13 @@ async fn canister_status(
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nController: {}\nMemory Size: {:?}\nBalance: {} Cycles",
+    info!(log, "Canister status call result for {}.\nStatus: {}\nController: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {:?}",
         canister_name,
         status.status,
         status.controller.to_text(),
         status.memory_size,
         status.cycles,
+        status.module_hash
     );
     Ok(())
 }

@@ -48,9 +48,16 @@ pub async fn exec(env: &dyn Environment, opts: ReadStateOpts) -> DfxResult {
 
 
     fetch_root_key_if_needed(env).await?;
-    let blob = agent.read_state_canister_info(canister_id, "controller").await?;
-    let controller = Principal::try_from(blob)?.to_text();
+    let controller_blob = agent.read_state_canister_info(canister_id.clone(), "controller").await?;
+    let controller = Principal::try_from(controller_blob)?.to_text();
     println!("controller {:?}", controller);
+
+    let module_hash_blob = agent.read_state_canister_info(canister_id, "module_hash").await?;
+    println!("module_hash_blob {:?}", module_hash_blob);
+
+
+    // let encoded_hex = hex::encode(&module_hash_blob);
+    // println!("encoded_hex: {:?}", encoded_hex);
 
     Ok(())
 }
