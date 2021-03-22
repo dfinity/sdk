@@ -46,11 +46,11 @@ pub async fn exec(
     eprintln!("  Method name: {}", message.method_name);
     eprintln!("  Arg:         {:?}", message.arg);
 
-    if !dialoguer::Confirm::new()
-        .default(false)
-        .with_prompt("Okay?")
-        .interact()?
-    {
+    // Not using dialoguer because it doesn't support non terminal env like bats e2e
+    eprintln!("\nOkay? [y/N]");
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+    if !["y", "yes"].contains(&input.to_lowercase().trim()) {
         return Ok(());
     }
 
