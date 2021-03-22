@@ -1,19 +1,13 @@
-use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_exponential_backoff;
-use crate::util::clap::validators;
-use crate::util::print_idl_blob;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
 use clap::Clap;
-use delay::Waiter;
 use ic_agent::AgentError;
 use ic_types::Principal;
 use std::convert::TryFrom;
-use std::str::FromStr;
 
 /// Get the hash of a canister’s WASM module and its current controller in a certified way.
 #[derive(Clap)]
