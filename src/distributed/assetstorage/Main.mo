@@ -43,8 +43,8 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  // Retrieve an asset's contents by name.  Only returns the first chunk of an asset's
-  // contents, even if there were more than one chunk.
+  // Retrieve an asset's contents by name.
+  // Rejects requests for assets composed of more than one chunk.
   // To handle larger assets, use get() and get_chunk().
   public query func retrieve(path : T.Path) : async T.Contents {
     switch (assets.get(path)) {
@@ -52,7 +52,11 @@ shared ({caller = creator}) actor class () {
       case (?asset) {
         switch (asset.getEncoding("identity")) {
           case null throw Error.reject("no identity encoding");
-          case (?encoding) encoding.content[0];
+          case (?encoding) {
+            if (encoding.content.size() > 1)
+              throw Error.reject("Asset too large.  Use get() and get_chunk() instead.");
+            encoding.content[0];
+          }
         };
       };
     }
@@ -367,35 +371,74 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let path = getPath(request.url);
+    let key = getKey(request.url);
 
-    let assetEncoding: ?A.AssetEncoding = switch (getAssetEncoding(path)) {
-      case null getAssetEncoding("/index.html");
+    let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key)) {
       case (?found) ?found;
+      case (null) getAssetAndEncoding("/index.html");
     };
 
-    switch (assetEncoding) {
-      case null {{ status_code = 404; headers = []; body = "" }};
-      case (?c) {
-        if (c.content.size() > 1)
-          throw Error.reject("asset too large");
 
-        { status_code = 200; headers = []; body = c.content[0] }
-      }
+    switch (assetAndEncoding) {
+      case null {{ status_code = 404; headers = []; body = ""; next_token = null }};
+      case (?(asset, assetEncoding)) {
+        {
+          status_code = 200;
+          headers = [];
+          body = assetEncoding.content[0];
+          next_token = makeNextToken(key, assetEncoding, 0);
+        }
+      };
     }
   };
 
-  private func getPath(uri: Text): Text {
+  // Get subsequent chunks of an asset encoding's content, after http_request().
+  // Like get_chunk, but converts url to key
+  public query func http_request_next(token: T.HttpNextToken) : async T.HttpNextResponse {
+    switch (assets.get(token.key)) {
+      case null throw Error.reject("asset not found");
+      case (?asset) {
+        switch (asset.getEncoding(token.content_encoding)) {
+          case null throw Error.reject("no such encoding");
+          case (?encoding) {
+            {
+              body = encoding.content[token.index];
+              next_token = makeNextToken(token.key, encoding, token.index);
+            }
+          }
+        };
+      };
+    };
+  };
+
+  private func makeNextToken(key: T.Key, assetEncoding: A.AssetEncoding, lastIndex: Nat): ?T.HttpNextToken {
+    if (lastIndex + 1 < assetEncoding.content.size()) {
+      ?{
+        key = key;
+        content_encoding = assetEncoding.contentEncoding;
+        index = lastIndex + 1;
+      };
+    } else {
+      null;
+    };
+  };
+
+  private func getKey(uri: Text): Text {
     let splitted = Text.split(uri, #char '?');
     let array = Iter.toArray<Text>(splitted);
     let path = array[0];
     path
   };
 
-  private func getAssetEncoding(path: Text): ?A.AssetEncoding {
+  private func getAssetAndEncoding(path: Text): ?(A.Asset, A.AssetEncoding) {
     switch (assets.get(path)) {
       case null null;
-      case (?asset) asset.getEncoding("identity");
+      case (?asset) {
+        switch (asset.getEncoding("identity")) {
+          case null null;
+          case (?assetEncoding) ?(asset, assetEncoding);
+        }
+      }
     }
   };
 
