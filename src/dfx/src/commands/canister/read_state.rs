@@ -15,11 +15,10 @@ use ic_types::Principal;
 use std::convert::TryFrom;
 use std::str::FromStr;
 
-/// Read state.
+/// Get the hash of a canister’s WASM module and its current controller in a certified way.
 #[derive(Clap)]
 pub struct ReadStateOpts {
-    /// Specifies the name of the canister to build.
-    /// You must specify either a canister name.
+    /// Specifies the name or id of the canister to get its certified canister information.
     canister_name: String,
 }
 
@@ -50,14 +49,10 @@ pub async fn exec(env: &dyn Environment, opts: ReadStateOpts) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
     let controller_blob = agent.read_state_canister_info(canister_id.clone(), "controller").await?;
     let controller = Principal::try_from(controller_blob)?.to_text();
-    println!("controller {:?}", controller);
-
     let module_hash_blob = agent.read_state_canister_info(canister_id, "module_hash").await?;
-    println!("module_hash_blob {:?}", module_hash_blob);
+    let encoded_hex = hex::encode(&module_hash_blob);
 
-
-    // let encoded_hex = hex::encode(&module_hash_blob);
-    // println!("encoded_hex: {:?}", encoded_hex);
+    println!("Controller: {}\nModule hash: 0x{}", controller, encoded_hex);
 
     Ok(())
 }
