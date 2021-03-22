@@ -31,6 +31,7 @@ in
       jq
       mitmproxy
       netcat
+      nodejs
       ps
       python3
       procps
