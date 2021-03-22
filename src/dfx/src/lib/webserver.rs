@@ -17,12 +17,15 @@ use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
 use anyhow::anyhow;
+use candid::parser::value::IDLValue;
 use crossbeam::channel::Sender;
 use futures::StreamExt;
-use ic_agent::Agent;
+use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::http_request::HeaderField;
+use ic_utils::interfaces::HttpRequestCanister;
+use ic_utils::Canister;
 use serde::Deserialize;
 use slog::{debug, info, trace, Logger};
 use std::net::SocketAddr;
@@ -305,7 +308,7 @@ async fn http_request(
     );
 
     match canister
-        .http_request(method, uri, headers, body)
+        .http_request(method, uri, headers, &body)
         .call()
         .await
     {
@@ -317,7 +320,13 @@ async fn http_request(
                 for HeaderField(name, value) in http_response.headers {
                     builder.header(&name, value);
                 }
-                Ok(builder.body(http_response.body))
+
+                match get_whole_body(&canister, http_response.body, http_response.next_token).await
+                {
+                    Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(format!("Details: {:?}", err))),
+                    Ok(body) => Ok(builder.body(body)),
+                }
             } else {
                 Ok(
                     HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR).body(format!(
@@ -328,6 +337,25 @@ async fn http_request(
             }
         }
     }
+}
+
+// TODO: https://github.com/dfinity/sdk/issues/1524 Use HttpResponseBuilder.streaming()
+async fn get_whole_body(
+    canister: &Canister<'_, HttpRequestCanister>,
+    body: Vec<u8>,
+    next_token: Option<IDLValue>,
+) -> Result<Vec<u8>, AgentError> {
+    let mut body = body;
+    let mut maybe_next_token = next_token;
+
+    while let Some(next_token) = maybe_next_token {
+        let (response,) = canister.http_request_next(next_token).call().await?;
+        let mut add_body = response.body;
+        body.append(&mut add_body);
+        maybe_next_token = response.next_token;
+    }
+
+    Ok(body)
 }
 
 /// Run the webserver in the current thread.

@@ -57,5 +57,17 @@ module Types {
     status_code: Nat16;
     headers: [HeaderField];
     body: Blob;
+    next_token: ?HttpNextToken;
+  };
+
+  public type HttpNextToken = {
+      key: Text;
+      content_encoding: Text;
+      index: Nat;
+  };
+
+  public type HttpNextResponse = {
+    body: Blob;
+    next_token: ?HttpNextToken;
   };
 };

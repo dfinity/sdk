@@ -74,6 +74,10 @@ CHERRIES" "$stdout"
     dfx build
     dfx canister --no-wallet install --memory-allocation 15mb e2e_project_assets
 
+    # retrieve() refuses to serve just part of an asset
+    assert_command_fail dfx canister call --query e2e_project_assets retrieve '("/large-asset.bin")'
+    assert_match 'Asset too large.'
+
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
     assert_match 'total_length = 6_000_000'
     assert_match 'content_type = "application/octet-stream"'
@@ -83,6 +87,11 @@ CHERRIES" "$stdout"
 
     assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
+
+    PORT=$(cat .dfx/webserver-port)
+    CANISTER_ID=$(dfx canister id e2e_project_assets)
+    curl -v --output curl-output.bin "http://localhost:$PORT/large-asset.bin?canisterId=$CANISTER_ID"
+    diff src/e2e_project_assets/assets/large-asset.bin curl-output.bin
 }
 
 @test "list() and keys() return asset keys" {
