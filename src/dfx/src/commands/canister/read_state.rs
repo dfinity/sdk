@@ -7,7 +7,7 @@ use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use clap::Clap;
 use delay::Waiter;
 use ic_agent::AgentError;
@@ -30,29 +30,28 @@ pub async fn exec(env: &dyn Environment, opts: ReadStateOpts) -> DfxResult {
     let callee_canister = opts.canister_name.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let canister_id = match Principal::from_text(callee_canister) {
-        Ok(id) => {
-            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                let config = env.get_config_or_anyhow()?;
-                let canister_info = CanisterInfo::load(&config, canister_name, Some(id))?;
-                canister_info.get_canister_id()?
-            } else {
-                id
-            }
-        }
-        Err(_) => {
-            canister_id_store.get(callee_canister)?
-        }
-    };
-
+    let canister_id = Principal::from_text(callee_canister)
+        .or_else(|_| canister_id_store.get(callee_canister))?;
 
     fetch_root_key_if_needed(env).await?;
-    let controller_blob = agent.read_state_canister_info(canister_id.clone(), "controller").await?;
+    let controller_blob = agent
+        .read_state_canister_info(canister_id.clone(), "controller")
+        .await?;
     let controller = Principal::try_from(controller_blob)?.to_text();
-    let module_hash_blob = agent.read_state_canister_info(canister_id, "module_hash").await?;
-    let encoded_hex = hex::encode(&module_hash_blob);
+    let module_hash_hex = match agent
+        .read_state_canister_info(canister_id, "module_hash")
+        .await
+    {
+        Ok(blob) => format!("0x{}", hex::encode(&blob)),
+        // If the canister is empty, this path does not exist.
+        Err(AgentError::LookupPathUnknown(_)) => "None".to_string(),
+        Err(x) => bail!(x),
+    };
 
-    println!("Controller: {}\nModule hash: 0x{}", controller, encoded_hex);
+    println!(
+        "Controller: {}\nModule hash: {}",
+        controller, module_hash_hex
+    );
 
     Ok(())
 }
