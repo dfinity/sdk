@@ -13,6 +13,24 @@ teardown() {
     dfx_stop
 }
 
+@test "verifies sha256, if specified" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx deploy
+
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256="f3bf72b15312907983266db759f4788835bb0e4a087056647308b39b454e5fa0"})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256="...incorrect..."})'
+    assert_match 'sha256 mismatch'
+
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256="f3bf72b15312907983266db759f4788835bb0e4a087056647308b39b454e5fa0"})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256="...incorrect..."})'
+    assert_match 'sha256 mismatch'
+
+}
+
 @test "can store and retrieve assets by key" {
     install_asset assetscanister
 
