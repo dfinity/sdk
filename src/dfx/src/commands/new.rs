@@ -307,7 +307,7 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
             let mut result = String::new();
             child
                 .stdout
-                .unwrap_or_else(|| unreachable!())
+                .expect("Could not get the output of subprocess 'npm'.")
                 .read_to_string(&mut result)?;
             Ok(result.trim().to_string())
         })
