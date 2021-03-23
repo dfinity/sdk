@@ -64,7 +64,7 @@ struct SetAssetContentArguments {
     key: String,
     content_encoding: String,
     chunk_ids: Vec<Nat>,
-    sha256: Option<String>,
+    sha256: Option<Vec<u8>>,
 }
 #[derive(CandidType, Debug)]
 struct UnsetAssetContentArguments {
@@ -107,7 +107,7 @@ struct ChunkedAsset {
     asset_location: AssetLocation,
     chunk_ids: Vec<Nat>,
     media_type: Mime,
-    sha256: String,
+    sha256: Vec<u8>,
 }
 
 async fn create_chunk(
@@ -161,7 +161,7 @@ async fn make_chunked_asset(
     let content = &std::fs::read(&asset_location.source)?;
     let mut sha256 = Sha256::new();
     sha256.update(&content);
-    let sha256 = hex::encode(sha256.finish());
+    let sha256 = sha256.finish().to_vec();
 
     let media_type = mime_guess::from_path(&asset_location.source)
         .first()
