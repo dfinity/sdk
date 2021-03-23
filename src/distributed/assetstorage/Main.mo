@@ -89,6 +89,7 @@ shared ({caller = creator}) actor class () {
       key = path;
       content_encoding = "identity";
       chunk_ids = [ chunkId ];
+      sha256 = null;
     };
     switch(setAssetContent(args)) {
       case (#ok(())) {};
@@ -132,6 +133,7 @@ shared ({caller = creator}) actor class () {
     content_type: Text;
     content_encoding: Text;
     total_length: Nat;
+    sha256: ?Text;
   } ) {
     switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
@@ -144,6 +146,7 @@ shared ({caller = creator}) actor class () {
               content_type = asset.contentType;
               content_encoding = encoding.contentEncoding;
               total_length = encoding.totalLength;
+              sha256 = encoding.sha256;
             }
           }
         };
@@ -156,6 +159,7 @@ shared ({caller = creator}) actor class () {
     key: T.Key;
     content_encoding: Text;
     index: Nat;
+    sha256: ?Text;
   }) : async ( {
     content: Blob
   }) {
@@ -165,6 +169,15 @@ shared ({caller = creator}) actor class () {
         switch (asset.getEncoding(arg.content_encoding)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
+            switch (arg.sha256, encoding.sha256) {
+              case (?expected, ?actual) {
+                if (expected != actual)
+                  throw Error.reject("sha256 mismatch");
+              };
+              case (?expected, null) throw Error.reject("sha256 specified but asset encoding has none");
+              case (null, _) {};
+            };
+
             {
               content = encoding.content[arg.index];
             }
@@ -301,6 +314,7 @@ shared ({caller = creator}) actor class () {
                 totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, func (acc: Nat, blob: Blob): Nat {
                   acc + blob.size()
                 });
+                sha256 = arg.sha256;
               };
               #ok(asset.setEncoding(arg.content_encoding, encoding));
             };
@@ -401,6 +415,15 @@ shared ({caller = creator}) actor class () {
         switch (asset.getEncoding(token.content_encoding)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
+            switch (token.sha256, encoding.sha256) {
+              case (?expected, ?actual) {
+                if (expected != actual)
+                  throw Error.reject("sha256 mismatch");
+              };
+              case (?expected, null) throw Error.reject("sha256 specified but asset encoding has none");
+              case (null, _) {};
+            };
+
             {
               body = encoding.content[token.index];
               next_token = makeNextToken(token.key, encoding, token.index);
@@ -417,6 +440,7 @@ shared ({caller = creator}) actor class () {
         key = key;
         content_encoding = assetEncoding.contentEncoding;
         index = lastIndex + 1;
+        sha256 = assetEncoding.sha256;
       };
     } else {
       null;

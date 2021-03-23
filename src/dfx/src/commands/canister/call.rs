@@ -1,9 +1,9 @@
-use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators::cycle_amount_validator;
@@ -17,7 +17,6 @@ use ic_utils::canister::{Argument, Canister};
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::Wallet;
 use std::option::Option;
-use std::path::PathBuf;
 
 /// Calls a method on a deployed canister.
 #[derive(Clap)]
@@ -72,19 +71,6 @@ struct CallIn {
     #[serde(with = "serde_bytes")]
     args: Vec<u8>,
     cycles: u64,
-}
-
-fn get_local_cid_and_candid_path(
-    env: &dyn Environment,
-    canister_name: &str,
-    maybe_canister_id: Option<CanisterId>,
-) -> DfxResult<(CanisterId, Option<PathBuf>)> {
-    let config = env.get_config_or_anyhow()?;
-    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
-    Ok((
-        canister_info.get_canister_id()?,
-        canister_info.get_output_idl_path(),
-    ))
 }
 
 async fn do_wallet_call(wallet: &Canister<'_, Wallet>, args: &CallIn) -> DfxResult<Vec<u8>> {
