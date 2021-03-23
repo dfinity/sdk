@@ -21,7 +21,6 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
     port: None,
-    root: None,
     timeout: None,
 };
 
@@ -51,7 +50,6 @@ pub struct ConfigCanistersCanister {
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
     pub port: Option<u16>,
-    pub root: Option<PathBuf>,
     pub timeout: Option<u64>,
 }
 
