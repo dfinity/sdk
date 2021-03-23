@@ -10,6 +10,7 @@ module {
     contentEncoding: Text;
     content: [Blob];
     totalLength: Nat;
+    sha256: ?Text;
   };
 
   public class Asset(

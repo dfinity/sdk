@@ -9,6 +9,7 @@ use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use ic_types::Principal;
 use mime::Mime;
+use openssl::sha::Sha256;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -63,6 +64,7 @@ struct SetAssetContentArguments {
     key: String,
     content_encoding: String,
     chunk_ids: Vec<Nat>,
+    sha256: Option<String>,
 }
 #[derive(CandidType, Debug)]
 struct UnsetAssetContentArguments {
@@ -105,6 +107,7 @@ struct ChunkedAsset {
     asset_location: AssetLocation,
     chunk_ids: Vec<Nat>,
     media_type: Mime,
+    sha256: String,
 }
 
 async fn create_chunk(
@@ -156,6 +159,9 @@ async fn make_chunked_asset(
     asset_location: AssetLocation,
 ) -> DfxResult<ChunkedAsset> {
     let content = &std::fs::read(&asset_location.source)?;
+    let mut sha256 = Sha256::new();
+    sha256.update(&content);
+    let sha256 = hex::encode(sha256.finish());
 
     let media_type = mime_guess::from_path(&asset_location.source)
         .first()
@@ -222,6 +228,7 @@ async fn make_chunked_asset(
         asset_location,
         chunk_ids,
         media_type,
+        sha256,
     })
 }
 
@@ -267,6 +274,7 @@ async fn commit_batch(
                     key,
                     content_encoding: "identity".to_string(),
                     chunk_ids: chunked_asset.chunk_ids,
+                    sha256: Some(chunked_asset.sha256),
                 }),
             ]
         })
