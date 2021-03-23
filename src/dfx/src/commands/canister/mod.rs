@@ -13,7 +13,9 @@ mod id;
 mod info;
 mod install;
 mod request_status;
+mod send;
 mod set_controller;
+mod sign;
 mod start;
 mod status;
 mod stop;
@@ -52,7 +54,9 @@ enum SubCommand {
     Info(info::InfoOpts),
     Install(install::CanisterInstallOpts),
     RequestStatus(request_status::RequestStatusOpts),
+    Send(send::CanisterSendOpts),
     SetController(set_controller::SetControllerOpts),
+    Sign(sign::CanisterSignOpts),
     Start(start::CanisterStartOpts),
     Status(status::CanisterStatusOpts),
     Stop(stop::CanisterStopOpts),
@@ -71,7 +75,9 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Install(v) => install::exec(&agent_env, v, &call_sender).await,
             SubCommand::Info(v) => info::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
+            SubCommand::Send(v) => send::exec(&agent_env, v, &call_sender).await,
             SubCommand::SetController(v) => set_controller::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Sign(v) => sign::exec(&agent_env, v, &call_sender).await,
             SubCommand::Start(v) => start::exec(&agent_env, v, &call_sender).await,
             SubCommand::Status(v) => status::exec(&agent_env, v, &call_sender).await,
             SubCommand::Stop(v) => stop::exec(&agent_env, v, &call_sender).await,

@@ -14,6 +14,19 @@ Added `--no-wallet` flag to `dfx canister` and `dfx deploy`. This allows users t
 Added `--wallet` option to `dfx canister` and `dfx deploy`. This allows users to specify a wallet canister id to use as the Sender for calls.
 `--wallet` and `--no-wallet` conflict with each other. Omitting both will invoke the selected Identity's wallet canister to perform calls.
 
+=== feat: add canister subcommands `sign` and `send`
+
+Users can use `dfx canister sign ...` to generated a signed canister call in a json file. Then `dfx canister send [message.json]` to the network.
+
+Users can sign the message on an air-gapped computer which is secure to host private keys.
+
+==== Note
+
+* `sign` and `send` currently don't proxy through wallet canister. Users should use the subcommands with `dfx canister --no-wallet sign ...`.
+
+* The `sign` option `--expire-after` will set the `ingress_expiry` to a future timestamp which is current plus the duration.
+Then users can send the message during a 5 minutes time window ending in that `ingress_expiry` timestamp. Sending the message earlier or later than the time window will both result in a replica error.
+
 === feat: implement the HTTP Request proposal in dfx' bootstrap webserver. +
 And add support for http requests in the base storage canister (with a default to `/index.html`).
 
