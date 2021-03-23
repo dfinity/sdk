@@ -15,7 +15,8 @@ module Types {
   public type SetAssetContentArguments = {
     key: Key;
     content_encoding: Text;
-    chunk_ids: [ChunkId]
+    chunk_ids: [ChunkId];
+    sha256: ?Text;
   };
 
   public type UnsetAssetContentArguments = {
@@ -57,5 +58,18 @@ module Types {
     status_code: Nat16;
     headers: [HeaderField];
     body: Blob;
+    next_token: ?HttpNextToken;
+  };
+
+  public type HttpNextToken = {
+      key: Text;
+      content_encoding: Text;
+      index: Nat;
+      sha256: ?Text;
+  };
+
+  public type HttpNextResponse = {
+    body: Blob;
+    next_token: ?HttpNextToken;
   };
 };

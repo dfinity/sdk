@@ -43,8 +43,8 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  // Retrieve an asset's contents by name.  Only returns the first chunk of an asset's
-  // contents, even if there were more than one chunk.
+  // Retrieve an asset's contents by name.
+  // Rejects requests for assets composed of more than one chunk.
   // To handle larger assets, use get() and get_chunk().
   public query func retrieve(path : T.Path) : async T.Contents {
     switch (assets.get(path)) {
@@ -52,7 +52,11 @@ shared ({caller = creator}) actor class () {
       case (?asset) {
         switch (asset.getEncoding("identity")) {
           case null throw Error.reject("no identity encoding");
-          case (?encoding) encoding.content[0];
+          case (?encoding) {
+            if (encoding.content.size() > 1)
+              throw Error.reject("Asset too large.  Use get() and get_chunk() instead.");
+            encoding.content[0];
+          }
         };
       };
     }
@@ -85,6 +89,7 @@ shared ({caller = creator}) actor class () {
       key = path;
       content_encoding = "identity";
       chunk_ids = [ chunkId ];
+      sha256 = null;
     };
     switch(setAssetContent(args)) {
       case (#ok(())) {};
@@ -128,6 +133,7 @@ shared ({caller = creator}) actor class () {
     content_type: Text;
     content_encoding: Text;
     total_length: Nat;
+    sha256: ?Text;
   } ) {
     switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
@@ -140,6 +146,7 @@ shared ({caller = creator}) actor class () {
               content_type = asset.contentType;
               content_encoding = encoding.contentEncoding;
               total_length = encoding.totalLength;
+              sha256 = encoding.sha256;
             }
           }
         };
@@ -152,6 +159,7 @@ shared ({caller = creator}) actor class () {
     key: T.Key;
     content_encoding: Text;
     index: Nat;
+    sha256: ?Text;
   }) : async ( {
     content: Blob
   }) {
@@ -161,6 +169,15 @@ shared ({caller = creator}) actor class () {
         switch (asset.getEncoding(arg.content_encoding)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
+            switch (arg.sha256, encoding.sha256) {
+              case (?expected, ?actual) {
+                if (expected != actual)
+                  throw Error.reject("sha256 mismatch");
+              };
+              case (?expected, null) throw Error.reject("sha256 specified but asset encoding has none");
+              case (null, _) {};
+            };
+
             {
               content = encoding.content[arg.index];
             }
@@ -297,6 +314,7 @@ shared ({caller = creator}) actor class () {
                 totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, func (acc: Nat, blob: Blob): Nat {
                   acc + blob.size()
                 });
+                sha256 = arg.sha256;
               };
               #ok(asset.setEncoding(arg.content_encoding, encoding));
             };
@@ -367,35 +385,84 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let path = getPath(request.url);
+    let key = getKey(request.url);
 
-    let assetEncoding: ?A.AssetEncoding = switch (getAssetEncoding(path)) {
-      case null getAssetEncoding("/index.html");
+    let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key)) {
       case (?found) ?found;
+      case (null) getAssetAndEncoding("/index.html");
     };
 
-    switch (assetEncoding) {
-      case null {{ status_code = 404; headers = []; body = "" }};
-      case (?c) {
-        if (c.content.size() > 1)
-          throw Error.reject("asset too large");
 
-        { status_code = 200; headers = []; body = c.content[0] }
-      }
+    switch (assetAndEncoding) {
+      case null {{ status_code = 404; headers = []; body = ""; next_token = null }};
+      case (?(asset, assetEncoding)) {
+        {
+          status_code = 200;
+          headers = [];
+          body = assetEncoding.content[0];
+          next_token = makeNextToken(key, assetEncoding, 0);
+        }
+      };
     }
   };
 
-  private func getPath(uri: Text): Text {
+  // Get subsequent chunks of an asset encoding's content, after http_request().
+  // Like get_chunk, but converts url to key
+  public query func http_request_next(token: T.HttpNextToken) : async T.HttpNextResponse {
+    switch (assets.get(token.key)) {
+      case null throw Error.reject("asset not found");
+      case (?asset) {
+        switch (asset.getEncoding(token.content_encoding)) {
+          case null throw Error.reject("no such encoding");
+          case (?encoding) {
+            switch (token.sha256, encoding.sha256) {
+              case (?expected, ?actual) {
+                if (expected != actual)
+                  throw Error.reject("sha256 mismatch");
+              };
+              case (?expected, null) throw Error.reject("sha256 specified but asset encoding has none");
+              case (null, _) {};
+            };
+
+            {
+              body = encoding.content[token.index];
+              next_token = makeNextToken(token.key, encoding, token.index);
+            }
+          }
+        };
+      };
+    };
+  };
+
+  private func makeNextToken(key: T.Key, assetEncoding: A.AssetEncoding, lastIndex: Nat): ?T.HttpNextToken {
+    if (lastIndex + 1 < assetEncoding.content.size()) {
+      ?{
+        key = key;
+        content_encoding = assetEncoding.contentEncoding;
+        index = lastIndex + 1;
+        sha256 = assetEncoding.sha256;
+      };
+    } else {
+      null;
+    };
+  };
+
+  private func getKey(uri: Text): Text {
     let splitted = Text.split(uri, #char '?');
     let array = Iter.toArray<Text>(splitted);
     let path = array[0];
     path
   };
 
-  private func getAssetEncoding(path: Text): ?A.AssetEncoding {
+  private func getAssetAndEncoding(path: Text): ?(A.Asset, A.AssetEncoding) {
     switch (assets.get(path)) {
       case null null;
-      case (?asset) asset.getEncoding("identity");
+      case (?asset) {
+        switch (asset.getEncoding("identity")) {
+          case null null;
+          case (?assetEncoding) ?(asset, assetEncoding);
+        }
+      }
     }
   };
 
