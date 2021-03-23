@@ -1,13 +1,12 @@
-use crate::actors;
-use crate::actors::shutdown_controller;
 use crate::actors::shutdown_controller::ShutdownController;
+use crate::actors::{start_emulator_actor, start_replica_actor, start_shutdown_controller};
 use crate::config::dfinity::ConfigDefaultsReplica;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
 
-use actix::Actor;
+use actix::Addr;
 use clap::Clap;
 use std::default::Default;
 
@@ -25,6 +24,10 @@ pub struct ReplicaOpts {
     /// Specifies the maximum number of cycles a single round can consume.
     #[clap(long, hidden = true)]
     round_gas_limit: Option<String>,
+
+    /// Runs a dedicated emulator instead of the replica
+    #[clap(long)]
+    emulator: bool,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -33,13 +36,16 @@ fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConf
     let port = get_port(&config, opts.port)?;
     let mut http_handler: HttpHandlerConfig = Default::default();
     if port == 0 {
-        let config_dir = env.get_temp_dir().join("config");
-        std::fs::create_dir_all(&config_dir)?;
-        let file = config_dir.join("port.txt");
-        http_handler.write_port_to = Some(file);
+        let replica_port_path = env
+            .get_temp_dir()
+            .join("replica-configuration")
+            .join("replica-1.port");
+        http_handler.write_port_to = Some(replica_port_path);
     } else {
         http_handler.port = Some(port);
     };
+
+    // get replica command opts
     let message_gas_limit = get_message_gas_limit(&config, opts.message_gas_limit)?;
     let round_gas_limit = get_round_gas_limit(&config, opts.round_gas_limit)?;
     let scheduler = SchedulerConfig {
@@ -47,10 +53,6 @@ fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConf
         round_gas_max: Some(round_gas_limit),
     }
     .validate()?;
-
-    let temp_dir = env.get_temp_dir();
-    let state_dir = temp_dir.join("state/replicated_state");
-    std::fs::create_dir_all(&state_dir)?;
 
     let mut replica_config = ReplicaConfig::new(&env.get_state_dir());
     replica_config.http_handler = http_handler;
@@ -110,35 +112,27 @@ fn get_round_gas_limit(
         .map_err(|err| error_invalid_argument!("Invalid round gas limit: {}", err))
 }
 
+fn start_replica(
+    env: &dyn Environment,
+    opts: ReplicaOpts,
+    shutdown_controller: Addr<ShutdownController>,
+) -> DfxResult {
+    let replica_config = get_config(env, opts)?;
+    start_replica_actor(env, replica_config, shutdown_controller)?;
+    Ok(())
+}
+
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
-    let replica_pathbuf = env.get_cache().get_binary_command_path("replica")?;
-    let ic_starter_pathbuf = env.get_cache().get_binary_command_path("ic-starter")?;
-
     let system = actix::System::new("dfx-replica");
-    let config = get_config(env, opts)?;
-
-    let shutdown_controller = ShutdownController::new(shutdown_controller::Config {
-        logger: Some(env.get_logger().clone()),
-    })
-    .start();
-
-    let replica_configuration_dir = env.get_temp_dir().join("replica-configuration");
-    std::fs::create_dir_all(&replica_configuration_dir)?;
-
-    let _replica_addr = actors::replica::Replica::new(actors::replica::Config {
-        ic_starter_path: ic_starter_pathbuf,
-        replica_config: config,
-        replica_path: replica_pathbuf,
-        shutdown_controller,
-        logger: Some(env.get_logger().clone()),
-        replica_configuration_dir,
-    })
-    .start();
-
+    let shutdown_controller = start_shutdown_controller(env)?;
+    if opts.emulator {
+        start_emulator_actor(env, shutdown_controller)?;
+    } else {
+        start_replica(env, opts, shutdown_controller)?;
+    }
     system.run()?;
-
     Ok(())
 }

@@ -1,10 +1,8 @@
-use crate::actors::replica::signals::ReplicaRestarted;
 use crate::actors::replica_webserver_coordinator::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::replica_config::ReplicaConfig;
 
 use actix::{
     Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
@@ -21,38 +19,37 @@ use std::time::Duration;
 pub mod signals {
     use actix::prelude::*;
 
-    /// A message sent to the Replica when the process is restarted. Since we're
+    /// A message sent to the Emulator when the process is restarted. Since we're
     /// restarting inside our own actor, this message should not be exposed.
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub(super) struct ReplicaRestarted {
+    pub(super) struct EmulatorRestarted {
         pub port: u16,
     }
 }
 
-/// The configuration for the replica actor.
+/// The configuration for the emulator actor.
+#[derive(Clone)]
 pub struct Config {
-    pub ic_starter_path: PathBuf,
-    pub replica_config: ReplicaConfig,
-    pub replica_path: PathBuf,
+    pub ic_ref_path: PathBuf,
+    pub write_port_to: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
-    pub replica_configuration_dir: PathBuf,
 }
 
-/// A replica actor. Starts the replica, can subscribe to a Ready signal and a
+/// A emulator actor. Starts the emulator, can subscribe to a Ready signal and a
 /// Killed signal.
 /// This starts a thread that monitors the process and send signals to any subscriber
-/// listening for restarts. The message contains the port the replica is listening to.
+/// listening for restarts. The message contains the port the emulator is listening to.
 ///
 /// Signals
 ///   - PortReadySubscribe
-///     Subscribe a recipient (address) to receive a PortReadySignal message when
-///     the replica is ready to listen to a port. The message can be sent multiple
-///     times (e.g. if the replica crashes).
-///     If a replica is already started and another actor sends this message, a
-///     PortReadySignal will be sent free of charge in the same thread.
-pub struct Replica {
+///     Subscribe a recipient (address) to receive a EmulatorReadySignal message when
+///     the emulator is ready to listen to a port. The message can be sent multiple
+///     times (e.g. if the emulator crashes).
+///     If a emulator is already started and another actor sends this message, a
+///     EmulatorReadySignal will be sent free of charge in the same thread.
+pub struct Emulator {
     logger: Logger,
     config: Config,
 
@@ -65,11 +62,11 @@ pub struct Replica {
     ready_subscribers: Vec<Recipient<PortReadySignal>>,
 }
 
-impl Replica {
+impl Emulator {
     pub fn new(config: Config) -> Self {
         let logger =
             (config.logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
-        Replica {
+        Emulator {
             config,
             port: None,
             stop_sender: None,
@@ -95,35 +92,16 @@ impl Replica {
             }
             waiter
                 .wait()
-                .map_err(|err| anyhow!("Cannot start the replica: {:?}", err))?;
+                .map_err(|err| anyhow!("Cannot start ic-ref: {:?}", err))?;
         }
     }
 
-    fn start_replica(&mut self, addr: Addr<Self>) -> DfxResult {
+    fn start_emulator(&mut self, addr: Addr<Self>) -> DfxResult {
         let logger = self.logger.clone();
-
-        // Create a replica config.
-        let config = &self.config.replica_config;
-        let replica_pid_path = self.config.replica_configuration_dir.join("replica-pid");
-
-        let port = config.http_handler.port;
-        let write_port_to = config.http_handler.write_port_to.clone();
-        let replica_path = self.config.replica_path.to_path_buf();
-        let ic_starter_path = self.config.ic_starter_path.to_path_buf();
 
         let (sender, receiver) = unbounded();
 
-        let handle = replica_start_thread(
-            logger,
-            config.clone(),
-            port,
-            write_port_to,
-            ic_starter_path,
-            replica_path,
-            replica_pid_path,
-            addr,
-            receiver,
-        )?;
+        let handle = emulator_start_thread(logger, self.config.clone(), addr, receiver)?;
 
         self.thread_join = Some(handle);
         self.stop_sender = Some(sender);
@@ -137,12 +115,12 @@ impl Replica {
     }
 }
 
-impl Actor for Replica {
+impl Actor for Emulator {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        self.start_replica(ctx.address())
-            .expect("Could not start the replica");
+        self.start_emulator(ctx.address())
+            .expect("Could not start the emulator");
 
         self.config
             .shutdown_controller
@@ -150,7 +128,7 @@ impl Actor for Replica {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        info!(self.logger, "Stopping the replica...");
+        info!(self.logger, "Stopping ic-ref...");
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -164,7 +142,7 @@ impl Actor for Replica {
     }
 }
 
-impl Handler<PortReadySubscribe> for Replica {
+impl Handler<PortReadySubscribe> for Emulator {
     type Result = ();
 
     fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
@@ -177,16 +155,20 @@ impl Handler<PortReadySubscribe> for Replica {
     }
 }
 
-impl Handler<signals::ReplicaRestarted> for Replica {
+impl Handler<signals::EmulatorRestarted> for Emulator {
     type Result = ();
 
-    fn handle(&mut self, msg: ReplicaRestarted, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: signals::EmulatorRestarted,
+        _ctx: &mut Self::Context,
+    ) -> Self::Result {
         self.port = Some(msg.port);
         self.send_ready_signal(msg.port);
     }
 }
 
-impl Handler<Shutdown> for Replica {
+impl Handler<Shutdown> for Emulator {
     type Result = ResponseActFuture<Self, Result<(), ()>>;
 
     fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
@@ -216,7 +198,7 @@ fn wait_for_child_or_receiver(
     loop {
         // Check if either the child exited or a shutdown has been requested.
         // These can happen in either order in response to Ctrl-C, so increase the chance
-        // to notice a shutdown request even if the replica exited quickly.
+        // to notice a shutdown request even if the emulator exited quickly.
         let child_try_wait = child.try_wait();
         let receiver_signalled = receiver.recv_timeout(std::time::Duration::from_millis(100));
 
@@ -234,15 +216,10 @@ fn wait_for_child_or_receiver(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn replica_start_thread(
+fn emulator_start_thread(
     logger: Logger,
-    config: ReplicaConfig,
-    port: Option<u16>,
-    write_port_to: Option<PathBuf>,
-    ic_starter_path: PathBuf,
-    replica_path: PathBuf,
-    replica_pid_path: PathBuf,
-    addr: Addr<Replica>,
+    config: Config,
+    addr: Addr<Emulator>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
@@ -254,68 +231,46 @@ fn replica_start_thread(
         waiter.start();
 
         // Start the process, then wait for the file.
-        let ic_starter_path = ic_starter_path.as_os_str();
+        let ic_ref_path = config.ic_ref_path.as_os_str();
 
-        // form the ic-start command here similar to replica command
-        let mut cmd = std::process::Command::new(ic_starter_path);
+        // form the ic-start command here similar to emulator command
+        let mut cmd = std::process::Command::new(ic_ref_path);
+        cmd.args(&["--pick-port"]);
         cmd.args(&[
-            "--replica-path",
-            replica_path.to_str().unwrap_or_default(),
-            "--state-dir",
-            config.state_manager.state_root.to_str().unwrap_or_default(),
-            "--create-funds-whitelist",
-            "*",
-            "--consensus-pool-backend",
-            "rocksdb",
+            "--write-port-to",
+            &config.write_port_to.to_string_lossy().to_string(),
         ]);
-        if let Some(port) = port {
-            cmd.args(&["--http-port", &port.to_string()]);
-        }
-        if let Some(write_port_to) = &write_port_to {
-            cmd.args(&[
-                "--http-port-file",
-                &write_port_to.to_string_lossy().to_string(),
-            ]);
-        }
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
         let mut done = false;
         while !done {
-            if let Some(port_path) = write_port_to.as_ref() {
-                let _ = std::fs::remove_file(port_path);
-            }
+            let _ = std::fs::remove_file(&config.write_port_to);
             let last_start = std::time::Instant::now();
-            debug!(logger, "Starting replica...");
-            let mut child = cmd.spawn().expect("Could not start replica.");
+            debug!(logger, "Starting emulator...");
+            let mut child = cmd.spawn().expect("Could not start emulator.");
 
-            std::fs::write(&replica_pid_path, "").expect("Could not write to replica-pid file.");
-            std::fs::write(&replica_pid_path, child.id().to_string())
-                .expect("Could not write to replica-pid file.");
-
-            let port = port.unwrap_or_else(|| {
-                Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
-            });
-            addr.do_send(signals::ReplicaRestarted { port });
+            let port = Emulator::wait_for_port_file(&config.write_port_to).unwrap();
+            addr.do_send(signals::EmulatorRestarted { port });
 
             // This waits for the child to stop, or the receiver to receive a message.
-            // We don't restart the replica if done = true.
+            // We don't restart the emulator if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
-                    debug!(logger, "Got signal to stop. Killing replica process...");
+                    debug!(logger, "Got signal to stop. Killing emulator process...");
                     let _ = child.kill();
                     let _ = child.wait();
                     done = true;
                 }
                 ChildOrReceiver::Child => {
-                    debug!(logger, "Replica process failed.");
+                    debug!(logger, "Emulator process failed.");
                     // Reset waiter if last start was over 2 seconds ago, and do not wait.
                     if std::time::Instant::now().duration_since(last_start)
                         >= Duration::from_secs(2)
                     {
                         debug!(
                             logger,
-                            "Last replica seemed to have been healthy, not waiting..."
+                            "Last emulator seemed to have been healthy, not waiting..."
                         );
                         waiter.start();
                     } else {
@@ -328,7 +283,7 @@ fn replica_start_thread(
     };
 
     std::thread::Builder::new()
-        .name("replica-actor".to_owned())
+        .name("emulator-actor".to_owned())
         .spawn(thread_handler)
         .map_err(DfxError::from)
 }
