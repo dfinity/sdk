@@ -133,7 +133,7 @@ shared ({caller = creator}) actor class () {
     content_type: Text;
     content_encoding: Text;
     total_length: Nat;
-    sha256: ?Text;
+    sha256: ?Blob;
   } ) {
     switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
@@ -159,7 +159,7 @@ shared ({caller = creator}) actor class () {
     key: T.Key;
     content_encoding: Text;
     index: Nat;
-    sha256: ?Text;
+    sha256: ?Blob;
   }) : async ( {
     content: Blob
   }) {

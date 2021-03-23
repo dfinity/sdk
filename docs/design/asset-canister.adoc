@@ -49,7 +49,7 @@ Store per asset:
 * Content for one or more content encodings
 ** Content encoding
 ** The actual content (bytes)
-** A sha256 of the content, calculated by dfx.  The asset canister just treats this as a string.
+** A sha256 of the content, calculated by dfx.  The asset canister treats this as opaque data.
 *** Split up into chunks for retrieval
 
 === Implementation
@@ -159,7 +159,7 @@ type SetAssetContentArguments = record {
   key: Key;
   content_encoding: text;
   chunk_ids: vec ChunkId;
-  sha256: opt text;
+  sha256: opt blob;
 };
 
 // Remove content for an asset, by content encoding
@@ -210,7 +210,7 @@ service: {
     content: blob; // may be the entirety of the content, or just chunk index 0
     content_type: text;
     content_encoding: text;
-    sha256: opt text; // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
+    sha256: opt blob; // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
     total_length: nat; // all chunks except last have size == content.size()
   }) query;
 
@@ -220,7 +220,7 @@ service: {
     key: Key;
     content_encoding: text;
     index: nat;
-    sha256: opt text;  // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
+    sha256: opt blob;  // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
   }) -> (record { content: blob }) query;
 
   list: (record {}) -> (vec record {
