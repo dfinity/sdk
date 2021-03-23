@@ -1091,7 +1091,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.6.25"
+version = "0.6.26"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1886,7 +1886,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/read-state-canister-info#8b236a942fc4f8234101b8113014afb541534785"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#7c90a02459cec09a2868624ac8a0d6819c808c3d"
 dependencies = [
  "async-trait",
  "base32",
@@ -1917,7 +1917,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/read-state-canister-info#8b236a942fc4f8234101b8113014afb541534785"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#7c90a02459cec09a2868624ac8a0d6819c808c3d"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1932,7 +1932,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/read-state-canister-info#8b236a942fc4f8234101b8113014afb541534785"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#7c90a02459cec09a2868624ac8a0d6819c808c3d"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1944,7 +1944,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/read-state-canister-info#8b236a942fc4f8234101b8113014afb541534785"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#7c90a02459cec09a2868624ac8a0d6819c808c3d"
 dependencies = [
  "async-trait",
  "candid",

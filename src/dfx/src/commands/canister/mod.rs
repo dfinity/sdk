@@ -7,11 +7,11 @@ use clap::Clap;
 use tokio::runtime::Runtime;
 
 mod call;
+mod certified_info;
 mod create;
 mod delete;
 mod id;
 mod install;
-mod read_state;
 mod request_status;
 mod set_controller;
 mod start;
@@ -46,11 +46,11 @@ pub struct CanisterOpts {
 #[derive(Clap)]
 enum SubCommand {
     Call(call::CanisterCallOpts),
+    CertifiedInfo(certified_info::CertifiedInfoOpts),
     Create(create::CanisterCreateOpts),
     Delete(delete::CanisterDeleteOpts),
     Id(id::CanisterIdOpts),
     Install(install::CanisterInstallOpts),
-    ReadState(read_state::ReadStateOpts),
     RequestStatus(request_status::RequestStatusOpts),
     SetController(set_controller::SetControllerOpts),
     Start(start::CanisterStartOpts),
@@ -69,7 +69,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Delete(v) => delete::exec(&agent_env, v, &call_sender).await,
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
             SubCommand::Install(v) => install::exec(&agent_env, v, &call_sender).await,
-            SubCommand::ReadState(v) => read_state::exec(&agent_env, v).await,
+            SubCommand::CertifiedInfo(v) => certified_info::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
             SubCommand::SetController(v) => set_controller::exec(&agent_env, v, &call_sender).await,
             SubCommand::Start(v) => start::exec(&agent_env, v, &call_sender).await,

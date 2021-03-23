@@ -11,12 +11,12 @@ use std::convert::TryFrom;
 
 /// Get the hash of a canister’s WASM module and its current controller in a certified way.
 #[derive(Clap)]
-pub struct ReadStateOpts {
+pub struct CertifiedInfoOpts {
     /// Specifies the name or id of the canister to get its certified canister information.
     canister_name: String,
 }
 
-pub async fn exec(env: &dyn Environment, opts: ReadStateOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: CertifiedInfoOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
