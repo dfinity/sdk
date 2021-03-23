@@ -2,6 +2,10 @@
 
 == DFX
 
+=== feat: get certified canister info from read state #1514
+
+Added `dfx canister info` command to get certified canister information. Currently this information is limited to the controller of the canister and the SHA256 hash of its WASM module. If there is no WASM module installed, the hash will be None.
+
 === feat: webserver can now serve large assets
 
 = 0.6.26
