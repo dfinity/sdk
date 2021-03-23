@@ -19,6 +19,7 @@ teardown() {
 
     dfx build hello
     RESULT="0x$(shasum -a 256 .dfx/local/canisters/hello/hello.wasm)"
+    # shellcheck disable=SC2034
     HASH=$(echo "${RESULT}" | cut -d' ' -f 1)
 
     dfx canister install hello    
