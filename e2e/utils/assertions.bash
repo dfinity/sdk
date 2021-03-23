@@ -149,7 +149,10 @@ assert_process_exits() {
 # Asserts that `dfx start` and `replica` are no longer running
 assert_no_dfx_start_or_replica_processes() {
     ! ( ps | grep "[/[:space:]]dfx start" )
-    ! ( kill -0 $(cat .dfx/replica-configuration/replica-pid) 2>/dev/null )
+    if [ -e .dfx/replica-configuration/replica-pid ];
+    then
+      ! ( kill -0 $(cat .dfx/replica-configuration/replica-pid) 2>/dev/null )
+    fi
 }
 
 assert_file_eventually_exists() {

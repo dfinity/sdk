@@ -35,7 +35,7 @@ let
             procps
             which
             dfx.standalone
-          ] ++ lib.optional use_ic_ref ic-ref;
+          ];
           BATSLIB = pkgs.sources.bats-support;
           USE_IC_REF = use_ic_ref;
           assets = assets;

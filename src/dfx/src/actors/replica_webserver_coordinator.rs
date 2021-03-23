@@ -1,6 +1,3 @@
-use crate::actors::replica::signals::outbound::ReplicaReadySignal;
-use crate::actors::replica::signals::PortReadySubscribe;
-use crate::actors::replica::Replica;
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -10,7 +7,7 @@ use crate::lib::webserver::run_webserver;
 
 use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
-use actix::{Actor, Addr, AsyncContext, Context, Handler, ResponseFuture};
+use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, ResponseFuture};
 use actix_server::Server;
 use futures::future;
 use futures::future::FutureExt;
@@ -18,9 +15,23 @@ use slog::{debug, error, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
+pub mod signals {
+    use actix::prelude::*;
+
+    #[derive(Message)]
+    #[rtype(result = "()")]
+    pub struct PortReadySignal {
+        pub port: u16,
+    }
+
+    #[derive(Message)]
+    #[rtype(result = "()")]
+    pub struct PortReadySubscribe(pub Recipient<PortReadySignal>);
+}
+
 pub struct Config {
     pub logger: Option<Logger>,
-    pub replica_addr: Addr<Replica>,
+    pub port_ready_subscribe: Recipient<signals::PortReadySubscribe>,
     pub shutdown_controller: Addr<ShutdownController>,
     pub bind: SocketAddr,
     pub providers: Vec<url::Url>,
@@ -59,7 +70,7 @@ impl ReplicaWebserverCoordinator {
         providers.push(replica_api_uri);
         info!(
             self.logger,
-            "Starting webserver on port {} for replica at {:?}", port, ic_replica_bind_addr
+            "Starting webserver for replica at {:?}", ic_replica_bind_addr
         );
 
         run_webserver(
@@ -76,19 +87,20 @@ impl Actor for ReplicaWebserverCoordinator {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        self.config
-            .replica_addr
-            .do_send(PortReadySubscribe(ctx.address().recipient()));
+        let _ = self
+            .config
+            .port_ready_subscribe
+            .do_send(signals::PortReadySubscribe(ctx.address().recipient()));
         self.config
             .shutdown_controller
             .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
     }
 }
 
-impl Handler<ReplicaReadySignal> for ReplicaWebserverCoordinator {
+impl Handler<signals::PortReadySignal> for ReplicaWebserverCoordinator {
     type Result = ();
 
-    fn handle(&mut self, msg: ReplicaReadySignal, ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: signals::PortReadySignal, ctx: &mut Self::Context) {
         debug!(self.logger, "replica ready on {}", msg.port);
 
         if let Some(server) = &self.server {
