@@ -81,7 +81,6 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
             .iter()
             .map(|uri| Url::from_str(uri).unwrap())
             .collect(),
-        &config_bootstrap.root.unwrap(),
         sender,
     )?
     .join()
@@ -103,17 +102,15 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
 /// and otherwise guaranteed to exist.
 fn apply_arguments(
     config: &ConfigDefaultsBootstrap,
-    env: &dyn Environment,
+    _env: &dyn Environment,
     opts: BootstrapOpts,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
     let ip = get_ip(&config, opts.ip.as_deref())?;
     let port = get_port(&config, opts.port.as_deref())?;
-    let root = get_root(&config, env, opts.root.as_deref())?;
     let timeout = get_timeout(&config, opts.timeout.as_deref())?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
-        root: Some(root),
         timeout: Some(timeout),
     })
 }
@@ -159,42 +156,6 @@ fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String
         .collect()
 }
 
-/// Gets the directory containing static assets served by the bootstrap server. First checks if the
-/// directory was specified on the command-line using --root, otherwise checks if the directory was
-/// specified in the dfx configuration file, otherise defaults to
-/// $HOME/.cache/dfinity/versions/$DFX_VERSION/bootstrap.
-fn get_root(
-    config: &ConfigDefaultsBootstrap,
-    env: &dyn Environment,
-    root: Option<&str>,
-) -> DfxResult<PathBuf> {
-    root.map(|root| parse_dir(root))
-        .unwrap_or_else(|| {
-            config
-                .root
-                .clone()
-                .or_else(|| {
-                    // If there is a @dfinity/bootstrap node package installed at the root
-                    // of dfx.json, use that.
-                    let dfx_root = env.get_config()?.get_path().parent().unwrap().to_path_buf();
-                    let dfx_root = dfx_root.join("node_modules/@dfinity/bootstrap/dist");
-                    if dfx_root.exists() {
-                        Some(dfx_root)
-                    } else {
-                        None
-                    }
-                })
-                .map_or(env.get_cache().get_binary_command_path("bootstrap"), Ok)
-                .and_then(|root| {
-                    parse_dir(
-                        root.to_str()
-                            .expect("File path without invalid unicode characters"),
-                    )
-                })
-        })
-        .context("Invalid argument: Invalid directory.")
-}
-
 /// Gets the maximum amount of time, in seconds, the bootstrap server will wait for upstream
 /// requests to complete. First checks if the timeout was specified on the command-line using
 /// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
@@ -207,11 +168,4 @@ fn get_timeout(config: &ConfigDefaultsBootstrap, timeout: Option<&str>) -> DfxRe
             Ok(config.timeout.unwrap_or(default))
         })
         .context("Invalid argument: Invalid timeout.")
-}
-
-/// TODO (enzo): Documentation.
-fn parse_dir(dir: &str) -> DfxResult<PathBuf> {
-    fs::metadata(dir)
-        .map(|_| PathBuf::from(dir))
-        .context(format!("Cannot find metadata at '{}'.", dir))
 }
