@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_utils::call_sender;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -36,6 +37,16 @@ pub struct DeployOpts {
     /// This amount is deducted from the wallet's cycle balance.
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
+
+    /// Specify a wallet canister id to perform the call.
+    /// If none specified, defaults to use the selected Identity's wallet canister.
+    #[clap(long)]
+    wallet: Option<String>,
+
+    /// Performs the call with the user Identity as the Sender of messages.
+    /// Bypasses the Wallet canister.
+    #[clap(long, conflicts_with("wallet"))]
+    no_wallet: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -47,7 +58,9 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let argument_type = opts.argument_type.as_deref();
     let with_cycles = opts.with_cycles.as_deref();
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let runtime = Runtime::new().expect("Unable to create a runtime");
+
+    let call_sender = runtime.block_on(call_sender(&env, &opts.wallet, opts.no_wallet))?;
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(
@@ -57,5 +70,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument_type,
         timeout,
         with_cycles,
+        &call_sender,
     ))
 }

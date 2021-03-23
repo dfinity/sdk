@@ -34,7 +34,6 @@ pub struct Config {
     pub port_ready_subscribe: Recipient<signals::PortReadySubscribe>,
     pub shutdown_controller: Addr<ShutdownController>,
     pub bind: SocketAddr,
-    pub serve_dir: PathBuf,
     pub providers: Vec<url::Url>,
     pub build_output_root: PathBuf,
     pub network_descriptor: NetworkDescriptor,
@@ -80,7 +79,6 @@ impl ReplicaWebserverCoordinator {
             self.config.network_descriptor.clone(),
             self.config.bind,
             providers,
-            self.config.serve_dir.clone(),
         )
     }
 }

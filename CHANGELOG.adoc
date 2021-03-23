@@ -1,4 +1,70 @@
+= 0.6.27
+
+== DFX
+
+=== feat: webserver can now serve large assets
+
+= 0.6.26
+
+== DFX
+
+=== feat: add --no-wallet flag and --wallet option to allow Users to bypass Wallet or specify a Wallet to use for calls (#1476)
+
+Added `--no-wallet` flag to `dfx canister` and `dfx deploy`. This allows users to call canister management functionality with their Identity as the Sender (bypassing their Wallet canister.)
+Added `--wallet` option to `dfx canister` and `dfx deploy`. This allows users to specify a wallet canister id to use as the Sender for calls.
+`--wallet` and `--no-wallet` conflict with each other. Omitting both will invoke the selected Identity's wallet canister to perform calls.
+
+=== feat: add canister subcommands `sign` and `send`
+
+Users can use `dfx canister sign ...` to generated a signed canister call in a json file. Then `dfx canister send [message.json]` to the network.
+
+Users can sign the message on an air-gapped computer which is secure to host private keys.
+
+==== Note
+
+* `sign` and `send` currently don't proxy through wallet canister. Users should use the subcommands with `dfx canister --no-wallet sign ...`.
+
+* The `sign` option `--expire-after` will set the `ingress_expiry` to a future timestamp which is current plus the duration.
+Then users can send the message during a 5 minutes time window ending in that `ingress_expiry` timestamp. Sending the message earlier or later than the time window will both result in a replica error.
+
+=== feat: implement the HTTP Request proposal in dfx' bootstrap webserver. +
+And add support for http requests in the base storage canister (with a default to `/index.html`).
+
+This does not support other encodings than `identity` for now (and doesn't even return any headers). This support will be added to the upgraded asset storage canister built in #1482.
+
+Added a test that uses `curl localhost` to test that the asset storage AND the webserver properly support the http requests.
+
+This commit also upgrades tokio and reqwest in order to work correctly. There are also _some_ performance issues noted (this is slower than the `icx-http-server` for some reason), but those are not considered criticals and could be improved later on.
+
+Renamed the `project_name` in our own generated assets to `canister_name`, for things that are generated during canister build (and not project generation).
+
+=== feat: add support for ECDSA on secp256k1
+
+You can now a generate private key via OpenSSL or a simlar tool, import it into dfx, and use it to sign an ingress message.
+
+[source, bash]
+----
+openssl ecparam -name secp256k1 -genkey -out identity.pem
+dfx identity import <name> identity.pem
+dfx identity use <name>
+dfx canister call ...
+----
+
+== Asset Canister
+
+=== feat: The asset canister can now store assets that exceed the message ingress limit (2 MB)
+
+* Please note that neither the JS agent nor the HTTP server have been updated yet to server such large assets.
+* The existing interface is left in place for backwards-compatibility, but deprecated:
+** retrieve(): use get() and get_chunk() instead
+** store(): use create_batch(), create_chunk(), and commit_batch() instead
+** list(): use keys() instead
+
 = 0.6.25
+
+== DFX
+
+- feat: dfx now provides CANISTER_ID_<canister_name> environment variables for all canisters to "npm build" when building the frontend.
 
 == Agents
 

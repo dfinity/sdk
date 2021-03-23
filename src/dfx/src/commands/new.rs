@@ -1,5 +1,4 @@
 use crate::config::dfinity::CONFIG_FILE_NAME;
-use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
@@ -13,7 +12,7 @@ use indicatif::HumanBytes;
 use lazy_static::lazy_static;
 use semver::Version;
 use serde_json::Value;
-use slog::{error, info, warn, Logger};
+use slog::{info, warn, Logger};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -24,6 +23,10 @@ use tar::Archive;
 // const DRY_RUN: &str = "dry_run";
 // const PROJECT_NAME: &str = "project_name";
 const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
+
+// The dist-tag to use when getting the version from NPM.
+const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
+
 lazy_static! {
 // Tested on a phone tethering connection. This should be fine with
 // little impact to the user, given that "new" is supposedly a
@@ -31,6 +34,7 @@ lazy_static! {
 // expectation for the duration to have a more expensive version
 // check.
     static ref CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
+
 }
 
 /// Creates a new project.
@@ -50,6 +54,11 @@ pub struct NewOpts {
 
     #[clap(long, conflicts_with = "frontend")]
     no_frontend: bool,
+
+    /// Overrides which version of the JavaScript Agent to install. By default, will contact
+    /// NPM to decide.
+    #[clap(long, requires("frontend"))]
+    agent_version: Option<String>,
 }
 
 enum Status<'a> {
@@ -79,7 +88,7 @@ impl std::fmt::Display for Status<'_> {
     }
 }
 
-pub fn create_file(log: &Logger, path: &Path, content: &str, dry_run: bool) -> DfxResult {
+pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> DfxResult {
     if !dry_run {
         if let Some(p) = path.parent() {
             std::fs::create_dir_all(p)?;
@@ -146,14 +155,20 @@ fn write_files_from_entries<R: Sized + Read>(
             continue;
         }
 
-        let mut s = String::new();
-        file.read_to_string(&mut s).map_err(DfxError::from)?;
+        let mut v = Vec::new();
+        file.read_to_end(&mut v).map_err(DfxError::from)?;
 
-        // Perform replacements.
-        variables.iter().for_each(|(name, value)| {
-            let pattern = "{".to_owned() + name + "}";
-            s = s.replace(pattern.as_str(), value);
-        });
+        let v = match String::from_utf8(v) {
+            Err(err) => err.into_bytes(),
+            Ok(mut s) => {
+                // Perform replacements.
+                variables.iter().for_each(|(name, value)| {
+                    let pattern = "{".to_owned() + name + "}";
+                    s = s.replace(pattern.as_str(), value);
+                });
+                s.into_bytes()
+            }
+        };
 
         // Perform path replacements.
         let mut p = root
@@ -168,7 +183,7 @@ fn write_files_from_entries<R: Sized + Read>(
         });
 
         let p = PathBuf::from(p);
-        create_file(log, p.as_path(), s.as_str(), dry_run)?;
+        create_file(log, p.as_path(), &v, dry_run)?;
     }
 
     Ok(())
@@ -221,7 +236,7 @@ fn scaffold_frontend_code(
 
         let frontend_value: serde_json::Map<String, Value> = [(
             "entrypoint".to_string(),
-            ("src/".to_owned() + project_name_str + "_assets/public/index.js").into(),
+            ("src/".to_owned() + project_name_str + "_assets/src/index.html").into(),
         )]
         .iter()
         .cloned()
@@ -279,6 +294,25 @@ fn scaffold_frontend_code(
     Ok(())
 }
 
+fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
+    std::process::Command::new("npm")
+        .arg("show")
+        .arg("@dfinity/agent")
+        .arg(&format!("dist-tags.{}", dist_tag))
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::inherit())
+        .spawn()
+        .map_err(DfxError::from)
+        .and_then(|child| {
+            let mut result = String::new();
+            child
+                .stdout
+                .expect("Could not get the output of subprocess 'npm'.")
+                .read_to_string(&mut result)?;
+            Ok(result.trim().to_string())
+        })
+}
+
 pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     let log = env.get_logger();
     let dry_run = opts.dry_run;
@@ -319,21 +353,10 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
-    // Any version that contains a `-` is a local build.
-    // TODO: when adding alpha/beta, take that into account.
-    // TODO: move this to a Version type.
-    let is_dirty = dfx_version_str().contains('-');
-
-    let js_agent_version = if is_dirty {
-        error!(
-            log,
-            "{}\n{}",
-            "YOU'RE USING A DEVELOPER DFX VERSION BUT MIGHT NOT BE USING LATEST JAVASCRIPT AGENT",
-            "You will need to install a custom Agent in your project if you want to test JavaScript."
-        );
-        dfx_version_str().to_owned()
+    let js_agent_version = if let Some(v) = opts.agent_version {
+        v
     } else {
-        dfx_version_str().to_owned()
+        get_agent_js_version_from_npm(&AGENT_JS_DEFAULT_INSTALL_DIST_TAG)?
     };
 
     let variables: BTreeMap<String, String> = [

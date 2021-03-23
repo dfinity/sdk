@@ -13,6 +13,24 @@ teardown() {
     dfx_stop
 }
 
+@test "verifies sha256, if specified" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx deploy
+
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256="f3bf72b15312907983266db759f4788835bb0e4a087056647308b39b454e5fa0"})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256="...incorrect..."})'
+    assert_match 'sha256 mismatch'
+
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256="f3bf72b15312907983266db759f4788835bb0e4a087056647308b39b454e5fa0"})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256="...incorrect..."})'
+    assert_match 'sha256 mismatch'
+
+}
+
 @test "can store and retrieve assets by key" {
     install_asset assetscanister
 
@@ -21,10 +39,10 @@ teardown() {
     dfx build
     dfx canister install e2e_project_assets
 
-    assert_command dfx canister call --query e2e_project_assets retrieve '("binary/noise.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_assets retrieve '("/binary/noise.txt")' --output idl
     assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
 
-    assert_command dfx canister call --query e2e_project_assets retrieve '("text-with-newlines.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_assets retrieve '("/text-with-newlines.txt")' --output idl
     assert_eq '(blob "cherries\0ait'\''s cherry season\0aCHERRIES")'
 
     assert_command dfx canister call --update e2e_project_assets store '("AA", blob "hello, world!")'
@@ -44,4 +62,103 @@ teardown() {
     assert_command_fail dfx canister call --query e2e_project_assets retrieve '("C")'
 
     HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '("index.js", vec { 1; 2; 3; })'
+}
+
+@test "asset canister supports http requests" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install e2e_project_assets
+
+    ID=$(dfx canister id e2e_project_assets)
+    PORT=$(cat .dfx/webserver-port)
+    assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_eq "cherries
+it's cherry season
+CHERRIES" "$stdout"
+}
+
+@test 'can store arbitrarily large files' {
+    [ "$USE_IC_REF" ] && skip "skip for ic-ref" # this takes too long for ic-ref's wasm interpreter
+
+    install_asset assetscanister
+    dd if=/dev/urandom of=src/e2e_project_assets/assets/large-asset.bin bs=1000000 count=6
+
+    dfx_start
+    dfx canister --no-wallet create --all
+    dfx build
+    dfx canister --no-wallet install --memory-allocation 15mb e2e_project_assets
+
+    # retrieve() refuses to serve just part of an asset
+    assert_command_fail dfx canister call --query e2e_project_assets retrieve '("/large-asset.bin")'
+    assert_match 'Asset too large.'
+
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
+    assert_match 'total_length = 6_000_000'
+    assert_match 'content_type = "application/octet-stream"'
+    assert_match 'content_encoding = "identity"'
+
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2})'
+
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
+
+    PORT=$(cat .dfx/webserver-port)
+    CANISTER_ID=$(dfx canister id e2e_project_assets)
+    curl -v --output curl-output.bin "http://localhost:$PORT/large-asset.bin?canisterId=$CANISTER_ID"
+    diff src/e2e_project_assets/assets/large-asset.bin curl-output.bin
+}
+
+@test "list() and keys() return asset keys" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install e2e_project_assets
+
+    assert_command dfx canister call --query e2e_project_assets list
+    assert_match '"/binary/noise.txt"'
+    assert_match '"/text-with-newlines.txt"'
+    assert_match '"/sample-asset.txt"'
+
+    assert_command dfx canister call --query e2e_project_assets keys
+    assert_match '"/binary/noise.txt"'
+    assert_match '"/text-with-newlines.txt"'
+    assert_match '"/sample-asset.txt"'
+}
+
+@test "identifies content type" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx canister create --all
+
+    touch src/e2e_project_assets/assets/index.html
+    touch src/e2e_project_assets/assets/logo.png
+    touch src/e2e_project_assets/assets/index.js
+    touch src/e2e_project_assets/assets/main.css
+    touch src/e2e_project_assets/assets/index.js.map
+    touch src/e2e_project_assets/assets/index.js.LICENSE.txt
+
+    dfx build
+    dfx canister install e2e_project_assets
+
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.html";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/html"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/logo.png";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "image/png"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "application/javascript"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/plain"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/main.css";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/css"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.map";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/plain"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.LICENSE.txt";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "text/plain"'
 }

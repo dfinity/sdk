@@ -17,7 +17,6 @@ use tokio::runtime::Runtime;
 #[derive(Clap)]
 pub struct SetWalletOpts {
     /// The Canister ID of the wallet to associate with this identity.
-    #[clap(long)]
     canister_name: String,
 
     /// Skip verification that the ID points to a correct wallet canister. Only useful for the local network.
@@ -31,7 +30,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
     let env = &agent_env;
     let log = env.get_logger();
 
-    let mut runtime = Runtime::new().expect("Unable to create a runtime");
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let identity_name = agent_env
         .get_selected_identity()

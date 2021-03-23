@@ -7,24 +7,28 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
-use ic_agent::identity::BasicIdentity;
+use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
+use ic_utils::interfaces::management_canister::{InstallMode, MemoryAllocation};
 use ic_utils::interfaces::{ManagementCanister, Wallet};
 use ic_utils::Canister;
 use serde::{Deserialize, Serialize};
 use slog::info;
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use std::io::Read;
 use std::path::PathBuf;
 
 pub mod identity_manager;
+pub mod identity_utils;
 use crate::util::expiry_duration;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
@@ -34,6 +38,7 @@ pub use identity_manager::{
 const IDENTITY_PEM: &str = "identity.pem";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
+const DEFAULT_MEM_ALLOCATION: u64 = 40000000_u64; // 40 MB
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
@@ -113,6 +118,23 @@ impl Identity {
         })
     }
 
+    fn load_secp256k1_identity(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
+        let dir = manager.get_identity_dir_path(name);
+        let pem_path = dir.join(IDENTITY_PEM);
+        let inner = Box::new(Secp256k1Identity::from_pem_file(&pem_path).map_err(|e| {
+            DfxError::new(IdentityError::CannotReadIdentityFile(
+                pem_path.clone(),
+                Box::new(DfxError::new(e)),
+            ))
+        })?);
+
+        Ok(Self {
+            name: name.to_string(),
+            inner,
+            dir: manager.get_identity_dir_path(name),
+        })
+    }
+
     fn load_hardware_identity(
         manager: &IdentityManager,
         name: &str,
@@ -144,7 +166,8 @@ impl Identity {
                 })?;
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            Identity::load_basic_identity(manager, name)
+            Identity::load_secp256k1_identity(manager, name)
+                .or_else(|_| Identity::load_basic_identity(manager, name))
         }
     }
 
@@ -299,11 +322,11 @@ impl Identity {
     ) -> DfxResult<Principal> {
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
+                fetch_root_key_if_needed(env).await?;
                 let mgr = ManagementCanister::create(
                     env.get_agent()
                         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
                 );
-
                 info!(
                     env.get_logger(),
                     "Creating a wallet canister on the {} network.", network.name
@@ -338,6 +361,17 @@ impl Identity {
                 };
 
                 mgr.install_code(&canister_id, wasm.as_slice())
+                    .with_mode(InstallMode::Install)
+                    .with_memory_allocation(MemoryAllocation::try_from(DEFAULT_MEM_ALLOCATION).expect(
+                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                    ))
+                    .call_and_wait(waiter_with_timeout(expiry_duration()))
+                    .await?;
+
+                let wallet = Identity::build_wallet_canister(canister_id.clone(), env)?;
+
+                wallet
+                    .wallet_store_wallet_wasm(wasm)
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
                     .await?;
 
@@ -377,12 +411,7 @@ impl Identity {
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
                 if create {
-                    Identity::create_wallet(env, network, name, None).await.map_err(|err|
-                        anyhow!("Unable to create a wallet canister on {}:\n{}\nWallet canisters on {} may only be created by an administrator.\nPlease submit your Principal (\"dfx identity get-principal\") in the intake form to have one created for you.",
-                            network.name,
-                            err,
-                            network.name,)
-                    )
+                    Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(anyhow!(
                         "Could not find wallet for \"{}\" on \"{}\" network.",
@@ -395,7 +424,7 @@ impl Identity {
         }
     }
 
-    fn wallet_canister_id(
+    pub fn wallet_canister_id(
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
@@ -435,7 +464,7 @@ impl Identity {
             .clone())
     }
 
-    fn build_wallet_canister(
+    pub fn build_wallet_canister(
         id: Principal,
         env: &dyn Environment,
     ) -> DfxResult<Canister<'_, Wallet>> {

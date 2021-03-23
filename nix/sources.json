@@ -6,17 +6,11 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "1794caeec1a3ccc4532b4f3f32889953a151998d",
-        "sha256": "0yg2v902f40kfnhw0n0gb3v441irvg1b28bdfp5c8ay02ddz227z",
+        "rev": "cda5b3ffd4b0cec5fa20f290e45297ee3f1999ee",
+        "sha256": "0qj5cd3cci1iwil488py2qsfm9d6icwvl128kz8aimckwi0bh5rg",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/1794caeec1a3ccc4532b4f3f32889953a151998d.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/cda5b3ffd4b0cec5fa20f290e45297ee3f1999ee.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "agent-js-monorepo": {
-        "ref": "next",
-        "repo": "ssh://git@github.com/dfinity-lab/agent-js",
-        "rev": "1c9703fa3abaaa039a1e53d1257a8d6c8333b5b9",
-        "type": "git"
     },
     "bats-support": {
         "branch": "v0.3.0",
@@ -34,25 +28,26 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "5b570497f6e92e8c4dec3ea3692a4b7ccaa9814d",
+        "rev": "6611a85c1941cb1bf25cb76cda5b122df045537d",
         "type": "git"
     },
     "dfinity": {
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "fc46573d03d0024b85eae4f93ce8dc823308fcfd",
-        "tag": "release-2020-11-26.RC01",
+        "rev": "a7d3a895e7c7f684a4c983f226adf5d41e29a64f",
         "type": "git"
     },
     "ic-ref": {
         "branch": "release-0.15",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "3716b934e8699aea3423535fc69c0f6b077ba842",
+        "rev": "f20ebb5282f27d4f23b485f713fd15809627c38d",
         "type": "git"
     },
     "motoko": {
         "branch": "release",
-        "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "43f3547ccbf7d48e5d25e1bf5222f11df8df2940",
+        "repo": "ssh://git@github.com/dfinity/motoko",
+        "rev": "d6648369a26ed308376bb59dc5dbe934b8ab5fd4",
+        "tag": "0.5.10",
         "type": "git"
     },
     "napalm": {
