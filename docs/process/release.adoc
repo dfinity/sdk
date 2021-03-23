@@ -22,7 +22,7 @@ Our goal is to update this document with the latest information as we iterate to
 
 Before you begin, verify the following prerequisites for the release process *driver*:
 
-- You must have a GitHub account and access to the `+dfinity+` organization and core repositories like the `sdk` and `agent-js` repositories
+- You must have a GitHub account and access to the `+dfinity+` organization and core repositories like the `sdk` repository
 +
 For information about setting up a GitHub account, see link:https://docs.github.com/en/github/getting-started-with-github/signing-up-for-a-new-github-account[Signin up for a GitHub account]
 To get permission for your account to access `+dfinity-lab+` and `+dfinity+` repositories, see link:https://www.notion.so/How-to-Get-Github-Access-68c9ad72b5974fa9bbec003592677d02[How to get GitHub access).
@@ -95,13 +95,13 @@ After running this command to build the release candidate, follow the steps in <
 [[manual]]
 == MANUAL STEPS release process
 
-The manual release process provides full instructions for building and testing the release candidate binaries to ensure everything is working before making a release available to internal or external developers. 
+The manual release process provides full instructions for building and testing the release candidate binaries to ensure everything is working before making a release available to internal or external developers.
 
-=== Build DFX and the JavaScript agent binaries
+=== Build DFX
 
-Verify that you can build DFX and the JavaScript agent from the `+master+` branch without errors.
+Verify that you can build DFX from the `+master+` branch without errors.
 
-. Verify you're connected to VPN, if necessary. 
+. Verify you're connected to VPN, if necessary.
 . Build the `dfx` binary by running the following command:
 +
 [source, bash]
@@ -112,7 +112,7 @@ export dfx_rc="$sdk_rc/bin/dfx"
 +
 The `nix-build` command can take a while to complete.
 Wait for it to be done.
-These commands create the binary then stores the binary in a shell variable. 
+These commands create the binary then stores the binary in a shell variable.
 . Make sure the `$dfx_rc` variable points to a real file by running the following command:
 +
 ```
@@ -127,24 +127,6 @@ You should see 'Please proceed' returned.
 [source, bash]
 ----
 $dfx_rc cache delete
-----
-. Build the JavaScript agent by running the following commands:
-+
-[source, bash]
-----
-export agent_js_rc="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
-export agent_js_rc_npm_packed="$(sh -c 'echo "$1"' sh $agent_js_rc/dfinity-agent-*.tgz)"
-----
-. Make sure the agent package was created by running the following command:
-+
-[source,bash]
-----
-test -f $agent_js_rc_npm_packed \
-    && echo 'Please proceed' \
-    || echo 'Cannot find npm-packed dfinity-agent-*.tgz'
-----
-+
-You should see 'Please proceed' returned.
 . Ensure `dfx` and `replica` are not running in the background by running the following command:
 +
 [source, bash]
@@ -164,12 +146,6 @@ Verify that you can build, deploy, and call the default `hello_world` project wi
 ----
 $dfx_rc new hello_world
 cd hello_world
-----
-. Install the locally-built JavaScript agent for the new project  by running the following command:
-+
-[source, bash]
-----
-npm install "$agent_js_rc_npm_packed"
 ----
 . Start the local `replica` as a background process by running the following command:
 +
@@ -357,53 +333,6 @@ git push origin stable
 +
 Pushing the branch second is an optimization.
 Hydra will spur into action when `stable` advances, so if the branch is already tagged, it won't require a second fetch.
-
-==== Publish JavaScript agent to NPM
-
-. Create and switch to a new directory to release from by running the following commands:
-+
-[source, nix-shell]
-----
-pushd $(mktemp -d)
-cp -R $agent_js_rc/. ./
-----
-
-. Change the package.json's `version` property:
-+
-[source, nix-shell]
-----
-npm version $NEW_DFX_VERSION
-----
-
-. Run the following command to check that every `.js` file has a `.d.ts` assigned and that every `.js` and `.d.ts` file has a source file that is not a test:
-+
-[source, nix-shell]
-----
-diff <(find types src \( -name \*.d.ts -o -name \*.js \) -a \! -name \*.test.\* | sort) <(npm publish --dry-run 2>&1 | egrep 'npm notice [0-9.]*k?B' | awk '{ print $4 }' | grep -v package.json | grep -v README.md | sort) && echo Success
-----
-+
-You should see `Success` displayed in the terminal after running this command.
-. Log in to npm by running the following command:
-+
-[source, nix-shell]
-----
-npm login
-----
-. Publish to npm by running the following command:
-+
-[source, nix-shell]
-----
-npm publish
-----
-. Log out by running the following command:
-+
-[source, nix-shell]
-----
-npm logout
-----
-ifdef::env-github[]
-:tada:
-endif::[]
 
 [[post-build]]
 == Notification and post-build validation

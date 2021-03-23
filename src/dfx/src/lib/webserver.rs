@@ -29,7 +29,7 @@ use ic_utils::Canister;
 use serde::Deserialize;
 use slog::{debug, info, trace, Logger};
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use url::Url;
@@ -365,7 +365,6 @@ pub fn run_webserver(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     providers: Vec<url::Url>,
-    _serve_dir: PathBuf,
 ) -> DfxResult<Server> {
     const SHUTDOWN_WAIT_TIME: u64 = 60;
     info!(logger, "binding to: {:?}", bind);
@@ -437,7 +436,6 @@ pub fn webserver(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
-    _serve_dir: &Path,
     inform_parent: Sender<Server>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     // Verify that we cannot bind to a port that we forward to.
@@ -466,7 +464,6 @@ pub fn webserver(
                     network_descriptor,
                     bind,
                     clients_api_uri,
-                    PathBuf::new(),
                 )
                 .unwrap();
 
