@@ -55,8 +55,6 @@ pre_release_check() {
 # build the release candidate and export these environment variables:
 #    sdk_rc                  SDK release candidate
 #    dfx_rc                    - dfx executable within
-#    agent_js_rc             JavaScript agent release candidate
-#    agent_js_rc_npm_packed    - npm packed
 #
 build_release_candidate() {
     announce "Building dfx release candidate."
@@ -69,16 +67,6 @@ build_release_candidate() {
 
     echo "Deleting existing dfx cache to make sure not to use a stale binary."
     $dfx_rc cache delete
-
-    echo "Building the JavaScript agent."
-    x="$(nix-build . -A agent-js --option extra-binary-caches https://cache.dfinity.systems)"
-    export agent_js_rc=$x
-
-    x="$(sh -c 'echo "$1"' sh "$agent_js_rc"/dfinity-agent-*.tgz)"
-    export agent_js_rc_npm_packed=$x
-
-    echo "Checking for the packed JS agent at $agent_js_rc_npm_packed"
-    test -f "$agent_js_rc_npm_packed"
 }
 
 wait_for_response() {
@@ -104,9 +92,6 @@ validate_default_project() {
         echo "Creating new project."
         $dfx_rc new hello_world
         cd hello_world
-
-        echo "Installing the locally-build JavaScript agent."
-        npm install "$agent_js_rc_npm_packed"
 
         echo "Starting the local 'replica' as a background process."
         $dfx_rc start --background
@@ -233,60 +218,6 @@ EOF
     nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
 }
 
-publish_javascript_agent() {
-    announce 'publishing JavaScript agent'
-
-    # The 'confirmation' variable will be set by read, so make sure that
-    # 'envsubst' does not substitute it with an empty string:
-    export Q='$'
-
-    NIX_COMMAND=$(envsubst <<"EOF"
-        set -e
-
-        (
-            cd $(mktemp -d)
-            tar -xvf "$agent_js_rc_npm_packed"
-            cd package
-
-            npm version $NEW_DFX_VERSION
-
-            echo "Check that every .js file has a .d.ts assigned and that every .js and .d.ts file has a source file that is not a test:"
-            if diff <(find types src \( -name \*.d.ts -o -name \*.js \) -a \! -name \*.test.\* | sort) <(npm publish --dry-run 2>&1 | egrep 'npm notice [0-9.]*k?B' | awk '{ print $4 }' | grep -v package.json | grep -v README.md | sort) ; then
-                echo "  - No discrepancies to report."
-            else
-                while true; do
-                    echo "  - There were differences.  Type 'continue anyway' to ignore them or 'stop' to stop:"
-                    read -r confirmation
-                    if [[ "${Q}confirmation" == "continue anyway" ]]; then
-                        echo "Onward!"
-                        break
-                    elif [[ "${Q}confirmation" == "stop" ]]; then
-                        echo "Stopping."
-                        exit 1
-                    fi
-                done
-            fi
-
-            echo "Logging in to npm"
-            until $DRY_RUN_ECHO npm login ; do
-                echo "Failed to log in to npm.  Try again, or Ctrl-C if you give up."
-            done
-
-            echo "Publishing to npm"
-            until $DRY_RUN_ECHO npm publish ; do
-                echo "Failed to publish to npm.  Press enter to try again, or Ctrl-C to stop."
-                read
-            done
-
-            echo "Logging out of npm"
-            $DRY_RUN_ECHO npm logout
-        )
-EOF
-)
-
-    nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
-}
-
 {
     get_parameters "$@"
     pre_release_check
@@ -294,7 +225,6 @@ EOF
     validate_default_project
     build_release_branch
     update_stable_branch
-    publish_javascript_agent
 
     echo "All done!"
     exit
