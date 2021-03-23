@@ -27,7 +27,8 @@ term_reset() {
 
 get_parameters() {
     [ "$#" -eq 1 ] || die "Usage: $0 <n.n.n>"
-    echo "$1" | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$' || die "'$1' is not a valid semantic version"
+    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(beta|alpha)\.[0-9]+)?$ ]] || \
+        die "'$1' is not a valid semantic version"
 
     export NEW_DFX_VERSION=$1
     export BRANCH=$USER/release-$NEW_DFX_VERSION
