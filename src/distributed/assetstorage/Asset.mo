@@ -43,6 +43,8 @@ module {
       encodings.delete(encodingType)
     };
 
+    public func encodingEntries() : Iter.Iter<(Text,AssetEncoding)> = encodings.entries();
+
     public func toStableAsset() : StableAsset = {
       contentType = contentType;
       encodings = Iter.toArray(encodings.entries());

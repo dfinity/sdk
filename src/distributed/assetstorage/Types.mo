@@ -7,6 +7,17 @@ module Types {
   public type Key = Text;
   public type Time = Int;
 
+  public type AssetEncodingDetails = {
+    content_encoding: Text;
+    sha256: ?Blob;
+  };
+
+  public type AssetDetails = {
+    key: Key;
+    content_type: Text;
+    encodings: [AssetEncodingDetails];
+  };
+
   public type CreateAssetArguments = {
     key: Key;
     content_type: Text;
