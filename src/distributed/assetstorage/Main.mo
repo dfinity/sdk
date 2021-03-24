@@ -97,22 +97,30 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  func listKeys(): [T.Path] {
-    let iter = Iter.map<(Text, A.Asset), T.Path>(assets.entries(), func (key, _) = key);
+  func entryToAssetDetails((key: T.Key, asset: A.Asset)) : T.AssetDetails {
+    let assetEncodings = Iter.toArray(
+      Iter.map<(Text, A.AssetEncoding), T.AssetEncodingDetails>(
+        asset.encodingEntries(), entryToAssetEncodingDetails
+      )
+    );
+
+    {
+      key = key;
+      content_type = asset.contentType;
+      encodings = assetEncodings;
+    }
+  };
+
+  func entryToAssetEncodingDetails((name: Text, assetEncoding: A.AssetEncoding)) : T.AssetEncodingDetails {
+    {
+      content_encoding = assetEncoding.contentEncoding;
+      sha256 = assetEncoding.sha256;
+    }
+  };
+
+  public query func list(arg:{}) : async [T.AssetDetails] {
+    let iter = Iter.map<(Text, A.Asset), T.AssetDetails>(assets.entries(), entryToAssetDetails);
     Iter.toArray(iter)
-  };
-
-  // deprecated: the signature of this method will change, to take an empty record as
-  // a parameter and to return an array of records.
-  // For now, call keys() instead
-  public query func list() : async [T.Path] {
-    listKeys()
-  };
-
-  // Returns an array of the keys of all assets contained in the asset canister.
-  // This method will be deprecated after the signature of list() changes.
-  public query func keys() : async [T.Path] {
-    listKeys()
   };
 
   func isSafe(caller: Principal) : Bool {

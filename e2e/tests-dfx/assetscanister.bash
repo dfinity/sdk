@@ -115,7 +115,7 @@ CHERRIES" "$stdout"
     diff src/e2e_project_assets/assets/large-asset.bin curl-output.bin
 }
 
-@test "list() and keys() return asset keys" {
+@test "list() return assets" {
     install_asset assetscanister
 
     dfx_start
@@ -123,12 +123,7 @@ CHERRIES" "$stdout"
     dfx build
     dfx canister install e2e_project_assets
 
-    assert_command dfx canister call --query e2e_project_assets list
-    assert_match '"/binary/noise.txt"'
-    assert_match '"/text-with-newlines.txt"'
-    assert_match '"/sample-asset.txt"'
-
-    assert_command dfx canister call --query e2e_project_assets keys
+    assert_command dfx canister call --query e2e_project_assets list '(record{})'
     assert_match '"/binary/noise.txt"'
     assert_match '"/text-with-newlines.txt"'
     assert_match '"/sample-asset.txt"'
@@ -164,4 +159,24 @@ CHERRIES" "$stdout"
     assert_match 'content_type = "text/plain"'
     assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.LICENSE.txt";accept_encodings=vec{"identity"}})'
     assert_match 'content_type = "text/plain"'
+}
+
+@test "deletes assets that are removed from project" {
+    install_asset assetscanister
+
+    dfx_start
+
+    touch src/e2e_project_assets/assets/will-delete-this.txt
+    dfx deploy
+
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/will-delete-this.txt";accept_encodings=vec{"identity"}})'
+    assert_command dfx canister call --query e2e_project_assets list  '(record{})'
+    assert_match '"/will-delete-this.txt"'
+
+    rm src/e2e_project_assets/assets/will-delete-this.txt
+    dfx deploy
+
+    assert_command_fail dfx canister call --query e2e_project_assets get '(record{key="/will-delete-this.txt";accept_encodings=vec{"identity"}})'
+    assert_command dfx canister call --query e2e_project_assets list  '(record{})'
+    assert_not_match '"/will-delete-this.txt"'
 }

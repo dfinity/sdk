@@ -228,6 +228,7 @@ service: {
     content_type: text;
     encodings: vec record {
       content_encoding: text;
+      sha256: opt blob; // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
     };
   }) query;
 
