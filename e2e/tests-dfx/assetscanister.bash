@@ -13,6 +13,25 @@ teardown() {
     dfx_stop
 }
 
+@test "unsets asset encodings that are removed from project" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx deploy
+
+    assert_command dfx canister call --query e2e_project_assets list '(record{})'
+    assert_match '"/binary/noise.txt"'
+    assert_match '"/text-with-newlines.txt"'
+    assert_match '"/sample-asset.txt"'
+
+    assert_command dfx canister call --update e2e_project_assets store '(record{key="/sample-asset.txt"; content_type="text/plain"; content_encoding="arbitrary"; content=blob "content encoded in another way!"})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
+
+    dfx deploy
+
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
+}
+
 @test "verifies sha256, if specified" {
     install_asset assetscanister
 
@@ -181,3 +200,4 @@ CHERRIES" "$stdout"
     assert_command dfx canister call --query e2e_project_assets list  '(record{})'
     assert_not_match '"/will-delete-this.txt"'
 }
+
