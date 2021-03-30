@@ -10,6 +10,7 @@ mod call;
 mod create;
 mod delete;
 mod id;
+mod info;
 mod install;
 mod request_status;
 mod send;
@@ -50,6 +51,7 @@ enum SubCommand {
     Create(create::CanisterCreateOpts),
     Delete(delete::CanisterDeleteOpts),
     Id(id::CanisterIdOpts),
+    Info(info::InfoOpts),
     Install(install::CanisterInstallOpts),
     RequestStatus(request_status::RequestStatusOpts),
     Send(send::CanisterSendOpts),
@@ -71,6 +73,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Delete(v) => delete::exec(&agent_env, v, &call_sender).await,
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
             SubCommand::Install(v) => install::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Info(v) => info::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
             SubCommand::Send(v) => send::exec(&agent_env, v, &call_sender).await,
             SubCommand::SetController(v) => set_controller::exec(&agent_env, v, &call_sender).await,
