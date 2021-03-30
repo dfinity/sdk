@@ -2,6 +2,7 @@ use super::signed_message::SignedMessageV1;
 
 use ic_agent::agent::ReplicaV1Transport;
 use ic_agent::{AgentError, RequestId};
+use ic_types::Principal;
 
 use std::fs::File;
 use std::future::Future;
@@ -87,6 +88,48 @@ impl ReplicaV1Transport for SignReplicaV1Transport {
         }
 
         Box::pin(run(self, envelope, request_id))
+    }
+
+    fn read_state<'a>(
+        &'a self,
+        _effective_canister_id: Principal,
+        _envelope: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
+        async fn run(_: &SignReplicaV1Transport) -> Result<Vec<u8>, AgentError> {
+            Err(AgentError::MessageError(
+                "read_state calls not supported".to_string(),
+            ))
+        }
+
+        Box::pin(run(self))
+    }
+
+    fn call<'a>(
+        &'a self,
+        _effective_canister_id: Principal,
+        _envelope: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
+        async fn run(_: &SignReplicaV1Transport) -> Result<(), AgentError> {
+            Err(AgentError::MessageError(
+                "call calls not supported".to_string(),
+            ))
+        }
+
+        Box::pin(run(self))
+    }
+
+    fn query<'a>(
+        &'a self,
+        _effective_canister_id: Principal,
+        _envelope: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
+        async fn run(_: &SignReplicaV1Transport) -> Result<Vec<u8>, AgentError> {
+            Err(AgentError::MessageError(
+                "query calls not supported".to_string(),
+            ))
+        }
+
+        Box::pin(run(self))
     }
 
     fn status<'a>(
