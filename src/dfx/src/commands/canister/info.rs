@@ -38,7 +38,11 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     {
         Ok(blob) => format!("0x{}", hex::encode(&blob)),
         // If the canister is empty, this path does not exist.
-        Err(AgentError::LookupPathUnknown(_)) => "None".to_string(),
+        // The replica doesn't support negative lookups, therefore if the canister
+        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
+        Err(AgentError::LookupPathUnknown(_)) | Err(AgentError::LookupPathAbsent(_)) => {
+            "None".to_string()
+        }
         Err(x) => bail!(x),
     };
 
