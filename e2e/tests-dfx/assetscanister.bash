@@ -48,9 +48,9 @@ teardown() {
     assert_command dfx canister call --query e2e_project_assets retrieve '("/text-with-newlines.txt")' --output idl
     assert_eq '(blob "cherries\0ait'\''s cherry season\0aCHERRIES")'
 
-    assert_command dfx canister call --update e2e_project_assets store '("AA", blob "hello, world!")'
+    assert_command dfx canister call --update e2e_project_assets store '(record{key="AA"; content_type="text/plain"; content_encoding="identity"; content=blob "hello, world!"})'
     assert_eq '()'
-    assert_command dfx canister call --update e2e_project_assets store '("B", vec { 88; 87; 86; })'
+    assert_command dfx canister call --update e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
     assert_eq '()'
 
     assert_command dfx canister call --query e2e_project_assets retrieve '("B")' --output idl
@@ -64,7 +64,8 @@ teardown() {
 
     assert_command_fail dfx canister call --query e2e_project_assets retrieve '("C")'
 
-    HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '("index.js", vec { 1; 2; 3; })'
+    HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '(record{key="index.js"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 1; 2; 3; }})'
+    assert_match "Only a custodian can call this method."
 }
 
 @test "asset canister supports http requests" {
