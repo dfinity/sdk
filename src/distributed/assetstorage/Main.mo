@@ -62,23 +62,26 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  // Store an asset of limited size, with
-  //   content-type: "application/octet-stream"
-  //   content-encoding: "identity"
-  // This deprecated function is backwards-compatible with an older interface and will be replaced
-  // with a function of the same name but that allows specification of the content type and encoding.
-  // Prefer to use create_batch(), create_chunk(), commit_batch().
-  public shared ({ caller }) func store(path : T.Path, contents : T.Contents) : async () {
+  // Store a content encoding for an asset.  Does not remove other content encodings.
+  // If the contents exceed the message ingress limit,
+  // use create_batch(), create_chunk(), commit_batch() instead.
+  public shared ({ caller }) func store(arg:{
+    key: T.Key;
+    content_type: Text;
+    content_encoding: Text;
+    content: Blob;
+    sha256: ?Blob;
+  }) : async () {
     if (isSafe(caller) == false) {
       throw Error.reject("not authorized");
     };
 
     let batch = batches.create();
-    let chunkId = chunks.create(batch, contents);
+    let chunkId = chunks.create(batch, arg.content);
 
     let create_asset_args : T.CreateAssetArguments = {
-      key = path;
-      content_type = "application/octet-stream"
+      key = arg.key;
+      content_type = arg.content_type;
     };
     switch(createAsset(create_asset_args)) {
       case (#ok(())) {};
@@ -86,10 +89,10 @@ shared ({caller = creator}) actor class () {
     };
 
     let args : T.SetAssetContentArguments = {
-      key = path;
-      content_encoding = "identity";
+      key = arg.key;
+      content_encoding = arg.content_encoding;
       chunk_ids = [ chunkId ];
-      sha256 = null;
+      sha256 = arg.sha256;
     };
     switch(setAssetContent(args)) {
       case (#ok(())) {};

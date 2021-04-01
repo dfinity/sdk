@@ -252,7 +252,13 @@ service: {
 
   // Single call to create an asset with content for a single content encoding that
   // fits within the message ingress limit.
-  store: (record { key: Key; content_type: text; content_encoding: text; content: blob }) -> ();
+  store: (record {
+    key: Key;
+    content_type: text;
+    content_encoding: text;
+    content: blob;
+    sha256: opt blob
+  }) -> ();
 }
 
 ----
