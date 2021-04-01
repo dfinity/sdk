@@ -179,7 +179,7 @@ async fn upload_content_chunks(
     timeout: Duration,
     batch_id: &Nat,
     asset_location: &AssetLocation,
-    content: Vec<u8>,
+    content: &[u8],
 ) -> DfxResult<Vec<Nat>> {
     let mut chunk_ids: Vec<Nat> = vec![];
     let chunks = content.chunks(MAX_CHUNK_SIZE);
@@ -208,7 +208,7 @@ async fn make_chunked_asset_encoding(
     timeout: Duration,
     batch_id: &Nat,
     asset_location: &AssetLocation,
-    content: Vec<u8>,
+    content: &[u8],
 ) -> DfxResult<ChunkedAssetEncoding> {
     let mut sha256 = Sha256::new();
     sha256.update(&content);
@@ -278,23 +278,47 @@ async fn make_chunked_asset(
     //     })
     // works (sometimes)
 
+    let mut encodings = HashMap::new();
+
+    add_identity_encoding(
+        &mut encodings,
+        agent,
+        canister_id,
+        timeout,
+        batch_id,
+        &asset_location,
+        &content,
+    )
+    .await?;
+
+    Ok(ChunkedAsset {
+        asset_location,
+        media_type,
+        encodings,
+    })
+}
+
+async fn add_identity_encoding(
+    encodings: &mut HashMap<String, ChunkedAssetEncoding>,
+    agent: &Agent,
+    canister_id: &Principal,
+    timeout: Duration,
+    batch_id: &Nat,
+    asset_location: &AssetLocation,
+    content: &[u8],
+) -> DfxResult {
     let chunked_asset_encoding = make_chunked_asset_encoding(
         agent,
         canister_id,
         timeout,
         batch_id,
         &asset_location,
-        content,
+        &content,
     )
     .await?;
 
-    let mut encodings = HashMap::new();
     encodings.insert("identity".to_string(), chunked_asset_encoding);
-    Ok(ChunkedAsset {
-        asset_location,
-        media_type,
-        encodings,
-    })
+    Ok(())
 }
 
 async fn make_chunked_assets(
