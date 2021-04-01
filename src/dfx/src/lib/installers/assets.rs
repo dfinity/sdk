@@ -121,11 +121,15 @@ struct AssetLocation {
     key: String,
 }
 
+struct ChunkedAssetEncoding {
+    chunk_ids: Vec<Nat>,
+    sha256: Vec<u8>,
+}
+
 struct ChunkedAsset {
     asset_location: AssetLocation,
-    chunk_ids: Vec<Nat>,
     media_type: Mime,
-    sha256: Vec<u8>,
+    encodings: HashMap<String, ChunkedAssetEncoding>,
 }
 
 async fn create_chunk(
@@ -242,11 +246,15 @@ async fn make_chunked_asset(
         let empty = vec![];
         chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, &empty).await?);
     }
+    let mut encodings = HashMap::new();
+    encodings.insert(
+        "identity".to_string(),
+        ChunkedAssetEncoding { chunk_ids, sha256 },
+    );
     Ok(ChunkedAsset {
         asset_location,
-        chunk_ids,
         media_type,
-        sha256,
+        encodings,
     })
 }
 
@@ -292,20 +300,23 @@ async fn commit_batch(
         }
     }
     for (key, chunked_asset) in chunked_assets {
-        let mut ops = vec![
-            BatchOperationKind::DeleteAsset(DeleteAssetArguments { key: key.clone() }),
-            BatchOperationKind::CreateAsset(CreateAssetArguments {
-                key: key.clone(),
-                content_type: chunked_asset.media_type.to_string(),
-            }),
-            BatchOperationKind::SetAssetContent(SetAssetContentArguments {
-                key: key.clone(),
-                content_encoding: "identity".to_string(),
-                chunk_ids: chunked_asset.chunk_ids.clone(),
-                sha256: Some(chunked_asset.sha256.clone()),
-            }),
-        ];
-        operations.append(&mut ops);
+        operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
+            key: key.clone(),
+        }));
+        operations.push(BatchOperationKind::CreateAsset(CreateAssetArguments {
+            key: key.clone(),
+            content_type: chunked_asset.media_type.to_string(),
+        }));
+        for (content_encoding, v) in &chunked_asset.encodings {
+            operations.push(BatchOperationKind::SetAssetContent(
+                SetAssetContentArguments {
+                    key: key.clone(),
+                    content_encoding: content_encoding.clone(),
+                    chunk_ids: v.chunk_ids.clone(),
+                    sha256: Some(v.sha256.clone()),
+                },
+            ));
+        }
     }
     let arg = CommitBatchArguments {
         batch_id,
