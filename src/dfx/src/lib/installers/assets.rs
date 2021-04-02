@@ -121,11 +121,15 @@ struct AssetLocation {
     key: String,
 }
 
+struct ChunkedAssetEncoding {
+    chunk_ids: Vec<Nat>,
+    sha256: Vec<u8>,
+}
+
 struct ChunkedAsset {
     asset_location: AssetLocation,
-    chunk_ids: Vec<Nat>,
     media_type: Mime,
-    sha256: Vec<u8>,
+    encodings: HashMap<String, ChunkedAssetEncoding>,
 }
 
 async fn create_chunk(
@@ -169,6 +173,59 @@ async fn create_chunk(
     }
 }
 
+async fn upload_content_chunks(
+    agent: &Agent,
+    canister_id: &Principal,
+    timeout: Duration,
+    batch_id: &Nat,
+    asset_location: &AssetLocation,
+    content: &[u8],
+) -> DfxResult<Vec<Nat>> {
+    let mut chunk_ids: Vec<Nat> = vec![];
+    let chunks = content.chunks(MAX_CHUNK_SIZE);
+    let (num_chunks, _) = chunks.size_hint();
+    for (i, data_chunk) in chunks.enumerate() {
+        println!(
+            "  {} {}/{} ({} bytes)",
+            &asset_location.key,
+            i + 1,
+            num_chunks,
+            data_chunk.len()
+        );
+        chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, data_chunk).await?);
+    }
+    if chunk_ids.is_empty() {
+        println!("  {} 1/1 (0 bytes)", &asset_location.key);
+        let empty = vec![];
+        chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, &empty).await?);
+    }
+    Ok(chunk_ids)
+}
+
+async fn make_chunked_asset_encoding(
+    agent: &Agent,
+    canister_id: &Principal,
+    timeout: Duration,
+    batch_id: &Nat,
+    asset_location: &AssetLocation,
+    content: &[u8],
+) -> DfxResult<ChunkedAssetEncoding> {
+    let mut sha256 = Sha256::new();
+    sha256.update(&content);
+    let sha256 = sha256.finish().to_vec();
+
+    let chunk_ids = upload_content_chunks(
+        agent,
+        canister_id,
+        timeout,
+        batch_id,
+        &asset_location,
+        content,
+    )
+    .await?;
+    Ok(ChunkedAssetEncoding { chunk_ids, sha256 })
+}
+
 async fn make_chunked_asset(
     agent: &Agent,
     canister_id: &Principal,
@@ -176,10 +233,7 @@ async fn make_chunked_asset(
     batch_id: &Nat,
     asset_location: AssetLocation,
 ) -> DfxResult<ChunkedAsset> {
-    let content = &std::fs::read(&asset_location.source)?;
-    let mut sha256 = Sha256::new();
-    sha256.update(&content);
-    let sha256 = sha256.finish().to_vec();
+    let content = std::fs::read(&asset_location.source)?;
 
     let media_type = mime_guess::from_path(&asset_location.source)
         .first()
@@ -224,30 +278,47 @@ async fn make_chunked_asset(
     //     })
     // works (sometimes)
 
-    let mut chunk_ids: Vec<Nat> = vec![];
-    let chunks = content.chunks(MAX_CHUNK_SIZE);
-    let (num_chunks, _) = chunks.size_hint();
-    for (i, data_chunk) in chunks.enumerate() {
-        println!(
-            "  {} {}/{} ({} bytes)",
-            &asset_location.key,
-            i + 1,
-            num_chunks,
-            data_chunk.len()
-        );
-        chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, data_chunk).await?);
-    }
-    if chunk_ids.is_empty() {
-        println!("  {} 1/1 (0 bytes)", &asset_location.key);
-        let empty = vec![];
-        chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, &empty).await?);
-    }
+    let mut encodings = HashMap::new();
+
+    add_identity_encoding(
+        &mut encodings,
+        agent,
+        canister_id,
+        timeout,
+        batch_id,
+        &asset_location,
+        &content,
+    )
+    .await?;
+
     Ok(ChunkedAsset {
         asset_location,
-        chunk_ids,
         media_type,
-        sha256,
+        encodings,
     })
+}
+
+async fn add_identity_encoding(
+    encodings: &mut HashMap<String, ChunkedAssetEncoding>,
+    agent: &Agent,
+    canister_id: &Principal,
+    timeout: Duration,
+    batch_id: &Nat,
+    asset_location: &AssetLocation,
+    content: &[u8],
+) -> DfxResult {
+    let chunked_asset_encoding = make_chunked_asset_encoding(
+        agent,
+        canister_id,
+        timeout,
+        batch_id,
+        &asset_location,
+        &content,
+    )
+    .await?;
+
+    encodings.insert("identity".to_string(), chunked_asset_encoding);
+    Ok(())
 }
 
 async fn make_chunked_assets(
@@ -292,20 +363,23 @@ async fn commit_batch(
         }
     }
     for (key, chunked_asset) in chunked_assets {
-        let mut ops = vec![
-            BatchOperationKind::DeleteAsset(DeleteAssetArguments { key: key.clone() }),
-            BatchOperationKind::CreateAsset(CreateAssetArguments {
-                key: key.clone(),
-                content_type: chunked_asset.media_type.to_string(),
-            }),
-            BatchOperationKind::SetAssetContent(SetAssetContentArguments {
-                key: key.clone(),
-                content_encoding: "identity".to_string(),
-                chunk_ids: chunked_asset.chunk_ids.clone(),
-                sha256: Some(chunked_asset.sha256.clone()),
-            }),
-        ];
-        operations.append(&mut ops);
+        operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
+            key: key.clone(),
+        }));
+        operations.push(BatchOperationKind::CreateAsset(CreateAssetArguments {
+            key: key.clone(),
+            content_type: chunked_asset.media_type.to_string(),
+        }));
+        for (content_encoding, v) in &chunked_asset.encodings {
+            operations.push(BatchOperationKind::SetAssetContent(
+                SetAssetContentArguments {
+                    key: key.clone(),
+                    content_encoding: content_encoding.clone(),
+                    chunk_ids: v.chunk_ids.clone(),
+                    sha256: Some(v.sha256.clone()),
+                },
+            ));
+        }
     }
     let arg = CommitBatchArguments {
         batch_id,
