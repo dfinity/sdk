@@ -85,7 +85,7 @@ pub async fn create_canister(
                     } else {
                         // amount has been validated by cycle_amount_validator
                         let cycles = with_cycles
-                            .map_or(1000000000001_u64, |amount| amount.parse::<u64>().unwrap());
+                            .map_or(11000000000000_u64, |amount| amount.parse::<u64>().unwrap());
                         wallet
                             .wallet_create_canister(cycles, None)
                             .call_and_wait(waiter_with_timeout(timeout))
