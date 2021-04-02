@@ -13,6 +13,11 @@ use slog::info;
 use std::format;
 use std::time::Duration;
 
+// We do not know the minimum cycle balance a canister should have.
+// For now create the canister with 10T cycle balance.
+// This value accounts for the 1T canister create fee as well.
+const CREATE_FEE_PLUS_DEPOSIT: u64 = 11_000_000_000_000_u64;
+
 pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
@@ -84,8 +89,9 @@ pub async fn create_canister(
                         create_result.canister_id
                     } else {
                         // amount has been validated by cycle_amount_validator
-                        let cycles = with_cycles
-                            .map_or(11000000000000_u64, |amount| amount.parse::<u64>().unwrap());
+                        let cycles = with_cycles.map_or(CREATE_FEE_PLUS_DEPOSIT, |amount| {
+                            amount.parse::<u64>().unwrap()
+                        });
                         wallet
                             .wallet_create_canister(cycles, None)
                             .call_and_wait(waiter_with_timeout(timeout))
