@@ -1,4 +1,5 @@
 const path = require("path");
+const webpack = require("webpack");
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require("terser-webpack-plugin");
 const dfxJson = require("./dfx.json");
@@ -78,6 +79,10 @@ function generateWebpackConfigForCanister(name, info) {
         template: path.join(__dirname, info.frontend.entrypoint),
         filename: 'index.html',
         chunks: ['index'],
+      }),
+      new webpack.ProvidePlugin({
+        Buffer: [require.resolve('buffer/'), 'Buffer'],
+        process: require.resolve('process/browser'),
       }),
     ],
   };
