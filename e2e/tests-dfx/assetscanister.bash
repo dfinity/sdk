@@ -19,16 +19,14 @@ teardown() {
     dfx_start
     dfx deploy
 
-    assert_command dfx canister call --query e2e_project_assets list '(record{})'
-    assert_match '"/binary/noise.txt"'
-    assert_match '"/text-with-newlines.txt"'
-    assert_match '"/sample-asset.txt"'
+    assert_command dfx canister --no-wallet call --update e2e_project_assets store '(record{key="/sample-asset.txt"; content_type="text/plain"; content_encoding="arbitrary"; content=blob "content encoded in another way!"})'
 
-    assert_command dfx canister call --update e2e_project_assets store '(record{key="/sample-asset.txt"; content_type="text/plain"; content_encoding="arbitrary"; content=blob "content encoded in another way!"})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
 
     dfx deploy
 
+    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
 }
 
@@ -39,7 +37,6 @@ teardown() {
     dfx deploy
 
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
-    #assert_eq "aaaa"
 
     assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
     assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
@@ -200,4 +197,3 @@ CHERRIES" "$stdout"
     assert_command dfx canister call --query e2e_project_assets list  '(record{})'
     assert_not_match '"/will-delete-this.txt"'
 }
-
