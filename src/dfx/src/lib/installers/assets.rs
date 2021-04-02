@@ -132,10 +132,14 @@ struct ChunkedAsset {
     encodings: HashMap<String, ChunkedAssetEncoding>,
 }
 
-async fn create_chunk(
-    agent: &Agent,
-    canister_id: &Principal,
+struct CanisterCallParams<'a> {
+    agent: &'a Agent,
+    canister_id: Principal,
     timeout: Duration,
+}
+
+async fn create_chunk(
+    canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     content: &[u8],
 ) -> DfxResult<Nat> {
@@ -150,11 +154,12 @@ async fn create_chunk(
     waiter.start();
 
     loop {
-        match agent
-            .update(&canister_id, CREATE_CHUNK)
+        match canister_call_params
+            .agent
+            .update(&canister_call_params.canister_id, CREATE_CHUNK)
             .with_arg(&args)
-            .expire_after(timeout)
-            .call_and_wait(waiter_with_timeout(timeout))
+            .expire_after(canister_call_params.timeout)
+            .call_and_wait(waiter_with_timeout(canister_call_params.timeout))
             .await
             .map_err(DfxError::from)
             .and_then(|response| {
@@ -174,9 +179,7 @@ async fn create_chunk(
 }
 
 async fn upload_content_chunks(
-    agent: &Agent,
-    canister_id: &Principal,
-    timeout: Duration,
+    canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
     content: &[u8],
@@ -192,20 +195,18 @@ async fn upload_content_chunks(
             num_chunks,
             data_chunk.len()
         );
-        chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, data_chunk).await?);
+        chunk_ids.push(create_chunk(canister_call_params, batch_id, data_chunk).await?);
     }
     if chunk_ids.is_empty() {
         println!("  {} 1/1 (0 bytes)", &asset_location.key);
         let empty = vec![];
-        chunk_ids.push(create_chunk(agent, canister_id, timeout, batch_id, &empty).await?);
+        chunk_ids.push(create_chunk(canister_call_params, batch_id, &empty).await?);
     }
     Ok(chunk_ids)
 }
 
 async fn make_chunked_asset_encoding(
-    agent: &Agent,
-    canister_id: &Principal,
-    timeout: Duration,
+    canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
     content: &[u8],
@@ -214,22 +215,13 @@ async fn make_chunked_asset_encoding(
     sha256.update(&content);
     let sha256 = sha256.finish().to_vec();
 
-    let chunk_ids = upload_content_chunks(
-        agent,
-        canister_id,
-        timeout,
-        batch_id,
-        &asset_location,
-        content,
-    )
-    .await?;
+    let chunk_ids =
+        upload_content_chunks(canister_call_params, batch_id, &asset_location, content).await?;
     Ok(ChunkedAssetEncoding { chunk_ids, sha256 })
 }
 
 async fn make_chunked_asset(
-    agent: &Agent,
-    canister_id: &Principal,
-    timeout: Duration,
+    canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: AssetLocation,
 ) -> DfxResult<ChunkedAsset> {
@@ -282,9 +274,7 @@ async fn make_chunked_asset(
 
     add_identity_encoding(
         &mut encodings,
-        agent,
-        canister_id,
-        timeout,
+        canister_call_params,
         batch_id,
         &asset_location,
         &content,
@@ -300,31 +290,21 @@ async fn make_chunked_asset(
 
 async fn add_identity_encoding(
     encodings: &mut HashMap<String, ChunkedAssetEncoding>,
-    agent: &Agent,
-    canister_id: &Principal,
-    timeout: Duration,
+    canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
     content: &[u8],
 ) -> DfxResult {
-    let chunked_asset_encoding = make_chunked_asset_encoding(
-        agent,
-        canister_id,
-        timeout,
-        batch_id,
-        &asset_location,
-        &content,
-    )
-    .await?;
+    let chunked_asset_encoding =
+        make_chunked_asset_encoding(canister_call_params, batch_id, &asset_location, &content)
+            .await?;
 
     encodings.insert("identity".to_string(), chunked_asset_encoding);
     Ok(())
 }
 
 async fn make_chunked_assets(
-    agent: &Agent,
-    canister_id: &Principal,
-    timeout: Duration,
+    canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     locs: Vec<AssetLocation>,
 ) -> DfxResult<Vec<ChunkedAsset>> {
@@ -337,15 +317,13 @@ async fn make_chunked_assets(
     // try_join_all(futs).await
     let mut chunked_assets = vec![];
     for loc in locs {
-        chunked_assets.push(make_chunked_asset(agent, canister_id, timeout, batch_id, loc).await?);
+        chunked_assets.push(make_chunked_asset(canister_call_params, batch_id, loc).await?);
     }
     Ok(chunked_assets)
 }
 
 async fn commit_batch(
-    agent: &Agent,
-    canister_id: &Principal,
-    timeout: Duration,
+    canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     chunked_assets: Vec<ChunkedAsset>,
     current_assets: HashMap<String, AssetDetails>,
@@ -386,11 +364,12 @@ async fn commit_batch(
         operations,
     };
     let arg = candid::Encode!(&arg)?;
-    agent
-        .update(&canister_id, COMMIT_BATCH)
+    canister_call_params
+        .agent
+        .update(&canister_call_params.canister_id, COMMIT_BATCH)
         .with_arg(arg)
-        .expire_after(timeout)
-        .call_and_wait(waiter_with_timeout(timeout))
+        .expire_after(canister_call_params.timeout)
+        .call_and_wait(waiter_with_timeout(canister_call_params.timeout))
         .await?;
     Ok(())
 }
@@ -419,18 +398,21 @@ pub async fn post_install_store_assets(
         .collect();
 
     let canister_id = info.get_canister_id().expect("Could not find canister ID.");
+    let canister_call_params = CanisterCallParams {
+        agent,
+        canister_id,
+        timeout,
+    };
 
-    let current_assets = list_assets(agent, &canister_id, timeout).await?;
+    let current_assets = list_assets(&canister_call_params).await?;
 
-    let batch_id = create_batch(agent, &canister_id, timeout).await?;
+    let batch_id = create_batch(&canister_call_params).await?;
 
     let chunked_assets =
-        make_chunked_assets(agent, &canister_id, timeout, &batch_id, asset_locations).await?;
+        make_chunked_assets(&canister_call_params, &batch_id, asset_locations).await?;
 
     commit_batch(
-        agent,
-        &canister_id,
-        timeout,
+        &canister_call_params,
         &batch_id,
         chunked_assets,
         current_assets,
@@ -440,29 +422,29 @@ pub async fn post_install_store_assets(
     Ok(())
 }
 
-async fn create_batch(agent: &Agent, canister_id: &Principal, timeout: Duration) -> DfxResult<Nat> {
+async fn create_batch(canister_call_params: &CanisterCallParams<'_>) -> DfxResult<Nat> {
     let create_batch_args = CreateBatchRequest {};
-    let response = agent
-        .update(&canister_id, CREATE_BATCH)
+    let response = canister_call_params
+        .agent
+        .update(&canister_call_params.canister_id, CREATE_BATCH)
         .with_arg(candid::Encode!(&create_batch_args)?)
-        .expire_after(timeout)
-        .call_and_wait(waiter_with_timeout(timeout))
+        .expire_after(canister_call_params.timeout)
+        .call_and_wait(waiter_with_timeout(canister_call_params.timeout))
         .await?;
     let create_batch_response = candid::Decode!(&response, CreateBatchResponse)?;
     Ok(create_batch_response.batch_id)
 }
 
 async fn list_assets(
-    agent: &Agent,
-    canister_id: &Principal,
-    timeout: Duration,
+    canister_call_params: &CanisterCallParams<'_>,
 ) -> DfxResult<HashMap<String, AssetDetails>> {
     let args = ListAssetsRequest {};
-    let response = agent
-        .update(&canister_id, LIST)
+    let response = canister_call_params
+        .agent
+        .update(&canister_call_params.canister_id, LIST)
         .with_arg(candid::Encode!(&args)?)
-        .expire_after(timeout)
-        .call_and_wait(waiter_with_timeout(timeout))
+        .expire_after(canister_call_params.timeout)
+        .call_and_wait(waiter_with_timeout(canister_call_params.timeout))
         .await?;
 
     let assets: HashMap<_, _> = candid::Decode!(&response, Vec<AssetDetails>)?
