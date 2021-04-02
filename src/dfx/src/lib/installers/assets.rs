@@ -121,16 +121,16 @@ struct AssetLocation {
     key: String,
 }
 
-struct ChunkedAssetEncoding {
+struct ProjectAssetEncoding {
     chunk_ids: Vec<Nat>,
     sha256: Vec<u8>,
     already_in_place: bool,
 }
 
-struct ChunkedAsset {
+struct ProjectAsset {
     asset_location: AssetLocation,
     media_type: Mime,
-    encodings: HashMap<String, ChunkedAssetEncoding>,
+    encodings: HashMap<String, ProjectAssetEncoding>,
 }
 
 struct CanisterCallParams<'a> {
@@ -206,7 +206,7 @@ async fn upload_content_chunks(
     Ok(chunk_ids)
 }
 
-async fn make_chunked_asset_encoding(
+async fn make_project_asset_encoding(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
@@ -214,7 +214,7 @@ async fn make_chunked_asset_encoding(
     content: &[u8],
     content_encoding: &str,
     media_type: &Mime,
-) -> DfxResult<ChunkedAssetEncoding> {
+) -> DfxResult<ProjectAssetEncoding> {
     let mut sha256 = Sha256::new();
     sha256.update(&content);
     let sha256 = sha256.finish().to_vec();
@@ -249,19 +249,19 @@ async fn make_chunked_asset_encoding(
         upload_content_chunks(canister_call_params, batch_id, &asset_location, content).await?
     };
 
-    Ok(ChunkedAssetEncoding {
+    Ok(ProjectAssetEncoding {
         chunk_ids,
         sha256,
         already_in_place,
     })
 }
 
-async fn make_chunked_asset(
+async fn make_project_asset(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: AssetLocation,
     container_assets: &HashMap<String, AssetDetails>,
-) -> DfxResult<ChunkedAsset> {
+) -> DfxResult<ProjectAsset> {
     let content = std::fs::read(&asset_location.source)?;
 
     let media_type = mime_guess::from_path(&asset_location.source)
@@ -272,40 +272,6 @@ async fn make_chunked_asset(
                 asset_location.source.to_string_lossy()
             )
         })?;
-
-    // ?? doesn't work: rust lifetimes + task::spawn = tears
-    // how to deal with lifetimes for agent and canister_id here
-    // this function won't exit until after the task is joined...
-    // let chunks_future_tasks: Vec<_> = content
-    //     .chunks(MAX_CHUNK_SIZE)
-    //     .map(|content| task::spawn(create_chunk(agent, canister_id, timeout, batch_id, content)))
-    //     .collect();
-    // println!("await chunk creation");
-    // let but_lifetimes = try_join_all(chunks_future_tasks)
-    //     .await?
-    //     .into_iter()
-    //     .collect::<DfxResult<Vec<u128>>>()
-    //     .map(|chunk_ids| ChunkedAsset {
-    //         asset_location,
-    //         chunk_ids,
-    //     });
-    // ?? doesn't work
-
-    // works (sometimes), does more work concurrently, but often doesn't work against bootstrap.
-    // (connection stuck in odd idle state: all agent requests return "channel closed" error.)
-    // let chunks_futures: Vec<_> = content
-    //     .chunks(MAX_CHUNK_SIZE)
-    //     .map(|content| create_chunk(agent, canister_id, timeout, batch_id, content))
-    //     .collect();
-    // println!("await chunk creation");
-    //
-    // try_join_all(chunks_futures)
-    //     .await
-    //     .map(|chunk_ids| ChunkedAsset {
-    //         asset_location,
-    //         chunk_ids,
-    //     })
-    // works (sometimes)
 
     let mut encodings = HashMap::new();
 
@@ -320,7 +286,7 @@ async fn make_chunked_asset(
     )
     .await?;
 
-    Ok(ChunkedAsset {
+    Ok(ProjectAsset {
         asset_location,
         media_type,
         encodings,
@@ -328,7 +294,7 @@ async fn make_chunked_asset(
 }
 
 async fn add_identity_encoding(
-    encodings: &mut HashMap<String, ChunkedAssetEncoding>,
+    encodings: &mut HashMap<String, ProjectAssetEncoding>,
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
@@ -337,7 +303,7 @@ async fn add_identity_encoding(
     media_type: &Mime,
 ) -> DfxResult {
     let content_encoding = "identity".to_string();
-    let chunked_asset_encoding = make_chunked_asset_encoding(
+    let project_asset_encoding = make_project_asset_encoding(
         canister_call_params,
         batch_id,
         &asset_location,
@@ -348,35 +314,29 @@ async fn add_identity_encoding(
     )
     .await?;
 
-    encodings.insert(content_encoding, chunked_asset_encoding);
+    encodings.insert(content_encoding, project_asset_encoding);
     Ok(())
 }
 
-async fn make_chunked_assets(
+async fn make_project_assets(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     locs: Vec<AssetLocation>,
     container_assets: &HashMap<String, AssetDetails>,
-) -> DfxResult<HashMap<String, ChunkedAsset>> {
-    // this neat futures version works faster in parallel when it works,
-    // but does not work often when connecting through the bootstrap.
-    // let futs: Vec<_> = locs
-    //     .into_iter()
-    //     .map(|loc| make_chunked_asset(agent, canister_id, timeout, batch_id, loc))
-    //     .collect();
-    // try_join_all(futs).await
-    let mut chunked_assets = HashMap::new();
+) -> DfxResult<HashMap<String, ProjectAsset>> {
+    let mut project_assets = HashMap::new();
     for loc in locs {
-        let chunked_asset = make_chunked_asset(canister_call_params, batch_id, loc, &container_assets).await?;
-        chunked_assets.insert(chunked_asset.asset_location.key.clone(), chunked_asset);
+        let project_asset =
+            make_project_asset(canister_call_params, batch_id, loc, &container_assets).await?;
+        project_assets.insert(project_asset.asset_location.key.clone(), project_asset);
     }
-    Ok(chunked_assets)
+    Ok(project_assets)
 }
 
 async fn commit_batch(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
-    project_assets: HashMap<String, ChunkedAsset>,
+    project_assets: HashMap<String, ProjectAsset>,
     container_assets: HashMap<String, AssetDetails>,
 ) -> DfxResult {
     let mut container_assets = container_assets;
@@ -405,7 +365,7 @@ async fn commit_batch(
 
 fn delete_obsolete_assets(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ChunkedAsset>,
+    project_assets: &HashMap<String, ProjectAsset>,
     container_assets: HashMap<String, AssetDetails>,
 ) -> HashMap<String, AssetDetails> {
     let mut container_assets = container_assets;
@@ -430,14 +390,14 @@ fn delete_obsolete_assets(
 
 fn create_new_assets(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ChunkedAsset>,
+    project_assets: &HashMap<String, ProjectAsset>,
     container_assets: &HashMap<String, AssetDetails>,
 ) {
-    for (key, chunked_asset) in project_assets {
+    for (key, project_asset) in project_assets {
         if !container_assets.contains_key(key) {
             operations.push(BatchOperationKind::CreateAsset(CreateAssetArguments {
                 key: key.clone(),
-                content_type: chunked_asset.media_type.to_string(),
+                content_type: project_asset.media_type.to_string(),
             }));
         }
     }
@@ -445,7 +405,7 @@ fn create_new_assets(
 
 fn unset_obsolete_encodings(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ChunkedAsset>,
+    project_assets: &HashMap<String, ProjectAsset>,
     container_assets: &HashMap<String, AssetDetails>,
 ) {
     for (key, details) in container_assets {
@@ -472,10 +432,10 @@ fn unset_obsolete_encodings(
 
 fn set_encodings(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: HashMap<String, ChunkedAsset>,
+    project_assets: HashMap<String, ProjectAsset>,
 ) {
-    for (key, chunked_asset) in project_assets {
-        for (content_encoding, v) in chunked_asset.encodings {
+    for (key, project_asset) in project_assets {
+        for (content_encoding, v) in project_asset.encodings {
             if v.already_in_place {
                 continue;
             }
@@ -526,7 +486,7 @@ pub async fn post_install_store_assets(
 
     let batch_id = create_batch(&canister_call_params).await?;
 
-    let project_assets = make_chunked_assets(
+    let project_assets = make_project_assets(
         &canister_call_params,
         &batch_id,
         asset_locations,
