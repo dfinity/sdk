@@ -13,6 +13,24 @@ teardown() {
     dfx_stop
 }
 
+@test "leaves in place files that were already installed" {
+    install_asset assetscanister
+    dd if=/dev/urandom of=src/e2e_project_assets/assets/asset1.bin bs=400000 count=1
+    dd if=/dev/urandom of=src/e2e_project_assets/assets/asset2.bin bs=400000 count=1
+
+    dfx_start
+    assert_command dfx deploy
+
+    assert_match '/asset1.bin 1/1'
+    assert_match '/asset2.bin 1/1'
+
+    dd if=/dev/urandom of=src/e2e_project_assets/assets/asset2.bin bs=400000 count=1
+
+    assert_command dfx deploy
+    assert_match '/asset1.bin.*is already installed'
+    assert_match '/asset2.bin 1/1'
+}
+
 @test "unsets asset encodings that are removed from project" {
     install_asset assetscanister
 
