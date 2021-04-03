@@ -118,6 +118,7 @@ shared ({caller = creator}) actor class () {
     {
       content_encoding = assetEncoding.contentEncoding;
       sha256 = assetEncoding.sha256;
+      length = assetEncoding.total_length;
     }
   };
 
