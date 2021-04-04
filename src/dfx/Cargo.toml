@@ -75,27 +75,27 @@ webpki-roots = "0.21.0"
 [dependencies.ic-agent]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "7c90a02459cec09a2868624ac8a0d6819c808c3d"
+branch = "pshahi/wallet_result"
+rev = "c24ec76ec47bc46b53eb0b90dfcc8191611aedc4"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "7c90a02459cec09a2868624ac8a0d6819c808c3d"
+branch = "pshahi/wallet_result"
+rev = "c24ec76ec47bc46b53eb0b90dfcc8191611aedc4"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "7c90a02459cec09a2868624ac8a0d6819c808c3d"
+branch = "pshahi/wallet_result"
+rev = "c24ec76ec47bc46b53eb0b90dfcc8191611aedc4"
 
 [dependencies.ic-utils]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "7c90a02459cec09a2868624ac8a0d6819c808c3d"
+branch = "pshahi/wallet_result"
+rev = "c24ec76ec47bc46b53eb0b90dfcc8191611aedc4"
 
 [dev-dependencies]
 env_logger = "0.6"

@@ -1886,7 +1886,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#7c90a02459cec09a2868624ac8a0d6819c808c3d"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/wallet_result#c24ec76ec47bc46b53eb0b90dfcc8191611aedc4"
 dependencies = [
  "async-trait",
  "base32",
@@ -1917,7 +1917,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#7c90a02459cec09a2868624ac8a0d6819c808c3d"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/wallet_result#c24ec76ec47bc46b53eb0b90dfcc8191611aedc4"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1932,7 +1932,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#7c90a02459cec09a2868624ac8a0d6819c808c3d"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/wallet_result#c24ec76ec47bc46b53eb0b90dfcc8191611aedc4"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1944,7 +1944,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#7c90a02459cec09a2868624ac8a0d6819c808c3d"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=pshahi/wallet_result#c24ec76ec47bc46b53eb0b90dfcc8191611aedc4"
 dependencies = [
  "async-trait",
  "candid",

@@ -99,6 +99,7 @@ pub async fn create_canister(
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?
                             .0
+                            .map_err(|err| anyhow!(err))?
                             .canister_id
                     }
                 }
