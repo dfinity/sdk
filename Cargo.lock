@@ -1886,7 +1886,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#fc5763f2352a3e1574e765faf12d5054781367d9"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/138-streaming#43740e4fd141030d02cb42361c0da42dbf952d06"
 dependencies = [
  "async-trait",
  "base32",
@@ -1917,7 +1917,11 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.2.0"
+<<<<<<< HEAD
 source = "git+https://github.com/dfinity/agent-rs.git?branch=next#fc5763f2352a3e1574e765faf12d5054781367d9"
+=======
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/138-streaming#43740e4fd141030d02cb42361c0da42dbf952d06"
+>>>>>>> 6fccb4aa... streaming http
 dependencies = [
  "hex",
  "ic-agent",
@@ -1932,7 +1936,11 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
+<<<<<<< HEAD
 source = "git+https://github.com/dfinity/agent-rs.git?branch=next#fc5763f2352a3e1574e765faf12d5054781367d9"
+=======
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/138-streaming#43740e4fd141030d02cb42361c0da42dbf952d06"
+>>>>>>> 6fccb4aa... streaming http
 dependencies = [
  "base32",
  "crc32fast",
@@ -1944,7 +1952,11 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.2.0"
+<<<<<<< HEAD
 source = "git+https://github.com/dfinity/agent-rs.git?branch=next#fc5763f2352a3e1574e765faf12d5054781367d9"
+=======
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/138-streaming#43740e4fd141030d02cb42361c0da42dbf952d06"
+>>>>>>> 6fccb4aa... streaming http
 dependencies = [
  "async-trait",
  "candid",
