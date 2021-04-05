@@ -10,6 +10,7 @@ module Types {
   public type AssetEncodingDetails = {
     content_encoding: Text;
     sha256: ?Blob;
+    length: Nat;
   };
 
   public type AssetDetails = {

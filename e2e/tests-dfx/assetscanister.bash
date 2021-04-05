@@ -160,8 +160,11 @@ CHERRIES" "$stdout"
 
     assert_command dfx canister call --query e2e_project_assets list '(record{})'
     assert_match '"/binary/noise.txt"'
+    assert_match 'length = 19'
     assert_match '"/text-with-newlines.txt"'
+    assert_match 'length = 36'
     assert_match '"/sample-asset.txt"'
+    assert_match 'length = 24'
 }
 
 @test "identifies content type" {
