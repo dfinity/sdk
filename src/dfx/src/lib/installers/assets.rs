@@ -343,7 +343,7 @@ async fn commit_batch(
 
     let mut operations = vec![];
 
-    container_assets = delete_obsolete_assets(&mut operations, &project_assets, container_assets);
+    delete_obsolete_assets(&mut operations, &project_assets, &mut container_assets);
     create_new_assets(&mut operations, &project_assets, &container_assets);
     unset_obsolete_encodings(&mut operations, &project_assets, &container_assets);
     set_encodings(&mut operations, project_assets);
@@ -366,11 +366,10 @@ async fn commit_batch(
 fn delete_obsolete_assets(
     operations: &mut Vec<BatchOperationKind>,
     project_assets: &HashMap<String, ProjectAsset>,
-    container_assets: HashMap<String, AssetDetails>,
-) -> HashMap<String, AssetDetails> {
-    let mut container_assets = container_assets;
+    container_assets: &mut HashMap<String, AssetDetails>,
+) {
     let mut deleted_container_assets = vec![];
-    for (key, container_asset) in &container_assets {
+    for (key, container_asset) in container_assets.iter() {
         let project_asset = project_assets.get(key);
         if project_asset
             .filter(|&x| x.media_type.to_string() == container_asset.content_type)
@@ -385,7 +384,6 @@ fn delete_obsolete_assets(
     for k in deleted_container_assets {
         container_assets.remove(&k);
     }
-    container_assets
 }
 
 fn create_new_assets(
