@@ -1,5 +1,13 @@
 = 0.7.0-beta.2
 
+== DFX
+
+=== feat: synchronize assets rather than uploading even assets that did not change
+
+DFX will now also delete assets from the container that do not exist in the project.
+This means if you stored assets in the container, and they are not in the project,
+dfx deploy or dfx install will delete them.
+
 == Asset Canister
 
 === Breaking change: change to store() method signature

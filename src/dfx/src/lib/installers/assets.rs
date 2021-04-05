@@ -102,7 +102,7 @@ enum BatchOperationKind {
 
     SetAssetContent(SetAssetContentArguments),
 
-    _UnsetAssetContent(UnsetAssetContentArguments),
+    UnsetAssetContent(UnsetAssetContentArguments),
 
     DeleteAsset(DeleteAssetArguments),
 
@@ -121,15 +121,16 @@ struct AssetLocation {
     key: String,
 }
 
-struct ChunkedAssetEncoding {
+struct ProjectAssetEncoding {
     chunk_ids: Vec<Nat>,
     sha256: Vec<u8>,
+    already_in_place: bool,
 }
 
-struct ChunkedAsset {
+struct ProjectAsset {
     asset_location: AssetLocation,
     media_type: Mime,
-    encodings: HashMap<String, ChunkedAssetEncoding>,
+    encodings: HashMap<String, ProjectAssetEncoding>,
 }
 
 struct CanisterCallParams<'a> {
@@ -205,26 +206,62 @@ async fn upload_content_chunks(
     Ok(chunk_ids)
 }
 
-async fn make_chunked_asset_encoding(
+async fn make_project_asset_encoding(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
+    container_assets: &HashMap<String, AssetDetails>,
     content: &[u8],
-) -> DfxResult<ChunkedAssetEncoding> {
+    content_encoding: &str,
+    media_type: &Mime,
+) -> DfxResult<ProjectAssetEncoding> {
     let mut sha256 = Sha256::new();
     sha256.update(&content);
     let sha256 = sha256.finish().to_vec();
 
-    let chunk_ids =
-        upload_content_chunks(canister_call_params, batch_id, &asset_location, content).await?;
-    Ok(ChunkedAssetEncoding { chunk_ids, sha256 })
+    let already_in_place = if let Some(container_asset) = container_assets.get(&asset_location.key)
+    {
+        if container_asset.content_type != media_type.to_string() {
+            false
+        } else if let Some(container_asset_encoding_sha256) = container_asset
+            .encodings
+            .iter()
+            .find(|details| details.content_encoding == content_encoding)
+            .and_then(|details| details.sha256.as_ref())
+        {
+            container_asset_encoding_sha256 == &sha256
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
+    let chunk_ids = if already_in_place {
+        println!(
+            "  {} ({} bytes) sha {} is already installed",
+            &asset_location.key,
+            content.len(),
+            hex::encode(&sha256),
+        );
+        vec![]
+    } else {
+        upload_content_chunks(canister_call_params, batch_id, &asset_location, content).await?
+    };
+
+    Ok(ProjectAssetEncoding {
+        chunk_ids,
+        sha256,
+        already_in_place,
+    })
 }
 
-async fn make_chunked_asset(
+async fn make_project_asset(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: AssetLocation,
-) -> DfxResult<ChunkedAsset> {
+    container_assets: &HashMap<String, AssetDetails>,
+) -> DfxResult<ProjectAsset> {
     let content = std::fs::read(&asset_location.source)?;
 
     let media_type = mime_guess::from_path(&asset_location.source)
@@ -236,40 +273,6 @@ async fn make_chunked_asset(
             )
         })?;
 
-    // ?? doesn't work: rust lifetimes + task::spawn = tears
-    // how to deal with lifetimes for agent and canister_id here
-    // this function won't exit until after the task is joined...
-    // let chunks_future_tasks: Vec<_> = content
-    //     .chunks(MAX_CHUNK_SIZE)
-    //     .map(|content| task::spawn(create_chunk(agent, canister_id, timeout, batch_id, content)))
-    //     .collect();
-    // println!("await chunk creation");
-    // let but_lifetimes = try_join_all(chunks_future_tasks)
-    //     .await?
-    //     .into_iter()
-    //     .collect::<DfxResult<Vec<u128>>>()
-    //     .map(|chunk_ids| ChunkedAsset {
-    //         asset_location,
-    //         chunk_ids,
-    //     });
-    // ?? doesn't work
-
-    // works (sometimes), does more work concurrently, but often doesn't work against bootstrap.
-    // (connection stuck in odd idle state: all agent requests return "channel closed" error.)
-    // let chunks_futures: Vec<_> = content
-    //     .chunks(MAX_CHUNK_SIZE)
-    //     .map(|content| create_chunk(agent, canister_id, timeout, batch_id, content))
-    //     .collect();
-    // println!("await chunk creation");
-    //
-    // try_join_all(chunks_futures)
-    //     .await
-    //     .map(|chunk_ids| ChunkedAsset {
-    //         asset_location,
-    //         chunk_ids,
-    //     })
-    // works (sometimes)
-
     let mut encodings = HashMap::new();
 
     add_identity_encoding(
@@ -277,11 +280,13 @@ async fn make_chunked_asset(
         canister_call_params,
         batch_id,
         &asset_location,
+        container_assets,
         &content,
+        &media_type,
     )
     .await?;
 
-    Ok(ChunkedAsset {
+    Ok(ProjectAsset {
         asset_location,
         media_type,
         encodings,
@@ -289,76 +294,60 @@ async fn make_chunked_asset(
 }
 
 async fn add_identity_encoding(
-    encodings: &mut HashMap<String, ChunkedAssetEncoding>,
+    encodings: &mut HashMap<String, ProjectAssetEncoding>,
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
+    container_assets: &HashMap<String, AssetDetails>,
     content: &[u8],
+    media_type: &Mime,
 ) -> DfxResult {
-    let chunked_asset_encoding =
-        make_chunked_asset_encoding(canister_call_params, batch_id, &asset_location, &content)
-            .await?;
+    let content_encoding = "identity".to_string();
+    let project_asset_encoding = make_project_asset_encoding(
+        canister_call_params,
+        batch_id,
+        &asset_location,
+        container_assets,
+        &content,
+        &content_encoding,
+        media_type,
+    )
+    .await?;
 
-    encodings.insert("identity".to_string(), chunked_asset_encoding);
+    encodings.insert(content_encoding, project_asset_encoding);
     Ok(())
 }
 
-async fn make_chunked_assets(
+async fn make_project_assets(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     locs: Vec<AssetLocation>,
-) -> DfxResult<Vec<ChunkedAsset>> {
-    // this neat futures version works faster in parallel when it works,
-    // but does not work often when connecting through the bootstrap.
-    // let futs: Vec<_> = locs
-    //     .into_iter()
-    //     .map(|loc| make_chunked_asset(agent, canister_id, timeout, batch_id, loc))
-    //     .collect();
-    // try_join_all(futs).await
-    let mut chunked_assets = vec![];
+    container_assets: &HashMap<String, AssetDetails>,
+) -> DfxResult<HashMap<String, ProjectAsset>> {
+    let mut project_assets = HashMap::new();
     for loc in locs {
-        chunked_assets.push(make_chunked_asset(canister_call_params, batch_id, loc).await?);
+        let project_asset =
+            make_project_asset(canister_call_params, batch_id, loc, &container_assets).await?;
+        project_assets.insert(project_asset.asset_location.key.clone(), project_asset);
     }
-    Ok(chunked_assets)
+    Ok(project_assets)
 }
 
 async fn commit_batch(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
-    chunked_assets: Vec<ChunkedAsset>,
-    current_assets: HashMap<String, AssetDetails>,
+    project_assets: HashMap<String, ProjectAsset>,
+    container_assets: HashMap<String, AssetDetails>,
 ) -> DfxResult {
-    let chunked_assets: HashMap<_, _> = chunked_assets
-        .iter()
-        .map(|e| (e.asset_location.key.clone(), e))
-        .collect();
+    let mut container_assets = container_assets;
+
     let mut operations = vec![];
-    for (key, _) in current_assets {
-        if !chunked_assets.contains_key(&key) {
-            operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
-                key: key.clone(),
-            }));
-        }
-    }
-    for (key, chunked_asset) in chunked_assets {
-        operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
-            key: key.clone(),
-        }));
-        operations.push(BatchOperationKind::CreateAsset(CreateAssetArguments {
-            key: key.clone(),
-            content_type: chunked_asset.media_type.to_string(),
-        }));
-        for (content_encoding, v) in &chunked_asset.encodings {
-            operations.push(BatchOperationKind::SetAssetContent(
-                SetAssetContentArguments {
-                    key: key.clone(),
-                    content_encoding: content_encoding.clone(),
-                    chunk_ids: v.chunk_ids.clone(),
-                    sha256: Some(v.sha256.clone()),
-                },
-            ));
-        }
-    }
+
+    container_assets = delete_obsolete_assets(&mut operations, &project_assets, container_assets);
+    create_new_assets(&mut operations, &project_assets, &container_assets);
+    unset_obsolete_encodings(&mut operations, &project_assets, &container_assets);
+    set_encodings(&mut operations, project_assets);
+
     let arg = CommitBatchArguments {
         batch_id,
         operations,
@@ -372,6 +361,95 @@ async fn commit_batch(
         .call_and_wait(waiter_with_timeout(canister_call_params.timeout))
         .await?;
     Ok(())
+}
+
+fn delete_obsolete_assets(
+    operations: &mut Vec<BatchOperationKind>,
+    project_assets: &HashMap<String, ProjectAsset>,
+    container_assets: HashMap<String, AssetDetails>,
+) -> HashMap<String, AssetDetails> {
+    let mut container_assets = container_assets;
+    let mut deleted_container_assets = vec![];
+    for (key, container_asset) in &container_assets {
+        let project_asset = project_assets.get(key);
+        if project_asset
+            .filter(|&x| x.media_type.to_string() == container_asset.content_type)
+            .is_none()
+        {
+            operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
+                key: key.clone(),
+            }));
+            deleted_container_assets.push(key.clone());
+        }
+    }
+    for k in deleted_container_assets {
+        container_assets.remove(&k);
+    }
+    container_assets
+}
+
+fn create_new_assets(
+    operations: &mut Vec<BatchOperationKind>,
+    project_assets: &HashMap<String, ProjectAsset>,
+    container_assets: &HashMap<String, AssetDetails>,
+) {
+    for (key, project_asset) in project_assets {
+        if !container_assets.contains_key(key) {
+            operations.push(BatchOperationKind::CreateAsset(CreateAssetArguments {
+                key: key.clone(),
+                content_type: project_asset.media_type.to_string(),
+            }));
+        }
+    }
+}
+
+fn unset_obsolete_encodings(
+    operations: &mut Vec<BatchOperationKind>,
+    project_assets: &HashMap<String, ProjectAsset>,
+    container_assets: &HashMap<String, AssetDetails>,
+) {
+    for (key, details) in container_assets {
+        let project_asset = project_assets.get(key);
+        for encoding_details in &details.encodings {
+            let project_contains_encoding = project_asset
+                .filter(|project_asset| {
+                    project_asset
+                        .encodings
+                        .contains_key(&encoding_details.content_encoding)
+                })
+                .is_some();
+            if !project_contains_encoding {
+                operations.push(BatchOperationKind::UnsetAssetContent(
+                    UnsetAssetContentArguments {
+                        key: key.clone(),
+                        content_encoding: encoding_details.content_encoding.clone(),
+                    },
+                ));
+            }
+        }
+    }
+}
+
+fn set_encodings(
+    operations: &mut Vec<BatchOperationKind>,
+    project_assets: HashMap<String, ProjectAsset>,
+) {
+    for (key, project_asset) in project_assets {
+        for (content_encoding, v) in project_asset.encodings {
+            if v.already_in_place {
+                continue;
+            }
+
+            operations.push(BatchOperationKind::SetAssetContent(
+                SetAssetContentArguments {
+                    key: key.clone(),
+                    content_encoding,
+                    chunk_ids: v.chunk_ids,
+                    sha256: Some(v.sha256),
+                },
+            ));
+        }
+    }
 }
 
 pub async fn post_install_store_assets(
@@ -404,18 +482,23 @@ pub async fn post_install_store_assets(
         timeout,
     };
 
-    let current_assets = list_assets(&canister_call_params).await?;
+    let container_assets = list_assets(&canister_call_params).await?;
 
     let batch_id = create_batch(&canister_call_params).await?;
 
-    let chunked_assets =
-        make_chunked_assets(&canister_call_params, &batch_id, asset_locations).await?;
+    let project_assets = make_project_assets(
+        &canister_call_params,
+        &batch_id,
+        asset_locations,
+        &container_assets,
+    )
+    .await?;
 
     commit_batch(
         &canister_call_params,
         &batch_id,
-        chunked_assets,
-        current_assets,
+        project_assets,
+        container_assets,
     )
     .await?;
 
