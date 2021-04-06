@@ -74,13 +74,13 @@ struct CallIn {
 }
 
 async fn do_wallet_call(wallet: &Canister<'_, Wallet>, args: &CallIn) -> DfxResult<Vec<u8>> {
-    let (result,): (CallResult,) = wallet
+    let (result,): (Result<CallResult, String>,) = wallet
         .update_("wallet_call")
         .with_arg(args)
         .build()
         .call_and_wait(waiter_with_exponential_backoff())
         .await?;
-    Ok(result.r#return)
+    Ok(result.map_err(|err| anyhow!(err))?.r#return)
 }
 
 async fn request_id_via_wallet_call(

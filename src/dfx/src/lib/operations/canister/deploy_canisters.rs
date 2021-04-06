@@ -6,15 +6,14 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::create_canister;
-use crate::lib::operations::canister::install_canister;
+use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
-use slog::{info, warn};
+use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
@@ -130,9 +129,22 @@ async fn install_canisters(
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     for canister_name in canister_names {
-        let (first_mode, second_mode) = match initial_canister_id_store.find(&canister_name) {
-            Some(_) => (InstallMode::Upgrade, InstallMode::Install),
-            None => (InstallMode::Install, InstallMode::Upgrade),
+        let install_mode = match initial_canister_id_store.find(&canister_name) {
+            Some(canister_id) => {
+                match agent
+                    .read_state_canister_info(canister_id, "module_hash")
+                    .await
+                {
+                    Ok(_) => InstallMode::Upgrade,
+                    // If the canister is empty, this path does not exist.
+                    // The replica doesn't support negative lookups, therefore if the canister
+                    // is empty, the replica will return lookup_path([], Pruned _) = Unknown
+                    Err(AgentError::LookupPathUnknown(_))
+                    | Err(AgentError::LookupPathAbsent(_)) => InstallMode::Install,
+                    Err(x) => bail!(x),
+                }
+            }
+            None => InstallMode::Install,
         };
 
         let canister_id = canister_id_store.get(&canister_name)?;
@@ -159,54 +171,18 @@ async fn install_canisters(
                 .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
             });
 
-        let result = install_canister(
+        install_canister(
             env,
             &agent,
             &canister_info,
             &install_args,
             compute_allocation,
-            first_mode,
+            install_mode,
             memory_allocation,
             timeout,
             &call_sender,
         )
-        .await;
-
-        match result {
-            Err(err)
-                if (match err.downcast_ref::<AgentError>() {
-                    Some(AgentError::ReplicaError {
-                        reject_code,
-                        reject_message: _,
-                    }) => *reject_code == 3 || *reject_code == 5,
-                    // 3: tried to upgrade a canister that has not been created
-                    // 5: tried to install a canister that was already installed
-                    _ => false,
-                }) =>
-            {
-                let mode_description = match second_mode {
-                    InstallMode::Install => "install",
-                    _ => "upgrade",
-                };
-                warn!(
-                    env.get_logger(),
-                    "Replica error. attempting {}", mode_description
-                );
-                install_canister(
-                    env,
-                    &agent,
-                    &canister_info,
-                    &install_args,
-                    compute_allocation,
-                    second_mode,
-                    memory_allocation,
-                    timeout,
-                    &call_sender,
-                )
-                .await
-            }
-            other => other,
-        }?;
+        .await?;
     }
 
     Ok(())

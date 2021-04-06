@@ -53,14 +53,14 @@ teardown() {
     assert_match 'canister_d -> canister_e -> canister_d'
 }
 
-@test "if already registered, try to upgrade then install" {
+@test "deploy with InstallMode::Install on an empty canister" {
     dfx_new hello
     install_asset greet
     dfx_start
     assert_command dfx canister create --all
 
     assert_command dfx deploy
-    assert_match 'attempting install'
+    assert_match 'Installing code for canister'
 }
 
 @test "dfx deploy supports arguments" {
@@ -70,13 +70,12 @@ teardown() {
     assert_command dfx canister create --all
 
     assert_command dfx deploy --argument '("World")'
-    assert_match 'attempting install'
 
     assert_command dfx canister call hello greet
     assert_match 'Hello, World'
 }
 
-@test "dfx deploy installs on first invocation, upgrades on second" {
+@test "dfx deploy with InstallMode::Install on first invocation, InstallMode::Upgrade on second" {
     dfx_new hello
     install_asset greet
     dfx_start
@@ -85,14 +84,14 @@ teardown() {
     # dfx deploy does the right thing, so it doesn't need to retry.
     # Therefore, there is no "attempting (install|upgrade)" message.
 
-    assert_command dfx deploy
-    assert_not_match 'attempting'
+    assert_command dfx deploy hello
+    assert_match 'Installing code for canister'
 
     assert_command dfx canister call hello greet '("First")'
     assert_eq '("Hello, First!")'
 
-    assert_command dfx deploy
-    assert_not_match 'attempting'
+    assert_command dfx deploy hello
+    assert_match 'Upgrading code for canister'
 
     assert_command dfx canister call hello greet '("Second")'
     assert_eq '("Hello, Second!")'

@@ -99,7 +99,7 @@ teardown() {
     assert_command dfx --identity alice canister --no-wallet call \
       "$(dfx --identity alice identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 
     assert_command dfx --identity bob canister --no-wallet call e2e_project amInitializer
     assert_eq '(false)'
@@ -128,7 +128,7 @@ teardown() {
     assert_command dfx --identity alice canister --no-wallet call \
       "$(dfx --identity alice identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
     assert_command dfx canister --no-wallet call e2e_project amInitializer
     assert_eq '(false)'
 
@@ -139,7 +139,7 @@ teardown() {
     assert_command dfx --identity bob canister --no-wallet call \
       "$(dfx --identity bob identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 
     assert_command dfx --identity bob canister call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})'
     assert_eq '()'

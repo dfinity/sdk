@@ -34,9 +34,17 @@ pub async fn install_canister(
         "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
         canister_info.get_name().to_owned()
     ))?;
+
+    let mode_str = match mode {
+        InstallMode::Install => "Installing",
+        InstallMode::Reinstall => "Reinstalling",
+        InstallMode::Upgrade => "Upgrading",
+    };
+
     info!(
         log,
-        "Installing code for canister {}, with canister_id {}",
+        "{} code for canister {}, with canister_id {}",
+        mode_str,
         canister_info.get_name(),
         canister_id,
     );
