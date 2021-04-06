@@ -45,7 +45,7 @@ teardown() {
     # At this point $output is the request ID.
     # shellcheck disable=SC2154
     assert_command dfx canister request-status "$stdout"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01q\11Hello, Blueberry!" })'
+    assert_eq '( variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01q\11Hello, Blueberry!" } }, )'
 }
 
 @test "build + install + call + request-status -- counter_mo" {
@@ -95,7 +95,7 @@ teardown() {
     # Call using the wallet's call forwarding
     assert_command dfx canister call hello read --async
     assert_command dfx canister request-status "$stdout"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01}\b9\0a" })'
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01}\b9\0a" } })'
 
 }
 
