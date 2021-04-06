@@ -6,11 +6,12 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::{create_canister, get_canister_status, install_canister};
+use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use humanize_rs::bytes::Bytes;
+use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
 use slog::info;
 use std::convert::TryFrom;
@@ -130,10 +131,17 @@ async fn install_canisters(
     for canister_name in canister_names {
         let install_mode = match initial_canister_id_store.find(&canister_name) {
             Some(canister_id) => {
-                let status = get_canister_status(env, canister_id, timeout, call_sender).await?;
-                match status.module_hash {
-                    Some(_) => InstallMode::Upgrade,
-                    None => InstallMode::Install,
+                match agent
+                    .read_state_canister_info(canister_id, "module_hash")
+                    .await
+                {
+                    Ok(_) => InstallMode::Upgrade,
+                    // If the canister is empty, this path does not exist.
+                    // The replica doesn't support negative lookups, therefore if the canister
+                    // is empty, the replica will return lookup_path([], Pruned _) = Unknown
+                    Err(AgentError::LookupPathUnknown(_))
+                    | Err(AgentError::LookupPathAbsent(_)) => InstallMode::Install,
+                    Err(x) => bail!(x),
                 }
             }
             None => InstallMode::Install,
