@@ -66,22 +66,30 @@ module Types {
     headers: [HeaderField];
     body: Blob;
   };
+
+  public type StreamingStrategy = {
+    #Callback: {
+      callback: shared query StreamingCallbackToken -> async StreamingCallbackHttpResponse;
+      token: StreamingCallbackToken;
+    };
+  };
   public type HttpResponse = {
     status_code: Nat16;
     headers: [HeaderField];
     body: Blob;
-    next_token: ?HttpNextToken;
+
+    streaming_strategy: ?StreamingStrategy;
   };
 
-  public type HttpNextToken = {
+  public type StreamingCallbackToken = {
       key: Text;
       content_encoding: Text;
       index: Nat;
       sha256: ?Blob;
   };
 
-  public type HttpNextResponse = {
+  public type StreamingCallbackHttpResponse = {
     body: Blob;
-    next_token: ?HttpNextToken;
+    token: ?StreamingCallbackToken;
   };
 };
