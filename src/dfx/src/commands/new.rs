@@ -207,6 +207,7 @@ fn scaffold_frontend_code(
     project_name: &Path,
     arg_no_frontend: bool,
     arg_frontend: bool,
+    agent_version: &Option<String>,
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
@@ -220,6 +221,16 @@ fn scaffold_frontend_code(
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
     if (node_installed && !arg_no_frontend) || arg_frontend {
         // Check if node is available, and if it is create the files for the frontend build.
+        let js_agent_version = if let Some(v) = agent_version {
+            v.clone()
+        } else {
+            get_agent_js_version_from_npm(&AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
+                .map_err(|err| anyhow!("Cannot execute npm: {}", err))?
+        };
+
+        let mut variables = variables.clone();
+        variables.insert("js_agent_version".to_string(), js_agent_version);
+
         let mut new_project_node_files = assets::new_project_node_files()?;
         write_files_from_entries(
             log,
@@ -353,16 +364,9 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
-    let js_agent_version = if let Some(v) = opts.agent_version {
-        v
-    } else {
-        get_agent_js_version_from_npm(&AGENT_JS_DEFAULT_INSTALL_DIST_TAG)?
-    };
-
     let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
         ("dfx_version".to_string(), version_str.clone()),
-        ("js_agent_version".to_string(), js_agent_version),
         ("dot".to_string(), ".".to_string()),
     ]
     .iter()
@@ -384,6 +388,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         project_name,
         opts.no_frontend,
         opts.frontend,
+        &opts.agent_version,
         &variables,
     )?;
 
