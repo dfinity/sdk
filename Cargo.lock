@@ -1886,7 +1886,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/138-streaming#c632eb24fa906e404787c57e9e0a93bd19daf357"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#87ca70d82e67b5c7c6367a35580fe1d491c793f5"
 dependencies = [
  "async-trait",
  "base32",
@@ -1917,7 +1917,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/138-streaming#c632eb24fa906e404787c57e9e0a93bd19daf357"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#87ca70d82e67b5c7c6367a35580fe1d491c793f5"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1932,7 +1932,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/138-streaming#c632eb24fa906e404787c57e9e0a93bd19daf357"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#87ca70d82e67b5c7c6367a35580fe1d491c793f5"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1944,7 +1944,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/138-streaming#c632eb24fa906e404787c57e9e0a93bd19daf357"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#87ca70d82e67b5c7c6367a35580fe1d491c793f5"
 dependencies = [
  "async-trait",
  "candid",
