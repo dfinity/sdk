@@ -75,27 +75,27 @@ webpki-roots = "0.21.0"
 [dependencies.ic-agent]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "fc5763f2352a3e1574e765faf12d5054781367d9"
+branch = "pshahi/v2"
+rev = "d017e63e18aa7af6bdef3c308f917c7834673125"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "fc5763f2352a3e1574e765faf12d5054781367d9"
+branch = "pshahi/v2"
+rev = "d017e63e18aa7af6bdef3c308f917c7834673125"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "fc5763f2352a3e1574e765faf12d5054781367d9"
+branch = "pshahi/v2"
+rev = "d017e63e18aa7af6bdef3c308f917c7834673125"
 
 [dependencies.ic-utils]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "fc5763f2352a3e1574e765faf12d5054781367d9"
+branch = "pshahi/v2"
+rev = "d017e63e18aa7af6bdef3c308f917c7834673125"
 
 [dev-dependencies]
 env_logger = "0.6"
