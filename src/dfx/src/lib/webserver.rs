@@ -347,7 +347,7 @@ async fn http_request(
                                 }
                             }
                             _ => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
-                                .body(format!("Callback must be a function"))),
+                                .body("Callback must be a function")),
                         },
                     }
                 } else {
