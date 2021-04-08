@@ -159,6 +159,12 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             std::fs::set_permissions(full_path.as_path(), perms)?;
         }
 
+        let mut canister_assets = util::assets::management_canister()?;
+        for file in canister_assets.entries()? {
+            let mut file = file?;
+            file.unpack_in(temp_p.as_path())?;
+        }
+
         // Copy our own binary in the cache.
         let dfx = temp_p.join("dfx");
         std::fs::write(&dfx, std::fs::read(current_exe)?)?;

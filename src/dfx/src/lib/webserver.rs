@@ -259,7 +259,7 @@ async fn http_request(
         data.providers[count % data.providers.len()].clone()
     };
 
-    let transport = http_transport::ReqwestHttpReplicaV1Transport::create(url.to_string())
+    let transport = http_transport::ReqwestHttpReplicaV2Transport::create(url.to_string())
         .map_err(|err| {
             actix_web::error::InternalError::new(err, StatusCode::INTERNAL_SERVER_ERROR)
         })?;

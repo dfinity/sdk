@@ -57,6 +57,7 @@ impl SignedMessageV1 {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_request_id(mut self, request_id: RequestId) -> Self {
         self.request_id = Some(String::from(request_id));
         self

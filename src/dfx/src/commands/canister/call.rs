@@ -10,10 +10,11 @@ use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, bail, Context};
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Decode, Deserialize};
 use clap::{ArgSettings, Clap};
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::canister::{Argument, Canister};
+use ic_utils::interfaces::management_canister::CanisterInstall;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::Wallet;
 use std::option::Option;
@@ -98,6 +99,49 @@ async fn request_id_via_wallet_call(
         .map_err(|err| anyhow!("Agent error {}", err))
 }
 
+fn get_effective_cansiter_id(
+    is_management_canister: bool,
+    method_name: &str,
+    arg_value: &[u8],
+    canister_id: CanisterId,
+) -> DfxResult<CanisterId> {
+    if is_management_canister {
+        match method_name {
+            "create_canister" | "raw_rand" => bail!(format!("{} can only be called via an inter-canister call. Try calling this without `--no-wallet`.", method_name)),
+            "install_code" => {
+                let install_args = candid::Decode!(arg_value, CanisterInstall)?;
+                Ok(install_args.canister_id)
+            }
+            "set_controller" => {
+                #[derive(CandidType, Deserialize)]
+                struct In {
+                    canister_id: CanisterId,
+                    new_controller: CanisterId,
+                }
+                let in_args = candid::Decode!(arg_value, In)?;
+                Ok(in_args.canister_id)
+            }
+            "start_canister"
+            | "stop_canister"
+            | "canister_status"
+            | "delete_canister"
+            | "deposit_cycles"
+            | "provisional_top_up_canister" => {
+                #[derive(CandidType, Deserialize)]
+                struct In {
+                    canister_id: CanisterId,
+                }
+                let in_args = candid::Decode!(arg_value, In)?;
+                Ok(in_args.canister_id)
+            }
+            "provisional_create_canister_with_cycles" => Ok(CanisterId::management_canister()),
+            &_ => bail!(format!("Attempted to call unsupported management canister method: {}", method_name)),
+        }
+    } else {
+        Ok(canister_id)
+    }
+}
+
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCallOpts,
@@ -120,6 +164,16 @@ pub async fn exec(
             let canister_id = canister_id_store.get(callee_canister)?;
             get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
         }
+    };
+
+    let is_management_canister = canister_id == CanisterId::management_canister();
+    let maybe_candid_path = if is_management_canister {
+        Some(
+            env.get_cache()
+                .get_binary_command_path("management_canister.did")?,
+        )
+    } else {
+        maybe_candid_path
     };
 
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
@@ -170,8 +224,15 @@ pub async fn exec(
     if is_query {
         let blob = match call_sender {
             CallSender::SelectedId => {
+                let effective_canister_id = get_effective_cansiter_id(
+                    is_management_canister,
+                    method_name,
+                    &arg_value,
+                    canister_id.clone(),
+                )?;
                 agent
                     .query(&canister_id, method_name)
+                    .with_effective_canister_id(effective_canister_id)
                     .with_arg(&arg_value)
                     .call()
                     .await?
@@ -195,8 +256,15 @@ pub async fn exec(
     } else if opts.r#async {
         let request_id = match call_sender {
             CallSender::SelectedId => {
+                let effective_canister_id = get_effective_cansiter_id(
+                    is_management_canister,
+                    method_name,
+                    &arg_value,
+                    canister_id.clone(),
+                )?;
                 agent
                     .update(&canister_id, method_name)
+                    .with_effective_canister_id(effective_canister_id)
                     .with_arg(&arg_value)
                     .call()
                     .await?
@@ -221,8 +289,15 @@ pub async fn exec(
     } else {
         let blob = match call_sender {
             CallSender::SelectedId => {
+                let effective_canister_id = get_effective_cansiter_id(
+                    is_management_canister,
+                    method_name,
+                    &arg_value,
+                    canister_id.clone(),
+                )?;
                 agent
                     .update(&canister_id, method_name)
+                    .with_effective_canister_id(effective_canister_id)
                     .with_arg(&arg_value)
                     .expire_after(timeout)
                     .call_and_wait(waiter_with_exponential_backoff())

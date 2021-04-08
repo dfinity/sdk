@@ -87,6 +87,11 @@ fn main() {
     add_asset_archive("assetstorage_canister", &mut f);
     add_asset_archive("wallet_canister", &mut f);
     add_assets_from_directory("language_bindings", &mut f, "assets/language_bindings");
+    add_assets_from_directory(
+        "management_canister",
+        &mut f,
+        "../distributed/management_canister",
+    );
     add_assets_from_directory("new_project_files", &mut f, "assets/new_project_files");
     add_assets_from_directory(
         "new_project_node_files",

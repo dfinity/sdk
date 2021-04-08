@@ -23,6 +23,8 @@ pub struct RequestStatusOpts {
     request_id: String,
 
     /// Specifies the name or id of the canister onto which the request was made.
+    /// If the request was made to the Management canister, specify the id of the
+    /// canister it is updating/querying.
     canister_name: String,
 }
 

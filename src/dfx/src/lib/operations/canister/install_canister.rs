@@ -8,9 +8,10 @@ use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::Context;
 use ic_agent::Agent;
-use ic_types::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
+use ic_utils::interfaces::management_canister::{
+    CanisterInstall, ComputeAllocation, InstallMode, MemoryAllocation,
+};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
 use slog::info;
@@ -77,16 +78,6 @@ pub async fn install_canister(
         }
         CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
             let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
-
-            #[derive(candid::CandidType)]
-            struct CanisterInstall {
-                mode: InstallMode,
-                canister_id: Principal,
-                wasm_module: Vec<u8>,
-                arg: Vec<u8>,
-                compute_allocation: Option<candid::Nat>,
-                memory_allocation: Option<candid::Nat>,
-            }
 
             let install_args = CanisterInstall {
                 mode,

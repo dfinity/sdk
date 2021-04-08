@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
-use crate::lib::sign::sign_transport::SignReplicaV1Transport;
+use crate::lib::sign::sign_transport::SignReplicaV2Transport;
 use crate::lib::sign::signed_message::SignedMessageV1;
 
 use crate::util::{blob_from_arguments, get_candid_type};
@@ -159,7 +159,7 @@ pub async fn exec(
     }
 
     let mut sign_agent = agent.clone();
-    sign_agent.set_transport(SignReplicaV1Transport::new(file_name, message_template));
+    sign_agent.set_transport(SignReplicaV2Transport::new(file_name, message_template));
 
     if is_query {
         let res = sign_agent
