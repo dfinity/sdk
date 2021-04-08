@@ -4,7 +4,6 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::waiter::waiter_with_timeout;
 use candid::{CandidType, Decode, Encode, Nat};
 
-use anyhow::anyhow;
 use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use ic_types::Principal;
@@ -266,12 +265,7 @@ async fn make_project_asset(
 
     let media_type = mime_guess::from_path(&asset_location.source)
         .first()
-        .ok_or_else(|| {
-            anyhow!(
-                "Unable to determine content type for '{}'.",
-                asset_location.source.to_string_lossy()
-            )
-        })?;
+        .unwrap_or(mime::APPLICATION_OCTET_STREAM);
 
     let mut encodings = HashMap::new();
 
