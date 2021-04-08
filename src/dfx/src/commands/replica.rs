@@ -35,15 +35,7 @@ fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConf
     let config = get_config_from_file(env);
     let port = get_port(&config, opts.port)?;
     let mut http_handler: HttpHandlerConfig = Default::default();
-    if port == 0 {
-        let replica_port_path = env
-            .get_temp_dir()
-            .join("replica-configuration")
-            .join("replica-1.port");
-        http_handler.write_port_to = Some(replica_port_path);
-    } else {
-        http_handler.port = Some(port);
-    };
+    http_handler.port = Some(port);
 
     // get replica command opts
     let message_gas_limit = get_message_gas_limit(&config, opts.message_gas_limit)?;
