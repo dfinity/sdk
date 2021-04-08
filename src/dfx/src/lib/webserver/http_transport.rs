@@ -1,5 +1,5 @@
 use ic_agent::agent::agent_error::HttpErrorPayload;
-use ic_agent::AgentError;
+use ic_agent::{AgentError, RequestId};
 use ic_types::Principal;
 use reqwest::Method;
 use std::future::Future;
@@ -116,6 +116,7 @@ impl ic_agent::agent::ReplicaV2Transport for ReqwestHttpReplicaV2Transport {
         &'a self,
         effective_canister_id: Principal,
         envelope: Vec<u8>,
+        _request_id: RequestId,
     ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
         async fn run(
             s: &ReqwestHttpReplicaV2Transport,

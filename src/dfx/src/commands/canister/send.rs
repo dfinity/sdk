@@ -75,7 +75,7 @@ pub async fn exec(
                     .request_id
                     .expect("Cannot get request_id from the update message"),
             )?;
-            transport.call(canister_id, content).await?;
+            transport.call(canister_id, content, request_id).await?;
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
         }

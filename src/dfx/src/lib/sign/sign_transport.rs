@@ -1,7 +1,7 @@
 use super::signed_message::SignedMessageV1;
 
 use ic_agent::agent::ReplicaV2Transport;
-use ic_agent::AgentError;
+use ic_agent::{AgentError, RequestId};
 use ic_types::Principal;
 
 use std::fs::File;
@@ -46,48 +46,22 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
         Box::pin(run(self))
     }
 
-    // fn submit<'a>(
-    //     &'a self,
-    //     envelope: Vec<u8>,
-    //     request_id: RequestId,
-    // ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
-    //     async fn run(
-    //         s: &SignReplicaV2Transport,
-    //         envelope: Vec<u8>,
-    //         request_id: RequestId,
-    //     ) -> Result<(), AgentError> {
-    //         let message = s
-    //             .message_template
-    //             .clone()
-    //             .with_call_type("update".to_string())
-    //             .with_request_id(request_id)
-    //             .with_content(hex::encode(&envelope));
-    //         let json = serde_json::to_string(&message)
-    //             .map_err(|x| AgentError::MessageError(x.to_string()))?;
-    //         let path = Path::new(&s.file_name);
-    //         let mut file =
-    //             File::create(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
-    //         file.write_all(json.as_bytes())
-    //             .map_err(|x| AgentError::MessageError(x.to_string()))?;
-    //         Err(AgentError::TransportError(
-    //             SerializeStatus::Success(format!("Update message generated at [{}]", &s.file_name))
-    //                 .into(),
-    //         ))
-    //     }
-
-    //     Box::pin(run(self, envelope, request_id))
-    // }
-
     fn call<'a>(
         &'a self,
         _effective_canister_id: Principal,
         envelope: Vec<u8>,
+        request_id: RequestId,
     ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
-        async fn run(s: &SignReplicaV2Transport, envelope: Vec<u8>) -> Result<(), AgentError> {
+        async fn run(
+            s: &SignReplicaV2Transport,
+            envelope: Vec<u8>,
+            request_id: RequestId,
+        ) -> Result<(), AgentError> {
             let message = s
                 .message_template
                 .clone()
                 .with_call_type("update".to_string())
+                .with_request_id(request_id)
                 .with_content(hex::encode(&envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
@@ -102,7 +76,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
             ))
         }
 
-        Box::pin(run(self, envelope))
+        Box::pin(run(self, envelope, request_id))
     }
 
     fn query<'a>(
