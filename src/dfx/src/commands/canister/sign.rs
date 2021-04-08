@@ -1,3 +1,4 @@
+use crate::commands::canister::call::get_effective_cansiter_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -161,9 +162,18 @@ pub async fn exec(
     let mut sign_agent = agent.clone();
     sign_agent.set_transport(SignReplicaV2Transport::new(file_name, message_template));
 
+    let is_management_canister = canister_id == Principal::management_canister();
+    let effective_canister_id = get_effective_cansiter_id(
+        is_management_canister,
+        method_name,
+        &arg_value,
+        canister_id.clone(),
+    )?;
+
     if is_query {
         let res = sign_agent
             .query(&canister_id, method_name)
+            .with_effective_canister_id(effective_canister_id)
             .with_arg(&arg_value)
             .expire_at(expiration_system_time)
             .call()
@@ -179,6 +189,7 @@ pub async fn exec(
     } else {
         let res = sign_agent
             .update(&canister_id, method_name)
+            .with_effective_canister_id(effective_canister_id)
             .with_arg(&arg_value)
             .expire_at(expiration_system_time)
             .call()

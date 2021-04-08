@@ -99,7 +99,7 @@ async fn request_id_via_wallet_call(
         .map_err(|err| anyhow!("Agent error {}", err))
 }
 
-fn get_effective_cansiter_id(
+pub fn get_effective_cansiter_id(
     is_management_canister: bool,
     method_name: &str,
     arg_value: &[u8],
