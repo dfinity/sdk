@@ -167,14 +167,6 @@ pub async fn exec(
     };
 
     let is_management_canister = canister_id == CanisterId::management_canister();
-    let maybe_candid_path = if is_management_canister {
-        Some(
-            env.get_cache()
-                .get_binary_command_path("management_canister.did")?,
-        )
-    } else {
-        maybe_candid_path
-    };
 
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = match &method_type {
