@@ -14,10 +14,11 @@ use candid::{CandidType, Decode, Deserialize};
 use clap::{ArgSettings, Clap};
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::canister::{Argument, Canister};
-use ic_utils::interfaces::management_canister::CanisterInstall;
+use ic_utils::interfaces::management_canister::{CanisterInstall, MgmtMethod};
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::Wallet;
 use std::option::Option;
+use std::str::FromStr;
 
 /// Calls a method on a deployed canister.
 #[derive(Clap)]
@@ -106,13 +107,23 @@ pub fn get_effective_cansiter_id(
     canister_id: CanisterId,
 ) -> DfxResult<CanisterId> {
     if is_management_canister {
+        let method_name = MgmtMethod::from_str(method_name).map_err(|_| {
+            anyhow!(
+                "Attempted to call an unsupported management canister method: {}",
+                method_name
+            )
+        })?;
         match method_name {
-            "create_canister" | "raw_rand" => bail!(format!("{} can only be called via an inter-canister call. Try calling this without `--no-wallet`.", method_name)),
-            "install_code" => {
+            MgmtMethod::CreateCanister
+            | MgmtMethod::RawRand => {
+                bail!(format!("{} can only be called via an inter-canister call. Try calling this without `--no-wallet`.",
+                    method_name.as_ref()))
+            },
+            MgmtMethod::InstallCode => {
                 let install_args = candid::Decode!(arg_value, CanisterInstall)?;
                 Ok(install_args.canister_id)
             }
-            "set_controller" => {
+            MgmtMethod::SetController => {
                 #[derive(CandidType, Deserialize)]
                 struct In {
                     canister_id: CanisterId,
@@ -121,12 +132,12 @@ pub fn get_effective_cansiter_id(
                 let in_args = candid::Decode!(arg_value, In)?;
                 Ok(in_args.canister_id)
             }
-            "start_canister"
-            | "stop_canister"
-            | "canister_status"
-            | "delete_canister"
-            | "deposit_cycles"
-            | "provisional_top_up_canister" => {
+            MgmtMethod::StartCanister
+            | MgmtMethod::StopCanister
+            | MgmtMethod::CanisterStatus
+            | MgmtMethod::DeleteCanister
+            | MgmtMethod::DepositCycles
+            | MgmtMethod::ProvisionalTopUpCanister => {
                 #[derive(CandidType, Deserialize)]
                 struct In {
                     canister_id: CanisterId,
@@ -134,8 +145,7 @@ pub fn get_effective_cansiter_id(
                 let in_args = candid::Decode!(arg_value, In)?;
                 Ok(in_args.canister_id)
             }
-            "provisional_create_canister_with_cycles" => Ok(CanisterId::management_canister()),
-            &_ => bail!(format!("Attempted to call unsupported management canister method: {}", method_name)),
+            MgmtMethod::ProvisionalCreateCanisterWithCycles => Ok(CanisterId::management_canister()),
         }
     } else {
         Ok(canister_id)
