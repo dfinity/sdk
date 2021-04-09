@@ -61,9 +61,9 @@ teardown() {
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=vec { 88; 87; 86; }})'
     assert_match 'sha256 mismatch'
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
-    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request_next '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=vec { 88; 87; 86; }})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=vec { 88; 87; 86; }})'
     assert_match 'sha256 mismatch'
 
 }
@@ -179,6 +179,7 @@ CHERRIES" "$stdout"
     touch src/e2e_project_assets/assets/main.css
     touch src/e2e_project_assets/assets/index.js.map
     touch src/e2e_project_assets/assets/index.js.LICENSE.txt
+    touch src/e2e_project_assets/assets/index.js.LICENSE
 
     dfx build
     dfx canister install e2e_project_assets
@@ -197,6 +198,8 @@ CHERRIES" "$stdout"
     assert_match 'content_type = "text/plain"'
     assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.LICENSE.txt";accept_encodings=vec{"identity"}})'
     assert_match 'content_type = "text/plain"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.LICENSE";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "application/octet-stream"'
 }
 
 @test "deletes assets that are removed from project" {

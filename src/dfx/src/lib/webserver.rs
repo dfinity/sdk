@@ -24,6 +24,7 @@ use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::http_request::HeaderField;
+use ic_utils::interfaces::http_request::StreamingStrategy::Callback;
 use ic_utils::interfaces::HttpRequestCanister;
 use ic_utils::Canister;
 use serde::Deserialize;
@@ -321,11 +322,36 @@ async fn http_request(
                     builder.header(&name, value);
                 }
 
-                match get_whole_body(&canister, http_response.body, http_response.next_token).await
-                {
-                    Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
-                        .body(format!("Details: {:?}", err))),
-                    Ok(body) => Ok(builder.body(body)),
+                if let Some(streaming_strategy) = http_response.streaming_strategy {
+                    match streaming_strategy {
+                        Callback(callback) => match callback.callback {
+                            IDLValue::Func(canister_id, function_name) => {
+                                let streaming_canister =
+                                    ic_utils::interfaces::HttpRequestCanister::create(
+                                        &agent,
+                                        canister_id.clone(),
+                                    );
+                                match get_whole_body(
+                                    &streaming_canister,
+                                    &function_name,
+                                    callback.token,
+                                    http_response.body,
+                                )
+                                .await
+                                {
+                                    Err(err) => {
+                                        Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                                            .body(format!("Details: {:?}", err)))
+                                    }
+                                    Ok(body) => Ok(builder.body(body)),
+                                }
+                            }
+                            _ => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                                .body("Callback must be a function")),
+                        },
+                    }
+                } else {
+                    Ok(builder.body(http_response.body))
                 }
             } else {
                 Ok(
@@ -342,17 +368,21 @@ async fn http_request(
 // TODO: https://github.com/dfinity/sdk/issues/1524 Use HttpResponseBuilder.streaming()
 async fn get_whole_body(
     canister: &Canister<'_, HttpRequestCanister>,
+    function_name: &str,
+    token: IDLValue,
     body: Vec<u8>,
-    next_token: Option<IDLValue>,
 ) -> Result<Vec<u8>, AgentError> {
     let mut body = body;
-    let mut maybe_next_token = next_token;
 
+    let mut maybe_next_token = Some(token);
     while let Some(next_token) = maybe_next_token {
-        let (response,) = canister.http_request_next(next_token).call().await?;
+        let (response,) = canister
+            .http_request_stream_callback(function_name, next_token)
+            .call()
+            .await?;
         let mut add_body = response.body;
         body.append(&mut add_body);
-        maybe_next_token = response.next_token;
+        maybe_next_token = response.token;
     }
 
     Ok(body)

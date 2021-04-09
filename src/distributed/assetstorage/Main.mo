@@ -406,13 +406,21 @@ shared ({caller = creator}) actor class () {
 
 
     switch (assetAndEncoding) {
-      case null {{ status_code = 404; headers = []; body = ""; next_token = null }};
+      case null {{ status_code = 404; headers = []; body = ""; streaming_strategy = null }};
       case (?(asset, assetEncoding)) {
+        let streaming_strategy = switch(makeNextToken(key, assetEncoding, 0)) {
+          case (?token) ?#Callback {
+            callback = http_request_streaming_callback;
+            token = token;
+          };
+          case null null;
+        };
+
         {
           status_code = 200;
           headers = [];
           body = assetEncoding.content[0];
-          next_token = makeNextToken(key, assetEncoding, 0);
+          streaming_strategy = streaming_strategy;
         }
       };
     }
@@ -420,7 +428,7 @@ shared ({caller = creator}) actor class () {
 
   // Get subsequent chunks of an asset encoding's content, after http_request().
   // Like get_chunk, but converts url to key
-  public query func http_request_next(token: T.HttpNextToken) : async T.HttpNextResponse {
+  public query func http_request_streaming_callback(token: T.StreamingCallbackToken) : async T.StreamingCallbackHttpResponse {
     switch (assets.get(token.key)) {
       case null throw Error.reject("asset not found");
       case (?asset) {
@@ -438,7 +446,7 @@ shared ({caller = creator}) actor class () {
 
             {
               body = encoding.content[token.index];
-              next_token = makeNextToken(token.key, encoding, token.index);
+              token = makeNextToken(token.key, encoding, token.index);
             }
           }
         };
@@ -446,7 +454,7 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  private func makeNextToken(key: T.Key, assetEncoding: A.AssetEncoding, lastIndex: Nat): ?T.HttpNextToken {
+  private func makeNextToken(key: T.Key, assetEncoding: A.AssetEncoding, lastIndex: Nat): ?T.StreamingCallbackToken {
     if (lastIndex + 1 < assetEncoding.content.size()) {
       ?{
         key = key;
