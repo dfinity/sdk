@@ -46,7 +46,7 @@
     "motoko": {
         "branch": "release",
         "repo": "ssh://git@github.com/dfinity/motoko",
-        "rev": "0c1e660441d5cc7f145d6062b2613fbc64fcf6f1",
+        "rev": "25036518f46b297825e5ebd7e3565aa234141c7b",
         "tag": "0.5.10",
         "type": "git"
     },
