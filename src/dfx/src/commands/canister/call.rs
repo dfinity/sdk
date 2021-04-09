@@ -100,7 +100,7 @@ async fn request_id_via_wallet_call(
         .map_err(|err| anyhow!("Agent error {}", err))
 }
 
-pub fn get_effective_cansiter_id(
+pub fn get_effective_canister_id(
     is_management_canister: bool,
     method_name: &str,
     arg_value: &[u8],
@@ -226,7 +226,7 @@ pub async fn exec(
     if is_query {
         let blob = match call_sender {
             CallSender::SelectedId => {
-                let effective_canister_id = get_effective_cansiter_id(
+                let effective_canister_id = get_effective_canister_id(
                     is_management_canister,
                     method_name,
                     &arg_value,
@@ -258,7 +258,7 @@ pub async fn exec(
     } else if opts.r#async {
         let request_id = match call_sender {
             CallSender::SelectedId => {
-                let effective_canister_id = get_effective_cansiter_id(
+                let effective_canister_id = get_effective_canister_id(
                     is_management_canister,
                     method_name,
                     &arg_value,
@@ -291,7 +291,7 @@ pub async fn exec(
     } else {
         let blob = match call_sender {
             CallSender::SelectedId => {
-                let effective_canister_id = get_effective_cansiter_id(
+                let effective_canister_id = get_effective_canister_id(
                     is_management_canister,
                     method_name,
                     &arg_value,

@@ -1,4 +1,4 @@
-use crate::commands::canister::call::get_effective_cansiter_id;
+use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -163,7 +163,7 @@ pub async fn exec(
     sign_agent.set_transport(SignReplicaV2Transport::new(file_name, message_template));
 
     let is_management_canister = canister_id == Principal::management_canister();
-    let effective_canister_id = get_effective_cansiter_id(
+    let effective_canister_id = get_effective_canister_id(
         is_management_canister,
         method_name,
         &arg_value,
