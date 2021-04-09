@@ -454,7 +454,7 @@ fn create_agent(
         .and_then(|executor| {
             Agent::builder()
                 .with_transport(
-                    ic_agent::agent::http_transport::ReqwestHttpReplicaV1Transport::create(url)
+                    ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(url)
                         .unwrap()
                         .with_password_manager(executor),
                 )

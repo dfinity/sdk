@@ -3,11 +3,12 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::sign::signed_message::SignedMessageV1;
 
-use ic_agent::agent::ReplicaV1Transport;
-use ic_agent::{agent::http_transport::ReqwestHttpReplicaV1Transport, RequestId};
+use ic_agent::agent::ReplicaV2Transport;
+use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 
 use anyhow::{anyhow, bail};
 use clap::Clap;
+use ic_types::Principal;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 
@@ -55,12 +56,13 @@ pub async fn exec(
     }
 
     let network = message.network;
-    let transport = ReqwestHttpReplicaV1Transport::create(network)?;
+    let transport = ReqwestHttpReplicaV2Transport::create(network)?;
     let content = hex::decode(&message.content)?;
+    let canister_id = Principal::from_text(message.canister_id)?;
 
     match message.call_type.as_str() {
         "query" => {
-            let response = transport.read(content).await?;
+            let response = transport.query(canister_id, content).await?;
             eprintln!(
                 "To see the content of response, copy-paste the encoded string into cbor.me."
             );
@@ -73,7 +75,7 @@ pub async fn exec(
                     .request_id
                     .expect("Cannot get request_id from the update message"),
             )?;
-            transport.submit(content, request_id).await?;
+            transport.call(canister_id, content, request_id).await?;
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
         }

@@ -25,6 +25,7 @@ use std::time::Duration;
 
 async fn do_management_call<A, O>(
     env: &dyn Environment,
+    destination_canister: Principal,
     method: &str,
     arg: A,
     timeout: Duration,
@@ -43,6 +44,7 @@ where
         CallSender::SelectedId => {
             mgr.update_(method)
                 .with_arg(arg)
+                .with_effective_canister_id(destination_canister)
                 .build()
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?
@@ -73,6 +75,7 @@ pub async fn get_canister_status(
 
     let (out,): (StatusCallResult,) = do_management_call(
         env,
+        canister_id.clone(),
         "canister_status",
         In { canister_id },
         timeout,
@@ -95,6 +98,7 @@ pub async fn start_canister(
 
     let _: () = do_management_call(
         env,
+        canister_id.clone(),
         "start_canister",
         In { canister_id },
         timeout,
@@ -117,6 +121,7 @@ pub async fn stop_canister(
 
     let _: () = do_management_call(
         env,
+        canister_id.clone(),
         "stop_canister",
         In { canister_id },
         timeout,
@@ -141,6 +146,7 @@ pub async fn set_controller(
 
     let _: () = do_management_call(
         env,
+        canister_id.clone(),
         "set_controller",
         In {
             canister_id,
@@ -165,6 +171,7 @@ pub async fn delete_canister(
     }
     let _: () = do_management_call(
         env,
+        canister_id.clone(),
         "delete_canister",
         In { canister_id },
         timeout,
