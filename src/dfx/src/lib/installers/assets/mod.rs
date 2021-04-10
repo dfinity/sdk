@@ -4,13 +4,17 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::waiter::waiter_with_timeout;
 use candid::{CandidType, Decode, Encode, Nat};
 
+use anyhow::anyhow;
 use delay::{Delay, Waiter};
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use ic_agent::Agent;
 use ic_types::Principal;
 use mime::Mime;
 use openssl::sha::Sha256;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::WalkDir;
@@ -20,6 +24,7 @@ const CREATE_CHUNK: &str = "create_chunk";
 const COMMIT_BATCH: &str = "commit_batch";
 const LIST: &str = "list";
 const MAX_CHUNK_SIZE: usize = 1_900_000;
+const CONTENT_ENCODING_GZIP: &str = "gzip";
 
 #[derive(CandidType, Debug)]
 struct CreateBatchRequest {}
@@ -280,11 +285,32 @@ async fn make_project_asset(
     )
     .await?;
 
+    for content_encoding in content_encodings(&media_type) {
+        add_encoding(
+            &mut encodings,
+            &content_encoding,
+            canister_call_params,
+            batch_id,
+            &asset_location,
+            container_assets,
+            &content,
+            &media_type,
+        )
+        .await?;
+    }
+
     Ok(ProjectAsset {
         asset_location,
         media_type,
         encodings,
     })
+}
+
+fn content_encodings(media_type: &Mime) -> Vec<&str> {
+    match media_type.subtype() {
+        mime::JAVASCRIPT => vec![CONTENT_ENCODING_GZIP],
+        _ => vec![],
+    }
 }
 
 async fn add_identity_encoding(
@@ -310,6 +336,49 @@ async fn add_identity_encoding(
 
     encodings.insert(content_encoding, project_asset_encoding);
     Ok(())
+}
+
+async fn add_encoding(
+    encodings: &mut HashMap<String, ProjectAssetEncoding>,
+    content_encoding: &str,
+    canister_call_params: &CanisterCallParams<'_>,
+    batch_id: &Nat,
+    asset_location: &AssetLocation,
+    container_assets: &HashMap<String, AssetDetails>,
+    content: &[u8],
+    media_type: &Mime,
+) -> DfxResult {
+    let encoded_content = encode(content_encoding, content)?;
+    let project_asset_encoding = make_project_asset_encoding(
+        canister_call_params,
+        batch_id,
+        &asset_location,
+        container_assets,
+        &encoded_content,
+        &content_encoding.to_string(),
+        media_type,
+    )
+    .await?;
+
+    encodings.insert(content_encoding.to_string(), project_asset_encoding);
+    Ok(())
+}
+
+fn encode(content_encoding: &str, content: &[u8]) -> DfxResult<Vec<u8>> {
+    match content_encoding {
+        CONTENT_ENCODING_GZIP => encode_gzip(content),
+        _ => Err(anyhow!(format!(
+            "Unsupported content encoding {}",
+            content_encoding
+        ))),
+    }
+}
+
+fn encode_gzip(content: &[u8]) -> DfxResult<Vec<u8>> {
+    let mut e = GzEncoder::new(Vec::new(), Compression::default());
+    e.write(content).unwrap();
+    let x = e.finish()?;
+    Ok(x)
 }
 
 async fn make_project_assets(

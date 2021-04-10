@@ -1,4 +1,6 @@
 import Array "mo:base/Array";
+import Buffer "mo:base/Buffer";
+import Char "mo:base/Char";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import HashMap "mo:base/HashMap";
@@ -9,6 +11,8 @@ import Nat8 "mo:base/Nat8";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
+import Prim "mo:prim";
 
 import A "Asset";
 import B "Batch";
@@ -397,11 +401,14 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let key = getKey(request.url);
+    Debug.print("http_request " # request.url);
 
-    let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key)) {
+    let key = getKey(request.url);
+    let acceptEncodings = getAcceptEncodings(request.headers);
+
+    let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key, acceptEncodings)) {
       case (?found) ?found;
-      case (null) getAssetAndEncoding("/index.html");
+      case (null) getAssetAndEncoding("/index.html", acceptEncodings);
     };
 
 
@@ -416,14 +423,43 @@ shared ({caller = creator}) actor class () {
           case null null;
         };
 
+        let headers = Buffer.Buffer<T.HeaderField>(2);
+        headers.add(("Content-Type", asset.contentType));
+        if (assetEncoding.contentEncoding != "identity") {
+          headers.add(("Content-Encoding", assetEncoding.contentEncoding));
+        };
+        //let headers = if (assetEncoding.contentEncoding == "identity") {
+        //  []
+        //} else {
+        //  [("Content-Encoding", assetEncoding.contentEncoding)]
+        //};
+
         {
           status_code = 200;
-          headers = [];
+          headers = headers.toArray();
           body = assetEncoding.content[0];
           streaming_strategy = streaming_strategy;
         }
       };
     }
+  };
+
+  func getAcceptEncodings(headers: [T.HeaderField]): [Text] {
+    Debug.print("getAcceptEncodings");
+    let accepted_encodings = Buffer.Buffer<Text>(2);
+    for (header in headers.vals()) {
+      let k = Text.map(header.0, Prim.charToLower);
+      let v = header.1;
+      Debug.print("header key: " # k # " value: " # v);
+      if (k == "accept-encoding") { 
+        Debug.print("Accepted encoding: " # v);
+        accepted_encodings.add(v);
+      }
+    };
+    // last choice
+    accepted_encodings.add("identity");
+
+    accepted_encodings.toArray()
   };
 
   // Get subsequent chunks of an asset encoding's content, after http_request().
@@ -474,11 +510,11 @@ shared ({caller = creator}) actor class () {
     path
   };
 
-  private func getAssetAndEncoding(path: Text): ?(A.Asset, A.AssetEncoding) {
+  private func getAssetAndEncoding(path: Text, acceptEncodings: [Text]): ?(A.Asset, A.AssetEncoding) {
     switch (assets.get(path)) {
       case null null;
       case (?asset) {
-        switch (asset.getEncoding("identity")) {
+        switch (asset.chooseEncoding(acceptEncodings)) {
           case null null;
           case (?assetEncoding) ?(asset, assetEncoding);
         }
