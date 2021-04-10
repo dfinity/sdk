@@ -34,13 +34,13 @@
     "dfinity": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "a7d3a895e7c7f684a4c983f226adf5d41e29a64f",
+        "rev": "c851e777547e2d3ed7b45162277e9c160860e7a0",
         "type": "git"
     },
     "ic-ref": {
+        "tag": "0.16.0",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "77f368d006c337eab0df1620659133c1f7e48b10",
-        "tag": "0.15.5",
+        "rev": "215641629ace2d590013f89bb3f3fe3b0a0d3c3b",
         "type": "git"
     },
     "motoko": {

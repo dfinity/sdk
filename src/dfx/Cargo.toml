@@ -22,7 +22,7 @@ actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
 anyhow = "1.0.34"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = { version = "0.6.16", features = [ "random" ] }
+candid = { version = "0.6.20", features = [ "random" ] }
 chrono = "0.4.9"
 clap = "3.0.0-beta.2"
 console = "0.7.7"
@@ -76,26 +76,26 @@ webpki-roots = "0.21.0"
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "87ca70d82e67b5c7c6367a35580fe1d491c793f5"
+rev = "5472fb610faa6cc1f0c12c82a745e435603fae08"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "87ca70d82e67b5c7c6367a35580fe1d491c793f5"
+rev = "5472fb610faa6cc1f0c12c82a745e435603fae08"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "87ca70d82e67b5c7c6367a35580fe1d491c793f5"
+rev = "5472fb610faa6cc1f0c12c82a745e435603fae08"
 
 [dependencies.ic-utils]
 version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "87ca70d82e67b5c7c6367a35580fe1d491c793f5"
+rev = "5472fb610faa6cc1f0c12c82a745e435603fae08"
 
 [dev-dependencies]
 env_logger = "0.6"

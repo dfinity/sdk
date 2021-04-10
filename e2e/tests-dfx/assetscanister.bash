@@ -179,6 +179,7 @@ CHERRIES" "$stdout"
     touch src/e2e_project_assets/assets/main.css
     touch src/e2e_project_assets/assets/index.js.map
     touch src/e2e_project_assets/assets/index.js.LICENSE.txt
+    touch src/e2e_project_assets/assets/index.js.LICENSE
 
     dfx build
     dfx canister install e2e_project_assets
@@ -197,6 +198,8 @@ CHERRIES" "$stdout"
     assert_match 'content_type = "text/plain"'
     assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.LICENSE.txt";accept_encodings=vec{"identity"}})'
     assert_match 'content_type = "text/plain"'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/index.js.LICENSE";accept_encodings=vec{"identity"}})'
+    assert_match 'content_type = "application/octet-stream"'
 }
 
 @test "deletes assets that are removed from project" {

@@ -49,7 +49,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     let agent = Agent::builder()
         .with_transport(
-            ic_agent::agent::http_transport::ReqwestHttpReplicaV1Transport::create(frontend_url)?,
+            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(frontend_url)?,
         )
         .build()?;
 

@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators;
@@ -10,6 +11,7 @@ use clap::Clap;
 use delay::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
+use ic_types::Principal;
 use std::str::FromStr;
 
 /// Requests the status of a specified call from a canister.
@@ -19,6 +21,11 @@ pub struct RequestStatusOpts {
     /// The request identifier is an hexadecimal string starting with 0x.
     #[clap(validator(validators::is_request_id))]
     request_id: String,
+
+    /// Specifies the name or id of the canister onto which the request was made.
+    /// If the request was made to the Management canister, specify the id of the
+    /// canister it is updating/querying.
+    canister_name: String,
 }
 
 pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
@@ -30,12 +37,21 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
+    let callee_canister = opts.canister_name.as_str();
+    let canister_id_store = CanisterIdStore::for_env(env)?;
+
+    let canister_id = Principal::from_text(callee_canister)
+        .or_else(|_| canister_id_store.get(callee_canister))?;
+
     let mut waiter = waiter_with_exponential_backoff();
     let Replied::CallReplied(blob) = async {
         waiter.start();
         let mut request_accepted = false;
         loop {
-            match agent.request_status_raw(&request_id).await? {
+            match agent
+                .request_status_raw(&request_id, canister_id.clone())
+                .await?
+            {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
                     reject_code,
