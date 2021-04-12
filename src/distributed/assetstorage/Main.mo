@@ -22,7 +22,7 @@ shared ({caller = creator}) actor class () {
   stable var authorized: [Principal] = [creator];
 
   stable var stableAssets : [(T.Key, A.StableAsset)] = [];
-  let assets = HashMap.fromIter(Iter.map(stableAssets.vals(), A.toAssetEntry), 7, Text.equal, Text.hash);
+  let assets = HashMap.fromIter<T.Key, A.Asset>(Iter.map(stableAssets.vals(), A.toAssetEntry), 7, Text.equal, Text.hash);
 
   let chunks = C.Chunks();
   let batches = B.Batches();
