@@ -38,9 +38,10 @@
         "type": "git"
     },
     "ic-ref": {
-        "tag": "0.16.0",
+        "branch": "joachim/impl-canister-sigs",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "215641629ace2d590013f89bb3f3fe3b0a0d3c3b",
+        "rev": "6e972d88ca0236331adfb67882cba5691e45fec5",
+        "tag": "0.16.0",
         "type": "git"
     },
     "motoko": {
