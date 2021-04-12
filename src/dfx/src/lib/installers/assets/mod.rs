@@ -18,6 +18,9 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::WalkDir;
+use crate::lib::installers::assets::content_encoders::ContentEncoder;
+
+mod content_encoders;
 
 const CREATE_BATCH: &str = "create_batch";
 const CREATE_CHUNK: &str = "create_chunk";
@@ -311,6 +314,14 @@ fn content_encodings(media_type: &Mime) -> Vec<&str> {
         mime::JAVASCRIPT => vec![CONTENT_ENCODING_GZIP],
         _ => vec![],
     }
+}
+
+fn applicable_encoders(media_type: &Mime) -> Vec<impl ContentEncoder> {
+    match media_type.subtype() {
+        //mime::JAVASCRIPT => vec![CONTENT_ENCODING_GZIP],
+        _ => vec![],
+    }
+
 }
 
 async fn add_identity_encoding(
