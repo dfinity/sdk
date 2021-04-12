@@ -6,7 +6,6 @@ use std::io::Write;
 
 pub enum ContentEncoder {
     Gzip,
-//    Brotli,
 }
 
 impl ContentEncoder {

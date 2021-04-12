@@ -13,6 +13,29 @@ teardown() {
     dfx_stop
 }
 
+@test "generates gzipped content encoding for .js files" {
+    install_asset assetscanister
+    for i in $(seq 1 400); do
+      echo "some easily duplicate text $i" >>src/e2e_project_assets/assets/notreally.js
+    done
+
+    dfx_start
+    assert_command dfx deploy
+    dfx canister call --query e2e_project_assets list '(record{})'
+
+    ID=$(dfx canister id e2e_project_assets)
+    PORT=$(cat .dfx/webserver-port)
+
+    assert_command curl -v --output not-compressed http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+    assert_not_match "content-encoding:"
+    diff not-compressed src/e2e_project_assets/assets/notreally.js
+
+    assert_command curl -v --output encoded-compressed.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+    assert_match "content-encoding: gzip"
+    gunzip encoded-compressed.gz
+    diff encoded-compressed src/e2e_project_assets/assets/notreally.js
+}
+
 @test "leaves in place files that were already installed" {
     install_asset assetscanister
     dd if=/dev/urandom of=src/e2e_project_assets/assets/asset1.bin bs=400000 count=1

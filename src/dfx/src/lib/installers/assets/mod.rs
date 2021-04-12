@@ -270,10 +270,7 @@ async fn make_project_asset(
         .first()
         .unwrap_or(mime::APPLICATION_OCTET_STREAM);
 
-    let mut encodings = HashMap::new();
-
-    add_identity_encoding(
-        &mut encodings,
+    let encodings = make_encodings(
         canister_call_params,
         batch_id,
         &asset_location,
@@ -282,20 +279,6 @@ async fn make_project_asset(
         &media_type,
     )
     .await?;
-
-    for content_encoding in applicable_encoders(&media_type) {
-        add_encoding(
-            &mut encodings,
-            &content_encoding,
-            canister_call_params,
-            batch_id,
-            &asset_location,
-            container_assets,
-            &content,
-            &media_type,
-        )
-        .await?;
-    }
 
     Ok(ProjectAsset {
         asset_location,
@@ -311,15 +294,33 @@ fn applicable_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
     }
 }
 
-async fn add_identity_encoding(
-    encodings: &mut HashMap<String, ProjectAssetEncoding>,
+async fn make_encodings(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
     container_assets: &HashMap<String, AssetDetails>,
     content: &[u8],
     media_type: &Mime,
-) -> DfxResult {
+) -> DfxResult<HashMap<String, ProjectAssetEncoding>> {
+    let mut encodings = HashMap::new();
+
+    for content_encoder in applicable_encoders(&media_type) {
+        let content_encoding = format!("{}", content_encoder);
+        let encoded_content = content_encoder.encode(content)?;
+        let project_asset_encoding = make_project_asset_encoding(
+            canister_call_params,
+            batch_id,
+            &asset_location,
+            container_assets,
+            &encoded_content,
+            &content_encoding,
+            media_type,
+        )
+        .await?;
+
+        encodings.insert(content_encoding, project_asset_encoding);
+    }
+
     let content_encoding = "identity".to_string();
     let project_asset_encoding = make_project_asset_encoding(
         canister_call_params,
@@ -331,37 +332,9 @@ async fn add_identity_encoding(
         media_type,
     )
     .await?;
-
     encodings.insert(content_encoding, project_asset_encoding);
-    Ok(())
-}
 
-#[allow(clippy::too_many_arguments)]
-async fn add_encoding(
-    encodings: &mut HashMap<String, ProjectAssetEncoding>,
-    content_encoder: &ContentEncoder,
-    canister_call_params: &CanisterCallParams<'_>,
-    batch_id: &Nat,
-    asset_location: &AssetLocation,
-    container_assets: &HashMap<String, AssetDetails>,
-    content: &[u8],
-    media_type: &Mime,
-) -> DfxResult {
-    let content_encoding = format!("{}", content_encoder);
-    let encoded_content = content_encoder.encode(content)?;
-    let project_asset_encoding = make_project_asset_encoding(
-        canister_call_params,
-        batch_id,
-        &asset_location,
-        container_assets,
-        &encoded_content,
-        &content_encoding,
-        media_type,
-    )
-    .await?;
-
-    encodings.insert(content_encoding, project_asset_encoding);
-    Ok(())
+    Ok(encodings)
 }
 
 async fn make_project_assets(
