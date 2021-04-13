@@ -440,9 +440,9 @@ shared ({caller = creator}) actor class () {
   func getAcceptEncodings(headers: [T.HeaderField]): [Text] {
     let accepted_encodings = Buffer.Buffer<Text>(2);
     for (header in headers.vals()) {
-      let k = Text.map(header.0, Prim.charToLower);
+      let k = Text.map(header.0, Prim.charToUpper);
       let v = header.1;
-      if (k == "accept-encoding") {
+      if (k == "ACCEPT-ENCODING") {
         for (t in Text.split(v, #char ',')) {
           let encoding = Text.trim(t, #char ' ');
           accepted_encodings.add(encoding);
@@ -453,6 +453,17 @@ shared ({caller = creator}) actor class () {
     accepted_encodings.add("identity");
 
     accepted_encodings.toArray()
+  };
+
+  func caseInsensitiveTextEqual(s1: Text, s2: Text): Bool {
+    switch(Text.compareWith(s1, s2, caseInsensitiveCharCompare)) {
+      case (#equal) true;
+      case _ false;
+    }
+  };
+
+  func caseInsensitiveCharCompare(c1: Char, c2: Char) : { #less; #equal; #greater } {
+    Char.compare(Prim.charToUpper(c1), Prim.charToUpper(c2))
   };
 
   // Get subsequent chunks of an asset encoding's content, after http_request().
