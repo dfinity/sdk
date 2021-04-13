@@ -30,10 +30,16 @@ teardown() {
     assert_not_match "content-encoding:"
     diff not-compressed src/e2e_project_assets/assets/notreally.js
 
-    assert_command curl -v --output encoded-compressed.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+    assert_command curl -v --output encoded-compressed-1.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
     assert_match "content-encoding: gzip"
-    gunzip encoded-compressed.gz
-    diff encoded-compressed src/e2e_project_assets/assets/notreally.js
+    gunzip encoded-compressed-1.gz
+    diff encoded-compressed-1 src/e2e_project_assets/assets/notreally.js
+
+    # should split up accept-encoding lines with more than one encoding
+    assert_command curl -v --output encoded-compressed-2.gz -H "Accept-Encoding: gzip, deflate, br" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+    assert_match "content-encoding: gzip"
+    gunzip encoded-compressed-2.gz
+    diff encoded-compressed-2 src/e2e_project_assets/assets/notreally.js
 }
 
 @test "leaves in place files that were already installed" {

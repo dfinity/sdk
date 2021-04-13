@@ -401,8 +401,6 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    Debug.print("http_request " # request.url);
-
     let key = getKey(request.url);
     let acceptEncodings = getAcceptEncodings(request.headers);
 
@@ -445,15 +443,15 @@ shared ({caller = creator}) actor class () {
   };
 
   func getAcceptEncodings(headers: [T.HeaderField]): [Text] {
-    Debug.print("getAcceptEncodings");
     let accepted_encodings = Buffer.Buffer<Text>(2);
     for (header in headers.vals()) {
       let k = Text.map(header.0, Prim.charToLower);
       let v = header.1;
-      Debug.print("header key: " # k # " value: " # v);
-      if (k == "accept-encoding") { 
-        Debug.print("Accepted encoding: " # v);
-        accepted_encodings.add(v);
+      if (k == "accept-encoding") {
+        for (t in Text.split(v, #char ',')) {
+          let encoding = Text.trim(t, #char ' ');
+          accepted_encodings.add(encoding);
+        }
       }
     };
     // last choice
