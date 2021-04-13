@@ -1,21 +1,22 @@
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::installers::assets::content::Content;
+use crate::lib::installers::assets::content_encoder::ContentEncoder;
 use crate::lib::waiter::waiter_with_timeout;
 use candid::{CandidType, Decode, Encode, Nat};
 
-use crate::lib::installers::assets::content_encoder::ContentEncoder;
 use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use ic_types::Principal;
 use mime::Mime;
-use openssl::sha::Sha256;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::WalkDir;
 
+mod content;
 mod content_encoder;
 
 const CREATE_BATCH: &str = "create_batch";
@@ -185,11 +186,11 @@ async fn upload_content_chunks(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
-    content: &[u8],
+    content: &Content,
     content_encoding: &str,
 ) -> DfxResult<Vec<Nat>> {
     let mut chunk_ids: Vec<Nat> = vec![];
-    let chunks = content.chunks(MAX_CHUNK_SIZE);
+    let chunks = content.data.chunks(MAX_CHUNK_SIZE);
     let (num_chunks, _) = chunks.size_hint();
     for (i, data_chunk) in chunks.enumerate() {
         println!(
@@ -219,17 +220,14 @@ async fn make_project_asset_encoding(
     batch_id: &Nat,
     asset_location: &AssetLocation,
     container_assets: &HashMap<String, AssetDetails>,
-    content: &[u8],
+    content: &Content,
     content_encoding: &str,
-    media_type: &Mime,
 ) -> DfxResult<ProjectAssetEncoding> {
-    let mut sha256 = Sha256::new();
-    sha256.update(&content);
-    let sha256 = sha256.finish().to_vec();
+    let sha256 = content.sha256();
 
     let already_in_place = if let Some(container_asset) = container_assets.get(&asset_location.key)
     {
-        if container_asset.content_type != media_type.to_string() {
+        if container_asset.content_type != content.media_type.to_string() {
             false
         } else if let Some(container_asset_encoding_sha256) = container_asset
             .encodings
@@ -250,7 +248,7 @@ async fn make_project_asset_encoding(
             "  {}{} ({} bytes) sha {} is already installed",
             &asset_location.key,
             content_encoding_descriptive_suffix(content_encoding),
-            content.len(),
+            content.data.len(),
             hex::encode(&sha256),
         );
         vec![]
@@ -286,11 +284,7 @@ async fn make_project_asset(
     asset_location: AssetLocation,
     container_assets: &HashMap<String, AssetDetails>,
 ) -> DfxResult<ProjectAsset> {
-    let content = std::fs::read(&asset_location.source)?;
-
-    let media_type = mime_guess::from_path(&asset_location.source)
-        .first()
-        .unwrap_or(mime::APPLICATION_OCTET_STREAM);
+    let content = Content::load(&asset_location.source)?;
 
     let encodings = make_encodings(
         canister_call_params,
@@ -298,13 +292,12 @@ async fn make_project_asset(
         &asset_location,
         container_assets,
         &content,
-        &media_type,
     )
     .await?;
 
     Ok(ProjectAsset {
         asset_location,
-        media_type,
+        media_type: content.media_type,
         encodings,
     })
 }
@@ -324,12 +317,11 @@ async fn make_encodings(
     batch_id: &Nat,
     asset_location: &AssetLocation,
     container_assets: &HashMap<String, AssetDetails>,
-    content: &[u8],
-    media_type: &Mime,
+    content: &Content,
 ) -> DfxResult<HashMap<String, ProjectAssetEncoding>> {
     let mut encodings = HashMap::new();
 
-    for content_encoder in applicable_encoders(&media_type) {
+    for content_encoder in applicable_encoders(&content.media_type) {
         let content_encoding = format!("{}", content_encoder);
         let project_asset_encoding = match content_encoder {
             ContentEncoder::Identity => Some(
@@ -340,13 +332,12 @@ async fn make_encodings(
                     container_assets,
                     &content,
                     &content_encoding,
-                    media_type,
                 )
                 .await?,
             ),
             _ => {
                 let encoded = content_encoder.encode(content)?;
-                if encoded.len() < content.len() {
+                if encoded.data.len() < content.data.len() {
                     Some(
                         make_project_asset_encoding(
                             canister_call_params,
@@ -355,7 +346,6 @@ async fn make_encodings(
                             container_assets,
                             &encoded,
                             &content_encoding,
-                            media_type,
                         )
                         .await?,
                     )
