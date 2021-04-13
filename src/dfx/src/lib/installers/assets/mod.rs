@@ -19,6 +19,7 @@ use walkdir::WalkDir;
 mod content;
 mod content_encoder;
 
+const CONTENT_ENCODING_IDENTITY: &str = "identity";
 const CREATE_BATCH: &str = "create_batch";
 const CREATE_CHUNK: &str = "create_chunk";
 const COMMIT_BATCH: &str = "commit_batch";
@@ -271,7 +272,7 @@ async fn make_project_asset_encoding(
 }
 
 fn content_encoding_descriptive_suffix(content_encoding: &str) -> String {
-    if content_encoding == "identity" {
+    if content_encoding == CONTENT_ENCODING_IDENTITY {
         "".to_string()
     } else {
         format!(" ({})", content_encoding)
@@ -304,12 +305,10 @@ async fn make_project_asset(
 
 // todo: make this configurable https://github.com/dfinity/dx-triage/issues/152
 fn applicable_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
-    let mut encoders = match (media_type.type_(), media_type.subtype()) {
+    match (media_type.type_(), media_type.subtype()) {
         (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => vec![ContentEncoder::Gzip],
         _ => vec![],
-    };
-    encoders.push(ContentEncoder::Identity);
-    encoders
+    }
 }
 
 async fn make_encodings(
@@ -321,41 +320,33 @@ async fn make_encodings(
 ) -> DfxResult<HashMap<String, ProjectAssetEncoding>> {
     let mut encodings = HashMap::new();
 
-    for content_encoder in applicable_encoders(&content.media_type) {
-        let content_encoding = format!("{}", content_encoder);
-        let project_asset_encoding = match content_encoder {
-            ContentEncoder::Identity => Some(
-                make_project_asset_encoding(
-                    canister_call_params,
-                    batch_id,
-                    &asset_location,
-                    container_assets,
-                    &content,
-                    &content_encoding,
-                )
-                .await?,
-            ),
-            _ => {
-                let encoded = content_encoder.encode(content)?;
-                if encoded.data.len() < content.data.len() {
-                    Some(
-                        make_project_asset_encoding(
-                            canister_call_params,
-                            batch_id,
-                            &asset_location,
-                            container_assets,
-                            &encoded,
-                            &content_encoding,
-                        )
-                        .await?,
-                    )
-                } else {
-                    None
-                }
-            }
-        };
+    let identity_asset_encoding = make_project_asset_encoding(
+        canister_call_params,
+        batch_id,
+        &asset_location,
+        container_assets,
+        &content,
+        CONTENT_ENCODING_IDENTITY,
+    )
+    .await?;
+    encodings.insert(
+        CONTENT_ENCODING_IDENTITY.to_string(),
+        identity_asset_encoding,
+    );
 
-        if let Some(project_asset_encoding) = project_asset_encoding {
+    for encoder in applicable_encoders(&content.media_type) {
+        let encoded = content.encode(&encoder)?;
+        if encoded.data.len() < content.data.len() {
+            let content_encoding = format!("{}", encoder);
+            let project_asset_encoding = make_project_asset_encoding(
+                canister_call_params,
+                batch_id,
+                &asset_location,
+                container_assets,
+                &encoded,
+                &content_encoding,
+            )
+            .await?;
             encodings.insert(content_encoding, project_asset_encoding);
         }
     }

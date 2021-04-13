@@ -1,5 +1,6 @@
 use crate::lib::error::DfxResult;
 
+use crate::lib::installers::assets::content_encoder::ContentEncoder;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use mime::Mime;
@@ -22,6 +23,12 @@ impl Content {
             .unwrap_or(mime::APPLICATION_OCTET_STREAM);
 
         Ok(Content { data, media_type })
+    }
+
+    pub fn encode(&self, encoder: &ContentEncoder) -> DfxResult<Content> {
+        match encoder {
+            ContentEncoder::Gzip => self.to_gzip(),
+        }
     }
 
     pub fn to_gzip(&self) -> DfxResult<Content> {
