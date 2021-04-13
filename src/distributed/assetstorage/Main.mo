@@ -426,11 +426,6 @@ shared ({caller = creator}) actor class () {
         if (assetEncoding.contentEncoding != "identity") {
           headers.add(("Content-Encoding", assetEncoding.contentEncoding));
         };
-        //let headers = if (assetEncoding.contentEncoding == "identity") {
-        //  []
-        //} else {
-        //  [("Content-Encoding", assetEncoding.contentEncoding)]
-        //};
 
         {
           status_code = 200;
