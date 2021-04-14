@@ -13,6 +13,29 @@ teardown() {
     dfx_stop
 }
 
+@test "decodes urls" {
+    install_asset assetscanister
+
+    dfx_start
+
+    echo "contents of first file with space" >'src/e2e_project_assets/assets/filename with space.txt'
+
+    dfx deploy
+
+    # decode as expected
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/filename%20with%20space.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_match "aaaa"
+
+
+    ID=$(dfx canister id e2e_project_assets)
+    PORT=$(cat .dfx/webserver-port)
+    assert_command_fail curl -v http://localhost:"$PORT"/'filename with space'.txt?canisterId="$ID"
+    assert_match "400 Bad Request"
+
+    assert_command curl -v http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
+    assert_match "contents of first file with space"
+}
+
 @test "generates gzipped content encoding for .js files" {
     install_asset assetscanister
     for i in $(seq 1 400); do

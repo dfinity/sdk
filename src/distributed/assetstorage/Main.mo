@@ -530,4 +530,95 @@ shared ({caller = creator}) actor class () {
     }
   };
 
+  private func urlDecode(url: Text): Result.Result<Text, Text> {
+    var result = "";
+    let iter = Text.toIter(url);
+    loop {
+      switch (iter.next()) {
+        case null return #ok(result);
+        case (? '%') {
+          switch (iter.next()) {
+            case null return #err("% must be followed by '%' or two hex digits");
+            case (? '%') {
+              result #= "%";
+            };
+            case (? firstChar) {
+              switch (iter.next()) {
+                case null return #err("% must be followed by two hex digits, but only one was found");
+                case (? secondChar) {
+                  switch (hexCharAsNibble(firstChar), hexCharAsNibble(secondChar)) {
+                    case (?firstHexDigit, ?secondHexDigit) {
+                      let v = firstHexDigit << 4 | secondHexDigit;
+                      result #= Char.toText(Char.fromNat32(v));
+                    };
+                    case (null, ?secondHexDigit) return #err("first character after % is not a hex digit");
+                    case (?firstHexDigit, null) return #err("second character after % is not a hex digit");
+                    case (null, null) return #err("neither character after % is a hex digit");
+                  };
+                  //if (isHexDigit(first_digit) == false) {
+                  //  return #err("First digit after % (" # Char.toText(first_digit) # ") is not a hex digit");
+                  //};
+                  //if (isHexDigit(second_digit) == false) {
+                  //  return #err("Second digit after % (" # Char.toText(second_digit) # ") is not a hex digit");
+                  //};
+                  //let v = hexDigitToNibble(first_digit) << 4 | hexDigitToNibble(second_digit);
+                  //result #= Char.toText(Char.fromNat32(v));
+                }
+              }
+
+            };
+          }
+        };
+        case (? ch) {
+          result #= Char.toText(ch);
+        }
+      }
+    };
+  };
+
+  private func hexCharAsNibble(c: Char): ?Nat32 {
+    let n = Char.toNat32(c);
+
+    let asDigit = n -% Char.toNat32('0');
+    if (asDigit <= (9 : Nat32)) {
+      return ?asDigit;
+    };
+
+    let asLowerHexDigit = n -% Char.toNat32('a');
+    if (asDigit <= (6 : Nat32)) {
+      return ?(0xA + asLowerHexDigit);
+    };
+
+    let asUpperHexDigit = n -% Char.toNat32('A');
+    if (asDigit <= (6 : Nat32)) {
+      return ?(0xA + asUpperHexDigit);
+    };
+
+    //if (Char.isDigit(c)) {
+    //  return ?(Char.toNat32(c) -% Char.toNat32('0'));
+    //} else if (isUpperHexDigit(c)) {
+    //  return ?(Char.toNat32(c) -% Char.toNat32('A'));
+    //} else if (isLowerHexDigit(c)) {
+    //  return ?(Char.toNat32(c) -% Char.toNat32('a'));
+    //};
+    null
+  };
+  //private func isHexDigit(ch: Char): Bool {
+  //  true
+  //};
+
+  //private func hexDigitToNibble(c: Char): ?Nat32 {
+  //  if (Char.isDigit(c)) {
+  //    return ?(Prim.charToNat32(c) -% Char.toNat32('0'));
+  //  };
+  //  null
+  //}
+  /// Returns `true` when `c` is a decimal digit between `A` and `F`, otherwise `false`.
+  func isUpperHexDigit(c : Char) : Bool {
+    Char.toNat32(c) -% Char.toNat32('A') <= (6 : Nat32)
+  };
+  func isLowerHexDigit(c : Char) : Bool {
+    Char.toNat32(c) -% Char.toNat32('a') <= (6 : Nat32)
+  };
+
 };
