@@ -12,6 +12,7 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
+// todo: remove direct dependency on Prim https://github.com/dfinity/sdk/issues/1598
 import Prim "mo:prim";
 
 import A "Asset";
@@ -440,6 +441,7 @@ shared ({caller = creator}) actor class () {
   func getAcceptEncodings(headers: [T.HeaderField]): [Text] {
     let accepted_encodings = Buffer.Buffer<Text>(2);
     for (header in headers.vals()) {
+      // todo: remove direct dependency on Prim https://github.com/dfinity/sdk/issues/1598
       let k = Text.map(header.0, Prim.charToUpper);
       let v = header.1;
       if (k == "ACCEPT-ENCODING") {
