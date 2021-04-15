@@ -8,6 +8,7 @@ import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
+import Nat32 "mo:base/Nat32";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
@@ -402,7 +403,10 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let key = getKey(request.url);
+    let key = switch(urlDecode(getKey(request.url))) {
+      case (#ok(decodedKey)) decodedKey;
+      case (#err(msg)) throw Error.reject(msg);
+    };
     let acceptEncodings = getAcceptEncodings(request.headers);
 
     let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key, acceptEncodings)) {
@@ -512,6 +516,8 @@ shared ({caller = creator}) actor class () {
   };
 
   private func getKey(uri: Text): Text {
+    Debug.print("getKey: " # uri);
+
     let splitted = Text.split(uri, #char '?');
     let array = Iter.toArray<Text>(splitted);
     let path = array[0];
@@ -531,29 +537,34 @@ shared ({caller = creator}) actor class () {
   };
 
   private func urlDecode(url: Text): Result.Result<Text, Text> {
+    Debug.print("urlDecode: " # url);
+
     var result = "";
     let iter = Text.toIter(url);
     loop {
       switch (iter.next()) {
         case null return #ok(result);
         case (? '%') {
+          Debug.print("ch: %");
           switch (iter.next()) {
-            case null return #err("% must be followed by '%' or two hex digits");
+            case null return #err("urlDecode: % must be followed by '%' or two hex digits");
             case (? '%') {
               result #= "%";
             };
             case (? firstChar) {
+              Debug.print("firstChar: " # Char.toText(firstChar));
               switch (iter.next()) {
-                case null return #err("% must be followed by two hex digits, but only one was found");
+                case null return #err("urlDecode: % must be followed by two hex digits, but only one was found");
                 case (? secondChar) {
+                  Debug.print("secondChar: " # Char.toText(secondChar));
                   switch (hexCharAsNibble(firstChar), hexCharAsNibble(secondChar)) {
                     case (?firstHexDigit, ?secondHexDigit) {
                       let v = firstHexDigit << 4 | secondHexDigit;
                       result #= Char.toText(Char.fromNat32(v));
                     };
-                    case (null, ?secondHexDigit) return #err("first character after % is not a hex digit");
-                    case (?firstHexDigit, null) return #err("second character after % is not a hex digit");
-                    case (null, null) return #err("neither character after % is a hex digit");
+                    case (null, ?secondHexDigit) return #err("urlDecode: first character after % is not a hex digit");
+                    case (?firstHexDigit, null) return #err("urlDecode: second character after % is not a hex digit");
+                    case (null, null) return #err("urlDecode: neither character after % is a hex digit");
                   };
                   //if (isHexDigit(first_digit) == false) {
                   //  return #err("First digit after % (" # Char.toText(first_digit) # ") is not a hex digit");
@@ -570,6 +581,7 @@ shared ({caller = creator}) actor class () {
           }
         };
         case (? ch) {
+          Debug.print("ch: " # Char.toText(ch));
           result #= Char.toText(ch);
         }
       }
@@ -577,22 +589,31 @@ shared ({caller = creator}) actor class () {
   };
 
   private func hexCharAsNibble(c: Char): ?Nat32 {
+    Debug.print("hexCharAsNibble " # Char.toText(c));
+
     let n = Char.toNat32(c);
 
+    Debug.print("  n:" # Nat32.toText(n));
+
     let asDigit = n -% Char.toNat32('0');
+    Debug.print("  asDigit:" # Nat32.toText(asDigit));
     if (asDigit <= (9 : Nat32)) {
       return ?asDigit;
     };
 
     let asLowerHexDigit = n -% Char.toNat32('a');
-    if (asDigit <= (6 : Nat32)) {
+    Debug.print("  asLowerHexDigit:" # Nat32.toText(asLowerHexDigit));
+    if (asLowerHexDigit <= (5 : Nat32)) {
       return ?(0xA + asLowerHexDigit);
     };
 
     let asUpperHexDigit = n -% Char.toNat32('A');
-    if (asDigit <= (6 : Nat32)) {
+    Debug.print("  asUpperHexDigit:" # Nat32.toText(asUpperHexDigit));
+    if (asUpperHexDigit <= (5 : Nat32)) {
       return ?(0xA + asUpperHexDigit);
     };
+
+    Debug.print("  (not a hex digit)");
 
     //if (Char.isDigit(c)) {
     //  return ?(Char.toNat32(c) -% Char.toNat32('0'));
