@@ -34,7 +34,7 @@
     "dfinity": {
         "branch": "joachim/test-canister-sigs",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "5808ab98e8769e8f7e26259bf246bcd5dd502274",
+        "rev": "d1b37a742ab32014ca0770200edb5a5932cedd7f",
         "type": "git"
     },
     "ic-ref": {
