@@ -46,17 +46,17 @@ teardown() {
 
     # these error conditions can't be tested with curl, because something responds first with Bad Request.
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%";headers=vec{};method="GET";body=vec{}})'
-    assert_match "urlDecode: % must be followed by '%' or two hex digits"
+    assert_match "error decoding url: % must be followed by '%' or two hex digits"
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%z";headers=vec{};method="GET";body=vec{}})'
-    assert_match "urlDecode: % must be followed by two hex digits, but only one was found"
+    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%zz";headers=vec{};method="GET";body=vec{}})'
-    assert_match "urlDecode: neither character after % is a hex digit"
+    assert_match "error decoding url: neither character after % is a hex digit"
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%e";headers=vec{};method="GET";body=vec{}})'
-    assert_match "urlDecode: % must be followed by two hex digits, but only one was found"
+    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%g6";headers=vec{};method="GET";body=vec{}})'
-    assert_match "urlDecode: first character after % is not a hex digit"
+    assert_match "error decoding url: first character after % is not a hex digit"
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%ch";headers=vec{};method="GET";body=vec{}})'
-    assert_match "urlDecode: second character after % is not a hex digit"
+    assert_match "error decoding url: second character after % is not a hex digit"
 
     ID=$(dfx canister id e2e_project_assets)
     PORT=$(cat .dfx/webserver-port)
