@@ -444,6 +444,7 @@ shared ({caller = creator}) actor class () {
       // todo: remove direct dependency on Prim https://github.com/dfinity/sdk/issues/1598
       let k = Text.map(header.0, Prim.charToUpper);
       let v = header.1;
+      // todo: use caseInsensitiveTextEqual, see https://github.com/dfinity/sdk/issues/1599
       if (k == "ACCEPT-ENCODING") {
         for (t in Text.split(v, #char ',')) {
           let encoding = Text.trim(t, #char ' ');
@@ -457,12 +458,13 @@ shared ({caller = creator}) actor class () {
     accepted_encodings.toArray()
   };
 
-  func caseInsensitiveTextEqual(s1: Text, s2: Text): Bool {
-    switch(Text.compareWith(s1, s2, caseInsensitiveCharCompare)) {
-      case (#equal) true;
-      case _ false;
-    }
-  };
+  // todo: use this once Text.compareWith uses its cmp parameter https://github.com/dfinity/sdk/issues/1599
+  //func caseInsensitiveTextEqual(s1: Text, s2: Text): Bool {
+  //  switch(Text.compareWith(s1, s2, caseInsensitiveCharCompare)) {
+  //    case (#equal) true;
+  //    case _ false;
+  //  }
+  //};
 
   func caseInsensitiveCharCompare(c1: Char, c2: Char) : { #less; #equal; #greater } {
     Char.compare(Prim.charToUpper(c1), Prim.charToUpper(c2))
