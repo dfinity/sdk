@@ -543,10 +543,10 @@ shared ({caller = creator}) actor class () {
           switch (iter.next()) {
             case null return #err("% must be followed by '%' or two hex digits");
             case (? '%') decoded #= "%";
-            case (? first) {
+            case (?first) {
               switch (iter.next()) {
                 case null return #err("% must be followed by two hex digits, but only one was found");
-                case (? second) {
+                case (?second) {
                   switch (hexCharAsNibble(first), hexCharAsNibble(second)) {
                     case (?hi, ?lo) decoded #= Char.toText(Char.fromNat32(hi << 4 | lo));
                     case (null, ?_) return #err("first character after % is not a hex digit");
@@ -558,7 +558,7 @@ shared ({caller = creator}) actor class () {
             };
           };
         };
-        case (? c) decoded #= Char.toText(c);
+        case (?c) decoded #= Char.toText(c);
       };
     };
   };
