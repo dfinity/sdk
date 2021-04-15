@@ -3,17 +3,21 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    # We want to work from a different temporary directory for every test.
+    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
+    export TEMPORARY_HOME="$x"
+    export HOME="$TEMPORARY_HOME"
+    cd "$TEMPORARY_HOME" || exit
 
     dfx_new
 }
 
 teardown() {
     dfx_stop
+    rm -rf "$TEMPORARY_HOME"
 }
 
-@test "decodes urls" {
+@test "http_request percent-decodes urls" {
     install_asset assetscanister
 
     dfx_start
@@ -24,6 +28,8 @@ teardown() {
     echo "filename is an ae symbol" >'src/e2e_project_assets/assets/æ'
     echo "filename is percent symbol" >'src/e2e_project_assets/assets/%'
     echo "filename contains question mark" >'src/e2e_project_assets/assets/filename?withqmark.txt'
+    dd if=/dev/urandom of='src/e2e_project_assets/assets/large with spaces.bin' bs=2500000 count=1
+
 
     dfx deploy
 
@@ -62,6 +68,7 @@ teardown() {
     PORT=$(cat .dfx/webserver-port)
 
     assert_command curl --fail -vv http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
+    # shellcheck disable=SC2154
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "contents of file with space in filename"
 
@@ -85,6 +92,8 @@ teardown() {
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "filename contains question mark"
 
+    assert_command curl --fail -vv --output lws-curl-output.bin "http://localhost:$PORT/large%20with%20spaces.bin?canisterId=$ID"
+    diff 'src/e2e_project_assets/assets/large with spaces.bin' lws-curl-output.bin
 
     assert_command_fail curl --fail -vv http://localhost:"$PORT"/'filename with space'.txt?canisterId="$ID"
     assert_match "400 Bad Request" "$stderr"

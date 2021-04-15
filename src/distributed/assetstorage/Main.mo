@@ -402,9 +402,9 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let key = switch(urlDecode(getKey(request.url))) {
-      case (#ok(decodedKey)) decodedKey;
-      case (#err(msg)) throw Error.reject(msg);
+    let key = switch(percentDecode(getKey(request.url))) {
+      case (#ok(decoded)) decoded;
+      case (#err(msg)) throw Error.reject("error decoding url: " # msg);
     };
     let acceptEncodings = getAcceptEncodings(request.headers);
 
@@ -533,32 +533,32 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  private func urlDecode(url: Text): Result.Result<Text, Text> {
-    var result = "";
-    let iter = Text.toIter(url);
+  private func percentDecode(encoded: Text): Result.Result<Text, Text> {
+    var decoded = "";
+    let iter = Text.toIter(encoded);
     loop {
       switch (iter.next()) {
-        case null return #ok(result);
+        case null return #ok(decoded);
         case (? '%') {
           switch (iter.next()) {
-            case null return #err("error decoding url: % must be followed by '%' or two hex digits");
-            case (? '%') result #= "%";
-            case (? firstChar) {
+            case null return #err("% must be followed by '%' or two hex digits");
+            case (? '%') decoded #= "%";
+            case (? first) {
               switch (iter.next()) {
-                case null return #err("error decoding url: % must be followed by two hex digits, but only one was found");
-                case (? secondChar) {
-                  switch (hexCharAsNibble(firstChar), hexCharAsNibble(secondChar)) {
-                    case (?hi, ?lo) result #= Char.toText(Char.fromNat32(hi << 4 | lo));
-                    case (null, ?secondHexDigit) return #err("error decoding url: first character after % is not a hex digit");
-                    case (?firstHexDigit, null) return #err("error decoding url: second character after % is not a hex digit");
-                    case (null, null) return #err("error decoding url: neither character after % is a hex digit");
+                case null return #err("% must be followed by two hex digits, but only one was found");
+                case (? second) {
+                  switch (hexCharAsNibble(first), hexCharAsNibble(second)) {
+                    case (?hi, ?lo) decoded #= Char.toText(Char.fromNat32(hi << 4 | lo));
+                    case (null, ?_) return #err("first character after % is not a hex digit");
+                    case (?_, null) return #err("second character after % is not a hex digit");
+                    case (null, null) return #err("neither character after % is a hex digit");
                   };
                 };
               };
             };
           };
         };
-        case (? ch) result #= Char.toText(ch);
+        case (? c) decoded #= Char.toText(c);
       };
     };
   };
