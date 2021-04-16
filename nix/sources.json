@@ -40,7 +40,7 @@
     "ic-ref": {
         "branch": "joachim/impl-canister-sigs-v1",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "daf394e491caeba4ec9763f89cb6549e65bbeec1",
+        "rev": "dc71e7a7347460213636df033891fe8e06d9a457",
         "tag": "0.16.0",
         "type": "git"
     },
