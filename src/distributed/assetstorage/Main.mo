@@ -402,7 +402,7 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let key = switch(percentDecode(getKey(request.url))) {
+    let key = switch(urlDecode(getKey(request.url))) {
       case (#ok(decoded)) decoded;
       case (#err(msg)) throw Error.reject("error decoding url: " # msg);
     };
@@ -533,7 +533,7 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  private func percentDecode(encoded: Text): Result.Result<Text, Text> {
+  private func urlDecode(encoded: Text): Result.Result<Text, Text> {
     var decoded = "";
     let iter = Text.toIter(encoded);
     loop {
