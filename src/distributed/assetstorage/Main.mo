@@ -1,4 +1,6 @@
 import Array "mo:base/Array";
+import Buffer "mo:base/Buffer";
+import Char "mo:base/Char";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import HashMap "mo:base/HashMap";
@@ -9,6 +11,9 @@ import Nat8 "mo:base/Nat8";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
+// todo: remove direct dependency on Prim https://github.com/dfinity/sdk/issues/1598
+import Prim "mo:prim";
 
 import A "Asset";
 import B "Batch";
@@ -398,10 +403,11 @@ shared ({caller = creator}) actor class () {
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
     let key = getKey(request.url);
+    let acceptEncodings = getAcceptEncodings(request.headers);
 
-    let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key)) {
+    let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key, acceptEncodings)) {
       case (?found) ?found;
-      case (null) getAssetAndEncoding("/index.html");
+      case (null) getAssetAndEncoding("/index.html", acceptEncodings);
     };
 
 
@@ -416,14 +422,52 @@ shared ({caller = creator}) actor class () {
           case null null;
         };
 
+        let headers = Buffer.Buffer<T.HeaderField>(2);
+        headers.add(("Content-Type", asset.contentType));
+        if (assetEncoding.contentEncoding != "identity") {
+          headers.add(("Content-Encoding", assetEncoding.contentEncoding));
+        };
+
         {
           status_code = 200;
-          headers = [];
+          headers = headers.toArray();
           body = assetEncoding.content[0];
           streaming_strategy = streaming_strategy;
         }
       };
     }
+  };
+
+  func getAcceptEncodings(headers: [T.HeaderField]): [Text] {
+    let accepted_encodings = Buffer.Buffer<Text>(2);
+    for (header in headers.vals()) {
+      // todo: remove direct dependency on Prim https://github.com/dfinity/sdk/issues/1598
+      let k = Text.map(header.0, Prim.charToUpper);
+      let v = header.1;
+      // todo: use caseInsensitiveTextEqual, see https://github.com/dfinity/sdk/issues/1599
+      if (k == "ACCEPT-ENCODING") {
+        for (t in Text.split(v, #char ',')) {
+          let encoding = Text.trim(t, #char ' ');
+          accepted_encodings.add(encoding);
+        }
+      }
+    };
+    // last choice
+    accepted_encodings.add("identity");
+
+    accepted_encodings.toArray()
+  };
+
+  // todo: use this once Text.compareWith uses its cmp parameter https://github.com/dfinity/sdk/issues/1599
+  //func caseInsensitiveTextEqual(s1: Text, s2: Text): Bool {
+  //  switch(Text.compareWith(s1, s2, caseInsensitiveCharCompare)) {
+  //    case (#equal) true;
+  //    case _ false;
+  //  }
+  //};
+
+  func caseInsensitiveCharCompare(c1: Char, c2: Char) : { #less; #equal; #greater } {
+    Char.compare(Prim.charToUpper(c1), Prim.charToUpper(c2))
   };
 
   // Get subsequent chunks of an asset encoding's content, after http_request().
@@ -474,11 +518,11 @@ shared ({caller = creator}) actor class () {
     path
   };
 
-  private func getAssetAndEncoding(path: Text): ?(A.Asset, A.AssetEncoding) {
+  private func getAssetAndEncoding(path: Text, acceptEncodings: [Text]): ?(A.Asset, A.AssetEncoding) {
     switch (assets.get(path)) {
       case null null;
       case (?asset) {
-        switch (asset.getEncoding("identity")) {
+        switch (asset.chooseEncoding(acceptEncodings)) {
           case null null;
           case (?assetEncoding) ?(asset, assetEncoding);
         }
