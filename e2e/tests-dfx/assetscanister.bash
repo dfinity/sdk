@@ -3,14 +3,100 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    # We want to work from a different temporary directory for every test.
+    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
+    export TEMPORARY_HOME="$x"
+    export HOME="$TEMPORARY_HOME"
+    cd "$TEMPORARY_HOME" || exit
 
     dfx_new
 }
 
 teardown() {
     dfx_stop
+    rm -rf "$TEMPORARY_HOME"
+}
+
+@test "http_request percent-decodes urls" {
+    install_asset assetscanister
+
+    dfx_start
+
+    echo "contents of file with space in filename" >'src/e2e_project_assets/assets/filename with space.txt'
+    echo "contents of file with plus in filename" >'src/e2e_project_assets/assets/has+plus.txt'
+    echo "contents of file with percent in filename" >'src/e2e_project_assets/assets/has%percent.txt'
+    echo "filename is an ae symbol" >'src/e2e_project_assets/assets/æ'
+    echo "filename is percent symbol" >'src/e2e_project_assets/assets/%'
+    echo "filename contains question mark" >'src/e2e_project_assets/assets/filename?withqmark.txt'
+    dd if=/dev/urandom of='src/e2e_project_assets/assets/large with spaces.bin' bs=2500000 count=1
+
+
+    dfx deploy
+
+    # decode as expected
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/filename%20with%20space.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_match "contents of file with space in filename"
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/has%2bplus.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_match "contents of file with plus in filename"
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/has%2Bplus.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_match "contents of file with plus in filename"
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/has%%percent.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_match "contents of file with percent in filename"
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
+    assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%%";headers=vec{};method="GET";body=vec{}})'
+    assert_match "filename is percent"
+     # this test ensures url decoding happens after removing the query string
+    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/filename%3fwithqmark.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_match "filename contains question mark"
+
+    # these error conditions can't be tested with curl, because something responds first with Bad Request.
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%";headers=vec{};method="GET";body=vec{}})'
+    assert_match "error decoding url: % must be followed by '%' or two hex digits"
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%z";headers=vec{};method="GET";body=vec{}})'
+    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%zz";headers=vec{};method="GET";body=vec{}})'
+    assert_match "error decoding url: neither character after % is a hex digit"
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%e";headers=vec{};method="GET";body=vec{}})'
+    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%g6";headers=vec{};method="GET";body=vec{}})'
+    assert_match "error decoding url: first character after % is not a hex digit"
+    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%ch";headers=vec{};method="GET";body=vec{}})'
+    assert_match "error decoding url: second character after % is not a hex digit"
+
+    ID=$(dfx canister id e2e_project_assets)
+    PORT=$(cat .dfx/webserver-port)
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "contents of file with space in filename"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/has%2bplus.txt?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "contents of file with plus in filename"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/has%%percent.txt?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "contents of file with percent in filename"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "filename is an ae symbol"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/%%?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "filename is percent symbol"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/filename%3fwithqmark.txt?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "filename contains question mark"
+
+    assert_command curl --fail -vv --output lws-curl-output.bin "http://localhost:$PORT/large%20with%20spaces.bin?canisterId=$ID"
+    diff 'src/e2e_project_assets/assets/large with spaces.bin' lws-curl-output.bin
+
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/'filename with space'.txt?canisterId="$ID"
+    assert_match "400 Bad Request" "$stderr"
 }
 
 @test "generates gzipped content encoding for .js files" {

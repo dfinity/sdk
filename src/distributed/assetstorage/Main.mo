@@ -402,7 +402,10 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let key = getKey(request.url);
+    let key = switch(urlDecode(getKey(request.url))) {
+      case (#ok(decoded)) decoded;
+      case (#err(msg)) throw Error.reject("error decoding url: " # msg);
+    };
     let acceptEncodings = getAcceptEncodings(request.headers);
 
     let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key, acceptEncodings)) {
@@ -530,4 +533,54 @@ shared ({caller = creator}) actor class () {
     }
   };
 
+  private func urlDecode(encoded: Text): Result.Result<Text, Text> {
+    var decoded = "";
+    let iter = Text.toIter(encoded);
+    loop {
+      switch (iter.next()) {
+        case null return #ok(decoded);
+        case (? '%') {
+          switch (iter.next()) {
+            case null return #err("% must be followed by '%' or two hex digits");
+            case (? '%') decoded #= "%";
+            case (?first) {
+              switch (iter.next()) {
+                case null return #err("% must be followed by two hex digits, but only one was found");
+                case (?second) {
+                  switch (hexCharAsNibble(first), hexCharAsNibble(second)) {
+                    case (?hi, ?lo) decoded #= Char.toText(Char.fromNat32(hi << 4 | lo));
+                    case (null, ?_) return #err("first character after % is not a hex digit");
+                    case (?_, null) return #err("second character after % is not a hex digit");
+                    case (null, null) return #err("neither character after % is a hex digit");
+                  };
+                };
+              };
+            };
+          };
+        };
+        case (?c) decoded #= Char.toText(c);
+      };
+    };
+  };
+
+  private func hexCharAsNibble(c: Char): ?Nat32 {
+    let n = Char.toNat32(c);
+
+    let asDigit = n -% Char.toNat32('0');
+    if (asDigit <= (9 : Nat32)) {
+      return ?asDigit;
+    };
+
+    let asLowerHexDigit = n -% Char.toNat32('a');
+    if (asLowerHexDigit <= (5 : Nat32)) {
+      return ?(0xA + asLowerHexDigit);
+    };
+
+    let asUpperHexDigit = n -% Char.toNat32('A');
+    if (asUpperHexDigit <= (5 : Nat32)) {
+      return ?(0xA + asUpperHexDigit);
+    };
+
+    null
+  };
 };
