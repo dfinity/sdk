@@ -62,7 +62,6 @@ let
         };
     };
 
-  # Note that on Linux we need the static environment.
   cc = pkgs.stdenv.cc;
 
   # fixup the shell for more convenient developer use
