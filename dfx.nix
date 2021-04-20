@@ -63,9 +63,7 @@ let
     };
 
   # Note that on Linux we need the static environment.
-  cc = if pkgs.stdenv.isLinux
-  then pkgs.pkgsStatic.stdenv.cc
-  else pkgs.stdenv.cc;
+  cc = pkgs.stdenv.cc;
 
   # fixup the shell for more convenient developer use
   fixShell = ws:
