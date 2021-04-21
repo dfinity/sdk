@@ -34,7 +34,7 @@ let
             python3
             procps
             which
-            dfx.standalone
+            dfx.build
           ];
           BATSLIB = pkgs.sources.bats-support;
           USE_IC_REF = use_ic_ref;
