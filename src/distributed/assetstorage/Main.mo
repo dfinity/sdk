@@ -121,6 +121,7 @@ shared ({caller = creator}) actor class () {
 
   func entryToAssetEncodingDetails((name: Text, assetEncoding: A.AssetEncoding)) : T.AssetEncodingDetails {
     {
+      modified = Time.now();
       content_encoding = assetEncoding.contentEncoding;
       sha256 = assetEncoding.sha256;
       length = assetEncoding.totalLength;

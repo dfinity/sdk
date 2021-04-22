@@ -8,6 +8,7 @@ module Types {
   public type Time = Int;
 
   public type AssetEncodingDetails = {
+    modified: Time;
     content_encoding: Text;
     sha256: ?Blob;
     length: Nat;
