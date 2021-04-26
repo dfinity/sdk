@@ -27,7 +27,7 @@ mod upgrade;
 
 /// Helper commands to manage the user's cycles wallet.
 #[derive(Clap)]
-#[clap(name("canister"))]
+#[clap(name("wallet"))]
 pub struct WalletOpts {
     /// Override the compute network to connect to. By default, the local network is used.
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special

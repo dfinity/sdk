@@ -25,9 +25,17 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
         canister: Principal,
         amount: u64,
     }
-    let canister = Principal::from_text(opts.destination)?;
+    let canister = Principal::from_text(opts.destination.clone())?;
     // amount has been validated by cycle_amount_validator
     let amount = opts.amount.parse::<u64>().unwrap();
-    do_wallet_call(env, "wallet_send", In { canister, amount }, false).await?;
+    let (res,): (Result<(), String>,) =
+        do_wallet_call(env, "wallet_send", In { canister, amount }, false).await?;
+    match res {
+        Ok(()) => (),
+        Err(err) => println!(
+            "Sending cycles to {} failed with: {}",
+            opts.destination, err
+        ),
+    };
     Ok(())
 }

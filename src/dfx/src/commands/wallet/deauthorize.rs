@@ -13,7 +13,8 @@ pub struct DeauthorizeOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: DeauthorizeOpts) -> DfxResult {
-    let custodian = Principal::from_text(opts.custodian)?;
+    let custodian = Principal::from_text(opts.custodian.clone())?;
     do_wallet_call(env, "deauthorize", custodian, false).await?;
+    println!("Deauthorized {} as a custodian.", opts.custodian);
     Ok(())
 }

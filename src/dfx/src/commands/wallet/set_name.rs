@@ -12,6 +12,7 @@ pub struct SetNameOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: SetNameOpts) -> DfxResult {
-    do_wallet_call(env, "name", opts.name, false).await?;
+    do_wallet_call(env, "name", opts.name.clone(), false).await?;
+    println!("Set name to {}.", opts.name);
     Ok(())
 }

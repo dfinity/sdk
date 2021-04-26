@@ -66,5 +66,6 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         .with_mode(install_mode)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
+    println!("Upgraded the wallet wasm module.");
     Ok(())
 }
