@@ -27,17 +27,27 @@ let
     sha256 = "0a2rhxli7ss4wixppfwks0hy3zpazwm9l3y2v9krrnyiska3qfrw";
   };
 
-  pkgs = import (commonSrc + "/pkgs") {
+  pkgs = mkPkgs [];
+
+  mkPkgs = e: import (commonSrc + "/pkgs") {
     inherit system isMaster labels;
     extraSources = sources;
     repoRoot = ../.;
-    overlays = [
+    overlays = e ++ [
       (
         self: super:
           let
             nixFmt = self.lib.nixFmt {};
           in
             {
+              pkgs_glibc_2_27 = mkPkgs [
+                (
+                  self: super: {
+
+                    glibc = self.glibc_2_27;
+                  }
+                )
+              ];
               motoko = import self.sources.motoko { inherit (self) system; };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {

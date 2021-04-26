@@ -26,9 +26,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "master",
+        "branch": "johnw/hans",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "52f0e0cdb97e371d9ada61249bccc875b51fec24",
+        "rev": "d8f7963cfb19f0b7149e787b875d0967cd9ecc80",
         "type": "git"
     },
     "dfinity": {

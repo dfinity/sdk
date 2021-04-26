@@ -11,8 +11,9 @@
 , assets ? import ./assets.nix { inherit pkgs; }
 }:
 let
+  pkgs_glibc_2_27 = pkgs.pkgs_glibc_2_27;
   lib = pkgs.lib;
-  workspace = pkgs.buildDfinityRustPackage {
+  workspace = pkgs_glibc_2_27.buildDfinityRustPackage {
     name = "dfinity-sdk-rust";
     srcDir = ./.;
     regexes = [
@@ -54,7 +55,7 @@ let
   # add a `standalone` target stripped of nix references
   addStandalone = ws:
     ws // {
-      standalone = pkgs.lib.standaloneRust
+      standalone = lib.standaloneRust
         {
           drv = ws.build;
           exename = "dfx";
@@ -62,7 +63,7 @@ let
         };
     };
 
-  cc = pkgs.stdenv.cc;
+  cc = pkgs_glibc_2_27.stdenv.cc;
 
   # fixup the shell for more convenient developer use
   fixShell = ws:
@@ -82,7 +83,7 @@ let
           inputsFrom = [ ws.shell ];
           shellHook = ''
             # Set CARGO_HOME to minimize interaction with any environment outside nix
-            export CARGO_HOME=${if pkgs.lib.isHydra then "." else toString ./.}/.cargo-home
+            export CARGO_HOME=${if lib.isHydra then "." else toString ./.}/.cargo-home
 
             if [ ! -d "$CARGO_HOME" ]; then
                 mkdir -p $CARGO_HOME
