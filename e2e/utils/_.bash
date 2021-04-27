@@ -32,11 +32,13 @@ dfx_new() {
 }
 
 dfx_patchelf() {
+    # Only run this function on Linux
+    (uname -a | grep Linux) || return
     echo dfx = $(which dfx)
     local CACHE_DIR="$(dfx cache show)"
     # Both ldd and iconv are providedin glibc.bin package
     local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
-    (uname -a | grep Linux) && for binary in ic-starter replica; do
+    for binary in ic-starter replica; do
         local BINARY="${CACHE_DIR}/${binary}"
         test -f "$BINARY" || continue
         local IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
