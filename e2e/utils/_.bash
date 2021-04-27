@@ -33,7 +33,7 @@ dfx_new() {
 
 dfx_patchelf() {
     # Only run this function on Linux
-    (uname -a | grep Linux) || return
+    (uname -a | grep Linux) || return 0
     echo dfx = $(which dfx)
     local CACHE_DIR="$(dfx cache show)"
     # Both ldd and iconv are providedin glibc.bin package
