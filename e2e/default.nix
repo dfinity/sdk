@@ -25,6 +25,7 @@ in
       diffutils
       curl
       findutils
+      glibc.bin
       gnugrep
       gnutar
       gzip
@@ -32,6 +33,7 @@ in
       mitmproxy
       netcat
       nodejs
+      patchelf
       ps
       python3
       procps

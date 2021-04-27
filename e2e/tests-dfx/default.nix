@@ -23,6 +23,7 @@ let
             diffutils
             curl
             findutils
+            glibc.bin
             gnugrep
             gnutar
             gzip
@@ -30,6 +31,7 @@ let
             mitmproxy
             netcat
             nodejs
+            patchelf
             ps
             python3
             procps
