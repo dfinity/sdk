@@ -1,0 +1,21 @@
+diff --git a/nis/nss_nisplus/nisplus-parser.c b/nis/nss_nisplus/nisplus-parser.c
+index 8dc021e73d..b53284f889 100644
+--- a/nis/nss_nisplus/nisplus-parser.c
++++ b/nis/nss_nisplus/nisplus-parser.c
+@@ -87,7 +87,7 @@  _nss_nisplus_parse_pwent (nis_result *result, struct passwd *pw,
+       if (len >= room_left)
+ 	goto no_more_room;
+ 
+-      strncpy (first_unused, numstr, len);
++      memcpy (first_unused, numstr, len);
+       first_unused[len] = '\0';
+       numstr = first_unused;
+     }
+@@ -103,7 +103,7 @@  _nss_nisplus_parse_pwent (nis_result *result, struct passwd *pw,
+       if (len >= room_left)
+ 	goto no_more_room;
+ 
+-      strncpy (first_unused, numstr, len);
++      memcpy (first_unused, numstr, len);
+       first_unused[len] = '\0';
+       numstr = first_unused;

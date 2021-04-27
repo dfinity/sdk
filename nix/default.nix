@@ -38,6 +38,8 @@ let
             nixFmt = self.lib.nixFmt {};
           in
             {
+              glibc = super.callPackage ./glibc {};
+
               motoko = import self.sources.motoko { inherit (self) system; };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {
