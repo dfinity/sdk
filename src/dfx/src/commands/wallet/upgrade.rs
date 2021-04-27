@@ -9,6 +9,7 @@ use crate::util::expiry_duration;
 use anyhow::{anyhow, bail};
 use clap::Clap;
 use ic_agent::AgentError;
+use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use std::io::Read;
@@ -66,6 +67,14 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         .with_mode(install_mode)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
+
+    let wallet = Identity::build_wallet_canister(canister_id, env)?;
+
+    wallet
+        .wallet_store_wallet_wasm(wasm)
+        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .await?;
+
     println!("Upgraded the wallet wasm module.");
     Ok(())
 }
