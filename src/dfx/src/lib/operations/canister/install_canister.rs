@@ -1,4 +1,6 @@
+use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -16,6 +18,7 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
 use slog::info;
 use std::time::Duration;
+use std::path::PathBuf;
 
 #[allow(clippy::too_many_arguments)]
 pub async fn install_canister(
@@ -97,7 +100,7 @@ pub async fn install_canister(
         }
     }
 
-    if canister_info.get_type() == "assets" {
+    if let Some(output_assets_path) = try_get_output_assets_path(canister_info)? {
         match call_sender {
             CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
                 let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
@@ -124,8 +127,23 @@ pub async fn install_canister(
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(&canister_info, &agent, timeout).await?;
+
+        post_install_store_assets(&canister_info, &output_assets_path, &agent, timeout).await?;
     }
 
     Ok(())
+}
+
+fn try_get_output_assets_path(canister_info: &CanisterInfo) -> DfxResult<Option<PathBuf>> {
+    match canister_info.get_type() {
+        "assets" => {
+            let assets_canister_info = canister_info.as_info::<AssetsCanisterInfo>()?;
+            Ok(Some(assets_canister_info.get_output_assets_path().to_path_buf()))
+        },
+        "custom" => {
+            let custom_canister_info = canister_info.as_info::<CustomCanisterInfo>()?;
+            Ok(custom_canister_info.get_output_assets_path().map(|p| p.to_path_buf()))
+        }
+        _ => Ok(None)
+    }
 }

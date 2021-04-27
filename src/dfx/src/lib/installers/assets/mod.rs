@@ -1,4 +1,3 @@
-use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::installers::assets::content::Content;
@@ -12,7 +11,7 @@ use ic_types::Principal;
 use mime::Mime;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::time::Duration;
 use walkdir::WalkDir;
 
@@ -488,12 +487,10 @@ fn set_encodings(
 
 pub async fn post_install_store_assets(
     info: &CanisterInfo,
+    output_assets_path: &Path,
     agent: &Agent,
     timeout: Duration,
 ) -> DfxResult {
-    let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-    let output_assets_path = assets_canister_info.get_output_assets_path();
-
     let asset_locations: Vec<AssetLocation> = WalkDir::new(output_assets_path)
         .into_iter()
         .filter_map(|r| {
