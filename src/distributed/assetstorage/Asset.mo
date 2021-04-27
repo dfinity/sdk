@@ -1,12 +1,16 @@
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Text "mo:base/Text";
+import Time "mo:base/Time";
 
 import T "Types";
 import U "Utils";
 
 module {
   public type AssetEncoding = {
+    // The last modified date. Since we don't reuse asset entries right now,
+    // we can't keep the created date.
+    modified: Time.Time;
     contentEncoding: Text;
     content: [Blob];
     totalLength: Nat;

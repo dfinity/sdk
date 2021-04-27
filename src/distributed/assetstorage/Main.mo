@@ -121,6 +121,7 @@ shared ({caller = creator}) actor class () {
 
   func entryToAssetEncodingDetails((name: Text, assetEncoding: A.AssetEncoding)) : T.AssetEncodingDetails {
     {
+      modified = Time.now();
       content_encoding = assetEncoding.contentEncoding;
       sha256 = assetEncoding.sha256;
       length = assetEncoding.totalLength;
@@ -326,6 +327,7 @@ shared ({caller = creator}) actor class () {
               #err(arg.key # "(" # arg.content_encoding # "): must have at least one chunk")
             } else {
               let encoding : A.AssetEncoding = {
+                modified = Time.now();
                 contentEncoding = arg.content_encoding;
                 content = chunks;
                 totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, func (acc: Nat, blob: Blob): Nat {
