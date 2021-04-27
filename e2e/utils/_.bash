@@ -31,8 +31,7 @@ dfx_new() {
     echo PWD: $(pwd) >&2
 }
 
-# Start the replica in the background.
-dfx_start() {
+dfx_patchelf() {
     echo dfx = $(which dfx)
     local CACHE_DIR="$(dfx cache show)"
     # Both ldd and iconv are providedin glibc.bin package
@@ -45,7 +44,11 @@ dfx_start() {
         chmod +rw "${BINARY}"
         test -n "$IS_STATIC" || test -z "$USE_LIB64" || patchelf --set-interpreter "${LD_LINUX_SO}" "${BINARY}"
     done
+}
 
+# Start the replica in the background.
+dfx_start() {
+    dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
         if [[ "$@" == "" ]]; then
