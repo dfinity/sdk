@@ -25,7 +25,6 @@ in
       diffutils
       curl
       findutils
-      glibc.bin
       gnugrep
       gnutar
       gzip
@@ -33,13 +32,13 @@ in
       mitmproxy
       netcat
       nodejs
-      patchelf
       ps
       python3
       procps
       which
       dfx.build
-    ] ++ lib.optional use_ic_ref ic-ref;
+    ] ++ lib.optional use_ic_ref ic-ref
+      ++ lib.optional stdenv.isLinux [glibc.bin patchelf];
     BATSLIB = pkgs.sources.bats-support;
     USE_IC_REF = use_ic_ref;
     assets = args.assets;
