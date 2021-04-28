@@ -1,4 +1,4 @@
-use crate::commands::wallet::do_wallet_call;
+use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::validators::cycle_amount_validator;
@@ -30,7 +30,7 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
     // amount has been validated by cycle_amount_validator
     let amount = opts.amount.parse::<u64>().unwrap();
     let (res,): (Result<(), String>,) =
-        do_wallet_call(env, "wallet_send", In { canister, amount }, false).await?;
+        wallet_update(env, "wallet_send", In { canister, amount }).await?;
     Ok(res.map_err(|err| {
         anyhow!(
             "Sending cycles to {} failed with: {}",

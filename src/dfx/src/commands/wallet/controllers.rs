@@ -1,4 +1,4 @@
-use crate::commands::wallet::do_wallet_call;
+use crate::commands::wallet::wallet_query;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
@@ -10,8 +10,7 @@ use ic_types::Principal;
 pub struct ControllersOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: ControllersOpts) -> DfxResult {
-    let (controllers,): (Vec<Principal>,) =
-        do_wallet_call(env, "get_controllers", (), true).await?;
+    let (controllers,): (Vec<Principal>,) = wallet_query(env, "get_controllers", ()).await?;
     for controller in controllers.iter() {
         println!("{}", controller);
     }

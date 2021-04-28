@@ -1,4 +1,4 @@
-use crate::commands::wallet::do_wallet_call;
+use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
@@ -14,7 +14,7 @@ pub struct AuthorizeOpts {
 
 pub async fn exec(env: &dyn Environment, opts: AuthorizeOpts) -> DfxResult {
     let custodian = Principal::from_text(opts.custodian)?;
-    do_wallet_call(env, "authorize", custodian.clone(), false).await?;
+    wallet_update(env, "authorize", custodian.clone()).await?;
     println!("Authorized {} as a custodian.", custodian);
     Ok(())
 }

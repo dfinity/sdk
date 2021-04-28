@@ -1,4 +1,4 @@
-use crate::commands::wallet::do_wallet_call;
+use crate::commands::wallet::wallet_query;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
@@ -10,7 +10,7 @@ use ic_utils::interfaces::wallet::BalanceResult;
 pub struct WalletBalanceOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: WalletBalanceOpts) -> DfxResult {
-    let (balance,): (BalanceResult,) = do_wallet_call(env, "wallet_balance", (), true).await?;
+    let (balance,): (BalanceResult,) = wallet_query(env, "wallet_balance", ()).await?;
     println!("{} cycles.", balance.amount);
     Ok(())
 }

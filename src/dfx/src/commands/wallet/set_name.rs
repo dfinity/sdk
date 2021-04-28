@@ -1,4 +1,4 @@
-use crate::commands::wallet::do_wallet_call;
+use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
@@ -12,7 +12,7 @@ pub struct SetNameOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: SetNameOpts) -> DfxResult {
-    do_wallet_call(env, "name", opts.name.clone(), false).await?;
+    wallet_update(env, "name", opts.name.clone()).await?;
     println!("Set name to {}.", opts.name);
     Ok(())
 }

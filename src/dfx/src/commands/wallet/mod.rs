@@ -77,12 +77,7 @@ pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
     })
 }
 
-async fn do_wallet_call<A, O>(
-    env: &dyn Environment,
-    method: &str,
-    arg: A,
-    query: bool,
-) -> DfxResult<O>
+async fn wallet_query<A, O>(env: &dyn Environment, method: &str, arg: A) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
@@ -96,16 +91,30 @@ where
     let wallet =
         Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
 
-    let out: O = if query {
-        wallet.query_(method).with_arg(arg).build().call().await?
-    } else {
-        fetch_root_key_if_needed(env).await?;
-        wallet
-            .update_(method)
-            .with_arg(arg)
-            .build()
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
-            .await?
-    };
+    let out: O = wallet.query_(method).with_arg(arg).build().call().await?;
+    Ok(out)
+}
+
+async fn wallet_update<A, O>(env: &dyn Environment, method: &str, arg: A) -> DfxResult<O>
+where
+    A: CandidType + Sync + Send,
+    O: for<'de> ArgumentDecoder<'de> + Sync + Send,
+{
+    let identity_name = env
+        .get_selected_identity()
+        .expect("No selected identity.")
+        .to_string();
+    // Network descriptor will always be set.
+    let network = env.get_network_descriptor().unwrap();
+    let wallet =
+        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+
+    fetch_root_key_if_needed(env).await?;
+    let out: O = wallet
+        .update_(method)
+        .with_arg(arg)
+        .build()
+        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .await?;
     Ok(out)
 }

@@ -1,4 +1,4 @@
-use crate::commands::wallet::do_wallet_call;
+use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
@@ -14,7 +14,7 @@ pub struct RemoveControllerOpts {
 
 pub async fn exec(env: &dyn Environment, opts: RemoveControllerOpts) -> DfxResult {
     let controller = Principal::from_text(opts.controller)?;
-    do_wallet_call(env, "remove_controller", controller.clone(), false).await?;
+    wallet_update(env, "remove_controller", controller.clone()).await?;
     println!("Removed {} as a controller.", controller);
     Ok(())
 }
