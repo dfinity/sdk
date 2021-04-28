@@ -18,6 +18,7 @@ mod start;
 mod stop;
 mod toolchain;
 mod upgrade;
+mod wallet;
 
 #[derive(Clap)]
 pub enum Command {
@@ -37,6 +38,7 @@ pub enum Command {
     Stop(stop::StopOpts),
     Toolchain(toolchain::ToolchainOpts),
     Upgrade(upgrade::UpgradeOpts),
+    Wallet(wallet::WalletOpts),
 }
 
 pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
@@ -56,5 +58,6 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Stop(v) => stop::exec(env, v),
         Command::Toolchain(v) => toolchain::exec(env, v),
         Command::Upgrade(v) => upgrade::exec(env, v),
+        Command::Wallet(v) => wallet::exec(env, v),
     }
 }
