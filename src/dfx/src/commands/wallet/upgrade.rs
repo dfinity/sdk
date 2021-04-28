@@ -43,7 +43,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         // The replica doesn't support negative lookups, therefore if the canister
         // is empty, the replica will return lookup_path([], Pruned _) = Unknown
         Err(AgentError::LookupPathUnknown(_)) | Err(AgentError::LookupPathAbsent(_)) => {
-            bail!("The wallet canister is empty! Please do `dfx identity deploy-wallet` instead.")
+            bail!("The cycles wallet canister is empty. Try running `dfx identity deploy-wallet` to install code for the cycles wallet in this canister.")
         }
         Err(x) => bail!(x),
     };
