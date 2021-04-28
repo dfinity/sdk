@@ -73,29 +73,29 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.2.0"
+version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "5472fb610faa6cc1f0c12c82a745e435603fae08"
+branch = "pshahi/update-create-settings"
+rev = "39b19c7d23b9745ab366d1947d7fc30b286c55f8"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
-version = "0.2.0"
+version = "0.2.1"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "5472fb610faa6cc1f0c12c82a745e435603fae08"
+branch = "pshahi/update-create-settings"
+rev = "39b19c7d23b9745ab366d1947d7fc30b286c55f8"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "5472fb610faa6cc1f0c12c82a745e435603fae08"
+branch = "pshahi/update-create-settings"
+rev = "39b19c7d23b9745ab366d1947d7fc30b286c55f8"
 
 [dependencies.ic-utils]
-version = "0.2.0"
+version = "0.2.1"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "5472fb610faa6cc1f0c12c82a745e435603fae08"
+branch = "pshahi/update-create-settings"
+rev = "39b19c7d23b9745ab366d1947d7fc30b286c55f8"
 
 [dev-dependencies]
 env_logger = "0.6"

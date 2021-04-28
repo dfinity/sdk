@@ -18,6 +18,10 @@ use candid::CandidType;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
+use ic_utils::interfaces::management_canister::attributes::{
+    ComputeAllocation, FreezingThreshold, MemoryAllocation,
+};
+use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::StatusCallResult;
 use ic_utils::interfaces::ManagementCanister;
 use std::path::PathBuf;
@@ -131,26 +135,34 @@ pub async fn stop_canister(
     Ok(())
 }
 
-pub async fn set_controller(
+#[allow(clippy::too_many_arguments)]
+pub async fn update_settings(
     env: &dyn Environment,
     canister_id: Principal,
-    new_controller: Principal,
+    controller: Option<Principal>,
+    compute_allocation: Option<ComputeAllocation>,
+    memory_allocation: Option<MemoryAllocation>,
+    freezing_threshold: Option<FreezingThreshold>,
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
-    #[derive(CandidType)]
+    #[derive(candid::CandidType)]
     struct In {
         canister_id: Principal,
-        new_controller: Principal,
+        settings: CanisterSettings,
     }
-
     let _: () = do_management_call(
         env,
         canister_id.clone(),
-        "set_controller",
+        "update_settings",
         In {
             canister_id,
-            new_controller,
+            settings: CanisterSettings {
+                controller,
+                compute_allocation: compute_allocation.map(u8::from).map(candid::Nat::from),
+                memory_allocation: memory_allocation.map(u64::from).map(candid::Nat::from),
+                freezing_threshold: freezing_threshold.map(u64::from).map(candid::Nat::from),
+            },
         },
         timeout,
         call_sender,

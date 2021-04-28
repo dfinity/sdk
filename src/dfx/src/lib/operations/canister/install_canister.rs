@@ -9,9 +9,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use anyhow::Context;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::{
-    CanisterInstall, ComputeAllocation, InstallMode, MemoryAllocation,
-};
+use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
 use slog::info;
@@ -23,9 +21,7 @@ pub async fn install_canister(
     agent: &Agent,
     canister_info: &CanisterInfo,
     args: &[u8],
-    compute_allocation: Option<ComputeAllocation>,
     mode: InstallMode,
-    memory_allocation: Option<MemoryAllocation>,
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
@@ -61,16 +57,6 @@ pub async fn install_canister(
                 .install_code(&canister_id, &wasm_module)
                 .with_raw_arg(args.to_vec())
                 .with_mode(mode);
-            let install_builder = if let Some(ca) = compute_allocation {
-                install_builder.with_compute_allocation(ca)
-            } else {
-                install_builder
-            };
-            let install_builder = if let Some(ma) = memory_allocation {
-                install_builder.with_memory_allocation(ma)
-            } else {
-                install_builder
-            };
             install_builder
                 .build()?
                 .call_and_wait(waiter_with_timeout(timeout))
@@ -84,8 +70,6 @@ pub async fn install_canister(
                 canister_id: canister_id.clone(),
                 wasm_module,
                 arg: args.to_vec(),
-                compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
-                memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
             };
             wallet
                 .call_forward(
