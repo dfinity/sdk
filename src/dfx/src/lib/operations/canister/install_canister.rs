@@ -15,7 +15,6 @@ use ic_utils::interfaces::management_canister::{
 };
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
-use serde_bytes::ByteBuf;
 use slog::info;
 use std::time::Duration;
 
@@ -88,8 +87,8 @@ pub async fn install_canister(
             let install_args = CanisterInstall {
                 mode,
                 canister_id: canister_id.clone(),
-                wasm_module: ByteBuf::from(wasm_module),
-                arg: ByteBuf::from(args.to_vec()),
+                wasm_module,
+                arg: args.to_vec(),
                 compute_allocation: compute_allocation.map(|x| candid::Nat::from(u8::from(x))),
                 memory_allocation: memory_allocation.map(|x| candid::Nat::from(u64::from(x))),
             };
