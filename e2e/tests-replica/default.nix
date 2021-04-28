@@ -35,7 +35,8 @@ let
             procps
             which
             dfx.build
-          ] ++ lib.optional use_ic_ref ic-ref;
+          ] ++ lib.optional use_ic_ref ic-ref
+          ++ lib.optional stdenv.isLinux [ glibc.bin patchelf ];
           BATSLIB = pkgs.sources.bats-support;
           USE_IC_REF = use_ic_ref;
           assets = assets;

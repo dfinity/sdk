@@ -31,8 +31,26 @@ dfx_new() {
     echo PWD: $(pwd) >&2
 }
 
+dfx_patchelf() {
+    # Only run this function on Linux
+    (uname -a | grep Linux) || return 0
+    echo dfx = $(which dfx)
+    local CACHE_DIR="$(dfx cache show)"
+    # Both ldd and iconv are providedin glibc.bin package
+    local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
+    for binary in ic-starter replica; do
+        local BINARY="${CACHE_DIR}/${binary}"
+        test -f "$BINARY" || continue
+        local IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
+        local USE_LIB64=$(ldd "${BINARY}" | grep '/lib64/ld-linux-x86-64.so.2')
+        chmod +rw "${BINARY}"
+        test -n "$IS_STATIC" || test -z "$USE_LIB64" || patchelf --set-interpreter "${LD_LINUX_SO}" "${BINARY}"
+    done
+}
+
 # Start the replica in the background.
 dfx_start() {
+    dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
         if [[ "$@" == "" ]]; then

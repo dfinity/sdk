@@ -26,6 +26,7 @@ dfx_replica_kills_replica() {
 
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
+    dfx_patchelf
     dfx replica --port 0 &
     DFX_PID=$!
 
