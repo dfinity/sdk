@@ -13,8 +13,8 @@ pub struct AuthorizeOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: AuthorizeOpts) -> DfxResult {
-    let custodian = Principal::from_text(opts.custodian.clone())?;
-    do_wallet_call(env, "authorize", custodian, false).await?;
-    println!("Authorized {} as a custodian.", opts.custodian);
+    let custodian = Principal::from_text(opts.custodian)?;
+    do_wallet_call(env, "authorize", custodian.clone(), false).await?;
+    println!("Authorized {} as a custodian.", custodian);
     Ok(())
 }

@@ -3,6 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::validators::cycle_amount_validator;
 
+use anyhow::anyhow;
 use candid::CandidType;
 use clap::Clap;
 use ic_types::Principal;
@@ -30,12 +31,11 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
     let amount = opts.amount.parse::<u64>().unwrap();
     let (res,): (Result<(), String>,) =
         do_wallet_call(env, "wallet_send", In { canister, amount }, false).await?;
-    match res {
-        Ok(()) => (),
-        Err(err) => println!(
+    Ok(res.map_err(|err| {
+        anyhow!(
             "Sending cycles to {} failed with: {}",
-            opts.destination, err
-        ),
-    };
-    Ok(())
+            opts.destination,
+            err
+        )
+    })?)
 }

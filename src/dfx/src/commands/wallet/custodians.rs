@@ -11,7 +11,8 @@ pub struct CustodiansOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: CustodiansOpts) -> DfxResult {
     let (custodians,): (Vec<Principal>,) = do_wallet_call(env, "get_custodians", (), true).await?;
-    let text: Vec<String> = custodians.iter().map(Principal::to_text).collect();
-    println!("{:?}", text);
+    for custodian in custodians.iter() {
+        println!("{}", custodian);
+    }
     Ok(())
 }
