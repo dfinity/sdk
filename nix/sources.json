@@ -6,17 +6,11 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "f960a5036487fbcc93fa1e36c390804991e4c13c",
-        "sha256": "1fa6if919g4x09d3kaig28wn5s68q50534bn47q7dp98yqy90bwd",
+        "rev": "5b3dcb83b411120b9b60cc20f691a8a960f600ca",
+        "sha256": "10a9yq6r697djc37bnpcm1z6lw940yc1mzpdkiimzdqhpx5z51id",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/f960a5036487fbcc93fa1e36c390804991e4c13c.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/5b3dcb83b411120b9b60cc20f691a8a960f600ca.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "agent-js-monorepo": {
-        "ref": "next",
-        "repo": "ssh://git@github.com/dfinity-lab/agent-js",
-        "rev": "1c9703fa3abaaa039a1e53d1257a8d6c8333b5b9",
-        "type": "git"
     },
     "bats-support": {
         "branch": "v0.3.0",
@@ -34,25 +28,26 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "613adfe1c71d2333e148b13f00b3532aa99b221d",
+        "rev": "4136a144c2e408630685998e4865ed67590a2ad7",
         "type": "git"
     },
     "dfinity": {
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "fc46573d03d0024b85eae4f93ce8dc823308fcfd",
-        "tag": "release-2020-11-26.RC01",
+        "rev": "8967aa9f7435ea7eab47f4d9e1c5098ae4cc974c",
         "type": "git"
     },
     "ic-ref": {
-        "branch": "release-0.15",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
-        "rev": "3716b934e8699aea3423535fc69c0f6b077ba842",
+        "rev": "215641629ace2d590013f89bb3f3fe3b0a0d3c3b",
+        "tag": "0.16.0",
         "type": "git"
     },
     "motoko": {
         "branch": "release",
-        "repo": "ssh://git@github.com/dfinity-lab/motoko",
-        "rev": "be50f210e439228baed13914b2093aa8e71ce2ed",
+        "repo": "ssh://git@github.com/dfinity/motoko",
+        "rev": "85651c6b2d118cc068c4263f6fe548a85e805861",
+        "tag": "0.5.10",
         "type": "git"
     },
     "napalm": {

@@ -7,6 +7,19 @@ module Types {
   public type Key = Text;
   public type Time = Int;
 
+  public type AssetEncodingDetails = {
+    modified: Time;
+    content_encoding: Text;
+    sha256: ?Blob;
+    length: Nat;
+  };
+
+  public type AssetDetails = {
+    key: Key;
+    content_type: Text;
+    encodings: [AssetEncodingDetails];
+  };
+
   public type CreateAssetArguments = {
     key: Key;
     content_type: Text;
@@ -15,7 +28,8 @@ module Types {
   public type SetAssetContentArguments = {
     key: Key;
     content_encoding: Text;
-    chunk_ids: [ChunkId]
+    chunk_ids: [ChunkId];
+    sha256: ?Blob;
   };
 
   public type UnsetAssetContentArguments = {
@@ -53,9 +67,30 @@ module Types {
     headers: [HeaderField];
     body: Blob;
   };
+
+  public type StreamingStrategy = {
+    #Callback: {
+      callback: shared query StreamingCallbackToken -> async StreamingCallbackHttpResponse;
+      token: StreamingCallbackToken;
+    };
+  };
   public type HttpResponse = {
     status_code: Nat16;
     headers: [HeaderField];
     body: Blob;
+
+    streaming_strategy: ?StreamingStrategy;
+  };
+
+  public type StreamingCallbackToken = {
+      key: Text;
+      content_encoding: Text;
+      index: Nat;
+      sha256: ?Blob;
+  };
+
+  public type StreamingCallbackHttpResponse = {
+    body: Blob;
+    token: ?StreamingCallbackToken;
   };
 };

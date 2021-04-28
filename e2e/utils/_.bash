@@ -31,27 +31,41 @@ dfx_new() {
     echo PWD: $(pwd) >&2
 }
 
+dfx_patchelf() {
+    # Only run this function on Linux
+    (uname -a | grep Linux) || return 0
+    echo dfx = $(which dfx)
+    local CACHE_DIR="$(dfx cache show)"
+    # Both ldd and iconv are providedin glibc.bin package
+    local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
+    for binary in ic-starter replica; do
+        local BINARY="${CACHE_DIR}/${binary}"
+        test -f "$BINARY" || continue
+        local IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
+        local USE_LIB64=$(ldd "${BINARY}" | grep '/lib64/ld-linux-x86-64.so.2')
+        chmod +rw "${BINARY}"
+        test -n "$IS_STATIC" || test -z "$USE_LIB64" || patchelf --set-interpreter "${LD_LINUX_SO}" "${BINARY}"
+    done
+}
+
 # Start the replica in the background.
 dfx_start() {
+    dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
-        ic-ref --pick-port --write-port-to port 3>&- &
-        echo $! > ic-ref.pid
-
-        sleep 5
-
-        test -f port
-        local port=$(cat port)
-
-        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${port}\" dfx.json) >dfx.json
-        cat dfx.json
         if [[ "$@" == "" ]]; then
-            dfx bootstrap --port 0 & # Start on random port for parallel test execution
+            dfx start --emulator --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
         else
-            dfx bootstrap --port 8000 &
+            batslib_decorate "no arguments to dfx start --emulator supported yet"
+            fail
         fi
+
+        test -f .dfx/ic-ref.port
+        local port=$(cat .dfx/ic-ref.port)
+
+        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
         local webserver_port=$(cat .dfx/webserver-port)
-        echo $! > dfx-bootstrap.pid
+        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${webserver_port}\" dfx.json) >dfx.json
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
@@ -82,25 +96,12 @@ dfx_start() {
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
-    if [ "$USE_IC_REF" ]
-    then
-        test -f ic-ref.pid
-        printf "Killing ic-ref at pid: %u\n" "$(cat ic-ref.pid)"
-        kill $(cat ic-ref.pid)
-        rm -f ic-ref.pid
+    dfx stop
+    local dfx_root=.dfx/
+    rm -rf $dfx_root
 
-        test -f dfx-bootstrap.pid
-        printf "Killing dfx bootstrap at pid: %u\n" "$(cat dfx-bootstrap.pid)"
-        kill $(cat dfx-bootstrap.pid)
-        rm -f dfx-bootstrap.pid
-    else
-        dfx stop
-        local dfx_root=.dfx/
-        rm -rf $dfx_root
-
-        # Verify that processes are killed.
-        assert_no_dfx_start_or_replica_processes
-    fi
+    # Verify that processes are killed.
+    assert_no_dfx_start_or_replica_processes
 }
 
 # Create a canister to make sure we have a wallet on the local network, then

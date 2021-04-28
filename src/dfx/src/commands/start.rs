@@ -1,8 +1,8 @@
 use crate::actors;
-use crate::actors::replica::Replica;
+use crate::actors::replica_webserver_coordinator::signals::PortReadySubscribe;
 use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
-use crate::actors::shutdown_controller;
 use crate::actors::shutdown_controller::ShutdownController;
+use crate::actors::{start_emulator_actor, start_replica_actor, start_shutdown_controller};
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -11,7 +11,7 @@ use crate::lib::provider::get_network_descriptor;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
-use actix::{Actor, Addr};
+use actix::{Actor, Addr, Recipient};
 use anyhow::{anyhow, bail, Context};
 use clap::Clap;
 use delay::{Delay, Waiter};
@@ -38,6 +38,10 @@ pub struct StartOpts {
     /// Cleans the state of the current project.
     #[clap(long)]
     clean: bool,
+
+    /// Runs a dedicated emulator instead of the replica
+    #[clap(long)]
+    emulator: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -45,7 +49,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     let agent = Agent::builder()
         .with_transport(
-            ic_agent::agent::http_transport::ReqwestHttpReplicaV1Transport::create(frontend_url)?,
+            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(frontend_url)?,
         )
         .build()?;
 
@@ -142,14 +146,27 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
 
     let shutdown_controller = start_shutdown_controller(env)?;
 
-    let replica = start_replica(env, &state_root, shutdown_controller.clone())?;
+    let port_ready_subscribe: Recipient<PortReadySubscribe> = if opts.emulator {
+        let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
+        emulator.recipient()
+    } else {
+        let replica_port_path = env
+            .get_temp_dir()
+            .join("replica-configuration")
+            .join("replica-1.port");
+
+        let replica_config =
+            ReplicaConfig::new(&env.get_state_dir()).with_random_port(&replica_port_path);
+        let replica = start_replica_actor(env, replica_config, shutdown_controller.clone())?;
+        replica.recipient()
+    };
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,
         network_descriptor,
         address_and_port,
         build_output_root,
-        replica,
+        port_ready_subscribe,
         shutdown_controller,
     )?;
 
@@ -178,81 +195,22 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     Ok(())
 }
 
-fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<ShutdownController>> {
-    let actor_config = shutdown_controller::Config {
-        logger: Some(env.get_logger().clone()),
-    };
-    Ok(ShutdownController::new(actor_config).start())
-}
-
-fn start_replica(
-    env: &dyn Environment,
-    state_root: &Path,
-    shutdown_controller: Addr<ShutdownController>,
-) -> DfxResult<Addr<Replica>> {
-    let replica_path = env.get_cache().get_binary_command_path("replica")?;
-    let ic_starter_path = env.get_cache().get_binary_command_path("ic-starter")?;
-
-    let temp_dir = env.get_temp_dir();
-    let replica_configuration_dir = temp_dir.join("replica-configuration");
-    fs::create_dir_all(&replica_configuration_dir)?;
-    let state_dir = temp_dir.join("state/replicated_state");
-    fs::create_dir_all(&state_dir)?;
-    let replica_port_path = replica_configuration_dir.join("replica-1.port");
-
-    // Touch the replica port file. This ensures it is empty prior to
-    // handing it over to the replica. If we read the file and it has
-    // contents we shall assume it is due to our spawned replica
-    // process.
-    std::fs::write(&replica_port_path, "")?;
-
-    let replica_config = ReplicaConfig::new(state_root).with_random_port(&replica_port_path);
-    let actor_config = actors::replica::Config {
-        ic_starter_path,
-        replica_config,
-        replica_path,
-        shutdown_controller,
-        logger: Some(env.get_logger().clone()),
-        replica_configuration_dir,
-    };
-    Ok(actors::replica::Replica::new(actor_config).start())
-}
-
 fn start_webserver_coordinator(
     env: &dyn Environment,
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     build_output_root: PathBuf,
-    replica_addr: Addr<Replica>,
+    port_ready_subscribe: Recipient<PortReadySubscribe>,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
-    // If there is a @dfinity/bootstrap node package installed at the root
-    // of dfx.json, use that.
-    let serve_dir = if let Some(config) = env.get_config() {
-        let dfx_root = config
-            .get_path()
-            .parent()
-            .unwrap()
-            .join("node_modules/@dfinity/bootstrap/dist");
-
-        if dfx_root.exists() {
-            dfx_root
-        } else {
-            env.get_cache().get_binary_command_path("bootstrap")?
-        }
-    } else {
-        env.get_cache().get_binary_command_path("bootstrap")?
-    };
-
     // By default we reach to no external IC nodes.
     let providers = Vec::new();
 
     let actor_config = actors::replica_webserver_coordinator::Config {
         logger: Some(env.get_logger().clone()),
-        replica_addr,
+        port_ready_subscribe,
         shutdown_controller,
         bind,
-        serve_dir,
         providers,
         build_output_root,
         network_descriptor,

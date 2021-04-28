@@ -99,19 +99,19 @@ teardown() {
     assert_command dfx --identity alice canister --no-wallet call \
       "$(dfx --identity alice identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 
     assert_command dfx --identity bob canister --no-wallet call e2e_project amInitializer
     assert_eq '(false)'
 
     # these all fail (other identities are not initializer; cannot store assets):
-    assert_command_fail dfx --identity bob canister --no-wallet call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_command_fail dfx --identity default canister --no-wallet call e2e_project_assets store '("B", vec { 88; 87; 86 })'
-    assert_command_fail dfx canister --no-wallet call e2e_project_assets store '("B", vec { 88; 87; 86 })'
+    assert_command_fail dfx --identity bob canister --no-wallet call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+    assert_command_fail dfx --identity default canister --no-wallet call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+    assert_command_fail dfx canister --no-wallet call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
     assert_command_fail dfx canister --no-wallet call e2e_project_assets retrieve '("B")'
 
     # but alice, the initializer, can store assets:
-    assert_command dfx --identity alice canister call e2e_project_assets store '("B", vec { 88; 87; 86 })'
+    assert_command dfx --identity alice canister call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
     assert_eq '()'
     assert_command dfx canister --no-wallet call --output idl e2e_project_assets retrieve '("B")'
     assert_eq '(blob "XWV")'
@@ -128,7 +128,7 @@ teardown() {
     assert_command dfx --identity alice canister --no-wallet call \
       "$(dfx --identity alice identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
     assert_command dfx canister --no-wallet call e2e_project amInitializer
     assert_eq '(false)'
 
@@ -139,9 +139,9 @@ teardown() {
     assert_command dfx --identity bob canister --no-wallet call \
       "$(dfx --identity bob identity get-wallet)" wallet_call \
       "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01~\01" })'  # True in DIDL.
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 
-    assert_command dfx --identity bob canister call e2e_project_assets store '("B", blob "hello")'
+    assert_command dfx --identity bob canister call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})'
     assert_eq '()'
     assert_command dfx canister --no-wallet call --output idl e2e_project_assets retrieve '("B")'
     assert_eq '(blob "hello")'

@@ -1,4 +1,6 @@
 import Array "mo:base/Array";
+import Buffer "mo:base/Buffer";
+import Char "mo:base/Char";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import HashMap "mo:base/HashMap";
@@ -9,6 +11,9 @@ import Nat8 "mo:base/Nat8";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+
+// todo: remove direct dependency on Prim https://github.com/dfinity/sdk/issues/1598
+import Prim "mo:prim";
 
 import A "Asset";
 import B "Batch";
@@ -22,7 +27,7 @@ shared ({caller = creator}) actor class () {
   stable var authorized: [Principal] = [creator];
 
   stable var stableAssets : [(T.Key, A.StableAsset)] = [];
-  let assets = HashMap.fromIter(Iter.map(stableAssets.vals(), A.toAssetEntry), 7, Text.equal, Text.hash);
+  let assets = HashMap.fromIter<T.Key, A.Asset>(Iter.map(stableAssets.vals(), A.toAssetEntry), 7, Text.equal, Text.hash);
 
   let chunks = C.Chunks();
   let batches = B.Batches();
@@ -43,8 +48,8 @@ shared ({caller = creator}) actor class () {
     }
   };
 
-  // Retrieve an asset's contents by name.  Only returns the first chunk of an asset's
-  // contents, even if there were more than one chunk.
+  // Retrieve an asset's contents by name.
+  // Rejects requests for assets composed of more than one chunk.
   // To handle larger assets, use get() and get_chunk().
   public query func retrieve(path : T.Path) : async T.Contents {
     switch (assets.get(path)) {
@@ -52,29 +57,36 @@ shared ({caller = creator}) actor class () {
       case (?asset) {
         switch (asset.getEncoding("identity")) {
           case null throw Error.reject("no identity encoding");
-          case (?encoding) encoding.content[0];
+          case (?encoding) {
+            if (encoding.content.size() > 1)
+              throw Error.reject("Asset too large.  Use get() and get_chunk() instead.");
+            encoding.content[0];
+          }
         };
       };
     }
   };
 
-  // Store an asset of limited size, with
-  //   content-type: "application/octet-stream"
-  //   content-encoding: "identity"
-  // This deprecated function is backwards-compatible with an older interface and will be replaced
-  // with a function of the same name but that allows specification of the content type and encoding.
-  // Prefer to use create_batch(), create_chunk(), commit_batch().
-  public shared ({ caller }) func store(path : T.Path, contents : T.Contents) : async () {
+  // Store a content encoding for an asset.  Does not remove other content encodings.
+  // If the contents exceed the message ingress limit,
+  // use create_batch(), create_chunk(), commit_batch() instead.
+  public shared ({ caller }) func store(arg:{
+    key: T.Key;
+    content_type: Text;
+    content_encoding: Text;
+    content: Blob;
+    sha256: ?Blob;
+  }) : async () {
     if (isSafe(caller) == false) {
       throw Error.reject("not authorized");
     };
 
     let batch = batches.create();
-    let chunkId = chunks.create(batch, contents);
+    let chunkId = chunks.create(batch, arg.content);
 
     let create_asset_args : T.CreateAssetArguments = {
-      key = path;
-      content_type = "application/octet-stream"
+      key = arg.key;
+      content_type = arg.content_type;
     };
     switch(createAsset(create_asset_args)) {
       case (#ok(())) {};
@@ -82,9 +94,10 @@ shared ({caller = creator}) actor class () {
     };
 
     let args : T.SetAssetContentArguments = {
-      key = path;
-      content_encoding = "identity";
+      key = arg.key;
+      content_encoding = arg.content_encoding;
       chunk_ids = [ chunkId ];
+      sha256 = arg.sha256;
     };
     switch(setAssetContent(args)) {
       case (#ok(())) {};
@@ -92,22 +105,32 @@ shared ({caller = creator}) actor class () {
     };
   };
 
-  func listKeys(): [T.Path] {
-    let iter = Iter.map<(Text, A.Asset), T.Path>(assets.entries(), func (key, _) = key);
+  func entryToAssetDetails((key: T.Key, asset: A.Asset)) : T.AssetDetails {
+    let assetEncodings = Iter.toArray(
+      Iter.map<(Text, A.AssetEncoding), T.AssetEncodingDetails>(
+        asset.encodingEntries(), entryToAssetEncodingDetails
+      )
+    );
+
+    {
+      key = key;
+      content_type = asset.contentType;
+      encodings = assetEncodings;
+    }
+  };
+
+  func entryToAssetEncodingDetails((name: Text, assetEncoding: A.AssetEncoding)) : T.AssetEncodingDetails {
+    {
+      modified = Time.now();
+      content_encoding = assetEncoding.contentEncoding;
+      sha256 = assetEncoding.sha256;
+      length = assetEncoding.totalLength;
+    }
+  };
+
+  public query func list(arg:{}) : async [T.AssetDetails] {
+    let iter = Iter.map<(Text, A.Asset), T.AssetDetails>(assets.entries(), entryToAssetDetails);
     Iter.toArray(iter)
-  };
-
-  // deprecated: the signature of this method will change, to take an empty record as
-  // a parameter and to return an array of records.
-  // For now, call keys() instead
-  public query func list() : async [T.Path] {
-    listKeys()
-  };
-
-  // Returns an array of the keys of all assets contained in the asset canister.
-  // This method will be deprecated after the signature of list() changes.
-  public query func keys() : async [T.Path] {
-    listKeys()
   };
 
   func isSafe(caller: Principal) : Bool {
@@ -128,6 +151,7 @@ shared ({caller = creator}) actor class () {
     content_type: Text;
     content_encoding: Text;
     total_length: Nat;
+    sha256: ?Blob;
   } ) {
     switch (assets.get(arg.key)) {
       case null throw Error.reject("asset not found");
@@ -140,6 +164,7 @@ shared ({caller = creator}) actor class () {
               content_type = asset.contentType;
               content_encoding = encoding.contentEncoding;
               total_length = encoding.totalLength;
+              sha256 = encoding.sha256;
             }
           }
         };
@@ -152,6 +177,7 @@ shared ({caller = creator}) actor class () {
     key: T.Key;
     content_encoding: Text;
     index: Nat;
+    sha256: ?Blob;
   }) : async ( {
     content: Blob
   }) {
@@ -161,6 +187,15 @@ shared ({caller = creator}) actor class () {
         switch (asset.getEncoding(arg.content_encoding)) {
           case null throw Error.reject("no such encoding");
           case (?encoding) {
+            switch (arg.sha256, encoding.sha256) {
+              case (?expected, ?actual) {
+                if (expected != actual)
+                  throw Error.reject("sha256 mismatch");
+              };
+              case (?expected, null) throw Error.reject("sha256 specified but asset encoding has none");
+              case (null, _) {};
+            };
+
             {
               content = encoding.content[arg.index];
             }
@@ -292,11 +327,13 @@ shared ({caller = creator}) actor class () {
               #err(arg.key # "(" # arg.content_encoding # "): must have at least one chunk")
             } else {
               let encoding : A.AssetEncoding = {
+                modified = Time.now();
                 contentEncoding = arg.content_encoding;
                 content = chunks;
                 totalLength = Array.foldLeft<Blob, Nat>(chunks, 0, func (acc: Nat, blob: Blob): Nat {
                   acc + blob.size()
                 });
+                sha256 = arg.sha256;
               };
               #ok(asset.setEncoding(arg.content_encoding, encoding));
             };
@@ -367,36 +404,185 @@ shared ({caller = creator}) actor class () {
   };
 
   public query func http_request(request: T.HttpRequest): async T.HttpResponse {
-    let path = getPath(request.url);
+    let key = switch(urlDecode(getKey(request.url))) {
+      case (#ok(decoded)) decoded;
+      case (#err(msg)) throw Error.reject("error decoding url: " # msg);
+    };
+    let acceptEncodings = getAcceptEncodings(request.headers);
 
-    let assetEncoding: ?A.AssetEncoding = switch (getAssetEncoding(path)) {
-      case null getAssetEncoding("/index.html");
+    let assetAndEncoding: ?(A.Asset, A.AssetEncoding) = switch (getAssetAndEncoding(key, acceptEncodings)) {
       case (?found) ?found;
+      case (null) getAssetAndEncoding("/index.html", acceptEncodings);
     };
 
-    switch (assetEncoding) {
-      case null {{ status_code = 404; headers = []; body = "" }};
-      case (?c) {
-        if (c.content.size() > 1)
-          throw Error.reject("asset too large");
 
-        { status_code = 200; headers = []; body = c.content[0] }
-      }
+    switch (assetAndEncoding) {
+      case null {{ status_code = 404; headers = []; body = ""; streaming_strategy = null }};
+      case (?(asset, assetEncoding)) {
+        let streaming_strategy = switch(makeNextToken(key, assetEncoding, 0)) {
+          case (?token) ?#Callback {
+            callback = http_request_streaming_callback;
+            token = token;
+          };
+          case null null;
+        };
+
+        let headers = Buffer.Buffer<T.HeaderField>(2);
+        headers.add(("Content-Type", asset.contentType));
+        if (assetEncoding.contentEncoding != "identity") {
+          headers.add(("Content-Encoding", assetEncoding.contentEncoding));
+        };
+
+        {
+          status_code = 200;
+          headers = headers.toArray();
+          body = assetEncoding.content[0];
+          streaming_strategy = streaming_strategy;
+        }
+      };
     }
   };
 
-  private func getPath(uri: Text): Text {
+  func getAcceptEncodings(headers: [T.HeaderField]): [Text] {
+    let accepted_encodings = Buffer.Buffer<Text>(2);
+    for (header in headers.vals()) {
+      // todo: remove direct dependency on Prim https://github.com/dfinity/sdk/issues/1598
+      let k = Text.map(header.0, Prim.charToUpper);
+      let v = header.1;
+      // todo: use caseInsensitiveTextEqual, see https://github.com/dfinity/sdk/issues/1599
+      if (k == "ACCEPT-ENCODING") {
+        for (t in Text.split(v, #char ',')) {
+          let encoding = Text.trim(t, #char ' ');
+          accepted_encodings.add(encoding);
+        }
+      }
+    };
+    // last choice
+    accepted_encodings.add("identity");
+
+    accepted_encodings.toArray()
+  };
+
+  // todo: use this once Text.compareWith uses its cmp parameter https://github.com/dfinity/sdk/issues/1599
+  //func caseInsensitiveTextEqual(s1: Text, s2: Text): Bool {
+  //  switch(Text.compareWith(s1, s2, caseInsensitiveCharCompare)) {
+  //    case (#equal) true;
+  //    case _ false;
+  //  }
+  //};
+
+  func caseInsensitiveCharCompare(c1: Char, c2: Char) : { #less; #equal; #greater } {
+    Char.compare(Prim.charToUpper(c1), Prim.charToUpper(c2))
+  };
+
+  // Get subsequent chunks of an asset encoding's content, after http_request().
+  // Like get_chunk, but converts url to key
+  public query func http_request_streaming_callback(token: T.StreamingCallbackToken) : async T.StreamingCallbackHttpResponse {
+    switch (assets.get(token.key)) {
+      case null throw Error.reject("asset not found");
+      case (?asset) {
+        switch (asset.getEncoding(token.content_encoding)) {
+          case null throw Error.reject("no such encoding");
+          case (?encoding) {
+            switch (token.sha256, encoding.sha256) {
+              case (?expected, ?actual) {
+                if (expected != actual)
+                  throw Error.reject("sha256 mismatch");
+              };
+              case (?expected, null) throw Error.reject("sha256 specified but asset encoding has none");
+              case (null, _) {};
+            };
+
+            {
+              body = encoding.content[token.index];
+              token = makeNextToken(token.key, encoding, token.index);
+            }
+          }
+        };
+      };
+    };
+  };
+
+  private func makeNextToken(key: T.Key, assetEncoding: A.AssetEncoding, lastIndex: Nat): ?T.StreamingCallbackToken {
+    if (lastIndex + 1 < assetEncoding.content.size()) {
+      ?{
+        key = key;
+        content_encoding = assetEncoding.contentEncoding;
+        index = lastIndex + 1;
+        sha256 = assetEncoding.sha256;
+      };
+    } else {
+      null;
+    };
+  };
+
+  private func getKey(uri: Text): Text {
     let splitted = Text.split(uri, #char '?');
     let array = Iter.toArray<Text>(splitted);
     let path = array[0];
     path
   };
 
-  private func getAssetEncoding(path: Text): ?A.AssetEncoding {
+  private func getAssetAndEncoding(path: Text, acceptEncodings: [Text]): ?(A.Asset, A.AssetEncoding) {
     switch (assets.get(path)) {
       case null null;
-      case (?asset) asset.getEncoding("identity");
+      case (?asset) {
+        switch (asset.chooseEncoding(acceptEncodings)) {
+          case null null;
+          case (?assetEncoding) ?(asset, assetEncoding);
+        }
+      }
     }
   };
 
+  private func urlDecode(encoded: Text): Result.Result<Text, Text> {
+    var decoded = "";
+    let iter = Text.toIter(encoded);
+    loop {
+      switch (iter.next()) {
+        case null return #ok(decoded);
+        case (? '%') {
+          switch (iter.next()) {
+            case null return #err("% must be followed by '%' or two hex digits");
+            case (? '%') decoded #= "%";
+            case (?first) {
+              switch (iter.next()) {
+                case null return #err("% must be followed by two hex digits, but only one was found");
+                case (?second) {
+                  switch (hexCharAsNibble(first), hexCharAsNibble(second)) {
+                    case (?hi, ?lo) decoded #= Char.toText(Char.fromNat32(hi << 4 | lo));
+                    case (null, ?_) return #err("first character after % is not a hex digit");
+                    case (?_, null) return #err("second character after % is not a hex digit");
+                    case (null, null) return #err("neither character after % is a hex digit");
+                  };
+                };
+              };
+            };
+          };
+        };
+        case (?c) decoded #= Char.toText(c);
+      };
+    };
+  };
+
+  private func hexCharAsNibble(c: Char): ?Nat32 {
+    let n = Char.toNat32(c);
+
+    let asDigit = n -% Char.toNat32('0');
+    if (asDigit <= (9 : Nat32)) {
+      return ?asDigit;
+    };
+
+    let asLowerHexDigit = n -% Char.toNat32('a');
+    if (asLowerHexDigit <= (5 : Nat32)) {
+      return ?(0xA + asLowerHexDigit);
+    };
+
+    let asUpperHexDigit = n -% Char.toNat32('A');
+    if (asUpperHexDigit <= (5 : Nat32)) {
+      return ?(0xA + asUpperHexDigit);
+    };
+
+    null
+  };
 };

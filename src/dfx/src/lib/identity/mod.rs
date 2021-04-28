@@ -12,18 +12,17 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
-use ic_agent::identity::BasicIdentity;
+use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::{InstallMode, MemoryAllocation};
+use ic_utils::interfaces::management_canister::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, Wallet};
 use ic_utils::Canister;
 use serde::{Deserialize, Serialize};
 use slog::info;
 use std::collections::BTreeMap;
-use std::convert::TryFrom;
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -38,7 +37,6 @@ pub use identity_manager::{
 const IDENTITY_PEM: &str = "identity.pem";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
-const DEFAULT_MEM_ALLOCATION: u64 = 40000000_u64; // 40 MB
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
@@ -118,6 +116,23 @@ impl Identity {
         })
     }
 
+    fn load_secp256k1_identity(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
+        let dir = manager.get_identity_dir_path(name);
+        let pem_path = dir.join(IDENTITY_PEM);
+        let inner = Box::new(Secp256k1Identity::from_pem_file(&pem_path).map_err(|e| {
+            DfxError::new(IdentityError::CannotReadIdentityFile(
+                pem_path.clone(),
+                Box::new(DfxError::new(e)),
+            ))
+        })?);
+
+        Ok(Self {
+            name: name.to_string(),
+            inner,
+            dir: manager.get_identity_dir_path(name),
+        })
+    }
+
     fn load_hardware_identity(
         manager: &IdentityManager,
         name: &str,
@@ -149,7 +164,8 @@ impl Identity {
                 })?;
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            Identity::load_basic_identity(manager, name)
+            Identity::load_secp256k1_identity(manager, name)
+                .or_else(|_| Identity::load_basic_identity(manager, name))
         }
     }
 
@@ -344,9 +360,6 @@ impl Identity {
 
                 mgr.install_code(&canister_id, wasm.as_slice())
                     .with_mode(InstallMode::Install)
-                    .with_memory_allocation(MemoryAllocation::try_from(DEFAULT_MEM_ALLOCATION).expect(
-                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
-                    ))
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
                     .await?;
 

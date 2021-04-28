@@ -2,6 +2,7 @@ type EventKind = variant {
   CyclesSent: record {
     to: principal;
     amount: nat64;
+    refund: nat64;
   };
   CyclesReceived: record {
     from: principal;
@@ -55,6 +56,21 @@ type AddressEntry = record {
   role: Role;
 };
 
+type ResultCreate = variant {
+  Ok : record { canister_id: principal };
+  Err: text;
+};
+
+type ResultSend = variant {
+  Ok : null;
+  Err : text;
+};
+
+type ResultCall = variant {
+  Ok : record { return: blob };
+  Err : text;
+};
+
 service : {
   // Wallet Name
   name: () -> (opt text) query;
@@ -72,19 +88,19 @@ service : {
 
   // Cycle Management
   wallet_balance: () -> (record { amount: nat64 }) query;
-  wallet_send: (record { canister: principal; amount: nat64 }) -> ();
-  wallet_receive: () -> (record { accepted: nat64 });  // Endpoint for receiving cycles.
+  wallet_send: (record { canister: principal; amount: nat64 }) -> (ResultSend);
+  wallet_receive: () -> ();  // Endpoint for receiving cycles.
 
   // Managing canister
   wallet_create_canister: (record {
     cycles: nat64;
     controller: opt principal;  // If omitted, set the controller to this wallet.
-  }) -> (record { canister_id: principal });
+  }) -> (ResultCreate);
 
   wallet_create_wallet: (record {
     cycles: nat64;
     controller: opt principal;  // If omitted, set the controller to this wallet.
-  }) -> (record {canister_id: principal });
+  }) -> (ResultCreate);
 
   wallet_store_wallet_wasm: (record {
     wasm_module: blob;
@@ -96,7 +112,7 @@ service : {
     method_name: text;
     args: blob;
     cycles: nat64;
-  }) -> (record { return: blob });
+  }) -> (ResultCall);
 
   // Address book
   add_address: (address: AddressEntry) -> ();
@@ -105,5 +121,5 @@ service : {
 
   // Events
   get_events: (opt record { from: opt nat32; to: opt nat32; }) -> (vec Event) query;
-  get_chart: (opt record { count: nat32; precision: nat64; } ) -> (vec record { nat64; nat64; }) query;
+  get_chart: (opt record { count: opt nat32; precision: opt nat64; } ) -> (vec record { nat64; nat64; }) query;
 }

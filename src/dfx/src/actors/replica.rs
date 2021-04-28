@@ -1,4 +1,5 @@
 use crate::actors::replica::signals::ReplicaRestarted;
+use crate::actors::replica_webserver_coordinator::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -19,20 +20,6 @@ use std::time::Duration;
 
 pub mod signals {
     use actix::prelude::*;
-
-    pub mod outbound {
-        use super::*;
-
-        #[derive(Message)]
-        #[rtype(result = "()")]
-        pub struct ReplicaReadySignal {
-            pub port: u16,
-        }
-    }
-
-    #[derive(Message)]
-    #[rtype(result = "()")]
-    pub struct PortReadySubscribe(pub Recipient<outbound::ReplicaReadySignal>);
 
     /// A message sent to the Replica when the process is restarted. Since we're
     /// restarting inside our own actor, this message should not be exposed.
@@ -60,11 +47,11 @@ pub struct Config {
 ///
 /// Signals
 ///   - PortReadySubscribe
-///     Subscribe a recipient (address) to receive a ReplicaReadySignal message when
+///     Subscribe a recipient (address) to receive a PortReadySignal message when
 ///     the replica is ready to listen to a port. The message can be sent multiple
 ///     times (e.g. if the replica crashes).
 ///     If a replica is already started and another actor sends this message, a
-///     ReplicaReadySignal will be sent free of charge in the same thread.
+///     PortReadySignal will be sent free of charge in the same thread.
 pub struct Replica {
     logger: Logger,
     config: Config,
@@ -75,7 +62,7 @@ pub struct Replica {
     thread_join: Option<JoinHandle<()>>,
 
     /// Ready Signal subscribers.
-    ready_subscribers: Vec<Recipient<signals::outbound::ReplicaReadySignal>>,
+    ready_subscribers: Vec<Recipient<PortReadySignal>>,
 }
 
 impl Replica {
@@ -145,7 +132,7 @@ impl Replica {
 
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(signals::outbound::ReplicaReadySignal { port });
+            let _ = sub.do_send(PortReadySignal { port });
         }
     }
 }
@@ -177,15 +164,13 @@ impl Actor for Replica {
     }
 }
 
-impl Handler<signals::PortReadySubscribe> for Replica {
+impl Handler<PortReadySubscribe> for Replica {
     type Result = ();
 
-    fn handle(&mut self, msg: signals::PortReadySubscribe, _: &mut Self::Context) {
+    fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
-            let _ = msg
-                .0
-                .do_send(signals::outbound::ReplicaReadySignal { port });
+            let _ = msg.0.do_send(PortReadySignal { port });
         }
 
         self.ready_subscribers.push(msg.0);
@@ -280,6 +265,8 @@ fn replica_start_thread(
             config.state_manager.state_root.to_str().unwrap_or_default(),
             "--create-funds-whitelist",
             "*",
+            "--consensus-pool-backend",
+            "rocksdb",
         ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);

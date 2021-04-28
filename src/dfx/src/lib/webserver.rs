@@ -18,17 +18,20 @@ use actix_web::{
     http, middleware, web, App, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer,
 };
 use anyhow::anyhow;
+use candid::parser::value::IDLValue;
 use crossbeam::channel::Sender;
 use futures::StreamExt;
-use ic_agent::agent::AgentError;
-use ic_agent::Agent;
+use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::http_request::HeaderField;
+use ic_utils::interfaces::http_request::StreamingStrategy::Callback;
+use ic_utils::interfaces::HttpRequestCanister;
+use ic_utils::Canister;
 use serde::Deserialize;
 use slog::{debug, info, trace, Logger};
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use url::Url;
@@ -280,7 +283,7 @@ async fn http_request(
         data.providers[count % data.providers.len()].clone()
     };
 
-    let transport = http_transport::ReqwestHttpReplicaV1Transport::create(url.to_string())
+    let transport = http_transport::ReqwestHttpReplicaV2Transport::create(url.to_string())
         .map_err(|err| {
             actix_web::error::InternalError::new(err, StatusCode::INTERNAL_SERVER_ERROR)
         })?;
@@ -329,7 +332,7 @@ async fn http_request(
     );
 
     match canister
-        .http_request(method, uri, headers, body)
+        .http_request(method, uri, headers, &body)
         .call()
         .await
     {
@@ -357,7 +360,38 @@ async fn http_request(
                 for HeaderField(name, value) in http_response.headers {
                     builder.header(&name, value);
                 }
-                Ok(builder.body(http_response.body))
+
+                if let Some(streaming_strategy) = http_response.streaming_strategy {
+                    match streaming_strategy {
+                        Callback(callback) => match callback.callback {
+                            IDLValue::Func(canister_id, function_name) => {
+                                let streaming_canister =
+                                    ic_utils::interfaces::HttpRequestCanister::create(
+                                        &agent,
+                                        canister_id.clone(),
+                                    );
+                                match get_whole_body(
+                                    &streaming_canister,
+                                    &function_name,
+                                    callback.token,
+                                    http_response.body,
+                                )
+                                .await
+                                {
+                                    Err(err) => {
+                                        Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                                            .body(format!("Details: {:?}", err)))
+                                    }
+                                    Ok(body) => Ok(builder.body(body)),
+                                }
+                            }
+                            _ => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                                .body("Callback must be a function")),
+                        },
+                    }
+                } else {
+                    Ok(builder.body(http_response.body))
+                }
             } else {
                 Ok(
                     HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR).body(format!(
@@ -370,6 +404,29 @@ async fn http_request(
     }
 }
 
+// TODO: https://github.com/dfinity/sdk/issues/1524 Use HttpResponseBuilder.streaming()
+async fn get_whole_body(
+    canister: &Canister<'_, HttpRequestCanister>,
+    function_name: &str,
+    token: IDLValue,
+    body: Vec<u8>,
+) -> Result<Vec<u8>, AgentError> {
+    let mut body = body;
+
+    let mut maybe_next_token = Some(token);
+    while let Some(next_token) = maybe_next_token {
+        let (response,) = canister
+            .http_request_stream_callback(function_name, next_token)
+            .call()
+            .await?;
+        let mut add_body = response.body;
+        body.append(&mut add_body);
+        maybe_next_token = response.token;
+    }
+
+    Ok(body)
+}
+
 /// Run the webserver in the current thread.
 pub fn run_webserver(
     logger: Logger,
@@ -377,7 +434,6 @@ pub fn run_webserver(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     providers: Vec<url::Url>,
-    _serve_dir: PathBuf,
 ) -> DfxResult<Server> {
     const SHUTDOWN_WAIT_TIME: u64 = 60;
     info!(logger, "binding to: {:?}", bind);
@@ -451,7 +507,6 @@ pub fn webserver(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     clients_api_uri: Vec<url::Url>,
-    _serve_dir: &Path,
     inform_parent: Sender<Server>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     // Verify that we cannot bind to a port that we forward to.
@@ -480,7 +535,6 @@ pub fn webserver(
                     network_descriptor,
                     bind,
                     clients_api_uri,
-                    PathBuf::new(),
                 )
                 .unwrap();
 

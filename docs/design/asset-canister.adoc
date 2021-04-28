@@ -49,6 +49,7 @@ Store per asset:
 * Content for one or more content encodings
 ** Content encoding
 ** The actual content (bytes)
+** A sha256 of the content, calculated by dfx.  The asset canister treats this as opaque data.
 *** Split up into chunks for retrieval
 
 === Implementation
@@ -158,6 +159,7 @@ type SetAssetContentArguments = record {
   key: Key;
   content_encoding: text;
   chunk_ids: vec ChunkId;
+  sha256: opt blob;
 };
 
 // Remove content for an asset, by content encoding
@@ -202,21 +204,23 @@ type BatchOperationKind = variant {
 service: {
 
   get: (record {
-    key: Key,
-    accept_encodings: vec text
+    key: Key;
+    accept_encodings: vec text;
   }) -> (record {
     content: blob; // may be the entirety of the content, or just chunk index 0
     content_type: text;
-    content_encoding: text,
-    total_length: nat // all chunks except last have size == content.size()
+    content_encoding: text;
+    sha256: opt blob; // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
+    total_length: nat; // all chunks except last have size == content.size()
   }) query;
 
   // if get() returned chunks > 1, call this to retrieve them.
   // chunks may or may not be split up at the same boundaries as presented to create_chunk().
   get_chunk: (record {
-    key: Key,
-    content_encoding: text,
-    index: nat
+    key: Key;
+    content_encoding: text;
+    index: nat;
+    sha256: opt blob;  // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
   }) -> (record { content: blob }) query;
 
   list: (record {}) -> (vec record {
@@ -224,6 +228,8 @@ service: {
     content_type: text;
     encodings: vec record {
       content_encoding: text;
+      sha256: opt blob; // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
+      length: nat; // Size of this encoding's blob. Calculated when uploading assets.
     };
   }) query;
 
@@ -247,7 +253,13 @@ service: {
 
   // Single call to create an asset with content for a single content encoding that
   // fits within the message ingress limit.
-  store: (record { key: Key; content_type: text; content_encoding: text; content: blob }) -> ();
+  store: (record {
+    key: Key;
+    content_type: text;
+    content_encoding: text;
+    content: blob;
+    sha256: opt blob
+  }) -> ();
 }
 
 ----

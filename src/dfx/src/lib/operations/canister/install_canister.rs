@@ -9,9 +9,10 @@ use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::Context;
 use ic_agent::Agent;
-use ic_types::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
+use ic_utils::interfaces::management_canister::{
+    CanisterInstall, ComputeAllocation, InstallMode, MemoryAllocation,
+};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
 use serde_bytes::ByteBuf;
@@ -41,9 +42,17 @@ pub async fn install_canister(
         "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
         canister_info.get_name().to_owned()
     ))?;
+
+    let mode_str = match mode {
+        InstallMode::Install => "Installing",
+        InstallMode::Reinstall => "Reinstalling",
+        InstallMode::Upgrade => "Upgrading",
+    };
+
     info!(
         log,
-        "Installing code for canister {}, with canister_id {}",
+        "{} code for canister {}, with canister_id {}",
+        mode_str,
         canister_info.get_name(),
         canister_id,
     );
@@ -76,17 +85,6 @@ pub async fn install_canister(
         }
         CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
             let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
-
-            #[derive(candid::CandidType)]
-            struct CanisterInstall {
-                mode: InstallMode,
-                canister_id: Principal,
-                wasm_module: ByteBuf,
-                arg: ByteBuf,
-                compute_allocation: Option<candid::Nat>,
-                memory_allocation: Option<candid::Nat>,
-            }
-
             let install_args = CanisterInstall {
                 mode,
                 canister_id: canister_id.clone(),

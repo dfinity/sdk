@@ -37,15 +37,15 @@ teardown() {
     assert_command dfx canister --no-wallet call --async hello greet Blueberry
     # At this point $output is the request ID.
     # shellcheck disable=SC2154
-    assert_command dfx canister request-status "$stdout"
+    assert_command dfx canister request-status "$stdout" "$(dfx canister id hello)"
     assert_eq '("Hello, Blueberry!")'
 
     # Call using the wallet's call forwarding
     assert_command dfx canister call --async hello greet Blueberry
     # At this point $output is the request ID.
     # shellcheck disable=SC2154
-    assert_command dfx canister request-status "$stdout"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01q\11Hello, Blueberry!" })'
+    assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
+    assert_eq '( variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01q\11Hello, Blueberry!" } }, )'
 }
 
 @test "build + install + call + request-status -- counter_mo" {
@@ -80,7 +80,7 @@ teardown() {
     assert_eq "(3)"
 
     assert_command dfx canister call hello inc --async
-    assert_command dfx canister request-status "$stdout"
+    assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
 
     # Call write.
     assert_command dfx canister call hello write 1337
@@ -89,13 +89,13 @@ teardown() {
     # Write has no return value. But we can _call_ read too.
     # Call with user Identity as Sender
     assert_command dfx canister --no-wallet call hello read --async
-    assert_command dfx canister request-status "$stdout"
+    assert_command dfx canister request-status "$stdout" "$(dfx canister id hello)"
     assert_eq "(1_337)"
 
     # Call using the wallet's call forwarding
     assert_command dfx canister call hello read --async
-    assert_command dfx canister request-status "$stdout"
-    assert_eq '(record { 153_986_224 = blob "DIDL\00\01}\b9\0a" })'
+    assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01}\b9\0a" } })'
 
 }
 

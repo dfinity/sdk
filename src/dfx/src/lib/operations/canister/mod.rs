@@ -6,6 +6,7 @@ pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
 pub use install_canister::install_canister;
 
+use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -14,15 +15,17 @@ use crate::lib::waiter::waiter_with_timeout;
 use anyhow::anyhow;
 use candid::de::ArgumentDecoder;
 use candid::CandidType;
+use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::CanisterStatus;
+use ic_utils::interfaces::management_canister::StatusCallResult;
 use ic_utils::interfaces::ManagementCanister;
-use serde::Deserialize;
+use std::path::PathBuf;
 use std::time::Duration;
 
 async fn do_management_call<A, O>(
     env: &dyn Environment,
+    destination_canister: Principal,
     method: &str,
     arg: A,
     timeout: Duration,
@@ -41,6 +44,7 @@ where
         CallSender::SelectedId => {
             mgr.update_(method)
                 .with_arg(arg)
+                .with_effective_canister_id(destination_canister)
                 .build()
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?
@@ -63,26 +67,22 @@ pub async fn get_canister_status(
     canister_id: Principal,
     timeout: Duration,
     call_sender: &CallSender,
-) -> DfxResult<CanisterStatus> {
+) -> DfxResult<StatusCallResult> {
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
     }
 
-    #[derive(Deserialize)]
-    struct Out {
-        status: CanisterStatus,
-    }
-
-    let (out,): (Out,) = do_management_call(
+    let (out,): (StatusCallResult,) = do_management_call(
         env,
+        canister_id.clone(),
         "canister_status",
         In { canister_id },
         timeout,
         call_sender,
     )
     .await?;
-    Ok(out.status)
+    Ok(out)
 }
 
 pub async fn start_canister(
@@ -98,6 +98,7 @@ pub async fn start_canister(
 
     let _: () = do_management_call(
         env,
+        canister_id.clone(),
         "start_canister",
         In { canister_id },
         timeout,
@@ -120,6 +121,7 @@ pub async fn stop_canister(
 
     let _: () = do_management_call(
         env,
+        canister_id.clone(),
         "stop_canister",
         In { canister_id },
         timeout,
@@ -144,6 +146,7 @@ pub async fn set_controller(
 
     let _: () = do_management_call(
         env,
+        canister_id.clone(),
         "set_controller",
         In {
             canister_id,
@@ -168,6 +171,7 @@ pub async fn delete_canister(
     }
     let _: () = do_management_call(
         env,
+        canister_id.clone(),
         "delete_canister",
         In { canister_id },
         timeout,
@@ -176,4 +180,17 @@ pub async fn delete_canister(
     .await?;
 
     Ok(())
+}
+
+pub fn get_local_cid_and_candid_path(
+    env: &dyn Environment,
+    canister_name: &str,
+    maybe_canister_id: Option<CanisterId>,
+) -> DfxResult<(CanisterId, Option<PathBuf>)> {
+    let config = env.get_config_or_anyhow()?;
+    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
+    Ok((
+        canister_info.get_canister_id()?,
+        canister_info.get_output_idl_path(),
+    ))
 }

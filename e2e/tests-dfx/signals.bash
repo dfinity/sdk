@@ -26,11 +26,12 @@ dfx_replica_kills_replica() {
 
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
+    dfx_patchelf
     dfx replica --port 0 &
     DFX_PID=$!
 
     # wait for replica to start
-    assert_file_eventually_exists .dfx/config/port.txt 15s
+    assert_file_eventually_exists .dfx/replica-configuration/replica-1.port 15s
 
     kill -"$signal" "$DFX_PID"
 
