@@ -10,7 +10,7 @@ use anyhow::{anyhow, bail};
 use clap::Clap;
 use ic_agent::AgentError;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::InstallMode;
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use std::io::Read;
 
