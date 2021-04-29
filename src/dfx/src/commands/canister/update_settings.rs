@@ -1,5 +1,4 @@
 use crate::config::dfinity::ConfigInterface;
-// use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -108,10 +107,8 @@ pub async fn exec(
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     if let Some(canister_name_or_id) = opts.canister_name.as_deref() {
-        let canister_id = match CanisterId::from_text(canister_name_or_id) {
-            Ok(id) => id,
-            Err(_) => canister_id_store.get(canister_name_or_id)?,
-        };
+        let canister_id = CanisterId::from_text(canister_name_or_id)
+            .unwrap_or_else(||canister_id_store.get(canister_name_or_id)?);
         let textual_cid = canister_id.to_text();
         let canister_name = canister_id_store
             .get_name(&textual_cid)
