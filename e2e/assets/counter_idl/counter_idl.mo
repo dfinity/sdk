@@ -4,14 +4,14 @@ import Prim "mo:prim";
 actor {
     public type List<T> = ?{head : T; tail : List<T>};
     public type List2<T> = { #nil; #cons: (T, List2<T>) };
-    
-    func map(l: List<Int>) : List<Int> = {
+
+    func map(l: List<Int>) : List<Int> {
         switch l {
           case null { null };
           case (?v) { ?{head=v.head+1; tail=map(v.tail)} };
         }
     };
-    func map2(l: List2<Int>) : List2<Int> = {
+    func map2(l: List2<Int>) : List2<Int> {
          switch l {
            case (#nil) { #nil };
            case (#cons(h, tl)) { #cons(h+1, map2 tl) };

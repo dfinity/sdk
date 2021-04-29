@@ -1,6 +1,6 @@
 import P "mo:base/Principal";
 
-shared {caller} actor class () = Self {
+shared({caller}) actor class () = Self {
     private let initializer : Principal = caller;
 
     public shared(msg) func fromCall(): async Principal {
