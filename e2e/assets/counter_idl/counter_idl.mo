@@ -1,5 +1,6 @@
 import A "mo:base/Array";
-import Prim "mo:prim";
+import C "mo:base/Char";
+import T "mo:base/Text";
 
 actor {
     public type List<T> = ?{head : T; tail : List<T>};
@@ -26,8 +27,8 @@ actor {
 
         var text = "";
         for (c in str.chars()) {
-            let c2 = Prim.word32ToChar(Prim.charToWord32(c)+1);
-            text := text # Prim.charToText(c2);
+            let c2 = C.fromNat32(C.toNat32(c)+1);
+            text := text # T.fromChar(c2);
         };
         return (i+1, not b, text, arr, map(l), map2(l2));
     };
