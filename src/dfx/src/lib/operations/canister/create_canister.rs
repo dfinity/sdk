@@ -113,7 +113,13 @@ pub async fn create_canister(
                             |amount| amount.parse::<u64>().unwrap(),
                         );
                         wallet
-                            .wallet_create_canister(cycles, None)
+                            .wallet_create_canister(
+                                cycles,
+                                controller,
+                                compute_allocation,
+                                memory_allocation,
+                                freezing_threshold,
+                            )
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?
                             .0
