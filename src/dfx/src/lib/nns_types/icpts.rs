@@ -197,7 +197,7 @@ impl FromStr for ICPTs {
         match Decimal::from_str(s) {
             Ok(amount) => {
                 if amount.scale() > DECIMAL_PLACES {
-                    return Err("Doms only go to e8".to_string());
+                    return Err("e8s can only be specified to the 8th decimal.".to_string());
                 }
                 let icpts = match amount.trunc().to_string().parse::<u64>() {
                     Ok(v) => v,
