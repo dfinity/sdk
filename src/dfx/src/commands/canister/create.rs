@@ -105,10 +105,20 @@ pub async fn exec(
 
     let config_interface = config.get_config();
 
-    let controller = if let Some(controller) = opts.controller {
-        match CanisterId::from_text(controller) {
+    let controller = if let Some(controller) = opts.controller.clone() {
+        match CanisterId::from_text(controller.clone()) {
             Ok(principal) => Some(principal),
-            Err(_) => env.get_selected_identity_principal(),
+            Err(_) => {
+                let current_id = env.get_selected_identity().unwrap();
+                if current_id == &controller {
+                    Some(env.get_selected_identity_principal().unwrap())
+                } else {
+                    let identity_name = &controller;
+                    let sender = IdentityManager::new(env)?
+                        .instantiate_identity_from_name(&identity_name.clone())?;
+                    Some(sender.sender().map_err(|err| anyhow!(err))?)
+                }
+            }
         }
     } else {
         None
