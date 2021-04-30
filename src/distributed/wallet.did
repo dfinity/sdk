@@ -71,6 +71,18 @@ type ResultCall = variant {
   Err : text;
 };
 
+type CanisterSettings = record {
+  controller: opt principal;
+  compute_allocation: opt nat;
+  memory_allocation: opt nat;
+  freezing_threshold: opt nat;
+};
+
+type CreateCanisterArgs = record {
+  cycles: nat64;
+  settings: CanisterSettings;
+};
+
 service : {
   // Wallet Name
   name: () -> (opt text) query;
@@ -92,15 +104,9 @@ service : {
   wallet_receive: () -> ();  // Endpoint for receiving cycles.
 
   // Managing canister
-  wallet_create_canister: (record {
-    cycles: nat64;
-    controller: opt principal;  // If omitted, set the controller to this wallet.
-  }) -> (ResultCreate);
+  wallet_create_canister: (CreateCanisterArgs) -> (ResultCreate);
 
-  wallet_create_wallet: (record {
-    cycles: nat64;
-    controller: opt principal;  // If omitted, set the controller to this wallet.
-  }) -> (ResultCreate);
+  wallet_create_wallet: (CreateCanisterArgs) -> (ResultCreate);
 
   wallet_store_wallet_wasm: (record {
     wasm_module: blob;

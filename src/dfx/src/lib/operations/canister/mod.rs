@@ -9,6 +9,7 @@ pub use install_canister::install_canister;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::waiter::waiter_with_timeout;
@@ -18,6 +19,7 @@ use candid::CandidType;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
+use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::StatusCallResult;
 use ic_utils::interfaces::ManagementCanister;
 use std::path::PathBuf;
@@ -131,26 +133,39 @@ pub async fn stop_canister(
     Ok(())
 }
 
-pub async fn set_controller(
+pub async fn update_settings(
     env: &dyn Environment,
     canister_id: Principal,
-    new_controller: Principal,
+    settings: DfxCanisterSettings,
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
-    #[derive(CandidType)]
+    #[derive(candid::CandidType)]
     struct In {
         canister_id: Principal,
-        new_controller: Principal,
+        settings: CanisterSettings,
     }
-
     let _: () = do_management_call(
         env,
         canister_id.clone(),
-        "set_controller",
+        "update_settings",
         In {
             canister_id,
-            new_controller,
+            settings: CanisterSettings {
+                controller: settings.controller,
+                compute_allocation: settings
+                    .compute_allocation
+                    .map(u8::from)
+                    .map(candid::Nat::from),
+                memory_allocation: settings
+                    .memory_allocation
+                    .map(u64::from)
+                    .map(candid::Nat::from),
+                freezing_threshold: settings
+                    .freezing_threshold
+                    .map(u64::from)
+                    .map(candid::Nat::from),
+            },
         },
         timeout,
         call_sender,
