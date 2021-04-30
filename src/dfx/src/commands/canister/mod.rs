@@ -14,11 +14,11 @@ mod info;
 mod install;
 mod request_status;
 mod send;
-mod set_controller;
 mod sign;
 mod start;
 mod status;
 mod stop;
+mod update_settings;
 
 /// Manages canisters deployed on a network replica.
 #[derive(Clap)]
@@ -55,11 +55,11 @@ enum SubCommand {
     Install(install::CanisterInstallOpts),
     RequestStatus(request_status::RequestStatusOpts),
     Send(send::CanisterSendOpts),
-    SetController(set_controller::SetControllerOpts),
     Sign(sign::CanisterSignOpts),
     Start(start::CanisterStartOpts),
     Status(status::CanisterStatusOpts),
     Stop(stop::CanisterStopOpts),
+    UpdateSettings(update_settings::UpdateSettingsOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
@@ -76,11 +76,13 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Info(v) => info::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
             SubCommand::Send(v) => send::exec(&agent_env, v, &call_sender).await,
-            SubCommand::SetController(v) => set_controller::exec(&agent_env, v, &call_sender).await,
             SubCommand::Sign(v) => sign::exec(&agent_env, v, &call_sender).await,
             SubCommand::Start(v) => start::exec(&agent_env, v, &call_sender).await,
             SubCommand::Status(v) => status::exec(&agent_env, v, &call_sender).await,
             SubCommand::Stop(v) => stop::exec(&agent_env, v, &call_sender).await,
+            SubCommand::UpdateSettings(v) => {
+                update_settings::exec(&agent_env, v, &call_sender).await
+            }
         }
     })
 }

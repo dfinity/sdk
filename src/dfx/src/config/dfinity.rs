@@ -279,6 +279,10 @@ impl ConfigInterface {
         self.get_initialization_value(canister_name, "memory_allocation")
     }
 
+    pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<String>> {
+        self.get_initialization_value(canister_name, "freezing_threshold")
+    }
+
     fn get_initialization_value(
         &self,
         canister_name: &str,

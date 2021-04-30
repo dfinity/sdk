@@ -243,7 +243,7 @@ CHERRIES" "$stdout"
     dfx_start
     dfx canister --no-wallet create --all
     dfx build
-    dfx canister --no-wallet install --memory-allocation 15mb e2e_project_assets
+    dfx canister --no-wallet install e2e_project_assets
 
     # retrieve() refuses to serve just part of an asset
     assert_command_fail dfx canister call --query e2e_project_assets retrieve '("/large-asset.bin")'
