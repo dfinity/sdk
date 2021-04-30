@@ -35,10 +35,13 @@ async fn canister_status(
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nController: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
+    info!(log, "Canister status call result for {}.\nStatus: {}\nController: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
         canister_name,
         status.status,
-        status.controller.to_text(),
+        status.settings.controller,
+        status.settings.memory_allocation,
+        status.settings.compute_allocation,
+        status.settings.freezing_threshold,
         status.memory_size,
         status.cycles,
         status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v)))

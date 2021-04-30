@@ -14,7 +14,8 @@ use candid::{CandidType, Decode, Deserialize};
 use clap::{ArgSettings, Clap};
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::canister::{Argument, Canister};
-use ic_utils::interfaces::management_canister::{CanisterInstall, MgmtMethod};
+use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
+use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::Wallet;
 use std::option::Option;
@@ -123,11 +124,11 @@ pub fn get_effective_canister_id(
                 let install_args = candid::Decode!(arg_value, CanisterInstall)?;
                 Ok(install_args.canister_id)
             }
-            MgmtMethod::SetController => {
+            MgmtMethod::UpdateSettings => {
                 #[derive(CandidType, Deserialize)]
                 struct In {
                     canister_id: CanisterId,
-                    new_controller: CanisterId,
+                    settings: CanisterSettings,
                 }
                 let in_args = candid::Decode!(arg_value, In)?;
                 Ok(in_args.canister_id)
@@ -137,6 +138,7 @@ pub fn get_effective_canister_id(
             | MgmtMethod::CanisterStatus
             | MgmtMethod::DeleteCanister
             | MgmtMethod::DepositCycles
+            | MgmtMethod::UninstallCode
             | MgmtMethod::ProvisionalTopUpCanister => {
                 #[derive(CandidType, Deserialize)]
                 struct In {

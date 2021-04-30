@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -25,6 +26,7 @@ pub async fn create_canister(
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
+    settings: CanisterSettings,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
@@ -66,13 +68,22 @@ pub async fn create_canister(
                     if network.is_ic {
                         // Provisional commands are whitelisted on production
                         mgr.create_canister()
+                            .with_optional_controller(settings.controller)
+                            .with_optional_compute_allocation(settings.compute_allocation)
+                            .with_optional_memory_allocation(settings.memory_allocation)
+                            .with_optional_freezing_threshold(settings.freezing_threshold)
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?
                             .0
                     } else {
                         // amount has been validated by cycle_amount_validator
                         let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
-                        mgr.provisional_create_canister_with_cycles(cycles)
+                        mgr.create_canister()
+                            .as_provisional_create_with_amount(cycles)
+                            .with_optional_controller(settings.controller)
+                            .with_optional_compute_allocation(settings.compute_allocation)
+                            .with_optional_memory_allocation(settings.memory_allocation)
+                            .with_optional_freezing_threshold(settings.freezing_threshold)
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?
                             .0
@@ -95,7 +106,13 @@ pub async fn create_canister(
                             |amount| amount.parse::<u64>().unwrap(),
                         );
                         wallet
-                            .wallet_create_canister(cycles, None)
+                            .wallet_create_canister(
+                                cycles,
+                                settings.controller,
+                                settings.compute_allocation,
+                                settings.memory_allocation,
+                                settings.freezing_threshold,
+                            )
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?
                             .0
@@ -104,7 +121,6 @@ pub async fn create_canister(
                     }
                 }
             };
-
             let canister_id = cid.to_text();
             info!(
                 log,

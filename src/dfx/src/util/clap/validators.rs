@@ -43,6 +43,15 @@ pub fn memory_allocation_validator(memory_allocation: &str) -> Result<(), String
     Err("Must be a value between 0..256 TB inclusive.".to_string())
 }
 
+pub fn freezing_threshold_validator(freezing_threshold: &str) -> Result<(), String> {
+    if let Ok(num) = freezing_threshold.parse::<u128>() {
+        if num <= (2_u128.pow(64) - 1) {
+            return Ok(());
+        }
+    }
+    Err("Must be a value between 0 and 2^64-1 inclusive".to_string())
+}
+
 /// Validate a String can be a valid project name.
 /// A project name is valid if it starts with a letter, and is alphanumeric (with hyphens).
 /// It cannot end with a dash.

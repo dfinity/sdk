@@ -3,6 +3,7 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -12,7 +13,10 @@ use crate::util::{blob_from_arguments, get_candid_init_type};
 use anyhow::{anyhow, bail};
 use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
-use ic_utils::interfaces::management_canister::{ComputeAllocation, InstallMode, MemoryAllocation};
+use ic_utils::interfaces::management_canister::attributes::{
+    ComputeAllocation, FreezingThreshold, MemoryAllocation,
+};
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
@@ -47,6 +51,7 @@ pub async fn deploy_canisters(
         timeout,
         with_cycles,
         call_sender,
+        &config,
     )
     .await?;
 
@@ -84,6 +89,7 @@ async fn register_canisters(
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
+    config: &Config,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -95,7 +101,49 @@ async fn register_canisters(
     } else {
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
-            create_canister(env, &canister_name, timeout, with_cycles, &call_sender).await?;
+            let config_interface = config.get_config();
+            let compute_allocation =
+                config_interface
+                    .get_compute_allocation(canister_name)?
+                    .map(|arg| {
+                        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+                            .expect("Compute Allocation must be a percentage.")
+                    });
+            let memory_allocation =
+                config_interface
+                    .get_memory_allocation(canister_name)?
+                    .map(|arg| {
+                        MemoryAllocation::try_from(
+                        u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
+                    )
+                    .expect(
+                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                    )
+                    });
+            let freezing_threshold =
+                config_interface
+                    .get_freezing_threshold(canister_name)?
+                    .map(|arg| {
+                        FreezingThreshold::try_from(
+                            u128::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
+                        )
+                        .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
+                    });
+            let controller = None;
+            create_canister(
+                env,
+                &canister_name,
+                timeout,
+                with_cycles,
+                &call_sender,
+                CanisterSettings {
+                    controller,
+                    compute_allocation,
+                    memory_allocation,
+                    freezing_threshold,
+                },
+            )
+            .await?;
         }
     }
     Ok(())
@@ -154,31 +202,12 @@ async fn install_canisters(
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
         let install_args = blob_from_arguments(argument, None, argument_type, &init_type)?;
 
-        let config_interface = config.get_config();
-        let compute_allocation =
-            config_interface
-                .get_compute_allocation(canister_name)?
-                .map(|arg| {
-                    ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
-                        .expect("Compute Allocation must be a percentage.")
-                });
-        let memory_allocation = config_interface
-            .get_memory_allocation(canister_name)?
-            .map(|arg| {
-                MemoryAllocation::try_from(
-                    u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
-                )
-                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
-            });
-
         install_canister(
             env,
             &agent,
             &canister_info,
             &install_args,
-            compute_allocation,
             install_mode,
-            memory_allocation,
             timeout,
             &call_sender,
         )

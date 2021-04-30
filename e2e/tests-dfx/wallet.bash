@@ -24,14 +24,14 @@ teardown() {
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create dummy_canister1
-    ID=$(dfx canister --network actuallylocal id dummy_canister1)
-    dfx canister --network actuallylocal create dummy_canister2
-    ID_TWO=$(dfx canister --network actuallylocal id dummy_canister2)
+    dfx canister --network actuallylocal create hello
+    ID=$(dfx canister --network actuallylocal id hello)
+    dfx canister --network actuallylocal create hello_assets
+    ID_TWO=$(dfx canister --network actuallylocal id hello_assets)
 
     # set controller to user
-    dfx canister --network actuallylocal set-controller dummy_canister1 "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal set-controller dummy_canister2 "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
@@ -49,7 +49,7 @@ teardown() {
     dfx_new
     dfx_start
     WALLET_ID=$(dfx identity get-wallet)
-    CREATE_RES=$(dfx canister --no-wallet call "${WALLET_ID}" wallet_create_wallet "(record { cycles = (2000000000000:nat64); controller = opt principal \"$(dfx identity get-principal)\";})")
+    CREATE_RES=$(dfx canister --no-wallet call "${WALLET_ID}" wallet_create_wallet "(record { cycles = (2000000000000:nat64); settings = record {controller = opt principal \"$(dfx identity get-principal)\";};})")
     CHILD_ID=$(echo "${CREATE_RES}" | tr '\n' ' ' |  cut -d'"' -f 2)
     assert_command dfx canister --no-wallet call "${CHILD_ID}" wallet_balance '()'
 }

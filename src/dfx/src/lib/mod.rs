@@ -4,6 +4,7 @@ pub mod config;
 pub mod dist;
 pub mod environment;
 pub mod error;
+pub mod ic_attributes;
 pub mod identity;
 pub mod installers;
 pub mod locations;
