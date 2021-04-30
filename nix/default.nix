@@ -40,6 +40,13 @@ let
             {
               agent-rs = import self.sources.agent-rs { inherit (self) system; };
               motoko = import self.sources.motoko { inherit (self) system; };
+              agent-rs = self.naersk.buildPackage {
+                name = "agent-rs";
+                root = self.sources.agent-rs;
+                cargoBuildOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
+                cargoTestOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
+                buildInputs = [ self.openssl self.pkg-config ];
+              };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {
                 pkgs = self // { nodejs = self.nodejs-12_x; };

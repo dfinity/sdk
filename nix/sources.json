@@ -13,10 +13,10 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/1622-icx-proxy",
-        "repo": "ssh://git@github.com/dfinity/agent-rs",
-        "rev": "176e51aa053d297eec977019ba31c8a279caff4c",
-        "type": "git"
+       "branch": "paulliu/downgrade",
+       "repo": "https://github.com/ninegua/agent-rs",
+       "rev": "3ea33209a9e0376d23b5ef1d22ca2be5da1aa03a",
+       "type": "git"
     },
     "bats-support": {
         "branch": "v0.3.0",
