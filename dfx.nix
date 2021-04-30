@@ -71,6 +71,7 @@ let
         pkgs.mkCompositeShell {
           name = "dfinity-sdk-rust-env";
           nativeBuildInputs = [
+            pkgs.agent-rs # for icx and icx-proxy
             pkgs.rls
             # wabt-sys needs file in path, as well as cc (for cmake).
             pkgs.file
