@@ -4,18 +4,18 @@ load utils/_
 
 setup() {
     # We want to work from a temporary directory, different for every test.
-    cd $(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     # Each test gets its own home directory in order to have its own identities.
     mkdir $(pwd)/home-for-test
-    export HOME=$(pwd)/home-for-test
+    export HOME="$(pwd)"/home-for-test
 
     dfx_new hello
 }
 
 teardown() {
     dfx_stop
-    rm -rf $(pwd)/home-for-test
+    rm -rf "$(pwd)"/home-for-test
 }
 
 @test "update controller" {
@@ -51,15 +51,15 @@ teardown() {
 
     assert_command dfx identity use juana
     # Set controller using canister id and principal
-    assert_command dfx canister update-settings ${ID} --controller ${JOSE_PRINCIPAL}
+    assert_command dfx canister update-settings "${ID}" --controller "${JOSE_PRINCIPAL}"
     assert_match "Updated \"${JOSE_PRINCIPAL}\" as controller of \"${ID}\"."
     assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity jose canister update-settings hello --controller ${JUANA_PRINCIPAL}
+    assert_command dfx --identity jose canister update-settings hello --controller "${JUANA_PRINCIPAL}"
     assert_match "Updated \"${JUANA_PRINCIPAL}\" as controller of \"hello\"."
 
-    assert_command dfx --identity juana canister update-settings ${ID} --controller jose
+    assert_command dfx --identity juana canister update-settings "${ID}" --controller jose
     assert_match "Updated \"jose\" as controller of \"${ID}\"."
 
     # Set controller using invalid principal/identity fails
