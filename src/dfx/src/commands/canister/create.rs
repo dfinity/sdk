@@ -1,6 +1,7 @@
 use crate::config::dfinity::ConfigInterface;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -10,9 +11,10 @@ use crate::util::clap::validators::{
 };
 use crate::util::expiry_duration;
 
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use clap::Clap;
 use humanize_rs::bytes::Bytes;
+use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
