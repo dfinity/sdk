@@ -59,10 +59,10 @@ teardown() {
     assert_match "Updated \"alice\" as controller of \"${ID}\"."
 
     # Set controller using invalid principal/identity fails
-    assert_command_fail dfx --identity alice canister update-settings hello --controller charlie
+    assert_command_fail dfx --identity alice canister --no-wallet update-settings hello --controller charlie
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
-    assert_command_fail dfx --identity alice canister update-settings hello_assets --controller bob
+    assert_command_fail dfx --identity alice canister --no-wallet update-settings hello_assets --controller bob
     assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
 }
