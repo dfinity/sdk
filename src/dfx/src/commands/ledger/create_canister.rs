@@ -107,7 +107,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
             println!("Canister created with id: {:?}", v.to_text());
         }
         Err((msg, maybe_height)) => {
-            println!("Error: {}\nMaybe BlockHeight:{:?}", msg, maybe_height);
+            eprintln!("Error: {}\nBlockHeight:{:?}", msg, maybe_height);
         }
     };
     Ok(())
