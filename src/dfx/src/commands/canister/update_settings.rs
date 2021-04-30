@@ -1,6 +1,7 @@
 use crate::config::dfinity::ConfigInterface;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::update_settings;
@@ -13,6 +14,7 @@ use crate::util::expiry_duration;
 use anyhow::{anyhow, bail};
 use clap::Clap;
 use humanize_rs::bytes::Bytes;
+use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
@@ -96,9 +98,19 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     let controller = if let Some(controller) = opts.controller.clone() {
-        match CanisterId::from_text(controller) {
+        match CanisterId::from_text(controller.clone()) {
             Ok(principal) => Some(principal),
-            Err(_) => env.get_selected_identity_principal(),
+            Err(_) => {
+                let current_id = env.get_selected_identity().unwrap();
+                if current_id == &controller {
+                    Some(env.get_selected_identity_principal().unwrap())
+                } else {
+                    let identity_name = &controller;
+                    let sender = IdentityManager::new(env)?
+                        .instantiate_identity_from_name(&identity_name.clone())?;
+                    Some(sender.sender().map_err(|err| anyhow!(err))?)
+                }
+            }
         }
     } else {
         None
