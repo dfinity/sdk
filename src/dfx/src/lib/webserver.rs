@@ -2,7 +2,6 @@ use crate::error_unknown;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::locations::canister_did_location;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::named_canister;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
 
@@ -55,7 +54,6 @@ struct CandidData {
 struct HttpRequestData {
     pub bind: SocketAddr,
     pub logger: slog::Logger,
-    pub network_descriptor: NetworkDescriptor,
 }
 
 #[derive(Deserialize)]
@@ -246,27 +244,6 @@ fn resolve_canister_id(request: &HttpRequest) -> Option<Principal> {
     None
 }
 
-fn replace_uri(
-    request: &HttpRequest,
-    canister_id: &Principal,
-    ui_canister_id: &Principal,
-) -> Option<String> {
-    let canister_id = canister_id.to_text();
-    let ui_canister_id = ui_canister_id.to_text();
-    let mut host = request.headers().get("Host")?.to_str().ok()?.to_string();
-    eprintln!("{}", host);
-    if let Some(start) = host.find(&canister_id) {
-        host.replace_range(start..start + canister_id.len(), &ui_canister_id);
-        host.push_str(&format!("/?id={}", canister_id));
-    } else {
-        host.push_str(&format!(
-            "/?canisterId={}&id={}",
-            ui_canister_id, canister_id
-        ));
-    }
-    Some(host)
-}
-
 /// HTTP Request route. See
 /// https://www.notion.so/Design-HTTP-Canisters-Queries-d6bc980830a947a88bf9148a25169613
 async fn http_request(
@@ -309,7 +286,7 @@ async fn http_request(
 
     let method = req.method().to_string();
     let uri = req.uri().to_string();
-    let headers: Vec<_> = req
+    let headers = req
         .headers()
         .into_iter()
         .filter_map(|(name, value)| {
@@ -336,22 +313,6 @@ async fn http_request(
         .call()
         .await
     {
-        Err(AgentError::ReplicaError {
-            reject_code,
-            reject_message,
-        }) if reject_code == 3 && reject_message.find("http_request").is_some() => {
-            let network = &http_request_data.network_descriptor;
-            let id = named_canister::get_ui_canister_id(network).unwrap();
-            let uri = replace_uri(&req, &canister_id, &id).unwrap();
-            let scheme = String::from(if network.name == "local" {
-                "http://"
-            } else {
-                "https://"
-            });
-            Ok(HttpResponse::TemporaryRedirect()
-                .header("Location", scheme + &uri)
-                .finish())
-        }
         Err(err) => Ok(HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
             .body(format!("Details: {:?}", err))),
         Ok((http_response,)) => {
@@ -455,13 +416,11 @@ pub fn run_webserver(
     }));
     let candid_data = Arc::new(CandidData {
         build_output_root,
-        network_descriptor: network_descriptor.clone(),
+        network_descriptor,
     });
-
     let http_request_data = Arc::new(HttpRequestData {
         bind,
         logger: logger.clone(),
-        network_descriptor,
     });
 
     let handler =
