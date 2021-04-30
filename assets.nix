@@ -13,7 +13,6 @@ let
     cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
     cp ${pkgs.motoko.moc}/bin/moc $out
     cp ${pkgs.ic-ref}/bin/* $out
-    cp ${icx-proxy}/bin/icx-proxy $out
   '';
 in
 pkgs.runCommandNoCCLocal "assets" {} ''

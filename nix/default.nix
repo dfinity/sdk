@@ -38,7 +38,7 @@ let
             nixFmt = self.lib.nixFmt {};
           in
             {
-              agent-rs = import self.sources.agent-rs { inherit (self) system; };
+              #agent-rs = import self.sources.agent-rs { inherit (self) system; };
               motoko = import self.sources.motoko { inherit (self) system; };
               agent-rs = self.naersk.buildPackage {
                 name = "agent-rs";
