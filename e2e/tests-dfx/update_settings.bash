@@ -7,8 +7,9 @@ setup() {
     cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     # Each test gets its own home directory in order to have its own identities.
-    mkdir $(pwd)/home-for-test
-    export HOME="$(pwd)"/home-for-test
+    mkdir "$(pwd)"/home-for-test
+    HOME="$(pwd)"/home-for-test
+    export HOME
 
     dfx_new hello
 }
