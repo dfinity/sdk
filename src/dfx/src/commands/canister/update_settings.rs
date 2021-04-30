@@ -14,7 +14,7 @@ use crate::util::clap::validators::{
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
-use clap::Clap;
+use clap::{ArgSettings, Clap};
 use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
 
@@ -41,7 +41,7 @@ pub struct UpdateSettingsOpts {
     #[clap(long, validator(memory_allocation_validator))]
     memory_allocation: Option<String>,
 
-    #[clap(long, validator(freezing_threshold_validator))]
+    #[clap(long, validator(freezing_threshold_validator), setting = ArgSettings::Hidden)]
     freezing_threshold: Option<String>,
 }
 
