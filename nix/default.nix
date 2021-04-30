@@ -38,6 +38,7 @@ let
             nixFmt = self.lib.nixFmt {};
           in
             {
+              agent-rs = import self.sources.agent-rs { inherit (self) system; };
               motoko = import self.sources.motoko { inherit (self) system; };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {

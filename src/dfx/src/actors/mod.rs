@@ -6,14 +6,18 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::ReplicaConfig;
 
-use actix::{Actor, Addr};
+use actix::{Actor, Addr, Recipient};
 use std::fs;
 use std::path::PathBuf;
+use crate::actors::icx_proxy::{IcxProxyConfig, IcxProxy};
+use crate::actors::replica_webserver_coordinator::signals::PortReadySubscribe;
 
 pub mod emulator;
+pub mod icx_proxy_coordinator;
 pub mod replica;
 pub mod replica_webserver_coordinator;
 pub mod shutdown_controller;
+pub mod icx_proxy;
 
 pub fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<ShutdownController>> {
     let actor_config = shutdown_controller::Config {
@@ -86,4 +90,30 @@ pub fn start_replica_actor(
         replica_configuration_dir,
     };
     Ok(Replica::new(actor_config).start())
+}
+
+pub fn start_icx_proxy_actor(
+    env: &dyn Environment,
+    icx_proxy_config: IcxProxyConfig,
+    port_ready_subscribe: Recipient<PortReadySubscribe>,
+    shutdown_controller: Addr<ShutdownController>,
+) -> DfxResult<Addr<IcxProxy>> {
+    // get binary path
+    let icx_proxy_path = env.get_cache().get_binary_command_path("icx-proxy")?;
+    let icx_proxy_pid_path = PathBuf::from("todo");
+
+    //let replica_configuration_dir = setup_replica_env(env, &replica_config)?;
+
+    let actor_config = icx_proxy::Config {
+        logger: Some(env.get_logger().clone()),
+
+        port_ready_subscribe,
+        shutdown_controller,
+
+        icx_proxy_config,
+        icx_proxy_path,
+        icx_proxy_pid_path,
+        //replica_configuration_dir,
+    };
+    Ok(IcxProxy::new(actor_config).start())
 }
