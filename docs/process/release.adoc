@@ -127,6 +127,7 @@ You should see 'Please proceed' returned.
 [source, bash]
 ----
 $dfx_rc cache delete
+----
 . Ensure `dfx` and `replica` are not running in the background by running the following command:
 +
 [source, bash]
