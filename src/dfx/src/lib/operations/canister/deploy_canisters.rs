@@ -3,6 +3,7 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -135,10 +136,12 @@ async fn register_canisters(
                 timeout,
                 with_cycles,
                 &call_sender,
-                controller,
-                compute_allocation,
-                memory_allocation,
-                freezing_threshold,
+                CanisterSettings {
+                    controller,
+                    compute_allocation,
+                    memory_allocation,
+                    freezing_threshold,
+                },
             )
             .await?;
         }

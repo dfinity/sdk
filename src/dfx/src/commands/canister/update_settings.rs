@@ -1,6 +1,8 @@
-use crate::config::dfinity::ConfigInterface;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ic_attributes::{
+    get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
+};
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -13,13 +15,8 @@ use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
 use clap::Clap;
-use humanize_rs::bytes::Bytes;
 use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
-use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation,
-};
-use std::convert::TryFrom;
 
 /// Update one or more of a canisters settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Clap)]
@@ -46,45 +43,6 @@ pub struct UpdateSettingsOpts {
 
     #[clap(long, validator(freezing_threshold_validator))]
     freezing_threshold: Option<String>,
-}
-
-fn get_compute_allocation(
-    compute_allocation: Option<String>,
-    config_interface: &ConfigInterface,
-    canister_name: &str,
-) -> DfxResult<Option<ComputeAllocation>> {
-    Ok(compute_allocation
-        .or(config_interface.get_compute_allocation(canister_name)?)
-        .map(|arg| {
-            ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
-                .expect("Compute Allocation must be a percentage.")
-        }))
-}
-
-fn get_memory_allocation(
-    memory_allocation: Option<String>,
-    config_interface: &ConfigInterface,
-    canister_name: &str,
-) -> DfxResult<Option<MemoryAllocation>> {
-    Ok(memory_allocation
-        .or(config_interface.get_memory_allocation(canister_name)?)
-        .map(|arg| {
-            MemoryAllocation::try_from(u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap())
-                .expect("Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.")
-        }))
-}
-
-fn get_freezing_threshold(
-    freezing_threshold: Option<String>,
-    config_interface: &ConfigInterface,
-    canister_name: &str,
-) -> DfxResult<Option<FreezingThreshold>> {
-    Ok(freezing_threshold
-        .or(config_interface.get_freezing_threshold(canister_name)?)
-        .map(|arg| {
-            FreezingThreshold::try_from(arg.parse::<u128>().unwrap())
-                .expect("Must be a value between 0 and 2^64-1 inclusive.")
-        }))
 }
 
 pub async fn exec(
@@ -146,10 +104,12 @@ pub async fn exec(
         update_settings(
             env,
             canister_id,
-            controller.clone(),
-            compute_allocation,
-            memory_allocation,
-            freezing_threshold,
+            CanisterSettings {
+                controller: controller.clone(),
+                compute_allocation,
+                memory_allocation,
+                freezing_threshold,
+            },
             timeout,
             call_sender,
         )
@@ -183,10 +143,12 @@ pub async fn exec(
                 update_settings(
                     env,
                     canister_id,
-                    controller.clone(),
-                    compute_allocation,
-                    memory_allocation,
-                    freezing_threshold,
+                    CanisterSettings {
+                        controller: controller.clone(),
+                        compute_allocation,
+                        memory_allocation,
+                        freezing_threshold,
+                    },
                     timeout,
                     call_sender,
                 )

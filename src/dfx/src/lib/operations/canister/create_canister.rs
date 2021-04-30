@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -7,11 +8,7 @@ use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::anyhow;
-use ic_types::principal::Principal;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation,
-};
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
@@ -23,17 +20,13 @@ const CANISTER_CREATE_FEE: u64 = 1_000_000_000_000_u64;
 // For now create the canister with 10T cycle balance.
 const CANISTER_INITIAL_CYCLE_BALANCE: u64 = 10_000_000_000_000_u64;
 
-#[allow(clippy::too_many_arguments)]
 pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
-    controller: Option<Principal>,
-    compute_allocation: Option<ComputeAllocation>,
-    memory_allocation: Option<MemoryAllocation>,
-    freezing_threshold: Option<FreezingThreshold>,
+    settings: CanisterSettings,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
@@ -75,10 +68,10 @@ pub async fn create_canister(
                     if network.is_ic {
                         // Provisional commands are whitelisted on production
                         mgr.create_canister()
-                            .with_optional_controller(controller)
-                            .with_optional_compute_allocation(compute_allocation)
-                            .with_optional_memory_allocation(memory_allocation)
-                            .with_optional_freezing_threshold(freezing_threshold)
+                            .with_optional_controller(settings.controller)
+                            .with_optional_compute_allocation(settings.compute_allocation)
+                            .with_optional_memory_allocation(settings.memory_allocation)
+                            .with_optional_freezing_threshold(settings.freezing_threshold)
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?
                             .0
@@ -87,10 +80,10 @@ pub async fn create_canister(
                         let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
                         mgr.create_canister()
                             .as_provisional_create_with_amount(cycles)
-                            .with_optional_controller(controller)
-                            .with_optional_compute_allocation(compute_allocation)
-                            .with_optional_memory_allocation(memory_allocation)
-                            .with_optional_freezing_threshold(freezing_threshold)
+                            .with_optional_controller(settings.controller)
+                            .with_optional_compute_allocation(settings.compute_allocation)
+                            .with_optional_memory_allocation(settings.memory_allocation)
+                            .with_optional_freezing_threshold(settings.freezing_threshold)
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?
                             .0
@@ -115,10 +108,10 @@ pub async fn create_canister(
                         wallet
                             .wallet_create_canister(
                                 cycles,
-                                controller,
-                                compute_allocation,
-                                memory_allocation,
-                                freezing_threshold,
+                                settings.controller,
+                                settings.compute_allocation,
+                                settings.memory_allocation,
+                                settings.freezing_threshold,
                             )
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?
