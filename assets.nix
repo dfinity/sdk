@@ -5,8 +5,8 @@ let
   looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
     mkdir -p $out
 
-    cp ${pkgs.dfinity.ic-replica}/bin/replica $out
-    cp ${pkgs.dfinity.ic-starter}/bin/ic-starter $out
+    cp ${pkgs.dfinity.ic-replica-unwrapped}/bin/replica $out
+    cp ${pkgs.dfinity.ic-starter-unwrapped}/bin/ic-starter $out
     cp -R ${pkgs.motoko.base-src} $out/base
     cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
     cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
