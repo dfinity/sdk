@@ -12,11 +12,9 @@ use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use ic_types::Principal;
-use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
-use std::convert::TryFrom;
 use std::io::Read;
 
 const UI_CANISTER: &str = "__Candid_UI";
@@ -60,7 +58,8 @@ pub async fn install_ui_canister(
                     .await?
                     .0
             } else {
-                mgr.create_canister().as_provisional_create_with_amount(None)
+                mgr.create_canister()
+                    .as_provisional_create_with_amount(None)
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
                     .await?
                     .0
