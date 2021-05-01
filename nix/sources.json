@@ -32,7 +32,7 @@
         "type": "git"
     },
     "dfinity": {
-        "branch": "joachim/unwrapped-replica",
+        "branch": "joachim/unwrapped",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
         "rev": "3ae74aa019bdd132785a0839bbd10d8baf0b0913",
         "type": "git"
