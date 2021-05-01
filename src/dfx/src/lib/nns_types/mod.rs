@@ -8,12 +8,12 @@ pub mod icpts;
 pub const CYCLE_MINTER_CANISTER_ID: &str = "rkp4c-7iaaa-aaaaa-aaaca-cai";
 pub const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
-#[derive(Deserialize, CandidType)]
-pub struct TransactionNotificationResult(pub Vec<u8>);
-
-/// The result of create_canister transaction notification. In case of
-/// an error, contains the index of the refund block.
-pub type CreateCanisterResult = Result<Principal, (String, Option<BlockHeight>)>;
+#[derive(CandidType, Deserialize)]
+pub enum CyclesResponse {
+    CanisterCreated(Principal),
+    ToppedUp(()),
+    Refunded(String, Option<BlockHeight>),
+}
 
 /// Position of a block in the chain. The first block has position 0.
 pub type BlockHeight = u64;

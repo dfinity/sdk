@@ -3,8 +3,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::nns_types::{
-    BlockHeight, CreateCanisterResult, Memo, NotifyCanisterArgs, SendArgs,
-    TransactionNotificationResult, CYCLE_MINTER_CANISTER_ID, LEDGER_CANISTER_ID,
+    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, SendArgs, CYCLE_MINTER_CANISTER_ID,
+    LEDGER_CANISTER_ID,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
@@ -98,17 +98,16 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
 
-    let result = Decode!(&result, TransactionNotificationResult)?;
-
-    let result = Decode!(&result.0, CreateCanisterResult)?;
+    let result = Decode!(&result, CyclesResponse)?;
 
     match result {
-        Ok(v) => {
+        CyclesResponse::CanisterCreated(v) => {
             println!("Canister created with id: {:?}", v.to_text());
         }
-        Err((msg, maybe_height)) => {
-            eprintln!("Error: {}\nBlockHeight:{:?}", msg, maybe_height);
+        CyclesResponse::Refunded(msg, maybe_block_height) => {
+            println!("Refunded with message: {} at {:?}", msg, maybe_block_height);
         }
+        CyclesResponse::ToppedUp(()) => unreachable!(),
     };
     Ok(())
 }
