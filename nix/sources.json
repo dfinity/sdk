@@ -13,10 +13,17 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-       "branch": "paulliu/downgrade",
-       "repo": "https://github.com/ninegua/agent-rs",
-       "rev": "3ea33209a9e0376d23b5ef1d22ca2be5da1aa03a",
-       "type": "git"
+        "branch": "paulliu/downgrade",
+        "builtin": false,
+        "description": "A collection of libraries and tools for building software around the Internet Computer, in Rust.",
+        "homepage": "https://sdk.dfinity.org/",
+        "owner": "ninegua",
+        "repo": "agent-rs",
+        "rev": "3ea33209a9e0376d23b5ef1d22ca2be5da1aa03a",
+        "sha256": "1631da2l42kljjdvldgmysfzr9x6png9yav6k8vcrzfviz5cwb1y",
+        "type": "tarball",
+        "url": "https://github.com/ninegua/agent-rs/archive/3ea33209a9e0376d23b5ef1d22ca2be5da1aa03a.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "bats-support": {
         "branch": "v0.3.0",
