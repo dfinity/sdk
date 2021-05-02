@@ -45,6 +45,10 @@ pub struct StartOpts {
     /// Runs a dedicated emulator instead of the replica
     #[clap(long)]
     emulator: bool,
+
+    /// Runs with built-in webserver tather than icx-proxy
+    #[clap(long)]
+    builtin_webserver: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -164,8 +168,17 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
         replica.recipient()
     };
 
-    let use_icx_proxy = true;
-    if use_icx_proxy {
+    if opts.builtin_webserver {
+        let _coordinator = start_webserver_coordinator(
+            env,
+            network_descriptor,
+            address_and_port,
+            build_output_root,
+            port_ready_subscribe,
+            shutdown_controller,
+        )?;
+        system.run()?;
+    } else {
         let icx_proxy_config = IcxProxyConfig {
             bind: address_and_port,
         };
@@ -176,18 +189,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
             shutdown_controller,
         )?;
         system.run()?;
-    } else {
-        let _coordinator = start_webserver_coordinator(
-            env,
-            network_descriptor,
-            address_and_port,
-            build_output_root,
-            port_ready_subscribe,
-            shutdown_controller,
-        )?;
-        system.run()?;
     };
-
 
     Ok(())
 }
