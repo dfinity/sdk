@@ -16,6 +16,7 @@ pub mod emulator;
 pub mod icx_proxy;
 pub mod replica;
 pub mod replica_webserver_coordinator;
+mod shutdown;
 pub mod shutdown_controller;
 
 pub fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<ShutdownController>> {

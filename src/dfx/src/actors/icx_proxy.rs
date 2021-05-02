@@ -4,16 +4,16 @@ use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
 
+use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use actix::{
     Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::anyhow;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -56,34 +56,11 @@ impl IcxProxy {
         }
     }
 
-    fn _wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(100))
-            .timeout(Duration::from_secs(30))
-            .build();
-
-        waiter.start();
-        loop {
-            if let Ok(content) = std::fs::read_to_string(file_path) {
-                if let Ok(port) = content.parse::<u16>() {
-                    return Ok(port);
-                }
-            }
-            waiter
-                .wait()
-                .map_err(|err| anyhow!("Cannot start the replica: {:?}", err))?;
-        }
-    }
-
     fn start_icx_proxy(&mut self, replica_port: u16) -> DfxResult {
         let logger = self.logger.clone();
-
         let config = &self.config.icx_proxy_config;
         let icx_proxy_pid_path = &self.config.icx_proxy_pid_path;
-
         let icx_proxy_path = self.config.icx_proxy_path.to_path_buf();
-
         let (sender, receiver) = unbounded();
 
         let handle = icx_proxy_start_thread(
@@ -98,6 +75,18 @@ impl IcxProxy {
         self.thread_join = Some(handle);
         self.stop_sender = Some(sender);
         Ok(())
+    }
+
+    fn stop_icx_proxy(&mut self) {
+        info!(self.logger, "Stopping icx-proxy...");
+        if let Some(sender) = self.stop_sender.take() {
+            let _ = sender.send(());
+        }
+
+        if let Some(join) = self.thread_join.take() {
+            let _ = join.join();
+        }
+        info!(self.logger, "Stopped.");
     }
 }
 
@@ -116,16 +105,8 @@ impl Actor for IcxProxy {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        info!(self.logger, "Stopping icx-proxy...");
-        if let Some(sender) = self.stop_sender.take() {
-            let _ = sender.send(());
-        }
+        self.stop_icx_proxy();
 
-        if let Some(join) = self.thread_join.take() {
-            let _ = join.join();
-        }
-
-        info!(self.logger, "Stopped.");
         Running::Stop
     }
 }
@@ -139,13 +120,7 @@ impl Handler<PortReadySignal> for IcxProxy {
             "replica ready on {}, so re/starting icx-proxy", msg.port
         );
 
-        if let Some(sender) = self.stop_sender.take() {
-            let _ = sender.send(());
-        }
-
-        if let Some(join) = self.thread_join.take() {
-            let _ = join.join();
-        }
+        self.stop_icx_proxy();
 
         self.start_icx_proxy(msg.port)
             .expect("Could not start icx-proxy");
@@ -165,37 +140,6 @@ impl Handler<Shutdown> for IcxProxy {
                     Ok(())
                 }),
         )
-    }
-}
-
-enum ChildOrReceiver {
-    Child,
-    Receiver,
-}
-
-/// Function that waits for a child or a receiver to stop. This encapsulate the polling so
-/// it is easier to maintain.
-fn wait_for_child_or_receiver(
-    child: &mut std::process::Child,
-    receiver: &Receiver<()>,
-) -> ChildOrReceiver {
-    loop {
-        // Check if either the child exited or a shutdown has been requested.
-        // These can happen in either order in response to Ctrl-C, so increase the chance
-        // to notice a shutdown request even if the replica exited quickly.
-        let child_try_wait = child.try_wait();
-        let receiver_signalled = receiver.recv_timeout(std::time::Duration::from_millis(100));
-
-        match (receiver_signalled, child_try_wait) {
-            (Ok(()), _) => {
-                // Prefer to indicate the shutdown request
-                return ChildOrReceiver::Receiver;
-            }
-            (Err(_), Ok(Some(_))) => {
-                return ChildOrReceiver::Child;
-            }
-            _ => {}
-        };
     }
 }
 

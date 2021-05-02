@@ -46,7 +46,7 @@ pub struct StartOpts {
     #[clap(long)]
     emulator: bool,
 
-    /// Runs with built-in webserver tather than icx-proxy
+    /// Runs with built-in webserver rather than icx-proxy
     #[clap(long)]
     builtin_webserver: bool,
 }
