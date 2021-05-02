@@ -2,7 +2,9 @@ use crate::actors;
 use crate::actors::replica_webserver_coordinator::signals::PortReadySubscribe;
 use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
 use crate::actors::shutdown_controller::ShutdownController;
-use crate::actors::{start_emulator_actor, start_replica_actor, start_shutdown_controller, start_icx_proxy_actor};
+use crate::actors::{
+    start_emulator_actor, start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
+};
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -11,6 +13,7 @@ use crate::lib::provider::get_network_descriptor;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
+use crate::actors::icx_proxy::IcxProxyConfig;
 use actix::{Actor, Addr, Recipient};
 use anyhow::{anyhow, bail, Context};
 use clap::Clap;
@@ -23,7 +26,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
-use crate::actors::icx_proxy::IcxProxyConfig;
 
 /// Starts the local replica and a web server for the current project.
 #[derive(Clap)]
@@ -162,26 +164,30 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
         replica.recipient()
     };
 
-/*    let _webserver_coordinator = start_webserver_coordinator(
-        env,
-        network_descriptor,
-        address_and_port,
-        build_output_root,
-        port_ready_subscribe,
-        shutdown_controller,
-    )?;
-*/
-    let icx_proxy_config = IcxProxyConfig {
-        bind: address_and_port,
+    let use_icx_proxy = true;
+    if use_icx_proxy {
+        let icx_proxy_config = IcxProxyConfig {
+            bind: address_and_port,
+        };
+        let _proxy = start_icx_proxy_actor(
+            env,
+            icx_proxy_config,
+            port_ready_subscribe,
+            shutdown_controller,
+        )?;
+        system.run()?;
+    } else {
+        let _coordinator = start_webserver_coordinator(
+            env,
+            network_descriptor,
+            address_and_port,
+            build_output_root,
+            port_ready_subscribe,
+            shutdown_controller,
+        )?;
+        system.run()?;
     };
-    let _icx_proxy_actor = start_icx_proxy_actor(
-        env,
-        icx_proxy_config,
-        port_ready_subscribe,
-        shutdown_controller,
-    )?;
 
-    system.run()?;
 
     Ok(())
 }

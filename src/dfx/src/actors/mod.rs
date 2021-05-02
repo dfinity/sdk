@@ -6,18 +6,18 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::ReplicaConfig;
 
+use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
+use crate::actors::replica_webserver_coordinator::signals::PortReadySubscribe;
 use actix::{Actor, Addr, Recipient};
 use std::fs;
 use std::path::PathBuf;
-use crate::actors::icx_proxy::{IcxProxyConfig, IcxProxy};
-use crate::actors::replica_webserver_coordinator::signals::PortReadySubscribe;
 
 pub mod emulator;
+pub mod icx_proxy;
 pub mod icx_proxy_coordinator;
 pub mod replica;
 pub mod replica_webserver_coordinator;
 pub mod shutdown_controller;
-pub mod icx_proxy;
 
 pub fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<ShutdownController>> {
     let actor_config = shutdown_controller::Config {

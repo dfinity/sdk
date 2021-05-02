@@ -50,7 +50,7 @@ pub struct IcxProxyCoordinator {
 }
 
 impl IcxProxyCoordinator {
-    pub fn new(config: Config) -> Self {
+    pub fn _new(config: Config) -> Self {
         let logger =
             (config.logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
         IcxProxyCoordinator {

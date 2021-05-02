@@ -3,7 +3,6 @@ use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::replica_config::ReplicaConfig;
 
 use actix::{
     Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
@@ -13,32 +12,27 @@ use anyhow::anyhow;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use delay::{Delay, Waiter};
 use slog::{debug, info, Logger};
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
-use std::net::SocketAddr;
-use crate::actors::icx_proxy::signals::IcxProxyRestarted;
 
-pub mod signals {
-    use actix::prelude::*;
+// pub mod signals {
+//     use actix::prelude::*;
+//
+//     /// A message sent to the Replica when the process is restarted. Since we're
+//     /// restarting inside our own actor, this message should not be exposed.
+//     #[derive(Message)]
+//     #[rtype(result = "()")]
+//     pub(super) struct IcxProxyRestarted {
+//         pub port: u16,
+//     }
+// }
 
-    /// A message sent to the Replica when the process is restarted. Since we're
-    /// restarting inside our own actor, this message should not be exposed.
-    #[derive(Message)]
-    #[rtype(result = "()")]
-    pub(super) struct IcxProxyRestarted {
-        pub port: u16,
-    }
-}
-
-pub struct IcxProxyConfig
-{
+pub struct IcxProxyConfig {
     // --address 127.0.0.1:3000               (where to listen)
     pub bind: SocketAddr,
-
     // --replica http://localhost:8000/
-
-
 }
 
 /// The configuration for the icx_proxy actor.
@@ -91,7 +85,7 @@ impl IcxProxy {
         }
     }
 
-    fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
+    fn _wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
         // Use a Waiter for waiting for the file to be created.
         let mut waiter = Delay::builder()
             .throttle(Duration::from_millis(100))
@@ -255,7 +249,7 @@ fn icx_proxy_start_thread(
     replica_port: u16,
     icx_proxy_path: PathBuf,
     icx_proxy_pid_path: PathBuf,
-    addr: Addr<IcxProxy>,
+    _addr: Addr<IcxProxy>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
@@ -275,12 +269,7 @@ fn icx_proxy_start_thread(
         let replica = format!("http://localhost:{}", replica_port);
         // --address 127.0.0.1:3000               (where to listen)
         // --replica http://localhost:8000/
-        cmd.args(&[
-            "--address",
-            &address,
-            "--replica",
-            &replica,
-        ]);
+        cmd.args(&["--address", &address, "--replica", &replica]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
@@ -293,7 +282,8 @@ fn icx_proxy_start_thread(
             debug!(logger, "Starting icx-proxy...");
             let mut child = cmd.spawn().expect("Could not start icx-proxy.");
 
-            std::fs::write(&icx_proxy_pid_path, "").expect("Could not write to icx-proxy-pid file.");
+            std::fs::write(&icx_proxy_pid_path, "")
+                .expect("Could not write to icx-proxy-pid file.");
             std::fs::write(&icx_proxy_pid_path, child.id().to_string())
                 .expect("Could not write to icx-proxy-pid file.");
 
