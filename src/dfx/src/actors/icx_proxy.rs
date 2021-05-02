@@ -17,22 +17,9 @@ use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-// pub mod signals {
-//     use actix::prelude::*;
-//
-//     /// A message sent to the Replica when the process is restarted. Since we're
-//     /// restarting inside our own actor, this message should not be exposed.
-//     #[derive(Message)]
-//     #[rtype(result = "()")]
-//     pub(super) struct IcxProxyRestarted {
-//         pub port: u16,
-//     }
-// }
-
 pub struct IcxProxyConfig {
-    // --address 127.0.0.1:3000               (where to listen)
+    /// where to listen.  Becomes argument like --address 127.0.0.1:3000
     pub bind: SocketAddr,
-    // --replica http://localhost:8000/
 }
 
 /// The configuration for the icx_proxy actor.
@@ -45,32 +32,16 @@ pub struct Config {
     pub icx_proxy_config: IcxProxyConfig,
     pub icx_proxy_path: PathBuf,
     pub icx_proxy_pid_path: PathBuf,
-    //pub replica_configuration_dir: PathBuf,
 }
 
-/// A replica actor. Starts the replica, can subscribe to a Ready signal and a
-/// Killed signal.
-/// This starts a thread that monitors the process and send signals to any subscriber
-/// listening for restarts. The message contains the port the replica is listening to.
-///
-/// Signals
-///   - PortReadySubscribe
-///     Subscribe a recipient (address) to receive a PortReadySignal message when
-///     the replica is ready to listen to a port. The message can be sent multiple
-///     times (e.g. if the replica crashes).
-///     If a replica is already started and another actor sends this message, a
-///     PortReadySignal will be sent free of charge in the same thread.
+/// An actor for the icx-proxy webserver.  Starts/restarts icx-proxy when the replica
+/// restarts (because the replica changes ports when it restarts).
 pub struct IcxProxy {
     logger: Logger,
     config: Config,
 
-    // We keep the port to send to subscribers on subscription.
-    // port: Option<u16>,
     stop_sender: Option<Sender<()>>,
     thread_join: Option<JoinHandle<()>>,
-    //
-    // /// Ready Signal subscribers.
-    // ready_subscribers: Vec<Recipient<PortReadySignal>>,
 }
 
 impl IcxProxy {
@@ -105,12 +76,11 @@ impl IcxProxy {
         }
     }
 
-    fn start_icx_proxy(&mut self, addr: Addr<Self>, replica_port: u16) -> DfxResult {
+    fn start_icx_proxy(&mut self, replica_port: u16) -> DfxResult {
         let logger = self.logger.clone();
 
-        // Create a replica config.
         let config = &self.config.icx_proxy_config;
-        let icx_proxy_pid_path = &self.config.icx_proxy_pid_path; // replica_configuration_dir.join("icx-proxy-pid");
+        let icx_proxy_pid_path = &self.config.icx_proxy_pid_path;
 
         let icx_proxy_path = self.config.icx_proxy_path.to_path_buf();
 
@@ -122,7 +92,6 @@ impl IcxProxy {
             replica_port,
             icx_proxy_path,
             icx_proxy_pid_path.clone(),
-            addr,
             receiver,
         )?;
 
@@ -130,12 +99,6 @@ impl IcxProxy {
         self.stop_sender = Some(sender);
         Ok(())
     }
-
-    // fn send_ready_signal(&self, port: u16) {
-    //     for sub in &self.ready_subscribers {
-    //         let _ = sub.do_send(PortReadySignal { port });
-    //     }
-    // }
 }
 
 impl Actor for IcxProxy {
@@ -153,7 +116,7 @@ impl Actor for IcxProxy {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        info!(self.logger, "Stopping ic-proxy...");
+        info!(self.logger, "Stopping icx-proxy...");
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -170,8 +133,11 @@ impl Actor for IcxProxy {
 impl Handler<PortReadySignal> for IcxProxy {
     type Result = ();
 
-    fn handle(&mut self, msg: PortReadySignal, ctx: &mut Self::Context) {
-        debug!(self.logger, "replica ready on {}", msg.port);
+    fn handle(&mut self, msg: PortReadySignal, _ctx: &mut Self::Context) {
+        debug!(
+            self.logger,
+            "replica ready on {}, so re/starting icx-proxy", msg.port
+        );
 
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
@@ -181,19 +147,10 @@ impl Handler<PortReadySignal> for IcxProxy {
             let _ = join.join();
         }
 
-        self.start_icx_proxy(ctx.address(), msg.port)
+        self.start_icx_proxy(msg.port)
             .expect("Could not start icx-proxy");
     }
 }
-
-// impl Handler<signals::IcxProxyRestarted> for IcxProxy {
-//     type Result = ();
-//
-//     fn handle(&mut self, msg: IcxProxyRestarted, _ctx: &mut Self::Context) -> Self::Result {
-//         self.port = Some(msg.port);
-//         self.send_ready_signal(msg.port);
-//     }
-// }
 
 impl Handler<Shutdown> for IcxProxy {
     type Result = ResponseActFuture<Self, Result<(), ()>>;
@@ -249,7 +206,6 @@ fn icx_proxy_start_thread(
     replica_port: u16,
     icx_proxy_path: PathBuf,
     icx_proxy_pid_path: PathBuf,
-    _addr: Addr<IcxProxy>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
@@ -267,17 +223,12 @@ fn icx_proxy_start_thread(
         let mut cmd = std::process::Command::new(icx_proxy_path);
         let address = format!("{}", &address);
         let replica = format!("http://localhost:{}", replica_port);
-        // --address 127.0.0.1:3000               (where to listen)
-        // --replica http://localhost:8000/
         cmd.args(&["--address", &address, "--replica", &replica]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
         let mut done = false;
         while !done {
-            // if let Some(port_path) = write_port_to.as_ref() {
-            //     let _ = std::fs::remove_file(port_path);
-            // }
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting icx-proxy...");
             let mut child = cmd.spawn().expect("Could not start icx-proxy.");
@@ -287,10 +238,8 @@ fn icx_proxy_start_thread(
             std::fs::write(&icx_proxy_pid_path, child.id().to_string())
                 .expect("Could not write to icx-proxy-pid file.");
 
-            //addr.do_send(signals::IcxProxyRestarted { port: replica_port });
-
             // This waits for the child to stop, or the receiver to receive a message.
-            // We don't restart the replica if done = true.
+            // We don't restart the icx-proxy if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
                     debug!(logger, "Got signal to stop. Killing icx-proxy process...");
