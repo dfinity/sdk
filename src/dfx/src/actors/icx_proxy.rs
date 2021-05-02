@@ -118,7 +118,7 @@ impl IcxProxy {
 
         let handle = icx_proxy_start_thread(
             logger,
-            config.bind.clone(),
+            config.bind,
             replica_port,
             icx_proxy_path,
             icx_proxy_pid_path.clone(),
