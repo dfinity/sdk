@@ -124,6 +124,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
+    let icx_proxy_pid_file_path = temp_dir.join("icx-proxy-pid");
     let webserver_port_path = temp_dir.join("webserver-port");
     let state_root = env.get_state_dir();
 
@@ -136,6 +137,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     }
 
     std::fs::write(&pid_file_path, "")?; // make sure we can write to this file
+    std::fs::write(&icx_proxy_pid_file_path, "")?;
     std::fs::write(&webserver_port_path, "")?;
 
     let background = opts.background;
@@ -187,6 +189,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
             icx_proxy_config,
             port_ready_subscribe,
             shutdown_controller,
+            icx_proxy_pid_file_path,
         )?;
         system.run()?;
     };
@@ -237,29 +240,6 @@ fn start_webserver_coordinator(
     Ok(ReplicaWebserverCoordinator::new(actor_config).start())
 }
 
-// fn start_proxy_coordinator(
-//     env: &dyn Environment,
-//     network_descriptor: NetworkDescriptor,
-//     bind: SocketAddr,
-//     build_output_root: PathBuf,
-//     port_ready_subscribe: Recipient<PortReadySubscribe>,
-//     shutdown_controller: Addr<ShutdownController>,
-// ) -> DfxResult<Addr<IcxProxyCoordinator>> {
-//     // By default we reach to no external IC nodes.
-//     let providers = Vec::new();
-//
-//     let actor_config = actors::replica_webserver_coordinator::Config {
-//         logger: Some(env.get_logger().clone()),
-//         port_ready_subscribe,
-//         shutdown_controller,
-//         bind,
-//         providers,
-//         build_output_root,
-//         network_descriptor,
-//     };
-//     Ok(IcxProxyCoordinator::new(actor_config).start())
-//
-// }
 fn send_background() -> DfxResult<()> {
     // Background strategy is different; we spawn `dfx` with the same arguments
     // (minus --background), ping and exit.

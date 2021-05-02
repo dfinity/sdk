@@ -96,12 +96,9 @@ pub fn start_icx_proxy_actor(
     icx_proxy_config: IcxProxyConfig,
     port_ready_subscribe: Recipient<PortReadySubscribe>,
     shutdown_controller: Addr<ShutdownController>,
+    icx_proxy_pid_path: PathBuf,
 ) -> DfxResult<Addr<IcxProxy>> {
-    // get binary path
     let icx_proxy_path = env.get_cache().get_binary_command_path("icx-proxy")?;
-    let icx_proxy_pid_path = PathBuf::from("todo");
-
-    //let replica_configuration_dir = setup_replica_env(env, &replica_config)?;
 
     let actor_config = icx_proxy::Config {
         logger: Some(env.get_logger().clone()),
@@ -112,7 +109,6 @@ pub fn start_icx_proxy_actor(
         icx_proxy_config,
         icx_proxy_path,
         icx_proxy_pid_path,
-        //replica_configuration_dir,
     };
     Ok(IcxProxy::new(actor_config).start())
 }
