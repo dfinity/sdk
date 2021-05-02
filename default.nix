@@ -18,8 +18,6 @@ rec {
 
   distributed-canisters = import ./distributed-canisters.nix { inherit pkgs; };
 
-  #icx-proxy = import ./icx-proxy.nix { inherit pkgs; };
-
   inherit (pkgs) nix-fmt nix-fmt-check;
 
   install = import ./public { inherit pkgs src; };
