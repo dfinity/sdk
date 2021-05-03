@@ -56,7 +56,6 @@ teardown() {
     assert_process_exits "$ICX_PROXY_PID" 15s
 
     ID=$(dfx canister id hello_assets)
-    PORT=$(cat .dfx/webserver-port)
 
     timeout 15s sh -c \
       "until curl --fail http://localhost:$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
