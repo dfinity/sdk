@@ -1,4 +1,4 @@
-use crate::actors::replica_webserver_coordinator::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
@@ -16,6 +16,20 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::thread::JoinHandle;
 use std::time::Duration;
+
+pub mod signals {
+    use actix::prelude::*;
+
+    #[derive(Message)]
+    #[rtype(result = "()")]
+    pub struct PortReadySignal {
+        pub port: u16,
+    }
+
+    #[derive(Message)]
+    #[rtype(result = "()")]
+    pub struct PortReadySubscribe(pub Recipient<PortReadySignal>);
+}
 
 pub struct IcxProxyConfig {
     /// where to listen.  Becomes argument like --address 127.0.0.1:3000

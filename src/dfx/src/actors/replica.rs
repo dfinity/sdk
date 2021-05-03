@@ -1,5 +1,5 @@
 use crate::actors::replica::signals::ReplicaRestarted;
-use crate::actors::replica_webserver_coordinator::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;

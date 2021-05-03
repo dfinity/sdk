@@ -7,7 +7,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::replica_config::ReplicaConfig;
 
 use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
-use crate::actors::replica_webserver_coordinator::signals::PortReadySubscribe;
+use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use actix::{Actor, Addr, Recipient};
 use std::fs;
 use std::path::PathBuf;
@@ -15,7 +15,6 @@ use std::path::PathBuf;
 pub mod emulator;
 pub mod icx_proxy;
 pub mod replica;
-pub mod replica_webserver_coordinator;
 mod shutdown;
 pub mod shutdown_controller;
 
