@@ -6,8 +6,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::ReplicaConfig;
 
-use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
+use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use actix::{Actor, Addr, Recipient};
 use std::fs;
 use std::path::PathBuf;
