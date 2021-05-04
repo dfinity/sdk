@@ -77,27 +77,27 @@ webpki-roots = "0.21.0"
 [dependencies.ic-agent]
 version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "d0a17fcb64d658b782fd5e5158e748047403964a"
+branch = "ericswanson/163-hardcode-root-key"
+rev = "8cae56940f87b8cf035bcaad3c558dff6809e557"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.1"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "d0a17fcb64d658b782fd5e5158e748047403964a"
+branch = "ericswanson/163-hardcode-root-key"
+rev = "8cae56940f87b8cf035bcaad3c558dff6809e557"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "d0a17fcb64d658b782fd5e5158e748047403964a"
+branch = "ericswanson/163-hardcode-root-key"
+rev = "8cae56940f87b8cf035bcaad3c558dff6809e557"
 
 [dependencies.ic-utils]
 version = "0.2.1"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "d0a17fcb64d658b782fd5e5158e748047403964a"
+branch = "ericswanson/163-hardcode-root-key"
+rev = "8cae56940f87b8cf035bcaad3c558dff6809e557"
 
 [dev-dependencies]
 env_logger = "0.6"
