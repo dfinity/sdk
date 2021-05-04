@@ -12,6 +12,7 @@ pub mod logger;
 pub mod manifest;
 pub mod models;
 pub mod network;
+pub mod nns_types;
 pub mod operations;
 pub mod package_arguments;
 pub mod progress_bar;
