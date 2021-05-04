@@ -1105,6 +1105,7 @@ dependencies = [
  "chrono",
  "clap",
  "console 0.7.7",
+ "crc32fast",
  "crossbeam",
  "ctrlc",
  "delay",
@@ -1136,6 +1137,7 @@ dependencies = [
  "regex",
  "reqwest 0.10.10",
  "ring",
+ "rust_decimal",
  "rustls 0.18.1",
  "semver",
  "serde",
@@ -1707,6 +1709,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hostname"
@@ -3402,6 +3407,17 @@ dependencies = [
  "blake2b_simd",
  "constant_time_eq",
  "crossbeam-utils 0.8.3",
+]
+
+[[package]]
+name = "rust_decimal"
+version = "1.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc7f5b8840fb1f83869a3e1dfd06d93db79ea05311ac5b42b8337d3371caa4f1"
+dependencies = [
+ "arrayvec",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]
