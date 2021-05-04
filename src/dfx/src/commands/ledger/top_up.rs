@@ -58,9 +58,8 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     let max_fee = opts
         .max_fee
-        .map_or(ICPTs::new(0, 0).map_err(|err| anyhow!(err)), |v| {
-            ICPTs::from_str(&v).map_err(|err| anyhow!(err))
-        })?;
+        .map_or(ICPTs::new(0, 0), |v| ICPTs::from_str(&v))
+        .map_err(|err| anyhow!(err))?;
 
     let result = send_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
 

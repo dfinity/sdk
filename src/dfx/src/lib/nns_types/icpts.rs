@@ -2,7 +2,7 @@
 // Do not modify this file arbitrarily.
 // The contents are borrowed from:
 // dfinity-lab/dfinity@25999dd54d29c24edb31483801bddfd8c1d780c8
-// https://github.com/dfinity-lab/dfinity/blob/master/rs/rosetta-api/canister/src/icpts.rs
+// https://github.com/dfinity-lab/dfinity/blob/master/rs/rosetta-api/ledger_canister/src/icpts.rs
 
 use candid::CandidType;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
@@ -42,12 +42,12 @@ pub const MIN_BURN_AMOUNT: ICPTs = TRANSACTION_FEE;
 
 #[allow(dead_code)]
 impl ICPTs {
-    /// The maximum value of this construct is 2^64-1 Doms or Roughly 184
+    /// The maximum value of this construct is 2^64-1 e8s or Roughly 184
     /// Billion ICPTs
     pub const MAX: Self = ICPTs { e8s: u64::MAX };
 
     /// Construct a new instance of ICPTs.
-    /// This function will not allow you use more than 1 ICPTs worth of Doms.
+    /// This function will not allow you use more than 1 ICPTs worth of e8s.
     pub fn new(icpt: u64, e8s: u64) -> Result<Self, String> {
         static CONSTRUCTION_FAILED: &str =
             "Constructing ICP failed because the underlying u64 overflowed";
@@ -57,7 +57,7 @@ impl ICPTs {
             .ok_or_else(|| CONSTRUCTION_FAILED.to_string())?;
         if e8s >= ICP_SUBDIVIDABLE_BY {
             return Err(format!(
-                "You've added too many Doms, make sure there are less than {}",
+                "You've added too many e8s, make sure there are less than {}",
                 ICP_SUBDIVIDABLE_BY
             ));
         }
@@ -78,7 +78,7 @@ impl ICPTs {
         Self::new(icp, 0)
     }
 
-    /// Construct ICPTs from Doms, 10E8 Doms == 1 ICP
+    /// Construct ICPTs from e8s, 10E8 e8s == 1 ICP
     /// ```
     /// # use ledger_canister::ICPTs;
     /// let icpt = ICPTs::from_e8s(1200000200);
@@ -98,7 +98,7 @@ impl ICPTs {
         self.e8s / ICP_SUBDIVIDABLE_BY
     }
 
-    /// Gets the total number of Doms
+    /// Gets the total number of e8s
     /// ```
     /// # use ledger_canister::ICPTs;
     /// let icpt = ICPTs::new(12, 200).unwrap();
@@ -108,7 +108,7 @@ impl ICPTs {
         self.e8s
     }
 
-    /// Gets the total number of Doms not part of a whole ICPT
+    /// Gets the total number of e8s not part of a whole ICPT
     /// The returned amount is always in the half-open interval [0, 1 ICP).
     /// ```
     /// # use ledger_canister::ICPTs;
@@ -119,7 +119,7 @@ impl ICPTs {
         self.e8s % ICP_SUBDIVIDABLE_BY
     }
 
-    /// This returns the number of ICPTs and Doms
+    /// This returns the number of ICPTs and e8s
     /// ```
     /// # use ledger_canister::ICPTs;
     /// let icpt = ICPTs::new(12, 200).unwrap();

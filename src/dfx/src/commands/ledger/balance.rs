@@ -26,9 +26,10 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
         .expect("Selected identity not instantiated.");
     let acc_id = opts
         .of
-        .map_or(Ok(AccountIdentifier::new(sender, None)), |v| {
-            AccountIdentifier::from_str(&v)
-        })
+        .map_or_else(
+            || Ok(AccountIdentifier::new(sender, None)),
+            |v| AccountIdentifier::from_str(&v),
+        )
         .map_err(|err| anyhow!(err))?;
     let agent = env
         .get_agent()
