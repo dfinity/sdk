@@ -1,4 +1,6 @@
+use crate::lib::nns_types::icpts::ICPTs;
 use humanize_rs::bytes::{Bytes, Unit};
+use std::str::FromStr;
 
 pub fn is_request_id(v: &str) -> Result<(), String> {
     // A valid Request Id starts with `0x` and is a series of 64 hexadecimals.
@@ -15,6 +17,24 @@ pub fn is_request_id(v: &str) -> Result<(), String> {
     } else {
         Ok(())
     }
+}
+
+pub fn e8s_validator(e8s: &str) -> Result<(), String> {
+    if e8s.parse::<u64>().is_ok() {
+        return Ok(());
+    }
+    Err("Must specify a non negative whole number.".to_string())
+}
+
+pub fn icpts_amount_validator(icpts: &str) -> Result<(), String> {
+    ICPTs::from_str(icpts).map(|_| ())
+}
+
+pub fn memo_validator(memo: &str) -> Result<(), String> {
+    if memo.parse::<u64>().is_ok() {
+        return Ok(());
+    }
+    Err("Must specify a non negative whole number.".to_string())
 }
 
 pub fn cycle_amount_validator(cycles: &str) -> Result<(), String> {

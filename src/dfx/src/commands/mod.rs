@@ -11,6 +11,7 @@ mod config;
 mod deploy;
 mod identity;
 mod language_service;
+mod ledger;
 mod new;
 mod ping;
 mod replica;
@@ -31,6 +32,7 @@ pub enum Command {
     Identity(identity::IdentityOpt),
     #[clap(name("_language-service"))]
     LanguageServices(language_service::LanguageServiceOpts),
+    Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
     Ping(ping::PingOpts),
     Replica(replica::ReplicaOpts),
@@ -51,6 +53,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Deploy(v) => deploy::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
         Command::LanguageServices(v) => language_service::exec(env, v),
+        Command::Ledger(v) => ledger::exec(env, v),
         Command::New(v) => new::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
