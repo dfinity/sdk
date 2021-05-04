@@ -16,8 +16,6 @@ teardown() {
 @test "Candid UI" {
     dfx_start
     dfx deploy
-    assert_command dfx canister call hello greet '("Banzai")'
-    assert_eq '("Hello, Banzai!")'
     ID=$(dfx canister id __Candid_UI)
     PORT=$(cat .dfx/webserver-port)
     assert_command curl http://localhost:"$PORT"/?canisterId="$ID"
