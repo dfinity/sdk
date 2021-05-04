@@ -1,7 +1,7 @@
 // DISCLAIMER:
 // Do not modify this file arbitrarily.
 // The contents are borrowed from:
-// dfinity-lab/dfinity@f468897c57a5a0d4785b90c94935255d1a2f7d4c
+// dfinity-lab/dfinity@25999dd54d29c24edb31483801bddfd8c1d780c8
 // https://github.com/dfinity-lab/dfinity/blob/master/rs/rosetta-api/canister/src/account_identifier.rs
 
 use candid::CandidType;
@@ -161,12 +161,6 @@ impl Subaccount {
     #[allow(dead_code)]
     pub fn to_vec(&self) -> Vec<u8> {
         self.0.to_vec()
-    }
-
-    pub fn new_from_canister_id(
-        canister_id: &Principal,
-    ) -> Result<Self, std::array::TryFromSliceError> {
-        Subaccount::try_from(canister_id.as_slice())
     }
 }
 

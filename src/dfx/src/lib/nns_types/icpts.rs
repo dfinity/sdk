@@ -1,7 +1,7 @@
 // DISCLAIMER:
 // Do not modify this file arbitrarily.
 // The contents are borrowed from:
-// dfinity-lab/dfinity@f468897c57a5a0d4785b90c94935255d1a2f7d4c
+// dfinity-lab/dfinity@25999dd54d29c24edb31483801bddfd8c1d780c8
 // https://github.com/dfinity-lab/dfinity/blob/master/rs/rosetta-api/canister/src/icpts.rs
 
 use candid::CandidType;
@@ -35,7 +35,7 @@ pub const DECIMAL_PLACES: u32 = 8;
 /// How many times can ICPs be divided
 pub const ICP_SUBDIVIDABLE_BY: u64 = 100_000_000;
 
-pub const TRANSACTION_FEE: ICPTs = ICPTs { e8s: 137 };
+pub const TRANSACTION_FEE: ICPTs = ICPTs { e8s: 10000 };
 
 #[allow(dead_code)]
 pub const MIN_BURN_AMOUNT: ICPTs = TRANSACTION_FEE;

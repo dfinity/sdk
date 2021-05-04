@@ -12,11 +12,11 @@ use clap::{ArgSettings, Clap};
 use ic_types::principal::Principal;
 use std::str::FromStr;
 
-const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;
+const MEMO_TOP_UP_CANISTER: u64 = 1347768404_u64;
 
-/// Create a canister from ICP
+/// Top up a canister with cycles minted from ICP
 #[derive(Clap)]
-pub struct CreateCanisterOpts {
+pub struct TopUpOpts {
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
@@ -35,16 +35,16 @@ pub struct CreateCanisterOpts {
     #[clap(long, validator(icpts_amount_validator), setting = ArgSettings::Hidden)]
     fee: Option<String>,
 
-    /// Specify the controller of the new canister
+    /// Specify the canister id to top up
     #[clap(long)]
-    controller: String,
+    canister: String,
 
     /// Max fee
     #[clap(long, validator(icpts_amount_validator), setting = ArgSettings::Hidden)]
     max_fee: Option<String>,
 }
 
-pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
     let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
 
     let fee = opts.fee.map_or(Ok(TRANSACTION_FEE), |v| {
@@ -52,9 +52,9 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
     })?;
 
     // validated by memo_validator
-    let memo = Memo(MEMO_CREATE_CANISTER);
+    let memo = Memo(MEMO_TOP_UP_CANISTER);
 
-    let to_subaccount = Some(Subaccount::from(&Principal::from_text(opts.controller)?));
+    let to_subaccount = Some(Subaccount::from(&Principal::from_text(opts.canister)?));
 
     let max_fee = opts
         .max_fee
@@ -65,13 +65,13 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
     let result = send_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
 
     match result {
-        CyclesResponse::CanisterCreated(v) => {
-            println!("Canister created with id: {:?}", v.to_text());
+        CyclesResponse::ToppedUp(()) => {
+            println!("Canister was topped up!");
         }
         CyclesResponse::Refunded(msg, maybe_block_height) => {
             println!("Refunded with message: {} at {:?}", msg, maybe_block_height);
         }
-        CyclesResponse::ToppedUp(()) => unreachable!(),
+        CyclesResponse::CanisterCreated(_) => unreachable!(),
     };
     Ok(())
 }

@@ -1,3 +1,8 @@
+// DISCLAIMER:
+// Do not modify this file arbitrarily.
+// The contents are borrowed from:
+// dfinity-lab/dfinity@25999dd54d29c24edb31483801bddfd8c1d780c8
+
 use candid::CandidType;
 use ic_types::principal::Principal;
 use serde::{Deserialize, Serialize};
