@@ -13,7 +13,7 @@ teardown() {
   dfx_stop
 }
 
-@test "build + install + call + request-status -- greet_mo" {
+@test "Candid UI" {
     dfx_start
     dfx deploy
     assert_command dfx canister call hello greet '("Banzai")'
