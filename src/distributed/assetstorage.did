@@ -127,4 +127,6 @@ service: {
   }) -> ();
 
   http_request: (request: HttpRequest) -> (HttpResponse) query;
+
+  authorize: (principal) -> ();
 }
