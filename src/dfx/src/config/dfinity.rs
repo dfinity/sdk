@@ -33,7 +33,7 @@ const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsRepli
 };
 
 const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
-const DEFAULT_IC_GATEWAY: &str = "https://gw.dfinity.network";
+const DEFAULT_IC_GATEWAY: &str = "http://[2001:470:1:c76:5000:2cff:fe0c:f490]:8080";
 
 /// A Canister configuration in the dfx.json config file.
 /// It only contains a type; everything else should be infered using the
