@@ -58,8 +58,6 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         canister_id
     );
 
-    Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
-
     // Try to check the canister_id for a `wallet_balance()` if the network is not the IC and available.
     // Otherwise we just trust the user.
     if !network.is_ic || force {
@@ -80,14 +78,21 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                 let balance = canister.wallet_balance().call().await;
 
                 match balance {
-                    Err(_) | Ok((BalanceResult { amount: 0 },)) => {
+                    Ok((BalanceResult { amount: 0 },)) => {
                         error!(
                             log,
                             "Impossible to read the canister. Make sure this is a valid wallet and the network is running. Use --force to skip this verification."
                         );
                         Err(anyhow!("Could not find the wallet or the wallet was invalid."))
-                    }
-                    _ => Ok(()),
+                    },
+                    Err(err) => {
+                        Err(anyhow!("Unable to access the wallet: {}", err))
+                    },
+                    _ => {
+                        Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
+                        info!(log, "Wallet set successfully.");
+                        Ok(())
+                    },
                 }
             })
             .map_err(DfxError::from)?;
