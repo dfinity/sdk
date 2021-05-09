@@ -80,7 +80,12 @@ pub async fn exec(env: &dyn Environment, opts: NotifyOpts) -> DfxResult {
             println!("Canister was topped up!");
         }
         CyclesResponse::Refunded(msg, maybe_block_height) => {
-            println!("Refunded with message: {} at {:?}", msg, maybe_block_height);
+            match maybe_block_height {
+                Some(height) => {
+                    println!("Refunded at block height {} with message :{}", height, msg)
+                }
+                None => println!("Refunded with message: {}", msg),
+            };
         }
         CyclesResponse::CanisterCreated(v) => {
             println!("Canister created with id: {:?}", v.to_text());
