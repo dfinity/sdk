@@ -24,6 +24,7 @@ const NOTIFY_METHOD: &str = "notify_dfx";
 mod account_id;
 mod balance;
 mod create_canister;
+mod notify;
 mod top_up;
 mod transfer;
 
@@ -44,6 +45,7 @@ enum SubCommand {
     AccountId(account_id::AccountIdOpts),
     Balance(balance::BalanceOpts),
     CreateCanister(create_canister::CreateCanisterOpts),
+    Notify(notify::NotifyOpts),
     TopUp(top_up::TopUpOpts),
     Transfer(transfer::TransferOpts),
 }
@@ -56,6 +58,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
             SubCommand::AccountId(v) => account_id::exec(&agent_env, v).await,
             SubCommand::Balance(v) => balance::exec(&agent_env, v).await,
             SubCommand::CreateCanister(v) => create_canister::exec(&agent_env, v).await,
+            SubCommand::Notify(v) => notify::exec(&agent_env, v).await,
             SubCommand::TopUp(v) => top_up::exec(&agent_env, v).await,
             SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
         }

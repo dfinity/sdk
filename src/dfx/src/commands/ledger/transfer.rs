@@ -11,7 +11,7 @@ use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use candid::{Decode, Encode};
-use clap::{ArgSettings, Clap};
+use clap::Clap;
 use ic_types::principal::Principal;
 use std::str::FromStr;
 
@@ -20,6 +20,9 @@ const SEND_METHOD: &str = "send_dfx";
 /// Transfer ICP from the user to the destination AccountIdentifier
 #[derive(Clap)]
 pub struct TransferOpts {
+    /// AccountIdentifier of transfer destination.
+    to: String,
+
     /// ICPs to transfer to the destination AccountIdentifier
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
@@ -38,13 +41,9 @@ pub struct TransferOpts {
     #[clap(long, validator(memo_validator))]
     memo: String,
 
-    /// Transaction fee, default is 137 Doms.
-    #[clap(long, validator(icpts_amount_validator), setting = ArgSettings::Hidden)]
+    /// Transaction fee, default is 10000 e8s.
+    #[clap(long, validator(icpts_amount_validator))]
     fee: Option<String>,
-
-    /// AccountIdentifier of transfer destination.
-    #[clap(long)]
-    to: String,
 }
 
 pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
