@@ -18,7 +18,7 @@ use clap::{ArgSettings, Clap};
 use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
 
-/// Update one or more of a canisters settings (i.e its controller, compute allocation, or memory allocation.)
+/// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Clap)]
 pub struct UpdateSettingsOpts {
     /// Specifies the canister name to update. You must specify either canister name or the --all option.
