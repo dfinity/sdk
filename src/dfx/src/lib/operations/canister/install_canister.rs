@@ -4,6 +4,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::installers::assets::post_install_store_assets;
+use crate::lib::named_canister;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::Context;
@@ -25,6 +26,11 @@ pub async fn install_canister(
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
+    let network = env.get_network_descriptor().unwrap();
+    if !network.is_ic && named_canister::get_ui_canister_id(&network).is_none() {
+        named_canister::install_ui_canister(env, &network, None).await?;
+    }
+
     let mgr = ManagementCanister::create(agent);
     let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().context(format!(
@@ -64,7 +70,6 @@ pub async fn install_canister(
         }
         CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
             let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
-
             let install_args = CanisterInstall {
                 mode,
                 canister_id: canister_id.clone(),

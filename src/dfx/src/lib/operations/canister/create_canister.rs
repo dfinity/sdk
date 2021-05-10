@@ -55,70 +55,44 @@ pub async fn create_canister(
             Ok(())
         }
         None => {
-            let network = env
-                .get_network_descriptor()
-                .expect("No network descriptor.");
-
             let agent = env
                 .get_agent()
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
             let mgr = ManagementCanister::create(agent);
             let cid = match call_sender {
                 CallSender::SelectedId => {
-                    if network.is_ic {
-                        // Provisional commands are whitelisted on production
-                        mgr.create_canister()
-                            .with_optional_controller(settings.controller)
-                            .with_optional_compute_allocation(settings.compute_allocation)
-                            .with_optional_memory_allocation(settings.memory_allocation)
-                            .with_optional_freezing_threshold(settings.freezing_threshold)
-                            .call_and_wait(waiter_with_timeout(timeout))
-                            .await?
-                            .0
-                    } else {
-                        // amount has been validated by cycle_amount_validator
-                        let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
-                        mgr.create_canister()
-                            .as_provisional_create_with_amount(cycles)
-                            .with_optional_controller(settings.controller)
-                            .with_optional_compute_allocation(settings.compute_allocation)
-                            .with_optional_memory_allocation(settings.memory_allocation)
-                            .with_optional_freezing_threshold(settings.freezing_threshold)
-                            .call_and_wait(waiter_with_timeout(timeout))
-                            .await?
-                            .0
-                    }
+                    // amount has been validated by cycle_amount_validator
+                    let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
+                    mgr.create_canister()
+                        .as_provisional_create_with_amount(cycles)
+                        .with_optional_controller(settings.controller)
+                        .with_optional_compute_allocation(settings.compute_allocation)
+                        .with_optional_memory_allocation(settings.memory_allocation)
+                        .with_optional_freezing_threshold(settings.freezing_threshold)
+                        .call_and_wait(waiter_with_timeout(timeout))
+                        .await?
+                        .0
                 }
                 CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
                     let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
-                    if network.is_ic {
-                        // Provisional commands are whitelisted on production
-                        let (create_result,): (ic_utils::interfaces::wallet::CreateResult,) =
-                            wallet
-                                .call_forward(mgr.update_("create_canister").build(), 0)?
-                                .call_and_wait(waiter_with_timeout(timeout))
-                                .await?;
-                        create_result.canister_id
-                    } else {
-                        // amount has been validated by cycle_amount_validator
-                        let cycles = with_cycles.map_or(
-                            CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
-                            |amount| amount.parse::<u64>().unwrap(),
-                        );
-                        wallet
-                            .wallet_create_canister(
-                                cycles,
-                                settings.controller,
-                                settings.compute_allocation,
-                                settings.memory_allocation,
-                                settings.freezing_threshold,
-                            )
-                            .call_and_wait(waiter_with_timeout(timeout))
-                            .await?
-                            .0
-                            .map_err(|err| anyhow!(err))?
-                            .canister_id
-                    }
+                    // amount has been validated by cycle_amount_validator
+                    let cycles = with_cycles.map_or(
+                        CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
+                        |amount| amount.parse::<u64>().unwrap(),
+                    );
+                    wallet
+                        .wallet_create_canister(
+                            cycles,
+                            settings.controller,
+                            settings.compute_allocation,
+                            settings.memory_allocation,
+                            settings.freezing_threshold,
+                        )
+                        .call_and_wait(waiter_with_timeout(timeout))
+                        .await?
+                        .0
+                        .map_err(|err| anyhow!(err))?
+                        .canister_id
                 }
             };
             let canister_id = cid.to_text();

@@ -343,19 +343,11 @@ impl Identity {
                 let canister_id = match some_canister_id {
                     Some(id) => id,
                     None => {
-                        if network.is_ic {
-                            // Provisional commands are whitelisted on production
-                            mgr.create_canister()
-                                .call_and_wait(waiter_with_timeout(expiry_duration()))
-                                .await?
-                                .0
-                        } else {
-                            mgr.create_canister()
-                                .as_provisional_create_with_amount(None)
-                                .call_and_wait(waiter_with_timeout(expiry_duration()))
-                                .await?
-                                .0
-                        }
+                        mgr.create_canister()
+                            .as_provisional_create_with_amount(None)
+                            .call_and_wait(waiter_with_timeout(expiry_duration()))
+                            .await?
+                            .0
                     }
                 };
 

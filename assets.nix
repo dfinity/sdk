@@ -21,5 +21,6 @@ pkgs.runCommandNoCCLocal "assets" {} ''
 
   tar -czf $out/assetstorage_canister.tgz -C ${distributed-canisters}/assetstorage/ .
   tar -czf $out/wallet_canister.tgz -C ${distributed-canisters}/wallet/ .
+  tar -czf $out/ui_canister.tgz -C ${distributed-canisters}/ui/ .
 
 ''

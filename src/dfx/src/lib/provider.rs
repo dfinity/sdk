@@ -1,4 +1,4 @@
-use crate::config::dfinity::{ConfigNetwork, NetworkType};
+use crate::config::dfinity::{ConfigNetwork, NetworkType, DEFAULT_IC_GATEWAY};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
@@ -60,7 +60,7 @@ pub fn get_network_descriptor<'a>(
                 name: network_name.to_string(),
                 providers: provider_urls,
                 r#type: network_provider.r#type,
-                is_ic: network_name == "ic" || network_name == "https://gw.dfinity.network",
+                is_ic: network_name == "ic" || network_name == DEFAULT_IC_GATEWAY,
             })
         }
         Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
@@ -90,7 +90,7 @@ pub fn get_network_descriptor<'a>(
                     name,
                     providers: vec![url],
                     r#type: NetworkType::Ephemeral,
-                    is_ic: network_name == "ic" || network_name == "https://gw.dfinity.network",
+                    is_ic: network_name == "ic" || network_name == DEFAULT_IC_GATEWAY,
                 })
             } else {
                 Err(anyhow!("ComputeNetworkNotFound({})", network_name))

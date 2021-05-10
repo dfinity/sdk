@@ -1091,7 +1091,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.7.0-beta.5.unwrapped"
+version = "0.7.0-beta.7.unwrapped"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1105,6 +1105,7 @@ dependencies = [
  "chrono",
  "clap",
  "console 0.7.7",
+ "crc32fast",
  "crossbeam",
  "ctrlc",
  "delay",
@@ -1136,6 +1137,7 @@ dependencies = [
  "regex",
  "reqwest 0.10.10",
  "ring",
+ "rust_decimal",
  "rustls 0.18.1",
  "semver",
  "serde",
@@ -1707,6 +1709,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hostname"
@@ -1886,7 +1891,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.3.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#d0a17fcb64d658b782fd5e5158e748047403964a"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 dependencies = [
  "async-trait",
  "base32",
@@ -1916,7 +1921,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.2.1"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#d0a17fcb64d658b782fd5e5158e748047403964a"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1931,7 +1936,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#d0a17fcb64d658b782fd5e5158e748047403964a"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1943,7 +1948,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.2.1"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#d0a17fcb64d658b782fd5e5158e748047403964a"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 dependencies = [
  "async-trait",
  "candid",
@@ -3402,6 +3407,17 @@ dependencies = [
  "blake2b_simd",
  "constant_time_eq",
  "crossbeam-utils 0.8.3",
+]
+
+[[package]]
+name = "rust_decimal"
+version = "1.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc7f5b8840fb1f83869a3e1dfd06d93db79ea05311ac5b42b8337d3371caa4f1"
+dependencies = [
+ "arrayvec",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]

@@ -23,9 +23,9 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
         TcpBuilder::new_v6()?
     };
     let listener = tcp_builder
-        .bind(SocketAddr::new(ip, port))?
         .reuse_address(true)?
         .reuse_port(true)?
+        .bind(SocketAddr::new(ip, port))?
         .to_tcp_listener()?;
     listener.set_linger(Some(Duration::from_secs(10)))?;
     Ok(listener.local_addr()?)

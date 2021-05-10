@@ -170,7 +170,7 @@ build_release_branch() {
         cat <<<$(jq --indent 4 '.versions += ["$NEW_DFX_VERSION"]' public/manifest.json) >public/manifest.json
 
         echo "Creating release branch: $BRANCH"
-        $DRY_RUN_ECHO git add --all
+        $DRY_RUN_ECHO git add -u
         $DRY_RUN_ECHO git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
         $DRY_RUN_ECHO git push origin $BRANCH
 
