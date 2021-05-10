@@ -32,9 +32,9 @@
         "type": "git"
     },
     "dfinity": {
-        "branch": "joachim/unwrapped",
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "3ae74aa019bdd132785a0839bbd10d8baf0b0913",
+        "rev": "6f236cf43d25df469ed428d092d849269289dc12",
         "type": "git"
     },
     "ic-ref": {
