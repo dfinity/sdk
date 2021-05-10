@@ -1091,7 +1091,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.7.0-beta.6"
+version = "0.7.0-beta.7"
 dependencies = [
  "actix",
  "actix-cors",
