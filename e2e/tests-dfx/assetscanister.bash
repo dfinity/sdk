@@ -166,8 +166,6 @@ teardown() {
 }
 
 @test "verifies sha256, if specified" {
-  # todo: support sha256
-  skip "not supported yet by rust asset canister"
     install_asset assetscanister
 
     dfx_start
