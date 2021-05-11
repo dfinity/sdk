@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.7.0-beta.6"
+version = "0.7.0-beta.8"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -78,26 +78,26 @@ webpki-roots = "0.21.0"
 version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "d0a17fcb64d658b782fd5e5158e748047403964a"
+rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.2.1"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "d0a17fcb64d658b782fd5e5158e748047403964a"
+rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "d0a17fcb64d658b782fd5e5158e748047403964a"
+rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 
 [dependencies.ic-utils]
 version = "0.2.1"
 git = "https://github.com/dfinity/agent-rs.git"
 branch = "next"
-rev = "d0a17fcb64d658b782fd5e5158e748047403964a"
+rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 
 [dev-dependencies]
 env_logger = "0.6"
