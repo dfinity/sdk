@@ -25,6 +25,9 @@ pub struct RequestStatusOpts {
     /// Specifies the name or id of the canister onto which the request was made.
     /// If the request was made to the Management canister, specify the id of the
     /// canister it is updating/querying.
+    /// If the call was proxied by the wallet,
+    /// i.e. a `dfx canister call --async` WITHOUT the `--no-wallet` flag,
+    /// specify the wallet canister id.
     canister_name: String,
 
     /// Specifies the format for displaying the method's return result.
