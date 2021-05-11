@@ -63,8 +63,8 @@ type StreamingCallbackHttpResponse = record {
 type Token = record {
   key: Key;
   content_encoding: text;
-  index: Nat;
-  sha256: ?Blob;
+  index: nat;
+  sha256: opt blob;
 };
 
 type StreamingStrategy = variant {
