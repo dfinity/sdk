@@ -1,6 +1,7 @@
 type BatchId = nat;
 type ChunkId = nat;
 type Key = text;
+type Time = int;
 
 type CreateAssetArguments = record {
   key: Key;
@@ -69,7 +70,7 @@ type StreamingCallbackToken = record {
 
 type StreamingStrategy = variant {
   Callback: record {
-    callback: func (StreamingCallbackToken) -> (StreamingCallbackHttpResponse) query;
+    callback: func (StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
     token: StreamingCallbackToken;
   };
 };
