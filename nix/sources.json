@@ -13,10 +13,17 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/cargo-lock",
-        "repo": "ssh://git@github.com/dfinity/agent-rs",
-        "rev": "3ef879d800df376bf477cd589211f3073f2c3c8a",
-        "type": "git"
+        "branch": "paulliu/downgrade",
+        "builtin": false,
+        "description": "A collection of libraries and tools for building software around the Internet Computer, in Rust.",
+        "homepage": "https://sdk.dfinity.org/",
+        "owner": "ninegua",
+        "repo": "agent-rs",
+        "rev": "3ea33209a9e0376d23b5ef1d22ca2be5da1aa03a",
+        "sha256": "1631da2l42kljjdvldgmysfzr9x6png9yav6k8vcrzfviz5cwb1y",
+        "type": "tarball",
+        "url": "https://github.com/ninegua/agent-rs/archive/3ea33209a9e0376d23b5ef1d22ca2be5da1aa03a.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "bats-support": {
         "branch": "v0.3.0",
@@ -32,9 +39,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "ericswanson/update-naersk",
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "440e9711a572317d1a3d61fa58bbe2fe9750d3b2",
+        "rev": "49c5837222615d9c587c3032fc70d48483902f25",
         "type": "git"
     },
     "dfinity": {
