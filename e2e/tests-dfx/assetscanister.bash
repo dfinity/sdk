@@ -102,10 +102,6 @@ teardown() {
 }
 
 @test "generates gzipped content encoding for .js files" {
-    # Skip this test on Mac OS when no IC_REF, as it does not certify properly apparently.
-    ! [ "$USE_IC_REF" ] && which sw_vers && (sw_vers | grep -i mac) \
-      && skip "This test does not pass on Mac OS on real Replica"
-
     install_asset assetscanister
     for i in $(seq 1 400); do
       echo "some easily duplicate text $i" >>src/e2e_project_assets/assets/notreally.js
