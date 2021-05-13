@@ -5,24 +5,24 @@ members = [
 
 [patch.crates-io.ic-agent]
 version = "0.4.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "ericswanson/downgrade-rust-1.45"
-rev = "51928da0ba72551d50db2fd70bbc447f0295ecc2"
+git = "https://github.com/ninegua/agent-rs.git"
+branch = "paulliu/upgrade-candid-0.6.21"
+rev = "f1219070c3563a432bce329b144aefc1b8430b7a"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.3.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "ericswanson/downgrade-rust-1.45"
-rev = "51928da0ba72551d50db2fd70bbc447f0295ecc2"
+git = "https://github.com/ninegua/agent-rs.git"
+branch = "paulliu/upgrade-candid-0.6.21"
+rev = "f1219070c3563a432bce329b144aefc1b8430b7a"
 
 [patch.crates-io.ic-types]
 version = "0.1.2"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "ericswanson/downgrade-rust-1.45"
-rev = "51928da0ba72551d50db2fd70bbc447f0295ecc2"
+git = "https://github.com/ninegua/agent-rs.git"
+branch = "paulliu/upgrade-candid-0.6.21"
+rev = "f1219070c3563a432bce329b144aefc1b8430b7a"
 
 [patch.crates-io.ic-utils]
 version = "0.3.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "ericswanson/downgrade-rust-1.45"
-rev = "51928da0ba72551d50db2fd70bbc447f0295ecc2"
+git = "https://github.com/ninegua/agent-rs.git"
+branch = "paulliu/upgrade-candid-0.6.21"
+rev = "f1219070c3563a432bce329b144aefc1b8430b7a"

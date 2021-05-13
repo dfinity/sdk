@@ -78,28 +78,28 @@ webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
 version = "0.4.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "ericswanson/downgrade-rust-1.45"
-rev = "51928da0ba72551d50db2fd70bbc447f0295ecc2"
+git = "https://github.com/ninegua/agent-rs.git"
+branch = "paulliu/upgrade-candid-0.6.21"
+rev = "f1219070c3563a432bce329b144aefc1b8430b7a"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
 version = "0.3.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "ericswanson/downgrade-rust-1.45"
-rev = "51928da0ba72551d50db2fd70bbc447f0295ecc2"
+git = "https://github.com/ninegua/agent-rs.git"
+branch = "paulliu/upgrade-candid-0.6.21"
+rev = "f1219070c3563a432bce329b144aefc1b8430b7a"
 
 [dependencies.ic-types]
 version = "0.1.2"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "ericswanson/downgrade-rust-1.45"
-rev = "51928da0ba72551d50db2fd70bbc447f0295ecc2"
+git = "https://github.com/ninegua/agent-rs.git"
+branch = "paulliu/upgrade-candid-0.6.21"
+rev = "f1219070c3563a432bce329b144aefc1b8430b7a"
 
 [dependencies.ic-utils]
 version = "0.3.0"
-git = "https://github.com/dfinity/agent-rs.git"
-branch = "ericswanson/downgrade-rust-1.45"
-rev = "51928da0ba72551d50db2fd70bbc447f0295ecc2"
+git = "https://github.com/ninegua/agent-rs.git"
+branch = "paulliu/upgrade-candid-0.6.21"
+rev = "f1219070c3563a432bce329b144aefc1b8430b7a"
 
 [dev-dependencies]
 env_logger = "0.6"

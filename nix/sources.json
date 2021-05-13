@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/downgrade-rust-1.45",
-        "repo": "ssh://git@github.com/dfinity/agent-rs",
-        "rev": "51928da0ba72551d50db2fd70bbc447f0295ecc2",
+        "branch": "paulliu/upgrade-candid-0.6.21",
+        "repo": "ssh://git@github.com/ninegua/agent-rs",
+        "rev": "f1219070c3563a432bce329b144aefc1b8430b7a",
         "type": "git"
     },
     "bats-support": {
