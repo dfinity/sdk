@@ -13,17 +13,10 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "paulliu/downgrade",
-        "builtin": false,
-        "description": "A collection of libraries and tools for building software around the Internet Computer, in Rust.",
-        "homepage": "https://sdk.dfinity.org/",
-        "owner": "ninegua",
-        "repo": "agent-rs",
-        "rev": "05d9554bda15e3cf3045ac61739ad607b895f049",
-        "sha256": "12b52faapi9d7f1zgkqw6snzi5f01fbpqws3im7imm2qlxfd4xyr",
-        "type": "tarball",
-        "url": "https://github.com/ninegua/agent-rs/archive/05d9554bda15e3cf3045ac61739ad607b895f049.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+        "branch": "ericswanson/build-on-rust-1.45.2-for-sdk-under-nix",
+        "repo": "https://github.com/dfinity/agent-rs",
+        "rev": "e6bf42ed697db37a252f019563c36160f72d8cd8",
+        "type": "git"
     },
     "bats-support": {
         "branch": "v0.3.0",
