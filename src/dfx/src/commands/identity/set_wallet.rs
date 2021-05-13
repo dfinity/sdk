@@ -50,14 +50,6 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
     };
     let force = opts.force;
 
-    info!(
-        log,
-        "Setting wallet for identity '{}' on network '{}' to id '{}'",
-        identity_name,
-        network.name,
-        canister_id
-    );
-
     // Try to check the canister_id for a `wallet_balance()` if the network is not the IC and available.
     // Otherwise we just trust the user.
     if !network.is_ic || force {
@@ -74,7 +66,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = Identity::get_wallet_canister(env, &network, &identity_name).await?;
+                let canister = Identity::build_wallet_canister(canister_id.clone(), env)?;
                 let balance = canister.wallet_balance().call().await;
 
                 match balance {
@@ -89,6 +81,13 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                         Err(anyhow!("Unable to access the wallet: {}", err))
                     },
                     _ => {
+                        info!(
+                            log,
+                            "Setting wallet for identity '{}' on network '{}' to id '{}'",
+                            identity_name,
+                            network.name,
+                            canister_id
+                        );
                         Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
                         info!(log, "Wallet set successfully.");
                         Ok(())
