@@ -75,29 +75,29 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.3.0"
+version = "0.4.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "ericswanson/downgrade-rust-1.45"
+rev = "02b23b12aaea4a0fccb32cece1aecfe68b9be080"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
-version = "0.2.1"
+version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "ericswanson/downgrade-rust-1.45"
+rev = "02b23b12aaea4a0fccb32cece1aecfe68b9be080"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "ericswanson/downgrade-rust-1.45"
+rev = "02b23b12aaea4a0fccb32cece1aecfe68b9be080"
 
 [dependencies.ic-utils]
-version = "0.2.1"
+version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "ericswanson/downgrade-rust-1.45"
+rev = "02b23b12aaea4a0fccb32cece1aecfe68b9be080"
 
 [dev-dependencies]
 env_logger = "0.6"
