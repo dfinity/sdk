@@ -13,6 +13,8 @@ teardown() {
 }
 
 @test "bootstrap fetches candid file" {
+    skip "icx-proxy does not return candid files"
+
     dfx_start
     dfx canister create --all
     dfx build

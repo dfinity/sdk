@@ -468,16 +468,6 @@ impl Identity {
     }
 
     #[allow(clippy::needless_lifetimes)]
-    pub async fn get_wallet_canister<'env>(
-        env: &'env dyn Environment,
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> DfxResult<Canister<'env, Wallet>> {
-        let wallet_canister_id = Identity::wallet_canister_id(env, network, name)?;
-        Identity::build_wallet_canister(wallet_canister_id, env)
-    }
-
-    #[allow(clippy::needless_lifetimes)]
     pub async fn get_or_create_wallet_canister<'env>(
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
