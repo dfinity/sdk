@@ -39,9 +39,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "ericswanson/update-naersk",
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "440e9711a572317d1a3d61fa58bbe2fe9750d3b2",
+        "rev": "9960cc13ad2e8bcf1af5ea820fc50a2456ccc1db",
         "type": "git"
     },
     "dfinity": {
