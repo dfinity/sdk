@@ -690,7 +690,7 @@ dependencies = [
  "rand 0.8.3",
  "serde",
  "serde_bytes",
- "serde_dhall",
+ "serde_dhall 0.10.0",
  "thiserror",
 ]
 
@@ -1112,6 +1112,7 @@ dependencies = [
  "crossbeam",
  "ctrlc",
  "delay",
+ "dhall 0.9.0",
  "dialoguer",
  "env_logger",
  "erased-serde",
@@ -1146,6 +1147,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_cbor",
+ "serde_dhall 0.9.0",
  "serde_json",
  "serde_repr",
  "shell-words",
@@ -1166,9 +1168,33 @@ dependencies = [
 
 [[package]]
 name = "dhall"
-version = "0.10.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a7d7b648a24d2edd4ba9f31fe42c831080522d1cf35bca3522887ba0d802745"
+checksum = "a7930c7ac2b3989a07a2a3400bf9f4bc1c65074f330e3ff22b372a4d386fabd0"
+dependencies = [
+ "abnf_to_pest",
+ "annotate-snippets",
+ "hex",
+ "itertools 0.9.0",
+ "lazy_static",
+ "once_cell",
+ "percent-encoding",
+ "pest",
+ "pest_consume",
+ "pest_generator",
+ "quote",
+ "reqwest 0.10.10",
+ "serde",
+ "serde_cbor",
+ "sha2",
+ "url",
+]
+
+[[package]]
+name = "dhall"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0dc4d9d9848124c8c10f24e3696f86d5249d7d2dca8ca0556cff10f001d51e8"
 dependencies = [
  "abnf_to_pest",
  "annotate-snippets",
@@ -1191,10 +1217,11 @@ dependencies = [
 
 [[package]]
 name = "dhall_proc_macros"
-version = "0.5.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f64ba6f41d9b223e2e1d7c97a1145a1aa03e57d65e1c9c2baa29f194caf322c9"
+checksum = "bf6cff1e2ddd03851652e0cde982b01dc877c9fc9da9ba25ad4241a151945f09"
 dependencies = [
+ "itertools 0.9.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -3581,13 +3608,27 @@ dependencies = [
 
 [[package]]
 name = "serde_dhall"
-version = "0.10.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1393976875f3080d8cd1ff54083129e2e6a30d7a62582b67c3eb5924789e8e75"
+checksum = "f80d945a711c648e559c4d39832379f36a303d393fca4719080de51701266f38"
 dependencies = [
- "dhall",
+ "dhall 0.9.0",
  "dhall_proc_macros",
  "doc-comment",
+ "serde",
+ "url",
+]
+
+[[package]]
+name = "serde_dhall"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01dfb806cc18b2cc347254781948862dba85e6fc2cf300b6cb321fa8fed9137"
+dependencies = [
+ "dhall 0.10.0",
+ "dhall_proc_macros",
+ "doc-comment",
+ "serde",
  "serde",
  "url",
 ]
