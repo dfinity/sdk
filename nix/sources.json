@@ -15,7 +15,7 @@
     "agent-rs": {
         "branch": "ericswanson/downgrade-rust-1.45",
         "repo": "ssh://git@github.com/dfinity/agent-rs",
-        "rev": "02b23b12aaea4a0fccb32cece1aecfe68b9be080",
+        "rev": "51928da0ba72551d50db2fd70bbc447f0295ecc2",
         "type": "git"
     },
     "bats-support": {
