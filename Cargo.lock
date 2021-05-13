@@ -1886,7 +1886,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.4.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/downgrade-rust-1.45#02b23b12aaea4a0fccb32cece1aecfe68b9be080"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/downgrade-rust-1.45#51928da0ba72551d50db2fd70bbc447f0295ecc2"
 dependencies = [
  "async-trait",
  "base32",
@@ -1916,7 +1916,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.3.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/downgrade-rust-1.45#02b23b12aaea4a0fccb32cece1aecfe68b9be080"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/downgrade-rust-1.45#51928da0ba72551d50db2fd70bbc447f0295ecc2"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1931,7 +1931,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/downgrade-rust-1.45#02b23b12aaea4a0fccb32cece1aecfe68b9be080"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/downgrade-rust-1.45#51928da0ba72551d50db2fd70bbc447f0295ecc2"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1943,7 +1943,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.3.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/downgrade-rust-1.45#02b23b12aaea4a0fccb32cece1aecfe68b9be080"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=ericswanson/downgrade-rust-1.45#51928da0ba72551d50db2fd70bbc447f0295ecc2"
 dependencies = [
  "async-trait",
  "candid",
