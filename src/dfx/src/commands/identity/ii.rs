@@ -34,7 +34,9 @@ pub fn register(env: &dyn Environment, opts: RegisterWithOpts) -> DfxResult {
         .as_ref()
         .public_key()
         .map_err(|err| anyhow!("{}", err))?;
-    let base = opts.url.unwrap_or("https://identity.ic0.app/".to_string());
+    let base = opts
+        .url
+        .unwrap_or_else(|| "https://identity.ic0.app/".to_string());
 
     println!(
         "{}#device={};{}",
@@ -95,7 +97,7 @@ pub fn add_device(
 
     let canister_id = Principal::from_text(
         opts.canister_id
-            .unwrap_or("rdmx6-jaaaa-aaaaa-aaadq-cai".to_string()),
+            .unwrap_or_else(|| "rdmx6-jaaaa-aaaaa-aaadq-cai".to_string()),
     )?;
 
     let agent_env = create_agent_environment(env, network)?;
