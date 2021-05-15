@@ -489,6 +489,14 @@ impl ic_agent::Identity for Identity {
     }
 }
 
+impl Identity {
+    // this is a hack, and should really be a method of ic_agent::Identity, like sender().
+    pub fn public_key(&self) -> Result<Vec<u8>, String> {
+        let sig = self.inner.sign(b"")?;
+        Ok(sig.public_key.ok_or("Identity was not able to sign")?)
+    }
+}
+
 impl AsRef<Identity> for Identity {
     fn as_ref(&self) -> &Identity {
         self
