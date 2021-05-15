@@ -5,12 +5,12 @@ use clap::Clap;
 
 mod deploy_wallet;
 mod get_wallet;
+mod ii;
 mod import;
 mod list;
 mod new;
 mod principal;
 mod public_key;
-mod ii;
 mod remove;
 mod rename;
 mod set_wallet;
