@@ -129,6 +129,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Info(v) => info::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
             SubCommand::Send(v) => {
+                default_wallet_proxy = false;
                 send::exec(
                     &agent_env,
                     v,
@@ -143,6 +144,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
                 .await
             }
             SubCommand::Sign(v) => {
+                default_wallet_proxy = false;
                 sign::exec(
                     &agent_env,
                     v,
