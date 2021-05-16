@@ -80,7 +80,7 @@ teardown() {
     assert_eq "(3)"
 
     assert_command dfx canister call hello inc --async
-    assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
+    assert_command dfx canister request-status "$stdout" "$(dfx canister id hello)"
 
     # Call write.
     assert_command dfx canister call hello write 1337
