@@ -277,6 +277,13 @@ fn replica_start_thread(
                 &write_port_to.to_string_lossy().to_string(),
             ]);
         }
+        if config.no_artificial_delay {
+            cmd.args(&[
+                "--initial-notary-delay-millis",
+                // 500ms
+                "500",
+            ]);
+        }
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
