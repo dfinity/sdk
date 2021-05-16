@@ -8,34 +8,36 @@ use crate::util::expiry_duration;
 
 use anyhow::bail;
 use clap::Clap;
+use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
 /// Starts a canister on the Internet Computer network.
 #[derive(Clap)]
 pub struct CanisterStartOpts {
-    /// Specifies the name of the canister to start. You must specify either a canister name or the --all flag.
-    canister_name: Option<String>,
+    /// Specifies the name or id of the canister to start. You must specify either a canister name/id or the --all flag.
+    canister: Option<String>,
 
     /// Starts all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister-name"))]
+    #[clap(long, required_unless_present("canister"))]
     all: bool,
 }
 
 async fn start_canister(
     env: &dyn Environment,
-    canister_name: &str,
+    canister: &str,
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
-    let canister_id = canister_id_store.get(canister_name)?;
+    let canister_id =
+        Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
     info!(
         log,
         "Starting code for canister {}, with canister_id {}",
-        canister_name,
+        canister,
         canister_id.to_text(),
     );
 
@@ -54,12 +56,12 @@ pub async fn exec(
 
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = opts.canister_name.as_deref() {
-        start_canister(env, &canister_name, timeout, call_sender).await
+    if let Some(canister) = opts.canister.as_deref() {
+        start_canister(env, &canister, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
-            for canister_name in canisters.keys() {
-                start_canister(env, &canister_name, timeout, call_sender).await?;
+            for canister in canisters.keys() {
+                start_canister(env, &canister, timeout, call_sender).await?;
             }
         }
         Ok(())

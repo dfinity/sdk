@@ -8,6 +8,7 @@ use crate::util::expiry_duration;
 
 use anyhow::bail;
 use clap::Clap;
+use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
@@ -16,27 +17,28 @@ use std::time::Duration;
 pub struct CanisterStatusOpts {
     /// Specifies the name of the canister to return information for.
     /// You must specify either a canister name or the --all flag.
-    canister_name: Option<String>,
+    canister: Option<String>,
 
     /// Returns status information for all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister-name"))]
+    #[clap(long, required_unless_present("canister"))]
     all: bool,
 }
 
 async fn canister_status(
     env: &dyn Environment,
-    canister_name: &str,
+    canister: &str,
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
-    let canister_id = canister_id_store.get(canister_name)?;
+    let canister_id =
+        Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
 
     info!(log, "Canister status call result for {}.\nStatus: {}\nController: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
-        canister_name,
+        canister,
         status.status,
         status.settings.controller,
         status.settings.memory_allocation,
@@ -59,12 +61,12 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
     let timeout = expiry_duration();
 
-    if let Some(canister_name) = opts.canister_name.as_deref() {
-        canister_status(env, &canister_name, timeout, call_sender).await
+    if let Some(canister) = opts.canister.as_deref() {
+        canister_status(env, &canister, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
-            for canister_name in canisters.keys() {
-                canister_status(env, &canister_name, timeout, call_sender).await?;
+            for canister in canisters.keys() {
+                canister_status(env, &canister, timeout, call_sender).await?;
             }
         }
         Ok(())
