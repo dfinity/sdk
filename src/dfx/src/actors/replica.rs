@@ -280,7 +280,10 @@ fn replica_start_thread(
         if config.no_artificial_delay {
             cmd.args(&[
                 "--initial-notary-delay-millis",
-                // 500ms
+                // The intial notary delay is set to 2500ms in the replica's
+                // default subnet configuration.
+                // For local consensus, we can set it to a smaller value in order
+                // to speed up update calls.
                 "500",
             ]);
         }
