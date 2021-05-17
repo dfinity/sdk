@@ -123,7 +123,6 @@ impl CanisterIdStore {
         let network_name = &self.network_descriptor.name;
         if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
             network_name_to_canister_id.remove(&network_name.to_string());
-            self.ids.remove(&canister_name.to_string());
         }
         self.save_ids()
     }
