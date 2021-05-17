@@ -65,154 +65,34 @@ enum SubCommand {
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.clone())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let mut default_wallet_proxy = true;
+    let default_wallet_proxy = match opts.subcmd {
+        SubCommand::Call(_) | SubCommand::Send(_) | SubCommand::Sign(_) => false,
+        _ => true,
+    };
+
     runtime.block_on(async {
+        let call_sender = call_sender(
+            &agent_env,
+            &opts.wallet,
+            opts.no_wallet,
+            default_wallet_proxy,
+        )
+        .await?;
         match opts.subcmd {
-            SubCommand::Call(v) => {
-                default_wallet_proxy = false;
-                call::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
-            SubCommand::Create(v) => {
-                create::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
-            SubCommand::Delete(v) => {
-                delete::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
+            SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Create(v) => create::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Delete(v) => delete::exec(&agent_env, v, &call_sender).await,
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
-            SubCommand::Install(v) => {
-                install::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
+            SubCommand::Install(v) => install::exec(&agent_env, v, &call_sender).await,
             SubCommand::Info(v) => info::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
-            SubCommand::Send(v) => {
-                default_wallet_proxy = false;
-                send::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
-            SubCommand::Sign(v) => {
-                default_wallet_proxy = false;
-                sign::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
-            SubCommand::Start(v) => {
-                start::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
-            SubCommand::Status(v) => {
-                status::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
-            SubCommand::Stop(v) => {
-                stop::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
-            }
+            SubCommand::Send(v) => send::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Sign(v) => sign::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Start(v) => start::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Status(v) => status::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Stop(v) => stop::exec(&agent_env, v, &call_sender).await,
             SubCommand::UpdateSettings(v) => {
-                update_settings::exec(
-                    &agent_env,
-                    v,
-                    &call_sender(
-                        &agent_env,
-                        &opts.wallet,
-                        opts.no_wallet,
-                        default_wallet_proxy,
-                    )
-                    .await?,
-                )
-                .await
+                update_settings::exec(&agent_env, v, &call_sender).await
             }
         }
     })
