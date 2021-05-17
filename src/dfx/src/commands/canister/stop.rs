@@ -6,7 +6,6 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
-use anyhow::bail;
 use clap::Clap;
 use slog::info;
 use std::time::Duration;
@@ -65,6 +64,6 @@ pub async fn exec(
         }
         Ok(())
     } else {
-        bail!("Cannot find canister name.")
+        unreachable!()
     }
 }
