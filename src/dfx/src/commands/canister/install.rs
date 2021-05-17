@@ -7,7 +7,7 @@ use crate::lib::operations::canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use clap::Clap;
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -102,6 +102,6 @@ pub async fn exec(
         }
         Ok(())
     } else {
-        bail!("Cannot find canister name.")
+        unreachable!()
     }
 }
