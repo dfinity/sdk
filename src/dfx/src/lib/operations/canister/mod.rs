@@ -13,6 +13,7 @@ use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::waiter::waiter_with_timeout;
+
 use anyhow::anyhow;
 use candid::de::ArgumentDecoder;
 use candid::CandidType;
@@ -20,7 +21,7 @@ use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
-use ic_utils::interfaces::management_canister::StatusCallResult;
+use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -32,6 +33,7 @@ async fn do_management_call<A, O>(
     arg: A,
     timeout: Duration,
     call_sender: &CallSender,
+    cycles: u64,
 ) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,
@@ -54,7 +56,7 @@ where
         CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
             let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
             let out: O = wallet
-                .call_forward(mgr.update_(method).with_arg(arg).build(), 0)?
+                .call_forward(mgr.update_(method).with_arg(arg).build(), cycles)?
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?;
             out
@@ -78,10 +80,11 @@ pub async fn get_canister_status(
     let (out,): (StatusCallResult,) = do_management_call(
         env,
         canister_id.clone(),
-        "canister_status",
+        MgmtMethod::CanisterStatus.as_ref(),
         In { canister_id },
         timeout,
         call_sender,
+        0,
     )
     .await?;
     Ok(out)
@@ -101,10 +104,11 @@ pub async fn start_canister(
     let _: () = do_management_call(
         env,
         canister_id.clone(),
-        "start_canister",
+        MgmtMethod::StartCanister.as_ref(),
         In { canister_id },
         timeout,
         call_sender,
+        0,
     )
     .await?;
     Ok(())
@@ -124,10 +128,11 @@ pub async fn stop_canister(
     let _: () = do_management_call(
         env,
         canister_id.clone(),
-        "stop_canister",
+        MgmtMethod::StopCanister.as_ref(),
         In { canister_id },
         timeout,
         call_sender,
+        0,
     )
     .await?;
     Ok(())
@@ -148,7 +153,7 @@ pub async fn update_settings(
     let _: () = do_management_call(
         env,
         canister_id.clone(),
-        "update_settings",
+        MgmtMethod::UpdateSettings.as_ref(),
         In {
             canister_id,
             settings: CanisterSettings {
@@ -169,8 +174,33 @@ pub async fn update_settings(
         },
         timeout,
         call_sender,
+        0,
     )
     .await?;
+    Ok(())
+}
+
+pub async fn uninstall_code(
+    env: &dyn Environment,
+    canister_id: Principal,
+    timeout: Duration,
+    call_sender: &CallSender,
+) -> DfxResult {
+    #[derive(CandidType)]
+    struct In {
+        canister_id: Principal,
+    }
+    let _: () = do_management_call(
+        env,
+        canister_id.clone(),
+        MgmtMethod::UninstallCode.as_ref(),
+        In { canister_id },
+        timeout,
+        call_sender,
+        0,
+    )
+    .await?;
+
     Ok(())
 }
 
@@ -187,10 +217,36 @@ pub async fn delete_canister(
     let _: () = do_management_call(
         env,
         canister_id.clone(),
-        "delete_canister",
+        MgmtMethod::DeleteCanister.as_ref(),
         In { canister_id },
         timeout,
         call_sender,
+        0,
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub async fn deposit_cycles(
+    env: &dyn Environment,
+    canister_id: Principal,
+    timeout: Duration,
+    call_sender: &CallSender,
+    cycles: u64,
+) -> DfxResult {
+    #[derive(CandidType)]
+    struct In {
+        canister_id: Principal,
+    }
+    let _: () = do_management_call(
+        env,
+        canister_id.clone(),
+        MgmtMethod::DepositCycles.as_ref(),
+        In { canister_id },
+        timeout,
+        call_sender,
+        cycles,
     )
     .await?;
 
