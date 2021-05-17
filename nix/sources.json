@@ -13,7 +13,7 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/build-on-rust-1.45.2-for-sdk-under-nix",
+        "branch": "dfx-support/build-on-rust-1.45.2-for-sdk-under-nix",
         "repo": "https://github.com/dfinity/agent-rs",
         "rev": "e6bf42ed697db37a252f019563c36160f72d8cd8",
         "type": "git"
