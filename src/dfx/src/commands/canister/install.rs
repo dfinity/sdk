@@ -9,17 +9,18 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use anyhow::anyhow;
 use clap::Clap;
+use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use std::str::FromStr;
 
 /// Deploys compiled code as a canister on the Internet Computer.
 #[derive(Clap, Clone)]
 pub struct CanisterInstallOpts {
-    /// Specifies the canister name to deploy. You must specify either canister name or the --all option.
-    canister_name: Option<String>,
+    /// Specifies the canister to deploy. You must specify either canister name/id or the --all option.
+    canister: Option<String>,
 
     /// Deploys all canisters configured in the project dfx.json files.
-    #[clap(long, required_unless_present("canister-name"))]
+    #[clap(long, required_unless_present("canister"))]
     all: bool,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
@@ -56,9 +57,10 @@ pub async fn exec(
     let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    if let Some(canister_name) = opts.canister_name.as_deref() {
-        let canister_id = canister_id_store.get(canister_name)?;
-        let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+    if let Some(canister) = opts.canister.as_deref() {
+        let canister_id =
+            Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+        let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
@@ -79,9 +81,10 @@ pub async fn exec(
     } else if opts.all {
         // Install all canisters.
         if let Some(canisters) = &config.get_config().canisters {
-            for canister_name in canisters.keys() {
-                let canister_id = canister_id_store.get(canister_name)?;
-                let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+            for canister in canisters.keys() {
+                let canister_id =
+                    Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+                let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
 
                 let install_args = [];
 
