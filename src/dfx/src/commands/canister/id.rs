@@ -8,8 +8,7 @@ use ic_types::principal::Principal;
 /// Prints the identifier of a canister.
 #[derive(Clap)]
 pub struct CanisterIdOpts {
-    /// Specifies the name of the canister to stop.
-    /// You must specify either a canister name/id or the --all option.
+    /// Specifies the name of the canister.
     canister: String,
 }
 
