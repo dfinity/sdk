@@ -4,7 +4,7 @@ use crate::config::dfinity::ConfigDefaultsReplica;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig, SchedulerConfig};
+use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
 use actix::Addr;
 use clap::Clap;
@@ -13,21 +13,17 @@ use std::default::Default;
 /// Starts a local Internet Computer replica.
 #[derive(Clap)]
 pub struct ReplicaOpts {
-    /// Specifies the maximum number of cycles a single message can consume.
-    #[clap(long, hidden = true)]
-    message_gas_limit: Option<String>,
-
     /// Specifies the port the local replica should listen to.
     #[clap(long)]
     port: Option<String>,
 
-    /// Specifies the maximum number of cycles a single round can consume.
-    #[clap(long, hidden = true)]
-    round_gas_limit: Option<String>,
-
     /// Runs a dedicated emulator instead of the replica
     #[clap(long)]
     emulator: bool,
+
+    /// Removes the artificial delay in the local replica added to simulate the networked IC environment.
+    #[clap(long)]
+    no_artificial_delay: bool,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -45,18 +41,8 @@ fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConf
         http_handler.port = Some(port);
     };
 
-    // get replica command opts
-    let message_gas_limit = get_message_gas_limit(&config, opts.message_gas_limit)?;
-    let round_gas_limit = get_round_gas_limit(&config, opts.round_gas_limit)?;
-    let scheduler = SchedulerConfig {
-        exec_gas: Some(message_gas_limit),
-        round_gas_max: Some(round_gas_limit),
-    }
-    .validate()?;
-
-    let mut replica_config = ReplicaConfig::new(&env.get_state_dir());
+    let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), opts.no_artificial_delay);
     replica_config.http_handler = http_handler;
-    replica_config.scheduler = scheduler;
     Ok(replica_config)
 }
 
@@ -78,38 +64,6 @@ fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u
             Ok(config.port.unwrap_or(default))
         })
         .map_err(|err| error_invalid_argument!("Invalid port number: {}", err))
-}
-
-/// Gets the maximum amount of gas a single message can consume. First checks if the gas limit was
-/// specified on the command-line using --message-gas-limit, otherwise checks if the gas limit was
-/// specified in the dfx configuration file, otherise defaults to 5368709120.
-fn get_message_gas_limit(
-    config: &ConfigDefaultsReplica,
-    message_gas_limit: Option<String>,
-) -> DfxResult<u64> {
-    message_gas_limit
-        .map(|limit| limit.parse())
-        .unwrap_or_else(|| {
-            let default = 5_368_709_120;
-            Ok(config.message_gas_limit.unwrap_or(default))
-        })
-        .map_err(|err| error_invalid_argument!("Invalid message gas limit: {}", err))
-}
-
-/// Gets the maximum amount of gas a single round can consume. First checks if the gas limit was
-/// specified on the command-line using --round-gas-limit, otherwise checks if the gas limit was
-/// specified in the dfx configuration file, otherise defaults to 26843545600.
-fn get_round_gas_limit(
-    config: &ConfigDefaultsReplica,
-    round_gas_limit: Option<String>,
-) -> DfxResult<u64> {
-    round_gas_limit
-        .map(|limit| limit.parse())
-        .unwrap_or_else(|| {
-            let default = 26_843_545_600;
-            Ok(config.round_gas_limit.unwrap_or(default))
-        })
-        .map_err(|err| error_invalid_argument!("Invalid round gas limit: {}", err))
 }
 
 fn start_replica(

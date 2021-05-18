@@ -28,7 +28,7 @@ pub struct RequestStatusOpts {
     /// If the call was proxied by the wallet,
     /// i.e. a `dfx canister --wallet=<ID> call --async` flag,
     /// specify the wallet canister id.
-    canister_name: String,
+    canister: String,
 
     /// Specifies the format for displaying the method's return result.
     #[clap(long,
@@ -45,7 +45,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
-    let callee_canister = opts.canister_name.as_str();
+    let callee_canister = opts.canister.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     let canister_id = Principal::from_text(callee_canister)
