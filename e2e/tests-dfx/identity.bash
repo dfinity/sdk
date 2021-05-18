@@ -89,11 +89,11 @@ teardown() {
     assert_command dfx --identity alice canister install --all
 
     # The wallet is the initializer
-    assert_command dfx --identity alice canister call e2e_project amInitializer
+    assert_command dfx --identity alice canister --wallet="$(dfx --identity alice identity get-wallet)" call e2e_project amInitializer
     assert_eq '(true)'
 
     # The user Identity's principal is not the initializer
-    assert_command dfx --identity alice canister --no-wallet call e2e_project amInitializer
+    assert_command dfx --identity alice canister call e2e_project amInitializer
     assert_eq '(false)'
 
     assert_command dfx --identity alice canister --no-wallet call \

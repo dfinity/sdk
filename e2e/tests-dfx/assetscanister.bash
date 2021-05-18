@@ -215,7 +215,7 @@ teardown() {
 
     assert_command_fail dfx canister call --query e2e_project_assets retrieve '("C")'
 
-    HOME=. assert_command_fail dfx canister call --update e2e_project_assets store '(record{key="index.js"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 1; 2; 3; }})'
+    HOME=. assert_command_fail dfx canister --wallet="$(dfx identity get-wallet)" call --update e2e_project_assets store '(record{key="index.js"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 1; 2; 3; }})'
     assert_match "Only a custodian can call this method."
 }
 

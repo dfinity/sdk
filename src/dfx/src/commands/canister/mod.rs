@@ -69,8 +69,19 @@ enum SubCommand {
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.clone())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
+    let default_wallet_proxy = match opts.subcmd {
+        SubCommand::Call(_) | SubCommand::Send(_) | SubCommand::Sign(_) => false,
+        _ => true,
+    };
+
     runtime.block_on(async {
-        let call_sender = call_sender(&agent_env, &opts.wallet, opts.no_wallet).await?;
+        let call_sender = call_sender(
+            &agent_env,
+            &opts.wallet,
+            opts.no_wallet,
+            default_wallet_proxy,
+        )
+        .await?;
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,
             SubCommand::Create(v) => create::exec(&agent_env, v, &call_sender).await,
