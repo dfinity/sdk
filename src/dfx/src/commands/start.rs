@@ -40,6 +40,10 @@ pub struct StartOpts {
     /// Runs a dedicated emulator instead of the replica
     #[clap(long)]
     emulator: bool,
+
+    /// Removes the artificial delay in the local replica added to simulate the networked IC environment.
+    #[clap(long)]
+    no_artificial_delay: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -153,8 +157,8 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
             .join("replica-configuration")
             .join("replica-1.port");
 
-        let replica_config =
-            ReplicaConfig::new(&env.get_state_dir()).with_random_port(&replica_port_path);
+        let replica_config = ReplicaConfig::new(&env.get_state_dir(), opts.no_artificial_delay)
+            .with_random_port(&replica_port_path);
         let replica = start_replica_actor(env, replica_config, shutdown_controller.clone())?;
         replica.recipient()
     };

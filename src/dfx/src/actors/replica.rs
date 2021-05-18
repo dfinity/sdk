@@ -247,6 +247,16 @@ fn replica_start_thread(
                 &write_port_to.to_string_lossy().to_string(),
             ]);
         }
+        if config.no_artificial_delay {
+            cmd.args(&[
+                "--initial-notary-delay-millis",
+                // The intial notary delay is set to 2500ms in the replica's
+                // default subnet configuration.
+                // For local consensus, we can set it to a smaller value in order
+                // to speed up update calls.
+                "500",
+            ]);
+        }
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 

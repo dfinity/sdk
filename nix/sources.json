@@ -13,7 +13,7 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/build-on-rust-1.45.2-for-sdk-under-nix",
+        "branch": "dfx-support/build-on-rust-1.45.2-for-sdk-under-nix",
         "repo": "https://github.com/dfinity/agent-rs",
         "rev": "e6bf42ed697db37a252f019563c36160f72d8cd8",
         "type": "git"
@@ -38,9 +38,9 @@
         "type": "git"
     },
     "dfinity": {
-        "branch": "master",
+        "branch": "release-mercury-genesis",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "6c7e2dd6f85b655809947b618c7d343429c34438",
+        "rev": "2744e8abf9f5efded909332a7c07c2ec074a0b73",
         "type": "git"
     },
     "ic-ref": {
