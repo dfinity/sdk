@@ -15,6 +15,7 @@ use std::path::PathBuf;
 pub mod emulator;
 pub mod icx_proxy;
 pub mod replica;
+pub mod replica_webserver_coordinator;
 mod shutdown;
 pub mod shutdown_controller;
 
