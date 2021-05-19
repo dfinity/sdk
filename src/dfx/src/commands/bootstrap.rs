@@ -13,6 +13,7 @@ use anyhow::Context;
 use clap::Clap;
 use std::default::Default;
 use std::net::{IpAddr, Ipv4Addr};
+use crate::commands::start::start_webserver_coordinator;
 
 /// Starts the bootstrap server.
 #[derive(Clap, Clone)]
@@ -46,14 +47,14 @@ pub struct BootstrapOpts {
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     // let logger = env.get_logger();
-    // let config = env.get_config_or_anyhow()?;
+    let config = env.get_config_or_anyhow()?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
     let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;
 
-    // let network_descriptor = get_network_descriptor(env, opts.network)?;
-    // let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
-    // let build_output_root = build_output_root.join("canisters");
+    let network_descriptor = get_network_descriptor(env, opts.network)?;
+    let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
+    let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
 
     // let providers = get_providers(&network_descriptor)?;
@@ -74,7 +75,21 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
 
     let port_ready_subscribe: Option<Recipient<PortReadySubscribe>> = None;
 
-    let icx_proxy_config = IcxProxyConfig { bind: socket_addr };
+    let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
+
+    let _webserver_coordinator = start_webserver_coordinator(
+        env,
+        network_descriptor,
+        webserver_bind,
+        build_output_root,
+        port_ready_subscribe.clone(),
+        shutdown_controller.clone(),
+    )?;
+
+    let icx_proxy_config = IcxProxyConfig {
+        bind: socket_addr,
+        candid_port: webserver_bind.port(),
+    };
     let _proxy = start_icx_proxy_actor(
         env,
         icx_proxy_config,
@@ -137,7 +152,7 @@ fn get_port(config: &ConfigDefaultsBootstrap, port: Option<&str>) -> DfxResult<u
 }
 
 /// Gets the list of compute provider API endpoints.
-fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String>> {
+fn _get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String>> {
     network_descriptor
         .providers
         .iter()

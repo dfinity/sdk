@@ -34,6 +34,9 @@ pub mod signals {
 pub struct IcxProxyConfig {
     /// where to listen.  Becomes argument like --address 127.0.0.1:3000
     pub bind: SocketAddr,
+
+    /// Port where webserver responding to /_/ requests to candid binds to
+    pub candid_port: u16,
 }
 
 /// The configuration for the icx_proxy actor.
@@ -73,6 +76,7 @@ impl IcxProxy {
     fn start_icx_proxy(&mut self, replica_port: u16) -> DfxResult {
         let logger = self.logger.clone();
         let config = &self.config.icx_proxy_config;
+        let candid_port = config.candid_port;
         let icx_proxy_pid_path = &self.config.icx_proxy_pid_path;
         let icx_proxy_path = self.config.icx_proxy_path.to_path_buf();
         let (sender, receiver) = unbounded();
@@ -81,6 +85,7 @@ impl IcxProxy {
             logger,
             config.bind,
             replica_port,
+            candid_port,
             icx_proxy_path,
             icx_proxy_pid_path.clone(),
             receiver,
@@ -161,6 +166,7 @@ fn icx_proxy_start_thread(
     logger: Logger,
     address: SocketAddr,
     replica_port: u16,
+    webserver_port: u16,
     icx_proxy_path: PathBuf,
     icx_proxy_pid_path: PathBuf,
     receiver: Receiver<()>,
@@ -180,7 +186,15 @@ fn icx_proxy_start_thread(
         let mut cmd = std::process::Command::new(icx_proxy_path);
         let address = format!("{}", &address);
         let replica = format!("http://localhost:{}", replica_port);
-        cmd.args(&["--address", &address, "--replica", &replica]);
+        let candid = format!("http://localhost:{}", webserver_port);
+        cmd.args(&[
+            "--address",
+            &address,
+            "--replica",
+            &replica,
+            "--candid",
+            &candid,
+        ]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 

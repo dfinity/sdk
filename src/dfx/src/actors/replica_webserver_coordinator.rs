@@ -5,6 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 
+use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
 use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, ResponseFuture};
@@ -14,7 +15,6 @@ use futures::future::FutureExt;
 use slog::{debug, error, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use crate::actors::icx_proxy::signals::{PortReadySubscribe, PortReadySignal};
 
 // pub mod signals {
 //     use actix::prelude::*;
@@ -32,7 +32,7 @@ use crate::actors::icx_proxy::signals::{PortReadySubscribe, PortReadySignal};
 
 pub struct Config {
     pub logger: Option<Logger>,
-    pub port_ready_subscribe: Recipient<PortReadySubscribe>,
+    pub port_ready_subscribe: Option<Recipient<PortReadySubscribe>>,
     pub shutdown_controller: Addr<ShutdownController>,
     pub bind: SocketAddr,
     pub providers: Vec<url::Url>,
@@ -88,10 +88,10 @@ impl Actor for ReplicaWebserverCoordinator {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let _ = self
-            .config
-            .port_ready_subscribe
-            .do_send(PortReadySubscribe(ctx.address().recipient()));
+        // let _ = self
+        //     .config
+        //     .port_ready_subscribe
+        //     .do_send(PortReadySubscribe(ctx.address().recipient()));
         self.config
             .shutdown_controller
             .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));

@@ -10,7 +10,11 @@ use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
-use actix::{Actor, Recipient, Addr};
+use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
+use crate::actors::shutdown_controller::ShutdownController;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::provider::get_network_descriptor;
+use actix::{Actor, Addr, Recipient};
 use anyhow::{anyhow, bail, Context};
 use clap::Clap;
 use delay::{Delay, Waiter};
@@ -22,10 +26,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
-use crate::actors::shutdown_controller::ShutdownController;
-use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
-use crate::lib::provider::get_network_descriptor;
 
 /// Starts the local replica and a web server for the current project.
 #[derive(Clap)]
@@ -170,20 +170,20 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
         replica.recipient()
     };
 
-    let webserver_bind =
-        get_reusable_socket_addr(address_and_port.ip(), 0)?;
+    let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,
         network_descriptor,
         webserver_bind,
         build_output_root,
-        port_ready_subscribe.clone(),
-        shutdown_controller.clone()
+        None,
+        shutdown_controller.clone(),
     )?;
 
     let icx_proxy_config = IcxProxyConfig {
         bind: address_and_port,
+        candid_port: webserver_bind.port(),
     };
     let _proxy = start_icx_proxy_actor(
         env,
@@ -217,12 +217,12 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     Ok(())
 }
 
-fn start_webserver_coordinator(
+pub fn start_webserver_coordinator(
     env: &dyn Environment,
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     build_output_root: PathBuf,
-    port_ready_subscribe: Recipient<PortReadySubscribe>,
+    port_ready_subscribe: Option<Recipient<PortReadySubscribe>>,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
     // By default we reach to no external IC nodes.

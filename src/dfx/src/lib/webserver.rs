@@ -460,7 +460,7 @@ pub fn run_webserver(
     Ok(handler)
 }
 
-pub fn webserver(
+pub fn _webserver(
     logger: Logger,
     build_output_root: PathBuf,
     network_descriptor: NetworkDescriptor,
