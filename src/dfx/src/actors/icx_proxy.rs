@@ -40,7 +40,7 @@ pub struct IcxProxyConfig {
 pub struct Config {
     pub logger: Option<Logger>,
 
-    pub port_ready_subscribe: Recipient<PortReadySubscribe>,
+    pub port_ready_subscribe: Option<Recipient<PortReadySubscribe>>,
     pub shutdown_controller: Addr<ShutdownController>,
 
     pub icx_proxy_config: IcxProxyConfig,
@@ -108,10 +108,9 @@ impl Actor for IcxProxy {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let _ = self
-            .config
-            .port_ready_subscribe
-            .do_send(PortReadySubscribe(ctx.address().recipient()));
+        if let Some(port_ready_subscribe) = &self.config.port_ready_subscribe {
+            let _ = port_ready_subscribe.do_send(PortReadySubscribe(ctx.address().recipient()));
+        }
 
         self.config
             .shutdown_controller

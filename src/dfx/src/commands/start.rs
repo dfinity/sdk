@@ -169,7 +169,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     let _proxy = start_icx_proxy_actor(
         env,
         icx_proxy_config,
-        port_ready_subscribe,
+        Some(port_ready_subscribe),
         shutdown_controller,
         icx_proxy_pid_file_path,
     )?;

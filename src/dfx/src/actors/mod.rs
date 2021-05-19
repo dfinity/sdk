@@ -94,7 +94,7 @@ pub fn start_replica_actor(
 pub fn start_icx_proxy_actor(
     env: &dyn Environment,
     icx_proxy_config: IcxProxyConfig,
-    port_ready_subscribe: Recipient<PortReadySubscribe>,
+    port_ready_subscribe: Option<Recipient<PortReadySubscribe>>,
     shutdown_controller: Addr<ShutdownController>,
     icx_proxy_pid_path: PathBuf,
 ) -> DfxResult<Addr<IcxProxy>> {
