@@ -4,9 +4,9 @@ use ic_agent::agent::ReplicaV2Transport;
 use ic_agent::{AgentError, RequestId};
 use ic_types::Principal;
 
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::future::Future;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::pin::Pin;
 use thiserror::Error;
@@ -35,15 +35,37 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
     fn read_state<'a>(
         &'a self,
         _effective_canister_id: Principal,
-        _envelope: Vec<u8>,
+        envelope: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(_: &SignReplicaV2Transport) -> Result<Vec<u8>, AgentError> {
-            Err(AgentError::MessageError(
-                "read_state calls not supported".to_string(),
+        async fn run(s: &SignReplicaV2Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
+            let path = Path::new(&s.file_name);
+            let mut file =
+                File::open(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
+            let mut json = String::new();
+            file.read_to_string(&mut json)
+                .map_err(|x| AgentError::MessageError(x.to_string()))?;
+            let message: SignedMessageV1 =
+                serde_json::from_str(&json).map_err(|x| AgentError::MessageError(x.to_string()))?;
+            let message = message.with_signed_request_status(hex::encode(&envelope));
+            let json = serde_json::to_string(&message)
+                .map_err(|x| AgentError::MessageError(x.to_string()))?;
+            let mut file = OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(&path)
+                .map_err(|x| AgentError::MessageError(x.to_string()))?;
+            file.write_all(json.as_bytes())
+                .map_err(|x| AgentError::MessageError(x.to_string()))?;
+            Err(AgentError::TransportError(
+                SerializeStatus::Success(format!(
+                    "Signed request_status append to update message in [{}]",
+                    &s.file_name
+                ))
+                .into(),
             ))
         }
 
-        Box::pin(run(self))
+        Box::pin(run(self, envelope))
     }
 
     fn call<'a>(
