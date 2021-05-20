@@ -171,6 +171,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     };
 
     let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
+    println!("webserver_bind: {:?}", &webserver_bind);
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,

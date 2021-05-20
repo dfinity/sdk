@@ -8,12 +8,12 @@ use crate::util::get_reusable_socket_addr;
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
+use crate::commands::start::start_webserver_coordinator;
 use actix::Recipient;
 use anyhow::Context;
 use clap::Clap;
 use std::default::Default;
 use std::net::{IpAddr, Ipv4Addr};
-use crate::commands::start::start_webserver_coordinator;
 
 /// Starts the bootstrap server.
 #[derive(Clap, Clone)]
