@@ -37,4 +37,5 @@ teardown() {
     sleep 10
     echo y | assert_command dfx canister --no-wallet send message-inc.json
     assert_command dfx canister --no-wallet send message-inc.json --status
+    assert_match "To see the content of response, copy-paste the encoded string into cbor.me."
 }
