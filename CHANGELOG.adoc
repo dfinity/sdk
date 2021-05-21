@@ -1,3 +1,51 @@
+= 0.7.0
+
+=== feat: add output type to request-status
+
+This change allows you to specify the format the return result for `dfx canister request-status`.
+
+=== fix: deleting a canister on a network removes entries for other networks
+
+This change fixes a bug where deleting a canister on a network removed all other entries for
+the canister in the canister_ids.json file.
+
+=== feat: point built-in `ic` network provider at mainnet
+
+`--network ic` now points to the mainnet IC (as Sodium has been deprecated.)
+
+=== feat: add candid UI canister
+
+The dedicated candid UI canister is installed on a local network when doing a `dfx canister install`
+or `dfx deploy`.
+
+=== fix: Address already in use (os error 48) when issuing dfx start
+
+This fixes an error which occurred when starting a replica right after stopping it.
+
+=== feat: ledger subcommands
+
+dfx now supports a dedicated `dfx ledger` subcommand. This allows you to interact with the ledger
+canister installed on the Internet Computer. Example commands include `dfx ledger account-id` which
+prints the Account Identifier associated with your selected identity, `dfx ledger transfer` which
+allows you to transfer ICP from your ledger account to another, and `dfx ledger create-canister` which
+allows you to create a canister from ICP.
+
+=== feat: update to 0.17.0 of the Interface Spec
+
+This is a breaking change to support 0.17.0 of the Interface Spec. Compute & memory allocation values
+are set when creating a canister. An optional controller can also be specified when creating a canister.
+Furthermore, `dfx canister set-controller` is removed, in favor of `dfx canister update-settings` which
+allows the controller to update the controller, the compute allocation, and the memory allocation of the
+canister. The freezing threshold value isn't exposed via dfx cli yet, but it may still be modified by
+calling the management canister via `dfx canister call aaaaa-aa update-settings`
+
+=== feat: add wallet subcommands
+
+dfx now supports a dedicated `dfx wallet` subcommand. This allows you to interact with the cycles wallet
+associated with your selected identity. For example, `dfx wallet balance` to get the cycle balance,
+`dfx wallet list-addresses` to display the associated controllers & custodians, and `dfx wallet send <destination> <amount>`
+to send cycles to another wallet.
+
 = 0.7.0-beta.3
 
 == DFX
