@@ -10,6 +10,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use anyhow::anyhow;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
+use ic_types::Principal;
 use slog::info;
 use std::format;
 use std::time::Duration;
@@ -27,6 +28,7 @@ pub async fn create_canister(
     with_cycles: Option<&str>,
     call_sender: &CallSender,
     settings: CanisterSettings,
+    effective_canister_id: Option<Principal>,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
@@ -63,12 +65,14 @@ pub async fn create_canister(
                 CallSender::SelectedId => {
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
-                    mgr.create_canister()
+                    mgr
+                        .create_canister()
                         .as_provisional_create_with_amount(cycles)
                         .with_optional_controller(settings.controller)
                         .with_optional_compute_allocation(settings.compute_allocation)
                         .with_optional_memory_allocation(settings.memory_allocation)
                         .with_optional_freezing_threshold(settings.freezing_threshold)
+                        .with_optional_effective_canister_id(effective_canister_id)
                         .call_and_wait(waiter_with_timeout(timeout))
                         .await?
                         .0

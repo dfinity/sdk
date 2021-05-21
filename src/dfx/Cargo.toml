@@ -75,29 +75,29 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.3.0"
+version = "0.4.1"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "pshahi/effective_cid"
+rev = "040d0cbd55d5290e53dd40a63790cb7814631221"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
-version = "0.2.1"
+version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "pshahi/effective_cid"
+rev = "040d0cbd55d5290e53dd40a63790cb7814631221"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "pshahi/effective_cid"
+rev = "040d0cbd55d5290e53dd40a63790cb7814631221"
 
 [dependencies.ic-utils]
-version = "0.2.1"
+version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-branch = "next"
-rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "pshahi/effective_cid"
+rev = "040d0cbd55d5290e53dd40a63790cb7814631221"
 
 [dev-dependencies]
 env_logger = "0.6"

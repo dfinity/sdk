@@ -7,7 +7,9 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
-use clap::Clap;
+use anyhow::anyhow;
+use clap::{Clap, ArgSettings};
+use ic_types::Principal;
 use tokio::runtime::Runtime;
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
@@ -47,6 +49,9 @@ pub struct DeployOpts {
     /// Bypasses the Wallet canister.
     #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
+
+    #[clap(long, setting = ArgSettings::Hidden)]
+    effective_canister_id: Option<String>,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -69,6 +74,12 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     ))?;
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
+    let effective_canister_id = if opts.effective_canister_id.is_some() {
+        Some(Principal::from_text(opts.effective_canister_id.unwrap()).map_err(|err| anyhow!(err))?)
+    } else {
+        None
+    };
+
     runtime.block_on(deploy_canisters(
         &env,
         canister_name,
@@ -77,5 +88,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         timeout,
         with_cycles,
         &call_sender,
+        effective_canister_id,
     ))
 }

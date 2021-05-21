@@ -49,6 +49,9 @@ pub struct CanisterCreateOpts {
 
     #[clap(long, validator(freezing_threshold_validator), setting = ArgSettings::Hidden)]
     freezing_threshold: Option<String>,
+
+    #[clap(long, setting = ArgSettings::Hidden)]
+    effective_canister_id: Option<String>,
 }
 
 pub async fn exec(
@@ -84,6 +87,12 @@ pub async fn exec(
         None
     };
 
+    let effective_canister_id = if opts.effective_canister_id.is_some() {
+        Some(CanisterId::from_text(opts.effective_canister_id.unwrap()).map_err(|err| anyhow!(err))?)
+    } else {
+        None
+    };
+
     if let Some(canister_name) = opts.canister_name.as_deref() {
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),
@@ -112,6 +121,7 @@ pub async fn exec(
                 memory_allocation,
                 freezing_threshold,
             },
+            effective_canister_id,
         )
         .await?;
         Ok(())
@@ -146,6 +156,7 @@ pub async fn exec(
                         memory_allocation,
                         freezing_threshold,
                     },
+                    effective_canister_id.clone(),
                 )
                 .await?;
             }

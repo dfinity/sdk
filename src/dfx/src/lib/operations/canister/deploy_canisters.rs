@@ -16,6 +16,7 @@ use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
+use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::convert::TryFrom;
@@ -29,6 +30,7 @@ pub async fn deploy_canisters(
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
+    effective_canister_id: Option<Principal>,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -52,6 +54,7 @@ pub async fn deploy_canisters(
         with_cycles,
         call_sender,
         &config,
+        effective_canister_id,
     )
     .await?;
 
@@ -90,6 +93,7 @@ async fn register_canisters(
     with_cycles: Option<&str>,
     call_sender: &CallSender,
     config: &Config,
+    effective_canister_id: Option<Principal>,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -142,6 +146,7 @@ async fn register_canisters(
                     memory_allocation,
                     freezing_threshold,
                 },
+                effective_canister_id.clone(),
             )
             .await?;
         }
