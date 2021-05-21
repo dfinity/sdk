@@ -1894,7 +1894,6 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.4.1"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/public_for_sdk1676#6804d29c2cb2e34c6d4116c74edd9cf5687ccce4"
 dependencies = [
  "async-trait",
  "base32",
@@ -1924,7 +1923,6 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.3.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/public_for_sdk1676#6804d29c2cb2e34c6d4116c74edd9cf5687ccce4"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1939,7 +1937,6 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/public_for_sdk1676#6804d29c2cb2e34c6d4116c74edd9cf5687ccce4"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1951,7 +1948,6 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.3.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/public_for_sdk1676#6804d29c2cb2e34c6d4116c74edd9cf5687ccce4"
 dependencies = [
  "async-trait",
  "candid",
