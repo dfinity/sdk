@@ -1061,12 +1061,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "delay"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8546bb2c80129c9c85cd2b44e160b917f34a8b7ce9f3af675502cf9960e33d62"
-
-[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1108,12 +1102,12 @@ dependencies = [
  "crc32fast",
  "crossbeam",
  "ctrlc",
- "delay",
  "dialoguer",
  "env_logger",
  "erased-serde",
  "flate2",
  "futures",
+ "garcon",
  "hex",
  "humanize-rs",
  "ic-agent",
@@ -1595,6 +1589,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "garcon"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e83fb8961dcd3c26123863998521ae4d07e5e5aa8fb50b503380448f2e0ea069"
+dependencies = [
+ "futures-util",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1890,14 +1893,14 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.3.0"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+version = "0.4.1"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/public_for_sdk1676#6804d29c2cb2e34c6d4116c74edd9cf5687ccce4"
 dependencies = [
  "async-trait",
  "base32",
  "base64 0.12.3",
  "byteorder",
- "delay",
+ "garcon",
  "hex",
  "http",
  "ic-types",
@@ -1920,8 +1923,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.2.1"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+version = "0.3.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/public_for_sdk1676#6804d29c2cb2e34c6d4116c74edd9cf5687ccce4"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1936,7 +1939,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/public_for_sdk1676#6804d29c2cb2e34c6d4116c74edd9cf5687ccce4"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1947,12 +1950,12 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.2.1"
-source = "git+https://github.com/dfinity/agent-rs.git?branch=next#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+version = "0.3.0"
+source = "git+https://github.com/dfinity/agent-rs.git?branch=lwshang/public_for_sdk1676#6804d29c2cb2e34c6d4116c74edd9cf5687ccce4"
 dependencies = [
  "async-trait",
  "candid",
- "delay",
+ "garcon",
  "ic-agent",
  "ic-types",
  "serde",
