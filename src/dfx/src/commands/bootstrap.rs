@@ -116,7 +116,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     Ok(())
 }
 
-fn verify_unique_ports(clients_api_uri: &[url::Url], bind: &SocketAddr) -> DfxResult {
+fn verify_unique_ports(clients_api_uri: &Vec<url::Url>, bind: &SocketAddr) -> DfxResult {
     // Verify that we cannot bind to a port that we forward to.
     let bound_port = bind.port();
     let bind_and_forward_on_same_port = clients_api_uri.iter().any(|url| {
