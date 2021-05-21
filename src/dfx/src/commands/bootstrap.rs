@@ -10,10 +10,11 @@ use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::commands::start::start_webserver_coordinator;
 use actix::Recipient;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use clap::Clap;
 use std::default::Default;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use url::Url;
 
 /// Starts the bootstrap server.
 #[derive(Clap, Clone)]
@@ -57,7 +58,18 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
 
-    // let providers = get_providers(&network_descriptor)?;
+    // let replica_port_path = env
+    //     .get_temp_dir()
+    //     .join("replica-configuration")
+    //     .join("replica-1.port");
+    //
+    // let emulator_port_path = env.get_temp_dir().join("ic-ref.port");
+
+    let providers = get_providers(&network_descriptor)?;
+    let clients_api_uri = providers
+        .iter()
+        .map(|uri| Url::parse(uri).unwrap())
+        .collect();
 
     // Since the user may have provided port "0", we need to grab a dynamically
     // allocated port and construct a resuable SocketAddr which the actix
@@ -68,6 +80,8 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let webserver_port_path = env.get_temp_dir().join("webserver-port");
     std::fs::write(&webserver_port_path, "")?;
     std::fs::write(&webserver_port_path, socket_addr.port().to_string())?;
+
+    verify_unique_ports(&clients_api_uri, &socket_addr)?;
 
     let system = actix::System::new("dfx-bootstrap");
 
@@ -99,6 +113,24 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     )?;
     system.run()?;
 
+    Ok(())
+}
+
+fn verify_unique_ports(clients_api_uri: &[url::Url], bind: &SocketAddr) -> DfxResult {
+    // Verify that we cannot bind to a port that we forward to.
+    let bound_port = bind.port();
+    let bind_and_forward_on_same_port = clients_api_uri.iter().any(|url| {
+        Some(bound_port) == url.port()
+            && match url.host_str() {
+                Some(h) => h == "localhost" || h == "::1" || h == "127.0.0.1",
+                None => true,
+            }
+    });
+    if bind_and_forward_on_same_port {
+        return Err(anyhow!(
+            "Cannot forward API calls to the same bootstrap server."
+        ));
+    }
     Ok(())
 }
 
@@ -152,7 +184,7 @@ fn get_port(config: &ConfigDefaultsBootstrap, port: Option<&str>) -> DfxResult<u
 }
 
 /// Gets the list of compute provider API endpoints.
-fn _get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String>> {
+fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String>> {
     network_descriptor
         .providers
         .iter()

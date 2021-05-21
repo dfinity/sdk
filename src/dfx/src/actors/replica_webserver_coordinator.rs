@@ -88,7 +88,10 @@ impl Actor for ReplicaWebserverCoordinator {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let _ = ctx.address().recipient().do_send(PortReadySignal{ port: 55555 });
+        let _ = ctx
+            .address()
+            .recipient()
+            .do_send(PortReadySignal { port: 55555 });
         // let _ = self
         //     .config
         //     .port_ready_subscribe
