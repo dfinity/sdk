@@ -76,6 +76,7 @@ pub async fn exec(
             mode,
             timeout,
             call_sender,
+            None,
         )
         .await
     } else if opts.all {
@@ -96,6 +97,7 @@ pub async fn exec(
                     mode,
                     timeout,
                     call_sender,
+                    None,
                 )
                 .await?;
             }

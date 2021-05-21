@@ -88,7 +88,10 @@ pub async fn exec(
     };
 
     let effective_canister_id = if opts.effective_canister_id.is_some() {
-        Some(CanisterId::from_text(opts.effective_canister_id.unwrap()).map_err(|err| anyhow!(err))?)
+        Some(
+            CanisterId::from_text(opts.effective_canister_id.unwrap())
+                .map_err(|err| anyhow!(err))?,
+        )
     } else {
         None
     };

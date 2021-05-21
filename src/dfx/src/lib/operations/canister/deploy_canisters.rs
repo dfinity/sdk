@@ -13,15 +13,16 @@ use crate::util::{blob_from_arguments, get_candid_init_type};
 use anyhow::{anyhow, bail};
 use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
+use ic_types::Principal;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
-use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
@@ -54,7 +55,7 @@ pub async fn deploy_canisters(
         with_cycles,
         call_sender,
         &config,
-        effective_canister_id,
+        effective_canister_id.clone(),
     )
     .await?;
 
@@ -69,6 +70,7 @@ pub async fn deploy_canisters(
         argument_type,
         timeout,
         call_sender,
+        effective_canister_id,
     )
     .await?;
 
@@ -172,6 +174,7 @@ async fn install_canisters(
     argument_type: Option<&str>,
     timeout: Duration,
     call_sender: &CallSender,
+    effective_canister_id: Option<Principal>,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -215,6 +218,7 @@ async fn install_canisters(
             install_mode,
             timeout,
             &call_sender,
+            effective_canister_id.clone(),
         )
         .await?;
     }

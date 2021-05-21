@@ -8,7 +8,7 @@ use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
 use anyhow::anyhow;
-use clap::{Clap, ArgSettings};
+use clap::{ArgSettings, Clap};
 use ic_types::Principal;
 use tokio::runtime::Runtime;
 
@@ -75,7 +75,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     let effective_canister_id = if opts.effective_canister_id.is_some() {
-        Some(Principal::from_text(opts.effective_canister_id.unwrap()).map_err(|err| anyhow!(err))?)
+        Some(
+            Principal::from_text(opts.effective_canister_id.unwrap())
+                .map_err(|err| anyhow!(err))?,
+        )
     } else {
         None
     };

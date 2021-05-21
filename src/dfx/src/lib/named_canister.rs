@@ -23,6 +23,7 @@ pub async fn install_ui_canister(
     env: &dyn Environment,
     network: &NetworkDescriptor,
     some_canister_id: Option<Principal>,
+    effective_canister_id: Option<Principal>,
 ) -> DfxResult<Principal> {
     let mut id_store = CanisterIdStore::for_network(network)?;
     if id_store.find(UI_CANISTER).is_some() {
@@ -53,6 +54,7 @@ pub async fn install_ui_canister(
         None => {
             mgr.create_canister()
                 .as_provisional_create_with_amount(None)
+                .with_optional_effective_canister_id(effective_canister_id)
                 .call_and_wait(waiter_with_timeout(expiry_duration()))
                 .await?
                 .0

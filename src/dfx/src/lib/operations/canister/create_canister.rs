@@ -8,9 +8,9 @@ use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::anyhow;
+use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
-use ic_types::Principal;
 use slog::info;
 use std::format;
 use std::time::Duration;
@@ -65,8 +65,7 @@ pub async fn create_canister(
                 CallSender::SelectedId => {
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
-                    mgr
-                        .create_canister()
+                    mgr.create_canister()
                         .as_provisional_create_with_amount(cycles)
                         .with_optional_controller(settings.controller)
                         .with_optional_compute_allocation(settings.compute_allocation)

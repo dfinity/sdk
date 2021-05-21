@@ -9,6 +9,7 @@ use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::Context;
 use ic_agent::Agent;
+use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
 use ic_utils::interfaces::ManagementCanister;
@@ -25,10 +26,11 @@ pub async fn install_canister(
     mode: InstallMode,
     timeout: Duration,
     call_sender: &CallSender,
+    effective_canister_id: Option<Principal>,
 ) -> DfxResult {
     let network = env.get_network_descriptor().unwrap();
     if !network.is_ic && named_canister::get_ui_canister_id(&network).is_none() {
-        named_canister::install_ui_canister(env, &network, None).await?;
+        named_canister::install_ui_canister(env, &network, None, effective_canister_id).await?;
     }
 
     let mgr = ManagementCanister::create(agent);
