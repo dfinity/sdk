@@ -1,12 +1,14 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::sign::signed_message::SignedMessageV1;
 use crate::util::print_idl_blob;
 
-use ic_agent::agent::replica_api::QueryResponse;
-use ic_agent::agent::ReplicaV2Transport;
-use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
+use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
+use ic_agent::agent::replica_api::{Certificate, QueryResponse, ReadStateResponse};
+use ic_agent::agent::{lookup_request_status, ReplicaV2Transport, RequestStatusResponse};
+use ic_agent::AgentError;
+use ic_agent::RequestId;
 
 use anyhow::{anyhow, bail, Context};
 use clap::Clap;
@@ -55,11 +57,42 @@ pub async fn exec(
         if message.signed_request_status.is_none() {
             bail!("No signed_request_status in [{}].", file_name);
         }
+        let request_id = RequestId::from_str(
+            &message
+                .request_id
+                .expect("Cannot get request_id from the update message."),
+        )?;
         let envelope = hex::decode(&message.signed_request_status.unwrap())?;
         let response = transport.read_state(canister_id.clone(), envelope).await?;
-        eprintln!("To see the content of response, copy-paste the encoded string into cbor.me.");
-        eprint!("Response: ");
-        println!("{}", hex::encode(response));
+        let read_state_response: ReadStateResponse = serde_cbor::from_slice(&response)?;
+        let certificate: Certificate = serde_cbor::from_slice(&read_state_response.certificate)?;
+        // certificate is not verified here because we are using Transport instead of Agent
+        let request_status_response = lookup_request_status(certificate, &request_id)?;
+        match request_status_response {
+            RequestStatusResponse::Replied { reply } => {
+                let ic_agent::agent::Replied::CallReplied(blob) = reply;
+                print_idl_blob(&blob, Some("idl"), &None)
+                    .context("Invalid data: Invalid IDL blob.")?;
+            }
+            RequestStatusResponse::Rejected {
+                reject_code,
+                reject_message,
+            } => {
+                return Err(DfxError::new(AgentError::ReplicaError {
+                    reject_code,
+                    reject_message,
+                }))
+            }
+            RequestStatusResponse::Unknown => (),
+            RequestStatusResponse::Received | RequestStatusResponse::Processing => {
+                eprintln!("The update call has been received and is processing.")
+            }
+            RequestStatusResponse::Done => {
+                return Err(DfxError::new(AgentError::RequestStatusDoneNoReply(
+                    String::from(request_id),
+                )))
+            }
+        }
         return Ok(());
     }
 
@@ -95,11 +128,10 @@ pub async fn exec(
                     reject_code,
                     reject_message,
                 } => {
-                    bail!(
-                        r#"The Replica returned an error: code {}, message: "{}""#,
+                    return Err(DfxError::new(AgentError::ReplicaError {
                         reject_code,
-                        reject_message
-                    );
+                        reject_message,
+                    }))
                 }
             }
         }
@@ -117,11 +149,6 @@ pub async fn exec(
                 "To check the status of this update call, append `--status` to current command."
             );
             eprintln!("e.g. `dfx canister send message.json --status`");
-            eprintln!("Alternatively, if you have the correct identity on this machine, using `dfx canister request-status` with following arguments.");
-            eprint!("Request ID: ");
-            println!("0x{}", String::from(request_id));
-            eprint!("Canister ID: ");
-            println!("{}", canister_id.to_string());
         }
         // message.validate() guarantee that call_type must be query or update
         _ => unreachable!(),
