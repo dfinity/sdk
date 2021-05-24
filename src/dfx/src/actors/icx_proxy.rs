@@ -150,7 +150,7 @@ impl Handler<PortReadySignal> for IcxProxy {
         self.stop_icx_proxy();
 
         let replica_url = format!("http://localhost:{}", msg.port);
-        let replica_urls = vec!(Url::parse(&replica_url).unwrap());
+        let replica_urls = vec![Url::parse(&replica_url).unwrap()];
 
         self.start_icx_proxy(replica_urls)
             .expect("Could not start icx-proxy");
@@ -177,7 +177,7 @@ impl Handler<Shutdown> for IcxProxy {
 fn icx_proxy_start_thread(
     logger: Logger,
     address: SocketAddr,
-//    replica_port: Option<u16>,
+    //    replica_port: Option<u16>,
     clients_api_uri: Vec<Url>,
     webserver_port: u16,
     icx_proxy_path: PathBuf,
@@ -199,12 +199,7 @@ fn icx_proxy_start_thread(
         let mut cmd = std::process::Command::new(icx_proxy_path);
         let address = format!("{}", &address);
         let candid = format!("http://localhost:{}", webserver_port);
-        cmd.args(&[
-            "--address",
-            &address,
-            "--candid",
-            &candid,
-        ]);
+        cmd.args(&["--address", &address, "--candid", &candid]);
         // if let Some(replica_port) = replica_port {
         //     let replica = format!("http://localhost:{}", replica_port);
         //     cmd.args(&[
@@ -214,10 +209,7 @@ fn icx_proxy_start_thread(
         // }
         for client_api_url in clients_api_uri {
             let s = format!("{}", client_api_url);
-            cmd.args(&[
-                "--replica",
-                &s]
-            );
+            cmd.args(&["--replica", &s]);
         }
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());

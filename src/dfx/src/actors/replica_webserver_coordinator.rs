@@ -6,6 +6,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
+use crate::actors::replica_webserver_coordinator::signals::StartWebserver;
 use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, ResponseFuture};
@@ -15,15 +16,13 @@ use futures::future::FutureExt;
 use slog::{debug, error, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use crate::actors::replica_webserver_coordinator::signals::StartWebserver;
 
 pub mod signals {
     use actix::prelude::*;
 
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub struct StartWebserver {
-    }
+    pub struct StartWebserver {}
 
     // #[derive(Message)]
     // #[rtype(result = "()")]
@@ -69,10 +68,7 @@ impl ReplicaWebserverCoordinator {
         // let replica_api_uri =
         //     url::Url::parse(ic_replica_bind_addr).expect("Failed to parse replica ingress url.");
         // providers.push(replica_api_uri);
-        info!(
-            self.logger,
-            "Starting webserver for /_/"
-        );
+        info!(self.logger, "Starting webserver for /_/");
 
         run_webserver(
             self.logger.clone(),
@@ -88,10 +84,7 @@ impl Actor for ReplicaWebserverCoordinator {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let _ = ctx
-            .address()
-            .recipient()
-            .do_send(StartWebserver { });
+        let _ = ctx.address().recipient().do_send(StartWebserver {});
         // let _ = self
         //     .config
         //     .port_ready_subscribe
@@ -118,10 +111,7 @@ impl Handler<StartWebserver> for ReplicaWebserverCoordinator {
                     self.server = Some(server);
                 }
                 Err(e) => {
-                    error!(
-                        self.logger,
-                        "Unable to start webserver: {}", e
-                    );
+                    error!(self.logger, "Unable to start webserver: {}", e);
                     ctx.wait(wrap_future(delay_for(Duration::from_secs(2))));
                     ctx.address().do_send(msg);
                 }

@@ -106,7 +106,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let icx_proxy_config = IcxProxyConfig {
         bind: socket_addr,
         candid_port: webserver_bind.port(),
-        clients_api_uri
+        clients_api_uri,
     };
     let _proxy = start_icx_proxy_actor(
         env,

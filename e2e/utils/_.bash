@@ -126,29 +126,36 @@ dfx_start_replica_and_bootstrap() {
         echo "3.1" >>/Users/ericswanson/x.txt
         test -f ${dfx_config_root}/replica-1.port
         echo "3.2" >>/Users/ericswanson/x.txt
-        local port=$(cat ${dfx_config_root}/replica-1.port)
+        local replica_port=$(cat ${dfx_config_root}/replica-1.port)
 
         echo "4" >>/Users/ericswanson/x.txt
 
-        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
         local webserver_port=$(cat .dfx/webserver-port)
-        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${webserver_port}\" dfx.json) >dfx.json
+
+        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
+        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
 
         echo "5" >>/Users/ericswanson/x.txt
     fi
 
-    printf "Replica Configured Port: %s\n" "${port}"
+    printf "Replica Configured Port: %s\n" "${replica_port}"
     printf "Webserver Configured Port: %s\n" "${webserver_port}"
 
     echo "6" >>/Users/ericswanson/x.txt
 
     timeout 5 sh -c \
-        "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
-        || (echo "could not connect to replica on port ${port}" && exit 1)
+        "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
+        || (echo "could not connect to replica on port ${replica_port}" && exit 1)
 
     echo "7" >>/Users/ericswanson/x.txt
 
-    dfx bootstrap --network http://127.0.0.1:${port} --port 0 3>&- &
+    #dfx bootstrap --network http://127.0.0.1:${replica_port} --port 0 3>&- &
+    # This only works because we use the network by name
+    #    (implicitly: --network local)
+    # If we passed --network http://127.0.0.1:${replica_port}
+    # we would get errors like:
+    # Cannot find canister ryjl3-tyaaa-aaaaa-aaaba-cai for network http___127_0_0_1_54084
+    dfx bootstrap --port 0 3>&- &
 
     echo "8" >>/Users/ericswanson/x.txt
 
@@ -159,7 +166,7 @@ dfx_start_replica_and_bootstrap() {
     echo "9" >>/Users/ericswanson/x.txt
 
     local candid_port=$(cat .dfx/candid-port)
-    printf "Candid Configured Port: %s", "${candid_port}"
+    printf "Candid Configured Port: %s\n", "${candid_port}"
 }
 
 # Stop the replica and verify it is very very stopped.
