@@ -213,7 +213,14 @@ dfx_start_replica_and_bootstrap() {
 dfx_stop_replica_and_bootstrap() {
     echo "dfx_stop_replica_and_bootstrap"  >>/Users/ericswanson/x.txt
     echo "pids: $DFX_REPLICA_PID $DFX_BOOTSTRAP_PID"  >>/Users/ericswanson/x.txt
-    kill -TERM "$DFX_REPLICA_PID" "$DFX_BOOTSTRAP_PID"
+    if [[ -v DFX_REPLICA_PID ]]; then
+        echo "kill dfx replica" >>/Users/ericswanson/x.txt
+        kill -TERM "$DFX_REPLICA_PID"
+    fi
+    if [[ -v DFX_BOOTSTRAP_PID ]]; then
+        echo "kill dfx bootstrap" >>/Users/ericswanson/x.txt
+        kill -TERM "$DFX_BOOTSTRAP_PID"
+    fi
 }
 
 # Stop the replica and verify it is very very stopped.
