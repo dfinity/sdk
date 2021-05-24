@@ -15,13 +15,10 @@ teardown() {
 @test "bootstrap fetches candid file" {
 
     dfx_start_replica_and_bootstrap
-    echo "10" >>/Users/ericswanson/x.txt
 
     dfx canister create --all
     dfx build
     dfx canister install hello
-
-    echo "11" >>/Users/ericswanson/x.txt
 
     ID=$(dfx canister id hello)
     PORT=$(cat .dfx/webserver-port)
@@ -33,23 +30,23 @@ teardown() {
 
 }
 
-#@test "forbid starting webserver with a forwarded port" {
-#    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-#
-#    assert_command_fail dfx bootstrap --port 8000
-#    assert_match "Cannot forward API calls to the same bootstrap server"
-#}
+@test "forbid starting webserver with a forwarded port" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
-#@test "bootstrap supports http requests" {
-#    dfx_start_replica_and_bootstrap
-#
-#    dfx canister create --all
-#    dfx build
-#    dfx canister install hello_assets
-#
-#    ID=$(dfx canister id hello_assets)
-#    PORT=$(cat .dfx/webserver-port)
-#    assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
-#    # shellcheck disable=SC2154
-#    assert_eq "This is a sample asset!" "$stdout"
-#}
+    assert_command_fail dfx bootstrap --port 8000
+    assert_match "Cannot forward API calls to the same bootstrap server"
+}
+
+@test "bootstrap supports http requests" {
+    dfx_start_replica_and_bootstrap
+
+    dfx canister create --all
+    dfx build
+    dfx canister install hello_assets
+
+    ID=$(dfx canister id hello_assets)
+    PORT=$(cat .dfx/webserver-port)
+    assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_eq "This is a sample asset!" "$stdout"
+}
