@@ -97,12 +97,45 @@ dfx_start() {
 # Start the replica in the background.
 dfx_start_replica_and_bootstrap() {
     echo "1" >/Users/ericswanson/x.txt
-    ps aux | grep replica >>/Users/ericswanson/x.txt
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
-        echo "No replica+bootstrap with emulator"
-        fail
+        echo "2.-2" >>/Users/ericswanson/x.txt
+        dfx cache install
+        echo "2.-1" >>/Users/ericswanson/x.txt
+        echo "2" >>/Users/ericswanson/x.txt
+        # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
+        # wait for it to close. Because `dfx start` leaves child processes running, we need
+        # to close this pipe, otherwise Bats will wait indefinitely.
+        dfx replica --emulator --port 0 "$@" 3>&- &
+        export DFX_REPLICA_PID=$!
+        echo "2.1" >>/Users/ericswanson/x.txt
+
+        timeout 60 sh -c \
+            "until cat .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
+            || (echo "replica did not write to .dfx/ic-ref.port file" && exit 1)
+
+        echo "2.2" >>/Users/ericswanson/x.txt
+        ls -lR .dfx >>/Users/ericswanson/x.txt
+
+        echo "3" >>/Users/ericswanson/x.txt
+        local dfx_config_root=.dfx/replica-configuration
+        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+        echo "3.1" >>/Users/ericswanson/x.txt
+        test -f .dfx/ic-ref.port
+        echo "3.2" >>/Users/ericswanson/x.txt
+        local replica_port=$(cat .dfx/ic-ref.port)
+
+        echo "4" >>/Users/ericswanson/x.txt
+
+        local webserver_port=$(cat .dfx/webserver-port)
+
+        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
+        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
+
+        echo "5" >>/Users/ericswanson/x.txt
+#        echo "No replica+bootstrap with emulator"
+#        fail
     else
         echo "2.-2" >>/Users/ericswanson/x.txt
         dfx cache install
