@@ -48,6 +48,8 @@ pub struct BootstrapOpts {
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     // let logger = env.get_logger();
+    let pid_file_path = env.get_temp_dir.join("dfx-bootstrap-pid");
+
     let config = env.get_config_or_anyhow()?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();

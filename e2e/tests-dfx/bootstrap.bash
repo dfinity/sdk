@@ -27,6 +27,7 @@ teardown() {
 #}
 
 @test "bootstrap (really) fetches candid file" {
+
     dfx_start_replica_and_bootstrap
     echo "10" >>/Users/ericswanson/x.txt
 
@@ -43,6 +44,8 @@ teardown() {
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt
     # Relax diff as it's produced by two different compilers.
     assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello/hello.did.js ./web.txt
+
+    dfx_stop_replica_and_bootstrap
 }
 
 #@test "forbid starting webserver with a forwarded port" {

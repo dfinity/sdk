@@ -97,6 +97,7 @@ dfx_start() {
 # Start the replica in the background.
 dfx_start_replica_and_bootstrap() {
     echo "1" >/Users/ericswanson/x.txt
+    ps aux | grep replica >>/Users/ericswanson/x.txt
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
@@ -111,6 +112,7 @@ dfx_start_replica_and_bootstrap() {
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
         dfx replica --port 0 "$@" 3>&- &
+        export DFX_REPLICA_PID=$!
         echo "2.1" >>/Users/ericswanson/x.txt
 
         timeout 60 sh -c \
@@ -156,6 +158,7 @@ dfx_start_replica_and_bootstrap() {
     # we would get errors like:
     # Cannot find canister ryjl3-tyaaa-aaaaa-aaaba-cai for network http___127_0_0_1_54084
     dfx bootstrap --port 0 3>&- &
+    export DFX_BOOTSTRAP_PID=$!
 
     echo "8" >>/Users/ericswanson/x.txt
 
@@ -167,10 +170,22 @@ dfx_start_replica_and_bootstrap() {
 
     local candid_port=$(cat .dfx/candid-port)
     printf "Candid Configured Port: %s\n", "${candid_port}"
+
+    echo "pwd: $(pwd)" >>/Users/ericswanson/x.txt
+    echo "replica pid: $(cat .dfx/replica-configuration/replica-pid)" >>/Users/ericswanson/x.txt
+    echo "icx-proxy pid: $(cat .dfx/icx-proxy-pid)" >>/Users/ericswanson/x.txt
+}
+
+# Start the replica in the background.
+dfx_stop_replica_and_bootstrap() {
+    echo "dfx_stop_replica_and_bootstrap"  >>/Users/ericswanson/x.txt
+    echo "pids: $DFX_REPLICA_PID $DFX_BOOTSTRAP_PID"  >>/Users/ericswanson/x.txt
+    kill -TERM "$DFX_REPLICA_PID" "$DFX_BOOTSTRAP_PID"
 }
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
+    echo "dfx_stop" >>/Users/ericswanson/x.txt
     dfx stop
     local dfx_root=.dfx/
     rm -rf $dfx_root
