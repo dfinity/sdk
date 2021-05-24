@@ -90,6 +90,9 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let port_ready_subscribe: Option<Recipient<PortReadySubscribe>> = None;
 
     let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
+    let candid_port_path = env.get_temp_dir().join("candid-port");
+    std::fs::write(&candid_port_path, "")?;
+    std::fs::write(&candid_port_path, webserver_bind.port().to_string())?;
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,
@@ -103,6 +106,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let icx_proxy_config = IcxProxyConfig {
         bind: socket_addr,
         candid_port: webserver_bind.port(),
+        clients_api_uri
     };
     let _proxy = start_icx_proxy_actor(
         env,

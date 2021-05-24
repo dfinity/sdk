@@ -5,7 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 
-use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, ResponseFuture};
@@ -15,20 +15,20 @@ use futures::future::FutureExt;
 use slog::{debug, error, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use crate::actors::replica_webserver_coordinator::signals::StartWebserver;
 
-// pub mod signals {
-//     use actix::prelude::*;
-//
-//     #[derive(Message)]
-//     #[rtype(result = "()")]
-//     pub struct PortReadySignal {
-//         pub port: u16,
-//     }
-//
-//     #[derive(Message)]
-//     #[rtype(result = "()")]
-//     pub struct PortReadySubscribe(pub Recipient<PortReadySignal>);
-// }
+pub mod signals {
+    use actix::prelude::*;
+
+    #[derive(Message)]
+    #[rtype(result = "()")]
+    pub struct StartWebserver {
+    }
+
+    // #[derive(Message)]
+    // #[rtype(result = "()")]
+    // pub struct PortReadySubscribe(pub Recipient<PortReadySignal>);
+}
 
 pub struct Config {
     pub logger: Option<Logger>,
@@ -61,17 +61,17 @@ impl ReplicaWebserverCoordinator {
         }
     }
 
-    fn start_server(&self, port: u16) -> DfxResult<Server> {
-        let mut providers = self.config.providers.clone();
+    fn start_server(&self) -> DfxResult<Server> {
+        let providers = self.config.providers.clone();
 
-        let ic_replica_bind_addr = "http://localhost:".to_owned() + port.to_string().as_str();
-        let ic_replica_bind_addr = ic_replica_bind_addr.as_str();
-        let replica_api_uri =
-            url::Url::parse(ic_replica_bind_addr).expect("Failed to parse replica ingress url.");
-        providers.push(replica_api_uri);
+        // let ic_replica_bind_addr = "http://localhost:".to_owned() + port.to_string().as_str();
+        // let ic_replica_bind_addr = ic_replica_bind_addr.as_str();
+        // let replica_api_uri =
+        //     url::Url::parse(ic_replica_bind_addr).expect("Failed to parse replica ingress url.");
+        // providers.push(replica_api_uri);
         info!(
             self.logger,
-            "Starting webserver for replica at {:?}", ic_replica_bind_addr
+            "Starting webserver for /_/"
         );
 
         run_webserver(
@@ -91,7 +91,7 @@ impl Actor for ReplicaWebserverCoordinator {
         let _ = ctx
             .address()
             .recipient()
-            .do_send(PortReadySignal { port: 55555 });
+            .do_send(StartWebserver { });
         // let _ = self
         //     .config
         //     .port_ready_subscribe
@@ -102,25 +102,25 @@ impl Actor for ReplicaWebserverCoordinator {
     }
 }
 
-impl Handler<PortReadySignal> for ReplicaWebserverCoordinator {
+impl Handler<StartWebserver> for ReplicaWebserverCoordinator {
     type Result = ();
 
-    fn handle(&mut self, msg: PortReadySignal, ctx: &mut Self::Context) {
-        debug!(self.logger, "replica ready on {}", msg.port);
+    fn handle(&mut self, msg: StartWebserver, ctx: &mut Self::Context) {
+        debug!(self.logger, "time to start webserver");
 
         if let Some(server) = &self.server {
             ctx.wait(wrap_future(server.stop(true)));
             self.server = None;
             ctx.address().do_send(msg);
         } else {
-            match self.start_server(msg.port) {
+            match self.start_server() {
                 Ok(server) => {
                     self.server = Some(server);
                 }
                 Err(e) => {
                     error!(
                         self.logger,
-                        "Unable to start webserver on port {}: {}", msg.port, e
+                        "Unable to start webserver: {}", e
                     );
                     ctx.wait(wrap_future(delay_for(Duration::from_secs(2))));
                     ctx.address().do_send(msg);

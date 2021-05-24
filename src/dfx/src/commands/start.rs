@@ -185,6 +185,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     let icx_proxy_config = IcxProxyConfig {
         bind: address_and_port,
         candid_port: webserver_bind.port(),
+        clients_api_uri: vec!(),
     };
     let _proxy = start_icx_proxy_actor(
         env,
