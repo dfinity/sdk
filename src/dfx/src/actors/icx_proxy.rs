@@ -195,11 +195,12 @@ fn icx_proxy_start_thread(
         // Start the process, then wait for the file.
         let icx_proxy_path = icx_proxy_path.as_os_str();
 
+        println!("icx_proxy_path: {}", icx_proxy_path.to_string_lossy());
         // form the icx-proxy command here similar to replica command
         let mut cmd = std::process::Command::new(icx_proxy_path);
         let address = format!("{}", &address);
-        let candid = format!("http://localhost:{}", webserver_port);
-        cmd.args(&["--address", &address, "--candid", &candid]);
+        let proxy = format!("http://localhost:{}", webserver_port);
+        cmd.args(&["--address", &address, "--proxy", &proxy]);
         // if let Some(replica_port) = replica_port {
         //     let replica = format!("http://localhost:{}", replica_port);
         //     cmd.args(&[

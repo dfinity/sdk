@@ -15,7 +15,7 @@
     "agent-rs": {
         "branch": "ericswanson/forward_slash_underscore_slash",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "6189f93ddced6c2d77bc002a96adc7a95f02ef1e",
+        "rev": "766f19ce0de014d874a0b95ba49450e935bb4533",
         "type": "git"
     },
     "bats-support": {
