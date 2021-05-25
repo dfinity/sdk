@@ -99,7 +99,6 @@ dfx_start_replica_and_bootstrap() {
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
-        dfx cache install
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
@@ -111,17 +110,10 @@ dfx_start_replica_and_bootstrap() {
             || (echo "replica did not write to .dfx/ic-ref.port file" && exit 1)
 
 
-        local dfx_config_root=.dfx/replica-configuration
-        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f .dfx/ic-ref.port
         local replica_port=$(cat .dfx/ic-ref.port)
 
-        local webserver_port=$(cat .dfx/webserver-port)
-
-        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
-        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
     else
-        dfx cache install
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
@@ -137,11 +129,11 @@ dfx_start_replica_and_bootstrap() {
         test -f ${dfx_config_root}/replica-1.port
         local replica_port=$(cat ${dfx_config_root}/replica-1.port)
 
-        local webserver_port=$(cat .dfx/webserver-port)
-
-        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
-        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
     fi
+    local webserver_port=$(cat .dfx/webserver-port)
+
+    # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
+    cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
 
     printf "Replica Configured Port: %s\n" "${replica_port}"
     printf "Webserver Configured Port: %s\n" "${webserver_port}"
