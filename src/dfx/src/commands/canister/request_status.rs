@@ -8,7 +8,7 @@ use crate::util::print_idl_blob;
 
 use anyhow::{anyhow, Context};
 use clap::Clap;
-use garcon::Waiter;
+use delay::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
 use ic_types::Principal;

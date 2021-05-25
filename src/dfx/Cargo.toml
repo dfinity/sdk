@@ -29,7 +29,7 @@ console = "0.7.7"
 crc32fast = "1.2.0"
 crossbeam = "0.7.3"
 ctrlc = { version = "3.1.6", features = [ "termination" ] }
-garcon = { version = "0.2", features = ["async"] }
+delay = "0.3.1"
 dialoguer = "0.6.2"
 erased-serde = "0.3.10"
 flate2 = "1.0.11"
@@ -75,33 +75,29 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.4.1"
+version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-# branch = "next"
-branch = "lwshang/public_for_sdk1676"
-# rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "next"
+rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 features = ["reqwest"]
 
 [dependencies.ic-identity-hsm]
-version = "0.3.0"
+version = "0.2.1"
 git = "https://github.com/dfinity/agent-rs.git"
-# branch = "next"
-branch = "lwshang/public_for_sdk1676"
-# rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "next"
+rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 
 [dependencies.ic-types]
 version = "0.1.2"
 git = "https://github.com/dfinity/agent-rs.git"
-# branch = "next"
-branch = "lwshang/public_for_sdk1676"
-# rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "next"
+rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 
 [dependencies.ic-utils]
-version = "0.3.0"
+version = "0.2.1"
 git = "https://github.com/dfinity/agent-rs.git"
-# branch = "next"
-branch = "lwshang/public_for_sdk1676"
-# rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+branch = "next"
+rev = "95a0782cd6f432cb1e98ed9422cf9d7327236b17"
 
 [dev-dependencies]
 env_logger = "0.6"

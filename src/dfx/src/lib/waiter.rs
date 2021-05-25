@@ -1,4 +1,4 @@
-use garcon::Delay;
+use delay::Delay;
 use std::time::Duration;
 
 const RETRY_PAUSE: Duration = Duration::from_millis(200);

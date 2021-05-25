@@ -14,7 +14,7 @@ use crate::util::get_reusable_socket_addr;
 use actix::{Actor, Addr, Recipient};
 use anyhow::{anyhow, bail, Context};
 use clap::Clap;
-use garcon::{Delay, Waiter};
+use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
 use std::io::Read;

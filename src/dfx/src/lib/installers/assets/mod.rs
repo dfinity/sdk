@@ -6,7 +6,7 @@ use crate::lib::installers::assets::content_encoder::ContentEncoder;
 use crate::lib::waiter::waiter_with_timeout;
 use candid::{CandidType, Decode, Encode, Nat};
 
-use garcon::{Delay, Waiter};
+use delay::{Delay, Waiter};
 use ic_agent::Agent;
 use ic_types::Principal;
 use mime::Mime;
