@@ -177,7 +177,6 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
         network_descriptor,
         webserver_bind,
         build_output_root,
-        None,
         shutdown_controller.clone(),
     )?;
 
@@ -223,12 +222,10 @@ pub fn start_webserver_coordinator(
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
     build_output_root: PathBuf,
-    port_ready_subscribe: Option<Recipient<PortReadySubscribe>>,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<ProxyWebserverCoordinator>> {
     let actor_config = actors::proxy_webserver_coordinator::Config {
         logger: Some(env.get_logger().clone()),
-        port_ready_subscribe,
         shutdown_controller,
         bind,
         build_output_root,

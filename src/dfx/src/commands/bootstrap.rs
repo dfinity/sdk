@@ -5,11 +5,9 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::util::get_reusable_socket_addr;
 
-use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::commands::start::start_webserver_coordinator;
-use actix::Recipient;
 use anyhow::{anyhow, Context};
 use clap::Clap;
 use std::default::Default;
@@ -88,8 +86,6 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
 
     let shutdown_controller = start_shutdown_controller(env)?;
 
-    let port_ready_subscribe: Option<Recipient<PortReadySubscribe>> = None;
-
     let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
     let candid_port_path = env.get_temp_dir().join("candid-port");
     std::fs::write(&candid_port_path, "")?;
@@ -100,7 +96,6 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
         network_descriptor,
         webserver_bind,
         build_output_root,
-        port_ready_subscribe.clone(),
         shutdown_controller.clone(),
     )?;
 
@@ -109,6 +104,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
         candid_port: webserver_bind.port(),
         providers,
     };
+    let port_ready_subscribe = None;
     let _proxy = start_icx_proxy_actor(
         env,
         icx_proxy_config,

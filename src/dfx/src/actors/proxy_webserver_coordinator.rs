@@ -5,11 +5,10 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 
-use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::proxy_webserver_coordinator::signals::StartWebserver;
 use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
-use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, ResponseFuture};
+use actix::{Actor, Addr, AsyncContext, Context, Handler, ResponseFuture};
 use actix_server::Server;
 use futures::future;
 use futures::future::FutureExt;
@@ -27,7 +26,6 @@ pub mod signals {
 
 pub struct Config {
     pub logger: Option<Logger>,
-    pub port_ready_subscribe: Option<Recipient<PortReadySubscribe>>,
     pub shutdown_controller: Addr<ShutdownController>,
     pub bind: SocketAddr,
     pub build_output_root: PathBuf,
