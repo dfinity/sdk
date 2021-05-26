@@ -11,9 +11,7 @@ use actix_server::Server;
 use actix_web::client::{ClientBuilder, Connector};
 use actix_web::error::ErrorInternalServerError;
 use actix_web::http::StatusCode;
-use actix_web::{
-    http, middleware, web, App, Error, HttpResponse, HttpServer,
-};
+use actix_web::{http, middleware, web, App, Error, HttpResponse, HttpServer};
 use anyhow::anyhow;
 //use candid::parser::value::IDLValue;
 //use crossbeam::channel::Sender;
@@ -194,4 +192,3 @@ pub fn run_webserver(
 
     Ok(handler)
 }
-
