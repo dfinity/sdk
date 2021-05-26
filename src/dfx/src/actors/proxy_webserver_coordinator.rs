@@ -23,7 +23,6 @@ pub mod signals {
     #[derive(Message)]
     #[rtype(result = "()")]
     pub struct StartWebserver {}
-
 }
 
 pub struct Config {
