@@ -61,13 +61,6 @@ impl ReplicaWebserverCoordinator {
     }
 
     fn start_server(&self) -> DfxResult<Server> {
-        let providers = self.config.providers.clone();
-
-        // let ic_replica_bind_addr = "http://localhost:".to_owned() + port.to_string().as_str();
-        // let ic_replica_bind_addr = ic_replica_bind_addr.as_str();
-        // let replica_api_uri =
-        //     url::Url::parse(ic_replica_bind_addr).expect("Failed to parse replica ingress url.");
-        // providers.push(replica_api_uri);
         info!(self.logger, "Starting webserver for /_/");
 
         run_webserver(
@@ -75,7 +68,6 @@ impl ReplicaWebserverCoordinator {
             self.config.build_output_root.clone(),
             self.config.network_descriptor.clone(),
             self.config.bind,
-            providers,
         )
     }
 }

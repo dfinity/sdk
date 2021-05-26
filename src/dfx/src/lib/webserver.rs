@@ -30,23 +30,12 @@ use slog::{info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 //use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-use url::Url;
-
-struct ForwardActixData {
-    pub providers: Vec<Url>,
-    pub logger: slog::Logger,
-    pub counter: usize,
-}
+use std::sync::Arc;
+// use url::Url;
 
 struct CandidData {
     pub build_output_root: PathBuf,
     pub network_descriptor: NetworkDescriptor,
-}
-
-struct HttpRequestData {
-    pub bind: SocketAddr,
-    pub logger: slog::Logger,
 }
 
 #[derive(Deserialize)]
@@ -160,33 +149,12 @@ pub fn run_webserver(
     build_output_root: PathBuf,
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
-    providers: Vec<url::Url>,
 ) -> DfxResult<Server> {
     const SHUTDOWN_WAIT_TIME: u64 = 60;
     info!(logger, "binding to: {:?}", bind);
-    info!(
-        logger,
-        "replica(s): {}",
-        providers
-            .iter()
-            .map(|x| x.clone().into_string())
-            .collect::<Vec<String>>()
-            .as_slice()
-            .join(", ")
-    );
-
-    let forward_data = Arc::new(Mutex::new(ForwardActixData {
-        providers,
-        logger: logger.clone(),
-        counter: 0,
-    }));
     let candid_data = Arc::new(CandidData {
         build_output_root,
         network_descriptor,
-    });
-    let http_request_data = Arc::new(HttpRequestData {
-        bind,
-        logger: logger.clone(),
     });
 
     let handler =
@@ -197,9 +165,9 @@ pub fn run_webserver(
                         .connector(Connector::new().limit(10).finish())
                         .finish(),
                 )
-                .data(forward_data.clone())
+                // .data(forward_data.clone())
                 .data(candid_data.clone())
-                .data(http_request_data.clone())
+                // .data(http_request_data.clone())
                 .wrap(
                     Cors::new()
                         .allowed_methods(vec!["POST"])
