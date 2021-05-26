@@ -40,7 +40,7 @@ pub struct IcxProxyConfig {
     pub candid_port: u16,
 
     /// fixed replica addresses
-    pub clients_api_uri: Vec<Url>,
+    pub providers: Vec<Url>,
 }
 
 /// The configuration for the icx_proxy actor.
@@ -77,7 +77,7 @@ impl IcxProxy {
         }
     }
 
-    fn start_icx_proxy(&mut self, clients_api_uri: Vec<Url>) -> DfxResult {
+    fn start_icx_proxy(&mut self, providers: Vec<Url>) -> DfxResult {
         let logger = self.logger.clone();
         let config = &self.config.icx_proxy_config;
         let candid_port = config.candid_port;
@@ -88,7 +88,7 @@ impl IcxProxy {
         let handle = icx_proxy_start_thread(
             logger,
             config.bind,
-            clients_api_uri,
+            providers,
             candid_port,
             icx_proxy_path,
             icx_proxy_pid_path.clone(),
@@ -125,8 +125,8 @@ impl Actor for IcxProxy {
             .shutdown_controller
             .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
 
-        if !self.config.icx_proxy_config.clients_api_uri.is_empty() {
-            self.start_icx_proxy(self.config.icx_proxy_config.clients_api_uri.clone())
+        if !self.config.icx_proxy_config.providers.is_empty() {
+            self.start_icx_proxy(self.config.icx_proxy_config.providers.clone())
                 .expect("Could not start icx-proxy");
         }
     }
@@ -177,8 +177,7 @@ impl Handler<Shutdown> for IcxProxy {
 fn icx_proxy_start_thread(
     logger: Logger,
     address: SocketAddr,
-    //    replica_port: Option<u16>,
-    clients_api_uri: Vec<Url>,
+    providers: Vec<Url>,
     webserver_port: u16,
     icx_proxy_path: PathBuf,
     icx_proxy_pid_path: PathBuf,
@@ -195,21 +194,13 @@ fn icx_proxy_start_thread(
         // Start the process, then wait for the file.
         let icx_proxy_path = icx_proxy_path.as_os_str();
 
-        println!("icx_proxy_path: {}", icx_proxy_path.to_string_lossy());
         // form the icx-proxy command here similar to replica command
         let mut cmd = std::process::Command::new(icx_proxy_path);
         let address = format!("{}", &address);
         let proxy = format!("http://localhost:{}", webserver_port);
         cmd.args(&["--address", &address, "--proxy", &proxy]);
-        // if let Some(replica_port) = replica_port {
-        //     let replica = format!("http://localhost:{}", replica_port);
-        //     cmd.args(&[
-        //         "--replica",
-        //         &replica,
-        //     ]);
-        // }
-        for client_api_url in clients_api_uri {
-            let s = format!("{}", client_api_url);
+        for provider in providers {
+            let s = format!("{}", provider);
             cmd.args(&["--replica", &s]);
         }
         cmd.stdout(std::process::Stdio::inherit());

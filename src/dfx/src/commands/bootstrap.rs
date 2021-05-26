@@ -67,7 +67,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     // let emulator_port_path = env.get_temp_dir().join("ic-ref.port");
 
     let providers = get_providers(&network_descriptor)?;
-    let clients_api_uri: Vec<Url> = providers
+    let providers: Vec<Url> = providers
         .iter()
         .map(|uri| Url::parse(uri).unwrap())
         .collect();
@@ -82,7 +82,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     std::fs::write(&webserver_port_path, "")?;
     std::fs::write(&webserver_port_path, socket_addr.port().to_string())?;
 
-    verify_unique_ports(&clients_api_uri, &socket_addr)?;
+    verify_unique_ports(&providers, &socket_addr)?;
 
     let system = actix::System::new("dfx-bootstrap");
 
@@ -107,7 +107,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let icx_proxy_config = IcxProxyConfig {
         bind: socket_addr,
         candid_port: webserver_bind.port(),
-        clients_api_uri,
+        providers,
     };
     let _proxy = start_icx_proxy_actor(
         env,
@@ -121,21 +121,10 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     Ok(())
 }
 
-//
-// [2021-05-21 23:03:19]    Compiling dfx v0.7.0 (/private/tmp/nix-build-dfinity-sdk-rust-lint-and-doc-unknown.drv-0/dfinity-sdk-rust-src/src/dfx)
-// [2021-05-21 23:03:30] error: writing `&Vec<_>` instead of `&[_]` involves one more reference and cannot be used with non-Vec-based slices.
-// [2021-05-21 23:03:30]    --> src/dfx/src/commands/bootstrap.rs:119:41
-// [2021-05-21 23:03:30]     |
-// [2021-05-21 23:03:30] 119 | fn verify_unique_ports(clients_api_uri: &Vec<url::Url>, bind: &SocketAddr) -> DfxResult {
-// [2021-05-21 23:03:30]     |                                         ^^^^^^^^^^^^^^ help: change this to: `&[url::Url]`
-// [2021-05-21 23:03:30]     |
-// [2021-05-21 23:03:30]     = note: `-D clippy::ptr-arg` implied by `-D clippy::all`
-// [2021-05-21 23:03:30]     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
-
-fn verify_unique_ports(clients_api_uri: &[url::Url], bind: &SocketAddr) -> DfxResult {
+fn verify_unique_ports(providers: &[url::Url], bind: &SocketAddr) -> DfxResult {
     // Verify that we cannot bind to a port that we forward to.
     let bound_port = bind.port();
-    let bind_and_forward_on_same_port = clients_api_uri.iter().any(|url| {
+    let bind_and_forward_on_same_port = providers.iter().any(|url| {
         Some(bound_port) == url.port()
             && match url.host_str() {
                 Some(h) => h == "localhost" || h == "::1" || h == "127.0.0.1",
