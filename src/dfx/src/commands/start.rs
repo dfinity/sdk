@@ -10,7 +10,7 @@ use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
-use crate::actors::replica_webserver_coordinator::ReplicaWebserverCoordinator;
+use crate::actors::proxy_webserver_coordinator::ProxyWebserverCoordinator;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
@@ -225,20 +225,16 @@ pub fn start_webserver_coordinator(
     build_output_root: PathBuf,
     port_ready_subscribe: Option<Recipient<PortReadySubscribe>>,
     shutdown_controller: Addr<ShutdownController>,
-) -> DfxResult<Addr<ReplicaWebserverCoordinator>> {
-    // By default we reach to no external IC nodes.
-    let providers = Vec::new();
-
-    let actor_config = actors::replica_webserver_coordinator::Config {
+) -> DfxResult<Addr<ProxyWebserverCoordinator>> {
+    let actor_config = actors::proxy_webserver_coordinator::Config {
         logger: Some(env.get_logger().clone()),
         port_ready_subscribe,
         shutdown_controller,
         bind,
-        providers,
         build_output_root,
         network_descriptor,
     };
-    Ok(ReplicaWebserverCoordinator::new(actor_config).start())
+    Ok(ProxyWebserverCoordinator::new(actor_config).start())
 }
 
 fn send_background() -> DfxResult<()> {
