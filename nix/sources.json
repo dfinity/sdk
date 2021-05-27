@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/forward_slash_underscore_slash",
+        "branch": "ericswanson/proxy_plus_nix",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "766f19ce0de014d874a0b95ba49450e935bb4533",
+        "rev": "3f1fc6c829494d46a65db6595fce41850d652228",
         "type": "git"
     },
     "bats-support": {
