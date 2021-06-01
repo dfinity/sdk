@@ -9,7 +9,35 @@ request_status message is also signed and append to the json as `signed_request_
 Then after sending the update message, the user can check the request_status using
 `dfx canister send message.json --status`. 
 
+=== fix: wallet will not proxy dfx canister call by default
+
+Previously, `dfx canister call` would proxy queries and update calls via the wallet canister by default.
+(There was the `--no-wallet` flag to bypass the proxy and perform the calls as the selected identity.)
+However, this behavior had drawbacks, namely each `dfx canister call` was an inter-canister call
+by default and calls would take a while to resolve. This fix makes it so that `dfx canister call` no longer
+proxies via the wallet by default. To proxy calls via the wallet, you can do
+`dfx canister --wallet=<wallet-id> call`.
+
+=== feat: add --no-artificial-delay to dfx replica and start
+
+This change adds the `--no-artificial-delay` flag to `dfx start` and `dfx replica`.
+The replica shipped with dfx has always had an artificial consensus delay (introduced to simulate
+a delay users might see in a networked environment.) With this new flag, that delay can
+be lessened. However, you might see increased CPU utilization by the replica process.
+
+=== feat: add deposit cycles and uninstall code
+
+This change introduces the `deposit_cycles` and `uninstall_code` management canister
+methods as dedicated `dfx canister` subcommands.
+
+=== fix: allow consistent use of canisters ids in canister command
+
+This change updates the dfx commands so that they will accept either a canister name
+(sourced from your local project) or a valid canister id.
+
 = 0.7.0
+
+== DFX
 
 === feat: add output type to request-status
 
