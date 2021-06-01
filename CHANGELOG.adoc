@@ -1,3 +1,14 @@
+= 0.7.1
+
+== DFX
+
+=== feat: sign request_status for update call
+
+When using `dfx canister sign` to generate a update message, a corresponding
+request_status message is also signed and append to the json as `signed_request_status`.
+Then after sending the update message, the user can check the request_status using
+`dfx canister send message.json --status`. 
+
 = 0.7.0
 
 === feat: add output type to request-status
