@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/proxy_plus_nix",
+        "branch": "dfx-support/build-on-rust-1.45.2-for-sdk-under-nix",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "3f1fc6c829494d46a65db6595fce41850d652228",
+        "rev": "bc84f45b187b39cffc63816361b54ad55b17b29e",
         "type": "git"
     },
     "bats-support": {
