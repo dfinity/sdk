@@ -23,6 +23,7 @@ teardown() {
 @test "create with wallet stores canister ids for default-persistent networks in canister_ids.json" {
     dfx_start
     setup_actuallylocal_network
+    dfx_set_wallet
     assert_command dfx_set_wallet
 
     assert_command dfx canister --network actuallylocal create --all

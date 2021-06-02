@@ -25,7 +25,15 @@ pub struct RequestStatusOpts {
     /// Specifies the name or id of the canister onto which the request was made.
     /// If the request was made to the Management canister, specify the id of the
     /// canister it is updating/querying.
+    /// If the call was proxied by the wallet,
+    /// i.e. a `dfx canister call --async` WITHOUT the `--no-wallet` flag,
+    /// specify the wallet canister id.
     canister_name: String,
+
+    /// Specifies the format for displaying the method's return result.
+    #[clap(long,
+        possible_values(&["idl", "raw", "pp"]))]
+    output: Option<String>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
@@ -90,6 +98,8 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     }
     .await
     .map_err(DfxError::from)?;
-    print_idl_blob(&blob, None, &None).context("Invalid data: Invalid IDL blob.")?;
+
+    let output_type = opts.output.as_deref();
+    print_idl_blob(&blob, output_type, &None).context("Invalid data: Invalid IDL blob.")?;
     Ok(())
 }
