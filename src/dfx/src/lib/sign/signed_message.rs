@@ -25,6 +25,7 @@ pub(crate) struct SignedMessageV1 {
     pub arg: Vec<u8>,
     pub request_id: Option<String>, // only useful for update call
     pub content: String,            // hex::encode the Vec<u8>
+    pub signed_request_status: Option<String>, // hex::encode the Vec<u8>, only accompany update call
 }
 
 impl SignedMessageV1 {
@@ -49,6 +50,7 @@ impl SignedMessageV1 {
             arg,
             request_id: None,
             content: String::new(),
+            signed_request_status: None,
         }
     }
 
@@ -64,6 +66,11 @@ impl SignedMessageV1 {
 
     pub fn with_content(mut self, content: String) -> Self {
         self.content = content;
+        self
+    }
+
+    pub fn with_signed_request_status(mut self, signed_request_status: String) -> Self {
+        self.signed_request_status = Some(signed_request_status);
         self
     }
 

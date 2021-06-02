@@ -13,7 +13,7 @@ use std::convert::TryFrom;
 #[derive(Clap)]
 pub struct InfoOpts {
     /// Specifies the name or id of the canister to get its certified canister information.
-    canister_name: String,
+    canister: String,
 }
 
 pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
@@ -21,7 +21,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    let callee_canister = opts.canister_name.as_str();
+    let callee_canister = opts.canister.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     let canister_id = Principal::from_text(callee_canister)

@@ -13,7 +13,7 @@ use crate::util::clap::validators::{
 };
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use clap::{ArgSettings, Clap};
 use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
@@ -152,6 +152,6 @@ pub async fn exec(
         }
         Ok(())
     } else {
-        bail!("Cannot find canister name.")
+        unreachable!()
     }
 }
