@@ -37,7 +37,7 @@ pub struct IcxProxyConfig {
     pub bind: SocketAddr,
 
     /// Port where webserver responding to /_/ requests to candid binds to
-    pub candid_port: u16,
+    pub proxy_port: u16,
 
     /// fixed replica addresses
     pub providers: Vec<Url>,
@@ -80,7 +80,7 @@ impl IcxProxy {
     fn start_icx_proxy(&mut self, providers: Vec<Url>) -> DfxResult {
         let logger = self.logger.clone();
         let config = &self.config.icx_proxy_config;
-        let candid_port = config.candid_port;
+        let proxy_port = config.proxy_port;
         let icx_proxy_pid_path = &self.config.icx_proxy_pid_path;
         let icx_proxy_path = self.config.icx_proxy_path.to_path_buf();
         let (sender, receiver) = unbounded();
@@ -89,7 +89,7 @@ impl IcxProxy {
             logger,
             config.bind,
             providers,
-            candid_port,
+            proxy_port,
             icx_proxy_path,
             icx_proxy_pid_path.clone(),
             receiver,
@@ -178,7 +178,7 @@ fn icx_proxy_start_thread(
     logger: Logger,
     address: SocketAddr,
     providers: Vec<Url>,
-    webserver_port: u16,
+    proxy_port: u16,
     icx_proxy_path: PathBuf,
     icx_proxy_pid_path: PathBuf,
     receiver: Receiver<()>,
@@ -197,7 +197,7 @@ fn icx_proxy_start_thread(
         // form the icx-proxy command here similar to replica command
         let mut cmd = std::process::Command::new(icx_proxy_path);
         let address = format!("{}", &address);
-        let proxy = format!("http://localhost:{}", webserver_port);
+        let proxy = format!("http://localhost:{}", proxy_port);
         cmd.args(&["--address", &address, "--proxy", &proxy]);
         for provider in providers {
             let s = format!("{}", provider);

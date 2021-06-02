@@ -151,11 +151,11 @@ dfx_start_replica_and_bootstrap() {
     export DFX_BOOTSTRAP_PID=$!
 
     timeout 5 sh -c \
-        'until nc -z localhost $(cat .dfx/candid-port); do echo waiting for bootstrap; sleep 1; done' \
-        || (echo "could not connect to bootstrap on port $(cat .dfx/candid-port)" && exit 1)
+        'until nc -z localhost $(cat .dfx/proxy-port); do echo waiting for bootstrap; sleep 1; done' \
+        || (echo "could not connect to bootstrap on port $(cat .dfx/proxy-port)" && exit 1)
 
-    local candid_port=$(cat .dfx/candid-port)
-    printf "Candid Configured Port: %s\n", "${candid_port}"
+    local proxy_port=$(cat .dfx/proxy-port)
+    printf "Proxy Configured Port: %s\n", "${proxy_port}"
 }
 
 # Start the replica in the background.
