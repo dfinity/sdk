@@ -126,6 +126,7 @@ dfx_start_replica_and_bootstrap() {
 
         local dfx_config_root=.dfx/replica-configuration
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+        ls -l "${dfx_config_root}"
         test -f ${dfx_config_root}/replica-1.port
         local replica_port=$(cat ${dfx_config_root}/replica-1.port)
 
