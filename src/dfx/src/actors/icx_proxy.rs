@@ -199,7 +199,7 @@ fn icx_proxy_start_thread(
         let address = format!("{}", &address);
         let proxy = format!("http://localhost:{}", proxy_port);
         cmd.args(&["--address", &address, "--proxy", &proxy]);
-        debug!(logger, "(... 1)");
+        debug!(logger, "(... 2)");
         for provider in providers {
             let s = format!("{}", provider);
             cmd.args(&["--replica", &s]);
