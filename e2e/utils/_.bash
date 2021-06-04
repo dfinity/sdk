@@ -120,6 +120,9 @@ dfx_start_replica_and_bootstrap() {
         dfx replica --port 0 "$@" 3>&- &
         export DFX_REPLICA_PID=$!
 
+        ls -l .dfx/replica-configuration
+        echo "timeout / wait for replica port"
+
         timeout 60 sh -c \
             "until cat .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
             || (echo "replica did not write to port file" && exit 1)
