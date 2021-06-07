@@ -117,10 +117,11 @@ pub struct BuilderPool {
 
 impl BuilderPool {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
-        let mut builders: Vec<Arc<dyn CanisterBuilder>> = Vec::new();
-        builders.push(Arc::new(assets::AssetsBuilder::new(env)?));
-        builders.push(Arc::new(custom::CustomBuilder::new(env)?));
-        builders.push(Arc::new(motoko::MotokoBuilder::new(env)?));
+        let builders: Vec<Arc<dyn CanisterBuilder>> = vec![
+            Arc::new(assets::AssetsBuilder::new(env)?),
+            Arc::new(custom::CustomBuilder::new(env)?),
+            Arc::new(motoko::MotokoBuilder::new(env)?),
+        ];
 
         Ok(Self { builders })
     }
