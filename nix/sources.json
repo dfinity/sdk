@@ -32,9 +32,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "rustc-1.52.1",
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "a7b804e278ffe8f19653122ff5c4789ae7771323",
+        "rev": "02d0664796f51c9a0baff08c923217b4d50cad6a",
         "type": "git"
     },
     "dfinity": {
