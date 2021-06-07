@@ -155,6 +155,9 @@ build_release_branch() {
     NIX_COMMAND=$(envsubst <<"EOF"
         set -e
 
+        echo "Cleaning up cargo build files..."
+        $DRY_RUN_ECHO cargo clean
+
         echo "Switching to branch: $BRANCH"
         $DRY_RUN_ECHO git switch -c $BRANCH
 
