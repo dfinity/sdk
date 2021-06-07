@@ -28,7 +28,7 @@ impl AssetsCanisterInfo {
     }
 
     pub fn assert_source_paths(&self) -> DfxResult<()> {
-        let source_paths = &self.source_paths;
+        let source_paths = self.get_source_paths();
         let input_root = &self.input_root;
         let source_paths: Vec<PathBuf> = source_paths.iter().map(|x| input_root.join(x)).collect();
         for source_path in &source_paths {
