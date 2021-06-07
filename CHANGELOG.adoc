@@ -1,5 +1,11 @@
 = 0.7.1
 
+== Cycles Wallet
+
+Fixed an issue where the controller can remove itself from the list of controllers even if it's the only one,
+leaving the wallet uncontrolled.
+Added defensive checks to the wallet's remove_controller and deauthorize methods.
+
 == DFX
 
 === feat: sign request_status for update call
