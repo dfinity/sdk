@@ -151,7 +151,7 @@ pub fn blob_from_arguments(
                         use candid::Encode;
                         Encode!()
                     } else if let Some(random) = random {
-                        let random = if random == "" {
+                        let random = if random.is_empty() {
                             eprintln!("Random schema is empty, using any random value instead.");
                             "{=}"
                         } else {
