@@ -115,11 +115,10 @@ pub fn get_effective_canister_id(
             )
         })?;
         match method_name {
-            MgmtMethod::CreateCanister
-            | MgmtMethod::RawRand => {
+            MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
                 bail!(format!("{} can only be called via an inter-canister call. Try calling this without `--no-wallet`.",
                     method_name.as_ref()))
-            },
+            }
             MgmtMethod::InstallCode => {
                 let install_args = candid::Decode!(arg_value, CanisterInstall)?;
                 Ok(install_args.canister_id)
@@ -147,7 +146,9 @@ pub fn get_effective_canister_id(
                 let in_args = candid::Decode!(arg_value, In)?;
                 Ok(in_args.canister_id)
             }
-            MgmtMethod::ProvisionalCreateCanisterWithCycles => Ok(CanisterId::management_canister()),
+            MgmtMethod::ProvisionalCreateCanisterWithCycles => {
+                Ok(CanisterId::management_canister())
+            }
         }
     } else {
         Ok(canister_id)
@@ -181,10 +182,7 @@ pub async fn exec(
     let is_management_canister = canister_id == CanisterId::management_canister();
 
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
-    let is_query_method = match &method_type {
-        Some((_, f)) => Some(f.is_query()),
-        None => None,
-    };
+    let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments = opts.argument.as_deref();
     let arg_type = opts.r#type.as_deref();

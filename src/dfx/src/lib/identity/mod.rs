@@ -75,7 +75,7 @@ impl Identity {
                 "Cannot create identity directory at '{0}'.",
                 identity_dir.display(),
             ))
-        };
+        }
         match parameters {
             IdentityCreationParameters::Pem() => {
                 create(identity_dir)?;

@@ -286,7 +286,7 @@ fn scaffold_frontend_code(
                     b.finish_with_message("Done.");
                 } else {
                     b.finish_with_message(
-                        "An error occured. See the messages above for more details.",
+                        "An error occurred. See the messages above for more details.",
                     );
                 }
             }

@@ -13,7 +13,6 @@ use ic_types::principal::Principal as CanisterId;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
-use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::sync::Arc;
@@ -109,11 +108,11 @@ impl CanisterBuilder for MotokoBuilder {
         let input_path = motoko_info.get_main_path();
         let output_wasm_path = motoko_info.get_output_wasm_path();
 
-        let id_map = BTreeMap::from_iter(
-            pool.get_canister_list()
-                .iter()
-                .map(|c| (c.get_name().to_string(), c.canister_id().to_text())),
-        );
+        let id_map = pool
+            .get_canister_list()
+            .iter()
+            .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
+            .collect();
 
         std::fs::create_dir_all(motoko_info.get_output_root())?;
         let cache = &self.cache;
@@ -126,7 +125,7 @@ impl CanisterBuilder for MotokoBuilder {
         // Generate IDL
         let output_idl_path = motoko_info.get_output_idl_path();
         let params = MotokoParams {
-            build_target: BuildTarget::IDL,
+            build_target: BuildTarget::Idl,
             surpress_warning: false,
             input: &input_path,
             package_arguments: &package_arguments,
@@ -167,7 +166,7 @@ type CanisterIdMap = BTreeMap<String, String>;
 enum BuildTarget {
     Release,
     Debug,
-    IDL,
+    Idl,
 }
 
 struct MotokoParams<'a> {
@@ -188,7 +187,7 @@ impl MotokoParams<'_> {
         match self.build_target {
             BuildTarget::Release => cmd.args(&["-c", "--release"]),
             BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
-            BuildTarget::IDL => cmd.arg("--idl"),
+            BuildTarget::Idl => cmd.arg("--idl"),
         };
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
