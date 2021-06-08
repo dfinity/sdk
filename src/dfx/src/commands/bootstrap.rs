@@ -45,8 +45,6 @@ pub struct BootstrapOpts {
 
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
-    // let logger = env.get_logger();
-
     let config = env.get_config_or_anyhow()?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
@@ -56,13 +54,6 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
-
-    // let replica_port_path = env
-    //     .get_temp_dir()
-    //     .join("replica-configuration")
-    //     .join("replica-1.port");
-    //
-    // let emulator_port_path = env.get_temp_dir().join("ic-ref.port");
 
     let providers = get_providers(&network_descriptor)?;
     let providers: Vec<Url> = providers

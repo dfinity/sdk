@@ -105,16 +105,9 @@ dfx_start_replica_and_bootstrap() {
         dfx replica --emulator --port 0 "$@" 3>&- &
         export DFX_REPLICA_PID=$!
 
-        ls -alR .
-        echo "timeout / wait for ic-ref port"
-
         timeout 60 sh -c \
             "until cat .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
             || (echo "replica did not write to .dfx/ic-ref.port file" && exit 1)
-
-        echo "Contents of .dfx/"
-        ls -l .dfx
-        echo "check for .dfx/ic-ref.port"
 
         test -f .dfx/ic-ref.port
         local replica_port=$(cat .dfx/ic-ref.port)
@@ -126,16 +119,11 @@ dfx_start_replica_and_bootstrap() {
         dfx replica --port 0 "$@" 3>&- &
         export DFX_REPLICA_PID=$!
 
-        ls -alR .
-        echo "timeout / wait for replica port"
-
         timeout 60 sh -c \
             "until cat .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
             || (echo "replica did not write to port file" && exit 1)
 
         local dfx_config_root=.dfx/replica-configuration
-        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-        ls -l "${dfx_config_root}"
         test -f ${dfx_config_root}/replica-1.port
         local replica_port=$(cat ${dfx_config_root}/replica-1.port)
 
