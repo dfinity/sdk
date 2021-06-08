@@ -17,8 +17,8 @@ use std::time::Duration;
 // The cycle fee for create request is 1T cycles.
 const CANISTER_CREATE_FEE: u64 = 1_000_000_000_000_u64;
 // We do not know the minimum cycle balance a canister should have.
-// For now create the canister with 10T cycle balance.
-const CANISTER_INITIAL_CYCLE_BALANCE: u64 = 10_000_000_000_000_u64;
+// For now create the canister with 3T cycle balance.
+const CANISTER_INITIAL_CYCLE_BALANCE: u64 = 3_000_000_000_000_u64;
 
 pub async fn create_canister(
     env: &dyn Environment,
