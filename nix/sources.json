@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "dfx-support/build-on-rust-1.45.2-for-sdk-under-nix",
+        "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "462afd2c970d44d63475ec56ce3c6be6bff6e325",
+        "rev": "01aa26cc6e481d6bda1a4402741e8eaaf7be3c66",
         "type": "git"
     },
     "bats-support": {
