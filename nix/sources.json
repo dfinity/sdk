@@ -40,7 +40,7 @@
     "dfinity": {
         "branch": "release-mercury-genesis",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "2744e8abf9f5efded909332a7c07c2ec074a0b73",
+        "rev": "8dc1a28b4fb9605558c03121811c9af9701a6142",
         "type": "git"
     },
     "ic-ref": {
