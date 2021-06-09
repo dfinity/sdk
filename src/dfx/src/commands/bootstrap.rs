@@ -60,6 +60,8 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
 
     let (sender, receiver) = crossbeam::unbounded();
 
+    println!("bootstrap (1)");
+
     // Since the user may have provided port "0", we need to grab a dynamically
     // allocated port and construct a resuable SocketAddr which the actix
     // HttpServer will bind to
