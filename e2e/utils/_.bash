@@ -106,7 +106,7 @@ dfx_start_replica_and_bootstrap() {
         export DFX_REPLICA_PID=$!
 
         timeout 60 sh -c \
-            "until cat .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
+            "until test -s .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
             || (echo "replica did not write to .dfx/ic-ref.port file" && exit 1)
 
         echo "contents of .dfx:"
@@ -123,7 +123,7 @@ dfx_start_replica_and_bootstrap() {
         export DFX_REPLICA_PID=$!
 
         timeout 60 sh -c \
-            "until cat .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
+            "until test -s .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
             || (echo "replica did not write to port file" && exit 1)
 
         echo "contents of .dfx:"
