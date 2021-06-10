@@ -10,6 +10,7 @@ use crate::lib::sign::signed_message::SignedMessageV1;
 use crate::util::{blob_from_arguments, get_candid_type};
 
 use ic_agent::AgentError;
+use ic_agent::RequestId;
 use ic_types::principal::Principal;
 
 use anyhow::{anyhow, bail};
@@ -17,8 +18,11 @@ use chrono::Utc;
 use clap::Clap;
 use humanize_rs::duration;
 use slog::info;
-use std::option::Option;
+
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
+use std::str::FromStr;
 use std::time::SystemTime;
 
 /// Sign a canister call and generate message file in json
@@ -88,10 +92,7 @@ pub async fn exec(
     };
 
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
-    let is_query_method = match &method_type {
-        Some((_, f)) => Some(f.is_query()),
-        None => None,
-    };
+    let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments = opts.argument.as_deref();
     let arg_type = opts.r#type.as_deref();
@@ -160,7 +161,10 @@ pub async fn exec(
     }
 
     let mut sign_agent = agent.clone();
-    sign_agent.set_transport(SignReplicaV2Transport::new(file_name, message_template));
+    sign_agent.set_transport(SignReplicaV2Transport::new(
+        file_name.clone(),
+        message_template,
+    ));
 
     let is_management_canister = canister_id == Principal::management_canister();
     let effective_canister_id = get_effective_canister_id(
@@ -193,6 +197,26 @@ pub async fn exec(
             .with_arg(&arg_value)
             .expire_at(expiration_system_time)
             .call()
+            .await;
+        match res {
+            Err(AgentError::TransportError(b)) => {
+                info!(log, "{}", b);
+                //Ok(())
+            }
+            Err(e) => bail!(e),
+            Ok(_) => unreachable!(),
+        }
+        let path = Path::new(&file_name);
+        let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
+        let mut json = String::new();
+        file.read_to_string(&mut json)
+            .map_err(|_| anyhow!("Cannot read the message file."))?;
+        let message: SignedMessageV1 =
+            serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
+        // message from file guaranteed to have request_id becase it is a update message just generated
+        let request_id = RequestId::from_str(&message.request_id.unwrap())?;
+        let res = sign_agent
+            .request_status_raw(&request_id, canister_id.clone())
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {

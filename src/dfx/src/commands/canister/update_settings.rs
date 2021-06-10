@@ -21,11 +21,11 @@ use ic_types::principal::Principal as CanisterId;
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Clap)]
 pub struct UpdateSettingsOpts {
-    /// Specifies the canister name to update. You must specify either canister name or the --all option.
-    canister_name: Option<String>,
+    /// Specifies the canister name or id to update. You must specify either canister name/id or the --all option.
+    canister: Option<String>,
 
     /// Updates the settings of all canisters configured in the project dfx.json files.
-    #[clap(long, required_unless_present("canister-name"))]
+    #[clap(long, required_unless_present("canister"))]
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
@@ -76,11 +76,9 @@ pub async fn exec(
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    if let Some(canister_name_or_id) = opts.canister_name.as_deref() {
-        let canister_id = match CanisterId::from_text(canister_name_or_id) {
-            Ok(id) => id,
-            Err(_) => canister_id_store.get(canister_name_or_id)?,
-        };
+    if let Some(canister_name_or_id) = opts.canister.as_deref() {
+        let canister_id = CanisterId::from_text(canister_name_or_id)
+            .or_else(|_| canister_id_store.get(canister_name_or_id))?;
         let textual_cid = canister_id.to_text();
         let canister_name = canister_id_store
             .get_name(&textual_cid)

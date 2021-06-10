@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/build-on-rust-1.45.2-for-sdk-under-nix",
+        "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "e6bf42ed697db37a252f019563c36160f72d8cd8",
+        "rev": "01aa26cc6e481d6bda1a4402741e8eaaf7be3c66",
         "type": "git"
     },
     "bats-support": {
@@ -34,13 +34,13 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "9960cc13ad2e8bcf1af5ea820fc50a2456ccc1db",
+        "rev": "02d0664796f51c9a0baff08c923217b4d50cad6a",
         "type": "git"
     },
     "dfinity": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "6c7e2dd6f85b655809947b618c7d343429c34438",
+        "rev": "da2e149cbee5f98905e5a0126d0919be12a7c29d",
         "type": "git"
     },
     "ic-ref": {

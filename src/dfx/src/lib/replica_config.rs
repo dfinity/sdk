@@ -1,6 +1,3 @@
-use crate::error_invalid_data;
-use crate::lib::error::DfxResult;
-
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::path::{Path, PathBuf};
@@ -15,23 +12,6 @@ pub struct HttpHandlerConfig {
     /// The port is written in its textual representation, no newline at the
     /// end.
     pub write_port_to: Option<PathBuf>,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct SchedulerConfig {
-    pub exec_gas: Option<u64>,
-    pub round_gas_max: Option<u64>,
-}
-
-impl SchedulerConfig {
-    pub fn validate(self) -> DfxResult<Self> {
-        if self.exec_gas >= self.round_gas_max {
-            let message = "Round gas limit must exceed message gas limit.";
-            Err(error_invalid_data!("{}", message))
-        } else {
-            Ok(self)
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -52,22 +32,18 @@ pub struct StateManagerConfig {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ReplicaConfig {
     pub http_handler: HttpHandlerConfig,
-    pub scheduler: SchedulerConfig,
     pub state_manager: StateManagerConfig,
     pub crypto: CryptoConfig,
     pub artifact_pool: ArtifactPoolConfig,
+    pub no_artificial_delay: bool,
 }
 
 impl ReplicaConfig {
-    pub fn new(state_root: &Path) -> Self {
+    pub fn new(state_root: &Path, no_artificial_delay: bool) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
                 port: None,
-            },
-            scheduler: SchedulerConfig {
-                exec_gas: None,
-                round_gas_max: None,
             },
             state_manager: StateManagerConfig {
                 state_root: state_root.join("replicated_state"),
@@ -78,6 +54,7 @@ impl ReplicaConfig {
             artifact_pool: ArtifactPoolConfig {
                 consensus_pool_path: state_root.join("consensus_pool"),
             },
+            no_artificial_delay,
         }
     }
 

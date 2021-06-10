@@ -47,8 +47,7 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
     if let Some(arg_value) = opts.value {
         // Try to parse the type of the value (which is a string from the arguments) as
         // JSON. By default we will just assume the type is string (if all parsing fails).
-        let value =
-            serde_json::from_str::<Value>(&arg_value).unwrap_or_else(|_| Value::String(arg_value));
+        let value = serde_json::from_str::<Value>(&arg_value).unwrap_or(Value::String(arg_value));
         *config
             .get_mut_json()
             .pointer_mut(config_path.as_str())

@@ -11,19 +11,19 @@ use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
-/// Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.
+/// Uninstalls a canister, removing its code and state, on the Internet Computer network.
 #[derive(Clap)]
-pub struct CanisterStatusOpts {
-    /// Specifies the name of the canister to return information for.
-    /// You must specify either a canister name or the --all flag.
+pub struct UninstallCodeOpts {
+    /// Specifies the name or id of the canister to uinstall.
+    /// You must specify either a canister name/id or the --all option.
     canister: Option<String>,
 
-    /// Returns status information for all of the canisters configured in the dfx.json file.
+    /// Uninstalls all of the canisters configured in the dfx.json file.
     #[clap(long, required_unless_present("canister"))]
     all: bool,
 }
 
-async fn canister_status(
+async fn uninstall_code(
     env: &dyn Environment,
     canister: &str,
     timeout: Duration,
@@ -34,25 +34,21 @@ async fn canister_status(
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
-    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
-
-    info!(log, "Canister status call result for {}.\nStatus: {}\nController: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
+    info!(
+        log,
+        "Uninstalling code for canister {}, with canister_id {}",
         canister,
-        status.status,
-        status.settings.controller,
-        status.settings.memory_allocation,
-        status.settings.compute_allocation,
-        status.settings.freezing_threshold,
-        status.memory_size,
-        status.cycles,
-        status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v)))
+        canister_id.to_text(),
     );
+
+    canister::uninstall_code(env, canister_id, timeout, call_sender).await?;
+
     Ok(())
 }
 
 pub async fn exec(
     env: &dyn Environment,
-    opts: CanisterStatusOpts,
+    opts: UninstallCodeOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
@@ -61,11 +57,11 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
-        canister_status(env, &canister, timeout, call_sender).await
+        uninstall_code(env, &canister, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                canister_status(env, &canister, timeout, call_sender).await?;
+                uninstall_code(env, &canister, timeout, call_sender).await?;
             }
         }
         Ok(())

@@ -6,6 +6,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use anyhow::{anyhow, Context};
 use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
+use std::path::Path;
 use std::path::PathBuf;
 
 type CanisterName = String;
@@ -58,7 +59,7 @@ impl CanisterIdStore {
             .map(|(canister_name, _)| canister_name)
     }
 
-    pub fn load_ids(path: &PathBuf) -> DfxResult<CanisterIds> {
+    pub fn load_ids(path: &Path) -> DfxResult<CanisterIds> {
         let content = std::fs::read_to_string(path)
             .context(format!("Cannot read from file at '{}'.", path.display()))?;
         serde_json::from_str(&content).context(format!(
@@ -123,7 +124,6 @@ impl CanisterIdStore {
         let network_name = &self.network_descriptor.name;
         if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
             network_name_to_canister_id.remove(&network_name.to_string());
-            self.ids.remove(&canister_name.to_string());
         }
         self.save_ids()
     }
