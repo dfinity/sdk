@@ -85,12 +85,11 @@ impl Toolchain {
         };
         eprintln!("The latest compatible SDK version is {}", resolved_version);
 
-        let mut status = "unchanged";
-        if installed_version.is_none() {
-            status = "installed";
-        } else if installed_version.unwrap() != resolved_version {
-            status = "updated";
-        }
+        let status = match installed_version {
+            None => "installed",
+            Some(v) if v != resolved_version => "updated",
+            _ => "unchanged",
+        };
 
         if status != "unchanged" {
             match cache::is_version_installed(&resolved_version.to_string())? {

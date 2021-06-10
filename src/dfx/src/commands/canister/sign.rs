@@ -92,10 +92,7 @@ pub async fn exec(
     };
 
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
-    let is_query_method = match &method_type {
-        Some((_, f)) => Some(f.is_query()),
-        None => None,
-    };
+    let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments = opts.argument.as_deref();
     let arg_type = opts.r#type.as_deref();
