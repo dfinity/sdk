@@ -109,6 +109,9 @@ dfx_start_replica_and_bootstrap() {
             "until cat .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
             || (echo "replica did not write to .dfx/ic-ref.port file" && exit 1)
 
+        echo "contents of .dfx:"
+        ls -l .dfx
+
         test -f .dfx/ic-ref.port
         local replica_port=$(cat .dfx/ic-ref.port)
 
@@ -122,6 +125,11 @@ dfx_start_replica_and_bootstrap() {
         timeout 60 sh -c \
             "until cat .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
             || (echo "replica did not write to port file" && exit 1)
+
+        echo "contents of .dfx:"
+        ls -l .dfx
+        echo "contents of .dfx/replica-configuration:"
+        ls -l .dfx/replica-configuration
 
         local dfx_config_root=.dfx/replica-configuration
         test -f ${dfx_config_root}/replica-1.port

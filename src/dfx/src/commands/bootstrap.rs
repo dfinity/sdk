@@ -61,7 +61,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
         .map(|uri| Url::parse(uri).unwrap())
         .collect();
 
-    println!("bootstrap (9)");
+    println!("bootstrap (10)");
     // Since the user may have provided port "0", we need to grab a dynamically
     // allocated port and construct a resuable SocketAddr which the actix
     // HttpServer will bind to
