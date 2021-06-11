@@ -108,15 +108,16 @@ validate_default_project() {
         $dfx_rc canister call hello_world greet everyone
 
         hello_world_assets_canister_id=$($dfx_rc canister id hello_world_assets)
-        hello_world_canister_id=$($dfx_rc canister id hello_world)
+        application_canister_id=$($dfx_rc canister id hello_world)
+        candid_ui_id=$($dfx_rc canister id __Candid_UI)
         export hello_world_assets_url="http://localhost:8000/?canisterId=$hello_world_assets_canister_id"
-        export hello_world_candid_url="http://localhost:8000/candid?canisterId=$hello_world_canister_id"
+        export candid_ui_url="http://localhost:8000/candid?canisterId=$candid_ui_id&id=$application_canister_id"
 
         echo
         echo "=================================================="
         echo "dfx project directory: $(pwd)"
         echo "assets URL: $hello_world_assets_url"
-        echo "candid URL: $hello_world_candid_url"
+        echo "candid URL: $candid_ui_url"
         echo "=================================================="
         echo
         echo "[1/4] Verify 'hello' functionality in a browser."
@@ -136,7 +137,7 @@ validate_default_project() {
         echo "  - Open this URL in your web browser with empty cache or 'Private Browsing' mode"
         echo "  - Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*"
         echo
-        echo "  $hello_world_candid_url"
+        echo "  $candid_ui_url"
         echo
         wait_for_response 'candid UI passes'
         echo
