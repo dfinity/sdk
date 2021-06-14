@@ -38,6 +38,9 @@ let
             nixFmt = self.lib.nixFmt {};
           in
             {
+              buildDfinityRustPackage = super.callPackage ./build-dfinity-rust-package.nix {
+                inherit (self) cargo-deny;
+              };
               motoko = import self.sources.motoko { inherit (self) system; };
               agent-rs = self.naersk.buildPackage {
                 name = "agent-rs";

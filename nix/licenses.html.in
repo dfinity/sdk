@@ -1,0 +1,23 @@
+<!-- vi: set ft=html -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>License report for @name@</title>
+</head>
+
+<body>
+  <h2>Crate licenses of <code>@name@</code></h2>
+  <table id="rust-table">
+    <thead>
+
+      <tr>
+        <th>Crate name</th>
+        <th>Licenses</th>
+      </tr>
+    </thead>
+    <tbody>@licenseReport@</tbody>
+  </table>
+</body>
+
+</html>
