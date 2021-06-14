@@ -94,6 +94,78 @@ dfx_start() {
         || (echo "could not connect to replica on port ${port}" && exit 1)
 }
 
+# Start the replica in the background.
+dfx_start_replica_and_bootstrap() {
+    dfx_patchelf
+    if [ "$USE_IC_REF" ]
+    then
+        # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
+        # wait for it to close. Because `dfx start` leaves child processes running, we need
+        # to close this pipe, otherwise Bats will wait indefinitely.
+        dfx replica --emulator --port 0 "$@" 3>&- &
+        export DFX_REPLICA_PID=$!
+
+        timeout 60 sh -c \
+            "until test -s .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
+            || (echo "replica did not write to .dfx/ic-ref.port file" && exit 1)
+
+        test -f .dfx/ic-ref.port
+        local replica_port=$(cat .dfx/ic-ref.port)
+
+    else
+        # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
+        # wait for it to close. Because `dfx start` leaves child processes running, we need
+        # to close this pipe, otherwise Bats will wait indefinitely.
+        dfx replica --port 0 "$@" 3>&- &
+        export DFX_REPLICA_PID=$!
+
+        timeout 60 sh -c \
+            "until test -s .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
+            || (echo "replica did not write to port file" && exit 1)
+
+        local dfx_config_root=.dfx/replica-configuration
+        test -f ${dfx_config_root}/replica-1.port
+        local replica_port=$(cat ${dfx_config_root}/replica-1.port)
+
+    fi
+    local webserver_port=$(cat .dfx/webserver-port)
+
+    # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
+    cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
+
+    printf "Replica Configured Port: %s\n" "${replica_port}"
+    printf "Webserver Configured Port: %s\n" "${webserver_port}"
+
+    timeout 5 sh -c \
+        "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
+        || (echo "could not connect to replica on port ${replica_port}" && exit 1)
+
+    # This only works because we use the network by name
+    #    (implicitly: --network local)
+    # If we passed --network http://127.0.0.1:${replica_port}
+    # we would get errors like this:
+    #    "Cannot find canister ryjl3-tyaaa-aaaaa-aaaba-cai for network http___127_0_0_1_54084"
+    dfx bootstrap --port 0 3>&- &
+    export DFX_BOOTSTRAP_PID=$!
+
+    timeout 5 sh -c \
+        'until nc -z localhost $(cat .dfx/proxy-port); do echo waiting for bootstrap; sleep 1; done' \
+        || (echo "could not connect to bootstrap on port $(cat .dfx/proxy-port)" && exit 1)
+
+    local proxy_port=$(cat .dfx/proxy-port)
+    printf "Proxy Configured Port: %s\n", "${proxy_port}"
+}
+
+# Start the replica in the background.
+dfx_stop_replica_and_bootstrap() {
+    if [[ -v DFX_REPLICA_PID ]]; then
+        kill -TERM "$DFX_REPLICA_PID"
+    fi
+    if [[ -v DFX_BOOTSTRAP_PID ]]; then
+        kill -TERM "$DFX_BOOTSTRAP_PID"
+    fi
+}
+
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
     dfx stop

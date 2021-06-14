@@ -5,13 +5,14 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 
+use crate::actors::proxy_webserver_coordinator::signals::StartWebserver;
 use actix::clock::{delay_for, Duration};
 use actix::fut::wrap_future;
-use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient, ResponseFuture};
+use actix::{Actor, Addr, AsyncContext, Context, Handler, ResponseFuture};
 use actix_server::Server;
 use futures::future;
 use futures::future::FutureExt;
-use slog::{debug, error, info, Logger};
+use slog::{error, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
@@ -20,103 +21,76 @@ pub mod signals {
 
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub struct PortReadySignal {
-        pub port: u16,
-    }
-
-    #[derive(Message)]
-    #[rtype(result = "()")]
-    pub struct PortReadySubscribe(pub Recipient<PortReadySignal>);
+    pub struct StartWebserver {}
 }
 
 pub struct Config {
     pub logger: Option<Logger>,
-    pub port_ready_subscribe: Recipient<signals::PortReadySubscribe>,
     pub shutdown_controller: Addr<ShutdownController>,
     pub bind: SocketAddr,
-    pub providers: Vec<url::Url>,
     pub build_output_root: PathBuf,
     pub network_descriptor: NetworkDescriptor,
 }
 
 ///
-/// The ReplicaWebserverCoordinator runs a webserver for the replica.
+/// The ProxyWebserverCoordinator runs a webserver for the /_/ endpoint.
 ///
-/// If the replica restarts, it will start a new webserver for the new replica.
-pub struct ReplicaWebserverCoordinator {
+/// It's a little more complicated that it could be, mostly in order to ensure a clean shutdown.
+pub struct ProxyWebserverCoordinator {
     logger: Logger,
     config: Config,
     server: Option<Server>,
 }
 
-impl ReplicaWebserverCoordinator {
+impl ProxyWebserverCoordinator {
     pub fn new(config: Config) -> Self {
         let logger =
             (config.logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
-        ReplicaWebserverCoordinator {
+        ProxyWebserverCoordinator {
             config,
             logger,
             server: None,
         }
     }
 
-    fn start_server(&self, port: u16) -> DfxResult<Server> {
-        let mut providers = self.config.providers.clone();
-
-        let ic_replica_bind_addr = "http://localhost:".to_owned() + port.to_string().as_str();
-        let ic_replica_bind_addr = ic_replica_bind_addr.as_str();
-        let replica_api_uri =
-            url::Url::parse(ic_replica_bind_addr).expect("Failed to parse replica ingress url.");
-        providers.push(replica_api_uri);
-        info!(
-            self.logger,
-            "Starting webserver for replica at {:?}", ic_replica_bind_addr
-        );
+    fn start_server(&self) -> DfxResult<Server> {
+        info!(self.logger, "Starting webserver for /_/");
 
         run_webserver(
             self.logger.clone(),
             self.config.build_output_root.clone(),
             self.config.network_descriptor.clone(),
             self.config.bind,
-            providers,
         )
     }
 }
 
-impl Actor for ReplicaWebserverCoordinator {
+impl Actor for ProxyWebserverCoordinator {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let _ = self
-            .config
-            .port_ready_subscribe
-            .do_send(signals::PortReadySubscribe(ctx.address().recipient()));
+        let _ = ctx.address().recipient().do_send(StartWebserver {});
         self.config
             .shutdown_controller
             .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
     }
 }
 
-impl Handler<signals::PortReadySignal> for ReplicaWebserverCoordinator {
+impl Handler<StartWebserver> for ProxyWebserverCoordinator {
     type Result = ();
 
-    fn handle(&mut self, msg: signals::PortReadySignal, ctx: &mut Self::Context) {
-        debug!(self.logger, "replica ready on {}", msg.port);
-
+    fn handle(&mut self, msg: StartWebserver, ctx: &mut Self::Context) {
         if let Some(server) = &self.server {
             ctx.wait(wrap_future(server.stop(true)));
             self.server = None;
             ctx.address().do_send(msg);
         } else {
-            match self.start_server(msg.port) {
+            match self.start_server() {
                 Ok(server) => {
                     self.server = Some(server);
                 }
                 Err(e) => {
-                    error!(
-                        self.logger,
-                        "Unable to start webserver on port {}: {}", msg.port, e
-                    );
+                    error!(self.logger, "Unable to start webserver: {}", e);
                     ctx.wait(wrap_future(delay_for(Duration::from_secs(2))));
                     ctx.address().do_send(msg);
                 }
@@ -125,7 +99,7 @@ impl Handler<signals::PortReadySignal> for ReplicaWebserverCoordinator {
     }
 }
 
-impl Handler<Shutdown> for ReplicaWebserverCoordinator {
+impl Handler<Shutdown> for ProxyWebserverCoordinator {
     type Result = ResponseFuture<Result<(), ()>>;
 
     fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
