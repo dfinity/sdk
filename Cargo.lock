@@ -1107,6 +1107,7 @@ dependencies = [
  "erased-serde",
  "flate2",
  "futures",
+ "futures-intrusive",
  "garcon",
  "hex",
  "humanize-rs",
@@ -1527,6 +1528,17 @@ dependencies = [
  "futures-core",
  "futures-task",
  "futures-util",
+]
+
+[[package]]
+name = "futures-intrusive"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62007592ac46aa7c2b6416f7deb9a8a8f63a01e0f1d6e1787d5630170db2b63e"
+dependencies = [
+ "futures-core",
+ "lock_api",
+ "parking_lot",
 ]
 
 [[package]]
