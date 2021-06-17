@@ -10,7 +10,7 @@ use actix::{
     ResponseActFuture, Running, WrapFuture,
 };
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use delay::{Delay, Waiter};
+use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
