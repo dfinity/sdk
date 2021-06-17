@@ -1,6 +1,6 @@
 {
     "advisory-db": {
-        "branch": "master",
+        "branch": "main",
         "builtin": false,
         "description": "Security advisory database for Rust crates published through crates.io",
         "homepage": "https://rustsec.org",
