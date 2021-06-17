@@ -677,7 +677,7 @@ dependencies = [
  "codespan-reporting",
  "fake",
  "hex",
- "ic-types",
+ "ic-types 0.1.4",
  "lalrpop",
  "lalrpop-util",
  "leb128",
@@ -1118,7 +1118,7 @@ dependencies = [
  "humanize-rs",
  "ic-agent",
  "ic-identity-hsm",
- "ic-types",
+ "ic-types 0.1.2",
  "ic-utils",
  "indicatif",
  "lazy-init",
@@ -1890,8 +1890,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.3.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=95a0782cd6f432cb1e98ed9422cf9d7327236b17#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+version = "0.4.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=7cd821c1f784463228d6474816c5c774d5f36f2a#7cd821c1f784463228d6474816c5c774d5f36f2a"
 dependencies = [
  "async-trait",
  "base32",
@@ -1900,7 +1900,7 @@ dependencies = [
  "delay",
  "hex",
  "http",
- "ic-types",
+ "ic-types 0.1.2",
  "leb128",
  "mime",
  "openssl",
@@ -1920,12 +1920,12 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.2.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=95a0782cd6f432cb1e98ed9422cf9d7327236b17#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+version = "0.3.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=7cd821c1f784463228d6474816c5c774d5f36f2a#7cd821c1f784463228d6474816c5c774d5f36f2a"
 dependencies = [
  "hex",
  "ic-agent",
- "ic-types",
+ "ic-types 0.1.2",
  "num-bigint 0.3.2",
  "openssl",
  "pkcs11",
@@ -1936,7 +1936,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=95a0782cd6f432cb1e98ed9422cf9d7327236b17#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=7cd821c1f784463228d6474816c5c774d5f36f2a#7cd821c1f784463228d6474816c5c774d5f36f2a"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1946,15 +1946,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-types"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ceb8f8b743b686f4afb383b5b66ac80a695f7e0dc4995841efe271cd668cc208"
+dependencies = [
+ "base32",
+ "crc32fast",
+ "hex",
+ "serde",
+ "serde_bytes",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
 name = "ic-utils"
-version = "0.2.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=95a0782cd6f432cb1e98ed9422cf9d7327236b17#95a0782cd6f432cb1e98ed9422cf9d7327236b17"
+version = "0.3.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=7cd821c1f784463228d6474816c5c774d5f36f2a#7cd821c1f784463228d6474816c5c774d5f36f2a"
 dependencies = [
  "async-trait",
  "candid",
  "delay",
  "ic-agent",
- "ic-types",
+ "ic-types 0.1.2",
  "serde",
  "serde_bytes",
  "strum",
