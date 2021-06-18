@@ -113,7 +113,7 @@ async fn send_and_notify(
 
     fetch_root_key_if_needed(env).await?;
 
-    let to = AccountIdentifier::new(cycle_minter_id.clone(), to_subaccount);
+    let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
 
     let result = agent
         .update(&ledger_canister_id, SEND_METHOD)

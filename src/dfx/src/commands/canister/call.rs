@@ -230,7 +230,7 @@ pub async fn exec(
                     is_management_canister,
                     method_name,
                     &arg_value,
-                    canister_id.clone(),
+                    canister_id,
                 )?;
                 agent
                     .query(&canister_id, method_name)
@@ -240,7 +240,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -262,7 +262,7 @@ pub async fn exec(
                     is_management_canister,
                     method_name,
                     &arg_value,
-                    canister_id.clone(),
+                    canister_id,
                 )?;
                 agent
                     .update(&canister_id, method_name)
@@ -272,7 +272,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 // This is overkill, wallet.call should accept a Principal parameter
                 // Why do we need to construct a Canister?
                 let canister = Canister::builder()
@@ -295,7 +295,7 @@ pub async fn exec(
                     is_management_canister,
                     method_name,
                     &arg_value,
-                    canister_id.clone(),
+                    canister_id,
                 )?;
                 agent
                     .update(&canister_id, method_name)
@@ -306,7 +306,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

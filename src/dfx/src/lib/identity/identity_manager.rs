@@ -94,7 +94,7 @@ impl IdentityManager {
     }
 
     pub fn get_selected_identity_principal(&self) -> Option<Principal> {
-        self.selected_identity_principal.clone()
+        self.selected_identity_principal
     }
 
     /// Create an Identity instance for use with an Agent

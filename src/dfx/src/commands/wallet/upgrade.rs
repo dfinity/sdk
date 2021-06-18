@@ -35,7 +35,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
     let install_mode = match agent
-        .read_state_canister_info(canister_id.clone(), "module_hash")
+        .read_state_canister_info(canister_id, "module_hash")
         .await
     {
         Ok(_) => InstallMode::Upgrade,

@@ -147,7 +147,7 @@ pub async fn exec(
         expiration,
         network,
         sender,
-        canister_id.clone(),
+        canister_id,
         method_name.to_string(),
         arg_value.clone(),
     );
@@ -167,12 +167,8 @@ pub async fn exec(
     ));
 
     let is_management_canister = canister_id == Principal::management_canister();
-    let effective_canister_id = get_effective_canister_id(
-        is_management_canister,
-        method_name,
-        &arg_value,
-        canister_id.clone(),
-    )?;
+    let effective_canister_id =
+        get_effective_canister_id(is_management_canister, method_name, &arg_value, canister_id)?;
 
     if is_query {
         let res = sign_agent
@@ -216,7 +212,7 @@ pub async fn exec(
         // message from file guaranteed to have request_id becase it is a update message just generated
         let request_id = RequestId::from_str(&message.request_id.unwrap())?;
         let res = sign_agent
-            .request_status_raw(&request_id, canister_id.clone())
+            .request_status_raw(&request_id, canister_id)
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {

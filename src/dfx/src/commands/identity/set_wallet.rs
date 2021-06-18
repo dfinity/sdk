@@ -66,7 +66,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = Identity::build_wallet_canister(canister_id.clone(), env)?;
+                let canister = Identity::build_wallet_canister(canister_id, env)?;
                 let balance = canister.wallet_balance().call().await;
 
                 match balance {

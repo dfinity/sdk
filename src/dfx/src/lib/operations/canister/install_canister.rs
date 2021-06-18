@@ -69,10 +69,10 @@ pub async fn install_canister(
                 .await?;
         }
         CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
             let install_args = CanisterInstall {
                 mode,
-                canister_id: canister_id.clone(),
+                canister_id,
                 wasm_module,
                 arg: args.to_vec(),
             };
@@ -89,7 +89,7 @@ pub async fn install_canister(
     if canister_info.get_type() == "assets" {
         match call_sender {
             CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(wallet_id.clone(), env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 let identity_name = env.get_selected_identity().expect("No selected identity.");
                 info!(
                     log,
@@ -97,7 +97,7 @@ pub async fn install_canister(
                 );
                 let canister = Canister::builder()
                     .with_agent(agent)
-                    .with_canister_id(canister_id.clone())
+                    .with_canister_id(canister_id)
                     .build()
                     .unwrap();
                 let self_id = env

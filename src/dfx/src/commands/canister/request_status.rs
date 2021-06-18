@@ -56,10 +56,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         waiter.start();
         let mut request_accepted = false;
         loop {
-            match agent
-                .request_status_raw(&request_id, canister_id.clone())
-                .await?
-            {
+            match agent.request_status_raw(&request_id, canister_id).await? {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
                     reject_code,
