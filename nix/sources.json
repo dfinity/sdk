@@ -6,15 +6,14 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "cd87335b461a023de358da288fc1cee59d8b1e86",
-        "sha256": "0wpfhyzhm9vvrk0bzfgmp8589rw6zyl49n7lcqzj0lf1m9hm9vvr",
+        "rev": "0d2022a191ec48ffd6306af8110d503b76bfa60b",
+        "sha256": "08vwf19cciygc1bmfr47h136vvsbsl0chqidrzqzm85f303r1v4w",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/cd87335b461a023de358da288fc1cee59d8b1e86.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/0d2022a191ec48ffd6306af8110d503b76bfa60b.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
         "branch": "main",
-        "ref": "main",
         "repo": "https://github.com/dfinity/agent-rs",
         "rev": "de2e774e4afb39dd06db00d390ec2dbbc5a51597",
         "type": "git"
@@ -34,27 +33,23 @@
     },
     "common": {
         "branch": "master",
-        "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
         "rev": "f0e1a50ca52bb9e8665fc653174b6e7f7bd6c238",
         "type": "git"
     },
     "dfinity": {
         "branch": "master",
-        "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
         "rev": "da2e149cbee5f98905e5a0126d0919be12a7c29d",
         "type": "git"
     },
     "ic-ref": {
         "branch": "release-0.17",
-        "ref": "master",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
         "rev": "0da8f01f0a4d6fce0a4f2c14ff767789311dbfa2",
         "type": "git"
     },
     "motoko": {
-        "ref": "master",
         "repo": "ssh://git@github.com/dfinity/motoko",
         "rev": "9b07f5c1a41fe2cb2205255ed0819ca54278ba2a",
         "tag": "0.6.1",
@@ -67,10 +62,10 @@
         "homepage": "",
         "owner": "nmattia",
         "repo": "napalm",
-        "rev": "7c0c62207b6e70168dab91ba85d7d2568c3e0157",
-        "sha256": "0f0x5kail7lrv471y9s9yy1mh7zpdma58x4ikya6cvh59yy5052z",
+        "rev": "4db4f253c78cfa8d8e8defb45dfe25e04409142a",
+        "sha256": "1rzj7a3r6wcsfjlzs5fj1min3rk8d8k9g9v00kmygdl1696mnkrb",
         "type": "tarball",
-        "url": "https://github.com/nmattia/napalm/archive/7c0c62207b6e70168dab91ba85d7d2568c3e0157.tar.gz",
+        "url": "https://github.com/nmattia/napalm/archive/4db4f253c78cfa8d8e8defb45dfe25e04409142a.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
