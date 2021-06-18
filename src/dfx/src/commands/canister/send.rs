@@ -54,7 +54,7 @@ pub async fn exec(
             bail!("No signed_request_status in [{}].", file_name);
         }
         let envelope = hex::decode(&message.signed_request_status.unwrap())?;
-        let response = transport.read_state(canister_id.clone(), envelope).await?;
+        let response = transport.read_state(canister_id, envelope).await?;
         eprintln!("To see the content of response, copy-paste the encoded string into cbor.me.");
         eprint!("Response: ");
         println!("{}", hex::encode(response));
@@ -94,9 +94,7 @@ pub async fn exec(
                     .request_id
                     .expect("Cannot get request_id from the update message."),
             )?;
-            transport
-                .call(canister_id.clone(), content, request_id)
-                .await?;
+            transport.call(canister_id, content, request_id).await?;
 
             eprintln!(
                 "To check the status of this update call, append `--status` to current command."

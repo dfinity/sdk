@@ -107,7 +107,7 @@ impl CanisterInfo {
     }
     pub fn get_canister_id(&self) -> DfxResult<CanisterId> {
         match &self.canister_id {
-            Some(canister_id) => Ok(canister_id.clone()),
+            Some(canister_id) => Ok(*canister_id),
             None => {
                 // If we get here, it means there is a logic error in the code.
                 // It's not because the user did anything in the wrong order.

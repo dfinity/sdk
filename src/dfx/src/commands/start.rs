@@ -17,7 +17,7 @@ use crate::lib::provider::get_network_descriptor;
 use actix::{Actor, Addr, Recipient};
 use anyhow::{anyhow, bail, Context};
 use clap::Clap;
-use delay::{Delay, Waiter};
+use garcon::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
 use std::io::Read;
