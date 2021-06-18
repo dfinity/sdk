@@ -277,17 +277,10 @@ async fn upload_content_chunks_with_futures(
             })
         })
         .collect();
-    let chunk_ids = try_join_all(chunks_futures).await;
-    // println!(
-    //     "  {}{} complete ({} bytes)",
-    //     &asset_location.key,
-    //     content_encoding_descriptive_suffix(content_encoding),
-    //     content.data.len(),
-    // );
-
-    chunk_ids
+    try_join_all(chunks_futures).await
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn make_project_asset_encoding(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
@@ -380,7 +373,7 @@ async fn make_project_asset(
     // );
     let start = Instant::now();
     let _releaser = file_semaphore.acquire(permits).await;
-    let duration = start.elapsed();
+    let _duration = start.elapsed();
     // println!(
     //     "acquired {} permits for {} ({} bytes) in {:?}",
     //     permits,
@@ -416,6 +409,7 @@ fn applicable_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn make_encoding(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
