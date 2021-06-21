@@ -498,10 +498,8 @@ async fn make_encodings_with_futures(
 
     let mut result: HashMap<String, ProjectAssetEncoding> = HashMap::new();
 
-    for entry in encodings {
-        if let Some((key, value)) = entry {
-            result.insert(key, value);
-        }
+    for (key, value) in encodings.into_iter().flatten() {
+        result.insert(key, value);
     }
     Ok(result)
     //
