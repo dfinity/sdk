@@ -29,7 +29,7 @@ const COMMIT_BATCH: &str = "commit_batch";
 const LIST: &str = "list";
 const MAX_CHUNK_SIZE: usize = 1_900_000;
 
-// Maximum MB of file data to load at once.
+// Maximum MB of file data to load at once.  More memory may be used, due to encodings.
 const MAX_SIMULTANEOUS_LOADED_MB: usize = 50;
 
 // The most mb any one file is considered to have for purposes of limiting data loaded at once.
@@ -662,9 +662,17 @@ pub async fn post_install_store_assets(
 
     let batch_id = create_batch(&canister_call_params).await?;
 
+    // The "file" semaphore limits how much file data to load at once.  A given loaded file's data
+    // may be simultaneously encoded (gzip and so forth).
     let file_semaphore = SharedSemaphore::new(true, MAX_SIMULTANEOUS_LOADED_MB);
+
+    // The create_chunk call semaphore limits the number of simultaneous
+    // agent.call()s to create_chunk.
     let create_chunk_call_semaphore =
         SharedSemaphore::new(true, MAX_SIMULTANEOUS_CREATE_CHUNK_CALLS);
+
+    // The create_chunk wait semaphore limits the number of simultaneous
+    // agent.wait() calls for outstanding create_chunk requests.
     let create_chunk_wait_semaphore =
         SharedSemaphore::new(true, MAX_SIMULTANEOUS_CREATE_CHUNK_WAITS);
 
