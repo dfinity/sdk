@@ -217,7 +217,7 @@ async fn create_chunk(
     }
 }
 
-async fn upload_content_chunks_with_futures(
+async fn upload_content_chunks(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
@@ -314,7 +314,7 @@ async fn make_project_asset_encoding(
         );
         vec![]
     } else {
-        upload_content_chunks_with_futures(
+        upload_content_chunks(
             canister_call_params,
             batch_id,
             &asset_location,
@@ -361,7 +361,7 @@ async fn make_project_asset(
     let _releaser = file_semaphore.acquire(permits).await;
     let content = Content::load(&asset_location.source)?;
 
-    let encodings = make_encodings_with_futures(
+    let encodings = make_encodings(
         canister_call_params,
         batch_id,
         &asset_location,
@@ -439,7 +439,7 @@ async fn make_encoding(
     }
 }
 
-async fn make_encodings_with_futures(
+async fn make_encodings(
     canister_call_params: &CanisterCallParams<'_>,
     batch_id: &Nat,
     asset_location: &AssetLocation,
