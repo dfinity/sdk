@@ -183,8 +183,10 @@ async fn create_chunk(
         let builder = builder.with_arg(&args);
         let request_id_result = {
             let _releaser = create_chunk_call_semaphore.acquire(1).await;
-            let builder = builder.expire_after(canister_call_params.timeout);
-            builder.call().await
+            builder
+                .expire_after(canister_call_params.timeout)
+                .call()
+                .await
         };
         let wait_result = match request_id_result {
             Ok(request_id) => {
