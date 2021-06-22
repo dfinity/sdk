@@ -180,11 +180,10 @@ async fn create_chunk(
         let mut builder = canister_call_params
             .agent
             .update(&canister_call_params.canister_id, CREATE_CHUNK);
-        let builder = builder
-            .with_arg(&args)
-            .expire_after(canister_call_params.timeout);
+        let builder = builder.with_arg(&args);
         let request_id_result = {
             let _releaser = create_chunk_call_semaphore.acquire(1).await;
+            let builder = builder.expire_after(canister_call_params.timeout);
             builder.call().await
         };
         let wait_result = match request_id_result {
