@@ -171,10 +171,9 @@ async fn create_chunk(
     let args = candid::Encode!(&args)?;
 
     let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(90))
+        .timeout(std::time::Duration::from_secs(30))
         .throttle(std::time::Duration::from_secs(1))
         .build();
-    //let _releaser = create_chunk_call_semaphore.acquire(1).await;
     waiter.start();
 
     loop {
@@ -185,18 +184,12 @@ async fn create_chunk(
             .with_arg(&args)
             .expire_after(canister_call_params.timeout);
         let request_id_result = {
-            let start = Instant::now();
             let _releaser = create_chunk_call_semaphore.acquire(1).await;
-            let _duration = start.elapsed();
-            // println!("Acquired call semaphore in {:?}", duration);
             builder.call().await
         };
         let wait_result = match request_id_result {
             Ok(request_id) => {
-                let start = Instant::now();
                 let _releaser = create_chunk_wait_semaphore.acquire(1).await;
-                let _duration = start.elapsed();
-                // println!("Acquired wait semaphore in {:?}", duration);
                 canister_call_params
                     .agent
                     .wait(
@@ -365,22 +358,7 @@ async fn make_project_asset(
             MAX_COST_SINGLE_FILE_MB,
         ),
     );
-    // println!(
-    //     "acquiring {} permits for {} ({} bytes)",
-    //     permits,
-    //     asset_location.source.to_string_lossy(),
-    //     file_size
-    // );
-    let start = Instant::now();
     let _releaser = file_semaphore.acquire(permits).await;
-    let _duration = start.elapsed();
-    // println!(
-    //     "acquired {} permits for {} ({} bytes) in {:?}",
-    //     permits,
-    //     asset_location.source.to_string_lossy(),
-    //     file_size,
-    //     duration,
-    // );
     let content = Content::load(&asset_location.source)?;
 
     let encodings = make_encodings_with_futures(
@@ -492,9 +470,6 @@ async fn make_encodings_with_futures(
         .collect();
 
     let encodings = try_join_all(encoding_futures).await?;
-    // let x: Vec<(String, ProjectAssetEncoding)> = encodings.iter().flatten().collect();
-    // let y: HashMap<String, ProjectAssetEncoding> = x.into_iter().collect();
-    // Ok(y)
 
     let mut result: HashMap<String, ProjectAssetEncoding> = HashMap::new();
 
@@ -502,42 +477,6 @@ async fn make_encodings_with_futures(
         result.insert(key, value);
     }
     Ok(result)
-    //
-    //
-    // let mut encodings = HashMap::new();
-    //
-    // let identity_asset_encoding = make_project_asset_encoding(
-    //     canister_call_params,
-    //     batch_id,
-    //     &asset_location,
-    //     container_assets,
-    //     &content,
-    //     CONTENT_ENCODING_IDENTITY,
-    // )
-    //     .await?;
-    // encodings.insert(
-    //     CONTENT_ENCODING_IDENTITY.to_string(),
-    //     identity_asset_encoding,
-    // );
-    //
-    // for encoder in applicable_encoders(&content.media_type) {
-    //     let encoded = content.encode(&encoder)?;
-    //     if encoded.data.len() < content.data.len() {
-    //         let content_encoding = format!("{}", encoder);
-    //         let project_asset_encoding = make_project_asset_encoding(
-    //             canister_call_params,
-    //             batch_id,
-    //             &asset_location,
-    //             container_assets,
-    //             &encoded,
-    //             &content_encoding,
-    //         )
-    //             .await?;
-    //         encodings.insert(content_encoding, project_asset_encoding);
-    //     }
-    // }
-    //
-    // Ok(encodings)
 }
 
 async fn make_project_assets(
