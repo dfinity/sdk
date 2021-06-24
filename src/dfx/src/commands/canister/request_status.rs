@@ -8,7 +8,7 @@ use crate::util::print_idl_blob;
 
 use anyhow::{anyhow, Context};
 use clap::Clap;
-use delay::Waiter;
+use garcon::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
 use ic_types::Principal;
@@ -56,10 +56,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         waiter.start();
         let mut request_accepted = false;
         loop {
-            match agent
-                .request_status_raw(&request_id, canister_id.clone())
-                .await?
-            {
+            match agent.request_status_raw(&request_id, canister_id).await? {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
                     reject_code,

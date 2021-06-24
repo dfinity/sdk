@@ -103,7 +103,7 @@ pub async fn exec(
             env,
             canister_id,
             CanisterSettings {
-                controller: controller.clone(),
+                controller,
                 compute_allocation,
                 memory_allocation,
                 freezing_threshold,
@@ -142,7 +142,7 @@ pub async fn exec(
                     env,
                     canister_id,
                     CanisterSettings {
-                        controller: controller.clone(),
+                        controller,
                         compute_allocation,
                         memory_allocation,
                         freezing_threshold,

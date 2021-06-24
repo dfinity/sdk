@@ -44,7 +44,7 @@ async fn deposit_cycles(
 
     info!(log, "Depositing {} cycles onto {}", cycles, canister,);
 
-    canister::deposit_cycles(env, canister_id.clone(), timeout, call_sender, cycles).await?;
+    canister::deposit_cycles(env, canister_id, timeout, call_sender, cycles).await?;
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
 

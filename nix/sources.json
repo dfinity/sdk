@@ -1,21 +1,21 @@
 {
     "advisory-db": {
-        "branch": "master",
+        "branch": "main",
         "builtin": false,
         "description": "Security advisory database for Rust crates published through crates.io",
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "86ed56812aeeb8d034bd06ca709a293c12b70c85",
-        "sha256": "0dcsw6mqhg68f4zlmy6in5x7alkzz8psclrpwzxmbigyr1jzraag",
+        "rev": "cd87335b461a023de358da288fc1cee59d8b1e86",
+        "sha256": "0wpfhyzhm9vvrk0bzfgmp8589rw6zyl49n7lcqzj0lf1m9hm9vvr",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/86ed56812aeeb8d034bd06ca709a293c12b70c85.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/cd87335b461a023de358da288fc1cee59d8b1e86.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
         "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "01aa26cc6e481d6bda1a4402741e8eaaf7be3c66",
+        "rev": "de2e774e4afb39dd06db00d390ec2dbbc5a51597",
         "type": "git"
     },
     "bats-support": {
@@ -34,7 +34,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "fbc4de64407225486bc6ad11e4de8e111588b31a",
+        "rev": "f0e1a50ca52bb9e8665fc653174b6e7f7bd6c238",
         "type": "git"
     },
     "dfinity": {

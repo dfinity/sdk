@@ -356,14 +356,14 @@ impl Identity {
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
                     .await?;
 
-                let wallet = Identity::build_wallet_canister(canister_id.clone(), env)?;
+                let wallet = Identity::build_wallet_canister(canister_id, env)?;
 
                 wallet
                     .wallet_store_wallet_wasm(wasm)
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
                     .await?;
 
-                Identity::set_wallet_id(env, network, name, canister_id.clone())?;
+                Identity::set_wallet_id(env, network, name, canister_id)?;
 
                 info!(
                     env.get_logger(),
@@ -439,17 +439,13 @@ impl Identity {
                 network.name.clone()
             )
         })?;
-        Ok(wallet_network
-            .networks
-            .get(&network.name)
-            .ok_or_else(|| {
-                anyhow!(
-                    "Could not find wallet for \"{}\" on \"{}\" network.",
-                    name,
-                    network.name.clone()
-                )
-            })?
-            .clone())
+        Ok(*wallet_network.networks.get(&network.name).ok_or_else(|| {
+            anyhow!(
+                "Could not find wallet for \"{}\" on \"{}\" network.",
+                name,
+                network.name.clone()
+            )
+        })?)
     }
 
     pub fn build_wallet_canister(

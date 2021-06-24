@@ -141,7 +141,7 @@ pub async fn exec(
                     with_cycles,
                     call_sender,
                     CanisterSettings {
-                        controller: controller.clone(),
+                        controller,
                         compute_allocation,
                         memory_allocation,
                         freezing_threshold,

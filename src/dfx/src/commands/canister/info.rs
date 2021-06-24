@@ -29,7 +29,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
     let controller_blob = agent
-        .read_state_canister_info(canister_id.clone(), "controller")
+        .read_state_canister_info(canister_id, "controller")
         .await?;
     let controller = Principal::try_from(controller_blob)?.to_text();
     let module_hash_hex = match agent

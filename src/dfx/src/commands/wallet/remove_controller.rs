@@ -14,7 +14,7 @@ pub struct RemoveControllerOpts {
 
 pub async fn exec(env: &dyn Environment, opts: RemoveControllerOpts) -> DfxResult {
     let controller = Principal::from_text(opts.controller)?;
-    wallet_update(env, "remove_controller", controller.clone()).await?;
+    wallet_update(env, "remove_controller", controller).await?;
     println!("Removed {} as a controller.", controller);
     Ok(())
 }
