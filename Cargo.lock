@@ -1109,11 +1109,11 @@ dependencies = [
  "erased-serde",
  "flate2",
  "futures",
- "futures-intrusive",
  "garcon",
  "hex",
  "humanize-rs",
  "ic-agent",
+ "ic-asset",
  "ic-identity-hsm",
  "ic-types",
  "ic-utils",
@@ -1907,8 +1907,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.5.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+version = "0.5.2"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=0d7908738d17b95458f34eda64fe17d7527fc0d9#0d7908738d17b95458f34eda64fe17d7527fc0d9"
 dependencies = [
  "async-trait",
  "base32",
@@ -1936,9 +1936,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-asset"
+version = "0.0.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=0d7908738d17b95458f34eda64fe17d7527fc0d9#0d7908738d17b95458f34eda64fe17d7527fc0d9"
+dependencies = [
+ "anyhow",
+ "candid",
+ "flate2",
+ "futures",
+ "futures-intrusive",
+ "garcon",
+ "hex",
+ "ic-agent",
+ "ic-types",
+ "mime",
+ "mime_guess",
+ "openssl",
+ "serde",
+ "serde_bytes",
+ "walkdir",
+]
+
+[[package]]
 name = "ic-identity-hsm"
 version = "0.3.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=0d7908738d17b95458f34eda64fe17d7527fc0d9#0d7908738d17b95458f34eda64fe17d7527fc0d9"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1952,8 +1974,8 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.1.4"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+version = "0.1.5"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=0d7908738d17b95458f34eda64fe17d7527fc0d9#0d7908738d17b95458f34eda64fe17d7527fc0d9"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1966,8 +1988,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.3.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+version = "0.3.3"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=0d7908738d17b95458f34eda64fe17d7527fc0d9#0d7908738d17b95458f34eda64fe17d7527fc0d9"
 dependencies = [
  "async-trait",
  "candid",
