@@ -1,0 +1,34 @@
+# For the preCIous project, we want reduce the latency of the GitLab CI as much as possible.
+#
+# Regular GitLab pulls are rate limited to once every 5 minutes, which at periods of high
+# developer activity lead to an average delay of 2.5 minutes between the time a develop pushes
+# a commit to GitHub and the time GitLab will start working on it.
+#
+# With this action we bypass this latency and push to GitLab as soon as GitHub starts working
+# on the commit.
+
+name: "Push to GitLab"
+
+on:
+  push
+
+jobs:
+  push-to-gitlab:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        fetch-depth: 0
+
+    - name: Configure git
+      env: 
+        # The Personal Access Token needs at least `read_api` and `write_repository`.
+        token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+      run: |
+        git config user.name "DFINITY GitLab-Bot"
+        git config user.email "infra+gitlab@dfinity.org"
+        git remote add gitlab "https://DFINITY-GitLab-Bot:${token}@gitlab.com/dfinity-lab/core/sdk.git"
+
+    - name: Push To Gitlab
+      run: for i in {0..30}; do git push --all --force gitlab && break; echo "failed, sleeping"; sleep 10; done; if [[ $i -ge 30 ]]; then exit 1; fi
