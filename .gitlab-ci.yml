@@ -40,5 +40,15 @@ sdk_test:
     paths:
       - $CI_JOB_STAGE/$CI_JOB_NAME
 
+sdk_build:
+  stage: build
+  tags:
+    - dfinity
+    - ubuntu
+    - docker
+  script: |
+    echo Hello world
+
 stages:
+  - build
   - test
