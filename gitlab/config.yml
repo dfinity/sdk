@@ -1,15 +1,32 @@
 before_script:
-  - set -euo pipefail
-  - 'command -v ssh-agent >/dev/null'
-  - eval $(ssh-agent -s)
-  - mkdir -p ~/.ssh
-  - chmod 700 ~/.ssh
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
-  - chmod 700 ~/.ssh/id_ed25519
-  - ssh-add ~/.ssh/id_ed25519
-  - ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-  - rm ~/.ssh/id_ed25519
-  - mkdir -p $CI_JOB_STAGE/$CI_JOB_NAME
+  - |
+    # Execute the before_script section
+    echo -e "\e[0Ksection_end:$(date +%s):pre_clone_script\r\e[0K"  # first close pre_clone_script section, if open
+
+    # Start the (collapsed) before_script section
+    set -eExuo pipefail
+    echo -e "\e[0Ksection_start:$(date +%s):before_script[collapsed=true]\r\e[0KClick here to see the before_script section"
+
+    date +%s > "/tmp/job_start_date_${CI_JOB_ID:-}"
+    # date -Iseconds is not supported by BSD date (macOS)
+    date +"%Y-%m-%dT%H:%M:%S%z" > "/tmp/job_start_iso_date_${CI_JOB_ID:-}"
+    date
+    command -v ssh-agent > /dev/null
+    test -z "${SSH_AUTH_SOCK:-}" && { eval "$(ssh-agent -s)"; ssh-add - <<< "${SSH_PRIVATE_KEY}"; }
+    mkdir -p ~/.ssh
+    chmod 0700 ~/.ssh
+
+    echo -e "Host *\nUser gitlab-runner\n" > ~/.ssh/config
+    ulimit -n 8192
+    date
+
+    export ROOT_PIPELINE_ID=${PARENT_PIPELINE_ID:-$CI_PIPELINE_ID}
+    cd "${CI_PROJECT_DIR}"
+    # Ensure file permissions in the repo are what git expects them to be
+    git config --global core.fileMode true
+    git reset --hard HEAD
+
+  - echo -e "\e[0Ksection_end:$(date +%s):before_script\r\e[0K"
 
 # Run SDK tests against the upstream DFINITY repo.
 #
