@@ -51,7 +51,7 @@ sdk_test:
     - if: '$CI_PIPELINE_SOURCE == "web"'
       when: manual
   script:
-    ./gitlab/scripts/run_sdk_test.sh
+    ./scripts/run_sdk_test.sh
   artifacts:
     when: always
     paths:
