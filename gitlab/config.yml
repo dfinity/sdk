@@ -64,7 +64,7 @@ sdk_build:
     - ubuntu
     - docker
   script: |
-    nix-shell --run 'cargo build'
+    nix-build assets.nix
 
 stages:
   - build
