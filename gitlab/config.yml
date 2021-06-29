@@ -64,7 +64,7 @@ sdk_build:
     - ubuntu
     - docker
   script: |
-    echo Hello world
+    cargo build
 
 stages:
   - build
