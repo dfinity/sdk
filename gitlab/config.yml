@@ -64,7 +64,7 @@ sdk_build:
     - ubuntu
     - docker
   script: |
-    cargo build
+    nix-shell --run 'cargo build'
 
 stages:
   - build
