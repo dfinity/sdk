@@ -64,7 +64,8 @@ sdk_build:
     - ubuntu
     - docker
   script: |
-    nix-build assets.nix
+    export DFX_ASSETS="$(nix-build assets.nix)"
+    cargo build --release
 
 stages:
   - build
