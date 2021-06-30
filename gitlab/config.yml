@@ -74,7 +74,7 @@ sdk_build:
   stage: build
   extends: .cargo-build
   script: |
-    /usr/bin/sccache --version
+    /usr/bin/sccache --start-server
     export DFX_ASSETS="$(nix-build assets.nix)"
     cargo build --release
 
