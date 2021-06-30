@@ -71,13 +71,14 @@ sdk_manual_test:
       - $CI_JOB_STAGE/$CI_JOB_NAME
 
 sdk_build:
-  extends: .cargo-build
   stage: build
+  extends: .cargo-build
   script: |
     export DFX_ASSETS="$(nix-build assets.nix)"
     cargo build --release
 
 sdk_test:
+  stage: test
   extends: .cargo-build
   needs:
     - sdk_build
