@@ -22,7 +22,7 @@ actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
 anyhow = "1.0.34"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = { version = "0.6.20", features = [ "random" ] }
+candid = { version = "0.7.1", features = [ "random" ] }
 chrono = "0.4.9"
 clap = "3.0.0-beta.2"
 console = "0.7.7"
@@ -92,9 +92,9 @@ git = "https://github.com/dfinity/agent-rs.git"
 rev = "de2e774e4afb39dd06db00d390ec2dbbc5a51597"
 
 [dependencies.ic-utils]
-version = "0.3.2"
+version = "0.3.3"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+rev = "e6ff75f4b599a4c6d95f4c2812345f13f01d0844"
 
 [dev-dependencies]
 env_logger = "0.6"
