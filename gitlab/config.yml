@@ -28,6 +28,19 @@ before_script:
 
   - echo -e "\e[0Ksection_end:$(date +%s):before_script\r\e[0K"
 
+.cargo-build:
+  image:
+    name: "registry.gitlab.com/dfinity-lab/core/docker/ic-build-nix:2021-06-17-d3640f2560-8718817dfc460a62e7d5a0642ab02c1875d509ab"
+  tags:
+    # Build on runners that have following tags
+    - dfinity
+    - docker
+    - ubuntu
+  variables:
+    SCCACHE_DIR: /cache
+    RUSTC_WRAPPER: "/usr/bin/sccache"
+    RUSTFLAGS: "--remap-path-prefix=${CI_PROJECT_DIR}=/builds/dfinity/ic"
+
 # Run SDK tests against the upstream DFINITY repo.
 #
 # Typically this job is triggered from an upstream pipeline in the DFINITY
@@ -41,7 +54,7 @@ before_script:
 #   SDK_TEST_COMMIT_SHA:
 #     The git commit hash.
 #
-sdk_test:
+sdk_manual_test:
   stage: test
   tags:
     - cd
@@ -58,16 +71,18 @@ sdk_test:
       - $CI_JOB_STAGE/$CI_JOB_NAME
 
 sdk_build:
+  extends: .cargo-build
   stage: build
-  tags:
-    - dfinity
-    - ubuntu
-    - docker
-  image:
-    name: "registry.gitlab.com/dfinity-lab/core/docker/ic-build-nix:2021-06-17-d3640f2560-8718817dfc460a62e7d5a0642ab02c1875d509ab"
   script: |
     export DFX_ASSETS="$(nix-build assets.nix)"
     cargo build --release
+
+sdk_test:
+  extends: .cargo-build
+  needs:
+    - sdk_build
+  script: |
+    cargo test
 
 stages:
   - build
