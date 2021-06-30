@@ -84,9 +84,8 @@ sdk_build:
   stage: build
   extends: .cargo-build
   script: |
-    /usr/bin/sccache --start-server
     export DFX_ASSETS="$(nix-build assets.nix)"
-    cargo build --release
+    cargo build
 
 sdk_test:
   stage: test
@@ -94,6 +93,7 @@ sdk_test:
   needs:
     - sdk_build
   script: |
+    export DFX_ASSETS="$(nix-build assets.nix)"
     cargo test
 
 stages:
