@@ -87,9 +87,9 @@ git = "https://github.com/dfinity/agent-rs.git"
 rev = "de2e774e4afb39dd06db00d390ec2dbbc5a51597"
 
 [dependencies.ic-types]
-version = "0.1.4"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+version = "0.2.0"
+git = "https://github.com/dfinity/ic-types.git"
+rev = "51b6bf6027d2774ebc72cf5eb2ddd17451629628"
 
 [dependencies.ic-utils]
 version = "0.3.3"

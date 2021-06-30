@@ -1139,7 +1139,7 @@ dependencies = [
  "humanize-rs",
  "ic-agent 0.5.1",
  "ic-identity-hsm",
- "ic-types 0.1.4",
+ "ic-types 0.2.0",
  "ic-utils",
  "indicatif",
  "lazy-init",
@@ -2034,8 +2034,7 @@ dependencies = [
 [[package]]
 name = "ic-types"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08f0b1f1517d697f67a8b5ad558ef6b9372ed1fc5ab669a519d7fa1837e8f88a"
+source = "git+https://github.com/dfinity/ic-types.git?rev=51b6bf6027d2774ebc72cf5eb2ddd17451629628#51b6bf6027d2774ebc72cf5eb2ddd17451629628"
 dependencies = [
  "base32",
  "crc32fast",
@@ -4833,8 +4832,3 @@ checksum = "244c3741f4240ef46274860397c7c74e50eb23624996930e484c16679633a54c"
 dependencies = [
  "libc",
 ]
-
-[[patch.unused]]
-name = "ic-utils"
-version = "0.3.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
