@@ -37,9 +37,19 @@ before_script:
     - docker
     - ubuntu
   variables:
+    GET_SOURCES_ATTEMPTS: 5
+    GIT_DEPTH: 0  # Pull the complete repo initially
+    GIT_STRATEGY: "fetch"  # And then pull only new commits
+    # Disable cargo incremental - it's incompatible with sccache.
+    CARGO_INCREMENTAL: "0"
+    CARGO_BUILD_INCREMENTAL: "false"
     SCCACHE_DIR: /cache
     RUSTC_WRAPPER: "/usr/bin/sccache"
     RUSTFLAGS: "--remap-path-prefix=${CI_PROJECT_DIR}=/builds/dfinity/ic"
+    SCCACHE_CACHE_SIZE: "500G"
+    # The default sccache idle timeout is 600, which is too short and leads to intermittent build errors.
+    # https://github.com/mozilla/sccache/issues/256
+    SCCACHE_IDLE_TIMEOUT: "7200"
 
 # Run SDK tests against the upstream DFINITY repo.
 #
