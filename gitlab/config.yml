@@ -63,9 +63,10 @@ sdk_build:
     - dfinity
     - ubuntu
     - docker
+  image:
+    name: "registry.gitlab.com/dfinity-lab/core/docker/ic-build-nix:2021-06-17-d3640f2560-8718817dfc460a62e7d5a0642ab02c1875d509ab"
   script: |
     export DFX_ASSETS="$(nix-build assets.nix)"
-    rustc --version
     cargo build --release
 
 stages:
