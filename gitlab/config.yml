@@ -65,6 +65,7 @@ sdk_build:
     - docker
   script: |
     export DFX_ASSETS="$(nix-build assets.nix)"
+    rustc --version
     cargo build --release
 
 stages:
