@@ -84,8 +84,10 @@ sdk_build:
   stage: build
   extends: .cargo-build
   script: |
-    export DFX_ASSETS="$(nix-build assets.nix)"
-    cargo build
+    nix-shell --run "
+      set -eExuo pipefail
+      cargo build
+    "
 
 sdk_test:
   stage: test
@@ -93,8 +95,10 @@ sdk_test:
   needs:
     - sdk_build
   script: |
-    export DFX_ASSETS="$(nix-build assets.nix)"
-    cargo test
+    nix-shell --run "
+      set -eExuo pipefail
+      cargo test
+    "
 
 stages:
   - build
