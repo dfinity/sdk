@@ -405,9 +405,9 @@ checksum = "81cddc5f91628367664cc7c69714ff08deee8a3efc54623011c772544d7b2767"
 
 [[package]]
 name = "arbitrary"
-version = "0.4.7"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db55d72333851e17d572bec876e390cd3b11eb1ef53ae821dd9f3b653d2b4569"
+checksum = "237430fd6ed3740afe94eefcc278ae21e050285be882804e0d6e8695f0c94691"
 
 [[package]]
 name = "arrayref"
@@ -536,6 +536,28 @@ name = "beef"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6736e2428df2ca2848d846c43e88745121a6654696e349ce0054a420815a7409"
+
+[[package]]
+name = "binread"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a883c66db6f3c86b19210ceed1b2b18de64b617c92cb0f0bc90b8c05f18dba87"
+dependencies = [
+ "binread_derive",
+ "lazy_static",
+]
+
+[[package]]
+name = "binread_derive"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c575d9a28eb4c2d61747b23d50271c6699b941448c35a738af35267f90b3d4d2"
+dependencies = [
+ "either",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "bit-set"
@@ -669,11 +691,13 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.6.20"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87374c2fe85d0195e32eed34e1bc20e8783ee755cc2c5ba7b113a1920dd75d2f"
+checksum = "b4ce6a365c345f4f690d22ae6cfe468e8865fa2720923af20da9384f0f698534"
 dependencies = [
+ "anyhow",
  "arbitrary",
+ "binread",
  "byteorder",
  "candid_derive",
  "codespan-reporting",
@@ -684,7 +708,7 @@ dependencies = [
  "lalrpop-util",
  "leb128",
  "logos",
- "num-bigint 0.3.2",
+ "num-bigint 0.4.0",
  "num-traits",
  "num_enum",
  "paste",
@@ -698,9 +722,9 @@ dependencies = [
 
 [[package]]
 name = "candid_derive"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d7232a5dd836d83ae9ffd79061b42d729afab6f11bfaba7dc2a82575b686ae2"
+checksum = "2e02c03c4d547674a3f3f3109538fb49871fbe636216daa019f06a62faca9061"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -794,9 +818,9 @@ dependencies = [
 
 [[package]]
 name = "codespan-reporting"
-version = "0.9.5"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e0762455306b1ed42bc651ef6a2197aabda5e1d4a43c34d5eab5c1a3634e81d"
+checksum = "3538270d33cc669650c4b093848450d380def10c331d38c768e34cac80576e6e"
 dependencies = [
  "termcolor",
  "unicode-width",
@@ -1176,7 +1200,6 @@ dependencies = [
  "pest_consume",
  "pest_generator",
  "quote",
- "reqwest 0.11.2",
  "serde",
  "serde_cbor",
  "sha2",
@@ -1907,17 +1930,17 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.5.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+version = "0.5.2"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=27c1d0084f66c6631205b4d056f62f0db4ed0478#27c1d0084f66c6631205b4d056f62f0db4ed0478"
 dependencies = [
  "async-trait",
  "base32",
  "base64 0.12.3",
  "byteorder",
+ "candid",
  "garcon",
  "hex",
  "http",
- "ic-types",
  "leb128",
  "mime",
  "openssl",
@@ -1938,11 +1961,10 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.3.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=27c1d0084f66c6631205b4d056f62f0db4ed0478#27c1d0084f66c6631205b4d056f62f0db4ed0478"
 dependencies = [
  "hex",
  "ic-agent",
- "ic-types",
  "num-bigint 0.3.2",
  "openssl",
  "pkcs11",
@@ -1952,8 +1974,9 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.1.4"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08f0b1f1517d697f67a8b5ad558ef6b9372ed1fc5ab669a519d7fa1837e8f88a"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1966,14 +1989,13 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.3.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=de2e774e4afb39dd06db00d390ec2dbbc5a51597#de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+version = "0.3.3"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=27c1d0084f66c6631205b4d056f62f0db4ed0478#27c1d0084f66c6631205b4d056f62f0db4ed0478"
 dependencies = [
  "async-trait",
  "candid",
  "garcon",
  "ic-agent",
- "ic-types",
  "serde",
  "serde_bytes",
  "strum",
@@ -2529,6 +2551,17 @@ name = "num-bigint"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d0a3d5e207573f948a9e5376662aa743a2ea13f7c50a554d7af443a73fbfeba"
+dependencies = [
+ "autocfg 1.0.1",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e0d047c1062aa51e256408c560894e5251f08925980e53cf1aa5bd00eec6512"
 dependencies = [
  "autocfg 1.0.1",
  "num-integer",
