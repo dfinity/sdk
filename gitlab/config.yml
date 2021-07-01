@@ -92,8 +92,6 @@ cargo-build:
 cargo-test:
   stage: test
   extends: .cargo-build
-  needs:
-    - cargo-build
   script: |
     nix-shell --run "
       set -eExuo pipefail
