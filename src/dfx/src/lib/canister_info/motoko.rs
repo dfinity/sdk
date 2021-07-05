@@ -39,11 +39,9 @@ impl MotokoCanisterInfo {
     pub fn get_output_root(&self) -> &Path {
         self.output_root.as_path()
     }
-
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
     }
-
     pub fn has_frontend(&self) -> bool {
         self.has_frontend
     }
