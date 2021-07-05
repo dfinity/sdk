@@ -18,7 +18,7 @@
   },
   "defaults": {
     "build": {
-      "packtool": ""
+      "packtool": "echo --compacting-gc"
     }
   },
   "networks": {
