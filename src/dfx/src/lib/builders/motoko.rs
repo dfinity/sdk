@@ -125,7 +125,7 @@ impl CanisterBuilder for MotokoBuilder {
         let moc_arguments = match motoko_info.get_args() {
             Some(args) => [
                 package_arguments,
-                [args.clone()].to_vec(), /*FIXME: split*/
+                args.split_whitespace(),
             ]
             .concat(),
             None => package_arguments,
