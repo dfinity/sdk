@@ -6,7 +6,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use candid::de::ArgumentDecoder;
+use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use clap::Clap;
 use ic_utils::call::SyncCall;

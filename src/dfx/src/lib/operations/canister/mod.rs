@@ -15,7 +15,7 @@ use crate::lib::identity::Identity;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::anyhow;
-use candid::de::ArgumentDecoder;
+use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
