@@ -5,7 +5,7 @@
     "{project_name}": {
       "type": "motoko",
       "main": "src/{project_name}/main.mo",
-      "args": "--wroom"
+      "args": "-no-check-ir"
     },
     "{project_name}_assets": {
       "type": "assets",

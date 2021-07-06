@@ -24,7 +24,7 @@ const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsB
     timeout: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { packtool: None };
+const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { packtool: None, args: None };
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
     message_gas_limit: None,
@@ -56,6 +56,7 @@ pub struct ConfigDefaultsBootstrap {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {
     pub packtool: Option<String>,
+    pub args: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -159,6 +160,12 @@ impl ConfigDefaultsBuild {
     pub fn get_packtool(&self) -> Option<String> {
         match &self.packtool {
             Some(v) if !v.is_empty() => self.packtool.to_owned(),
+            _ => None,
+        }
+    }
+    pub fn get_args(&self) -> Option<String> {
+        match &self.args {
+            Some(v) if !v.is_empty() => self.args.to_owned(),
             _ => None,
         }
     }

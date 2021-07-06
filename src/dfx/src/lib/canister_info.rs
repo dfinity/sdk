@@ -87,7 +87,7 @@ impl CanisterInfo {
             canister_id,
 
             packtool: build_defaults.get_packtool(),
-            args: None, //TODO: build_defaults.get_args(),
+            args: build_defaults.get_args(),
             extras,
         };
 
