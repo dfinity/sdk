@@ -14,6 +14,7 @@ pub struct MotokoCanisterInfo {
     output_assets_root: PathBuf,
 
     packtool: Option<String>,
+    moc_args: Option<String>,
     has_frontend: bool,
 }
 
@@ -41,6 +42,9 @@ impl MotokoCanisterInfo {
     }
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+    pub fn get_args(&self) -> &Option<String> {
+        &self.moc_args
     }
     pub fn has_frontend(&self) -> bool {
         self.has_frontend
@@ -78,6 +82,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
             output_canister_js_path,
             output_assets_root,
             packtool: info.get_packtool().clone(),
+            moc_args: info.get_args().clone(),
             has_frontend: info.get_extra_value("frontend").is_some(),
         })
     }
