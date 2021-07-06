@@ -1,3 +1,17 @@
+= 0.7.6
+
+== icx-proxy
+
+The streaming callback mechanism now requires the following record structure for the token:
+    type StreamingCallbackToken = record {
+        key: text;
+        content_encoding: text;
+        index: nat;
+        sha256: opt blob;
+    };
+
+Previously, the token could be a record with any set of fields.
+
 = 0.7.1
 
 == DFX
