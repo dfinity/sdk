@@ -149,16 +149,18 @@ impl CanisterInfo {
                 T::deserialize(v).map_err(|_| anyhow!("Field '{}' is of the wrong type.", name))
             })
     }
+
     pub fn get_extra_optional<T: serde::de::DeserializeOwned>(
         &self,
         name: &str,
     ) -> DfxResult<Option<T>> {
         if self.has_extra(name) {
-            self.get_extra(name).map(|v| Some(v))
+            self.get_extra(name).map(Some)
         } else {
             Ok(None)
         }
     }
+
     pub fn get_extras(&self) -> &BTreeMap<String, serde_json::Value> {
         &self.extras
     }
