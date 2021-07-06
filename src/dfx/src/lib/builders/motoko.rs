@@ -125,7 +125,7 @@ impl CanisterBuilder for MotokoBuilder {
         let moc_arguments = match motoko_info.get_args() {
             Some(args) => [
                 package_arguments,
-                args.split_whitespace(),
+                args.split_whitespace().map(str::to_string).collect(),
             ]
             .concat(),
             None => package_arguments,
