@@ -1,0 +1,1 @@
+export const canisterId = "{canister_id}";
