@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/streaming-concrete-token-type",
+        "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "c30f2b4cb173f3390b5c02433cded4f5f408a050",
+        "rev": "c6543eb3a2a9df0c706092de75f8888331ae81b1",
         "type": "git"
     },
     "bats-support": {
