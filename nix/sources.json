@@ -15,11 +15,7 @@
     "agent-rs": {
         "branch": "ericswanson/SDK-49/ic-asset-crate",
         "repo": "https://github.com/dfinity/agent-rs",
-<<<<<<< HEAD
-        "rev": "0d7908738d17b95458f34eda64fe17d7527fc0d9",
-=======
-        "rev": "c6543eb3a2a9df0c706092de75f8888331ae81b1",
->>>>>>> origin/master
+        "rev": "08f4eff51d8c4aced360e10dd8ea25d4c0999c18",
         "type": "git"
     },
     "bats-support": {
