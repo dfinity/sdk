@@ -4,7 +4,7 @@
   "description": "Internet Computer starter application",
   "keywords": ["Internet Computer", "Motoko", "JavaScript", "Canister"],
   "scripts": {
-    "build": "NODE_ENV=production webpack",
+    "build": "webpack",
     "prebuild": "npm run copy:types",
     "start": "NODE_ENV=development webpack serve",
     "prestart": "npm run copy:types",
