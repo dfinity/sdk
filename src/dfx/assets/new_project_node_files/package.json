@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack",
     "prebuild": "npm run copy:types",
-    "start": "NODE_ENV=development webpack serve",
+    "start": "webpack serve",
     "prestart": "npm run copy:types",
     "copy:types": "rsync -avr --exclude='*.wasm' .dfx/local/canisters/** --exclude='assets/' --exclude='idl/' src/declarations"
   },
