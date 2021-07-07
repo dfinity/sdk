@@ -33,7 +33,6 @@ dialoguer = "0.6.2"
 erased-serde = "0.3.10"
 flate2 = "1.0.11"
 futures = "0.3.5"
-futures-intrusive = "0.4.0"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
 ic-types = "0.2.0"
@@ -79,18 +78,23 @@ webpki-roots = "0.21.0"
 [dependencies.ic-agent]
 version = "0.5.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c6543eb3a2a9df0c706092de75f8888331ae81b1"
+rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
 features = ["reqwest"]
+
+[dependencies.ic-asset]
+version = "0.0.1"
+git = "https://github.com/dfinity/agent-rs.git"
+rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
 
 [dependencies.ic-identity-hsm]
 version = "0.3.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c6543eb3a2a9df0c706092de75f8888331ae81b1"
+rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
 
 [dependencies.ic-utils]
 version = "0.3.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c6543eb3a2a9df0c706092de75f8888331ae81b1"
+rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
 
 [dev-dependencies]
 env_logger = "0.6"
