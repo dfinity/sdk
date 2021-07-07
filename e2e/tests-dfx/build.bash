@@ -14,6 +14,27 @@ teardown() {
     dfx_stop
 }
 
+
+
+
+@test "build uses default args" {
+    install_asset default_args
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx build --check
+    #assert_match "--actor-alias alias principal"
+    #assert_contains "unknown option '--compacting-gcX'"
+    assert_match "compacting-gcX"
+    assert_match "unknown option"
+}
+
+
+
+
+
+
+
+
 @test "build fails on invalid motoko" {
     install_asset invalid
     dfx_start
