@@ -4,15 +4,15 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
-const localCanisters = require(path.resolve(
-  ".dfx",
-  "local",
-  "canister_ids.json"
-));
+let localCanisters, prodCanisters, canisters;
+
+try {
+  localCanisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
+} catch (error) {
+  console.log("No local canister_ids.json found. Continuing production");
+}
 
 function initCanisterIds() {
-  let prodCanisters;
-
   try {
     prodCanisters = require(path.resolve("canister_ids.json"));
   } catch (error) {
@@ -23,7 +23,7 @@ function initCanisterIds() {
     process.env.DFX_NETWORK || process.env.NODE_ENV === "production "
       ? "ic"
       : "local";
-  const canisters = network === "local" ? localCanisters : prodCanisters;
+  canisters = network === "local" ? localCanisters : prodCanisters;
 
   for (const canister in canisters) {
     process.env[canister.toUpperCase() + "_CANISTER_ID"] =
@@ -33,16 +33,19 @@ function initCanisterIds() {
 initCanisterIds();
 
 const isDevelopment = process.env.NODE_ENV !== "production";
-const asset_entry = path.join("src", "{project_name}_assets", 'src', "index.html");
+const asset_entry = path.join(
+  "src",
+  "{project_name}_assets",
+  "src",
+  "index.html"
+);
 
 module.exports = {
   mode: isDevelopment ? "development" : "production",
   entry: {
     // The frontend.entrypoint points to the HTML file for this build, so we need
     // to replace the extension to `.js`.
-    index: path
-      .join(__dirname, asset_entry)
-      .replace(/\.html$/, ".js"),
+    index: path.join(__dirname, asset_entry).replace(/\.html$/, ".js"),
   },
   devtool: isDevelopment ? "source-map" : false,
   optimization: {
@@ -83,12 +86,15 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        { from: path.join(__dirname, 'src', '{project_name}_assets', 'assets'), to: path.join(__dirname, 'dist', '{project_name}_assets') }
+        {
+          from: path.join(__dirname, "src", "{project_name}_assets", "assets"),
+          to: path.join(__dirname, "dist", "{project_name}_assets"),
+        },
       ],
     }),
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'development',
-      {project_name_uppercase}_CANISTER_ID: localCanisters["{project_name}"]
+      {project_name_uppercase}_CANISTER_ID: canisters["{project_name}"]
     }),
     new webpack.ProvidePlugin({
       Buffer: [require.resolve("buffer/"), "Buffer"],
