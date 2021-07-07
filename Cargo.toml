@@ -6,19 +6,19 @@ members = [
 [patch.crates-io.ic-agent]
 version = "0.5.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "4d39428aa8dcada5a3f3b6d12097c0979b6cde7c"
+rev = "2ee2511179138e4f5aad32345c9e5f236f7f4738"
 
 [patch.crates-io.ic-asset]
 version = "0.0.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "4d39428aa8dcada5a3f3b6d12097c0979b6cde7c"
+rev = "2ee2511179138e4f5aad32345c9e5f236f7f4738"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.3.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "4d39428aa8dcada5a3f3b6d12097c0979b6cde7c"
+rev = "2ee2511179138e4f5aad32345c9e5f236f7f4738"
 
 [patch.crates-io.ic-utils]
 version = "0.3.3"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "4d39428aa8dcada5a3f3b6d12097c0979b6cde7c"
+rev = "2ee2511179138e4f5aad32345c9e5f236f7f4738"

@@ -42,8 +42,8 @@ let
               agent-rs = self.naersk.buildPackage {
                 name = "agent-rs";
                 root = self.sources.agent-rs;
-                cargoBuildOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
-                cargoTestOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
+                cargoBuildOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" "-p" "icx-asset" ];
+                cargoTestOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" "-p" "icx-asset" ];
                 buildInputs = [ self.openssl self.pkg-config ] ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
               };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;

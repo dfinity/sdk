@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "main",
+        "branch": "ericswanson/SDK-50-icx-asset-sync",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "4d39428aa8dcada5a3f3b6d12097c0979b6cde7c",
+        "rev": "2ee2511179138e4f5aad32345c9e5f236f7f4738",
         "type": "git"
     },
     "bats-support": {
