@@ -384,7 +384,9 @@ fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
 /// Create a canister JavaScript DID and Actor Factory.
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
     let output_did_js_path = canister_info.get_build_idl_path().with_extension("did.js");
-    let output_did_ts_path = canister_info.get_build_idl_path().with_extension("did.d.ts");
+    let output_did_ts_path = canister_info
+        .get_build_idl_path()
+        .with_extension("did.d.ts");
 
     let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())?;
     let content = candid::bindings::javascript::compile(&env, &ty);
@@ -399,24 +401,20 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         let mut file_contents = String::new();
         file.read_to_string(&mut file_contents)?;
 
-
         let new_file_contents = file_contents
             .replace("{canister_id}", &canister_id.to_text())
             .replace("{canister_name}", &canister_info.get_name())
-            .replace("{canister_name_uppercase}", &canister_info.get_name().to_uppercase());
+            .replace(
+                "{canister_name_uppercase}",
+                &canister_info.get_name().to_uppercase(),
+            );
 
         match decode_path_to_str(&file.path()?)? {
             "canister.js" => {
-                std::fs::write(
-                    decode_path_to_str(&index_js_path)?,
-                    new_file_contents,
-                )?;
+                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)?;
             }
             "canisterId.js" => {
-                std::fs::write(
-                    decode_path_to_str(&index_js_path)?,
-                    new_file_contents,
-                )?;
+                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)?;
             }
             _ => unreachable!(),
         }
