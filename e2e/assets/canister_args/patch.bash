@@ -1,8 +1,6 @@
 #!/dev/null
 
-
-cat dfx.json
-
+# add `canisters/e2e_project/args`, so that subsequent `dfx config` works
 patch dfx.json <<EOF
 @@ -4,7 +4,8 @@
    "canisters": {
@@ -17,8 +15,4 @@ patch dfx.json <<EOF
 EOF
 
 dfx config canisters/e2e_project/args -- "--compacting-gcY"
-
 dfx config defaults/build/args -- "--compacting-gcX"
-
-
-cat dfx.json
