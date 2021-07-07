@@ -14,20 +14,6 @@ teardown() {
     dfx_stop
 }
 
-@test "empty canister build args don't shadow default" {
-    install_asset empty_canister_args
-    dfx_start
-    dfx canister create --all
-    assert_command_fail dfx build --check
-    assert_match "unknown option"
-    assert_match "compacting-gcX"
-}
-
-
-
-
-
-
 @test "build uses default build args" {
     install_asset default_args
     dfx_start
@@ -45,6 +31,16 @@ teardown() {
     assert_match "unknown option"
     assert_match "compacting-gcY"
     assert_not_match "compacting-gcX"
+}
+
+@test "empty canister build args don't shadow default" {
+    install_asset empty_canister_args
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx build --check
+    assert_match '"--error-level" "5"'
+    assert_match "unknown option"
+    assert_match "compacting-gcX"
 }
 
 @test "build fails on invalid motoko" {
