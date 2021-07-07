@@ -4,9 +4,9 @@
   "description": "Internet Computer starter application",
   "keywords": ["Internet Computer", "Motoko", "JavaScript", "Canister"],
   "scripts": {
-    "build": "webpack --mode=production",
+    "build": "NODE_ENV=production webpack",
     "prebuild": "npm run copy:types",
-    "start": "webpack --mode=development serve",
+    "start": "NODE_ENV=development webpack serve",
     "prestart": "npm run copy:types",
     "copy:types": "rsync -avr --exclude='*.wasm' .dfx/local/canisters/** --exclude='assets/' --exclude='idl/' src/declarations"
   },

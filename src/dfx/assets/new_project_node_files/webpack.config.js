@@ -82,9 +82,9 @@ module.exports = {
         { from: path.join(__dirname, 'src', '{project_name}_assets', 'assets'), to: path.join(__dirname, 'dist', '{project_name}_assets') }
       ],
     }),
+    new webpack.EnvironmentPlugin(["NODE_ENV"]),
     new webpack.DefinePlugin({
       "process.env": {
-        "NODE_ENV": `${process.env.node_env}`,
         {project_name_uppercase}_CANISTER_ID: `"${canisterMap.get("{project_name_uppercase}_CANISTER_ID")}"`
       },
     }),
