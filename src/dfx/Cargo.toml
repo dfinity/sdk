@@ -76,7 +76,7 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.5.1"
+version = "0.5.2"
 git = "https://github.com/dfinity/agent-rs.git"
 rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
 features = ["reqwest"]
@@ -92,7 +92,7 @@ git = "https://github.com/dfinity/agent-rs.git"
 rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
 
 [dependencies.ic-utils]
-version = "0.3.2"
+version = "0.3.3"
 git = "https://github.com/dfinity/agent-rs.git"
 rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
 
