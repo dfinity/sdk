@@ -18,7 +18,8 @@
   },
   "defaults": {
     "build": {
-      "packtool": ""
+      "packtool": "",
+      "args": ""
     }
   },
   "networks": {
