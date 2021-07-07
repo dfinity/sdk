@@ -1,13 +1,19 @@
 {
   "name": "{project_name}_assets",
   "version": "0.1.0",
-  "description": "",
-  "keywords": [],
+  "description": "Internet Computer starter application",
+  "keywords": ["Internet Computer", "Motoko", "JavaScript", "Canister"],
   "scripts": {
-    "build": "webpack"
+    "build": "webpack",
+    "prebuild": "npm run copy:types",
+    "start": "webpack serve",
+    "prestart": "npm run copy:types",
+    "copy:types": "cp ./.dfx/local/canisters/{project_name} ./src/{project_name}_assets/declarations"
   },
   "devDependencies": {
     "@dfinity/agent": "{js_agent_version}",
+    "@dfinity/candid": "{js_agent_version}",
+    "@dfinity/principal": "{js_agent_version}",
     "assert": "2.0.0",
     "buffer": "6.0.3",
     "events": "3.3.0",

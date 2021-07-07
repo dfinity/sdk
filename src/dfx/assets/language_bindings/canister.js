@@ -2,7 +2,7 @@ import { Actor, HttpAgent } from "@dfinity/agent";
 
 import idlImport from './{canister_name}.did.js';
 export const idlFactory = idlImport;
-import { canisterId } from './canisterId'
+export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
 
 /**
  *

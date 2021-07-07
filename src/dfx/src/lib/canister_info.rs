@@ -160,7 +160,7 @@ impl CanisterInfo {
             .join(&self.name)
             .with_extension("did")
     }
-
+    
     pub fn get_index_js_path(&self) -> PathBuf {
         self.build_root
             .join(PathBuf::from(&self.name))
