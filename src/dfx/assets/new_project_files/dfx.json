@@ -4,8 +4,7 @@
   "canisters": {
     "{project_name}": {
       "type": "motoko",
-      "main": "src/{project_name}/main.mo",
-      "args": "-no-check-ir"
+      "main": "src/{project_name}/main.mo"
     },
     "{project_name}_assets": {
       "type": "assets",
@@ -20,7 +19,7 @@
   "defaults": {
     "build": {
       "packtool": "",
-      "args": "--compacting-gc"
+      "args": ""
     }
   },
   "networks": {
