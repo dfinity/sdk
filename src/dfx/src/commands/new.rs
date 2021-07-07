@@ -25,7 +25,7 @@ use tar::Archive;
 const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
 
 // The dist-tag to use when getting the version from NPM.
-const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "beta";
+const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 
 lazy_static! {
 // Tested on a phone tethering connection. This should be fine with
