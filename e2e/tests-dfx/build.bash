@@ -38,7 +38,7 @@ teardown() {
     dfx_start
     dfx canister create --all
     assert_command_fail dfx build --check
-    assert_match '"--error-level" "5"'
+    assert_match '"--error-detail" "5"'
     assert_match "unknown option"
     assert_match "compacting-gcX"
 }

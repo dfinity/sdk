@@ -13,4 +13,4 @@ patch dfx.json <<EOF
        "type": "assets",
 EOF
 
-dfx config defaults/build/args -- "--error-level 5 --compacting-gcX"
+dfx config defaults/build/args -- "--error-detail 5 --compacting-gcX"
