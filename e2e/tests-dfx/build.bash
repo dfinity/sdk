@@ -30,7 +30,7 @@ teardown() {
     assert_command_fail dfx build --check
     assert_match "unknown option"
     assert_match "compacting-gcY"
-    #refute_output "compacting-gcX"
+    assert_not_match "compacting-gcX"
 }
 
 @test "build fails on invalid motoko" {
