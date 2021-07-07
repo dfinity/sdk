@@ -91,8 +91,11 @@ impl CanisterInfo {
             extras,
         };
 
-        Ok(match canister_info.get_extra_optional("args")? {
+        let canister_args: Option<String> = canister_info.get_extra_optional("args")?;
+
+        Ok(match canister_args {
             None => canister_info,
+            Some(v) if v.is_empty() => canister_info,
             args => CanisterInfo {
                 args,
                 ..canister_info
