@@ -1,7 +1,6 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 
-import idlImport from './{canister_name}.did.js';
-export const idlFactory = idlImport;
+import { idlFactory } from './{canister_name}.did.js';
 export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
 
 /**
@@ -16,6 +15,7 @@ export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
   // Fetch root key for certificate validation during development
   if(process.env.NODE_ENV !== "production") agent.fetchRootKey();
 
+  // Creates an actor with using the candid interface and the HttpAgent
   return Actor.createActor(idlFactory, {
     agent,
     canisterId,
@@ -24,6 +24,7 @@ export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
 };
   
 /**
+ * A ready-to-use agent for the {canister_name} canister
  * @type {import("@dfinity/agent").ActorSubclass<import("./{canister_name}.did")._SERVICE>}
  */
  export const {canister_name} = createActor(canisterId);

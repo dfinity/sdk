@@ -1,4 +1,4 @@
-import { {project_name} } from "../declarations";
+import { {project_name} } from "../../declarations/{project_name}";
 
 document.getElementById("clickMeBtn").addEventListener("click", async () => {
   const name = document.getElementById("name").value.toString();
