@@ -1133,11 +1133,11 @@ dependencies = [
  "erased-serde",
  "flate2",
  "futures",
- "futures-intrusive",
  "garcon",
  "hex",
  "humanize-rs",
  "ic-agent",
+ "ic-asset",
  "ic-identity-hsm",
  "ic-types",
  "ic-utils",
@@ -1931,7 +1931,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.5.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=c6543eb3a2a9df0c706092de75f8888331ae81b1#c6543eb3a2a9df0c706092de75f8888331ae81b1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=168123af93e5dd9ef9a56ee794eb81c076523dc3#168123af93e5dd9ef9a56ee794eb81c076523dc3"
 dependencies = [
  "async-trait",
  "base32",
@@ -1959,9 +1959,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-asset"
+version = "0.0.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=168123af93e5dd9ef9a56ee794eb81c076523dc3#168123af93e5dd9ef9a56ee794eb81c076523dc3"
+dependencies = [
+ "anyhow",
+ "candid",
+ "flate2",
+ "futures",
+ "futures-intrusive",
+ "garcon",
+ "hex",
+ "ic-agent",
+ "ic-types",
+ "mime",
+ "mime_guess",
+ "openssl",
+ "serde",
+ "serde_bytes",
+ "walkdir",
+]
+
+[[package]]
 name = "ic-identity-hsm"
 version = "0.3.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=c6543eb3a2a9df0c706092de75f8888331ae81b1#c6543eb3a2a9df0c706092de75f8888331ae81b1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=168123af93e5dd9ef9a56ee794eb81c076523dc3#168123af93e5dd9ef9a56ee794eb81c076523dc3"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1990,7 +2012,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.3.3"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=c6543eb3a2a9df0c706092de75f8888331ae81b1#c6543eb3a2a9df0c706092de75f8888331ae81b1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=168123af93e5dd9ef9a56ee794eb81c076523dc3#168123af93e5dd9ef9a56ee794eb81c076523dc3"
 dependencies = [
  "async-trait",
  "candid",
