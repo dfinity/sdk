@@ -38,6 +38,7 @@ pub struct CanisterInfo {
     canister_id: Option<CanisterId>,
 
     packtool: Option<String>,
+    args: Option<String>,
 
     extras: BTreeMap<String, serde_json::Value>,
 }
@@ -74,7 +75,7 @@ impl CanisterInfo {
             .cloned()
             .unwrap_or_else(|| "motoko".to_owned());
 
-        Ok(CanisterInfo {
+        let canister_info = CanisterInfo {
             name: name.to_string(),
             canister_type,
 
@@ -86,7 +87,19 @@ impl CanisterInfo {
             canister_id,
 
             packtool: build_defaults.get_packtool(),
+            args: build_defaults.get_args(),
             extras,
+        };
+
+        let canister_args: Option<String> = canister_info.get_extra_optional("args")?;
+
+        Ok(match canister_args {
+            None => canister_info,
+            Some(v) if v.is_empty() => canister_info,
+            args => CanisterInfo {
+                args,
+                ..canister_info
+            },
         })
     }
 
@@ -139,12 +152,28 @@ impl CanisterInfo {
                 T::deserialize(v).map_err(|_| anyhow!("Field '{}' is of the wrong type.", name))
             })
     }
+
+    pub fn get_extra_optional<T: serde::de::DeserializeOwned>(
+        &self,
+        name: &str,
+    ) -> DfxResult<Option<T>> {
+        if self.has_extra(name) {
+            self.get_extra(name).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
     pub fn get_extras(&self) -> &BTreeMap<String, serde_json::Value> {
         &self.extras
     }
 
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+
+    pub fn get_args(&self) -> &Option<String> {
+        &self.args
     }
 
     pub fn get_build_wasm_path(&self) -> PathBuf {
