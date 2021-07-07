@@ -56,17 +56,17 @@ teardown() {
     dfx canister install hello
 
     assert_command dfx canister call hello read
-    assert_eq "(0)"
+    assert_eq "(0 : nat)"
 
     assert_command dfx canister call hello inc
     assert_eq "()"
 
     assert_command dfx canister call hello read
-    assert_eq "(1)"
+    assert_eq "(1 : nat)"
 
     dfx canister call hello inc
     assert_command dfx canister call hello read
-    assert_eq "(2)"
+    assert_eq "(2 : nat)"
 
     assert_command dfx canister call hello read --output raw
     assert_eq "4449444c00017d02"
@@ -77,7 +77,7 @@ teardown() {
 
     dfx canister call hello inc
     assert_command dfx canister call --query hello read
-    assert_eq "(3)"
+    assert_eq "(3 : nat)"
 
     assert_command dfx canister call hello inc --async
     assert_command dfx canister request-status "$stdout" "$(dfx canister id hello)"
@@ -90,7 +90,7 @@ teardown() {
     # Call with user Identity as Sender
     assert_command dfx canister --no-wallet call hello read --async
     assert_command dfx canister request-status "$stdout" "$(dfx canister id hello)"
-    assert_eq "(1_337)"
+    assert_eq "(1_337 : nat)"
 
     # Call using the wallet's call forwarding
     assert_command dfx canister --wallet="$(dfx identity get-wallet)" call hello read --async
@@ -107,7 +107,7 @@ teardown() {
     dfx canister install --all
 
     assert_command dfx canister call hello inc '(42,false,"testzZ",vec{1;2;3},opt record{head=42; tail=opt record{head=+43; tail=null}}, variant { cons=record{ 42; variant { cons=record{43; variant { nil }} } } })'  --output idl
-    assert_eq "(43, true, \"uftu{[\", vec { 2; 3; 4;}, opt record { head = 43; tail = opt record { head = 44; tail = null;};}, variant { cons = record { 43; variant { cons = record { 44; variant { nil };} };} })"
+    assert_eq "(43 : int, true, \"uftu{[\", vec { 2 : nat; 3 : nat; 4 : nat;}, opt record { head = 43 : int; tail = opt record { head = 44 : int; tail = null;};}, variant { cons = record { 43 : int; variant { cons = record { 44 : int; variant { nil };} };} })"
 }
 
 @test "build + install + call -- matrix_multiply_mo" {
@@ -118,5 +118,5 @@ teardown() {
     dfx canister install --all
 
     assert_command dfx canister call hello multiply '(vec{vec{1;2};vec{3;4};vec{5;6}},vec{vec{1;2;3};vec{4;5;6}})'
-    assert_eq "(vec { vec { 9; 12; 15 }; vec { 19; 26; 33 }; vec { 29; 40; 51 } })"
+    assert_eq "( vec { vec { 9 : int; 12 : int; 15 : int }; vec { 19 : int; 26 : int; 33 : int }; vec { 29 : int; 40 : int; 51 : int }; }, )"
 }
