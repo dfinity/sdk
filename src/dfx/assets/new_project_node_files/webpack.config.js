@@ -2,6 +2,7 @@ const path = require("path");
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 
 const canisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
 let prodCanisters;
@@ -75,6 +76,11 @@ module.exports = {
       template: path.join(__dirname, asset_entry),
       filename: "index.html",
       chunks: ["index"],
+    }),
+    new CopyPlugin({
+      patterns: [
+        { from: path.join(__dirname, 'src', '{project_name}_assets', 'assets'), to: path.join(__dirname, 'dist', '{project_name}_assets') }
+      ],
     }),
     new webpack.DefinePlugin({
       "process.env": {
