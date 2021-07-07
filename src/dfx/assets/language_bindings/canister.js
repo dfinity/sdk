@@ -1,10 +1,12 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 
+// Imports candid interface
 import { idlFactory } from './{canister_name}.did.js';
+// CANISTER_ID is replaced by webpack based on node enviroment
 export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
 
 /**
- *
+ * 
  * @param {string | Principal} canisterId Canister ID of Agent
  * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig}} [options]
  * @return {import("@dfinity/agent").ActorSubclass<import("./{canister_name}.did")._SERVICE>}
