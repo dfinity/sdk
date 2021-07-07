@@ -122,13 +122,22 @@ impl CanisterBuilder for MotokoBuilder {
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
 
+        let moc_arguments = match motoko_info.get_args() {
+            Some(args) => [
+                package_arguments,
+                args.split_whitespace().map(str::to_string).collect(),
+            ]
+            .concat(),
+            None => package_arguments,
+        };
+
         // Generate IDL
         let output_idl_path = motoko_info.get_output_idl_path();
         let params = MotokoParams {
             build_target: BuildTarget::Idl,
             suppress_warning: false,
             input: &input_path,
-            package_arguments: &package_arguments,
+            package_arguments: &moc_arguments,
             output: &output_idl_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -144,7 +153,7 @@ impl CanisterBuilder for MotokoBuilder {
             // Suppress the warnings the second time we call moc
             suppress_warning: true,
             input: &input_path,
-            package_arguments: &package_arguments,
+            package_arguments: &moc_arguments,
             output: &output_wasm_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
