@@ -50,7 +50,7 @@
         "type": "git"
     },
     "motoko": {
-        "branch": "master",
+        "branch": "release",
         "repo": "https://github.com/dfinity/motoko",
         "rev": "bd98d37ad43ff625c2053607c0c0565f339fa0b0",
         "tag": "0.6.5",
