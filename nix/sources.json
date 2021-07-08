@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "ericswanson/SDK-57-upgrade-tokio",
+        "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "ab1f07e450e85690cf2cd9fc53fcfa078d9266c0",
+        "rev": "4d39428aa8dcada5a3f3b6d12097c0979b6cde7c",
         "type": "git"
     },
     "bats-support": {
