@@ -32,7 +32,7 @@ dfx start --background
 dfx deploy
 ```
 
-Once the job completes, your application will be available at `https://localhost:8000?canisterId={asset_canister_id}`.
+Once the job completes, your application will be available at `http://localhost:8000?canisterId={asset_canister_id}`.
 
 Additionally, if you are making frontend changes, you can start a development server with
 
