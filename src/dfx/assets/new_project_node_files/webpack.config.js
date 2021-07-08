@@ -4,29 +4,33 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
-const canisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
-let prodCanisters;
+const localCanisters = require(path.resolve(
+  ".dfx",
+  "local",
+  "canister_ids.json"
+));
 
-try {
-  prodCanisters = require(path.resolve("canister_ids.json"));
-  for (const canister in prodCanisters) {
-    if (Object.hasOwnProperty.call(prodCanisters, canister)) {
-      const canisterId = prodCanisters[canister];
-    }
+function initCanisterIds() {
+  let prodCanisters;
+
+  try {
+    prodCanisters = require(path.resolve("canister_ids.json"));
+  } catch (error) {
+    console.log("No production canister_ids.json found. Continuing with local");
   }
-} catch (error) {
-  console.log("No production canister_ids.json found. Continuing with local");
-}
 
-const canisterMap = new Map();
-for (const canister in canisters) {
-  if (Object.hasOwnProperty.call(canisters, canister)) {
-    const canisterId = canisters[canister];
-    const networkName = process.env["DFX_NETWORK"] || "local";
+  const network =
+    process.env.DFX_NETWORK || process.env.NODE_ENV === "production "
+      ? "ic"
+      : "local";
+  const canisters = network === "local" ? localCanisters : prodCanisters;
 
-    canisterMap.set(`${canister.toUpperCase()}_CANISTER_ID`, canisterId[networkName]);
+  for (const canister in canisters) {
+    process.env[canister.toUpperCase() + "_CANISTER_ID"] =
+      canisters[canister][network];
   }
 }
+initCanisterIds();
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 const asset_entry = path.join("src", "{project_name}_assets", 'src', "index.html");
@@ -82,13 +86,9 @@ module.exports = {
         { from: path.join(__dirname, 'src', '{project_name}_assets', 'assets'), to: path.join(__dirname, 'dist', '{project_name}_assets') }
       ],
     }),
-    new webpack.EnvironmentPlugin([{
-      NODE_ENV: 'development'
-    }]),
-    new webpack.DefinePlugin({
-      "process.env": {
-        {project_name_uppercase}_CANISTER_ID: `"${canisterMap.get("{project_name_uppercase}_CANISTER_ID")}"`
-      },
+    new webpack.EnvironmentPlugin({
+      NODE_ENV: 'development',
+      {project_name_uppercase}_CANISTER_ID: localCanisters["{project_name}"]
     }),
     new webpack.ProvidePlugin({
       Buffer: [require.resolve("buffer/"), "Buffer"],
