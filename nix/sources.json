@@ -50,9 +50,10 @@
         "type": "git"
     },
     "motoko": {
+        "branch": "master",
         "repo": "https://github.com/dfinity/motoko",
-        "rev": "ffe90b5142e215aa611b3dbe4aaa753e78a803f5",
-        "tag": "0.6.4",
+        "rev": "bd98d37ad43ff625c2053607c0c0565f339fa0b0",
+        "tag": "0.6.5",
         "type": "git"
     },
     "napalm": {
