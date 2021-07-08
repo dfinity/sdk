@@ -68,7 +68,7 @@ sysinfo = "0.9.6"
 tar = "0.4.26"
 tempfile = "3.1.0"
 thiserror = "1.0.20"
-tokio = { version = "1.2.0", features = [ "fs" ] }
+tokio = { version = "1.8.1", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
@@ -78,23 +78,23 @@ webpki-roots = "0.21.0"
 [dependencies.ic-agent]
 version = "0.5.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
+rev = "ab1f07e450e85690cf2cd9fc53fcfa078d9266c0"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
 version = "0.0.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
+rev = "ab1f07e450e85690cf2cd9fc53fcfa078d9266c0"
 
 [dependencies.ic-identity-hsm]
 version = "0.3.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
+rev = "ab1f07e450e85690cf2cd9fc53fcfa078d9266c0"
 
 [dependencies.ic-utils]
 version = "0.3.3"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
+rev = "ab1f07e450e85690cf2cd9fc53fcfa078d9266c0"
 
 [dev-dependencies]
 env_logger = "0.6"
