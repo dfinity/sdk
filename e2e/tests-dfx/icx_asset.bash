@@ -9,6 +9,9 @@ setup() {
     export HOME="$TEMPORARY_HOME"
     cd "$TEMPORARY_HOME" || exit
 
+    x=$(dfx cache show)
+    export ICX_ASSET="$x/icx-asset"
+
     dfx_new
 }
 
@@ -30,7 +33,8 @@ teardown() {
 
     dd if=/dev/urandom of=src/e2e_project_assets/assets/asset2.bin bs=400000 count=1
 
-    assert_command icx-asset sync
+    CANISTER_ID=$(dfx canister id e2e_project_assets)
+    assert_command "$ICX_ASSET" sync "$CANISTER_ID" src/e2e_project_assets/assets/
 
     assert_match '/asset1.bin.*is already installed'
     assert_match '/asset2.bin 1/1'
@@ -47,7 +51,8 @@ teardown() {
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
 
-    assert_command icx-asset sync
+    CANISTER_ID=$(dfx canister id e2e_project_assets)
+    assert_command "$ICX_ASSET" sync "$CANISTER_ID" src/e2e_project_assets/assets/
 
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
@@ -66,7 +71,9 @@ teardown() {
     assert_match '"/will-delete-this.txt"'
 
     rm src/e2e_project_assets/assets/will-delete-this.txt
-    assert_command icx-asset sync
+
+    CANISTER_ID=$(dfx canister id e2e_project_assets)
+    assert_command "$ICX_ASSET" sync "$CANISTER_ID" src/e2e_project_assets/assets/
 
     assert_command_fail dfx canister call --query e2e_project_assets get '(record{key="/will-delete-this.txt";accept_encodings=vec{"identity"}})'
     assert_command dfx canister call --query e2e_project_assets list  '(record{})'
