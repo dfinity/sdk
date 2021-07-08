@@ -35,7 +35,7 @@ teardown() {
 
     CANISTER_ID=$(dfx canister id e2e_project_assets)
     REPLICA_PORT=$(cat .dfx/webserver-port)
-    assert_command "$ICX_ASSET" --replica http://localhost:"$REPLICA_PORT" --pem "$HOME/.config/dfx/identity/default/identity.pem" sync "$CANISTER_ID" src/e2e_project_assets/assets/
+    assert_command "$ICX_ASSET" --replica http://localhost:"$REPLICA_PORT" --pem "$HOME/.config/dfx/identity/default/identity.pem" --fetch-root-key sync "$CANISTER_ID" src/e2e_project_assets/assets/
 
     assert_match '/asset1.bin.*is already installed'
     assert_match '/asset2.bin 1/1'
@@ -54,7 +54,7 @@ teardown() {
 
     CANISTER_ID=$(dfx canister id e2e_project_assets)
     REPLICA_PORT=$(cat .dfx/webserver-port)
-    assert_command "$ICX_ASSET" --replica http://localhost:"$REPLICA_PORT" --pem "$HOME/.config/dfx/identity/default/identity.pem" sync "$CANISTER_ID" src/e2e_project_assets/assets/
+    assert_command "$ICX_ASSET" --replica http://localhost:"$REPLICA_PORT" --pem "$HOME/.config/dfx/identity/default/identity.pem" --fetch-root-key sync "$CANISTER_ID" src/e2e_project_assets/assets/
 
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
@@ -76,7 +76,7 @@ teardown() {
 
     CANISTER_ID=$(dfx canister id e2e_project_assets)
     REPLICA_PORT=$(cat .dfx/webserver-port)
-    assert_command "$ICX_ASSET" --replica http://localhost:"$REPLICA_PORT" --pem "$HOME/.config/dfx/identity/default/identity.pem" sync "$CANISTER_ID" src/e2e_project_assets/assets/
+    assert_command "$ICX_ASSET" --replica http://localhost:"$REPLICA_PORT" --pem "$HOME/.config/dfx/identity/default/identity.pem" --fetch-root-key sync "$CANISTER_ID" src/e2e_project_assets/assets/
 
     assert_command_fail dfx canister call --query e2e_project_assets get '(record{key="/will-delete-this.txt";accept_encodings=vec{"identity"}})'
     assert_command dfx canister call --query e2e_project_assets list  '(record{})'
