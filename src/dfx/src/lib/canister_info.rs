@@ -190,6 +190,13 @@ impl CanisterInfo {
             .with_extension("did")
     }
 
+    pub fn get_index_js_path(&self) -> PathBuf {
+        self.build_root
+            .join(PathBuf::from(&self.name))
+            .join("index")
+            .with_extension("js")
+    }
+
     pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
         if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
