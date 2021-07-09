@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "main",
-        "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "4d39428aa8dcada5a3f3b6d12097c0979b6cde7c",
+        "branch": "leon/replace_ring",
+        "repo": "https://github.com/Sawchord/agent-rs",
+        "rev": "b4ba964f6ac4ef8c6fee13f73aa8c0e6306f3e38",
         "type": "git"
     },
     "bats-support": {
