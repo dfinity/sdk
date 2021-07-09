@@ -53,7 +53,7 @@ icx_asset_sync() {
 
     assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/new_asset.txt";accept_encodings=vec{"identity"}})'
 
-    echo "this is a new asset" >src/e2e_project_assets/assets/new_asset.txt
+    echo -n "this is a new asset" >src/e2e_project_assets/assets/new_asset.txt
 
     icx_asset_sync
 
@@ -68,7 +68,7 @@ icx_asset_sync() {
     dfx_start
     assert_command dfx deploy
 
-    echo "a changed asset" >src/e2e_project_assets/assets/text-with-newlines.txt
+    echo -n "a changed asset" >src/e2e_project_assets/assets/text-with-newlines.txt
 
     icx_asset_sync
 
