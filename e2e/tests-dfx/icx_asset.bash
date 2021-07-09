@@ -59,7 +59,7 @@ icx_asset_sync() {
 
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/new_asset.txt";accept_encodings=vec{"identity"}})'
 
-    assert_eq "('this is a new asset')"
+    assert_match '"this is a new asset"'
 }
 
 @test "modifies changed assets" {
@@ -75,7 +75,7 @@ icx_asset_sync() {
     assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
 
     # shellcheck disable=SC2154
-    assert_eq "a changed asset" "$stdout"
+    assert_match '"a changed asset"' "$stdout"
 }
 
 @test "unsets asset encodings that are removed from project" {
