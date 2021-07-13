@@ -38,7 +38,7 @@ dfx_patchelf() {
     local CACHE_DIR="$(dfx cache show)"
     # Both ldd and iconv are providedin glibc.bin package
     local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
-    for binary in ic-starter replica; do
+    for binary in ic-starter icx-proxy replica; do
         local BINARY="${CACHE_DIR}/${binary}"
         test -f "$BINARY" || continue
         local IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
