@@ -45,6 +45,9 @@ let
                 cargoBuildOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
                 cargoTestOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
                 buildInputs = [ self.openssl self.pkg-config ] ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
+                override = attrs: {
+                  OPENSSL_STATIC = "1";
+                };
               };
               dfinity = (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {
