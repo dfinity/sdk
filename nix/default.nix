@@ -1,6 +1,6 @@
 # Returns the nixpkgs set overridden and extended with DFINITY specific
 # packages.
-{ system ? builtins.currentSystem, isMaster ? true, labels ? { } }:
+{ system ? builtins.currentSystem, isMaster ? true, labels ? {} }:
 let
   # The `common` repo provides code (mostly Nix) that is used in the
   # `infra`, `dfinity` and `sdk` repositories.
@@ -9,8 +9,10 @@ let
   # environment variable to an absolute path of it. For example:
   #
   #   COMMON="$(realpath ../common)" nix-build -A rust-workspace
-  commonSrc = let localCommonSrc = builtins.getEnv "COMMON";
-  in if localCommonSrc != "" then localCommonSrc else sources.common;
+  commonSrc = let
+    localCommonSrc = builtins.getEnv "COMMON";
+  in
+    if localCommonSrc != "" then localCommonSrc else sources.common;
 
   sources = import sourcesnix {
     sourcesFile = ./sources.json;
@@ -28,40 +30,47 @@ let
     extraSources = sources;
     repoRoot = ../.;
     overlays = [
-      (self: super:
-        let nixFmt = self.lib.nixFmt { };
-        in {
-          motoko = import self.sources.motoko { inherit (self) system; };
-          agent-rs = self.naersk.buildPackage {
-            name = "agent-rs";
-            root = self.sources.agent-rs;
-            cargoBuildOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
-            cargoTestOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
-            buildInputs = [ self.pkgsStatic.openssl self.pkg-config ]
-              ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
-            override = attrs: { OPENSSL_STATIC = "1"; };
-          };
-          dfinity =
-            (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
-          napalm = self.callPackage self.sources.napalm {
-            pkgs = self // { nodejs = self.nodejs-12_x; };
-          };
-          ic-ref =
-            (import self.sources.ic-ref { inherit (self) system; }).ic-ref-dist;
+      (
+        self: super:
+          let
+            nixFmt = self.lib.nixFmt {};
+          in
+            {
+              motoko = import self.sources.motoko { inherit (self) system; };
+              agent-rs = self.naersk.buildPackage {
+                name = "agent-rs";
+                root = self.sources.agent-rs;
+                cargoBuildOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
+                cargoTestOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
+                buildInputs = [ self.pkgsStatic.openssl self.pkg-config ]
+                ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
+                override = attrs: { OPENSSL_STATIC = "1"; };
+              };
+              dfinity =
+                (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
+              napalm = self.callPackage self.sources.napalm {
+                pkgs = self // { nodejs = self.nodejs-12_x; };
+              };
+              ic-ref =
+                (import self.sources.ic-ref { inherit (self) system; }).ic-ref-dist;
 
-          nix-fmt = nixFmt.fmt;
-          nix-fmt-check = nixFmt.check;
+              nix-fmt = nixFmt.fmt;
+              nix-fmt-check = nixFmt.check;
 
-          # An attribute set mapping every supported system to a nixpkgs evaluated for
-          # that system. Special care is taken not to reevaluate nixpkgs for the current
-          # system because we already did that in self.
-          pkgsForSystem = super.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" ]
-            (supportedSystem:
-              if supportedSystem == system then
-                self
-              else
-                import ./. { system = supportedSystem; });
-        })
+              # An attribute set mapping every supported system to a nixpkgs evaluated for
+              # that system. Special care is taken not to reevaluate nixpkgs for the current
+              # system because we already did that in self.
+              pkgsForSystem = super.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" ]
+                (
+                  supportedSystem:
+                    if supportedSystem == system then
+                      self
+                    else
+                      import ./. { system = supportedSystem; }
+                );
+            }
+      )
     ];
   };
-in pkgs
+in
+pkgs

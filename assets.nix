@@ -1,4 +1,4 @@
-{ pkgs ? import ./nix { }
+{ pkgs ? import ./nix {}
 , distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs; }
 }:
 let
@@ -7,7 +7,7 @@ let
     exename = "icx-proxy";
     usePackager = false;
   };
-  looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" { } ''
+  looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
     mkdir -p $out
 
     cp ${pkgs.dfinity.ic-replica}/bin/replica $out
@@ -19,7 +19,8 @@ let
     cp ${pkgs.ic-ref}/bin/* $out
     cp ${icx-proxy-standalone}/bin/icx-proxy $out
   '';
-in pkgs.runCommandNoCCLocal "assets" { } ''
+in
+pkgs.runCommandNoCCLocal "assets" {} ''
   mkdir -p $out
 
   tar -czf $out/binary_cache.tgz -C ${looseBinaryCache}/ .
