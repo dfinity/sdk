@@ -28,7 +28,6 @@ in
       gnugrep
       gnutar
       gzip
-      hexdump
       jq
       mitmproxy
       netcat

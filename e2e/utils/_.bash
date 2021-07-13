@@ -51,19 +51,6 @@ dfx_patchelf() {
 # Start the replica in the background.
 dfx_start() {
     dfx_patchelf
-
-    echo cache show
-    dfx cache show
-
-    echo ls cache
-    ls -l "$(dfx cache show)"
-
-    echo peer into the file
-    hexdump "$(dfx cache show)"/icx-proxy | head
-
-    echo icx-proxy help
-    "$(dfx cache show)"/icx-proxy --help
-
     if [ "$USE_IC_REF" ]
     then
         if [[ "$@" == "" ]]; then
@@ -110,7 +97,6 @@ dfx_start() {
 # Start the replica in the background.
 dfx_start_replica_and_bootstrap() {
     dfx_patchelf
-
     if [ "$USE_IC_REF" ]
     then
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
