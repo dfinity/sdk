@@ -59,7 +59,9 @@ pub async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm_module = std::fs::read(wasm_path)?;
 
-    if mode == InstallMode::Upgrade && wasm_module_already_installed(&wasm_module, installed_module_hash.as_deref()) {
+    if mode == InstallMode::Upgrade
+        && wasm_module_already_installed(&wasm_module, installed_module_hash.as_deref())
+    {
         println!(
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.unwrap())
