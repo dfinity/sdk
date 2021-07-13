@@ -99,6 +99,8 @@ dfx_start_replica_and_bootstrap() {
     dfx_patchelf
 
     dfx cache install
+    echo ls cache
+    ls -l "$(dfx cache show)"
     echo icx-proxy help
     "$(dfx cache show)"/icx-proxy --help
 
