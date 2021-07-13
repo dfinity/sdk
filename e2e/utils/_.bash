@@ -97,6 +97,11 @@ dfx_start() {
 # Start the replica in the background.
 dfx_start_replica_and_bootstrap() {
     dfx_patchelf
+
+    dfx cache install
+    echo icx-proxy help
+    "$(dfx cache show)"/icx-proxy --help
+
     if [ "$USE_IC_REF" ]
     then
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
