@@ -177,23 +177,26 @@ async fn install_canisters(
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     for canister_name in canister_names {
-        let install_mode = match initial_canister_id_store.find(&canister_name) {
-            Some(canister_id) => {
-                match agent
-                    .read_state_canister_info(canister_id, "module_hash")
-                    .await
-                {
-                    Ok(_) => InstallMode::Upgrade,
-                    // If the canister is empty, this path does not exist.
-                    // The replica doesn't support negative lookups, therefore if the canister
-                    // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-                    Err(AgentError::LookupPathUnknown(_))
-                    | Err(AgentError::LookupPathAbsent(_)) => InstallMode::Install,
-                    Err(x) => bail!(x),
+        let (install_mode, installed_module_hash) =
+            match initial_canister_id_store.find(&canister_name) {
+                Some(canister_id) => {
+                    match agent
+                        .read_state_canister_info(canister_id, "module_hash")
+                        .await
+                    {
+                        Ok(installed_module_hash) => {
+                            (InstallMode::Upgrade, Some(installed_module_hash))
+                        }
+                        // If the canister is empty, this path does not exist.
+                        // The replica doesn't support negative lookups, therefore if the canister
+                        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
+                        Err(AgentError::LookupPathUnknown(_))
+                        | Err(AgentError::LookupPathAbsent(_)) => (InstallMode::Install, None),
+                        Err(x) => bail!(x),
+                    }
                 }
-            }
-            None => InstallMode::Install,
-        };
+                None => (InstallMode::Install, None),
+            };
 
         let canister_id = canister_id_store.get(&canister_name)?;
         let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
@@ -210,6 +213,7 @@ async fn install_canisters(
             install_mode,
             timeout,
             &call_sender,
+            installed_module_hash,
         )
         .await?;
     }
