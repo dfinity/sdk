@@ -44,7 +44,7 @@ let
                 root = self.sources.agent-rs;
                 cargoBuildOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
                 cargoTestOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
-                buildInputs = [ self.openssl self.pkg-config ] ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
+                buildInputs = [ self.openssl self.pkg-config ] ++ self.lib.optional self.stdenv.isDarwin pkgs.pkgsStatic.libiconv;
                 override = attrs: {
                   OPENSSL_STATIC = "1";
                 };
