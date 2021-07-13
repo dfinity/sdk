@@ -53,8 +53,16 @@ dfx_start() {
     dfx_patchelf
 
     dfx cache install
+
+    echo cache show
+    dfx cache show
+
     echo ls cache
     ls -l "$(dfx cache show)"
+
+    echo peer into the file
+    hexdump "$(dfx cache show)"/icx-proxy | head
+
     echo icx-proxy help
     "$(dfx cache show)"/icx-proxy --help
 
