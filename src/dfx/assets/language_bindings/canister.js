@@ -30,3 +30,4 @@ export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
  * @type {import("@dfinity/agent").ActorSubclass<import("./{canister_name}.did.js")._SERVICE>}
  */
  export const {canister_name} = createActor(canisterId);
+ 
