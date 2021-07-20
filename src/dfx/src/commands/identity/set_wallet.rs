@@ -10,7 +10,7 @@ use clap::Clap;
 use ic_types::Principal;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::wallet::BalanceResult;
-use slog::{error, info};
+use slog::{debug, error, info};
 use tokio::runtime::Runtime;
 
 /// Sets the wallet canister ID to use for your identity on a network.
@@ -52,7 +52,17 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
 
     // Try to check the canister_id for a `wallet_balance()` if the network is not the IC and available.
     // Otherwise we just trust the user.
-    if !network.is_ic || force {
+    if force {
+        info!(
+            log,
+            "Skipping verification of availability of the canister on the network due to --force..."
+        );
+    } else if network.is_ic {
+        debug!(
+            log,
+            "Skipping verification of availability of the canister on the IC network..."
+        );
+    } else {
         let agent = env
             .get_agent()
             .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -81,21 +91,22 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                         Err(anyhow!("Unable to access the wallet: {}", err))
                     },
                     _ => {
-                        info!(
-                            log,
-                            "Setting wallet for identity '{}' on network '{}' to id '{}'",
-                            identity_name,
-                            network.name,
-                            canister_id
-                        );
-                        Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
-                        info!(log, "Wallet set successfully.");
                         Ok(())
                     },
                 }
             })
-            .map_err(DfxError::from)?;
-    }
+            .map_err(DfxError::from)?
+    };
+
+    info!(
+        log,
+        "Setting wallet for identity '{}' on network '{}' to id '{}'",
+        identity_name,
+        network.name,
+        canister_id
+    );
+    Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
+    info!(log, "Wallet set successfully.");
 
     Ok(())
 }
