@@ -107,6 +107,6 @@ assets-build:
   extends: .cargo-build
   artifacts:
     paths:
-    - result/
+    - result/*
   script: |
     nix-build -A assets . --show-trace
