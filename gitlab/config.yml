@@ -1,3 +1,7 @@
+stages:
+  - build
+  - test
+
 before_script:
   - |
     # Execute the before_script section
@@ -98,6 +102,11 @@ cargo-test:
       cargo test
     "
 
-stages:
-  - build
-  - test
+assets-build:
+  stage: build
+  extends: .cargo-build
+  artifacts:
+    paths:
+    - result
+  script: |
+    nix-build -A assets . --show-trace
