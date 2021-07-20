@@ -389,9 +389,9 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         .with_extension("did.d.ts");
 
     let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())?;
-    let content = candid::bindings::javascript::compile(&env, &ty);
+    let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
     std::fs::write(output_did_js_path, content)?;
-    let content = candid::bindings::typescript::compile(&env, &ty);
+    let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
     std::fs::write(output_did_ts_path, content)?;
 
     let mut language_bindings = assets::language_bindings()?;
@@ -421,4 +421,14 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     }
 
     Ok(())
+}
+
+fn ensure_trailing_newline(s: String) -> String {
+    if s.ends_with("\n") {
+        s
+    } else {
+        let mut s = s.clone();
+        s.push('\n');
+        s
+    }
 }
