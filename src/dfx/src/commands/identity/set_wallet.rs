@@ -95,8 +95,8 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     },
                 }
             })
-            .map_err(DfxError::from)?
-    };
+            .map_err(DfxError::from)?;
+    }
 
     info!(
         log,
