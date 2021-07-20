@@ -1,3 +1,15 @@
+= 0.7.7
+
+== DFX
+
+=== feat: deploy and canister install will now only upgrade a canister if the wasm actually changed
+
+dfx deploy and dfx canister install now compare the hash of the already-installed module
+with the hash of the built canister's wasm output.  If they are the same, they leave the canister
+in place rather than upgrade it.  They will still synchronize assets to an asset canister regardless
+of the result of this comparison.
+
+
 = 0.7.6
 
 == icx-proxy
