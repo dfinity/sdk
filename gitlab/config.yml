@@ -122,6 +122,10 @@ assets-build:
 
 upload:
   before_script: []
+  dependencies:
+    - assets-build
+  needs:
+    - assets-build
   stage: upload
   image: curlimages/curl:latest
   rules:
@@ -133,6 +137,9 @@ upload:
 
 release:
   before_script: []
+  dependencies: []
+  needs:
+    - upload
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   rules:
