@@ -1,6 +1,8 @@
 stages:
   - build
   - test
+  - upload
+  - release
 
 before_script:
   - |
