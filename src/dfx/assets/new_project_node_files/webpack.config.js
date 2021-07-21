@@ -6,13 +6,12 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 let localCanisters, prodCanisters, canisters;
 
-try {
-  localCanisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
-} catch (error) {
-  console.log("No local canister_ids.json found. Continuing production");
-}
-
 function initCanisterIds() {
+  try {
+    localCanisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
+  } catch (error) {
+    console.log("No local canister_ids.json found. Continuing production");
+  }
   try {
     prodCanisters = require(path.resolve("canister_ids.json"));
   } catch (error) {
@@ -20,9 +19,9 @@ function initCanisterIds() {
   }
 
   const network =
-    process.env.DFX_NETWORK || process.env.NODE_ENV === "production "
-      ? "ic"
-      : "local";
+    process.env.DFX_NETWORK ||
+    (process.env.NODE_ENV === "production" ? "ic" : "local");
+
   canisters = network === "local" ? localCanisters : prodCanisters;
 
   for (const canister in canisters) {
@@ -41,6 +40,7 @@ const asset_entry = path.join(
 );
 
 module.exports = {
+  target: "web",
   mode: isDevelopment ? "development" : "production",
   entry: {
     // The frontend.entrypoint points to the HTML file for this build, so we need
@@ -81,8 +81,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.join(__dirname, asset_entry),
-      filename: "index.html",
-      chunks: ["index"],
+      cache: false
     }),
     new CopyPlugin({
       patterns: [
@@ -112,5 +111,8 @@ module.exports = {
         },
       },
     },
+    hot: true,
+    contentBase: path.resolve(__dirname, "./src/{project_name}_assets"),
+    watchContentBase: true
   },
 };

@@ -1,3 +1,41 @@
+= 0.8.0
+
+
+The 0.8.0 release includes updates and fixes that are primarily internal to improve existing features and functions rather than user-visible.
+
+=== fix: dfx identity set-wallet no longer requires --force when used with --network ic
+
+This was intended to skip verification of the wallet canister on the IC network,
+but ended up only writing to the wallets.json file if --force was passed.
+
+=== chore: updating dependencies
+
+* Support for the latest version of the {IC} specification and replica.
+
+* Updating to latest versions of Motoko, Candid, and agent-rs
+
+=== feat: Type Inference Update
+
+* Changes to `+dfx new+` project template and JavaScript codegen to support type inference in IDE's
+
+* Adding webpack dev server to project template
+
+* Migration path documented at https://sdk.dfinity.org/docs/release-notes/0.8.0-rn.html
+
+= 0.7.7
+
+Breaking changes to frontend code generation, documented in 0.8.0
+
+== DFX
+
+=== feat: deploy and canister install will now only upgrade a canister if the wasm actually changed
+
+dfx deploy and dfx canister install now compare the hash of the already-installed module
+with the hash of the built canister's wasm output.  If they are the same, they leave the canister
+in place rather than upgrade it.  They will still synchronize assets to an asset canister regardless
+of the result of this comparison.
+
+
 = 0.7.6
 
 == icx-proxy
