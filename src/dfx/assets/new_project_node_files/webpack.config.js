@@ -6,13 +6,12 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 let localCanisters, prodCanisters, canisters;
 
-try {
-  localCanisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
-} catch (error) {
-  console.log("No local canister_ids.json found. Continuing production");
-}
-
 function initCanisterIds() {
+  try {
+    localCanisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
+  } catch (error) {
+    console.log("No local canister_ids.json found. Continuing production");
+  }
   try {
     prodCanisters = require(path.resolve("canister_ids.json"));
   } catch (error) {
