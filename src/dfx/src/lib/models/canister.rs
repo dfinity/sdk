@@ -424,10 +424,10 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
 }
 
 fn ensure_trailing_newline(s: String) -> String {
-    if s.ends_with("\n") {
+    if s.ends_with('\n') {
         s
     } else {
-        let mut s = s.clone();
+        let mut s = s;
         s.push('\n');
         s
     }
