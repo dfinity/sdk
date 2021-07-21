@@ -92,7 +92,6 @@ cargo-build:
   stage: build
   extends: .cargo-build
   script: |
-    exit 0
     nix-shell --run "
       set -eExuo pipefail
       cargo build --release
@@ -102,7 +101,6 @@ cargo-test:
   stage: test
   extends: .cargo-build
   script: |
-    exit 0
     nix-shell --run "
       set -eExuo pipefail
       cargo test
