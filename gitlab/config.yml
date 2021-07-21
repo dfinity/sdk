@@ -132,8 +132,9 @@ upload-assets:
   script: |
     set -x
     export PACKAGE_REGISTRY_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sdk_assets/${CI_COMMIT_TAG}"
-    for asset in ./assets/*; do
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file assets/${asset} "${PACKAGE_REGISTRY_URL}/${asset}"
+    cd assets
+    for asset in ./*; do
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file ${asset} "${PACKAGE_REGISTRY_URL}/${asset}"
     done
 
 make-release:
@@ -151,7 +152,8 @@ make-release:
     export PACKAGE_REGISTRY_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sdk_assets/${CI_COMMIT_TAG}"
 
     CMD="release-cli create --name \"Release $CI_COMMIT_TAG\" --tag-name \"$CI_COMMIT_TAG\" "
-    for asset in ./assets/*; do
+    cd assets
+    for asset in ./*; do
       CMD+="$CMD --assets-link \"{\\\"name\\\":\\\"${asset}\\\",\\\"url\\\":\\\"${PACKAGE_REGISTRY_URL}/${asset}\\\"}\""
     done
 
