@@ -18,6 +18,54 @@ teardown() {
     rm -rf "$x"
 }
 
+@test "'dfx identity set-wallet --force' bypasses wallet canister verification" {
+    dfx_new hello
+    dfx_start
+    setup_actuallylocal_network
+
+    # get Canister IDs to install the wasm onto
+    dfx canister --network actuallylocal create hello
+    ID=$(dfx canister --network actuallylocal id hello)
+    dfx canister --network actuallylocal create hello_assets
+    ID_TWO=$(dfx canister --network actuallylocal id hello_assets)
+
+    # set controller to user
+    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
+
+    assert_command_fail dfx identity --network actuallylocal set-wallet "${ID}"
+    assert_not_match "Setting wallet for identity"
+    assert_command dfx identity --network actuallylocal set-wallet --force "${ID}"
+    assert_match "Setting wallet for identity 'default' on network 'actuallylocal' to id '$ID'"
+    assert_command jq -r .identities.default.actuallylocal <"$HOME"/.config/dfx/identity/default/wallets.json
+    assert_eq "$ID"
+}
+
+@test "'dfx identity --network ic set-wallet' always bypasses wallet canister verification" {
+    dfx_new hello
+    dfx_start
+    setup_actuallylocal_network
+
+    # get Canister IDs to install the wasm onto
+    dfx canister --network actuallylocal create hello
+    ID=$(dfx canister --network actuallylocal id hello)
+    dfx canister --network actuallylocal create hello_assets
+    ID_TWO=$(dfx canister --network actuallylocal id hello_assets)
+
+    # set controller to user
+    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
+
+    rm "$HOME"/.config/dfx/identity/default/wallets.json
+
+    assert_command_fail dfx identity set-wallet "${ID}"
+    assert_not_match "Setting wallet for identity"
+    assert_command dfx identity --network ic set-wallet "${ID}"
+    assert_match "Setting wallet for identity 'default' on network 'ic' to id '$ID'"
+    assert_command jq -r .identities.default.ic <"$HOME"/.config/dfx/identity/default/wallets.json
+    assert_eq "$ID"
+}
+
 @test "deploy wallet" {
     dfx_new hello
     dfx_start

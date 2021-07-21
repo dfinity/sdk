@@ -1,14 +1,22 @@
 = 0.8.0
 
+
 The 0.8.0 release includes updates and fixes that are primarily internal to improve existing features and functions rather than user-visible.
 
-The most significant changes in this release include the following:
+=== fix: dfx identity set-wallet no longer requires --force when used with --network ic
+
+This was intended to skip verification of the wallet canister on the IC network,
+but ended up only writing to the wallets.json file if --force was passed.
+
+=== chore: updating dependencies
 
 * Support for the latest version of the {IC} specification and replica.
 
 * Updating to latest versions of Motoko, Candid, and agent-rs
 
-* Changes to `+dfx new+` project template and JavaScript codegen to support type inference
+=== feat: Type Inference Update
+
+* Changes to `+dfx new+` project template and JavaScript codegen to support type inference in IDE's
 
 * Adding webpack dev server to project template
 
