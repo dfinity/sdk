@@ -139,8 +139,10 @@ upload-assets:
 
 make-release:
   before_script: []
-  dependencies: []
+  dependencies:
+    - build-assets
   needs:
+    - build-assets
     - upload-assets
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
@@ -148,9 +150,14 @@ make-release:
     - if: $CI_COMMIT_TAG
   script: |
     export PACKAGE_REGISTRY_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sdk_assets/${CI_COMMIT_TAG}"
-    release-cli create --name "Release $CI_COMMIT_TAG" --tag-name "$CI_COMMIT_TAG" \
-      --assets-link "{\"name\":\"assetstorage_canister.tgz\",\"url\":\"${PACKAGE_REGISTRY_URL}/assetstorage_canister.tgz\"}" \
-      --assets-link "{\"name\":\"binary_cache.tgz\",\"url\":\"${PACKAGE_REGISTRY_URL}/binary_cache.tgz\"}" \
-      --assets-link "{\"name\":\"ui_canister.tgz\",\"url\":\"${PACKAGE_REGISTRY_URL}/ui_canister.tgz\"}" \
-      --assets-link "{\"name\":\"wallet_canister.tgz\",\"url\":\"${PACKAGE_REGISTRY_URL}/wallet_canister.tgz\"}"
+
+    CMD="release-cli create --name \"Release $CI_COMMIT_TAG\" --tag-name \"$CI_COMMIT_TAG\" "
+    cd assets
+    for asset in *; do
+      CMD="$CMD --assets-link \"{\\\"name\\\":\\\"${asset}\\\",\\\"url\\\":\\\"${PACKAGE_REGISTRY_URL}/${asset}\\\"}\""
+    done
+    eval $CMD
+
+#    release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
+#    --assets-link "{\"name\":\"binary_cache.tgz\",\"url\":\"${PACKAGE_REGISTRY_URL}/binary_cache.tgz\"}"
 
