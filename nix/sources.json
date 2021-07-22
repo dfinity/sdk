@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "main",
+        "branch": "ericswanson/candid-0.7.4",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "778d7d0f60db53334ee84e4d13a907f5268b3291",
+        "rev": "2a38d983198179e1b67452c2a18939157373b7c3",
         "type": "git"
     },
     "bats-support": {
