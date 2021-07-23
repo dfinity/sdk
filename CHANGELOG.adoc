@@ -1,3 +1,13 @@
+= 0.8.1
+
+== Asset Canister
+
+=== fix: trust full asset SHA-256 hashes provided by the caller
+
+When the caller provides SHA-256 hashes (which dfx does), the asset canister will no longer
+recompute these hashes when committing the changes.  These recomputations were causing
+canisters to run out of cycles, or to attempt to exceed the maximum cycle limit per update.
+
 = 0.8.0
 
 The 0.8.0 release includes updates and fixes that are primarily internal to improve existing features and functions rather than user-visible.
