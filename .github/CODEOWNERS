@@ -2,8 +2,8 @@
 * @dfinity-lab/sdk
 
 # The infra team can still approve Nix PRs.
-**/*.nix @dfinity-lab/infra
-nix/** @dfinity-lab/infra
+**/*.nix @dfinity-lab/idx
+nix/** @dfinity-lab/idx
 
 // Allows sources.json to be updated without full approval (only CI).
 nix/sources.json @ghost
