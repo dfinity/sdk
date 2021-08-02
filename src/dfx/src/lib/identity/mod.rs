@@ -34,7 +34,9 @@ pub use identity_manager::{
     IdentityManager,
 };
 
-const IDENTITY_PEM: &str = "identity.pem";
+pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
+pub const IDENTITY_PEM: &str = "identity.pem";
+pub const IDENTITY_JSON: &str = "identity.json";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
 
@@ -101,7 +103,7 @@ impl Identity {
 
     pub fn anonymous() -> Self {
         Self {
-            name: "anonymous".to_string(),
+            name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
             dir: PathBuf::new(),
         }

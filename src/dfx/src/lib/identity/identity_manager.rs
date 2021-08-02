@@ -1,7 +1,9 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
-use crate::lib::identity::Identity as DfxIdentity;
+use crate::lib::identity::{
+    Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
+};
 
 use anyhow::{anyhow, bail, Context};
 use ic_types::Principal;
@@ -16,11 +18,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
-const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
-
-/// TODO: move this to identity/mod.rs
-const IDENTITY_PEM: &str = "identity.pem";
-const IDENTITY_JSON: &str = "identity.json";
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Configuration {
