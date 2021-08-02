@@ -1,5 +1,16 @@
 = 0.8.1
 
+== DFX
+
+=== feat: dfx now supports the anonymous identity
+
+Use it with either of these forms:
+[source, bash]
+----
+dfx identity use anonymous
+dfx --identity anonymous ...
+----
+
 == Asset Canister
 
 === fix: trust full asset SHA-256 hashes provided by the caller

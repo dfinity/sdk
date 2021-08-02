@@ -108,8 +108,13 @@ impl IdentityManager {
         &mut self,
         identity_name: &str,
     ) -> DfxResult<Box<DfxIdentity>> {
-        self.require_identity_exists(identity_name)?;
-        let identity = Box::new(DfxIdentity::load(self, identity_name)?);
+        let identity = match identity_name {
+            ANONYMOUS_IDENTITY_NAME => Box::new(DfxIdentity::anonymous()),
+            identity_name => {
+                self.require_identity_exists(identity_name)?;
+                Box::new(DfxIdentity::load(self, identity_name)?)
+            }
+        };
         use ic_agent::identity::Identity;
         self.selected_identity_principal =
             Some(identity.sender().map_err(|err| anyhow!("{}", err))?);
@@ -145,6 +150,7 @@ impl IdentityManager {
                 entry_result.map(|entry| entry.file_name().to_string_lossy().to_string())
             })
             .collect::<Result<Vec<_>, std::io::Error>>()?;
+        names.push(ANONYMOUS_IDENTITY_NAME.to_string());
 
         names.sort();
 
@@ -225,6 +231,10 @@ impl IdentityManager {
     }
 
     fn require_identity_exists(&self, name: &str) -> DfxResult {
+        if name == ANONYMOUS_IDENTITY_NAME {
+            return Ok(());
+        }
+
         let identity_pem_path = self.get_identity_pem_path(name);
 
         if !identity_pem_path.exists() {
