@@ -691,9 +691,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8303b0828baf50ba6d7d725533845a1b2caa86416898ad42597a69f0f93cabf2"
+checksum = "ea807b020171a8d890e2280f54947b0ef38d70b5041d15e8a9a00a94e5f36d78"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -1930,8 +1930,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.6.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=778d7d0f60db53334ee84e4d13a907f5268b3291#778d7d0f60db53334ee84e4d13a907f5268b3291"
+version = "0.7.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=a931bdd7429b31d160bb31892514fe37b5acb320#a931bdd7429b31d160bb31892514fe37b5acb320"
 dependencies = [
  "async-trait",
  "base32",
@@ -1960,8 +1960,8 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.1.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=778d7d0f60db53334ee84e4d13a907f5268b3291#778d7d0f60db53334ee84e4d13a907f5268b3291"
+version = "0.2.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=a931bdd7429b31d160bb31892514fe37b5acb320#a931bdd7429b31d160bb31892514fe37b5acb320"
 dependencies = [
  "anyhow",
  "candid",
@@ -1982,8 +1982,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.3.3"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=778d7d0f60db53334ee84e4d13a907f5268b3291#778d7d0f60db53334ee84e4d13a907f5268b3291"
+version = "0.3.4"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=a931bdd7429b31d160bb31892514fe37b5acb320#a931bdd7429b31d160bb31892514fe37b5acb320"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1996,9 +1996,9 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08f0b1f1517d697f67a8b5ad558ef6b9372ed1fc5ab669a519d7fa1837e8f88a"
+checksum = "471541b20b3d2bb26dd81ac0c44c66eabeaa2ba3641e96606b6c66f86a035a27"
 dependencies = [
  "base32",
  "crc32fast",
@@ -2011,8 +2011,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.4.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=778d7d0f60db53334ee84e4d13a907f5268b3291#778d7d0f60db53334ee84e4d13a907f5268b3291"
+version = "0.5.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=a931bdd7429b31d160bb31892514fe37b5acb320#a931bdd7429b31d160bb31892514fe37b5acb320"
 dependencies = [
  "async-trait",
  "candid",
