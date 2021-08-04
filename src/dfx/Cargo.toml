@@ -22,7 +22,7 @@ actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
 anyhow = "1.0.34"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = { version = "0.7.3", features = [ "random" ] }
+candid = { version = "0.7.4", features = [ "random" ] }
 chrono = "0.4.9"
 clap = "3.0.0-beta.2"
 console = "0.7.7"
@@ -35,7 +35,7 @@ flate2 = "1.0.11"
 futures = "0.3.5"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
-ic-types = "0.2.0"
+ic-types = "0.2.1"
 indicatif = "0.13.0"
 lazy-init = "0.5.0"
 lazy_static = "1.4.0"
@@ -76,25 +76,25 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.6.0"
+version = "0.7.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "778d7d0f60db53334ee84e4d13a907f5268b3291"
+rev = "a931bdd7429b31d160bb31892514fe37b5acb320"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.1.0"
+version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "778d7d0f60db53334ee84e4d13a907f5268b3291"
+rev = "a931bdd7429b31d160bb31892514fe37b5acb320"
 
 [dependencies.ic-identity-hsm]
-version = "0.3.3"
+version = "0.3.4"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "778d7d0f60db53334ee84e4d13a907f5268b3291"
+rev = "a931bdd7429b31d160bb31892514fe37b5acb320"
 
 [dependencies.ic-utils]
-version = "0.4.0"
+version = "0.5.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "778d7d0f60db53334ee84e4d13a907f5268b3291"
+rev = "a931bdd7429b31d160bb31892514fe37b5acb320"
 
 [dev-dependencies]
 env_logger = "0.6"
