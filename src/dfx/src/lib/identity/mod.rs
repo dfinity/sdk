@@ -12,7 +12,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
-use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
+use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
@@ -34,7 +34,9 @@ pub use identity_manager::{
     IdentityManager,
 };
 
-const IDENTITY_PEM: &str = "identity.pem";
+pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
+pub const IDENTITY_PEM: &str = "identity.pem";
+pub const IDENTITY_JSON: &str = "identity.json";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
 
@@ -96,6 +98,14 @@ impl Identity {
                 let json_file = manager.get_identity_json_path(name);
                 identity_manager::write_identity_configuration(&json_file, &identity_configuration)
             }
+        }
+    }
+
+    pub fn anonymous() -> Self {
+        Self {
+            name: ANONYMOUS_IDENTITY_NAME.to_string(),
+            inner: Box::new(AnonymousIdentity {}),
+            dir: PathBuf::new(),
         }
     }
 
