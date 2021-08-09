@@ -41,7 +41,7 @@ teardown() {
     dfx deploy
 
     # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
-    # so all the assert_match calls will fail.
+    # so all the assert_match calls will fail.  http://mywiki.wooledge.org/BashFAQ/024
     echo yes | (
         assert_command dfx canister install --mode=reinstall e2e_project
 
