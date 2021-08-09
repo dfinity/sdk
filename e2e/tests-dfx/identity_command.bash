@@ -348,3 +348,24 @@ teardown() {
     assert_command diff identity.pem "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
 }
+
+@test "identity: import default" {
+    assert_command dfx identity new alice
+    assert_command dfx identity import bob "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem"
+    assert_match 'Creating identity: "bob".' "$stderr"
+    assert_match 'Created identity: "bob".' "$stderr"
+    assert_command diff "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem" "$TEMPORARY_HOME/.config/dfx/identity/bob/identity.pem"
+    assert_eq ""
+}
+
+@test "identity: cannot import invalid PEM file" {
+    assert_command dfx identity new alice
+    assert_command cp "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem" ./alice.pem
+    # Following 3 lines manipulate the pem file so that it will be invalid
+    head -n 1 alice.pem > bob.pem
+    echo -n 1 >> bob.pem
+    tail -n 3 alice.pem > bob.pem
+    assert_command_fail dfx identity import bob bob.pem
+    assert_match 'Creating identity: "bob".' "$stderr"
+    assert_match 'Invalid Ed25519 private key in PEM file at' "$stderr"
+}
