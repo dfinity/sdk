@@ -7,7 +7,7 @@ use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::named_canister;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
@@ -15,6 +15,7 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
 use openssl::sha::Sha256;
 use slog::info;
+use std::io::stdin;
 use std::time::Duration;
 
 #[allow(clippy::too_many_arguments)]
@@ -31,6 +32,23 @@ pub async fn install_canister(
     let network = env.get_network_descriptor().unwrap();
     if !network.is_ic && named_canister::get_ui_canister_id(&network).is_none() {
         named_canister::install_ui_canister(env, &network, None).await?;
+    }
+
+    if mode == InstallMode::Reinstall {
+        eprintln!("You are about to reinstall the {} canister.", canister_info.get_name());
+        eprintln!("This will OVERWRITE all the data and code in the canister.");
+        eprintln!("");
+        eprintln!("YOU WILL LOSE ALL DATA IN THE CANISTER.");
+        eprintln!("");
+        eprintln!("Do you want to proceed? yes/No");
+        let mut input_string = String::new();
+        stdin()
+            .read_line(&mut input_string)
+            .map_err(|err| anyhow!(err))
+            .context("Unable to read input")?;
+        if input_string != "yes" {
+            bail!("Refusing to reinstall canister without approval");
+        }
     }
 
     let mgr = ManagementCanister::create(agent);

@@ -21,11 +21,13 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
     argument: Option<&str>,
     argument_type: Option<&str>,
+    force_reinstall: bool,
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
@@ -64,6 +66,7 @@ pub async fn deploy_canisters(
         &config,
         argument,
         argument_type,
+        force_reinstall,
         timeout,
         call_sender,
     )
@@ -165,6 +168,7 @@ async fn install_canisters(
     config: &Config,
     argument: Option<&str>,
     argument_type: Option<&str>,
+    force_reinstall: bool,
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
@@ -177,7 +181,9 @@ async fn install_canisters(
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     for canister_name in canister_names {
-        let (install_mode, installed_module_hash) =
+        let (install_mode, installed_module_hash) = if force_reinstall {
+            (InstallMode::Reinstall, None)
+        } else {
             match initial_canister_id_store.find(&canister_name) {
                 Some(canister_id) => {
                     match agent
@@ -196,7 +202,8 @@ async fn install_canisters(
                     }
                 }
                 None => (InstallMode::Install, None),
-            };
+            }
+        };
 
         let canister_id = canister_id_store.get(&canister_name)?;
         let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
