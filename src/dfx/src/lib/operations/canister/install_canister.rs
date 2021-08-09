@@ -7,7 +7,7 @@ use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::named_canister;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
@@ -35,17 +35,23 @@ pub async fn install_canister(
     }
 
     if mode == InstallMode::Reinstall {
-        eprintln!("You are about to reinstall the {} canister.", canister_info.get_name());
+        eprintln!("Warning!");
+        eprintln!(
+            "You are about to reinstall the {} canister.",
+            canister_info.get_name()
+        );
         eprintln!("This will OVERWRITE all the data and code in the canister.");
-        eprintln!("");
+        eprintln!();
         eprintln!("YOU WILL LOSE ALL DATA IN THE CANISTER.");
-        eprintln!("");
+        eprintln!();
         eprintln!("Do you want to proceed? yes/No");
         let mut input_string = String::new();
         stdin()
             .read_line(&mut input_string)
             .map_err(|err| anyhow!(err))
             .context("Unable to read input")?;
+        let input_string = input_string.trim_end();
+        eprintln!("input value is '{}'", &input_string);
         if input_string != "yes" {
             bail!("Refusing to reinstall canister without approval");
         }

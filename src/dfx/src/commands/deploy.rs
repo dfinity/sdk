@@ -80,7 +80,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         (None, _) => false,
         (Some(InstallMode::Reinstall), Some(_canister_name)) => true,
         (Some(InstallMode::Reinstall), None) => {
-            bail!("A single canister name must be specified when passing --mode=reinstall");
+            bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister.");
         }
         (Some(_), _) => {
             unreachable!("The only valid option for --mode is --mode=reinstall");
