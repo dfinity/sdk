@@ -35,6 +35,7 @@ pub async fn install_canister(
     }
 
     if mode == InstallMode::Reinstall {
+        // Warning: this action will result in the loss of state for this canister. Do you wish to proceed? (y/n)
         eprintln!("Warning!");
         eprintln!(
             "You are about to reinstall the {} canister.",
