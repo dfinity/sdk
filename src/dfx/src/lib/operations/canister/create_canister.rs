@@ -83,7 +83,7 @@ pub async fn create_canister(
                     wallet
                         .wallet_create_canister(
                             cycles,
-                            settings.controller,
+                            settings.controller.map(|c| vec![c]),
                             settings.compute_allocation,
                             settings.memory_allocation,
                             settings.freezing_threshold,

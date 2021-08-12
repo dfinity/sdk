@@ -36,10 +36,17 @@ async fn canister_status(
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nController: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
+    let controllers: Vec<_> = status
+        .settings
+        .controllers
+        .iter()
+        .map(|c| c.to_text())
+        .collect();
+
+    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {:?}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
         canister,
         status.status,
-        status.settings.controller,
+        controllers,
         status.settings.memory_allocation,
         status.settings.compute_allocation,
         status.settings.freezing_threshold,
