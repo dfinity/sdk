@@ -157,7 +157,7 @@ pub async fn update_settings(
         In {
             canister_id,
             settings: CanisterSettings {
-                controller: settings.controller,
+                controller: None,
                 controllers: settings.controller.map(|c| vec![c]),
                 compute_allocation: settings
                     .compute_allocation
