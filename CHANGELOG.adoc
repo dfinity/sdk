@@ -89,7 +89,7 @@ The streaming callback mechanism now requires the following record structure for
 
 Previously, the token could be a record with any set of fields.
 
-= 0.7.1
+= 0.7.2
 
 == DFX
 
@@ -97,13 +97,18 @@ Previously, the token could be a record with any set of fields.
 
 Change the default cycle balance of a canister from 10T cycles to 3T cycles.
 
-= 0.7.1
-
 == Cycles Wallet
+
+=== fix: It is no longer possible to remove the last controller.
 
 Fixed an issue where the controller can remove itself from the list of controllers even if it's the only one,
 leaving the wallet uncontrolled.
 Added defensive checks to the wallet's remove_controller and deauthorize methods.
+
+- Module hash: 1404b28b1c66491689b59e184a9de3c2be0dbdd75d952f29113b516742b7f898
+- https://github.com/dfinity/cycles-wallet/commit/e902708853ab621e52cb68342866d36e437a694b
+
+= 0.7.1
 
 == DFX
 
@@ -189,6 +194,14 @@ dfx now supports a dedicated `dfx wallet` subcommand. This allows you to interac
 associated with your selected identity. For example, `dfx wallet balance` to get the cycle balance,
 `dfx wallet list-addresses` to display the associated controllers & custodians, and `dfx wallet send <destination> <amount>`
 to send cycles to another wallet.
+
+== Cycles Wallet
+
+=== feat: Updated to Public Interface 0.17.0 and to use Internet Identity Service.
+
+- Module Hash: a609400f2576d1d6df72ce868b359fd08e1d68e58454ef17db2361d2f1c242a1
+- https://github.com/dfinity/cycles-wallet/commit/06bb256ca0738640be51cf84caaced7ea02ca29d
+
 
 = 0.7.0-beta.3
 
