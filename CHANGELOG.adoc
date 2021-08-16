@@ -28,6 +28,10 @@ dfx identity import alice alice.pem
 Before, people can manually copy the pem files to the target directory to "import". Such workaround still works.
 We suggest to use the `import` subcommand since it also validate the private key.
 
+=== feat: Can now provide a nonstandard wallet module with DFX_WALLET_WASM environment variable
+
+Define DFX_WALLET_WASM in the environment to use a different wasm module when creating or upgrading the wallet.
+
 == Asset Canister
 
 === fix: trust full asset SHA-256 hashes provided by the caller

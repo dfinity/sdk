@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
-use crate::util::assets::wallet_canister;
+use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
@@ -12,7 +12,6 @@ use ic_agent::AgentError;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
-use std::io::Read;
 
 /// Upgrade the wallet's Wasm module to the current Wasm bundled with DFX.
 #[derive(Clap)]
@@ -48,15 +47,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         Err(x) => bail!(x),
     };
 
-    let mut canister_assets = wallet_canister()?;
-    let mut wasm = Vec::new();
-
-    for file in canister_assets.entries()? {
-        let mut file = file?;
-        if file.header().path()?.ends_with("wallet.wasm") {
-            file.read_to_end(&mut wasm)?;
-        }
-    }
+    let wasm = wallet_wasm(env.get_logger())?;
 
     let mgr = ManagementCanister::create(
         env.get_agent()
