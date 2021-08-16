@@ -2,6 +2,11 @@
 , distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs; }
 }:
 let
+  icx-proxy-standalone = pkgs.lib.standaloneRust {
+    drv = pkgs.agent-rs;
+    exename = "icx-proxy";
+    usePackager = false;
+  };
   looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
     mkdir -p $out
 
@@ -12,7 +17,7 @@ let
     cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
     cp ${pkgs.motoko.moc}/bin/moc $out
     cp ${pkgs.ic-ref}/bin/* $out
-    cp ${pkgs.agent-rs}/bin/icx-proxy $out
+    cp ${icx-proxy-standalone}/bin/icx-proxy $out
   '';
 in
 pkgs.runCommandNoCCLocal "assets" {} ''

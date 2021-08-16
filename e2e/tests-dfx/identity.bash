@@ -41,6 +41,30 @@ teardown() {
     fi
 }
 
+@test "identity get-principal (anonymous): the get-principal is the same as sender id" {
+    install_asset identity
+    dfx_start
+    assert_command dfx identity new jose
+
+    ANONYMOUS_PRINCIPAL_ID="2vxsx-fae"
+
+    PRINCIPAL_ID=$(dfx --identity anonymous identity get-principal)
+
+    if [ "$PRINCIPAL_ID" -ne "$ANONYMOUS_PRINCIPAL_ID" ]; then
+      echo "IDs did not match: Principal '${ANONYMOUS_PRINCIPAL_ID}' != Sender '${PRINCIPAL_ID}'..." | fail
+    fi
+
+    dfx --identity jose canister create e2e_project
+    dfx --identity jose build e2e_project
+    dfx --identity jose canister install e2e_project
+
+    SENDER_ID=$(dfx --identity anonymous canister call e2e_project fromCall)
+
+    if [ "$ANONYMOUS_PRINCIPAL_ID" -ne "$SENDER_ID" ]; then
+      echo "IDs did not match: Principal '${ANONYMOUS_PRINCIPAL_ID}' != Sender '${SENDER_ID}'..." | fail
+    fi
+}
+
 @test "calls and query receive the same principal from dfx" {
     install_asset identity
     dfx_start

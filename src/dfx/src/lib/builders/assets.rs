@@ -1,4 +1,5 @@
 use crate::config::cache::Cache;
+use crate::config::dfinity::DEFAULT_IC_GATEWAY;
 use crate::config::dfx_version;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
@@ -222,10 +223,15 @@ fn build_frontend(
         // Frontend build.
         slog::info!(logger, "Building frontend...");
         let mut cmd = std::process::Command::new("npm");
+
         cmd.arg("run")
             .arg("build")
             .env("DFX_VERSION", &format!("{}", dfx_version()))
             .env("DFX_NETWORK", &network_name);
+
+        if network_name == "ic" || network_name == DEFAULT_IC_GATEWAY {
+            cmd.env("NODE_ENV", "production");
+        }
 
         for deps in &dependencies {
             let canister = pool.get_canister(deps).unwrap();

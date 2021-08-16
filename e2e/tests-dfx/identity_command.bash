@@ -39,17 +39,16 @@ teardown() {
     assert_command dfx identity new alice
     assert_command dfx identity new bob
     assert_command dfx identity list
-    assert_match 'alice bob dan default frank'
+    assert_match 'alice anonymous bob dan default frank'
     assert_command dfx identity new charlie
     assert_command dfx identity list
-    assert_match 'alice bob charlie dan default frank'
+    assert_match 'alice anonymous bob charlie dan default frank'
 }
 
 @test "identity list: shows the anonymous identity" {
     assert_command dfx identity list
-    # this should include anonymous, but we do not yet have support.
     # shellcheck disable=SC2154
-    assert_eq 'default' "$stdout"
+    assert_match 'anonymous' "$stdout"
 }
 
 @test "identity list: shows the default identity" {
@@ -114,7 +113,7 @@ teardown() {
     assert_command head "$HOME/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
     assert_command dfx identity list
-    assert_match 'alice default'
+    assert_match 'alice anonymous default'
 
     assert_command dfx identity remove alice
     assert_match 'Removing identity "alice".' "$stderr"
@@ -137,7 +136,7 @@ teardown() {
     assert_command head "$HOME/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
     assert_command dfx identity list
-    assert_match 'alice default'
+    assert_match 'alice anonymous default'
 }
 
 @test "identity remove: cannot remove the default identity" {
@@ -170,7 +169,7 @@ teardown() {
 @test "identity rename: can rename an identity" {
     assert_command dfx identity new alice
     assert_command dfx identity list
-    assert_match 'alice default'
+    assert_match 'alice anonymous default'
     assert_command head "$HOME/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
     x=$(cat "$HOME/.config/dfx/identity/alice/identity.pem")
@@ -181,7 +180,7 @@ teardown() {
     assert_match 'Renamed identity "alice" to "bob".' "$stderr"
 
     assert_command dfx identity list
-    assert_match 'bob default'
+    assert_match 'anonymous bob default'
     assert_command cat "$HOME/.config/dfx/identity/bob/identity.pem"
     assert_eq "$key" "$(cat "$HOME/.config/dfx/identity/bob/identity.pem")"
     assert_match "BEGIN PRIVATE KEY"
@@ -205,11 +204,11 @@ teardown() {
     assert_command dfx identity new alice
     assert_command dfx identity use alice
     assert_command dfx identity list
-    assert_match 'alice default'
+    assert_match 'alice anonymous default'
     assert_command dfx identity rename alice charlie
 
     assert_command dfx identity list
-    assert_match 'charlie default'
+    assert_match 'anonymous charlie default'
 
     assert_command dfx identity whoami
     assert_eq 'charlie'
@@ -261,10 +260,12 @@ teardown() {
     assert_eq 'default'
 }
 
-@test "identity use: cannot switch to the anonymous identity" {
-    # this should actually succeed, but we do not yet have support for
-    # the anonymous identity.
-    assert_command_fail dfx identity use anonymous
+@test "identity use: can switch to the anonymous identity" {
+    assert_command dfx identity use anonymous
+    assert_command dfx identity whoami
+    assert_eq 'anonymous'
+    assert_command dfx identity get-principal
+    assert_eq '2vxsx-fae'
 }
 
 ##
@@ -346,4 +347,25 @@ teardown() {
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command diff identity.pem "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
+}
+
+@test "identity: import default" {
+    assert_command dfx identity new alice
+    assert_command dfx identity import bob "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem"
+    assert_match 'Creating identity: "bob".' "$stderr"
+    assert_match 'Created identity: "bob".' "$stderr"
+    assert_command diff "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem" "$TEMPORARY_HOME/.config/dfx/identity/bob/identity.pem"
+    assert_eq ""
+}
+
+@test "identity: cannot import invalid PEM file" {
+    assert_command dfx identity new alice
+    assert_command cp "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem" ./alice.pem
+    # Following 3 lines manipulate the pem file so that it will be invalid
+    head -n 1 alice.pem > bob.pem
+    echo -n 1 >> bob.pem
+    tail -n 3 alice.pem > bob.pem
+    assert_command_fail dfx identity import bob bob.pem
+    assert_match 'Creating identity: "bob".' "$stderr"
+    assert_match 'Invalid Ed25519 private key in PEM file at' "$stderr"
 }

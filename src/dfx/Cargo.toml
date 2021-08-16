@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.7.4"
+version = "0.8.0"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -22,7 +22,7 @@ actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
 anyhow = "1.0.34"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = { version = "0.6.20", features = [ "random" ] }
+candid = { version = "0.7.4", features = [ "random" ] }
 chrono = "0.4.9"
 clap = "3.0.0-beta.2"
 console = "0.7.7"
@@ -33,9 +33,9 @@ dialoguer = "0.6.2"
 erased-serde = "0.3.10"
 flate2 = "1.0.11"
 futures = "0.3.5"
-futures-intrusive = "0.4.0"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
+ic-types = "0.2.1"
 indicatif = "0.13.0"
 lazy-init = "0.5.0"
 lazy_static = "1.4.0"
@@ -68,7 +68,7 @@ sysinfo = "0.9.6"
 tar = "0.4.26"
 tempfile = "3.1.0"
 thiserror = "1.0.20"
-tokio = { version = "1.2.0", features = [ "fs" ] }
+tokio = { version = "1.8.1", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
@@ -76,25 +76,25 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.5.1"
+version = "0.7.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+rev = "dd23bab10a5752e83931b0b2df8af636c823406f"
 features = ["reqwest"]
 
-[dependencies.ic-identity-hsm]
-version = "0.3.2"
+[dependencies.ic-asset]
+version = "0.2.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+rev = "dd23bab10a5752e83931b0b2df8af636c823406f"
 
-[dependencies.ic-types]
-version = "0.1.4"
+[dependencies.ic-identity-hsm]
+version = "0.3.4"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+rev = "dd23bab10a5752e83931b0b2df8af636c823406f"
 
 [dependencies.ic-utils]
-version = "0.3.2"
+version = "0.5.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "de2e774e4afb39dd06db00d390ec2dbbc5a51597"
+rev = "dd23bab10a5752e83931b0b2df8af636c823406f"
 
 [dev-dependencies]
 env_logger = "0.6"

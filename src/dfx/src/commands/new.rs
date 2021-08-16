@@ -25,7 +25,7 @@ use tar::Archive;
 const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
 
 // The dist-tag to use when getting the version from NPM.
-const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "beta";
+const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 
 lazy_static! {
 // Tested on a phone tethering connection. This should be fine with
@@ -219,6 +219,7 @@ fn scaffold_frontend_code(
     let project_name_str = project_name
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
+
     if (node_installed && !arg_no_frontend) || arg_frontend {
         // Check if node is available, and if it is create the files for the frontend build.
         let js_agent_version = if let Some(v) = agent_version {
@@ -230,6 +231,10 @@ fn scaffold_frontend_code(
 
         let mut variables = variables.clone();
         variables.insert("js_agent_version".to_string(), js_agent_version);
+        variables.insert(
+            "project_name_uppercase".to_string(),
+            project_name_str.to_uppercase(),
+        );
 
         let mut new_project_node_files = assets::new_project_node_files()?;
         write_files_from_entries(

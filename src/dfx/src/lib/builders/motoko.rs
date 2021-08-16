@@ -122,13 +122,22 @@ impl CanisterBuilder for MotokoBuilder {
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
 
+        let moc_arguments = match motoko_info.get_args() {
+            Some(args) => [
+                package_arguments,
+                args.split_whitespace().map(str::to_string).collect(),
+            ]
+            .concat(),
+            None => package_arguments,
+        };
+
         // Generate IDL
         let output_idl_path = motoko_info.get_output_idl_path();
         let params = MotokoParams {
             build_target: BuildTarget::Idl,
-            surpress_warning: false,
+            suppress_warning: false,
             input: &input_path,
-            package_arguments: &package_arguments,
+            package_arguments: &moc_arguments,
             output: &output_idl_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -141,10 +150,10 @@ impl CanisterBuilder for MotokoBuilder {
                 Profile::Release => BuildTarget::Release,
                 _ => BuildTarget::Debug,
             },
-            // Surpress the warnings the second time we call moc
-            surpress_warning: true,
+            // Suppress the warnings the second time we call moc
+            suppress_warning: true,
             input: &input_path,
-            package_arguments: &package_arguments,
+            package_arguments: &moc_arguments,
             output: &output_wasm_path,
             idl_path: &idl_dir_path,
             idl_map: &id_map,
@@ -177,7 +186,7 @@ struct MotokoParams<'a> {
     output: &'a Path,
     input: &'a Path,
     // The following fields are control flags for dfx and will not be used by self.to_args()
-    surpress_warning: bool,
+    suppress_warning: bool,
 }
 
 impl MotokoParams<'_> {
@@ -203,7 +212,7 @@ impl MotokoParams<'_> {
 fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
     params.to_args(&mut cmd);
-    run_command(logger, &mut cmd, params.surpress_warning)?;
+    run_command(logger, &mut cmd, params.suppress_warning)?;
     Ok(())
 }
 
@@ -280,7 +289,7 @@ impl TryFrom<&str> for MotokoImport {
 fn run_command(
     logger: &slog::Logger,
     cmd: &mut std::process::Command,
-    surpress_warning: bool,
+    suppress_warning: bool,
 ) -> DfxResult<Output> {
     trace!(logger, r#"Running {}..."#, format!("{:?}", cmd));
 
@@ -296,7 +305,7 @@ fn run_command(
         if !output.stdout.is_empty() {
             info!(logger, "{}", String::from_utf8_lossy(&output.stdout));
         }
-        if !surpress_warning && !output.stderr.is_empty() {
+        if !suppress_warning && !output.stderr.is_empty() {
             warn!(logger, "{}", String::from_utf8_lossy(&output.stderr));
         }
         Ok(output)
