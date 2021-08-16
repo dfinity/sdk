@@ -99,14 +99,14 @@ Change the default cycle balance of a canister from 10T cycles to 3T cycles.
 
 == Cycles Wallet
 
+- Module hash: 1404b28b1c66491689b59e184a9de3c2be0dbdd75d952f29113b516742b7f898
+- https://github.com/dfinity/cycles-wallet/commit/e902708853ab621e52cb68342866d36e437a694b
+
 === fix: It is no longer possible to remove the last controller.
 
 Fixed an issue where the controller can remove itself from the list of controllers even if it's the only one,
 leaving the wallet uncontrolled.
 Added defensive checks to the wallet's remove_controller and deauthorize methods.
-
-- Module hash: 1404b28b1c66491689b59e184a9de3c2be0dbdd75d952f29113b516742b7f898
-- https://github.com/dfinity/cycles-wallet/commit/e902708853ab621e52cb68342866d36e437a694b
 
 = 0.7.1
 
@@ -197,11 +197,25 @@ to send cycles to another wallet.
 
 == Cycles Wallet
 
-=== feat: Updated to Public Interface 0.17.0 and to use Internet Identity Service.
-
 - Module Hash: a609400f2576d1d6df72ce868b359fd08e1d68e58454ef17db2361d2f1c242a1
 - https://github.com/dfinity/cycles-wallet/commit/06bb256ca0738640be51cf84caaced7ea02ca29d
 
+=== feat: Use Internet Identity Service.
+
+= 0.7.0-beta.5
+
+== Cycles Wallet
+
+- Module Hash: 3d5b221387875574a9fd75b3165403cf1b301650a602310e9e4229d2f6766dcc
+- https://github.com/dfinity/cycles-wallet/commit/c3cbfc501564da89e669a2d9de810d32240baf5f
+
+=== feat: Updated to Public Interface 0.17.0
+
+=== feat: The wallet_create_canister method now takes a single record argument, which includes canister settings.
+
+=== fix: Return correct content type and encoding for non-gz files.
+
+=== fix: Updated frontend for changes to canister creation interface.
 
 = 0.7.0-beta.3
 
