@@ -56,23 +56,24 @@ type AddressEntry = record {
   role: Role;
 };
 
-type ResultCreate = variant {
+type WalletResultCreate = variant {
   Ok : record { canister_id: principal };
   Err: text;
 };
 
-type ResultSend = variant {
+type WalletResult = variant {
   Ok : null;
   Err : text;
 };
 
-type ResultCall = variant {
+type WalletResultCall = variant {
   Ok : record { return: blob };
   Err : text;
 };
 
 type CanisterSettings = record {
   controller: opt principal;
+  controllers: opt vec principal;
   compute_allocation: opt nat;
   memory_allocation: opt nat;
   freezing_threshold: opt nat;
@@ -83,7 +84,42 @@ type CreateCanisterArgs = record {
   settings: CanisterSettings;
 };
 
+
+// Assets
+type HeaderField = record { text; text; };
+
+type HttpRequest = record {
+  method: text;
+  url: text;
+  headers: vec HeaderField;
+  body: blob;
+};
+
+type HttpResponse = record {
+  status_code: nat16;
+  headers: vec HeaderField;
+  body: blob;
+  streaming_strategy: opt StreamingStrategy;
+};
+
+type StreamingCallbackHttpResponse = record {
+  body: blob;
+  token: opt Token;
+};
+
+type Token = record {};
+
+type StreamingStrategy = variant {
+  Callback: record {
+    callback: func (Token) -> (StreamingCallbackHttpResponse) query;
+    token: Token;
+  };
+};
+
 service : {
+  // Wallet API Version
+  version: () -> (text) query;
+
   // Wallet Name
   name: () -> (opt text) query;
   set_name: (text) -> ();
@@ -91,22 +127,22 @@ service : {
   // Controller Management
   get_controllers: () -> (vec principal) query;
   add_controller: (principal) -> ();
-  remove_controller: (principal) -> ();
+  remove_controller: (principal) -> (WalletResult);
 
   // Custodian Management
   get_custodians: () -> (vec principal) query;
   authorize: (principal) -> ();
-  deauthorize: (principal) -> ();
+  deauthorize: (principal) -> (WalletResult);
 
   // Cycle Management
   wallet_balance: () -> (record { amount: nat64 }) query;
-  wallet_send: (record { canister: principal; amount: nat64 }) -> (ResultSend);
+  wallet_send: (record { canister: principal; amount: nat64 }) -> (WalletResult);
   wallet_receive: () -> ();  // Endpoint for receiving cycles.
 
   // Managing canister
-  wallet_create_canister: (CreateCanisterArgs) -> (ResultCreate);
+  wallet_create_canister: (CreateCanisterArgs) -> (WalletResultCreate);
 
-  wallet_create_wallet: (CreateCanisterArgs) -> (ResultCreate);
+  wallet_create_wallet: (CreateCanisterArgs) -> (WalletResultCreate);
 
   wallet_store_wallet_wasm: (record {
     wasm_module: blob;
@@ -118,14 +154,17 @@ service : {
     method_name: text;
     args: blob;
     cycles: nat64;
-  }) -> (ResultCall);
+  }) -> (WalletResultCall);
 
   // Address book
   add_address: (address: AddressEntry) -> ();
   list_addresses: () -> (vec AddressEntry) query;
-  remove_address: (address: principal) -> ();
+  remove_address: (address: principal) -> (WalletResult);
 
   // Events
   get_events: (opt record { from: opt nat32; to: opt nat32; }) -> (vec Event) query;
   get_chart: (opt record { count: opt nat32; precision: opt nat64; } ) -> (vec record { nat64; nat64; }) query;
+
+  // Assets
+  http_request: (request: HttpRequest) -> (HttpResponse) query;
 }
