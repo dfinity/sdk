@@ -95,7 +95,7 @@ pub fn run_webserver(
             App::new()
                 .data(
                     ClientBuilder::new()
-                        .connector(Connector::new().limit(10).finish())
+                        .connector(Connector::new().limit(1).finish())
                         .finish(),
                 )
                 .data(candid_data.clone())
@@ -115,7 +115,7 @@ pub fn run_webserver(
                 ))
                 .default_service(web::get().to(|| HttpResponse::build(StatusCode::NOT_FOUND)))
         })
-        .max_connections(10)
+        .max_connections(1)
         .bind(bind)?
         // N.B. This is an arbitrary timeout for now.
         .shutdown_timeout(SHUTDOWN_WAIT_TIME)
