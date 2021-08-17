@@ -32,9 +32,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "master",
+        "branch": "exc-396-llvm12",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "d22302d2d76f0f952f81b07dd0dc7712de36c730",
+        "rev": "b0cbc965b8f2001bf554bccee636373f87241a33",
         "type": "git"
     },
     "dfinity": {
