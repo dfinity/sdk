@@ -4,6 +4,7 @@
 , use_ic_ref ? false
 , assets
 , utils
+, archive
 }:
 let
   inherit (pkgs) lib;
@@ -40,12 +41,14 @@ let
           USE_IC_REF = use_ic_ref;
           assets = assets;
           utils = utils;
+          archive = archive;
           test = here + "/${fileName}";
         } ''
           export HOME=$(pwd)
 
           ln -s $utils utils
           ln -s $assets assets
+          ln -s $archive archive
           mkdir test
           ln -s $test test/test.bash
 
