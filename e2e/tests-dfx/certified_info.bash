@@ -25,5 +25,5 @@ teardown() {
 
     dfx canister install hello    
     assert_command dfx canister info "$(dfx canister id hello)"
-    assert_match "Controller: $(dfx identity get-wallet) Module hash: $(HASH)"
+    assert_match "Controllers: $(dfx identity get-wallet) Module hash: $(HASH)"
 }
