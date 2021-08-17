@@ -46,7 +46,7 @@
     "ic-ref": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity/ic-hs",
-        "rev": "678d68733bd2d97a5dd5deb0d7b3b244282f4f0c",
+        "rev": "c49a2f443d177b6486a1797ca646d8546ac7288c",
         "type": "git"
     },
     "motoko": {
