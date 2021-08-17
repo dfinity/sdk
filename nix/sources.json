@@ -15,7 +15,7 @@
     "agent-rs": {
         "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "dd23bab10a5752e83931b0b2df8af636c823406f",
+        "rev": "eb2458bb2571dc27e90ce71765c299495ebdcbb4",
         "type": "git"
     },
     "bats-support": {
