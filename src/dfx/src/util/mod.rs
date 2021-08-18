@@ -1,7 +1,7 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 
-use candid::parser::typing::{check_prog, TypeEnv};
+use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
 use net2::TcpListenerExt;
@@ -97,11 +97,7 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
 }
 
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    let idl_file = std::fs::read_to_string(idl_path)?;
-    let ast = candid::pretty_parse::<IDLProg>(&idl_path.to_string_lossy(), &idl_file)?;
-    let mut env = TypeEnv::new();
-    let actor = check_prog(&mut env, &ast)?;
-    Ok((env, actor))
+    Ok(pretty_check_file(idl_path)?)
 }
 
 pub fn blob_from_arguments(
