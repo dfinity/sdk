@@ -45,9 +45,46 @@ pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 pub struct ConfigCanistersCanister {
     pub r#type: Option<String>,
 
+    #[serde(default)]
+    pub declarations: CanisterDeclarationsConfig,
+
     #[serde(flatten)]
     pub extras: BTreeMap<String, Value>,
 }
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CanisterDeclarationsConfig {
+    // Directory to place declarations for that canister
+    // Default is "src/declarations/<canister_name>"
+    pub output: Option<PathBuf>,
+
+    // A list of languages to generate type declarations
+    // Supported options are "js", "ts", "did", "mo"
+    // default is ["js", "ts", "did"]
+    pub bindings: Option<Vec<String>>,
+
+    // A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID
+    // in the "src/dfx/assets/language_bindings/canister.js" template
+    pub env_override: Option<String>,
+}
+
+// fn default_output() -> PathBuf {
+//     PathBuf::from("src/declarations")
+// }
+
+// fn default_bindings() -> Vec<String> {
+//     vec!["js".to_string(), "ts".to_string(), "did".to_string()]
+// }
+
+// impl Default for CanisterDeclarationsConfig {
+//     fn default() -> Self {
+//         Self {
+//             output: default_output(),
+//             bindings: default_bindings(),
+//             env_override: None,
+//         }
+//     }
+// }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
@@ -314,6 +351,21 @@ impl ConfigInterface {
             .transpose()
             .map_err(|_| error_invalid_config!("Field {} is of the wrong type", field))
     }
+
+    // pub fn get_declarations_config(
+    //     &self,
+    //     canister_name: &str,
+    // ) -> DfxResult<Option<CanisterDeclarationsConfig>> {
+    //     let canister_map = (&self.canisters)
+    //         .as_ref()
+    //         .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
+
+    //     let canister_config = canister_map
+    //         .get(canister_name)
+    //         .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
+
+    //     Ok(Some(canister_config.declarations.clone()))
+    // }
 }
 
 fn add_dependencies(

@@ -137,6 +137,16 @@ impl CanisterBuilder for AssetsBuilder {
         copy_assets(pool.get_logger(), &assets_canister_info)?;
         Ok(())
     }
+
+    fn generate(
+        &self,
+        _pool: &CanisterPool,
+        info: &CanisterInfo,
+        _config: &BuildConfig,
+    ) -> DfxResult {
+        let _declarations_config = info.get_declarations_config();
+        Ok(())
+    }
 }
 
 fn is_hidden(entry: &walkdir::DirEntry) -> bool {
