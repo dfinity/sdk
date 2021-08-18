@@ -171,7 +171,9 @@ impl CanisterBuilder for AssetsBuilder {
         }
 
         let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
-        let idl_path_rename = generate_output_dir.join(info.get_name()).with_extension("did");
+        let idl_path_rename = generate_output_dir
+            .join(info.get_name())
+            .with_extension("did");
         if idl_path.exists() {
             std::fs::rename(&idl_path, &idl_path_rename)?;
         }
