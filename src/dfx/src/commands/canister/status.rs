@@ -40,7 +40,7 @@ async fn canister_status(
         .settings
         .controllers
         .iter()
-        .map(|c| c.to_text())
+        .map(Principal::to_text)
         .collect();
     controllers.sort();
 
