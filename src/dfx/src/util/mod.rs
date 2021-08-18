@@ -3,7 +3,7 @@ use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
-use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
+use candid::{parser::value::IDLValue, IDLArgs};
 use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
 use std::net::{IpAddr, SocketAddr};
