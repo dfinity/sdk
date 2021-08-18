@@ -68,8 +68,7 @@ teardown() {
 }
 
 @test "set controller with wallet 0.7.2" {
-    # shellcheck disable=SC2154
-    export DFX_WALLET_WASM=${archive}/wallet/0.7.2/wallet.wasm
+    use_wallet_wasm 0.7.2
 
     # Create two identities
     assert_command dfx identity new alice
