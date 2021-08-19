@@ -691,9 +691,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea807b020171a8d890e2280f54947b0ef38d70b5041d15e8a9a00a94e5f36d78"
+checksum = "5cccfc355a0b27be5bcfa0bfc9616263f6195a84733114b215af5080ceff49c9"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -1931,7 +1931,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.7.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=dd23bab10a5752e83931b0b2df8af636c823406f#dd23bab10a5752e83931b0b2df8af636c823406f"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=eb2458bb2571dc27e90ce71765c299495ebdcbb4#eb2458bb2571dc27e90ce71765c299495ebdcbb4"
 dependencies = [
  "async-trait",
  "base32",
@@ -1961,7 +1961,7 @@ dependencies = [
 [[package]]
 name = "ic-asset"
 version = "0.2.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=dd23bab10a5752e83931b0b2df8af636c823406f#dd23bab10a5752e83931b0b2df8af636c823406f"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=eb2458bb2571dc27e90ce71765c299495ebdcbb4#eb2458bb2571dc27e90ce71765c299495ebdcbb4"
 dependencies = [
  "anyhow",
  "candid",
@@ -1984,7 +1984,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.3.4"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=dd23bab10a5752e83931b0b2df8af636c823406f#dd23bab10a5752e83931b0b2df8af636c823406f"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=eb2458bb2571dc27e90ce71765c299495ebdcbb4#eb2458bb2571dc27e90ce71765c299495ebdcbb4"
 dependencies = [
  "hex",
  "ic-agent",
@@ -2013,7 +2013,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.5.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=dd23bab10a5752e83931b0b2df8af636c823406f#dd23bab10a5752e83931b0b2df8af636c823406f"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=eb2458bb2571dc27e90ce71765c299495ebdcbb4#eb2458bb2571dc27e90ce71765c299495ebdcbb4"
 dependencies = [
  "async-trait",
  "candid",

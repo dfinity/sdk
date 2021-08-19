@@ -15,7 +15,7 @@
     "agent-rs": {
         "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "dd23bab10a5752e83931b0b2df8af636c823406f",
+        "rev": "eb2458bb2571dc27e90ce71765c299495ebdcbb4",
         "type": "git"
     },
     "bats-support": {
@@ -52,7 +52,7 @@
     "motoko": {
         "branch": "release",
         "repo": "https://github.com/dfinity/motoko",
-        "rev": "44f7f18b3a6bec69f9ae1cbb0706f7cc9fc9db7f",
+        "rev": "43da0ac13e9e1930ed0a32af3428732f8c308651",
         "tag": "0.6.5",
         "type": "git"
     },
