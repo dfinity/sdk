@@ -137,10 +137,17 @@ pub trait CanisterBuilder {
                 let mut file_contents = String::new();
                 file.read_to_string(&mut file_contents)?;
 
-                let new_file_contents = file_contents
+                let mut new_file_contents = file_contents
                     .replace("{canister_id}", &info.get_canister_id()?.to_text())
-                    .replace("{canister_name}", info.get_name())
-                    .replace("{canister_name_uppercase}", &info.get_name().to_uppercase());
+                    .replace("{canister_name}", info.get_name());
+                new_file_contents = match &info.get_declarations_config().env_override {
+                    Some(s) => new_file_contents.replace(
+                        "process.env.{canister_name_uppercase}_CANISTER_ID",
+                        &format!("\"{}\"", s),
+                    ),
+                    None => new_file_contents
+                        .replace("{canister_name_uppercase}", &info.get_name().to_uppercase()),
+                };
                 let index_js_path = generate_output_dir.join("index").with_extension("js");
                 std::fs::write(index_js_path, new_file_contents)?;
             }
