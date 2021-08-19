@@ -2,6 +2,43 @@
 
 == DFX
 
+=== feat: dfx generate types command
+
+[source, bash]
+----
+dfx generate
+----
+
+This new command will generate type declarations for canisters in dfx.json.
+
+You can control what and how will be generated with corresponding configuration in dfx.json.
+
+Under dfx.json → "canisters" → "<canister_name>", developers can add a "declarations" config. Options are:
+
+* "output" → directory to place declarations for that canister | default is "src/declarations/<canister_name>"
+
+* "bindings" → [] list of options, ("js", "ts", "did", "mo") | default is "js", "ts", "did"
+
+* "env_override" → a string that will replace process.env.{canister_name_uppercase}_CANISTER_ID in the "src/dfx/assets/language_bindings/canister.js" template.
+
+js declarations output
+
+* index.js (generated from "src/dfx/assets/language_bindings/canister.js" template)
+
+* <canister_name>.did.js - candid js binding output
+
+ts declarations output
+
+  * <canister_name>.did.d.ts - candid ts binding output
+
+did declarations output
+
+  * <canister_name>.did - candid did binding output
+
+mo declarations output
+
+  * <canister_name>.mo - candid mo binding output
+
 === feat: dfx now supports the anonymous identity
 
 Use it with either of these forms:
