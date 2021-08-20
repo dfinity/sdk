@@ -148,7 +148,7 @@ impl CanisterBuilder for AssetsBuilder {
             .get_declarations_config()
             .output
             .as_ref()
-            .context("`output` must not be None")?;
+            .context("`declarations.output` must not be None")?;
 
         let mut canister_assets = util::assets::assetstorage_canister()?;
         for file in canister_assets.entries()? {

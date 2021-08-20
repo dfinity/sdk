@@ -11,7 +11,7 @@ dfx generate
 
 This new command will generate type declarations for canisters in dfx.json.
 
-You can control what and how will be generated with corresponding configuration in dfx.json.
+You can control what will be generated and how with corresponding configuration in dfx.json.
 
 Under dfx.json → "canisters" → "<canister_name>", developers can add a "declarations" config. Options are:
 

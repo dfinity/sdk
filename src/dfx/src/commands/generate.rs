@@ -10,7 +10,7 @@ use clap::Clap;
 #[derive(Clap)]
 pub struct GenerateOpts {
     /// Specifies the name of the canister to build.
-    /// You must specify either a canister name or the --all option.
+    /// If you do not specify a canister names, generates types for all canisters.
     canister_name: Option<String>,
 }
 
@@ -24,7 +24,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     // already.
     env.get_cache().install()?;
 
-    // Option can be None in which case --all was specified
+    // Option can be None which means generate types for all canisters
     let canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
