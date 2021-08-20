@@ -112,13 +112,24 @@ pub trait CanisterBuilder {
             .as_ref()
             .context("`bindings` must not be None")?;
 
+        if bindings.is_empty() {
+            eprintln!("`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.", &info.get_name());
+            return Ok(());
+        } else {
+            eprintln!(
+                "Generating type declarations for canister {}:",
+                &info.get_name()
+            );
+        }
+
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.d.ts");
             let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
-            std::fs::write(output_did_ts_path, content)?;
+            std::fs::write(&output_did_ts_path, content)?;
+            eprintln!("  {}", &output_did_ts_path.display());
         }
 
         // Javascript
@@ -128,7 +139,8 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("did.js");
             let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
-            std::fs::write(output_did_js_path, content)?;
+            std::fs::write(&output_did_js_path, content)?;
+            eprintln!("  {}", &output_did_js_path.display());
 
             // index.js
             let mut language_bindings = crate::util::assets::language_bindings()?;
@@ -149,7 +161,8 @@ pub trait CanisterBuilder {
                         .replace("{canister_name_uppercase}", &info.get_name().to_uppercase()),
                 };
                 let index_js_path = generate_output_dir.join("index").with_extension("js");
-                std::fs::write(index_js_path, new_file_contents)?;
+                std::fs::write(&index_js_path, new_file_contents)?;
+                eprintln!("  {}", &index_js_path.display());
             }
         }
 
@@ -159,12 +172,15 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("mo");
             let content = ensure_trailing_newline(candid::bindings::motoko::compile(&env, &ty));
-            std::fs::write(output_mo_path, content)?;
+            std::fs::write(&output_mo_path, content)?;
+            eprintln!("  {}", &output_mo_path.display());
         }
 
         // Candid, delete if not required
         if !bindings.contains(&"did".to_string()) {
             std::fs::remove_file(generated_idl_path)?;
+        } else {
+            eprintln!("  {}", &generated_idl_path.display());
         }
         Ok(())
     }
