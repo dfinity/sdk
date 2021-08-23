@@ -45,8 +45,27 @@ pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 pub struct ConfigCanistersCanister {
     pub r#type: Option<String>,
 
+    #[serde(default)]
+    pub declarations: CanisterDeclarationsConfig,
+
     #[serde(flatten)]
     pub extras: BTreeMap<String, Value>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CanisterDeclarationsConfig {
+    // Directory to place declarations for that canister
+    // Default is "src/declarations/<canister_name>"
+    pub output: Option<PathBuf>,
+
+    // A list of languages to generate type declarations
+    // Supported options are "js", "ts", "did", "mo"
+    // default is ["js", "ts", "did"]
+    pub bindings: Option<Vec<String>>,
+
+    // A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID
+    // in the "src/dfx/assets/language_bindings/canister.js" template
+    pub env_override: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

@@ -11,7 +11,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use std::fs;
@@ -136,6 +136,49 @@ impl CanisterBuilder for AssetsBuilder {
 
         copy_assets(pool.get_logger(), &assets_canister_info)?;
         Ok(())
+    }
+
+    fn generate_idl(
+        &self,
+        _pool: &CanisterPool,
+        info: &CanisterInfo,
+        _config: &BuildConfig,
+    ) -> DfxResult<std::path::PathBuf> {
+        let generate_output_dir = info
+            .get_declarations_config()
+            .output
+            .as_ref()
+            .context("`declarations.output` must not be None")?;
+
+        let mut canister_assets = util::assets::assetstorage_canister()?;
+        for file in canister_assets.entries()? {
+            let mut file = file?;
+
+            if file.header().entry_type().is_dir() {
+                continue;
+            }
+
+            file.unpack_in(generate_output_dir.clone())?;
+        }
+
+        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
+        delete_output_directory(&info, &assets_canister_info)?;
+
+        // delete unpacked wasm file
+        let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));
+        if wasm_path.exists() {
+            std::fs::remove_file(wasm_path)?;
+        }
+
+        let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
+        let idl_path_rename = generate_output_dir
+            .join(info.get_name())
+            .with_extension("did");
+        if idl_path.exists() {
+            std::fs::rename(&idl_path, &idl_path_rename)?;
+        }
+
+        Ok(idl_path_rename)
     }
 }
 
