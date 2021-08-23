@@ -333,21 +333,6 @@ impl ConfigInterface {
             .transpose()
             .map_err(|_| error_invalid_config!("Field {} is of the wrong type", field))
     }
-
-    // pub fn get_declarations_config(
-    //     &self,
-    //     canister_name: &str,
-    // ) -> DfxResult<Option<CanisterDeclarationsConfig>> {
-    //     let canister_map = (&self.canisters)
-    //         .as_ref()
-    //         .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
-
-    //     let canister_config = canister_map
-    //         .get(canister_name)
-    //         .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
-
-    //     Ok(Some(canister_config.declarations.clone()))
-    // }
 }
 
 fn add_dependencies(
