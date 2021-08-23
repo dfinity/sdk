@@ -50,6 +50,7 @@
         "type": "git"
     },
     "ic-starter-x86_64-darwin": {
+        "builtin": false,
         "rev": "3bcdc96bc8ba3717633af3ae13ad7ab22a9222a7",
         "sha256": "0v283vl13x56a2gilzxylkj98d73gbaafl0sfxindyghb9wgdkd2",
         "type": "file",
@@ -57,6 +58,7 @@
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/ic-starter.gz"
     },
     "ic-starter-x86_64-linux": {
+        "builtin": false,
         "rev": "3bcdc96bc8ba3717633af3ae13ad7ab22a9222a7",
         "sha256": "1ac390a8mhg7ps28ikx67xn94igchqs7ng0s22x62fzxz86agwsy",
         "type": "file",
@@ -84,6 +86,7 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "replica-x86_64-darwin": {
+        "builtin": false,
         "rev": "3bcdc96bc8ba3717633af3ae13ad7ab22a9222a7",
         "sha256": "0h1gilfdi7dcidb4y71ia5lpfv4vnhbr4r6jccix21cav8a92rl5",
         "type": "file",
@@ -91,6 +94,7 @@
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/replica.gz"
     },
     "replica-x86_64-linux": {
+        "builtin": false,
         "rev": "3bcdc96bc8ba3717633af3ae13ad7ab22a9222a7",
         "sha256": "08lx19ihicyr9k8y213kxja900hdv4b7nvpiw38jzc8cqnvqdcwp",
         "type": "file",
