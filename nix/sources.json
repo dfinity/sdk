@@ -40,7 +40,7 @@
     "dfinity": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "da2e149cbee5f98905e5a0126d0919be12a7c29d",
+        "rev": "3bcdc96bc8ba3717633af3ae13ad7ab22a9222a7",
         "type": "git"
     },
     "ic-ref": {
@@ -53,7 +53,7 @@
         "branch": "release",
         "repo": "https://github.com/dfinity/motoko",
         "rev": "43da0ac13e9e1930ed0a32af3428732f8c308651",
-        "tag": "0.6.5",
+        "tag": "0.6.7",
         "type": "git"
     },
     "napalm": {
