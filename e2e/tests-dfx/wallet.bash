@@ -18,6 +18,50 @@ teardown() {
     rm -rf "$x"
 }
 
+@test "DFX_WALLET_WASM environment variable overrides wallet module wasm at installation" {
+    dfx_new hello
+    dfx_start
+
+    dfx identity new alice
+    dfx identity new bob
+
+    use_wallet_wasm 0.7.0
+    assert_command dfx --identity alice identity get-wallet
+    assert_match "Using wasm at path: .*/wallet/0.7.0/wallet.wasm"
+
+    use_wallet_wasm 0.7.2
+    assert_command dfx --identity bob identity get-wallet
+    assert_match "Using wasm at path: .*/wallet/0.7.2/wallet.wasm"
+
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    BOB_WALLET=$(dfx --identity bob identity get-wallet)
+
+    assert_command dfx --identity alice canister info "$ALICE_WALLET"
+    assert_match "Module hash: 0xa609400f2576d1d6df72ce868b359fd08e1d68e58454ef17db2361d2f1c242a1"
+
+    assert_command dfx --identity bob canister info "$BOB_WALLET"
+    assert_match "Module hash: 0x1404b28b1c66491689b59e184a9de3c2be0dbdd75d952f29113b516742b7f898"
+}
+
+@test "DFX_WALLET_WASM environment variable overrides wallet module wasm for upgrade" {
+    dfx_new hello
+    dfx_start
+
+    use_wallet_wasm 0.7.0-beta.5
+
+    assert_command dfx identity get-wallet
+    WALLET_ID=$(dfx identity get-wallet)
+
+    assert_command dfx canister info "$WALLET_ID"
+    assert_match "Module hash: 0x3d5b221387875574a9fd75b3165403cf1b301650a602310e9e4229d2f6766dcc"
+
+    use_wallet_wasm 0.7.0
+    assert_command dfx wallet upgrade
+
+    assert_command dfx canister info "$WALLET_ID"
+    assert_match "Module hash: 0xa609400f2576d1d6df72ce868b359fd08e1d68e58454ef17db2361d2f1c242a1"
+}
+
 @test "'dfx identity set-wallet --force' bypasses wallet canister verification" {
     dfx_new hello
     dfx_start

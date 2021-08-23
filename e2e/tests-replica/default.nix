@@ -2,6 +2,7 @@
 , dfx ? import ../../dfx.nix { inherit pkgs; }
 , system ? builtins.currentSystem
 , use_ic_ref ? false
+, archive
 , assets
 , utils
 }:
@@ -39,6 +40,7 @@ let
           ++ lib.optional stdenv.isLinux [ glibc.bin patchelf ];
           BATSLIB = pkgs.sources.bats-support;
           USE_IC_REF = use_ic_ref;
+          archive = archive;
           assets = assets;
           utils = utils;
           test = here + "/${fileName}";
