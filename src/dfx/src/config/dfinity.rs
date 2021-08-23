@@ -68,24 +68,6 @@ pub struct CanisterDeclarationsConfig {
     pub env_override: Option<String>,
 }
 
-// fn default_output() -> PathBuf {
-//     PathBuf::from("src/declarations")
-// }
-
-// fn default_bindings() -> Vec<String> {
-//     vec!["js".to_string(), "ts".to_string(), "did".to_string()]
-// }
-
-// impl Default for CanisterDeclarationsConfig {
-//     fn default() -> Self {
-//         Self {
-//             output: default_output(),
-//             bindings: default_bindings(),
-//             env_override: None,
-//         }
-//     }
-// }
-
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
