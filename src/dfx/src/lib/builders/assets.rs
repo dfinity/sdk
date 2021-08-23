@@ -85,6 +85,8 @@ impl CanisterBuilder for AssetsBuilder {
             if file.header().entry_type().is_dir() {
                 continue;
             }
+            // See https://github.com/alexcrichton/tar-rs/issues/261
+            fs::create_dir_all(info.get_output_root())?;
             file.unpack_in(info.get_output_root())?;
         }
 
@@ -157,6 +159,8 @@ impl CanisterBuilder for AssetsBuilder {
             if file.header().entry_type().is_dir() {
                 continue;
             }
+            // See https://github.com/alexcrichton/tar-rs/issues/261
+            fs::create_dir_all(&generate_output_dir)?;
 
             file.unpack_in(generate_output_dir.clone())?;
         }
