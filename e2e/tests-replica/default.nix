@@ -5,7 +5,6 @@
 , archive
 , assets
 , utils
-, archive
 }:
 let
   inherit (pkgs) lib;
@@ -44,7 +43,6 @@ let
           archive = archive;
           assets = assets;
           utils = utils;
-          archive = archive;
           test = here + "/${fileName}";
         } ''
           export HOME=$(pwd)
