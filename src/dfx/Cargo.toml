@@ -35,7 +35,7 @@ flate2 = "1.0.11"
 futures = "0.3.5"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
-ic-types = "0.2.1"
+ic-types = "0.2.2"
 indicatif = "0.13.0"
 lazy-init = "0.5.0"
 lazy_static = "1.4.0"
@@ -76,25 +76,25 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.7.0"
+version = "0.8.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "1575546945c185f8bb4d92cd3f584d8c88234b25"
+rev = "a36c9cdb9d64caf4e99836dd8a4fcfe764fea62c"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.2.0"
+version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "1575546945c185f8bb4d92cd3f584d8c88234b25"
+rev = "a36c9cdb9d64caf4e99836dd8a4fcfe764fea62c"
 
 [dependencies.ic-identity-hsm]
-version = "0.3.4"
+version = "0.3.5"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "1575546945c185f8bb4d92cd3f584d8c88234b25"
+rev = "a36c9cdb9d64caf4e99836dd8a4fcfe764fea62c"
 
 [dependencies.ic-utils]
-version = "0.5.0"
+version = "0.6.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "1575546945c185f8bb4d92cd3f584d8c88234b25"
+rev = "a36c9cdb9d64caf4e99836dd8a4fcfe764fea62c"
 
 [dev-dependencies]
 env_logger = "0.6"
