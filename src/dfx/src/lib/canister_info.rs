@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{CanisterDeclarationsConfig, Config};
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
@@ -29,6 +29,8 @@ pub trait CanisterInfoFactory {
 pub struct CanisterInfo {
     name: String,
     canister_type: String,
+
+    declarations_config: CanisterDeclarationsConfig,
 
     workspace_root: PathBuf,
     build_root: PathBuf,
@@ -66,6 +68,18 @@ impl CanisterInfo {
 
         let canister_root = workspace_root.to_path_buf();
         let extras = canister_config.extras.clone();
+        let declarations_config_pre = canister_config.declarations.clone();
+
+        // Fill the default config values if None provided
+        let declarations_config = CanisterDeclarationsConfig {
+            output: declarations_config_pre
+                .output
+                .or_else(|| Some(PathBuf::from("src/declarations").join(name))),
+            bindings: declarations_config_pre
+                .bindings
+                .or_else(|| Some(vec!["js".to_string(), "ts".to_string(), "did".to_string()])),
+            env_override: declarations_config_pre.env_override,
+        };
 
         let output_root = build_root.join(name);
 
@@ -78,6 +92,8 @@ impl CanisterInfo {
         let canister_info = CanisterInfo {
             name: name.to_string(),
             canister_type,
+
+            declarations_config,
 
             workspace_root: workspace_root.to_path_buf(),
             build_root,
@@ -108,6 +124,9 @@ impl CanisterInfo {
     }
     pub fn get_type(&self) -> &str {
         &self.canister_type
+    }
+    pub fn get_declarations_config(&self) -> &CanisterDeclarationsConfig {
+        &self.declarations_config
     }
     pub fn get_workspace_root(&self) -> &Path {
         &self.workspace_root
