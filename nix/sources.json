@@ -40,7 +40,7 @@
   "dfinity": {
     "branch": "master",
     "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-    "rev": "57baf544e3a071ca34d66b74b8ed1e123a717bc5",
+    "rev": "9aaf2ec3b4c02d0814a1a9381004fd9d3d6791cd",
     "type": "git"
   },
   "ic-ref": {
