@@ -15,16 +15,22 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
         .is_ic
     {
         let mut waiter = Delay::builder()
-            .exponential_backoff(std::time::Duration::from_secs(1), 1.1)
-            .timeout(std::time::Duration::from_secs(60 * 5))
+            .timeout(std::time::Duration::from_secs(30))
+            .throttle(std::time::Duration::from_secs(1))
             .build();
         waiter.start();
 
         loop {
-            match agent.fetch_root_key().await {
-                Ok(()) => return Ok(()),
-                Err(fetch_err) => waiter.wait().map_err(|_|fetch_err)
-            }?;
+
+            let fetch_result = agent.fetch_root_key().await;
+            if fetch_result.is_ok() {
+                return Ok(());
+            };
+
+            let wait_result = waiter.wait();
+            if wait_result.is_err() {
+                fetch_result?;
+            };
         }
     }
     Ok(())
