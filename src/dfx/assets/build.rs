@@ -3,13 +3,40 @@ use flate2::Compression;
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+fn find_assets() -> PathBuf {
+    if let Ok(a) = env::var("DFX_ASSETS") {
+        PathBuf::from(a)
+    } else {
+        let assets_nix = PathBuf::from(format!("{}/../../assets.nix", env!("CARGO_MANIFEST_DIR")))
+            .canonicalize()
+            .expect("assets.nix doesn't exist!");
+        eprintln!("cargo:rerun-if-changed={}", assets_nix.display());
+        let assets = Command::new("nix-build")
+            .arg("--no-out-link")
+            .arg(assets_nix)
+            .output()
+            .expect("unable to run local nix-build");
+        if !assets.status.success() {
+            eprintln!("cargo:warning=unable to run nix-build:");
+            eprintln!("cargo:warning={}", String::from_utf8_lossy(&assets.stderr));
+            std::process::exit(1)
+        }
+        let path = String::from_utf8_lossy(&assets.stdout)
+            .trim_end()
+            .to_string();
+        env::set_var("DFX_ASSETS", &path);
+        PathBuf::from(path)
+    }
+}
 
 fn add_asset_archive(fn_name: &str, f: &mut File) {
     let filename_tgz = format!("{}.tgz", fn_name);
 
-    let path = env::var("DFX_ASSETS").expect("Cannot find DFX_ASSETS");
-    let prebuilt_file = Path::new(&path).join(&filename_tgz);
+    let assets_path = find_assets();
+    let prebuilt_file = assets_path.join(&filename_tgz);
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(&filename_tgz);
@@ -56,8 +83,6 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
 }
 
 fn get_git_hash() -> Option<String> {
-    use std::process::Command;
-
     let describe = Command::new("git").arg("describe").arg("--dirty").output();
 
     if let Ok(output) = describe {
