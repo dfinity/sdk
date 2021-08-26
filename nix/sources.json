@@ -37,12 +37,6 @@
         "rev": "87104afb2aa76f1cf8f6709328c1a2116f273147",
         "type": "git"
     },
-    "dfinity": {
-        "branch": "master",
-        "repo": "ssh://git@github.com/dfinity-lab/dfinity",
-        "rev": "da2e149cbee5f98905e5a0126d0919be12a7c29d",
-        "type": "git"
-    },
     "ic-ref": {
         "branch": "release-0.17",
         "repo": "ssh://git@github.com/dfinity-lab/ic-ref",
