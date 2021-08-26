@@ -23,7 +23,7 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
         loop {
             match agent.fetch_root_key().await {
                 Ok(()) => return Ok(()),
-                Err(fetch_err) => waiter.wait().map_err(|_|fetch_err)
+                Err(fetch_err) => waiter.wait().map_err(|_| fetch_err),
             }?;
         }
     }
