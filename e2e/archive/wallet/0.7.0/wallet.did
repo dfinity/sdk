@@ -1,0 +1,131 @@
+type EventKind = variant {
+  CyclesSent: record {
+    to: principal;
+    amount: nat64;
+    refund: nat64;
+  };
+  CyclesReceived: record {
+    from: principal;
+    amount: nat64;
+  };
+  AddressAdded: record {
+    id: principal;
+    name: opt text;
+    role: Role;
+  };
+  AddressRemoved: record {
+    id: principal;
+  };
+  CanisterCreated: record {
+    canister: principal;
+    cycles: nat64;
+  };
+  CanisterCalled: record {
+    canister: principal;
+    method_name: text;
+    cycles: nat64;
+  };
+  WalletDeployed: record {
+    canister: principal;
+  }
+};
+
+type Event = record {
+  id: nat32;
+  timestamp: nat64;
+  kind: EventKind;
+};
+
+type Role = variant {
+  Contact;
+  Custodian;
+  Controller;
+};
+
+type Kind = variant {
+  Unknown;
+  User;
+  Canister;
+};
+
+// An entry in the address book. It must have an ID and a role.
+type AddressEntry = record {
+  id: principal;
+  name: opt text;
+  kind: Kind;
+  role: Role;
+};
+
+type ResultCreate = variant {
+  Ok : record { canister_id: principal };
+  Err: text;
+};
+
+type ResultSend = variant {
+  Ok : null;
+  Err : text;
+};
+
+type ResultCall = variant {
+  Ok : record { return: blob };
+  Err : text;
+};
+
+type CanisterSettings = record {
+  controller: opt principal;
+  compute_allocation: opt nat;
+  memory_allocation: opt nat;
+  freezing_threshold: opt nat;
+};
+
+type CreateCanisterArgs = record {
+  cycles: nat64;
+  settings: CanisterSettings;
+};
+
+service : {
+  // Wallet Name
+  name: () -> (opt text) query;
+  set_name: (text) -> ();
+
+  // Controller Management
+  get_controllers: () -> (vec principal) query;
+  add_controller: (principal) -> ();
+  remove_controller: (principal) -> ();
+
+  // Custodian Management
+  get_custodians: () -> (vec principal) query;
+  authorize: (principal) -> ();
+  deauthorize: (principal) -> ();
+
+  // Cycle Management
+  wallet_balance: () -> (record { amount: nat64 }) query;
+  wallet_send: (record { canister: principal; amount: nat64 }) -> (ResultSend);
+  wallet_receive: () -> ();  // Endpoint for receiving cycles.
+
+  // Managing canister
+  wallet_create_canister: (CreateCanisterArgs) -> (ResultCreate);
+
+  wallet_create_wallet: (CreateCanisterArgs) -> (ResultCreate);
+
+  wallet_store_wallet_wasm: (record {
+    wasm_module: blob;
+  }) -> ();
+
+  // Call Forwarding
+  wallet_call: (record {
+    canister: principal;
+    method_name: text;
+    args: blob;
+    cycles: nat64;
+  }) -> (ResultCall);
+
+  // Address book
+  add_address: (address: AddressEntry) -> ();
+  list_addresses: () -> (vec AddressEntry) query;
+  remove_address: (address: principal) -> ();
+
+  // Events
+  get_events: (opt record { from: opt nat32; to: opt nat32; }) -> (vec Event) query;
+  get_chart: (opt record { count: opt nat32; precision: opt nat64; } ) -> (vec record { nat64; nat64; }) query;
+}

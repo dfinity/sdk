@@ -83,6 +83,10 @@ impl Canister {
     pub fn get_build_output(&self) -> Option<&BuildOutput> {
         unsafe { (&*self.output.as_ptr()).as_ref() }
     }
+
+    pub fn generate(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
+        self.builder.generate(pool, &self.info, build_config)
+    }
 }
 
 /// A canister pool is a list of canisters.
