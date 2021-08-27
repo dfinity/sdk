@@ -9,6 +9,7 @@ mod cache;
 mod canister;
 mod config;
 mod deploy;
+mod generate;
 mod identity;
 mod language_service;
 mod ledger;
@@ -29,6 +30,7 @@ pub enum Command {
     Canister(canister::CanisterOpts),
     Config(config::ConfigOpts),
     Deploy(deploy::DeployOpts),
+    Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpt),
     #[clap(name("_language-service"))]
     LanguageServices(language_service::LanguageServiceOpts),
@@ -51,6 +53,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Canister(v) => canister::exec(env, v),
         Command::Config(v) => config::exec(env, v),
         Command::Deploy(v) => deploy::exec(env, v),
+        Command::Generate(v) => generate::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
         Command::LanguageServices(v) => language_service::exec(env, v),
         Command::Ledger(v) => ledger::exec(env, v),

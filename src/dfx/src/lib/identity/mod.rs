@@ -9,7 +9,6 @@ use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
-use crate::util;
 
 use anyhow::{anyhow, bail, Context};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
@@ -28,6 +27,7 @@ use std::path::PathBuf;
 
 pub mod identity_manager;
 pub mod identity_utils;
+use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
@@ -340,15 +340,7 @@ impl Identity {
                     "Creating a wallet canister on the {} network.", network.name
                 );
 
-                let mut canister_assets = util::assets::wallet_canister()?;
-                let mut wasm = Vec::new();
-
-                for file in canister_assets.entries()? {
-                    let mut file = file?;
-                    if file.header().path()?.ends_with("wallet.wasm") {
-                        file.read_to_end(&mut wasm)?;
-                    }
-                }
+                let wasm = wallet_wasm(env.get_logger())?;
 
                 let canister_id = match some_canister_id {
                     Some(id) => id,

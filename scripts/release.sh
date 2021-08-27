@@ -111,7 +111,7 @@ validate_default_project() {
         application_canister_id=$($dfx_rc canister id hello_world)
         candid_ui_id=$($dfx_rc canister id __Candid_UI)
         export hello_world_assets_url="http://localhost:8000/?canisterId=$hello_world_assets_canister_id"
-        export candid_ui_url="http://localhost:8000/candid?canisterId=$candid_ui_id&id=$application_canister_id"
+        export candid_ui_url="http://localhost:8000/?canisterId=$candid_ui_id&id=$application_canister_id"
 
         echo
         echo "=================================================="

@@ -13,6 +13,7 @@ let
 
     utils = lib.gitOnlySource ./utils;
     assets = lib.gitOnlySource ./assets;
+    archive = lib.gitOnlySource ./archive;
   };
 in
 {
@@ -43,6 +44,7 @@ in
     USE_IC_REF = use_ic_ref;
     assets = args.assets;
     utils = args.utils;
+    archive = args.archive;
   } ''
     touch $out
   '';

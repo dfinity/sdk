@@ -187,3 +187,8 @@ setup_actuallylocal_network() {
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 }
+
+use_wallet_wasm() {
+    # shellcheck disable=SC2154
+    export DFX_WALLET_WASM="${archive}/wallet/$1/wallet.wasm"
+}
