@@ -117,8 +117,7 @@ type StreamingStrategy = variant {
 };
 
 service : {
-  // Wallet API Version
-  version: () -> (text) query;
+  wallet_api_version: () -> (text) query;
 
   // Wallet Name
   name: () -> (opt text) query;
