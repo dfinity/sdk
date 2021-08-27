@@ -15,7 +15,7 @@
   "agent-rs": {
     "branch": "ericswanson/SDK-95-update-replica",
     "repo": "https://github.com/dfinity/agent-rs",
-    "rev": "22b01940ee7b8ec01d0d1593d2bfc2876b708d97",
+    "rev": "2fb4d5c4337c5de4c05cf8f4015cb71925abab7d",
     "type": "git"
   },
   "bats-support": {
