@@ -113,7 +113,7 @@ teardown() {
 
     assert_command dfx canister create --all --controller alice
     assert_command dfx canister info e2e_project
-    assert_match "Controller: $ALICE_PRINCIPAL"
+    assert_match "Controllers: $ALICE_PRINCIPAL"
 
     assert_command_fail dfx deploy --no-wallet
     assert_command_fail dfx deploy
@@ -127,7 +127,7 @@ teardown() {
 
     assert_command dfx canister create --all --controller "${ALICE_PRINCIPAL}"
     assert_command dfx canister info e2e_project
-    assert_match "Controller: $ALICE_PRINCIPAL"
+    assert_match "Controllers: $ALICE_PRINCIPAL"
 
     assert_command_fail dfx deploy --no-wallet
     assert_command_fail dfx deploy
@@ -148,7 +148,7 @@ teardown() {
 
     dfx identity use alice
     assert_command dfx canister info e2e_project
-    assert_match "Controller: $BOB_PRINCIPAL"
+    assert_match "Controllers: $BOB_PRINCIPAL"
 
     assert_command_fail dfx deploy --no-wallet
     assert_command_fail dfx deploy
@@ -166,10 +166,10 @@ teardown() {
     assert_command dfx canister create --controller bob e2e_project_assets
 
     assert_command dfx canister info e2e_project
-    assert_match "Controller: $ALICE_PRINCIPAL"
+    assert_match "Controllers: $ALICE_PRINCIPAL"
 
     assert_command dfx canister info e2e_project_assets
-    assert_match "Controller: $BOB_PRINCIPAL"
+    assert_match "Controllers: $BOB_PRINCIPAL"
 
 
     assert_command_fail dfx --identity alice deploy e2e_project_assets
