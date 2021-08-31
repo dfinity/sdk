@@ -17,6 +17,25 @@ teardown() {
     rm -rf "$DFX_CONFIG_ROOT"
 }
 
+@test "create canister with multiple controllers" {
+    dfx_start
+    dfx identity new alice
+    dfx identity new bob
+    ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
+    BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
+
+    assert_command dfx canister create --all --controller alice --controller bob
+    assert_command dfx canister info e2e_project
+    assert_match "Controller: $ALICE_PRINCIPAL"
+    assert_match "Controller: $BOB_PRINCIPAL"
+
+    assert_command_fail dfx deploy --no-wallet
+    assert_command_fail dfx deploy
+    assert_command dfx --identity alice deploy --no-wallet
+    assert_command dfx --identity bob deploy --no-wallet
+}
+
+
 
 @test "create succeeds on default project" {
     dfx_start
