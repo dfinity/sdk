@@ -107,7 +107,7 @@ pub async fn exec(
             with_cycles,
             call_sender,
             CanisterSettings {
-                controller,
+                controllers: controller.map(|c| vec![c]),
                 compute_allocation,
                 memory_allocation,
                 freezing_threshold,
@@ -141,7 +141,7 @@ pub async fn exec(
                     with_cycles,
                     call_sender,
                     CanisterSettings {
-                        controller,
+                        controllers: controller.map(|c| vec![c]),
                         compute_allocation,
                         memory_allocation,
                         freezing_threshold,

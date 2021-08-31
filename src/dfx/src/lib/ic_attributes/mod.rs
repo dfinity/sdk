@@ -9,7 +9,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 use std::convert::TryFrom;
 
 pub struct CanisterSettings {
-    pub controller: Option<Principal>,
+    pub controllers: Option<Vec<Principal>>,
     pub compute_allocation: Option<ComputeAllocation>,
     pub memory_allocation: Option<MemoryAllocation>,
     pub freezing_threshold: Option<FreezingThreshold>,

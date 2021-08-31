@@ -63,9 +63,15 @@ pub async fn create_canister(
                 CallSender::SelectedId => {
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
-                    mgr.create_canister()
-                        .as_provisional_create_with_amount(cycles)
-                        .with_optional_controller(settings.controller)
+                    let mut builder = mgr
+                        .create_canister()
+                        .as_provisional_create_with_amount(cycles);
+                    if let Some(controllers) = settings.controllers {
+                        for controller in controllers {
+                            builder = builder.with_controller(controller);
+                        }
+                    };
+                    builder
                         .with_optional_compute_allocation(settings.compute_allocation)
                         .with_optional_memory_allocation(settings.memory_allocation)
                         .with_optional_freezing_threshold(settings.freezing_threshold)
@@ -83,7 +89,7 @@ pub async fn create_canister(
                     wallet
                         .wallet_create_canister(
                             cycles,
-                            settings.controller.map(|c| vec![c]),
+                            settings.controllers,
                             settings.compute_allocation,
                             settings.memory_allocation,
                             settings.freezing_threshold,
