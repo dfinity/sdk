@@ -128,7 +128,7 @@ teardown() {
     dfx_start
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
     BOB_WALLET=$(dfx --identity bob identity get-wallet)
-    WALLETS_SORTED=$(echo "$ALICE_WALLET" "$BOB_WALLET" | tr " " "\n" | sort | tr "\n" " ")
+    WALLETS_SORTED=$(echo "$ALICE_WALLET" "$BOB_WALLET" | tr " " "\n" | sort | tr "\n" " " ; echo)
 
     dfx canister create hello
     dfx build hello
