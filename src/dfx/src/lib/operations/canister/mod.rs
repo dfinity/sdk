@@ -19,7 +19,7 @@ use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
-use ic_utils::call::AsyncCall;
+use ic_utils::call::{AsyncCall, SyncCall};
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
@@ -150,28 +150,59 @@ pub async fn update_settings(
         canister_id: Principal,
         settings: CanisterSettings,
     }
+    let settings = CanisterSettings {
+        controller: None, // TBD! omg!
+        controllers: settings.controllers,
+        compute_allocation: settings
+            .compute_allocation
+            .map(u8::from)
+            .map(candid::Nat::from),
+        memory_allocation: settings
+            .memory_allocation
+            .map(u64::from)
+            .map(candid::Nat::from),
+        freezing_threshold: settings
+            .freezing_threshold
+            .map(u64::from)
+            .map(candid::Nat::from),
+    };
+    let settings = match call_sender {
+        CallSender::SelectedId => settings,
+        CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+            let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+            let version = wallet.wallet_api_version().call().await;
+            if version.is_ok() {
+                settings
+            } else {
+                eprintln!("error getting wallet version");
+                // todo
+                let _controller = match &settings.controllers {
+                    Some(controllers) if controllers.len() == 1 => {
+                        Some(controllers.get(0).clone().unwrap())
+                    }
+                    //Some(controllers) if controllers.len() > 1 =>
+                    _ => None,
+                };
+                settings
+            }
+
+            // match version {
+            //     Ok((Some(version))) if version == "0.1.0" => {
+            //         CanisterSettings {
+            //             ..settings
+            //         }
+            //     }
+            // }
+        }
+    };
+
     let _: () = do_management_call(
         env,
         canister_id,
         MgmtMethod::UpdateSettings.as_ref(),
         In {
             canister_id,
-            settings: CanisterSettings {
-                controller: None, // TBD! omg!
-                controllers: settings.controllers,
-                compute_allocation: settings
-                    .compute_allocation
-                    .map(u8::from)
-                    .map(candid::Nat::from),
-                memory_allocation: settings
-                    .memory_allocation
-                    .map(u64::from)
-                    .map(candid::Nat::from),
-                freezing_threshold: settings
-                    .freezing_threshold
-                    .map(u64::from)
-                    .map(candid::Nat::from),
-            },
+            settings,
         },
         timeout,
         call_sender,
