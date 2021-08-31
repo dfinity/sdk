@@ -37,7 +37,7 @@ teardown() {
 
     # Set controller using canister name and identity name
     assert_command dfx canister update-settings hello --controller "${BOB_WALLET}"
-    assert_match "Set controller of \"hello\" to: \"${BOB_WALLET}\""
+    assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
 
     # Juana is controller, Jose cannot reinstall
     assert_command_fail dfx canister install hello -m reinstall
@@ -48,15 +48,15 @@ teardown() {
     assert_command dfx identity use bob
     # Set controller using canister id and principal
     assert_command dfx canister update-settings "${ID}" --controller "${ALICE_WALLET}"
-    assert_match "Set controller of \"${ID}\" to: \"${ALICE_WALLET}\""
+    assert_match "Set controller of \"${ID}\" to: ${ALICE_WALLET}"
     assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
     assert_command dfx --identity alice canister update-settings hello --controller "${BOB_WALLET}"
-    assert_match "Set controller of \"hello\" to: \"${BOB_WALLET}\""
+    assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
 
     assert_command dfx --identity bob canister update-settings "${ID}" --controller alice
-    assert_match "Set controller of \"${ID}\" to: \"alice\""
+    assert_match "Set controller of \"${ID}\" to: alice"
 
     # Set controller using invalid principal/identity fails
     assert_command_fail dfx --identity alice canister --no-wallet update-settings hello --controller charlie
@@ -87,7 +87,7 @@ teardown() {
 
     # Set controller using canister name and identity name
     assert_command dfx canister update-settings hello --controller "${BOB_WALLET}"
-    assert_match "Set controller of \"hello\" to: \"${BOB_WALLET}\""
+    assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
 
     # Juana is controller, Jose cannot reinstall
     assert_command_fail dfx canister install hello -m reinstall
@@ -98,15 +98,15 @@ teardown() {
     assert_command dfx identity use bob
     # Set controller using canister id and principal
     assert_command dfx canister update-settings "${ID}" --controller "${ALICE_WALLET}"
-    assert_match "Set controller of \"${ID}\" to: \"${ALICE_WALLET}\""
+    assert_match "Set controller of \"${ID}\" to: ${ALICE_WALLET}"
     assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
     assert_command dfx --identity alice canister update-settings hello --controller "${BOB_WALLET}"
-    assert_match "Set controller of \"hello\" to: \"${BOB_WALLET}\""
+    assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
 
     assert_command dfx --identity bob canister update-settings "${ID}" --controller alice
-    assert_match "Set controller of \"${ID}\" to: \"alice\""
+    assert_match "Set controller of \"${ID}\" to: alice"
 
     # Set controller using invalid principal/identity fails
     assert_command_fail dfx --identity alice canister --no-wallet update-settings hello --controller charlie
