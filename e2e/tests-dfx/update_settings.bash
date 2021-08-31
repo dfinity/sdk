@@ -19,6 +19,25 @@ teardown() {
     rm -rf "$(pwd)/home-for-test"
 }
 
+@test "vs wallet 0.7.2, refuses to try to set multiple controllers" {
+    use_wallet_wasm 0.7.2
+
+    # Create two identities
+    assert_command dfx identity new alice
+    assert_command dfx identity new bob
+
+    dfx_start
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    BOB_WALLET=$(dfx --identity bob identity get-wallet)
+
+    dfx deploy hello
+    ID=$(dfx canister id hello)
+
+    # Set controller using canister name and identity name
+    assert_command_fail dfx canister update-settings hello --controller "${ALICE_WALLET}" --controller "${BOB_WALLET}"
+    assert_match "The installed wallet does not support multiple controllers.  Please upgrade with 'dfx wallet upgrade'."
+}
+
 @test "set controller with wallet" {
     # Create two identities
     assert_command dfx identity new alice
@@ -119,6 +138,37 @@ teardown() {
 
 
 @test "set multiple controllers" {
+    # Create two identities
+    assert_command dfx identity new alice
+    assert_command dfx identity new bob
+
+    assert_command dfx identity use alice
+
+    dfx_start
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    BOB_WALLET=$(dfx --identity bob identity get-wallet)
+    # awk step is to avoid trailing space
+    WALLETS_SORTED=$(echo "$ALICE_WALLET" "$BOB_WALLET" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
+
+    dfx canister create hello
+    dfx build hello
+    dfx canister install hello
+    ID=$(dfx canister id hello)
+
+    # Set controller using canister name and identity name
+    assert_command dfx canister update-settings hello --controller "${ALICE_WALLET}" --controller "${BOB_WALLET}"
+    assert_match "Set controllers of \"hello\" to: $WALLETS_SORTED"
+
+    # Both can reinstall
+    assert_command dfx --identity alice canister install hello -m reinstall
+    assert_command dfx --identity bob canister install hello -m reinstall
+
+    assert_command dfx canister info hello
+    assert_match "Controllers: ${WALLETS_SORTED}"
+}
+
+@test "set multiple controllers even with wallet 0.7.2" {
+    use_wallet_wasm 0.7.2
     # Create two identities
     assert_command dfx identity new alice
     assert_command dfx identity new bob
