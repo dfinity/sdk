@@ -15,7 +15,7 @@
     "agent-rs": {
         "branch": "ericswanson/SDK-90-canister-status-multiple-controllers",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "00b3bebe7e72e533277ab173a3d643c87d136ce3",
+        "rev": "96c4bacd39dba6a741cb79637f334ee2daa20208",
         "type": "git"
     },
     "bats-support": {
