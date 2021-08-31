@@ -1,3 +1,15 @@
+= 0.8.2
+
+== DFX
+
+=== feat!: dfx canister create --controller <controller> named parameter
+
+Breaking change: The controller parameter for `dfx canister create` is now passed as a named parameter,
+rather than optionally following the canister name.
+
+Old: dfx canister create [canister name] [controller]
+New: dfx canister create --controller <controller> [canister name]
+
 = 0.8.1
 
 == DFX

@@ -36,6 +36,7 @@ pub struct CanisterCreateOpts {
     with_cycles: Option<String>,
 
     /// Specifies the identity name or the principal of the new controller.
+    #[clap(long)]
     controller: Option<String>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
