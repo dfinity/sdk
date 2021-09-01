@@ -26,16 +26,18 @@ teardown() {
     # awk step is to avoid trailing space
     WALLETS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    assert_command dfx canister create --all --controller alice --controller bob
+    assert_command dfx --identity alice canister create --all --controller alice --controller bob
     assert_command dfx canister info e2e_project
     assert_match "Controllers: ${WALLETS_SORTED}"
 
-    assert_command dfx --identity alice canister call e2e_project_assets authorize "(principal \"$ALICE_PRINCIPAL\")"
+    assert_command dfx --identity alice deploy --no-wallet
+    assert_command_fail dfx --identity bob deploy --no-wallet
+
+    # The certified assets canister will have added alice as an authorized user, because she was the caller
+    # at initialization time.  Bob has to be added separately.  BUT, the canister has to be deployed first
+    # in order to call the authorize method.
     assert_command dfx --identity alice canister call e2e_project_assets authorize "(principal \"$BOB_PRINCIPAL\")"
 
-    assert_command_fail dfx deploy --no-wallet
-    assert_command_fail dfx deploy
-    assert_command dfx --identity alice deploy --no-wallet
     assert_command dfx --identity bob deploy --no-wallet
 }
 
