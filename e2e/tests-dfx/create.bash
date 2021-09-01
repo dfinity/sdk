@@ -30,6 +30,9 @@ teardown() {
     assert_command dfx canister info e2e_project
     assert_match "Controllers: ${WALLETS_SORTED}"
 
+    assert_command dfx --identity alice canister call e2e_project_assets authorize "(principal \"$ALICE_PRINCIPAL\")"
+    assert_command dfx --identity alice canister call e2e_project_assets authorize "(principal \"$BOB_PRINCIPAL\")"
+
     assert_command_fail dfx deploy --no-wallet
     assert_command_fail dfx deploy
     assert_command dfx --identity alice deploy --no-wallet
