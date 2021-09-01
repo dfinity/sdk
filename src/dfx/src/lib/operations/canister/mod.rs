@@ -19,7 +19,7 @@ use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
-use ic_utils::call::{AsyncCall, SyncCall};
+use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
