@@ -8,7 +8,6 @@ use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::anyhow;
-use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
@@ -93,11 +92,9 @@ pub async fn create_canister(
                             settings.compute_allocation,
                             settings.memory_allocation,
                             settings.freezing_threshold,
+                            waiter_with_timeout(timeout)
                         )
-                        .call_and_wait(waiter_with_timeout(timeout))
                         .await?
-                        .0
-                        .map_err(|err| anyhow!(err))?
                         .canister_id
                 }
             };
