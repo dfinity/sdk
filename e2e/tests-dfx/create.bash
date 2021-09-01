@@ -24,7 +24,7 @@ teardown() {
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
     # awk step is to avoid trailing space
-    WALLETS_SORTED=$(echo "ALICE_PRINCIPAL" "BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
+    WALLETS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
     assert_command dfx canister create --all --controller alice --controller bob
     assert_command dfx canister info e2e_project
