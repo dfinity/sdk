@@ -92,7 +92,7 @@ pub async fn create_canister(
                             settings.compute_allocation,
                             settings.memory_allocation,
                             settings.freezing_threshold,
-                            waiter_with_timeout(timeout)
+                            waiter_with_timeout(timeout),
                         )
                         .await?
                         .canister_id
