@@ -158,7 +158,6 @@ pub async fn update_settings(
         In {
             canister_id,
             settings: CanisterSettings {
-                controller: None,
                 controllers: settings.controllers,
                 compute_allocation: settings
                     .compute_allocation
