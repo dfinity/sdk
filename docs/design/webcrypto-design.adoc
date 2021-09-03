@@ -1,7 +1,5 @@
 = Web Crypto Design Doc
 // Author field:
-Eftychis <eftychis@dfinity.org>
-Bjoern <bjoern@dfinity.org>
 v0.1, 2020-04-15
 :draft:
 :toc:

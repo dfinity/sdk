@@ -1,6 +1,6 @@
 = FeatureTemplate Design Doc
 // Author field:
-Hans Larsen <hans@dfinity.org>
+Jonh Smith <email@email.org>
 v0.1, 2020-01-01
 :draft:
 :toc:
