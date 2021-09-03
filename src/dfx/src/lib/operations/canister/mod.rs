@@ -150,7 +150,6 @@ pub async fn update_settings(
         canister_id: Principal,
         settings: CanisterSettings,
     }
-
     let _: () = do_management_call(
         env,
         canister_id,

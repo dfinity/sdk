@@ -19,25 +19,6 @@ teardown() {
     rm -rf "$(pwd)/home-for-test"
 }
 
-#@test "vs wallet 0.7.2, refuses to try to set multiple controllers" {
-#    use_wallet_wasm 0.7.2
-#
-#    # Create two identities
-#    assert_command dfx identity new alice
-#    assert_command dfx identity new bob
-#
-#    dfx_start
-#    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
-#    BOB_WALLET=$(dfx --identity bob identity get-wallet)
-#
-#    dfx deploy hello
-#    ID=$(dfx canister id hello)
-#
-#    # Set controller using canister name and identity name
-#    assert_command_fail dfx canister update-settings hello --controller "${ALICE_WALLET}" --controller "${BOB_WALLET}"
-#    assert_match "The installed wallet does not support multiple controllers.  Please upgrade with 'dfx wallet upgrade'."
-#}
-
 @test "set controller with wallet" {
     # Create two identities
     assert_command dfx identity new alice
