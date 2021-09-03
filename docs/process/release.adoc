@@ -41,7 +41,7 @@ NOTE: If you are installing Nix for the first time, building the cache can take 
 If you don't have an account, you can go to the link:https://www.npmjs.com/[NPMJS] website and click *Sign Up* to create one using your `firstname.lastname@dfinity.org` email address.
 +
 You will need to verify your email address to complete the registration process.
-For your account to be added to the `dfinity` organization, contact Hans or Stanley.
+For your account to be added to the `dfinity` organization, contact IT
 
 === Preliminary validation
 
