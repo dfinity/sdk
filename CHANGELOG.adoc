@@ -2,6 +2,20 @@
 
 == DFX
 
+=== feat: dfx canister create now accepts multiple instances of --controller argument
+
+It is now possible to create canisters with more than one controller by
+passing multiple instances of the `--controller parameter to `dfx canister create`.
+
+You will need to upgrade your wallet with `dfx wallet upgrade`, or `dfx wallet --network ic upgrade`
+
+=== feat: dfx canister update-settings now accepts multiple instance of --controller argument
+
+It is now possible to configure a canister to have more than one controller by
+passing multiple instances of the `--controller parameter to `dfx canister update-settings`.
+
+=== feat: dfx canister info and dfx canister status now display all controllers
+
 === feat!: dfx canister create --controller <controller> named parameter
 
 Breaking change: The controller parameter for `dfx canister create` is now passed as a named parameter,
@@ -9,6 +23,15 @@ rather than optionally following the canister name.
 
 Old: dfx canister create [canister name] [controller]
 New: dfx canister create --controller <controller> [canister name]
+
+== Cycles Wallet
+
+- Module hash: <todo>>
+- https://github.com/dfinity/cycles-wallet/commit/<todo>>
+
+=== Added support for multiple controllers
+
+You will need to upgrade your wallet with `dfx wallet upgrade`, or `dfx wallet --network ic upgrade`
 
 = 0.8.1
 

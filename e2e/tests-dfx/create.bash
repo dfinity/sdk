@@ -203,7 +203,7 @@ teardown() {
     assert_match "To upgrade, run dfx wallet upgrade"
 
     use_wallet_wasm 0.8.2
-    assert_command dfx wallet upgrade
+    assert_command dfx --identity alice wallet upgrade
     assert_command dfx --identity alice canister create --all --controller alice --controller bob
 }
 
