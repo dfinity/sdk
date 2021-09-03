@@ -41,8 +41,6 @@ teardown() {
     assert_command dfx --identity bob deploy --no-wallet
 }
 
-
-
 @test "create succeeds on default project" {
     dfx_start
     assert_command dfx canister create --all
@@ -175,7 +173,6 @@ teardown() {
 
     assert_command dfx canister info e2e_project_assets
     assert_match "Controllers: $BOB_PRINCIPAL"
-
 
     assert_command_fail dfx --identity alice deploy e2e_project_assets
     assert_command_fail dfx --identity bob deploy e2e_project
