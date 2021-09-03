@@ -7,7 +7,8 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
+use ic_agent::AgentError;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
@@ -85,7 +86,7 @@ pub async fn create_canister(
                         CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
                         |amount| amount.parse::<u64>().unwrap(),
                     );
-                    wallet
+                    match wallet
                         .wallet_create_canister(
                             cycles,
                             settings.controllers,
@@ -94,8 +95,17 @@ pub async fn create_canister(
                             settings.freezing_threshold,
                             waiter_with_timeout(timeout),
                         )
-                        .await?
-                        .canister_id
+                        .await
+                    {
+                        Ok(result) => Ok(result.canister_id),
+                        Err(AgentError::WalletUpgradeRequired(s)) => {
+                            bail!(format!(
+                                "{}\nTo upgrade, run dfx wallet upgrade.",
+                                AgentError::WalletUpgradeRequired(s)
+                            ));
+                        }
+                        Err(other) => Err(other),
+                    }?
                 }
             };
             let canister_id = cid.to_text();
