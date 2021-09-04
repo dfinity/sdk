@@ -1122,6 +1122,7 @@ dependencies = [
  "mockall",
  "mockito",
  "net2",
+ "num-traits",
  "openssl",
  "pem 0.7.0",
  "petgraph",
