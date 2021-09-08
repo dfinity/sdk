@@ -34,7 +34,7 @@
     "common": {
         "branch": "nixpkgs-21.05",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "0ea41f440fb5f2e8bb5540cc80bb358f28b2b483",
+        "rev": "5066796ea9629bd68b014122bd4b680b310781be",
         "type": "git"
     },
     "ic-ref": {
