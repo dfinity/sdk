@@ -13,9 +13,7 @@ let
     } ''
       echo "Running shellcheck..."
       shellcheck --shell=sh $src/*.sh \
-        --exclude SC2039 \
-        --exclude SC2154 \
-        --exclude SC2034
+        --exclude SC2039,SC3003,SC3014,SC3043,SC2154,SC2034
 
       echo "Running shfmt..."
       shfmt -d -p -i 4 -ci -bn -s $src/*.sh
