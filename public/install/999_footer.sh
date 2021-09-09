@@ -107,11 +107,6 @@ main() {
     need_cmd gzip
     need_cmd touch
 
-    if ! confirm_license; then
-        echo "Please accept the license to continue."
-        exit
-    fi
-
     get_architecture || return 1
     local _arch="$RETVAL"
     assert_nz "$_arch" "arch"
