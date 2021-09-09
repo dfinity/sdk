@@ -1,5 +1,4 @@
 = SDK Versioning And Cache Management
-Hans Larsen <hans@dfinity.org>
 v0.1, 2019-08-29
 
 -- DRAFT
