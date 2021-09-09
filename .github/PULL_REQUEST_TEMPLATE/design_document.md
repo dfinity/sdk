@@ -13,14 +13,3 @@ docs: DESIGN DOC TEMPLATE PLEASE FILL IN
 >>>>>>> TODO: MAKE SURE EVERYONE IN THIS SECTION REMAINING BE INCLUDED AS REVIEWERS
 
 >>>>>>> NOT EVERYONE IS NEEDED. LEAVE THOSE NEEDED.
-
-- [ ] Consensus: Paul Liu
-- [ ] P2P: Hassen
-- [ ] Execution Environment: Akhi
-- [ ] Message Routing: Roman
-- [ ] Infrastructure: TBD/Maria
-- [ ] ORT: John
-- [ ] Crypto: Maria
-- [ ] SDK: Hans
-- [ ] Wasm: Maciej
-- [ ] Documentation: Lisa

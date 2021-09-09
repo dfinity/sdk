@@ -1,5 +1,4 @@
 = DFX Distribution and Installation
-Hans Larsen <hans@dfinity.org>
 v0.1, 2019-09-25
 :draft:
 :toc:
