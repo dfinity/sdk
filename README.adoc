@@ -1,8 +1,8 @@
-= The DFINITY SDK
+= DFX
 
 == Getting Started
 
-`dfx` is the command-line interface for managing your DFINITY project and the best place to start.
+`dfx` is the command-line interface for managing your Internet Computer project and the best place to start.
 
 === Installing
 
@@ -17,7 +17,7 @@ This command will install a binary compatible with your operating system, and ad
 
 ==== via GitHub Releases
 
-Find a release for your architecture https://github.com/dfinity-lab/sdk/releases[here].
+Find a release for your architecture https://github.com/dfinity/dfx/releases[here].
 
 === Getting Help
 
@@ -32,7 +32,7 @@ See our contributing guidelines link:.github/CONTRIBUTING.adoc[here].
 
 == Release Process
 
-The SDK is released in two steps:
+DFX is released in two steps:
 
 1. Publishing a new DFX release.
 
@@ -41,7 +41,7 @@ The SDK is released in two steps:
 
 === Publising DFX
 
-1. The release manager makes sure the `sdk` `stable` branch points to the revision
+1. The release manager makes sure the `dfx` `stable` branch points to the revision
    that should be released and that the revision is tagged with a version (like
    `0.5.6`).
 
