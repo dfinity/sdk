@@ -1,26 +1,31 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
+use crate::lib::operations::canister::{deposit_cycles, stop_canister, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
 use crate::util::{blob_from_arguments, expiry_duration};
-use candid::CandidType;
 use ic_utils::call::AsyncCall;
+use ic_utils::interfaces::management_canister::attributes::{
+    ComputeAllocation, FreezingThreshold, MemoryAllocation,
+};
+use ic_utils::interfaces::management_canister::CanisterStatus;
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use clap::Clap;
 use ic_types::Principal;
-use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use num_traits::cast::ToPrimitive;
 use slog::info;
+use std::convert::TryFrom;
 use std::time::Duration;
 
-const WITHDRAWL_COST: u64 = 3_000_000_000; // Emperically ~ 2B.
+const WITHDRAWL_COST: u64 = 10_000_000_000; // Emperically estimateed ~2B.
 
 /// Deletes a canister on the Internet Computer network.
 #[derive(Clap)]
@@ -35,7 +40,7 @@ pub struct CanisterDeleteOpts {
 
     /// Withdraw cycles from canister(s) to wallet before deleting.
     #[clap(long)]
-    withdraw_cycles: bool,
+    withdraw_cycles_to_wallet: Option<String>,
 }
 
 async fn delete_canister(
@@ -43,113 +48,85 @@ async fn delete_canister(
     canister: &str,
     timeout: Duration,
     call_sender: &CallSender,
-    withdraw_cycles: bool,
+    withdraw_cycles_to_wallet: Option<String>,
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
-    if withdraw_cycles {
+    if let Some(target_wallet_canister_id) = withdraw_cycles_to_wallet {
         // Get the wallet to transfer the cycles to.
-        let target_wallet_canister_id = match call_sender {
-            CallSender::SelectedId => {
-                bail!("no target wallet given for cycles.");
-            }
-            CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => *wallet_id,
-        };
+        let target_wallet_canister_id = Principal::from_text(target_wallet_canister_id)?;
         fetch_root_key_if_needed(env).await?;
 
         // Determine how many cycles we can withdraw.
         let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
         let mut cycles = status.cycles.0.to_u64().unwrap();
-        if cycles > WITHDRAWL_COST {
+        if status.status != CanisterStatus::Stopped || cycles > WITHDRAWL_COST {
             cycles = cycles - WITHDRAWL_COST;
             info!(
                 log,
                 "Beginning withdrawl of {} cycles to wallet {}.", cycles, target_wallet_canister_id
             );
 
-            // Install a temporary wallet wasm which will transfer the cycles out of the canister before it is deleted.
-            let wasm_module = wallet_wasm(env.get_logger())?;
             let agent = env
                 .get_agent()
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
             let mgr = ManagementCanister::create(agent);
             let canister_id =
                 Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+            let principal = env
+                .get_selected_identity_principal()
+                .expect("Selected identity not instantiated.");
+
+            // Set this principal to be a controller and default the other settings.
+            let settings = CanisterSettings {
+                controller: Some(principal),
+                compute_allocation: Some(ComputeAllocation::try_from(0).unwrap()),
+                memory_allocation: Some(MemoryAllocation::try_from(0).unwrap()),
+                freezing_threshold: Some(FreezingThreshold::try_from(2592000).unwrap()),
+            };
+            info!(log, "Setting the controller to identity princpal.");
+            update_settings(env, canister_id, settings, timeout, call_sender).await?;
+
+            // Install a temporary wallet wasm which will transfer the cycles out of the canister before it is deleted.
+            let wasm_module = wallet_wasm(env.get_logger())?;
             info!(
                 log,
-                "Installing temporary wasm in canister {} to enable transfer of cycles.", canister
+                "Installing temporary wallet in canister {} to enable transfer of cycles.",
+                canister
             );
             let args = blob_from_arguments(None, None, None, &None)?;
             let mode = InstallMode::Reinstall;
-            match call_sender {
-                CallSender::SelectedId => {
-                    let install_builder = mgr
-                        .install_code(&canister_id, &wasm_module)
-                        .with_raw_arg(args.to_vec())
-                        .with_mode(mode);
-                    install_builder
-                        .build()?
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await?;
-                }
-                CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                    let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
-                    let install_args = CanisterInstall {
-                        mode,
-                        canister_id,
-                        wasm_module,
-                        arg: args.to_vec(),
-                    };
-                    wallet
-                        .call_forward(
-                            mgr.update_("install_code").with_arg(install_args).build(),
-                            0,
-                        )?
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await?;
-                }
-            }
+            let install_builder = mgr
+                .install_code(&canister_id, &wasm_module)
+                .with_raw_arg(args.to_vec())
+                .with_mode(mode);
+            install_builder
+                .build()?
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
 
             // Transfer cycles from the canister to the regular wallet using the temporary wallet.
-            #[derive(CandidType)]
-            struct In {
-                canister: Principal,
-                amount: u64,
-            }
-            let source_wallet = Identity::build_wallet_canister(canister_id, env)?;
             info!(log, "Transfering cycles.");
-            let withdraw_args = In {
-                canister: target_wallet_canister_id,
-                amount: cycles,
-            };
-            match call_sender {
-                CallSender::SelectedId => {
-                    source_wallet
-                        .update_("wallet_send")
-                        .with_arg(withdraw_args)
-                        .build()
-                        .call_and_wait(waiter_with_timeout(expiry_duration()))
-                        .await?;
-                }
-                CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                    let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
-                    wallet
-                        .call_forward(
-                            source_wallet
-                                .update_("wallet_send")
-                                .with_arg(withdraw_args)
-                                .build(),
-                            0,
-                        )?
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await?;
-                }
-            }
-            info!(log, "Transfer successful.");
+            deposit_cycles(
+                env,
+                target_wallet_canister_id,
+                timeout,
+                &CallSender::Wallet(canister_id),
+                cycles,
+            )
+            .await?;
+            stop_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
         } else {
-            info!(log, "Too few cycles to withdraw: {}.", cycles);
+            if status.status != CanisterStatus::Stopped {
+                info!(
+                    log,
+                    "Canister {} must be stopped before it is deleted.", canister_id
+                );
+            } else {
+                info!(log, "Too few cycles to withdraw: {}.", cycles);
+            }
         }
     }
 
@@ -178,11 +155,25 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
-        delete_canister(env, canister, timeout, call_sender, opts.withdraw_cycles).await
+        delete_canister(
+            env,
+            canister,
+            timeout,
+            call_sender,
+            opts.withdraw_cycles_to_wallet,
+        )
+        .await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                delete_canister(env, canister, timeout, call_sender, opts.withdraw_cycles).await?;
+                delete_canister(
+                    env,
+                    canister,
+                    timeout,
+                    call_sender,
+                    opts.withdraw_cycles_to_wallet.clone(),
+                )
+                .await?;
             }
         }
         Ok(())
