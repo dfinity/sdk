@@ -118,15 +118,13 @@ async fn delete_canister(
             )
             .await?;
             stop_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
+        } else if status.status != CanisterStatus::Stopped {
+            info!(
+                log,
+                "Canister {} must be stopped before it is deleted.", canister_id
+            );
         } else {
-            if status.status != CanisterStatus::Stopped {
-                info!(
-                    log,
-                    "Canister {} must be stopped before it is deleted.", canister_id
-                );
-            } else {
-                info!(log, "Too few cycles to withdraw: {}.", cycles);
-            }
+            info!(log, "Too few cycles to withdraw: {}.", cycles);
         }
     }
 
