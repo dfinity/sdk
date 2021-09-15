@@ -38,9 +38,9 @@ pub struct CanisterDeleteOpts {
     #[clap(long, required_unless_present("canister"))]
     all: bool,
 
-    /// Withdraw cycles from canister(s) to wallet before deleting.
+    /// Withdraw cycles from canister(s) to canister/wallet before deleting.
     #[clap(long)]
-    withdraw_cycles_to_wallet: Option<String>,
+    withdraw_cycles_to_canister: Option<String>,
 }
 
 async fn delete_canister(
@@ -48,13 +48,13 @@ async fn delete_canister(
     canister: &str,
     timeout: Duration,
     call_sender: &CallSender,
-    withdraw_cycles_to_wallet: Option<String>,
+    withdraw_cycles_to_canister: Option<String>,
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
-    if let Some(target_wallet_canister_id) = withdraw_cycles_to_wallet {
+    if let Some(target_wallet_canister_id) = withdraw_cycles_to_canister {
         // Get the wallet to transfer the cycles to.
         let target_wallet_canister_id = Principal::from_text(target_wallet_canister_id)?;
         fetch_root_key_if_needed(env).await?;
@@ -158,7 +158,7 @@ pub async fn exec(
             canister,
             timeout,
             call_sender,
-            opts.withdraw_cycles_to_wallet,
+            opts.withdraw_cycles_to_canister,
         )
         .await
     } else if opts.all {
@@ -169,7 +169,7 @@ pub async fn exec(
                     canister,
                     timeout,
                     call_sender,
-                    opts.withdraw_cycles_to_wallet.clone(),
+                    opts.withdraw_cycles_to_canister.clone(),
                 )
                 .await?;
             }
