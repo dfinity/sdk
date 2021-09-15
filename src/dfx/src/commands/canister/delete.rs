@@ -54,9 +54,9 @@ async fn delete_canister(
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
-    if let Some(target_wallet_canister_id) = withdraw_cycles_to_canister {
-        // Get the wallet to transfer the cycles to.
-        let target_wallet_canister_id = Principal::from_text(target_wallet_canister_id)?;
+    if let Some(target_canister_id) = withdraw_cycles_to_canister {
+        // Get the canister to transfer the cycles to.
+        let target_canister_id = Principal::from_text(target_canister_id)?;
         fetch_root_key_if_needed(env).await?;
 
         // Determine how many cycles we can withdraw.
@@ -66,7 +66,7 @@ async fn delete_canister(
             cycles -= WITHDRAWL_COST;
             info!(
                 log,
-                "Beginning withdrawl of {} cycles to wallet {}.", cycles, target_wallet_canister_id
+                "Beginning withdrawl of {} cycles to canister {}.", cycles, target_canister_id
             );
 
             let agent = env
@@ -107,11 +107,11 @@ async fn delete_canister(
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?;
 
-            // Transfer cycles from the canister to the regular wallet using the temporary wallet.
+            // Transfer cycles from the source canister to the target canister using the temporary wallet.
             info!(log, "Transfering cycles.");
             deposit_cycles(
                 env,
-                target_wallet_canister_id,
+                target_canister_id,
                 timeout,
                 &CallSender::Wallet(canister_id),
                 cycles,
