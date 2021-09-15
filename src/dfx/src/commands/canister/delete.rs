@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{deposit_cycles, stop_canister, update_settings};
@@ -16,6 +17,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::CanisterStatus;
 
 use anyhow::anyhow;
+use candid::CandidType;
 use clap::Clap;
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -41,6 +43,10 @@ pub struct CanisterDeleteOpts {
     /// Withdraw cycles from canister(s) to canister/wallet before deleting.
     #[clap(long)]
     withdraw_cycles_to_canister: Option<String>,
+
+    /// Withdraw cycles to dank.
+    #[clap(long, conflicts_with("withdraw_cycles_to_canister"))]
+    withdraw_cycles_to_dank: bool,
 }
 
 async fn delete_canister(
@@ -49,14 +55,13 @@ async fn delete_canister(
     timeout: Duration,
     call_sender: &CallSender,
     withdraw_cycles_to_canister: Option<String>,
+    withdraw_cycles_to_dank: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
-    if let Some(target_canister_id) = withdraw_cycles_to_canister {
-        // Get the canister to transfer the cycles to.
-        let target_canister_id = Principal::from_text(target_canister_id)?;
+    if withdraw_cycles_to_dank || withdraw_cycles_to_canister.is_some() {
         fetch_root_key_if_needed(env).await?;
 
         // Determine how many cycles we can withdraw.
@@ -64,10 +69,7 @@ async fn delete_canister(
         let mut cycles = status.cycles.0.to_u64().unwrap();
         if status.status != CanisterStatus::Stopped || cycles > WITHDRAWL_COST {
             cycles -= WITHDRAWL_COST;
-            info!(
-                log,
-                "Beginning withdrawl of {} cycles to canister {}.", cycles, target_canister_id
-            );
+            info!(log, "Beginning withdrawl of {} cycles.", cycles);
 
             let agent = env
                 .get_agent()
@@ -107,16 +109,42 @@ async fn delete_canister(
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?;
 
-            // Transfer cycles from the source canister to the target canister using the temporary wallet.
-            info!(log, "Transfering cycles.");
-            deposit_cycles(
-                env,
-                target_canister_id,
-                timeout,
-                &CallSender::Wallet(canister_id),
-                cycles,
-            )
-            .await?;
+            if let Some(target_canister_id) = withdraw_cycles_to_canister {
+                // Get the canister to transfer the cycles to.
+                let target_canister_id = Principal::from_text(target_canister_id)?;
+                // Transfer cycles from the source canister to the target canister using the temporary wallet.
+                info!(log, "Transfering cycles.");
+                deposit_cycles(
+                    env,
+                    target_canister_id,
+                    timeout,
+                    &CallSender::Wallet(canister_id),
+                    cycles,
+                )
+                .await?;
+            } else {
+                #[derive(CandidType)]
+                struct In {
+                    principal: Principal,
+                }
+                let mint_args = In {
+                    principal: principal,
+                };
+                let dank_id = Principal::from_text("aanaa-xaaaa-aaaah-aaeiq-cai")?;
+                let dank = ic_utils::Canister::builder()
+                    .with_agent(
+                        env.get_agent()
+                            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
+                    )
+                    .with_canister_id(dank_id)
+                    .build()
+                    .unwrap();
+                let wallet = Identity::build_wallet_canister(canister_id, env)?;
+                wallet
+                    .call_forward(dank.update_("mint").with_arg(mint_args).build(), cycles)?
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?;
+            }
             stop_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
         } else if status.status != CanisterStatus::Stopped {
             info!(
@@ -159,6 +187,7 @@ pub async fn exec(
             timeout,
             call_sender,
             opts.withdraw_cycles_to_canister,
+            opts.withdraw_cycles_to_dank,
         )
         .await
     } else if opts.all {
@@ -170,6 +199,7 @@ pub async fn exec(
                     timeout,
                     call_sender,
                     opts.withdraw_cycles_to_canister.clone(),
+                    opts.withdraw_cycles_to_dank,
                 )
                 .await?;
             }
