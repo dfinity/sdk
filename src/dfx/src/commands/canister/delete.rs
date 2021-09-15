@@ -63,7 +63,7 @@ async fn delete_canister(
         let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
         let mut cycles = status.cycles.0.to_u64().unwrap();
         if status.status != CanisterStatus::Stopped || cycles > WITHDRAWL_COST {
-            cycles = cycles - WITHDRAWL_COST;
+            cycles -= WITHDRAWL_COST;
             info!(
                 log,
                 "Beginning withdrawl of {} cycles to wallet {}.", cycles, target_wallet_canister_id
