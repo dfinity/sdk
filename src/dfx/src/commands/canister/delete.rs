@@ -2,9 +2,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{deposit_cycles, stop_canister, update_settings};
+use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
@@ -54,11 +56,32 @@ async fn delete_canister(
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
-    if let Some(target_canister_id) = withdraw_cycles_to_canister {
-        // Get the canister to transfer the cycles to.
-        let target_canister_id = Principal::from_text(target_canister_id)?;
-        fetch_root_key_if_needed(env).await?;
 
+    // Get the canister to transfer the cycles to.
+    let target_canister_id = match withdraw_cycles_to_canister {
+        Some(target_canister_id) => Some(Principal::from_text(target_canister_id)?),
+        None => match call_sender {
+            CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+                Some(*wallet_id)
+            }
+            CallSender::SelectedId => {
+                let network = env.get_network_descriptor().unwrap();
+                let agent_env = create_agent_environment(env, Some(network.name.clone()))?;
+                let identity_name = agent_env
+                    .get_selected_identity()
+                    .expect("No selected identity.")
+                    .to_string();
+                // If there is no wallet, then do not attempt to withdraw the cycles.
+                match Identity::wallet_canister_id(env, network, &identity_name) {
+                    Ok(canister_id) => Some(canister_id),
+                    Err(_) => None,
+                }
+            }
+        },
+    };
+    fetch_root_key_if_needed(env).await?;
+
+    if let Some(target_canister_id) = target_canister_id {
         // Determine how many cycles we can withdraw.
         let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
         let mut cycles = status.cycles.0.to_u64().unwrap();
