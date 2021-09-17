@@ -106,7 +106,7 @@ async fn delete_canister(
             let settings = CanisterSettings {
                 controller: Some(principal),
                 compute_allocation: Some(ComputeAllocation::try_from(0).unwrap()),
-                memory_allocation: Some(MemoryAllocation::try_from(0).unwrap()),
+                memory_allocation: Some(MemoryAllocation::try_from(1i64 << 48).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(2592000).unwrap()),
             };
             info!(log, "Setting the controller to identity princpal.");
