@@ -28,6 +28,7 @@ use std::convert::TryFrom;
 use std::time::Duration;
 
 const WITHDRAWL_COST: u64 = 10_000_000_000; // Emperically estimateed ~2B.
+const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a canister on the Internet Computer network.
 #[derive(Clap)]
@@ -106,7 +107,7 @@ async fn delete_canister(
             let settings = CanisterSettings {
                 controller: Some(principal),
                 compute_allocation: Some(ComputeAllocation::try_from(0).unwrap()),
-                memory_allocation: Some(MemoryAllocation::try_from(1i64 << 48).unwrap()),
+                memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(2592000).unwrap()),
             };
             info!(log, "Setting the controller to identity princpal.");
