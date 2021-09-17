@@ -35,7 +35,7 @@ pub fn get_network_descriptor<'a>(
 ) -> DfxResult<NetworkDescriptor> {
     set_network_context(network);
     let config = env.get_config().unwrap_or_else(|| {
-        eprintln!("dfx.json not fouund, using default.");
+        eprintln!("dfx.json not found, using default.");
         Arc::new(Config::from_str("{}").unwrap())
     });
     let config = config.as_ref().get_config();

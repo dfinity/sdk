@@ -25,7 +25,7 @@ teardown() {
     cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     assert_command_fail dfx build
-    assert_match "Cannot find configuration file in the current working directory"
+    assert_match "dfx.json not found, using default"
 
     dfx new t --no-frontend
     cd t
