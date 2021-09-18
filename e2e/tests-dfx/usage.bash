@@ -25,7 +25,7 @@ teardown() {
     cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     assert_command_fail dfx build
-    assert_match "must be run in a project"
+    assert_match "dfx.json not found, using default"
 
     dfx new t --no-frontend
     cd t
