@@ -5,7 +5,9 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
-use crate::lib::operations::canister::{deposit_cycles, stop_canister, update_settings};
+use crate::lib::operations::canister::{
+    deposit_cycles, start_canister, stop_canister, update_settings,
+};
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
@@ -57,6 +59,7 @@ async fn delete_canister(
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+    let mut call_sender = call_sender;
 
     // Get the canister to transfer the cycles to.
     let target_canister_id = match withdraw_cycles_to_canister {
@@ -86,7 +89,7 @@ async fn delete_canister(
         // Determine how many cycles we can withdraw.
         let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
         let mut cycles = status.cycles.0.to_u64().unwrap();
-        if status.status != CanisterStatus::Stopped || cycles > WITHDRAWL_COST {
+        if status.status == CanisterStatus::Stopped && cycles > WITHDRAWL_COST {
             cycles -= WITHDRAWL_COST;
             info!(
                 log,
@@ -131,6 +134,7 @@ async fn delete_canister(
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?;
 
+            start_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
             // Transfer cycles from the source canister to the target canister using the temporary wallet.
             info!(log, "Transfering cycles.");
             deposit_cycles(
@@ -142,6 +146,7 @@ async fn delete_canister(
             )
             .await?;
             stop_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
+            call_sender = &CallSender::SelectedId;
         } else if status.status != CanisterStatus::Stopped {
             info!(
                 log,
