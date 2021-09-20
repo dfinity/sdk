@@ -20,7 +20,6 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::CanisterStatus;
 
 use anyhow::anyhow;
-use candid::CandidType;
 use clap::Clap;
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -174,13 +173,6 @@ async fn delete_canister(
                     log,
                     "Transfering {} cycles to dank principal {}.", cycles, dank_target_principal
                 );
-                #[derive(CandidType)]
-                struct In {
-                    principal: Option<Principal>,
-                }
-                let mint_args = In {
-                    principal: Some(dank_target_principal),
-                };
                 let dank = ic_utils::Canister::builder()
                     .with_agent(
                         env.get_agent()
@@ -190,8 +182,9 @@ async fn delete_canister(
                     .build()
                     .unwrap();
                 let wallet = Identity::build_wallet_canister(canister_id, env)?;
+                let opt_principal = Some(dank_target_principal);
                 wallet
-                    .call_forward(dank.update_("mint").with_arg(mint_args).build(), cycles)?
+                    .call_forward(dank.update_("mint").with_arg(opt_principal).build(), cycles)?
                     .call_and_wait(waiter_with_timeout(timeout))
                     .await?;
             }
