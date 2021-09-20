@@ -2,7 +2,6 @@
 :toc2:
 
 // Author field:
-Eftychios Theodorakis <eftychis@dfinity.org>
 
 v0.1, 2020-03-24
 
@@ -47,7 +46,7 @@ This design answers the following questions:
 ////
 
 
-- [ ] SDK: Hans, Stanley, Bjoern
+- [ ] SDK:
 
 
 == Background
@@ -535,8 +534,8 @@ N/A.
 How will this feature be documented? Which people need to be involved?
 ////
 
-Critical Stake-holders: Lisa, Alexa
-Stake-holders: Stanley, Eftychis
+Critical Stake-holders: 
+Stake-holders: 
 Interested Parties: (feel free to add your name)
 
 This feature should be split into smaller passes and documented
