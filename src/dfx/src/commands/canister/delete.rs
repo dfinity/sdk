@@ -157,7 +157,7 @@ async fn delete_canister(
             if !to_dank {
                 info!(
                     log,
-                    "Transfering {} cycles to canister {}.", cycles, canister_id
+                    "Transfering {} cycles to canister {}.", cycles, target_canister_id
                 );
                 // Transfer cycles from the source canister to the target canister using the temporary wallet.
                 deposit_cycles(
