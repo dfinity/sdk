@@ -10,7 +10,7 @@ export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
  *
  * @param {string | import("@dfinity/principal").Principal} canisterId Canister ID of Agent
  * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig} | { agent?: import("@dfinity/agent").Agent; actorOptions?: import("@dfinity/agent").ActorConfig }} [options]
- * @return {import("@dfinity/agent").ActorSubclass<import("./canvas_backend.did.js")._SERVICE>}
+ * @return {import("@dfinity/agent").ActorSubclass<import("./{canister_name}.did.js")._SERVICE>}
  */
  export const createActor = (canisterId, options) => {
   const agent = options.agent || new HttpAgent({ ...options?.agentOptions });
