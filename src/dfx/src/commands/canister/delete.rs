@@ -108,7 +108,7 @@ async fn delete_canister(
 
             // Set this principal to be a controller and default the other settings.
             let settings = CanisterSettings {
-                controller: Some(principal),
+                controllers: Some(vec![principal]),
                 compute_allocation: Some(ComputeAllocation::try_from(0).unwrap()),
                 memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(2592000).unwrap()),
