@@ -47,7 +47,6 @@ impl ShutdownController {
 
     // This is copied with minor changes from
     //   https://github.com/getsentry/relay/blob/master/relay-server/src/actors/controller.rs
-    // any concerns about license stuff?
     pub fn shutdown(&mut self, ctx: &mut Context<Self>) {
         use actix::prelude::*;
         use futures::prelude::*;

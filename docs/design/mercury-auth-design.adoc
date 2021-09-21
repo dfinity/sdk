@@ -1,6 +1,5 @@
 = Mercury Request Authentication Design Doc
 // Author field:
-Bjoern Tackmann <bjoern@dfinity.org>
 v0.1, 2020-10-20
 :draft:
 :toc:
@@ -64,7 +63,7 @@ After the authorization is complete, the user interacts with the canister using 
 When a user interacts with a canister on a device where they used the same canister before, the front page shows an option to "sign in".
 When the user selects this option, the user interacts with the canister using the IC identity.
 
-TODO: Ben, can you add something about the expected developer experience?
+TODO: can you add something about the expected developer experience?
 
 == Prior Art
 
@@ -241,7 +240,7 @@ pub fn confabulate(spline: &mut [&Spline], polarity: bool) -> Result<(), Error> 
 It's important to avoid implementations here and speak in general terms.
 ////
 
-TODO: Ben, can you fill this in?
+TODO: can you fill this in?
 
 === Prototype
 ////
@@ -342,7 +341,7 @@ How will this feature be documented? Which people need to be involved?
 
 The interaction between agent and IC, including the exact formats, is documented in the https://docs.dfinity.systems/dfinity/spec/public/index.html[public spec].
 
-TODO: Ben, how will we document the new authentication library for developers?
+TODO: how will we document the new authentication library for developers?
 
 TODO: We certainly have to put up documentation explaining the master key and the identity manager to end users.
 
