@@ -25,7 +25,6 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
         waiter.start();
 
         loop {
-
             let fetch_result = agent.fetch_root_key().await;
             if fetch_result.is_ok() {
                 return Ok(());
