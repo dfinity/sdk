@@ -18,10 +18,6 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
             .exponential_backoff(std::time::Duration::from_secs(1), 2.0)
             .timeout(std::time::Duration::from_secs(60 * 5))
             .build();
-        // let mut waiter = Delay::builder()
-        //     .timeout(std::time::Duration::from_secs(30))
-        //     .throttle(std::time::Duration::from_secs(1))
-        //     .build();
         waiter.start();
 
         loop {
