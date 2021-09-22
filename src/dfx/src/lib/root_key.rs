@@ -14,6 +14,7 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
         .expect("no network descriptor")
         .is_ic
     {
+        // retest (1)
         let mut waiter = Delay::builder()
             .exponential_backoff(std::time::Duration::from_secs(1), 2.0)
             .timeout(std::time::Duration::from_secs(60 * 5))
