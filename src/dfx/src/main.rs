@@ -113,13 +113,13 @@ fn main() {
                     .with_identity_override(identity)
             }) {
                 Ok(env) => {
-                slog::trace!(
-                    env.get_logger(),
-                    "Trace mode enabled. Lots of logs coming up."
-                );
-                commands::exec(&env, command)
+                    slog::trace!(
+                        env.get_logger(),
+                        "Trace mode enabled. Lots of logs coming up."
+                    );
+                    commands::exec(&env, command)
                 }
-                Err(e) => Err(e),    
+                Err(e) => Err(e),
             }
         }
         Err(e) => Err(e),
