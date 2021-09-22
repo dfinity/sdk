@@ -1,7 +1,6 @@
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
-use crate::lib::telemetry::witness_telemetry_consent;
 
 use clap::{AppSettings, Clap};
 use semver::Version;
@@ -114,13 +113,13 @@ fn main() {
                     .with_identity_override(identity)
             }) {
                 Ok(env) => {
-                    slog::trace!(
-                        env.get_logger(),
-                        "Trace mode enabled. Lots of logs coming up."
-                    );
-                    witness_telemetry_consent().and_then(|()| commands::exec(&env, command))
+                slog::trace!(
+                    env.get_logger(),
+                    "Trace mode enabled. Lots of logs coming up."
+                );
+                commands::exec(&env, command)
                 }
-                Err(e) => Err(e),
+                Err(e) => Err(e),    
             }
         }
         Err(e) => Err(e),
