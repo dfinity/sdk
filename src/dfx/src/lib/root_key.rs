@@ -50,15 +50,20 @@ async fn wait_for_status_healthy(agent: &Agent) -> DfxResult {
     waiter.start();
 
     loop {
-        if let Ok(status) = agent.status().await {
-            if let Some(v) = status.values.get("replica_health_status") {
-                if let Value::String(s) = v.as_ref() {
-                    let s = s.to_owned();
-                    if s == "healthy" {
-                        return Ok(());
+        match agent.status().await {
+            Ok(status) => match status.values.get("replica_health_status") {
+                Some(v) => {
+                    if let Value::String(s) = v.as_ref() {
+                        let s = s.to_owned();
+                        if s == "healthy" {
+                            return Ok(());
+                        }
+                    } else {
                     }
                 }
-            }
+                None => {}
+            },
+            Err(_) => {}
         }
         if waiter.wait().is_err() {
             bail!("replica did not become healthy in time");
