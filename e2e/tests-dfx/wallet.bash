@@ -3,8 +3,7 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    standard_setup
 
     # Each test gets its own home directory in order to have its own identities.
     x=$(pwd)/home-for-test
@@ -14,8 +13,8 @@ setup() {
 
 teardown() {
     dfx_stop
-    x=$(pwd)/home-for-test
-    rm -rf "$x"
+
+    standard_teardown
 }
 
 @test "DFX_WALLET_WASM environment variable overrides wallet module wasm at installation" {
@@ -81,7 +80,7 @@ teardown() {
     assert_not_match "Setting wallet for identity"
     assert_command dfx identity --network actuallylocal set-wallet --force "${ID}"
     assert_match "Setting wallet for identity 'default' on network 'actuallylocal' to id '$ID'"
-    assert_command jq -r .identities.default.actuallylocal <"$HOME"/.config/dfx/identity/default/wallets.json
+    assert_command jq -r .identities.default.actuallylocal <"$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
     assert_eq "$ID"
 }
 
@@ -100,13 +99,13 @@ teardown() {
     dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
     dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
 
-    rm "$HOME"/.config/dfx/identity/default/wallets.json
+    rm "$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
 
     assert_command_fail dfx identity set-wallet "${ID}"
     assert_not_match "Setting wallet for identity"
     assert_command dfx identity --network ic set-wallet "${ID}"
     assert_match "Setting wallet for identity 'default' on network 'ic' to id '$ID'"
-    assert_command jq -r .identities.default.ic <"$HOME"/.config/dfx/identity/default/wallets.json
+    assert_command jq -r .identities.default.ic <"$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
     assert_eq "$ID"
 }
 
@@ -127,7 +126,7 @@ teardown() {
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
-    rm "$HOME"/.config/dfx/identity/default/wallets.json
+    rm "$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
 
     assert_command dfx identity --network actuallylocal deploy-wallet "${ID}"
     GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)

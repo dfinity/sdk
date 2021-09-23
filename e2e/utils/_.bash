@@ -11,6 +11,18 @@ install_asset() {
     [ -f ./patch.bash ] && source ./patch.bash
 }
 
+standard_setup() {
+    # We want to work from a temporary directory, different for every test.
+    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
+    cd "$x" || exit
+    export DFX_CONFIG_ROOT="$x"
+    export RUST_BACKTRACE=1
+}
+
+standard_teardown() {
+  rm -rf "$DFX_CONFIG_ROOT"
+}
+
 dfx_new_frontend() {
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --frontend

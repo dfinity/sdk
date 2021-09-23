@@ -3,14 +3,13 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    x=$(mktemp -d -t dfx-identity-home-XXXXXXXX)
-    export TEMPORARY_HOME="$x"
+    standard_setup
+    export TEMPORARY_HOME="$DFX_CONFIG_ROOT"
     export HOME="$TEMPORARY_HOME"
 }
 
 teardown() {
-    rm -rf "$TEMPORARY_HOME"
+    standard_teardown
 }
 
 ##

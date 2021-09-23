@@ -3,18 +3,13 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
-    export RUST_BACKTRACE=1
-
-    # Each test gets a fresh cache directory
-    mkdir -p "$(pwd)"/cache-roots
-    x=$(mktemp -d "$(pwd)"/cache-roots/cache-XXXXXXXX)
-    export HOME="$x"
+    standard_setup
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "dfx cache show does not install the dfx version into the cache" {

@@ -3,18 +3,14 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    x=$(mktemp -d -t dfx-usage-env-home-XXXXXXXX)
-    export TEMPORARY_HOME=$x
+    standard_setup
+
+    export TEMPORARY_HOME="$DFX_CONFIG_ROOT"
     export HOME=$TEMPORARY_HOME
-    x=$(mktemp -d -t dfx-usage-env-config-root-XXXXXXXX)
-    export CONFIG_ROOT=$x
-    export DFX_CONFIG_ROOT=$CONFIG_ROOT
 }
 
 teardown() {
-    rm -rf "$CONFIG_ROOT"
-    rm -rf "$TEMPORARY_HOME"
+    standard_teardown
 }
 
 @test "dfx config root env var stores identity & cache" {

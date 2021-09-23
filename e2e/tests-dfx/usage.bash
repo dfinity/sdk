@@ -1,10 +1,17 @@
 load ../utils/_
 
-teardown() {
-    dfx_stop
+setup() {
+    standard_setup
 }
 
-@test "dfx help succeeds" {
+teardown() {
+    dfx_stop
+
+    standard_teardown
+}
+
+@test "dfx help succeeds"
+} {
   dfx --help
 }
 
@@ -21,8 +28,6 @@ teardown() {
 }
 
 @test "returns the right error if not in a project" {
-    # Make sure we're in an empty directory.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
 
     assert_command_fail dfx build
     assert_match "dfx.json not found, using default"
