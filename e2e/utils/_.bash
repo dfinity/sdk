@@ -92,6 +92,11 @@ dfx_start() {
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
+
+    [ "$USE_IC_REF" ] || timeout 15s sh -c \
+        'until dfx ping | grep healthy; do echo waiting for replica to become healthy; sleep 1; done' \
+        || (echo "replica did not become healthy" && exit 1)
+
 }
 
 # Start the replica in the background.
