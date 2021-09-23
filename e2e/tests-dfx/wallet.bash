@@ -4,11 +4,6 @@ load ../utils/_
 
 setup() {
     standard_setup
-
-    # Each test gets its own home directory in order to have its own identities.
-    x=$(pwd)/home-for-test
-    mkdir "$x"
-    export HOME="$x"
 }
 
 teardown() {

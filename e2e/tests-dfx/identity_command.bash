@@ -4,8 +4,6 @@ load ../utils/_
 
 setup() {
     standard_setup
-    export TEMPORARY_HOME="$DFX_CONFIG_ROOT"
-    export HOME="$TEMPORARY_HOME"
 }
 
 teardown() {
@@ -65,7 +63,7 @@ teardown() {
     assert_command dfx identity new alice
     assert_match 'Creating identity: "alice".' "$stderr"
     assert_match 'Created identity: "alice".' "$stderr"
-    assert_command head "$HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
 
     # does not change the default identity
@@ -85,9 +83,9 @@ teardown() {
 
 @test "identity new: create an HSM-backed identity" {
     assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
-    assert_command jq -r .hsm.pkcs11_lib_path "$HOME/.config/dfx/identity/bob/identity.json"
+    assert_command jq -r .hsm.pkcs11_lib_path "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"
     assert_eq "/something/else/somewhere.so"
-    assert_command jq -r .hsm.key_id "$HOME/.config/dfx/identity/bob/identity.json"
+    assert_command jq -r .hsm.key_id "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"
     assert_eq "abcd4321"
 }
 
@@ -106,10 +104,10 @@ teardown() {
 ##
 
 @test "identity remove: can remove an identity that exists" {
-    assert_command_fail head "$HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command_fail head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_command dfx identity new alice
 
-    assert_command head "$HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
     assert_command dfx identity list
     assert_match 'alice anonymous default'
@@ -117,7 +115,7 @@ teardown() {
     assert_command dfx identity remove alice
     assert_match 'Removing identity "alice".' "$stderr"
     assert_match 'Removed identity "alice".' "$stderr"
-    assert_command_fail cat "$HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 
     assert_command dfx identity list
     assert_match 'default'
@@ -132,7 +130,7 @@ teardown() {
     assert_command dfx identity use alice
     assert_command_fail dfx identity remove alice
 
-    assert_command head "$HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
     assert_command dfx identity list
     assert_match 'alice anonymous default'
@@ -151,14 +149,14 @@ teardown() {
 
 @test "identity remove: can remove an HSM-backed identity" {
     assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
-    assert_command jq -r .hsm.pkcs11_lib_path "$HOME/.config/dfx/identity/bob/identity.json"
+    assert_command jq -r .hsm.pkcs11_lib_path "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"
     assert_eq "/something/else/somewhere.so"
-    assert_command jq -r .hsm.key_id "$HOME/.config/dfx/identity/bob/identity.json"
+    assert_command jq -r .hsm.key_id "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"
     assert_eq "abcd4321"
-    assert_command ls "$HOME/.config/dfx/identity/bob"
+    assert_command ls "$DFX_CONFIG_ROOT/.config/dfx/identity/bob"
 
     assert_command dfx identity remove bob
-    assert_command_fail ls "$HOME/.config/dfx/identity/bob"
+    assert_command_fail ls "$DFX_CONFIG_ROOT/.config/dfx/identity/bob"
 }
 
 ##
@@ -169,9 +167,9 @@ teardown() {
     assert_command dfx identity new alice
     assert_command dfx identity list
     assert_match 'alice anonymous default'
-    assert_command head "$HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
-    x=$(cat "$HOME/.config/dfx/identity/alice/identity.pem")
+    x=$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem")
     local key="$x"
 
     assert_command dfx identity rename alice bob
@@ -180,10 +178,10 @@ teardown() {
 
     assert_command dfx identity list
     assert_match 'anonymous bob default'
-    assert_command cat "$HOME/.config/dfx/identity/bob/identity.pem"
-    assert_eq "$key" "$(cat "$HOME/.config/dfx/identity/bob/identity.pem")"
+    assert_command cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
+    assert_eq "$key" "$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem")"
     assert_match "BEGIN PRIVATE KEY"
-    assert_command_fail cat "$HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 }
 
 @test "identity rename: can rename the default identity, which also changes the default" {
@@ -192,7 +190,7 @@ teardown() {
     assert_command dfx identity rename default bob
     assert_command dfx identity list
     assert_match 'bob'
-    assert_command head "$HOME/.config/dfx/identity/bob/identity.pem"
+    assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
 
     assert_command dfx identity whoami
@@ -212,9 +210,9 @@ teardown() {
     assert_command dfx identity whoami
     assert_eq 'charlie'
 
-    assert_command head "$HOME/.config/dfx/identity/charlie/identity.pem"
+    assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/charlie/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
-    assert_command_fail cat "$HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 }
 
 @test "identity rename: cannot create an anonymous identity via rename" {
@@ -227,11 +225,11 @@ teardown() {
     skip "Need to instantiate identity when renaming so skipping until we have an hsm mock"
     assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
     assert_command dfx identity rename bob alice
-    assert_command_fail ls "$HOME/.config/dfx/identity/bob"
+    assert_command_fail ls "$DFX_CONFIG_ROOT/.config/dfx/identity/bob"
 
-    assert_command jq -r .hsm.pkcs11_lib_path "$HOME/.config/dfx/identity/alice/identity.json"
+    assert_command jq -r .hsm.pkcs11_lib_path "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.json"
     assert_eq "/something/else/somewhere.so"
-    assert_command jq -r .hsm.key_id "$HOME/.config/dfx/identity/alice/identity.json"
+    assert_command jq -r .hsm.key_id "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.json"
     assert_eq "abcd4321"
 }
 
@@ -320,21 +318,21 @@ teardown() {
 ##
 ## Identity key migration
 ##
-@test "identity manager copies existing key from ~/.dfinity/identity/creds.pem" {
+@test "identity manager copies existing key from $DFX_CONFIG_ROOT/.dfinity/identity/creds.pem" {
     assert_command dfx identity whoami
-    assert_command mkdir -p "$TEMPORARY_HOME/.dfinity/identity"
-    assert_command mv "$TEMPORARY_HOME/.config/dfx/identity/default/identity.pem" "$TEMPORARY_HOME/.dfinity/identity/creds.pem"
-    ORIGINAL_KEY=$(cat "$TEMPORARY_HOME/.dfinity/identity/creds.pem")
-    assert_command rmdir "$TEMPORARY_HOME/.config/dfx/identity/default"
-    assert_command rmdir "$TEMPORARY_HOME/.config/dfx/identity"
-    assert_command rm "$TEMPORARY_HOME/.config/dfx/identity.json"
-    assert_command rmdir "$TEMPORARY_HOME/.config/dfx"
-    assert_command rmdir "$TEMPORARY_HOME/.config"
+    assert_command mkdir -p "$DFX_CONFIG_ROOT/.dfinity/identity"
+    assert_command mv "$DFX_CONFIG_ROOT/.config/dfx/identity/default/identity.pem" "$DFX_CONFIG_ROOT/.dfinity/identity/creds.pem"
+    ORIGINAL_KEY=$(cat "$DFX_CONFIG_ROOT/.dfinity/identity/creds.pem")
+    assert_command rmdir "$DFX_CONFIG_ROOT/.config/dfx/identity/default"
+    assert_command rmdir "$DFX_CONFIG_ROOT/.config/dfx/identity"
+    assert_command rm "$DFX_CONFIG_ROOT/.config/dfx/identity.json"
+    assert_command rmdir "$DFX_CONFIG_ROOT/.config/dfx"
+    assert_command rmdir "$DFX_CONFIG_ROOT/.config"
 
     assert_command dfx identity whoami
 
     assert_match "migrating key from"
-    assert_eq "$(cat "$TEMPORARY_HOME"/.config/dfx/identity/default/identity.pem)" "$ORIGINAL_KEY"
+    assert_eq "$(cat "$DFX_CONFIG_ROOT"/.config/dfx/identity/default/identity.pem)" "$ORIGINAL_KEY"
 }
 
 @test "identity: import" {
@@ -342,22 +340,22 @@ teardown() {
     assert_command dfx identity import alice identity.pem
     assert_match 'Creating identity: "alice".' "$stderr"
     assert_match 'Created identity: "alice".' "$stderr"
-    assert_command diff identity.pem "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command diff identity.pem "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
 }
 
 @test "identity: import default" {
     assert_command dfx identity new alice
-    assert_command dfx identity import bob "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem"
+    assert_command dfx identity import bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match 'Creating identity: "bob".' "$stderr"
     assert_match 'Created identity: "bob".' "$stderr"
-    assert_command diff "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem" "$TEMPORARY_HOME/.config/dfx/identity/bob/identity.pem"
+    assert_command diff "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_eq ""
 }
 
 @test "identity: cannot import invalid PEM file" {
     assert_command dfx identity new alice
-    assert_command cp "$TEMPORARY_HOME/.config/dfx/identity/alice/identity.pem" ./alice.pem
+    assert_command cp "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" ./alice.pem
     # Following 3 lines manipulate the pem file so that it will be invalid
     head -n 1 alice.pem > bob.pem
     echo -n 1 >> bob.pem

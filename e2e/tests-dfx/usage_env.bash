@@ -5,11 +5,16 @@ load ../utils/_
 setup() {
     standard_setup
 
-    export TEMPORARY_HOME="$DFX_CONFIG_ROOT"
-    export HOME=$TEMPORARY_HOME
+    # these tests compare behavior when DFX_CONFIG_ROOT is and is not set,
+    # so we need a separate unique home directory.
+    x=$(mktemp -d -t dfx-usage-env-home-XXXXXXXX)
+    export TEMPORARY_HOME="$x"
+    export HOME="$TEMPORARY_HOME"
 }
 
 teardown() {
+    rm -rf "$TEMPORARY_HOME"
+
     standard_teardown
 }
 
@@ -30,17 +35,20 @@ teardown() {
     assert_command_fail ls "$HOME/.cache/dfinity/versions"
     rm -rf hello
 
-    # remove configured variable, should use $HOME now
-    unset DFX_CONFIG_ROOT
+    (
+        # use subshell to retain $DFX_CONFIG_ROOT for teardown
+        # remove configured variable, should use $HOME now
+        unset DFX_CONFIG_ROOT
 
-    dfx identity new bob
-    assert_command head "$HOME/.config/dfx/identity/bob/identity.pem"
-    assert_command head "$HOME/.config/dfx/identity/default/identity.pem"
+        dfx identity new bob
+        assert_command head "$HOME/.config/dfx/identity/bob/identity.pem"
+        assert_command head "$HOME/.config/dfx/identity/default/identity.pem"
 
-    #cache
-    # create a new project to install dfx cache
-    assert_command_fail ls "$HOME/.cache/dfinity/versions"
-    dfx new hello
-    assert_command ls "$HOME/.cache/dfinity/versions"
-    rm -rf hello
+        #cache
+        # create a new project to install dfx cache
+        assert_command_fail ls "$HOME/.cache/dfinity/versions"
+        dfx new hello
+        assert_command ls "$HOME/.cache/dfinity/versions"
+        rm -rf hello
+    )
 }
