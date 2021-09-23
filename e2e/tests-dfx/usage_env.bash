@@ -4,17 +4,9 @@ load ../utils/_
 
 setup() {
     standard_setup
-
-    # these tests compare behavior when DFX_CONFIG_ROOT is and is not set,
-    # so we need a separate unique home directory.
-    x=$(mktemp -d -t dfx-usage-env-home-XXXXXXXX)
-    export TEMPORARY_HOME="$x"
-    export HOME="$TEMPORARY_HOME"
 }
 
 teardown() {
-    rm -rf "$TEMPORARY_HOME"
-
     standard_teardown
 }
 

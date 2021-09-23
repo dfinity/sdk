@@ -14,13 +14,21 @@ install_asset() {
 standard_setup() {
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
-    cd "$x" || exit
-    export DFX_CONFIG_ROOT="$x"
+    export DFX_E2E_TEMP_DIR="$x"
+
+    mkdir "$x/working-dir"
+    mkdir "$x/config-root"
+    mkdir "$x/home-dir"
+
+    cd "$x/working-dir" || exit
+
+    export HOME="$x/home-dir"
+    export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
 }
 
 standard_teardown() {
-  rm -rf "$DFX_CONFIG_ROOT"
+    rm -rf "$DFX_E2E_TEMP_DIR"
 }
 
 dfx_new_frontend() {
