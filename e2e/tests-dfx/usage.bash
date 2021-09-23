@@ -10,8 +10,7 @@ teardown() {
     standard_teardown
 }
 
-@test "dfx help succeeds"
-} {
+@test "dfx help succeeds" {
   dfx --help
 }
 
