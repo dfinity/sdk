@@ -3,16 +3,13 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a different temporary directory for every test.
-    x=$(mktemp -d -t dfx-identity-home-XXXXXXXX)
-    export TEMPORARY_HOME="$x"
-    export HOME="$TEMPORARY_HOME"
-    cd "$HOME" || exit
+    standard_setup
 }
 
 teardown() {
     dfx_stop
-    rm -rf "$TEMPORARY_HOME"
+
+    standard_teardown
 }
 
 @test "can call a canister using a secp256k1 identity" {

@@ -3,18 +3,15 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a different temporary directory for every test.
-    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
-    export TEMPORARY_HOME="$x"
-    export HOME="$TEMPORARY_HOME"
-    cd "$TEMPORARY_HOME" || exit
+    standard_setup
 
     dfx_new hello
 }
 
 teardown() {
     dfx_stop_replica_and_bootstrap
-    rm -rf "$TEMPORARY_HOME"
+
+    standard_teardown
 }
 
 @test "bootstrap fetches candid file" {

@@ -3,18 +3,11 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    x=$(mktemp -d -t dfx-usage-env-home-XXXXXXXX)
-    export TEMPORARY_HOME=$x
-    export HOME=$TEMPORARY_HOME
-    x=$(mktemp -d -t dfx-usage-env-config-root-XXXXXXXX)
-    export CONFIG_ROOT=$x
-    export DFX_CONFIG_ROOT=$CONFIG_ROOT
+    standard_setup
 }
 
 teardown() {
-    rm -rf "$CONFIG_ROOT"
-    rm -rf "$TEMPORARY_HOME"
+    standard_teardown
 }
 
 @test "dfx config root env var stores identity & cache" {
@@ -34,17 +27,20 @@ teardown() {
     assert_command_fail ls "$HOME/.cache/dfinity/versions"
     rm -rf hello
 
-    # remove configured variable, should use $HOME now
-    unset DFX_CONFIG_ROOT
+    (
+        # use subshell to retain $DFX_CONFIG_ROOT for teardown
+        # remove configured variable, should use $HOME now
+        unset DFX_CONFIG_ROOT
 
-    dfx identity new bob
-    assert_command head "$HOME/.config/dfx/identity/bob/identity.pem"
-    assert_command head "$HOME/.config/dfx/identity/default/identity.pem"
+        dfx identity new bob
+        assert_command head "$HOME/.config/dfx/identity/bob/identity.pem"
+        assert_command head "$HOME/.config/dfx/identity/default/identity.pem"
 
-    #cache
-    # create a new project to install dfx cache
-    assert_command_fail ls "$HOME/.cache/dfinity/versions"
-    dfx new hello
-    assert_command ls "$HOME/.cache/dfinity/versions"
-    rm -rf hello
+        #cache
+        # create a new project to install dfx cache
+        assert_command_fail ls "$HOME/.cache/dfinity/versions"
+        dfx new hello
+        assert_command ls "$HOME/.cache/dfinity/versions"
+        rm -rf hello
+    )
 }

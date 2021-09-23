@@ -24,6 +24,10 @@ rather than optionally following the canister name.
 Old: dfx canister create [canister name] [controller]
 New: dfx canister create --controller <controller> [canister name]
 
+=== fix: dfx now respects $DFX_CONFIG_ROOT when looking for legacy credentials
+
+Previously this would always look in `$HOME/.dfinity/identity/creds.pem`.
+
 == Cycles Wallet
 
 - Module hash: 9183a38dd2eb1a4295f360990f87e67aa006f225910ab14880748e091248e086
