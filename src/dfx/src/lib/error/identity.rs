@@ -28,6 +28,9 @@ pub enum IdentityError {
     #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
+    #[error("Cannot find home directory.")]
+    CannotFindHomeDirectory(),
+
     #[error("Cannot read identity file at '{0}': {1}")]
     CannotReadIdentityFile(PathBuf, Box<DfxError>),
 }

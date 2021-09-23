@@ -41,9 +41,6 @@ teardown() {
 
 @test "deploy a canister with non-circular shared dependencies" {
     install_asset transitive_deps_canisters
-    pwd
-    ls -l
-    ls -lR
     dfx_start
     assert_command dfx deploy canister_f
     assert_match 'Deploying: canister_a canister_f canister_g canister_h'
