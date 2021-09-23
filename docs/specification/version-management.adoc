@@ -1,5 +1,4 @@
 = SDK Versioning And Cache Management
-Hans Larsen <hans@dfinity.org>
 v0.1, 2019-08-29
 
 -- DRAFT
@@ -14,9 +13,9 @@ This document details the design and decisions made to solve the problem of havi
 == User-facing Version
 The version of `dfx` is the only version the user should be aware of. Any upstream version will be hidden behind the `dfx` version.
 
-For example, assuming `v1.1.5` and `v1.2.3` of `dfx` are supported stable versions, with unstable being `v1.3.0-beta.1`, and assuming a version of the DFINITY client could be released with bug fixes that affect both the previous stable, current stable, and unstable releases, without changes to `dfx` itself we should release a `v1.1.6`, `v1.2.4` and `v1.3.0-beta.2` versions of `dfx` containing the DFINITY client with the fix included.
+For example, assuming `v1.1.5` and `v1.2.3` of `dfx` are supported stable versions, with unstable being `v1.3.0-beta.1`, and assuming a version of `dfx` could be released with bug fixes that affect both the previous stable, current stable, and unstable releases, without changes to `dfx` itself we should release a `v1.1.6`, `v1.2.4` and `v1.3.0-beta.2` versions of `dfx` containing `dfx` with the fix included.
 
-This means the user would never actually see the version of DFINITY client that they are running.
+This means the user would never actually see the version of `dfx` that they are running.
 
 == Installing `dfx`
 The user should initially download the SDK by using the following command:
@@ -35,7 +34,7 @@ This binary contains a number of things:
 The `dfx` global CLI then tries to find the version it should use (in order);
 
 . If a `DFX_VERSION` environment variable is set, use that version directly. If that version is not available in the cache, report the error and do not continue.
-. If there is a local DFINITY configuration file, it will use the version of the SDK specified in it (the `dfx_version` field). If that version is not available in the cache, it will try to download it from the Internet. If there is no connection, report the error and do not continue.
+. If there is a local `dfx` configuration file, it will use the version of the SDK specified in it (the `dfx_version` field). If that version is not available in the cache, it will try to download it from the Internet. If there is no connection, report the error and do not continue.
 . If there is an Internet connection, to a maximum of once a week, `dfx` will reach out to `sdk.dfinity.org` to find the latest version available.
 . If there is a user-level cache available, `dfx` will use the latest version already downloaded by the user that is not newer than the `dfx` global CLI version.
 . Finally, the global `dfx` comes versioned and will use that version number as a last resort. If that version is not part of the cache, it will use its internal tar file to bootstrap the user level cache.

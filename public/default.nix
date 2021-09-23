@@ -38,7 +38,7 @@ pkgs.lib.linuxOnly (
   pkgs.runCommandNoCC "install.sh" {
     # `revision` will be printed by `install.sh` as follows:
     #
-    #   log "Executing DFINITY SDK install script, commit: @revision@"
+    #   log "Executing DFX install script, commit: @revision@"
     revision = src.rev;
     preferLocalBuild = true;
     allowSubstitutes = false;

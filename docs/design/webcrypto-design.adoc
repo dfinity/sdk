@@ -1,7 +1,5 @@
 = Web Crypto Design Doc
 // Author field:
-Eftychis <eftychis@dfinity.org>
-Bjoern <bjoern@dfinity.org>
 v0.1, 2020-04-15
 :draft:
 :toc:
@@ -257,7 +255,7 @@ Thus, an add_key initial request to a canister must include:
 
 ==== UX above Authorization
 
-Principal Stakeholder/Designer: Stanley
+Principal Stakeholder/Designer: 
 
 In this section we briefly discuss about how to exchange certificate
 signing requests and certificates themselves between the two devices.

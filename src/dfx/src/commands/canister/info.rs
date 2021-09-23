@@ -7,6 +7,7 @@ use anyhow::{anyhow, bail};
 use clap::Clap;
 use ic_agent::AgentError;
 use ic_types::Principal;
+use serde_cbor::Value;
 use std::convert::TryFrom;
 
 /// Get the hash of a canister’s WASM module and its current controller in a certified way.
@@ -29,9 +30,27 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
     let controller_blob = agent
-        .read_state_canister_info(canister_id, "controller")
+        .read_state_canister_info(canister_id, "controllers")
         .await?;
-    let controller = Principal::try_from(controller_blob)?.to_text();
+    let cbor: Value = serde_cbor::from_slice(&controller_blob)
+        .map_err(|_| anyhow!("Invalid cbor data in controllers canister info."))?;
+    let controllers = if let Value::Array(vec) = cbor {
+        vec.into_iter()
+            .map(|elem: Value| {
+                if let Value::Bytes(bytes) = elem {
+                    Ok(Principal::try_from(&bytes)?.to_text())
+                } else {
+                    bail!(
+                        "Expected element in controllers to be of type bytes, got {:?}",
+                        elem
+                    );
+                }
+            })
+            .collect::<DfxResult<Vec<String>>>()
+    } else {
+        bail!("Expected controllers to be an array, but got {:?}", cbor);
+    }?;
+
     let module_hash_hex = match agent
         .read_state_canister_info(canister_id, "module_hash")
         .await
@@ -46,9 +65,13 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         Err(x) => bail!(x),
     };
 
+    let mut controllers_sorted = controllers;
+    controllers_sorted.sort();
+
     println!(
-        "Controller: {}\nModule hash: {}",
-        controller, module_hash_hex
+        "Controllers: {}\nModule hash: {}",
+        controllers_sorted.join(" "),
+        module_hash_hex
     );
 
     Ok(())
