@@ -3,14 +3,15 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    standard_setup
 
     dfx_new_frontend
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "dfx start serves a frontend with static assets" {

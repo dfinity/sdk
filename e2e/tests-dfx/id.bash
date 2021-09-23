@@ -3,12 +3,15 @@
 load ../utils/_
 
 setup() {
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    standard_setup
+
     dfx_new
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "id subcommand prints valid canister identifier" {

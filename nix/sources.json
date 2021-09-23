@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "1db7602857582a41c83cedf002f32c1cf905d39e",
-        "sha256": "0nqzq91hxr0ivz5ywlas4vqdwxg7b5q3niwjqn0zsf5x6c16vxgw",
+        "rev": "d5c7ae1c7112f779497e90b4d9da3b4830116e52",
+        "sha256": "160wxrk4c3fjhzmxw1if86aik6pgdq2ncdixsxj7rcgq5na2jvhf",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/1db7602857582a41c83cedf002f32c1cf905d39e.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/d5c7ae1c7112f779497e90b4d9da3b4830116e52.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
@@ -34,7 +34,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "85c4d3f3185d630e28ddffece714e06d032b9b67",
+        "rev": "bd7a905e50fcf78b8a5fcc7e33221033c32c9bc8",
         "type": "git"
     },
     "ic-ref": {
@@ -62,7 +62,7 @@
     "motoko": {
         "branch": "release",
         "repo": "https://github.com/dfinity/motoko",
-        "rev": "e22c02d7809faaced40efdd458cb8c570d4aff8b",
+        "rev": "412dce6ba8d559ae3f7a4136f93866a0dcaa8eea",
         "tag": "0.6.5",
         "type": "git"
     },
