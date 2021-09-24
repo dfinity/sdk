@@ -322,10 +322,12 @@ fn initialize(
 }
 
 fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
+    let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
     let home = std::env::var("HOME")
         .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
+    let root = config_root.unwrap_or(home);
 
-    Ok(PathBuf::from(home)
+    Ok(PathBuf::from(root)
         .join(".dfinity")
         .join("identity")
         .join("creds.pem"))

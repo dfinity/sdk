@@ -3,13 +3,7 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
-
-    # Each test gets its own home directory in order to have its own identities.
-    x=$(pwd)/home-for-test
-    mkdir "$x"
-    export HOME="$x"
+    standard_setup
 
     dfx identity new test_id
     dfx identity use test_id
@@ -18,6 +12,8 @@ setup() {
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "create with wallet stores canister ids for default-persistent networks in canister_ids.json" {

@@ -3,12 +3,15 @@
 load ../utils/_
 
 setup() {
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    standard_setup
+
     dfx_new hello
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "test canister lifecycle" {
