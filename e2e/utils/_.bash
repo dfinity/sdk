@@ -116,10 +116,17 @@ dfx_start() {
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
 
-    [ "$USE_IC_REF" ] || timeout 15s sh -c \
-        'until dfx ping | grep healthy; do echo waiting for replica to become healthy; sleep 1; done' \
-        || (echo "replica did not become healthy" && exit 1)
+    wait_until_replica_healthy
+}
 
+wait_until_replica_healthy() {
+    [ "$USE_IC_REF" ] || (
+        # dfx ping has side effects, like creating a default identity.
+        export DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
+        timeout 15s sh -c \
+            'until dfx ping | grep healthy; do echo waiting for replica to become healthy; sleep 1; done' \
+            || (echo "replica did not become healthy" && exit 1)
+    )
 }
 
 # Start the replica in the background.
