@@ -129,7 +129,7 @@ async fn register_canisters(
                         )
                         .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
                     });
-            let controller = None;
+            let controllers = None;
             create_canister(
                 env,
                 &canister_name,
@@ -137,7 +137,7 @@ async fn register_canisters(
                 with_cycles,
                 &call_sender,
                 CanisterSettings {
-                    controller,
+                    controllers,
                     compute_allocation,
                     memory_allocation,
                     freezing_threshold,

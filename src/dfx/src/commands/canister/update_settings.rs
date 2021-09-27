@@ -29,8 +29,8 @@ pub struct UpdateSettingsOpts {
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
-    #[clap(long)]
-    controller: Option<String>,
+    #[clap(long, multiple(true), number_of_values(1))]
+    controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
     #[clap(long, short('c'), validator(compute_allocation_validator))]
@@ -55,24 +55,29 @@ pub async fn exec(
     let config_interface = config.get_config();
     fetch_root_key_if_needed(env).await?;
 
-    let controller = if let Some(controller) = opts.controller.clone() {
-        match CanisterId::from_text(controller.clone()) {
-            Ok(principal) => Some(principal),
-            Err(_) => {
-                let current_id = env.get_selected_identity().unwrap();
-                if current_id == &controller {
-                    Some(env.get_selected_identity_principal().unwrap())
-                } else {
-                    let identity_name = &controller;
-                    let sender = IdentityManager::new(env)?
-                        .instantiate_identity_from_name(&identity_name.clone())?;
-                    Some(sender.sender().map_err(|err| anyhow!(err))?)
-                }
-            }
-        }
-    } else {
-        None
-    };
+    let controllers: Option<DfxResult<Vec<_>>> = opts.controller.clone().map(|controllers| {
+        let y: DfxResult<Vec<_>> = controllers
+            .iter()
+            .map(
+                |controller| match CanisterId::from_text(controller.clone()) {
+                    Ok(principal) => Ok(principal),
+                    Err(_) => {
+                        let current_id = env.get_selected_identity().unwrap();
+                        if current_id == controller {
+                            Ok(env.get_selected_identity_principal().unwrap())
+                        } else {
+                            let identity_name = controller;
+                            IdentityManager::new(env)?
+                                .instantiate_identity_from_name(identity_name)
+                                .and_then(|identity| identity.sender().map_err(|err| anyhow!(err)))
+                        }
+                    }
+                },
+            )
+            .collect::<DfxResult<Vec<_>>>();
+        y
+    });
+    let controllers = controllers.transpose()?;
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
@@ -99,25 +104,14 @@ pub async fn exec(
             config_interface,
             canister_name,
         )?;
-        update_settings(
-            env,
-            canister_id,
-            CanisterSettings {
-                controller,
-                compute_allocation,
-                memory_allocation,
-                freezing_threshold,
-            },
-            timeout,
-            call_sender,
-        )
-        .await?;
-        if let Some(new_controller) = opts.controller.clone() {
-            println!(
-                "Updated {:?} as controller of {:?}.",
-                new_controller, canister_name_or_id
-            );
+        let settings = CanisterSettings {
+            controllers,
+            compute_allocation,
+            memory_allocation,
+            freezing_threshold,
         };
+        update_settings(env, canister_id, settings, timeout, call_sender).await?;
+        display_controller_update(&opts, canister_name_or_id);
     } else if opts.all {
         // Update all canister settings.
         if let Some(canisters) = &config.get_config().canisters {
@@ -138,25 +132,14 @@ pub async fn exec(
                     config_interface,
                     canister_name,
                 )?;
-                update_settings(
-                    env,
-                    canister_id,
-                    CanisterSettings {
-                        controller,
-                        compute_allocation,
-                        memory_allocation,
-                        freezing_threshold,
-                    },
-                    timeout,
-                    call_sender,
-                )
-                .await?;
-                if let Some(new_controller) = opts.controller.clone() {
-                    println!(
-                        "Updated {:?} as controller of {:?}.",
-                        new_controller, canister_name
-                    );
+                let settings = CanisterSettings {
+                    controllers: controllers.clone(),
+                    compute_allocation,
+                    memory_allocation,
+                    freezing_threshold,
                 };
+                update_settings(env, canister_id, settings, timeout, call_sender).await?;
+                display_controller_update(&opts, canister_name);
             }
         }
     } else {
@@ -164,4 +147,20 @@ pub async fn exec(
     }
 
     Ok(())
+}
+
+fn display_controller_update(opts: &UpdateSettingsOpts, canister_name_or_id: &str) {
+    if let Some(new_controllers) = opts.controller.clone() {
+        let mut controllers = new_controllers;
+        controllers.sort();
+
+        let plural = if controllers.len() > 1 { "s" } else { "" };
+
+        println!(
+            "Set controller{} of {:?} to: {}",
+            plural,
+            canister_name_or_id,
+            controllers.join(" ")
+        );
+    };
 }

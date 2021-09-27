@@ -24,7 +24,8 @@ atty = "0.2.13"
 base64 = "0.11.0"
 candid = { version = "0.7.6", features = [ "random" ] }
 chrono = "0.4.9"
-clap = "3.0.0-beta.2"
+clap = "=3.0.0-beta.2"
+clap_derive = "=3.0.0-beta.2"
 console = "0.7.7"
 crc32fast = "1.2.0"
 crossbeam = "0.8.1"
@@ -79,23 +80,23 @@ webpki-roots = "0.21.0"
 [dependencies.ic-agent]
 version = "0.8.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "f7de7670aa3870023fa45d5b5cee719b6eb7a012"
+rev = "0cdb7e9cbd44afb368506cd6fd0febee1686316d"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
 version = "0.3.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "f7de7670aa3870023fa45d5b5cee719b6eb7a012"
+rev = "0cdb7e9cbd44afb368506cd6fd0febee1686316d"
 
 [dependencies.ic-identity-hsm]
 version = "0.3.5"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "f7de7670aa3870023fa45d5b5cee719b6eb7a012"
+rev = "0cdb7e9cbd44afb368506cd6fd0febee1686316d"
 
 [dependencies.ic-utils]
 version = "0.6.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "f7de7670aa3870023fa45d5b5cee719b6eb7a012"
+rev = "0cdb7e9cbd44afb368506cd6fd0febee1686316d"
 
 [dev-dependencies]
 env_logger = "0.6"
