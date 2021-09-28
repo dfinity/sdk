@@ -101,15 +101,17 @@ impl IcxProxy {
     }
 
     fn stop_icx_proxy(&mut self) {
-        info!(self.logger, "Stopping icx-proxy...");
-        if let Some(sender) = self.stop_sender.take() {
-            let _ = sender.send(());
-        }
+        if self.stop_sender.is_some() || self.thread_join.is_some() {
+            info!(self.logger, "Stopping icx-proxy...");
+            if let Some(sender) = self.stop_sender.take() {
+                let _ = sender.send(());
+            }
 
-        if let Some(join) = self.thread_join.take() {
-            let _ = join.join();
+            if let Some(join) = self.thread_join.take() {
+                let _ = join.join();
+            }
+            info!(self.logger, "Stopped.");
         }
-        info!(self.logger, "Stopped.");
     }
 }
 
