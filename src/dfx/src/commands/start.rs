@@ -119,7 +119,6 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
-    eprintln!("retest 1");
     let config = env.get_config_or_anyhow()?;
     let network_descriptor = get_network_descriptor(env, None)?;
     let temp_dir = env.get_temp_dir();
