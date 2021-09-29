@@ -2,6 +2,13 @@
 
 == DFX
 
+=== feat: dfx canister delete can now return cycles to a wallet or dank
+
+By default `dfx canister delete` will return cycles to the default cycles wallet.
+Cycles can be returned to a designated canister with `--withdraw-cycles-to-canister` and
+cycles can be returned to dank at the current identity principal with `--withdraw-cycles-to-dank`
+and to a designated principal with `--withdraw-cycles-to-dank-principal`.
+
 === feat: dfx canister create now accepts multiple instances of --controller argument
 
 It is now possible to create canisters with more than one controller by
