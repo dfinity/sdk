@@ -44,6 +44,21 @@ Previously this would always look in `$HOME/.dfinity/identity/creds.pem`.
 
 You will need to upgrade your wallet with `dfx wallet upgrade`, or `dfx wallet --network ic upgrade`
 
+== Replica
+
+The included replica now supports public spec 0.18.0
+
+* Canisters can now have more than one controller
+* Adds support for 64-bit stable memory
+
+== Motoko
+
+Updated Motoko from 0.6.7 to 0.6.10
+
+* add Debug.trap : Text -> None (motoko-base #288)
+* Introduce primitives for `Int` ⇔ `Float` conversions (#2733)
+* Fix crashing bug for formatting huge floats (#2737)
+
 = 0.8.1
 
 == DFX
