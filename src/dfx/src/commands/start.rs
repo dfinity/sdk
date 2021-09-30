@@ -70,8 +70,15 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
         waiter.start();
         loop {
             let status = agent.status().await;
-            if status.is_ok() {
-                break;
+            if let Ok(status) = &status {
+                let healthy = match &status.replica_health_status {
+                    Some(status) if status == "healthy" => true,
+                    None => true, // emulator doesn't report replica_health_status
+                    _ => false,
+                };
+                if healthy {
+                    break;
+                }
             }
             waiter
                 .wait()
