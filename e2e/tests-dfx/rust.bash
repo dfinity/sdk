@@ -16,6 +16,10 @@ teardown() {
 
 @test "build uses default build args" {
     install_asset rust
+
+    rustup default stable
+    rustup target add wasm32-unknown-unknown
+
     dfx_start
     dfx canister --no-wallet create --all
     assert_command dfx build print
