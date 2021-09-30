@@ -6,5 +6,11 @@
       "package": "print_rs",
       "candid": "src/print_rs/print.did"
     }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
   }
 }
