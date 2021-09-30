@@ -16,6 +16,7 @@ use std::sync::Arc;
 mod assets;
 mod custom;
 mod motoko;
+mod rust;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -252,6 +253,7 @@ impl BuilderPool {
             Arc::new(assets::AssetsBuilder::new(env)?),
             Arc::new(custom::CustomBuilder::new(env)?),
             Arc::new(motoko::MotokoBuilder::new(env)?),
+            Arc::new(rust::RustBuilder::new(env)?),
         ];
 
         Ok(Self { builders })
