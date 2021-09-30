@@ -1,6 +1,6 @@
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 
 pub struct RustCanisterInfo {
     package: String,

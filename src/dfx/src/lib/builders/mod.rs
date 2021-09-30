@@ -100,10 +100,11 @@ pub trait CanisterBuilder {
                     generate_output_dir.as_path().display()
                 );
             }
-            std::fs::remove_dir_all(&generate_output_dir)?;
+            std::fs::remove_dir_all(&generate_output_dir)
+                .context(format!("Failed to remove dir: {:?}", &generate_output_dir))?;
         }
         std::fs::create_dir_all(&generate_output_dir)
-            .context(format!("Could not create dir: {:?}", &generate_output_dir))?;
+            .context(format!("Failed to create dir: {:?}", &generate_output_dir))?;
 
         let generated_idl_path = self.generate_idl(pool, info, config)?;
 
