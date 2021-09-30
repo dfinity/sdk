@@ -115,8 +115,6 @@ dfx_start() {
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
-
-    wait_until_replica_healthy
 }
 
 wait_until_replica_healthy() {
@@ -174,8 +172,6 @@ dfx_start_replica_and_bootstrap() {
     timeout 5 sh -c \
         "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
-
-    wait_until_replica_healthy
 
     # This only works because we use the network by name
     #    (implicitly: --network local)
