@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "canisters": {
+    "print": {
+      "type": "rust",
+      "package": "print_rs",
+      "candid": "src/print_rs/print.did"
+    }
+  }
+}
