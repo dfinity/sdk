@@ -99,6 +99,11 @@ impl CanisterBuilder for RustBuilder {
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
         let rust_info = info.as_info::<RustCanisterInfo>()?;
-        Ok(rust_info.get_output_idl_path().to_path_buf())
+        let output_idl_path = rust_info.get_output_idl_path();
+        if output_idl_path.exists() {
+            Ok(output_idl_path.to_path_buf())
+        } else {
+            bail!("Candid file: {:?} doesn't exist.", output_idl_path);
+        }
     }
 }
