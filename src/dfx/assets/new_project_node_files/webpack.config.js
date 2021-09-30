@@ -4,25 +4,29 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
-let localCanisters, prodCanisters, canisters;
+let canisters;
 
 function initCanisterIds() {
-  try {
-    localCanisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
-  } catch (error) {
-    console.log("No local canister_ids.json found. Continuing production");
-  }
-  try {
-    prodCanisters = require(path.resolve("canister_ids.json"));
-  } catch (error) {
-    console.log("No production canister_ids.json found. Continuing with local");
+  if(dfx_network = process.env.DFX_NETWORK) {
+    network = dfx_network;
+    console.log(`network ${network} was inferred from environment variable DFX_NETWORK`);
+  } else {
+    network = process.env.NODE_ENV === "production" ? "ic" : "local";
+    console.log(`environment variable DFX_NETWORK not set, inferred network ${network} from node environment`);
   }
 
-  const network =
-    process.env.DFX_NETWORK ||
-    (process.env.NODE_ENV === "production" ? "ic" : "local");
+  function getCanisterIds(path) {
+    try {
+      return require(path);
+    } catch (error) {
+      console.log(`No canister_ids.json found for network ${network} (${path}), try a different network..`);
+      throw error;
+    }
+  }
 
-  canisters = network === "local" ? localCanisters : prodCanisters;
+  canisters = network === "ic" ?
+        getCanisterIds(path.resolve("canister_ids.json")) :
+        getCanisterIds(path.resolve(".dfx", network.replace(/[^a-zA-Z0-9]/g, "_") /* replace non-alphanumeric like dfx */, "canister_ids.json"));
 
   for (const canister in canisters) {
     process.env[canister.toUpperCase() + "_CANISTER_ID"] =
