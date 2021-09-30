@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 pub mod assets;
 pub mod custom;
 pub mod motoko;
+pub mod rust;
 
 pub trait CanisterInfoFactory {
     /// Returns true if this factory supports creating extra info for this canister info.
