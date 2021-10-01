@@ -50,6 +50,12 @@ The included replica now supports public spec 0.18.0
 
 * Canisters can now have more than one controller
 * Adds support for 64-bit stable memory
+* The replica now goes through an initialization sequence, reported in its status
+as `replica_health_status`.  Until this reports as `healthy`, queries or updates will
+fail.
+** `dfx start --background` waits to exit until `replica_health_status` is `healthy`.
+** If you run `dfx start` without `--background`, you can call `dfx ping --wait-healthy`
+to wait until the replica is healthy.
 
 == Motoko
 
