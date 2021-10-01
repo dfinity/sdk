@@ -11,9 +11,12 @@ use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use self::rust::RustCanisterInfo;
+
 pub mod assets;
 pub mod custom;
 pub mod motoko;
+pub mod rust;
 
 pub trait CanisterInfoFactory {
     /// Returns true if this factory supports creating extra info for this canister info.
@@ -223,6 +226,8 @@ impl CanisterInfo {
             Some(info.get_output_wasm_path().to_path_buf())
         } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
+            Some(info.get_output_wasm_path().to_path_buf())
         } else {
             None
         }
@@ -234,6 +239,8 @@ impl CanisterInfo {
         } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
+            Some(info.get_output_idl_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else {
             None
