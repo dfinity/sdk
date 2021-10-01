@@ -118,18 +118,11 @@ dfx_start() {
 }
 
 wait_until_replica_healthy() {
-  (
-      DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
-      dfx ping --wait-healthy
-  )
-
-#    [ "$USE_IC_REF" ] || (
-#        # dfx ping has side effects, like creating a default identity.
-#        export DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
-#        timeout 15s sh -c \
-#            'until dfx ping | grep healthy; do echo waiting for replica to become healthy; sleep 1; done' \
-#            || (echo "replica did not become healthy" && exit 1)
-#    )
+    (
+        # dfx ping has side effects, like creating a default identity.
+        DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
+        dfx ping --wait-healthy
+    )
 }
 
 # Start the replica in the background.
