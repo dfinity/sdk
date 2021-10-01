@@ -16,6 +16,7 @@ use std::sync::Arc;
 mod assets;
 mod custom;
 mod motoko;
+mod rust;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -99,8 +100,11 @@ pub trait CanisterBuilder {
                     generate_output_dir.as_path().display()
                 );
             }
-            std::fs::remove_dir_all(generate_output_dir)?;
+            std::fs::remove_dir_all(&generate_output_dir)
+                .context(format!("Failed to remove dir: {:?}", &generate_output_dir))?;
         }
+        std::fs::create_dir_all(&generate_output_dir)
+            .context(format!("Failed to create dir: {:?}", &generate_output_dir))?;
 
         let generated_idl_path = self.generate_idl(pool, info, config)?;
 
@@ -252,6 +256,7 @@ impl BuilderPool {
             Arc::new(assets::AssetsBuilder::new(env)?),
             Arc::new(custom::CustomBuilder::new(env)?),
             Arc::new(motoko::MotokoBuilder::new(env)?),
+            Arc::new(rust::RustBuilder::new(env)?),
         ];
 
         Ok(Self { builders })
