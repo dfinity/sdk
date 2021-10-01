@@ -78,6 +78,7 @@ dfx_start() {
     then
         if [[ "$@" == "" ]]; then
             dfx start --emulator --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
+            echo " -- dfx start returned --"
         else
             batslib_decorate "no arguments to dfx start --emulator supported yet"
             fail
@@ -98,6 +99,7 @@ dfx_start() {
         else
             dfx start --background "$@" 3>&-
         fi
+        echo " -- dfx start returned --"
 
         local dfx_config_root=.dfx/replica-configuration
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"

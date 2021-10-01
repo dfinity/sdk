@@ -52,6 +52,7 @@ pub struct StartOpts {
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
+    eprintln!("ping_and_wait enter");
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let agent = Agent::builder()
@@ -66,7 +67,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
         .throttle(std::time::Duration::from_secs(1))
         .build();
 
-    runtime.block_on(async {
+    let r = runtime.block_on(async {
         waiter.start();
         loop {
             let status = agent.status().await;
@@ -85,7 +86,9 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
                 .map_err(|_| DfxError::new(status.unwrap_err()))?;
         }
         Ok(())
-    })
+    });
+    eprintln!("ping_and_wait leaving with {:?}", r);
+    r
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -94,6 +97,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
 fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxResult {
+    eprintln!("fg_ping_and_wait enter");
     let mut waiter = Delay::builder()
         .timeout(std::time::Duration::from_secs(30))
         .throttle(std::time::Duration::from_secs(1))
@@ -119,7 +123,9 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
         .rfind(':')
         .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
-    ping_and_wait(&frontend_url_mod)
+    let r = ping_and_wait(&frontend_url_mod);
+    eprintln!("fg_ping_and_wait leaving with {:?}", r);
+    r
 }
 
 /// Start the Internet Computer locally. Spawns a proxy to forward and
