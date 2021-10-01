@@ -63,7 +63,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     // wait for frontend to come up
     let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(30))
+        .timeout(std::time::Duration::from_secs(60))
         .throttle(std::time::Duration::from_secs(1))
         .build();
 
