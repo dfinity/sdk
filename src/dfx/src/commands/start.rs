@@ -52,7 +52,6 @@ pub struct StartOpts {
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
-    eprintln!("ping_and_wait enter");
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let agent = Agent::builder()
@@ -67,7 +66,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
         .throttle(std::time::Duration::from_secs(1))
         .build();
 
-    let r = runtime.block_on(async {
+    runtime.block_on(async {
         waiter.start();
         loop {
             let status = agent.status().await;
@@ -86,9 +85,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
                 .map_err(|_| DfxError::new(status.unwrap_err()))?;
         }
         Ok(())
-    });
-    eprintln!("ping_and_wait leaving with {:?}", r);
-    r
+    })
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -97,7 +94,6 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
 fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxResult {
-    eprintln!("fg_ping_and_wait enter");
     let mut waiter = Delay::builder()
         .timeout(std::time::Duration::from_secs(30))
         .throttle(std::time::Duration::from_secs(1))
@@ -123,16 +119,13 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
         .rfind(':')
         .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
-    let r = ping_and_wait(&frontend_url_mod);
-    eprintln!("fg_ping_and_wait leaving with {:?}", r);
-    r
+    ping_and_wait(&frontend_url_mod)
 }
 
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
-    eprintln!("retest 3");
     let config = env.get_config_or_anyhow()?;
     let network_descriptor = get_network_descriptor(env, None)?;
     let temp_dir = env.get_temp_dir();
