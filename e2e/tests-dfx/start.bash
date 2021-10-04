@@ -23,6 +23,7 @@ teardown() {
     assert_command dfx deploy
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
+    dfx canister status hello
 
     REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
 
@@ -36,6 +37,7 @@ teardown() {
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
 
+    dfx canister status hello
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 }
