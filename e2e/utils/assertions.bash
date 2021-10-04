@@ -140,10 +140,13 @@ assert_process_exits() {
     pid="$1"
     timeout="$2"
 
+    echo "waiting up to $timeout seconds for process $pid to exit"
+
     timeout $timeout sh -c \
       "while kill -0 $pid; do echo waiting for process $pid to exit; sleep 1; done" \
       || (echo "process $pid did not exit" && ps aux && exit 1)
 
+    echo "process $pid exited"
 }
 
 # Asserts that `dfx start` and `replica` are no longer running
