@@ -23,7 +23,6 @@ teardown() {
     assert_command dfx deploy
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
-    dfx canister status hello || (echo "dfx canister status failed...continuing" ; dfx ping)
 
     REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
 
@@ -36,8 +35,6 @@ teardown() {
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
-
-    dfx canister status hello || (echo "dfx canister status failed...continuing" ; dfx ping)
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
@@ -78,7 +75,6 @@ teardown() {
     assert_command dfx deploy
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
-    dfx canister status hello || (echo "dfx canister status failed...continuing" ; dfx ping)
 
     REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
     ICX_PROXY_PID=$(cat .dfx/icx-proxy-pid)
@@ -94,8 +90,6 @@ teardown() {
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
-
-    dfx canister status hello || (echo "dfx canister status failed...continuing" ; dfx ping)
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
