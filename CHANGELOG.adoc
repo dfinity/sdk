@@ -35,6 +35,10 @@ New: dfx canister create --controller <controller> [canister name]
 
 Previously this would always look in `$HOME/.dfinity/identity/creds.pem`.
 
+=== fix: changed dfx canister (create|update-settings) --memory-allocation limit to 12 GiB
+
+Updated the maximum value for the --memory-allocation value to be 12 GiB (12,884,901,888 bytes)
+
 == Cycles Wallet
 
 - Module hash: 9183a38dd2eb1a4295f360990f87e67aa006f225910ab14880748e091248e086
