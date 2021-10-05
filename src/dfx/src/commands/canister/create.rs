@@ -44,7 +44,10 @@ pub struct CanisterCreateOpts {
     compute_allocation: Option<String>,
 
     /// Specifies how much memory the canister is allowed to use in total.
-    /// This should be a value in the range [0..256 TB]
+    /// This should be a value in the range [0..12 GiB]
+    /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
+    /// It will only be charged for the memory it uses, but at any point in time may stop running
+    /// if it tries to allocate more memory when there isn’t space available on the subnet.
     #[clap(long, validator(memory_allocation_validator))]
     memory_allocation: Option<String>,
 
