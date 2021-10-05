@@ -34,7 +34,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "36ace2b0fc6ad57391c76c09fe5508634f0b1e1d",
+        "rev": "3da848b5128d4e3c2e673cff04c0d2904288d6fe",
         "type": "git"
     },
     "ic-ref": {
