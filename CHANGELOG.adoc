@@ -48,6 +48,27 @@ Updated the maximum value for the --memory-allocation value to be 12 GiB (12,884
 
 You will need to upgrade your wallet with `dfx wallet upgrade`, or `dfx wallet --network ic upgrade`
 
+== Replica
+
+The included replica now supports public spec 0.18.0
+
+* Canisters can now have more than one controller
+* Adds support for 64-bit stable memory
+* The replica now goes through an initialization sequence, reported in its status
+as `replica_health_status`.  Until this reports as `healthy`, queries or updates will
+fail.
+** `dfx start --background` waits to exit until `replica_health_status` is `healthy`.
+** If you run `dfx start` without `--background`, you can call `dfx ping --wait-healthy`
+to wait until the replica is healthy.
+
+== Motoko
+
+Updated Motoko from 0.6.7 to 0.6.10
+
+* add Debug.trap : Text -> None (motoko-base #288)
+* Introduce primitives for `Int` ⇔ `Float` conversions (#2733)
+* Fix crashing bug for formatting huge floats (#2737)
+
 = 0.8.1
 
 == DFX

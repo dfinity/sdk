@@ -191,6 +191,17 @@ nix-build ci/ci.nix -A dfx[.x86_64-linux|.x86_64-darwin]
 
 == Dependencies
 
+=== Updating the Replica
+
+To update the replica to a given $SHA from the dfinity repo, execute the following:
+[source,bash]
+----
+niv update ic-starter-x86_64-darwin -a rev=$SHA
+niv update ic-starter-x86_64-linux -a rev=$SHA
+niv update replica-x86_64-darwin -a rev=$SHA
+niv update replica-x86_64-linux -a rev=$SHA
+----
+
 === Licenses
 
 https://hydra.oregon.dfinity.build/latest/dfinity-ci-build/sdk/licenses.dfx.x86_64-linux/licenses.dfinity-sdk-dfx.html[Latest licenses of all dependencies of dfx (build for x86_64-linux)].

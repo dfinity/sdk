@@ -117,6 +117,16 @@ dfx_start() {
         || (echo "could not connect to replica on port ${port}" && exit 1)
 }
 
+wait_until_replica_healthy() {
+    echo "waiting for replica to become healthy"
+    (
+        # dfx ping has side effects, like creating a default identity.
+        DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
+        dfx ping --wait-healthy
+    )
+    echo "replica became healthy"
+}
+
 # Start the replica in the background.
 dfx_start_replica_and_bootstrap() {
     dfx_patchelf
@@ -162,6 +172,8 @@ dfx_start_replica_and_bootstrap() {
     timeout 5 sh -c \
         "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
+
+    wait_until_replica_healthy
 
     # This only works because we use the network by name
     #    (implicitly: --network local)

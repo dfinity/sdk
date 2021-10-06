@@ -34,6 +34,7 @@ teardown() {
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
+    wait_until_replica_healthy
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
@@ -88,6 +89,7 @@ teardown() {
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
+    wait_until_replica_healthy
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
