@@ -36,7 +36,7 @@ download_binary() {
     echo "replica URL is $URL with sha256 $SHA256"
     curl -o "$BINARY_CACHE_TEMP_DIR/$NAME.gz" "$URL"
 
-    # this doesn't work, because...
+    # This doesn't work, because...
     ACTUAL_SHA256=$(shasum -a 256 "$BINARY_CACHE_TEMP_DIR/$NAME.gz")
 
     # ... Nix uses a nonstandard base32 hash format.  What now?
@@ -51,8 +51,28 @@ download_binary() {
     chmod 0444 "$BINARY_CACHE_TEMP_DIR/$NAME"
 }
 
+build_icx_proxy() {
+    REV="$(jq -r .\"agent-rs\".rev nix/sources.json )"
+    REPO="$(jq -r .\"agent-rs\".repo nix/sources.json )"
+    echo "repo $REPO rev $REV"
+    TMPDIR="$(mktemp -d)"
+    (
+        cd "$TMPDIR"
+        git clone "$REPO"
+        (
+            cd agent-rs
+            git checkout "$REV"
+            cargo build --release -p icx-proxy
+            cp target/release/icx-proxy "$BINARY_CACHE_TEMP_DIR/icx-proxy"
+            chmod 0444 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
+        )
+    )
+    rm -rf "$TMPDIR"
+}
+
 download_binary "replica"
 download_binary "ic-starter"
+build_icx_proxy
 
 tar -czf "$DFX_ASSETS_DIR"/binary_cache.tgz -C "$BINARY_CACHE_TEMP_DIR" .
 
