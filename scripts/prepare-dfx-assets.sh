@@ -52,8 +52,8 @@ download_binary() {
 }
 
 build_icx_proxy() {
-    REV="$(jq -r .\"agent-rs\".rev nix/sources.json )"
-    REPO="$(jq -r .\"agent-rs\".repo nix/sources.json )"
+    REV="$(jq -r .\"agent-rs\".rev nix/sources.json)"
+    REPO="$(jq -r .\"agent-rs\".repo nix/sources.json)"
     echo "repo $REPO rev $REV"
     TMPDIR="$(mktemp -d)"
     (
