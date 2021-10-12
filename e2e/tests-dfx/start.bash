@@ -3,14 +3,15 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    standard_setup
 
     dfx_new hello
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "dfx restarts the replica" {
@@ -33,6 +34,7 @@ teardown() {
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
+    wait_until_replica_healthy
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
@@ -87,6 +89,7 @@ teardown() {
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
+    wait_until_replica_healthy
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'

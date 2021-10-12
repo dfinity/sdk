@@ -11,6 +11,26 @@ install_asset() {
     [ -f ./patch.bash ] && source ./patch.bash
 }
 
+standard_setup() {
+    # We want to work from a temporary directory, different for every test.
+    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
+    export DFX_E2E_TEMP_DIR="$x"
+
+    mkdir "$x/working-dir"
+    mkdir "$x/config-root"
+    mkdir "$x/home-dir"
+
+    cd "$x/working-dir" || exit
+
+    export HOME="$x/home-dir"
+    export DFX_CONFIG_ROOT="$x/config-root"
+    export RUST_BACKTRACE=1
+}
+
+standard_teardown() {
+    rm -rf "$DFX_E2E_TEMP_DIR"
+}
+
 dfx_new_frontend() {
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --frontend
@@ -36,6 +56,9 @@ dfx_patchelf() {
     (uname -a | grep Linux) || return 0
     echo dfx = $(which dfx)
     local CACHE_DIR="$(dfx cache show)"
+
+    dfx cache install
+
     # Both ldd and iconv are providedin glibc.bin package
     local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
     for binary in ic-starter icx-proxy replica; do
@@ -94,6 +117,16 @@ dfx_start() {
         || (echo "could not connect to replica on port ${port}" && exit 1)
 }
 
+wait_until_replica_healthy() {
+    echo "waiting for replica to become healthy"
+    (
+        # dfx ping has side effects, like creating a default identity.
+        DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
+        dfx ping --wait-healthy
+    )
+    echo "replica became healthy"
+}
+
 # Start the replica in the background.
 dfx_start_replica_and_bootstrap() {
     dfx_patchelf
@@ -139,6 +172,8 @@ dfx_start_replica_and_bootstrap() {
     timeout 5 sh -c \
         "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
+
+    wait_until_replica_healthy
 
     # This only works because we use the network by name
     #    (implicitly: --network local)

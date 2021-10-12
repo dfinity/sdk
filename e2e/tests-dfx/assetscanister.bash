@@ -3,18 +3,15 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a different temporary directory for every test.
-    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
-    export TEMPORARY_HOME="$x"
-    export HOME="$TEMPORARY_HOME"
-    cd "$TEMPORARY_HOME" || exit
+    standard_setup
 
     dfx_new
 }
 
 teardown() {
     dfx_stop
-    rm -rf "$TEMPORARY_HOME"
+
+    standard_teardown
 }
 
 @test "http_request percent-decodes urls" {

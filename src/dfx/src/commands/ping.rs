@@ -9,6 +9,7 @@ use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use clap::Clap;
+use garcon::{Delay, Waiter};
 use slog::warn;
 use tokio::runtime::Runtime;
 
@@ -20,6 +21,10 @@ pub struct PingOpts {
     /// ephemeral network will be created specifically for this request. E.g.
     /// "http://localhost:12345/" is a valid network name.
     network: Option<String>,
+
+    /// Repeatedly ping until the replica is healthy
+    #[clap(long)]
+    wait_healthy: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
@@ -51,8 +56,36 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let status = runtime.block_on(agent.status())?;
-    println!("{}", status);
+    if opts.wait_healthy {
+        let mut waiter = Delay::builder()
+            .timeout(std::time::Duration::from_secs(60))
+            .throttle(std::time::Duration::from_secs(1))
+            .build();
+        waiter.start();
+
+        loop {
+            let status = runtime.block_on(agent.status());
+            if let Ok(status) = status {
+                let healthy = match &status.replica_health_status {
+                    Some(s) if s == "healthy" => true,
+                    None => true,
+                    _ => false,
+                };
+                if healthy {
+                    println!("{}", status);
+                    break;
+                } else {
+                    eprintln!("{}", status);
+                }
+            }
+            waiter
+                .wait()
+                .map_err(|_| anyhow!("Timed out waiting for replica to become healthy"))?;
+        }
+    } else {
+        let status = runtime.block_on(agent.status())?;
+        println!("{}", status);
+    }
 
     Ok(())
 }

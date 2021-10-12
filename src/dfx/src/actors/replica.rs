@@ -84,7 +84,7 @@ impl Replica {
         // Use a Waiter for waiting for the file to be created.
         let mut waiter = Delay::builder()
             .throttle(Duration::from_millis(100))
-            .timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(120))
             .build();
 
         waiter.start();

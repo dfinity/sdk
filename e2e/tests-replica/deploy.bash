@@ -3,13 +3,13 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
-    export RUST_BACKTRACE=1
+    standard_setup
 }
 
 teardown() {
-  dfx_stop
+    dfx_stop
+
+    standard_teardown
 }
 
 @test "deploy from a fresh project" {

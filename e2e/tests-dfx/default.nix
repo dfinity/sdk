@@ -48,6 +48,7 @@ let
 
           ln -s $utils utils
           ln -s $assets assets
+          ln -s $archive archive
           mkdir test
           ln -s $test test/test.bash
 

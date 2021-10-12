@@ -58,7 +58,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     // wait for frontend to come up
     let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(30))
+        .timeout(std::time::Duration::from_secs(60))
         .throttle(std::time::Duration::from_secs(1))
         .build();
 
@@ -66,8 +66,15 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
         waiter.start();
         loop {
             let status = agent.status().await;
-            if status.is_ok() {
-                break;
+            if let Ok(status) = &status {
+                let healthy = match &status.replica_health_status {
+                    Some(status) if status == "healthy" => true,
+                    None => true, // emulator doesn't report replica_health_status
+                    _ => false,
+                };
+                if healthy {
+                    break;
+                }
             }
             waiter
                 .wait()

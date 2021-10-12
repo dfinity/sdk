@@ -54,13 +54,15 @@ pub fn compute_allocation_validator(compute_allocation: &str) -> Result<(), Stri
 }
 
 pub fn memory_allocation_validator(memory_allocation: &str) -> Result<(), String> {
-    let limit = Bytes::new(256, Unit::TByte).map_err(|_| "Parse Overflow.")?;
+    // This limit should track MAX_MEMORY_ALLOCATION
+    // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/rs/types/types/src/lib.rs#L492
+    let limit = Bytes::new(12, Unit::GiByte).map_err(|_| "Parse Overflow.")?;
     if let Ok(bytes) = memory_allocation.parse::<Bytes>() {
         if bytes.size() <= limit.size() {
             return Ok(());
         }
     }
-    Err("Must be a value between 0..256 TB inclusive.".to_string())
+    Err("Must be a value between 0..12 GiB inclusive.".to_string())
 }
 
 pub fn freezing_threshold_validator(freezing_threshold: &str) -> Result<(), String> {
