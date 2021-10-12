@@ -20,10 +20,6 @@ pub struct ReplicaOpts {
     /// Runs a dedicated emulator instead of the replica
     #[clap(long)]
     emulator: bool,
-
-    /// Removes the artificial delay in the local replica added to simulate the networked IC environment.
-    #[clap(long)]
-    no_artificial_delay: bool,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -41,7 +37,7 @@ fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConf
         http_handler.port = Some(port);
     };
 
-    let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), opts.no_artificial_delay);
+    let mut replica_config = ReplicaConfig::new(&env.get_state_dir());
     replica_config.http_handler = http_handler;
     Ok(replica_config)
 }
