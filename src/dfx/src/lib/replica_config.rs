@@ -35,11 +35,10 @@ pub struct ReplicaConfig {
     pub state_manager: StateManagerConfig,
     pub crypto: CryptoConfig,
     pub artifact_pool: ArtifactPoolConfig,
-    pub no_artificial_delay: bool,
 }
 
 impl ReplicaConfig {
-    pub fn new(state_root: &Path, no_artificial_delay: bool) -> Self {
+    pub fn new(state_root: &Path) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
@@ -54,7 +53,6 @@ impl ReplicaConfig {
             artifact_pool: ArtifactPoolConfig {
                 consensus_pool_path: state_root.join("consensus_pool"),
             },
-            no_artificial_delay,
         }
     }
 
