@@ -7,13 +7,12 @@ let
     exename = "icx-proxy";
     usePackager = false;
   };
-  replica-bin = pkgs.sources."replica-${pkgs.system}";
-  starter-bin = pkgs.sources."ic-starter-${pkgs.system}";
   looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
     mkdir -p $out
 
-    gunzip <${replica-bin} >$out/replica
-    gunzip <${starter-bin} >$out/ic-starter
+    cp ${pkgs.dfinity.ic-replica}/bin/replica $out
+    cp ${pkgs.dfinity.ic-starter}/bin/ic-starter $out
+
     cp -R ${pkgs.motoko.base-src} $out/base
     cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
     cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
