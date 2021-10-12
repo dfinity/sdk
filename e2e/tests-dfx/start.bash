@@ -36,6 +36,13 @@ teardown() {
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
 
+    # Sometimes initially get an error like:
+    #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
+    # but the condition clears.
+    timeout 30s sh -c \
+      'until dfx canister call hello greet ("wait"); do echo waiting for any canister call to succeed; sleep 1; done' \
+      || (echo "canister call did not succeed") # but continue, for better error reporting
+
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 }
@@ -90,6 +97,13 @@ teardown() {
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
+
+    # Sometimes initially get an error like:
+    #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
+    # but the condition clears.
+    timeout 30s sh -c \
+      'until dfx canister call hello greet ("wait"); do echo waiting for any canister call to succeed; sleep 1; done' \
+      || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
