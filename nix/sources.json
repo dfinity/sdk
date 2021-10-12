@@ -40,7 +40,7 @@
     "ic-ref": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity/ic-hs",
-        "rev": "fb558eb58aed501a6b46768baf0a50ece6bedeaa",
+        "rev": "e0ea5075d528e2154c10c0ca2595a915c2e7edf9",
         "type": "git"
     },
     "ic-starter-x86_64-darwin": {
