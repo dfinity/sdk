@@ -34,13 +34,13 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "eee9aaba8d3ca633b2fd9fa7024aaab388cc10a4",
+        "rev": "e1850ce9676d18460429d3c076e57834d1678eef",
         "type": "git"
     },
     "ic-ref": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity/ic-hs",
-        "rev": "c49a2f443d177b6486a1797ca646d8546ac7288c",
+        "rev": "380d66d631d9147a46a69b133142cab9c542ad03",
         "type": "git"
     },
     "ic-starter-x86_64-darwin": {
@@ -62,7 +62,7 @@
     "motoko": {
         "branch": "release",
         "repo": "https://github.com/dfinity/motoko",
-        "rev": "412dce6ba8d559ae3f7a4136f93866a0dcaa8eea",
+        "rev": "56326541bb4c7ba5f22609c97440dfd7feb91116",
         "tag": "0.6.5",
         "type": "git"
     },
