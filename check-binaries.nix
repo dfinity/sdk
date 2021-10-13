@@ -4,10 +4,10 @@
 let
    lib = pkgs.lib;
 in
-pkgs.runCommand "check-binaries" {
+pkgs.runCommandNoCCLocal "check-binaries" {
       nativeBuildInputs = with pkgs; [
         dfx.build
-      ] ++ lib.optional stdenv.isDarwin fixDarwinDylibNames;
+      ] ++ lib.optional stdenv.isDarwin darwin.binutils;
     } ''
     echo "check the binaries!"
     mkdir -p $out
