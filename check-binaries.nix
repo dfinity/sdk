@@ -24,9 +24,9 @@ pkgs.runCommand "check-binaries" {
       echo
       echo "checking $a"
 
-      if ! output=$(${lib_list_tool} "$CACHE_DIR/$a" 2>&1); then
+      if ! output="$(${lib_list_tool} "$CACHE_DIR/$a" 2>&1)"; then
           echo "$output"
-          if echo "$output" | grep "not a dynamic executable"; then
+          if echo "$output" | grep -q "not a dynamic executable"; then
               continue
           else
               result=1
@@ -34,9 +34,12 @@ pkgs.runCommand "check-binaries" {
       else
           echo "$output"
           echo
-          if echo "$output" | grep -v '^\/' | grep "/nix/store"; then
-              echo "** fails due to reference to /nix/store"
+          if matches="$(echo "$output" | grep -v '^\/' | grep "/nix/store")"; then
+              echo "** fails because $a references /nix/store:"
+              echo "$matches"
               result=1
+          else
+              echo "  - None found."
           fi
       fi
   done
