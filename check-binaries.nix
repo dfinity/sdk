@@ -18,9 +18,27 @@ pkgs.runCommand "check-binaries" {
   dfx cache install
   CACHE_DIR="$(dfx cache show)"
 
+  result=0
   for a in dfx ic-ref ic-starter icx-proxy mo-doc mo-ide moc replica;
   do
       echo
-      ${lib_list_tool} "$CACHE_DIR/$a"
+      echo "checking $a"
+
+      if ! output=$(${lib_list_tool} "$CACHE_DIR/$a" 2>&1); then
+          echo "$output"
+          if echo "$output" | grep "not a dynamic executable"; then
+              continue
+          else
+              result=1
+          fi
+      else
+          echo "$output"
+          echo
+          if echo "$output" | grep -v '^\/' | grep "/nix/store"; then
+              echo "** fails due to reference to /nix/store"
+              result=1
+          fi
+      fi
   done
+  exit $result
 ''
