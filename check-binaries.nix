@@ -16,7 +16,7 @@ pkgs.runCommand "check-binaries" {
     CACHE_DIR="$(dfx cache show)"
     echo "Cache dir is $CACHE_DIR"
 
-    if [ uname -a | grep Linux ]; then
+    if uname -a | grep Linux; then
         echo "checking linux.."
         for a in dfx replica ic-starter ic-ref;
         do
