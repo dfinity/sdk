@@ -17,6 +17,12 @@ The `--no-artificial-delay` option not being the default has been causing a lot 
 Now that we have measured in production and already applied a default of 600ms to most subnets deployed out there,
 we have set the same default for dfx and removed the option.
 
+== Motoko
+
+Updated Motoko from 0.6.10 to 0.6.11.
+
+* Assertion error messages are now reproducible (#2821)
+
 = 0.8.2
 
 == DFX
