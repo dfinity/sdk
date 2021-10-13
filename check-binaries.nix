@@ -21,7 +21,7 @@ pkgs.runCommand "check-binaries" {
       for a in dfx replica ic-starter ic-ref;
       do
           echo "checking $a"
-          "${self.glibc.bin}/bin/ldd" "$CACHE_DIR/$a"
+          "${pkgs.glibc.bin}/bin/ldd" "$CACHE_DIR/$a"
       done
   else
       echo "checking osx.."
