@@ -38,8 +38,6 @@ pkgs.runCommand "check-binaries" {
               echo "** fails because $a references /nix/store:"
               echo "$matches"
               result=1
-          else
-              echo "  - None found."
           fi
       fi
   done
