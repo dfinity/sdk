@@ -4,7 +4,7 @@
 let
   lib = pkgs.lib;
 in
-pkgs.runCommandNoCCLocal "check-binaries" {
+pkgs.runCommand "check-binaries" {
   nativeBuildInputs = with pkgs; [
     dfx.build
   ] ++ lib.optional stdenv.isDarwin darwin.binutils;
