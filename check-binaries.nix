@@ -7,7 +7,7 @@ in
 pkgs.runCommand "check-binaries" {
       nativeBuildInputs = with pkgs; [
         dfx.build
-      ];
+      ] ++ lib.optional stdenv.isDarwin fixDarwinDylibNames;
     } ''
     echo "check the binaries!"
     mkdir -p $out
