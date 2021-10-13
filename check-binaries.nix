@@ -8,7 +8,7 @@ pkgs.runCommand "check-binaries" {
   nativeBuildInputs = with pkgs; [
     dfx.build
   ] ++ lib.optional stdenv.isDarwin darwin.binutils
-    ++ lib.optional stdenv.isLinux glibc.bin;
+  ++ lib.optional stdenv.isLinux glibc.bin;
 } ''
   echo "check the binaries!"
   mkdir -p $out
