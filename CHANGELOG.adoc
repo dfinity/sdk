@@ -1,3 +1,22 @@
+= 0.8.3
+
+== DFX
+
+=== fix: ic-ref linux binary no longer references /nix/store
+
+This means `dfx start --emulator` has a chance of working if nix is not installed.
+This has always been broken, even before dfx 0.7.0.
+
+=== fix: replica and ic-starter linux binaries no longer reference /nix/store
+
+This means `dfx start` will work again on linux.  This bug was introduced in dfx 0.8.2.
+
+=== feat: replaced --no_artificial_delay option with a sensible default.
+
+The `--no-artificial-delay` option not being the default has been causing a lot of confusion.
+Now that we have measured in production and already applied a default of 600ms to most subnets deployed out there,
+we have set the same default for dfx and removed the option.
+
 = 0.8.2
 
 == DFX
