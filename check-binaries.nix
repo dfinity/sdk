@@ -7,7 +7,8 @@ in
 pkgs.runCommand "check-binaries" {
   nativeBuildInputs = with pkgs; [
     dfx.build
-  ] ++ lib.optional stdenv.isDarwin darwin.binutils;
+  ] ++ lib.optional stdenv.isDarwin darwin.binutils
+    ++ lib.optional stdenv.isLinux glibc.bin;
 } ''
   echo "check the binaries!"
   mkdir -p $out
@@ -21,7 +22,7 @@ pkgs.runCommand "check-binaries" {
       for a in dfx replica ic-starter ic-ref;
       do
           echo "checking $a"
-          "${pkgs.glibc.bin}/bin/ldd" "$CACHE_DIR/$a"
+          ldd "$CACHE_DIR/$a"
       done
   else
       echo "checking osx.."
