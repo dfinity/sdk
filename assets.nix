@@ -9,7 +9,7 @@ let
   };
   replica-bin = pkgs.sources."replica-${pkgs.system}";
   starter-bin = pkgs.sources."ic-starter-${pkgs.system}";
-  looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
+  looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" { buildInputs = pkgs.lib.optional pkgs.stdenv.isLinux pkgs.patchelf; } ''
     mkdir -p $out
 
     gunzip <${replica-bin} >$out/replica
@@ -20,6 +20,16 @@ let
     cp ${pkgs.motoko.moc}/bin/moc $out
     cp ${pkgs.ic-ref}/bin/* $out
     cp ${icx-proxy-standalone}/bin/icx-proxy $out
+
+    ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+    # Make sure the interpreter is not hardcoded to the nix store, for some executables
+    for exename in replica ic-starter; do
+      exe="$out/$exename"
+      echo setting interpreter for "$exename ($exe)"
+      patchelf --set-interpreter '/lib64/ld-linux-x86-64.so.2' "$exe"
+      patchelf --print-interpreter "$exe"
+    done
+  ''}
   '';
 in
 pkgs.runCommandNoCCLocal "assets" {} ''
