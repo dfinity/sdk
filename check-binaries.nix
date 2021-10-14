@@ -15,8 +15,17 @@ pkgs.runCommand "check-binaries" {
 } ''
   mkdir -p $out
   export DFX_CONFIG_ROOT="$out"
-  dfx cache install
-  CACHE_DIR="$(dfx cache show)"
+  cp ${dfx.standalone}/bin/dfx dfx
+
+  ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+      # distributed dfx needs some surgery in order to run under nix
+      local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
+      chmod +rw ./dfx
+      patchelf --set-interpreter "$LD_LINUX_SO" ./dfx
+    ''}
+
+  ./dfx cache install
+  CACHE_DIR="$(./dfx cache show)"
 
   result=0
   for a in dfx ic-ref ic-starter icx-proxy mo-doc mo-ide moc replica;
