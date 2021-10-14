@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "380869a5c1848d6160a64d41a6a7cff73b58f2e0",
-        "sha256": "01p8vf3ld0a3dnyhkh4lr53hiy1x90s3d8c69zpb72z46k13f44v",
+        "rev": "9a1349483e62ce5a986b99c3b251097c226d1bea",
+        "sha256": "0gwvv46x8w22m2ilvc2mnnn1bc5i44ns6r0by78cydgc0w7r2b9i",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/380869a5c1848d6160a64d41a6a7cff73b58f2e0.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/9a1349483e62ce5a986b99c3b251097c226d1bea.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
@@ -40,23 +40,23 @@
     "ic-ref": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity/ic-hs",
-        "rev": "380d66d631d9147a46a69b133142cab9c542ad03",
+        "rev": "c95eb237959c1fda43c4e77b5b742ba2f474a6d9",
         "type": "git"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
-        "rev": "ee1de3c15c9459ed5007c78442621b5a7e43c620",
-        "sha256": "13kaz9zj38snprzfvj68jxs4ff5yxi9lhifkzs47c6wy8axbz2h7",
+        "rev": "d35b7722f50645375a60ee905552513c76a0f426",
+        "sha256": "1c8wmak4an5606464v9i5fvmw2fds5ps8c5n0b73dcjxs83q634b",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/ee1de3c15c9459ed5007c78442621b5a7e43c620/nix-release/x86_64-darwin/ic-starter.gz",
+        "url": "https://download.dfinity.systems/ic/d35b7722f50645375a60ee905552513c76a0f426/nix-release/x86_64-darwin/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/ic-starter.gz"
     },
     "ic-starter-x86_64-linux": {
         "builtin": false,
-        "rev": "ee1de3c15c9459ed5007c78442621b5a7e43c620",
-        "sha256": "08ryri2lbw7y2jx0nzg1wv26gkiby3xjq6hg8if33ilw2rrbzs4k",
+        "rev": "d35b7722f50645375a60ee905552513c76a0f426",
+        "sha256": "05dhfinfmi1zg51hsjv4fwcxxbgrxgyqvi4mw9rhnzzj919bnwpx",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/ee1de3c15c9459ed5007c78442621b5a7e43c620/nix-release/ic-starter.gz",
+        "url": "https://download.dfinity.systems/ic/d35b7722f50645375a60ee905552513c76a0f426/nix-release/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/ic-starter.gz"
     },
     "motoko": {
@@ -81,18 +81,18 @@
     },
     "replica-x86_64-darwin": {
         "builtin": false,
-        "rev": "ee1de3c15c9459ed5007c78442621b5a7e43c620",
-        "sha256": "0dwifs75l59287ff7vhb1dpvh0z0i41nxzm2d609ap933fpvs17a",
+        "rev": "d35b7722f50645375a60ee905552513c76a0f426",
+        "sha256": "1yi0yyqjm7r2hf96i9dsmc1qlb53yvdcr4774yn57vw227l84sb1",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/ee1de3c15c9459ed5007c78442621b5a7e43c620/nix-release/x86_64-darwin/replica.gz",
+        "url": "https://download.dfinity.systems/ic/d35b7722f50645375a60ee905552513c76a0f426/nix-release/x86_64-darwin/replica.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/replica.gz"
     },
     "replica-x86_64-linux": {
         "builtin": false,
-        "rev": "ee1de3c15c9459ed5007c78442621b5a7e43c620",
-        "sha256": "0yjm4qsi0r7q90brgz14pisggg1bcsnsdlk9zs34sm6rl1inqwr1",
+        "rev": "d35b7722f50645375a60ee905552513c76a0f426",
+        "sha256": "0q2dqaag41g5bbqs6g15chm0qwv42kv5r0ksrpxgzb8k57hbaqa4",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/ee1de3c15c9459ed5007c78442621b5a7e43c620/nix-release/replica.gz",
+        "url": "https://download.dfinity.systems/ic/d35b7722f50645375a60ee905552513c76a0f426/nix-release/replica.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/replica.gz"
     }
 }

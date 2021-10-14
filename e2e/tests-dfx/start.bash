@@ -40,7 +40,7 @@ teardown() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      'until dfx canister call hello greet ("wait"); do echo waiting for any canister call to succeed; sleep 1; done' \
+      "until dfx canister call hello greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello greet '("Omega")'
@@ -102,7 +102,7 @@ teardown() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      'until dfx canister call hello greet ("wait"); do echo waiting for any canister call to succeed; sleep 1; done' \
+      "until dfx canister call hello greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello greet '("Omega")'
