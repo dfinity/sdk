@@ -9,7 +9,7 @@ let
 in
 pkgs.runCommand "check-binaries" {
   nativeBuildInputs = with pkgs; [
-    dfx.build
+    dfx.standalone
   ] ++ lib.optional stdenv.isDarwin darwin.binutils
   ++ lib.optional stdenv.isLinux glibc.bin;
 } ''
