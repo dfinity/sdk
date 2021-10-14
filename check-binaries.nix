@@ -9,9 +9,10 @@ let
 in
 pkgs.runCommand "check-binaries" {
   nativeBuildInputs = with pkgs; [
+    which
     dfx.standalone
   ] ++ lib.optional stdenv.isDarwin darwin.binutils
-  ++ lib.optional stdenv.isLinux glibc.bin;
+  ++ lib.optional stdenv.isLinux [ glibc.bin patchelf ];
 } ''
   mkdir -p $out
   export DFX_CONFIG_ROOT="$out"
