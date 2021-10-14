@@ -18,11 +18,11 @@ pkgs.runCommand "check-binaries" {
   cp ${dfx.standalone}/bin/dfx dfx
 
   ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-      # distributed dfx needs some surgery in order to run under nix
-      local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
-      chmod +rw ./dfx
-      patchelf --set-interpreter "$LD_LINUX_SO" ./dfx
-    ''}
+  # distributed dfx needs some surgery in order to run under nix
+  local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
+  chmod +rw ./dfx
+  patchelf --set-interpreter "$LD_LINUX_SO" ./dfx
+''}
 
   ./dfx cache install
   CACHE_DIR="$(./dfx cache show)"
