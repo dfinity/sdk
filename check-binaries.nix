@@ -58,6 +58,9 @@ pkgs.runCommand "check-binaries" {
   }
 
   result=0
+
+  # On linux, the dfx binary in the cache will be copied from the one we patched above,
+  # so check the original binary separately:
   if ! check_binary "${dfx.standalone}/bin/dfx"; then
     result=1
   fi
