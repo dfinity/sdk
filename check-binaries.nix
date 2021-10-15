@@ -49,7 +49,7 @@ pkgs.runCommand "check-binaries" {
           echo
           if found="$(echo "$libraries" | grep "/nix/store")"; then
               echo "** fails because $path references /nix/store:"
-              echo "found"
+              echo "$found"
               return 1
           else
               return 0
