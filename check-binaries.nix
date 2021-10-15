@@ -31,7 +31,7 @@ pkgs.runCommand "check-binaries" {
   check_binary() {
       path=$1
 
-      echo x
+      echo
       echo "checking $path"
 
       if ! output="$(${lib_list_tool} "$path" 2>&1)"; then
@@ -42,11 +42,12 @@ pkgs.runCommand "check-binaries" {
               return 1
           fi
       else
+          libraries="$(echo "$output" | grep -v '^\/' | cut -f 1 -d ' ')"
           echo "$output"
+          echo "Libraries:"
+          echo "$libraries"
           echo
-          echo "$output" | grep -v '^\/' | cut -f 1 -d ' '
-          echo
-          if found="$(echo "$output" | grep -v '^\/' | cut -f 1 -d ' ' | grep "/nix/store")"; then
+          if found="$(echo "$libraries" | grep "/nix/store")"; then
               echo "** fails because $path references /nix/store:"
               echo "found"
               return 1
