@@ -28,27 +28,43 @@ pkgs.runCommand "check-binaries" {
   ./dfx cache install
   CACHE_DIR="$(./dfx cache show)"
 
-  result=0
-  for a in dfx ic-ref ic-starter icx-proxy mo-doc mo-ide moc replica;
-  do
-      echo
-      echo "checking $a"
+  check_binary() {
+      path=$1
 
-      if ! output="$(${lib_list_tool} "$CACHE_DIR/$a" 2>&1)"; then
+      echo x
+      echo "checking $path"
+
+      if ! output="$(${lib_list_tool} "$path" 2>&1)"; then
           echo "$output"
           if echo "$output" | grep -q "not a dynamic executable"; then
-              continue
+              return 0
           else
-              result=1
+              return 1
           fi
       else
           echo "$output"
           echo
-          if matches="$(echo "$output" | grep -v '^\/' | grep "/nix/store")"; then
-              echo "** fails because $a references /nix/store:"
-              echo "$matches"
-              result=1
+          echo "$output" | grep -v '^\/' | cut -f 1 -d ' '
+          echo
+          if found="$(echo "$output" | grep -v '^\/' | cut -f 1 -d ' ' | grep "/nix/store")"; then
+              echo "** fails because $path references /nix/store:"
+              echo "found"
+              return 1
+          else
+              return 0
           fi
+      fi
+  }
+
+  result=0
+  if ! check_binary "${dfx.standalone}/bin/dfx"; then
+    result=1
+  fi
+
+  for a in ic-ref ic-starter icx-proxy mo-doc mo-ide moc replica;
+  do
+      if ! check_binary "$CACHE_DIR/$a"; then
+          result=1
       fi
   done
   exit $result
