@@ -14,7 +14,7 @@ let
 
     gunzip <${replica-bin} >$out/replica
     gunzip <${starter-bin} >$out/ic-starter
-    cp -R ${pkgs.sources.motoko-base} $out/base
+    cp -R ${pkgs.sources.motoko-base}/src $out/base
     cp ${pkgs.motoko}/bin/mo-doc $out
     cp ${pkgs.motoko}/bin/mo-ide $out
     cp ${pkgs.motoko}/bin/moc $out
