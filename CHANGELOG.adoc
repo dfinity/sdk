@@ -1,3 +1,12 @@
+= 0.8.4
+
+== DFX
+
+=== feat: environment variable overrides for executable pathnames
+
+You can now override the location of any executable normally called from the cache by specifying
+an environment variable. For example, DFX_ICX_PROXY_PATH will specify the path for `icx-proxy`.
+
 = 0.8.3
 
 == DFX
