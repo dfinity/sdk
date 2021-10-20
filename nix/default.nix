@@ -55,8 +55,7 @@ let
                 src = self.sources."ic-ref-${self.system}";
               } ''
                 mkdir -p $out/bin
-                gunzip -cd $src > $out/bin/ic-ref
-                chmod +x $out/bin/ic-ref
+                tar -C $out/bin/ -xf $src
               '';
               motoko = pkgs.runCommandNoCCLocal "motoko" {
                 src = self.sources."motoko-${self.system}";
