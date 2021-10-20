@@ -50,8 +50,14 @@ let
               napalm = self.callPackage self.sources.napalm {
                 pkgs = self // { nodejs = self.nodejs-12_x; };
               };
-              ic-ref =
-                (import self.sources.ic-ref { inherit (self) system; }).ic-ref-dist;
+
+              ic-ref = pkgs.runCommandNoCCLocal "ic-ref" {
+                src = self.sources."ic-ref-${self.system}";
+              } ''
+                mkdir -p $out/bin
+                gunzip -cd $src > $out/bin/ic-ref
+                chmod +x $out/bin/ic-ref
+              '';
               motoko = pkgs.runCommandNoCCLocal "motoko" {
                 src = self.sources."motoko-${self.system}";
               } ''

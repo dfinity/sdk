@@ -37,11 +37,21 @@
         "rev": "8fd13772016f9273a3ce61efa77b9f6a3345a67a",
         "type": "git"
     },
-    "ic-ref": {
-        "branch": "master",
-        "repo": "ssh://git@github.com/dfinity/ic-hs",
-        "rev": "c95eb237959c1fda43c4e77b5b742ba2f474a6d9",
-        "type": "git"
+    "ic-ref-x86_64-darwin": {
+        "builtin": false,
+        "sha256": "15w99lwhk1hhrc4f889nj2x7x2wwfcjf7ikz1m1saaq48d2pz822",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-67ea358e-x86_64-darwin.gz",
+        "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-darwin.gz",
+        "version": "0.0.1-67ea358e"
+    },
+    "ic-ref-x86_64-linux": {
+        "builtin": false,
+        "sha256": "0fmwxzh7k6m9p0nyzaf0hgzi60nkcs8c86nan1z2w1nm47vr1zls",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-67ea358e-x86_64-linux.gz",
+        "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.gz",
+        "version": "0.0.1-67ea358e"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
