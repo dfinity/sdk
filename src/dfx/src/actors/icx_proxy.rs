@@ -41,6 +41,9 @@ pub struct IcxProxyConfig {
 
     /// fixed replica addresses
     pub providers: Vec<Url>,
+
+    /// does the icx-proxy need to fetch the root key
+    pub fetch_root_key: bool,
 }
 
 /// The configuration for the icx_proxy actor.
@@ -83,6 +86,7 @@ impl IcxProxy {
         let proxy_port = config.proxy_port;
         let icx_proxy_pid_path = &self.config.icx_proxy_pid_path;
         let icx_proxy_path = self.config.icx_proxy_path.to_path_buf();
+        let fetch_root_key = config.fetch_root_key;
         let (sender, receiver) = unbounded();
 
         let handle = icx_proxy_start_thread(
@@ -93,6 +97,7 @@ impl IcxProxy {
             icx_proxy_path,
             icx_proxy_pid_path.clone(),
             receiver,
+            fetch_root_key,
         )?;
 
         self.thread_join = Some(handle);
@@ -184,6 +189,7 @@ fn icx_proxy_start_thread(
     icx_proxy_path: PathBuf,
     icx_proxy_pid_path: PathBuf,
     receiver: Receiver<()>,
+    fetch_root_key: bool,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         // Use a Waiter for waiting for the file to be created.
@@ -198,6 +204,9 @@ fn icx_proxy_start_thread(
 
         // form the icx-proxy command here similar to replica command
         let mut cmd = std::process::Command::new(icx_proxy_path);
+        if fetch_root_key {
+            cmd.arg("--fetch-root-key");
+        }
         let address = format!("{}", &address);
         let proxy = format!("http://localhost:{}", proxy_port);
         cmd.args(&["--address", &address, "--proxy", &proxy]);

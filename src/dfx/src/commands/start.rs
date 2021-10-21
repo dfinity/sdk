@@ -174,6 +174,12 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     };
 
     let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
+    let icx_proxy_config = IcxProxyConfig {
+        bind: address_and_port,
+        proxy_port: webserver_bind.port(),
+        providers: vec![],
+        fetch_root_key: !network_descriptor.is_ic,
+    };
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,
@@ -183,11 +189,6 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
         shutdown_controller.clone(),
     )?;
 
-    let icx_proxy_config = IcxProxyConfig {
-        bind: address_and_port,
-        proxy_port: webserver_bind.port(),
-        providers: vec![],
-    };
     let _proxy = start_icx_proxy_actor(
         env,
         icx_proxy_config,
