@@ -6,9 +6,8 @@ let
 
 in
 pkgs.runCommandNoCCLocal "distributed-canisters" {
-  inherit (pkgs.motoko) rts;
-  moc = pkgs.motoko.moc;
-  base = pkgs.motoko.base-src;
+  moc = pkgs.motoko;
+  base = pkgs.sources.motoko-base;
 } ''
   mkdir -p $out
 
