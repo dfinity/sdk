@@ -36,7 +36,6 @@ let
             nixFmt = self.lib.nixFmt {};
           in
             {
-              motoko = import self.sources.motoko { inherit (self) system; };
               agent-rs = self.naersk.buildPackage {
                 name = "agent-rs";
                 root = self.sources.agent-rs;
@@ -51,8 +50,19 @@ let
               napalm = self.callPackage self.sources.napalm {
                 pkgs = self // { nodejs = self.nodejs-12_x; };
               };
-              ic-ref =
-                (import self.sources.ic-ref { inherit (self) system; }).ic-ref-dist;
+
+              ic-ref = pkgs.runCommandNoCCLocal "ic-ref" {
+                src = self.sources."ic-ref-${self.system}";
+              } ''
+                mkdir -p $out/bin
+                tar -C $out/bin/ -xf $src
+              '';
+              motoko = pkgs.runCommandNoCCLocal "motoko" {
+                src = self.sources."motoko-${self.system}";
+              } ''
+                mkdir -p $out/bin
+                tar -C $out/bin -xf $src
+              '';
 
               nix-fmt = nixFmt.fmt;
               nix-fmt-check = nixFmt.check;
