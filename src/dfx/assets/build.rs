@@ -7,29 +7,53 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn find_assets() -> PathBuf {
-    if let Ok(a) = env::var("DFX_ASSETS") {
+    if let Ok(a) = env::var("DFX_ASSETS_NNONO") {
         PathBuf::from(a)
     } else {
-        let assets_nix = PathBuf::from(format!("{}/../../assets.nix", env!("CARGO_MANIFEST_DIR")))
+        let project_root_dir = format!("{}/../..", env!("CARGO_MANIFEST_DIR"));
+        let project_root_path: PathBuf = PathBuf::from(project_root_dir)
             .canonicalize()
-            .expect("assets.nix doesn't exist!");
-        eprintln!("cargo:rerun-if-changed={}", assets_nix.display());
-        let assets = Command::new("nix-build")
-            .arg("--no-out-link")
-            .arg(assets_nix)
-            .output()
-            .expect("unable to run local nix-build");
-        if !assets.status.success() {
-            eprintln!("cargo:warning=unable to run nix-build:");
-            eprintln!("cargo:warning={}", String::from_utf8_lossy(&assets.stderr));
-            std::process::exit(1)
+            .expect("Unable to determine project root");
+        let dfx_assets_path = project_root_path.join(".dfx-assets");
+
+        if !dfx_assets_path.exists() {
+            let prepare_script_path = project_root_path.join("scripts/prepare-dfx-assets.sh");
+            let result = Command::new(&prepare_script_path)
+                .output()
+                .expect("unable to run prepare script");
+            if !result.status.success() {
+                eprintln!(
+                    "cargo:error=unable to run {}:",
+                    prepare_script_path.to_string_lossy()
+                );
+                eprintln!("cargo:error={}", String::from_utf8_lossy(&result.stderr));
+                std::process::exit(1)
+            }
         }
-        let path = String::from_utf8_lossy(&assets.stdout)
-            .trim_end()
-            .to_string();
-        env::set_var("DFX_ASSETS", &path);
-        PathBuf::from(path)
+
+        dfx_assets_path
     }
+    // } else {
+    //     let assets_nix = PathBuf::from(format!("{}/../../assets.nix", env!("CARGO_MANIFEST_DIR")))
+    //         .canonicalize()
+    //         .expect("assets.nix doesn't exist!");
+    //     eprintln!("cargo:rerun-if-changed={}", assets_nix.display());
+    //     let assets = Command::new("nix-build")
+    //         .arg("--no-out-link")
+    //         .arg(assets_nix)
+    //         .output()
+    //         .expect("unable to run local nix-build");
+    //     if !assets.status.success() {
+    //         eprintln!("cargo:warning=unable to run nix-build:");
+    //         eprintln!("cargo:warning={}", String::from_utf8_lossy(&assets.stderr));
+    //         std::process::exit(1)
+    //     }
+    //     let path = String::from_utf8_lossy(&assets.stdout)
+    //         .trim_end()
+    //         .to_string();
+    //     env::set_var("DFX_ASSETS", &path);
+    //     PathBuf::from(path)
+    // }
 }
 
 fn add_asset_archive(fn_name: &str, f: &mut File) {
