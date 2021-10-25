@@ -2,7 +2,9 @@
 
 set -e
 
-date >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+echo >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+echo "Starting... $(date)" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+echo "output path=$1" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
 
 which -s jq || ( echo "Please install jq in order to run this script." ; exit 1 )
 
@@ -12,11 +14,16 @@ export >/Users/ericswanson/trouble.txt
 SDK_ROOT_DIR="$( cd -- "$(dirname -- "$( dirname -- "${BASH_SOURCE[0]}" )" )" &> /dev/null && pwd )"
 NIX_SOURCES_JSON="$SDK_ROOT_DIR/nix/sources.json"
 
-DFX_ASSETS_FINAL_DIR="$SDK_ROOT_DIR/.dfx-assets"
+DFX_ASSETS_FINAL_DIR=${1:-"$SDK_ROOT_DIR/.dfx-assets"}
+echo "DFX_ASSETS_FINAL_DIR=$DFX_ASSETS_FINAL_DIR" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
 
 DFX_ASSETS_TEMP_DIR=$(mktemp -d)
 BINARY_CACHE_TEMP_DIR=$(mktemp -d)
 DOWNLOAD_TEMP_DIR=$(mktemp -d)
+
+echo "DFX_ASSETS_TEMP_DIR=$DFX_ASSETS_TEMP_DIR" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+echo "BINARY_CACHE_TEMP_DIR=$BINARY_CACHE_TEMP_DIR" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+echo "DOWNLOAD_TEMP_DIR=$DOWNLOAD_TEMP_DIR" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
 
 function cleanup {
     rm -rf "$DFX_ASSETS_TEMP_DIR" "$BINARY_CACHE_TEMP_DIR" "$DOWNLOAD_TEMP_DIR"
@@ -31,6 +38,7 @@ case "$OSTYPE" in
 esac
 
 add_canisters() {
+    echo "add_canisters" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
     tar -czf "$DFX_ASSETS_TEMP_DIR"/assetstorage_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./assetstorage.did ./assetstorage.wasm
     tar -czf "$DFX_ASSETS_TEMP_DIR"/wallet_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./wallet.did ./wallet.wasm
     tar -czf "$DFX_ASSETS_TEMP_DIR"/ui_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./ui.did ./ui.wasm
@@ -73,6 +81,7 @@ download_url_from_nix_sources_and_check_sha() {
 }
 
 download_binary() {
+    echo download_binary "$1" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
     NAME="$1"
 
     DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/$NAME.gz"
@@ -85,6 +94,8 @@ download_binary() {
 }
 
 download_ic_ref() {
+    echo download_ic_ref >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+
     NAME="ic-ref"
 
     DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/$NAME.tar.gz"
@@ -95,6 +106,7 @@ download_ic_ref() {
 }
 
 download_motoko_binaries() {
+    echo download_motoko_binaries >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
     NAME="motoko"
 
     DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/$NAME.tar.gz"
@@ -110,6 +122,7 @@ download_motoko_binaries() {
 }
 
 download_motoko_base() {
+    echo download_motoko_base >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
     # not used, because the sha256 doesn't match the tarball itself, rather, it's a nix hash of over the contents.
     NAME="motoko-base"
 
@@ -127,6 +140,7 @@ download_motoko_base() {
 }
 
 copy_motoko_base() {
+    echo copy_motoko_base >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
     # the sha256 in nix/sources.json doesn't match the sha256 of the archive, it's a nix hash of the contents
     # so we will clone the repo
 
@@ -148,25 +162,32 @@ copy_motoko_base() {
 }
 
 build_icx_proxy() {
+    echo build_icx_proxy >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+    BRANCH="$(jq -r .\"agent-rs\".branch "$NIX_SOURCES_JSON")"
     REV="$(jq -r .\"agent-rs\".rev "$NIX_SOURCES_JSON")"
     REPO="$(jq -r .\"agent-rs\".repo "$NIX_SOURCES_JSON")"
-    echo "repo $REPO rev $REV"
-    TMPDIR="$(mktemp -d)"
+    echo "repo $REPO rev $REV" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+    TEMP_BUILD_DIR="$(mktemp -d)"
     (
-        cd "$TMPDIR"
-        git clone "$REPO"
+        cd "$TEMP_BUILD_DIR"
+        echo clone... >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+        git clone -b "$BRANCH" --single-branch "$REPO"
+
         (
             cd agent-rs
+            echo checkout... >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
             git checkout "$REV"
-            cargo build --release -p icx-proxy
+            echo cargo build in $(pwd)... >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+            cargo build --release -p icx-proxy 2>&1 >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
             cp target/release/icx-proxy "$BINARY_CACHE_TEMP_DIR/icx-proxy"
             chmod 0500 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
         )
     )
-    rm -rf "$TMPDIR"
+    rm -rf "$TEMP_BUILD_DIR"
 }
 
 add_binary_cache() {
+    echo "add_binary_cache" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
     download_binary "replica"
     download_binary "ic-starter"
     download_ic_ref
@@ -186,3 +207,6 @@ add_binary_cache
 
 rm -rf "$DFX_ASSETS_FINAL_DIR"
 mv "$DFX_ASSETS_TEMP_DIR" "$DFX_ASSETS_FINAL_DIR"
+
+echo "...Finished $(date)" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+
