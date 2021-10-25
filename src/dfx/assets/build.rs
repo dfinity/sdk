@@ -9,6 +9,7 @@ use std::{env, fs};
 
 const INPUTS: &'static [&'static str] = &[
     "nix/sources.json",
+    "scripts/dfx-asset-sources.sh",
     "scripts/prepare-dfx-assets.sh",
     "src/distributed/assetstorage.did",
     "src/distributed/assetstorage.wasm",

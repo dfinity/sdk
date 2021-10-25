@@ -6,12 +6,14 @@ echo >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
 echo "Starting... $(date)" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
 echo "output path=$1" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
 
-which -s jq || ( echo "Please install jq in order to run this script." ; exit 1 )
+#which -s jq || ( echo "Please install jq in order to run this script." ; exit 1 )
 
 export >/Users/ericswanson/trouble.txt
 
-
 SDK_ROOT_DIR="$( cd -- "$(dirname -- "$( dirname -- "${BASH_SOURCE[0]}" )" )" &> /dev/null && pwd )"
+
+. "$SDK_ROOT_DIR/scripts/dfx-asset-sources.sh"
+
 NIX_SOURCES_JSON="$SDK_ROOT_DIR/nix/sources.json"
 
 DFX_ASSETS_FINAL_DIR=${1:-"$SDK_ROOT_DIR/.dfx-assets"}
@@ -56,64 +58,88 @@ download_url_and_check_sha() {
     # This doesn't work, because...
     ACTUAL_SHA256=$(shasum -a 256 "$LOCAL_PATH" | cut -f 1 -d ' ')
 
-    # # ... Nix uses a nonstandard base32 hash format.  What now?
-    # ACTUAL_SHA256=$(nix-hash --flat --base32 --type sha256 "$BINARY_CACHE_TEMP_DIR/$NAME.gz")
-
     if [ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]; then
         echo "SHA256 mismatch for $URL: expected $EXPECTED_SHA256, got $ACTUAL_SHA256"
         exit 1
     fi
 }
 
-download_url_from_nix_sources_and_check_sha() {
+#download_url_from_nix_sources_and_check_sha() {
+#    NAME="$1"
+#    LOCAL_PATH="$2"
+#    KEY="$NAME-$MACHINE-$PLATFORM"
+#
+#    URL=$(jq -r .'"'"$KEY"'".url' "$NIX_SOURCES_JSON")
+#
+#    EXPECTED_SHA256_BASE32=$(jq -r .'"'"$KEY"'".sha256' "$NIX_SOURCES_JSON")
+#
+#    # ... Nix uses a nonstandard base32 hash format.  So...
+#    EXPECTED_SHA256=$(nix to-base16 --type sha256 "$EXPECTED_SHA256_BASE32")
+#
+#    download_url_and_check_sha "$URL" "$EXPECTED_SHA256" "$LOCAL_PATH"
+#}
+
+get_variable() {
     NAME="$1"
-    LOCAL_PATH="$2"
-    KEY="$NAME-$MACHINE-$PLATFORM"
+    PART="$2"
+    echo "get_variable $1" "$2"  >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
 
-    URL=$(jq -r .'"'"$KEY"'".url' "$NIX_SOURCES_JSON")
+    VAR_NAME=$(echo "${NAME}_${MACHINE}_${PLATFORM}_${PART}" | tr '[:lower:]-' '[:upper:]_')
+    echo "VAR NAME is $VAR_NAME"  >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+    VAR_VALUE=${!VAR_NAME}
 
-    EXPECTED_SHA256_BASE32=$(jq -r .'"'"$KEY"'".sha256' "$NIX_SOURCES_JSON")
-
-    # ... Nix uses a nonstandard base32 hash format.  So...
-    EXPECTED_SHA256=$(nix to-base16 --type sha256 "$EXPECTED_SHA256_BASE32")
-
-    download_url_and_check_sha "$URL" "$EXPECTED_SHA256" "$LOCAL_PATH"
+    echo "$VAR_VALUE"
 }
 
-download_binary() {
-    echo download_binary "$1" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+download_binary2() {
     NAME="$1"
+    echo download_binary2 "$1"   >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+    SHA256=$(get_variable "$NAME" "SHA256")
+    URL=$(get_variable "$NAME" "URL")
 
     DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/$NAME.gz"
     BINARY_CACHE_PATH="$BINARY_CACHE_TEMP_DIR/$NAME"
 
-    download_url_from_nix_sources_and_check_sha "$NAME" "$DOWNLOAD_PATH"
+    download_url_and_check_sha "$URL" "$SHA256" "$DOWNLOAD_PATH"
 
     gunzip -c "$DOWNLOAD_PATH" >"$BINARY_CACHE_PATH"
     chmod 0500 "$BINARY_CACHE_PATH"
 }
 
-download_ic_ref() {
-    echo download_ic_ref >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+#download_binary() {
+#    echo download_binary "$1" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+#    NAME="$1"
+#
+#    DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/$NAME.gz"
+#    BINARY_CACHE_PATH="$BINARY_CACHE_TEMP_DIR/$NAME"
+#
+#    download_url_from_nix_sources_and_check_sha "$NAME" "$DOWNLOAD_PATH"
+#
+#    gunzip -c "$DOWNLOAD_PATH" >"$BINARY_CACHE_PATH"
+#    chmod 0500 "$BINARY_CACHE_PATH"
+#}
 
-    NAME="ic-ref"
+download_tarball() {
+    echo download_tarball "$1" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
 
+    NAME="$1"
+
+    SHA256=$(get_variable "$NAME" "SHA256")
+    URL=$(get_variable "$NAME" "URL")
     DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/$NAME.tar.gz"
 
-    download_url_from_nix_sources_and_check_sha "$NAME" "$DOWNLOAD_PATH"
+    download_url_and_check_sha "$URL" "$SHA256" "$DOWNLOAD_PATH"
 
     tar -xvf "$DOWNLOAD_PATH" -C "$BINARY_CACHE_TEMP_DIR"
 }
 
+download_ic_ref() {
+    echo download_ic_ref >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
+    download_tarball "ic-ref"
+}
+
 download_motoko_binaries() {
-    echo download_motoko_binaries >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
-    NAME="motoko"
-
-    DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/$NAME.tar.gz"
-
-    download_url_from_nix_sources_and_check_sha "$NAME" "$DOWNLOAD_PATH"
-
-    tar -xvf "$DOWNLOAD_PATH" -C "$BINARY_CACHE_TEMP_DIR"
+    download_tarball "motoko"
 
     for a in mo-doc mo-ide moc;
     do
@@ -121,33 +147,11 @@ download_motoko_binaries() {
     done
 }
 
-download_motoko_base() {
-    echo download_motoko_base >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
-    # not used, because the sha256 doesn't match the tarball itself, rather, it's a nix hash of over the contents.
-    NAME="motoko-base"
-
-    KEY="$NAME"
-    LOCAL_PATH="$DOWNLOAD_TEMP_DIR/$NAME.tar.gz"
-
-    URL=$(jq -r .'"'"$KEY"'".url' "$NIX_SOURCES_JSON")
-
-    EXPECTED_SHA256_BASE32=$(jq -r .'"'"$KEY"'".sha256' "$NIX_SOURCES_JSON")
-
-    # ... Nix uses a nonstandard base32 hash format.  So...
-    EXPECTED_SHA256=$(nix to-base16 --type sha256 "$EXPECTED_SHA256_BASE32")
-
-    download_url_and_check_sha "$URL" "$EXPECTED_SHA256" "$LOCAL_PATH"
-}
-
-copy_motoko_base() {
+copy_motoko_base_from_clone() {
     echo copy_motoko_base >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
-    # the sha256 in nix/sources.json doesn't match the sha256 of the archive, it's a nix hash of the contents
-    # so we will clone the repo
 
-    KEY="motoko-base"
-
-    REV=$(jq -r .'"'"$KEY"'".rev' "$NIX_SOURCES_JSON")
-    BRANCH=$(jq -r .'"'"$KEY"'".branch' "$NIX_SOURCES_JSON")
+    REV=$MOTOKO_BASE_REV
+    BRANCH=$MOTOKO_BASE_BRANCH
 
     (
         cd "$DOWNLOAD_TEMP_DIR" # ok technically we are not downloading
@@ -163,9 +167,9 @@ copy_motoko_base() {
 
 build_icx_proxy() {
     echo build_icx_proxy >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
-    BRANCH="$(jq -r .\"agent-rs\".branch "$NIX_SOURCES_JSON")"
-    REV="$(jq -r .\"agent-rs\".rev "$NIX_SOURCES_JSON")"
-    REPO="$(jq -r .\"agent-rs\".repo "$NIX_SOURCES_JSON")"
+    BRANCH="$AGENT_RS_BRANCH"
+    REV="$AGENT_RS_REV"
+    REPO="$AGENT_RS_REPO"
     echo "repo $REPO rev $REV" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
     TEMP_BUILD_DIR="$(mktemp -d)"
     (
@@ -188,12 +192,11 @@ build_icx_proxy() {
 
 add_binary_cache() {
     echo "add_binary_cache" >>/Users/ericswanson/prepare-dfx-assets-invocations.txt
-    download_binary "replica"
-    download_binary "ic-starter"
+    download_binary2 "replica"
+    download_binary2 "ic-starter"
     download_ic_ref
     download_motoko_binaries
-    #download_motoko_base
-    copy_motoko_base
+    copy_motoko_base_from_clone
 
     build_icx_proxy
 
