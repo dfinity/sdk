@@ -34,7 +34,7 @@ fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
 }
 
 fn find_assets() -> PathBuf {
-    if let Ok(a) = env::var("DFX_ASSETS_NNONO") {
+    if let Ok(a) = env::var("DFX_ASSETS") {
         PathBuf::from(a)
     } else {
         let project_root_dir = format!("{}/../..", env!("CARGO_MANIFEST_DIR"));
