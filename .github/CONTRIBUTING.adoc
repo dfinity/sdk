@@ -200,6 +200,7 @@ niv update ic-starter-x86_64-darwin -a rev=$SHA
 niv update ic-starter-x86_64-linux -a rev=$SHA
 niv update replica-x86_64-darwin -a rev=$SHA
 niv update replica-x86_64-linux -a rev=$SHA
+./scripts/write-dfx-asset-sources.sh
 ----
 
 === Licenses
