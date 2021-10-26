@@ -2,7 +2,7 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use openssl::sha::Sha256;
 use std::fs::{read_to_string, File};
-use std::io::{Write, Read};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
@@ -26,7 +26,8 @@ fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
         let pathname = project_root_path.join(input);
         let mut f = File::open(pathname).expect("unable to open input file");
         let mut buffer = Vec::new();
-        f.read_to_end(&mut buffer).expect("unable to read input file");
+        f.read_to_end(&mut buffer)
+            .expect("unable to read input file");
         sha256.update(&buffer);
     }
 
@@ -44,7 +45,10 @@ fn find_assets() -> PathBuf {
 
         let prepare_script_path = project_root_path.join("scripts/prepare-dfx-assets.sh");
         for input in INPUTS {
-            println!("cargo:rerun-if-changed={}", project_root_path.join(input).display());
+            println!(
+                "cargo:rerun-if-changed={}",
+                project_root_path.join(input).display()
+            );
         }
         let hash_of_inputs = calculate_hash_of_inputs(&project_root_path);
 
