@@ -14,7 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install shellcheck
+      - name: Install dependencies
+        run: apt-get install jq nix
+      - name: Check
         run: |
           ./scripts/write-dfx-asset-sources.sh
           if [ -z "$(git status --porcelain)" ]
