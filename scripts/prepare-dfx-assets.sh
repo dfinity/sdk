@@ -81,7 +81,8 @@ download_tarball() {
 
     download_url_and_check_sha "$URL" "$SHA256" "$DOWNLOAD_PATH"
 
-    tar -xvf "$DOWNLOAD_PATH" -C "$BINARY_CACHE_TEMP_DIR"
+    # --no-overwrite-dir: since some archives contain r-x ".", do not overwrite directory metadata.
+    tar --no-overwrite-dir -xvf "$DOWNLOAD_PATH" -C "$BINARY_CACHE_TEMP_DIR"
 }
 
 download_ic_ref() {
