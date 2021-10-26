@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
 
-const INPUTS: &'static [&'static str] = &[
+const INPUTS: &[&str] = &[
     "nix/sources.json",
     "scripts/dfx-asset-sources.sh",
     "scripts/prepare-dfx-assets.sh",
