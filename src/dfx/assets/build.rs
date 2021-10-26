@@ -35,7 +35,7 @@ fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
 }
 
 fn find_assets() -> PathBuf {
-    println!("cargo:rerun-if-env=changed=DFX_ASSETS");
+    println!("cargo:rerun-if-env-changed=DFX_ASSETS");
     if let Ok(a) = env::var("DFX_ASSETS") {
         PathBuf::from(a)
     } else {
