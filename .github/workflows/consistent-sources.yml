@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: apt-get install jq nix
+        run: sudo apt-get install --yes jq nix
       - name: Check
         run: |
           ./scripts/write-dfx-asset-sources.sh
