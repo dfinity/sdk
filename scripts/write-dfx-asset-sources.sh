@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-set -ex
+set -e
 
-which jq || ( echo "Please install jq in order to run this script." ; exit 1 )
-which nix || ( echo "Please install nix in order to run this script." ; exit 1 )
+which jq >/dev/null || ( echo "Please install jq in order to run this script." ; exit 1 )
+which nix >/dev/null || ( echo "Please install nix in order to run this script." ; exit 1 )
 
 SDK_ROOT_DIR="$( cd -- "$(dirname -- "$( dirname -- "${BASH_SOURCE[0]}" )" )" &> /dev/null && pwd )"
 
