@@ -2,8 +2,8 @@
 
 set -ex
 
-which -s jq || ( echo "Please install jq in order to run this script." ; exit 1 )
-which -s nix || ( echo "Please install nix in order to run this script." ; exit 1 )
+which jq || ( echo "Please install jq in order to run this script." ; exit 1 )
+which nix || ( echo "Please install nix in order to run this script." ; exit 1 )
 
 SDK_ROOT_DIR="$( cd -- "$(dirname -- "$( dirname -- "${BASH_SOURCE[0]}" )" )" &> /dev/null && pwd )"
 
