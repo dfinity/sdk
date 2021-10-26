@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install shellcheck
         run: |
+          ./scripts/write-dfx-asset-sources.sh
           if [ -z "$(git status --porcelain)" ]
           then
             exit 0
