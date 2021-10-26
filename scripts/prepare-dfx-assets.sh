@@ -86,7 +86,7 @@ download_tarball() {
 
 download_ic_ref() {
     download_tarball "ic-ref"
-    chmod 0500 "$BINARY_CACHE_TEMP_DIR/ic-ref" "$BINARY_CACHE_TEMP_DIR"/lib*
+    chmod 0500 "$BINARY_CACHE_TEMP_DIR/ic-ref"
 }
 
 download_motoko_binaries() {
