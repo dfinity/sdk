@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# `niv update` puts base32 "nix hashes" (https://nixos.wiki/wiki/Nix_Hash) in nix/sources.json.
+# These hashes can't be compared trivially with equivalent hashes output by shasum -a 256.
+# This script converts the needed base32 hashes into base16 hashes that can be trivially compared.
+#
+# This script also makes it so there is no build-time dependency on jq (in addition to nix).
+#
+# Run this script when updating agent-rs, replica, ic-starter, or ic-ref in nix/sources.json.
+
 set -e
 
 which jq >/dev/null || ( echo "Please install jq in order to run this script." ; exit 1 )
