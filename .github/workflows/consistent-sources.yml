@@ -14,8 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v13
+        with:
+          nix_path: nixpkgs=channel:nixos-21.05-small
       - name: Install dependencies
-        run: sudo apt-get install --yes jq nix
+        run: sudo apt-get install --yes jq
       - name: Check
         run: |
           ./scripts/write-dfx-asset-sources.sh
