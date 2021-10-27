@@ -69,6 +69,12 @@
         "url": "https://download.dfinity.systems/ic/d35b7722f50645375a60ee905552513c76a0f426/nix-release/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/ic-starter.gz"
     },
+    "icx-proxy": {
+        "branch": "main",
+        "repo": "https://github.com/dfinity/icx-proxy",
+        "rev": "788c1cd7207075a74113321084d8c50e4143fdf1",
+        "type": "git"
+    },
     "motoko-base": {
         "branch": "next-moc",
         "description": "The Motoko base library",

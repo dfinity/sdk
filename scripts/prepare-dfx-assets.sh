@@ -117,16 +117,16 @@ copy_motoko_base_from_clone() {
 }
 
 build_icx_proxy() {
-    BRANCH="$AGENT_RS_BRANCH"
-    REV="$AGENT_RS_REV"
-    REPO="$AGENT_RS_REPO"
+    BRANCH="$ICX_PROXY_BRANCH"
+    REV="$ICX_PROXY_REV"
+    REPO="$ICX_PROXY_REPO"
 
     (
         cd "$DOWNLOAD_TEMP_DIR" # ok technically we are not downloading
 
         git clone -b "$BRANCH" --single-branch "$REPO"
         (
-            cd agent-rs
+            cd icx-proxy
             git checkout "$REV"
             cargo build --release -p icx-proxy
             cp target/release/icx-proxy "$BINARY_CACHE_TEMP_DIR/icx-proxy"
