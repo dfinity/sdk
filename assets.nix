@@ -3,7 +3,7 @@
 }:
 let
   icx-proxy-standalone = pkgs.lib.standaloneRust {
-    drv = pkgs.agent-rs;
+    drv = pkgs.icx-proxy;
     exename = "icx-proxy";
     usePackager = false;
   };

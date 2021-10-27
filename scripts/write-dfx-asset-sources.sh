@@ -71,9 +71,9 @@ do
     done
 done
 
-write_var "agent-rs" "branch"
-write_var "agent-rs" "rev"
-write_var "agent-rs" "repo"
+write_var "icx-proxy" "branch"
+write_var "icx-proxy" "rev"
+write_var "icx-proxy" "repo"
 
 write_var "motoko-base" "branch"
 write_var "motoko-base" "rev"
