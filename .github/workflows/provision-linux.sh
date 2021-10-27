@@ -25,7 +25,7 @@ rm v$version.tar.gz
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"
-echo "BATS_SUPPORT=${BATS_SUPPORT}" >> "$GITHUB_ENV"
+echo "BATSLIB=${BATS_SUPPORT}" >> "$GITHUB_ENV"
 echo "$HOME/bin" >> "$GITHUB_PATH"
 
 # Exit temporary directory.
