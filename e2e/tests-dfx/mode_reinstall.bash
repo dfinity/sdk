@@ -9,7 +9,7 @@ setup() {
     cd "$x" || exit
     export RUST_BACKTRACE=1
 
-    dfx_new
+    dfx_new hello
 }
 
 teardown() {
@@ -43,10 +43,10 @@ teardown() {
     # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
     # so all the assert_match calls will fail.  http://mywiki.wooledge.org/BashFAQ/024
     echo yes | (
-        assert_command dfx canister install --mode=reinstall e2e_project
+        assert_command dfx canister install --mode=reinstall hello
 
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-        assert_match "Reinstalling code for canister e2e_project"
+        assert_match "Reinstalling code for canister hello"
     )
 }
 
@@ -55,7 +55,7 @@ teardown() {
     dfx deploy
 
     echo no | (
-        assert_command_fail dfx canister install --mode=reinstall e2e_project
+        assert_command_fail dfx canister install --mode=reinstall hello
 
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
 
@@ -64,10 +64,7 @@ teardown() {
     )
 }
 
-# dfx deploy --mode=reinstall requires canister name
-# dfx deploy --mode=reinstall
-
-@test "deploy --mode=reinstall fails" {
+@test "deploy --mode=reinstall fails if no canister name specified" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     dfx_start
@@ -83,10 +80,10 @@ teardown() {
     # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
     # so all the assert_match calls will fail.  http://mywiki.wooledge.org/BashFAQ/024
     echo yes | (
-        assert_command dfx deploy --mode=reinstall e2e_project
+        assert_command dfx deploy --mode=reinstall hello
 
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-        assert_match "Reinstalling code for canister e2e_project"
+        assert_match "Reinstalling code for canister hello"
     )
 }
 
@@ -95,11 +92,46 @@ teardown() {
     dfx deploy
 
     echo no | (
-        assert_command_fail dfx deploy --mode=reinstall e2e_project
+        assert_command_fail dfx deploy --mode=reinstall hello
 
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
 
         assert_not_match "Installing code for canister"
         assert_match "Refusing to reinstall canister without approval"
     )
+}
+
+@test "deploy --mode=reinstall does not reinstall dependencies" {
+    dfx_start
+    install_asset counter
+    dfx deploy
+
+    assert_command dfx canister call hello read
+    assert_eq "(0 : nat)"
+
+    assert_command dfx canister call hello inc
+    assert_eq "()"
+
+    assert_command dfx canister call hello read
+    assert_eq "(1 : nat)"
+
+    dfx canister call hello inc
+    assert_command dfx canister call hello read
+    assert_eq "(2 : nat)"
+
+
+    # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
+    # so all the assert_match calls will fail.  http://mywiki.wooledge.org/BashFAQ/024
+    echo "yes" | (
+        assert_command dfx deploy --mode=reinstall hello_assets
+
+        assert_match "You are about to reinstall the hello_assets canister."
+        assert_not_match "You are about to reinstall the hello canister."
+        assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
+        assert_match "Reinstalling code for canister hello_assets,"
+    )
+
+    # the hello canister should not have been upgraded (which would reset the non-stable var)
+    assert_command dfx canister call hello read
+    assert_eq "(2 : nat)"
 }

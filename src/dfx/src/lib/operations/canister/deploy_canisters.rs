@@ -39,16 +39,27 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let canister_names = canisters_to_deploy(&config, some_canister)?;
+    let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
+
+    let canisters_to_deploy = if force_reinstall {
+        // don't force-reinstall the dependencies too.
+        match some_canister {
+            Some(canister_name) => vec!(String::from(canister_name)),
+            None => bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."),
+        }
+    } else {
+        canisters_to_build.clone()
+    };
+
     if some_canister.is_some() {
-        info!(log, "Deploying: {}", canister_names.join(" "));
+        info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
     } else {
         info!(log, "Deploying all canisters.");
     }
 
     register_canisters(
         env,
-        &canister_names,
+        &canisters_to_build,
         &initial_canister_id_store,
         timeout,
         with_cycles,
@@ -57,11 +68,11 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    build_canisters(env, &canister_names, &config)?;
+    build_canisters(env, &canisters_to_build, &config)?;
 
     install_canisters(
         env,
-        &canister_names,
+        &canisters_to_deploy,
         &initial_canister_id_store,
         &config,
         argument,
@@ -77,7 +88,7 @@ pub async fn deploy_canisters(
     Ok(())
 }
 
-fn canisters_to_deploy(config: &Config, some_canister: Option<&str>) -> DfxResult<Vec<String>> {
+fn canister_with_dependencies(config: &Config, some_canister: Option<&str>) -> DfxResult<Vec<String>> {
     let mut canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(some_canister)?;

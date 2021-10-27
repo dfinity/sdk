@@ -58,7 +58,7 @@ pub async fn exec(
     let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    if mode == InstallMode::Reinstall && (opts.canister.is_none() || opts.all ){
+    if mode == InstallMode::Reinstall && (opts.canister.is_none() || opts.all) {
         bail!("The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister.");
     }
 
