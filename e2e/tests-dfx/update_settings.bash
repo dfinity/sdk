@@ -35,16 +35,16 @@ teardown() {
     assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
 
     # Juana is controller, Jose cannot reinstall
-    assert_command_fail dfx canister install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister install hello -m reinstall
 
     # Juana can reinstall
-    assert_command dfx --identity bob canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister install hello -m reinstall
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
     assert_command dfx canister update-settings "${ID}" --controller "${ALICE_WALLET}"
     assert_match "Set controller of \"${ID}\" to: ${ALICE_WALLET}"
-    assert_command_fail dfx canister install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
     assert_command dfx --identity alice canister update-settings hello --controller "${BOB_WALLET}"
@@ -85,16 +85,16 @@ teardown() {
     assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
 
     # Juana is controller, Jose cannot reinstall
-    assert_command_fail dfx canister install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister install hello -m reinstall
 
     # Juana can reinstall
-    assert_command dfx --identity bob canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister install hello -m reinstall
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
     assert_command dfx canister update-settings "${ID}" --controller "${ALICE_WALLET}"
     assert_match "Set controller of \"${ID}\" to: ${ALICE_WALLET}"
-    assert_command_fail dfx canister install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister install hello -m reinstall
 
     # Set controller using combination of name/id and identity/principal
     assert_command dfx --identity alice canister update-settings hello --controller "${BOB_WALLET}"
@@ -136,8 +136,8 @@ teardown() {
     assert_match "Set controllers of \"hello\" to: $WALLETS_SORTED"
 
     # Both can reinstall
-    assert_command dfx --identity alice canister install hello -m reinstall
-    assert_command dfx --identity bob canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity alice canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister install hello -m reinstall
 
     assert_command dfx canister info hello
     assert_match "Controllers: ${WALLETS_SORTED}"
@@ -167,8 +167,8 @@ teardown() {
     assert_match "Set controllers of \"hello\" to: $WALLETS_SORTED"
 
     # Both can reinstall
-    assert_command dfx --identity alice canister install hello -m reinstall
-    assert_command dfx --identity bob canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity alice canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister install hello -m reinstall
 
     assert_command dfx canister info hello
     assert_match "Controllers: ${WALLETS_SORTED}"
