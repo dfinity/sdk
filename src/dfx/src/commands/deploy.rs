@@ -7,7 +7,10 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
+use anyhow::{anyhow, bail};
 use clap::Clap;
+use ic_utils::interfaces::management_canister::builders::InstallMode;
+use std::str::FromStr;
 use tokio::runtime::Runtime;
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
@@ -24,6 +27,14 @@ pub struct DeployOpts {
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     argument_type: Option<String>,
+
+    /// Force the type of deployment to be reinstall, which overwrites the module.
+    /// In other words, this erases all data in the canister.
+    /// By default, upgrade will be chosen automatically if the module already exists,
+    /// or install if it does not.
+    #[clap(long, short('m'),
+    possible_values(&["reinstall"]))]
+    mode: Option<String>,
 
     /// Override the compute network to connect to. By default, the local network is used.
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
@@ -56,7 +67,25 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let canister_name = opts.canister_name.as_deref();
     let argument = opts.argument.as_deref();
     let argument_type = opts.argument_type.as_deref();
+    let mode = opts
+        .mode
+        .as_deref()
+        .map(InstallMode::from_str)
+        .transpose()
+        .map_err(|err| anyhow!(err))?;
+
     let with_cycles = opts.with_cycles.as_deref();
+
+    let force_reinstall = match (mode, canister_name) {
+        (None, _) => false,
+        (Some(InstallMode::Reinstall), Some(_canister_name)) => true,
+        (Some(InstallMode::Reinstall), None) => {
+            bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister.");
+        }
+        (Some(_), _) => {
+            unreachable!("The only valid option for --mode is --mode=reinstall");
+        }
+    };
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
@@ -74,6 +103,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         canister_name,
         argument,
         argument_type,
+        force_reinstall,
         timeout,
         with_cycles,
         &call_sender,
