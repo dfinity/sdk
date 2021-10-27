@@ -35,7 +35,6 @@ pub async fn install_canister(
     }
 
     if mode == InstallMode::Reinstall {
-        // Warning: this action will result in the loss of state for this canister. Do you wish to proceed? (y/n)
         eprintln!("Warning!");
         eprintln!(
             "You are about to reinstall the {} canister.",
@@ -52,7 +51,6 @@ pub async fn install_canister(
             .map_err(|err| anyhow!(err))
             .context("Unable to read input")?;
         let input_string = input_string.trim_end();
-        eprintln!("input value is '{}'", &input_string);
         if input_string != "yes" {
             bail!("Refusing to reinstall canister without approval");
         }

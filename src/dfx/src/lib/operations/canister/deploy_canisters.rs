@@ -88,7 +88,10 @@ pub async fn deploy_canisters(
     Ok(())
 }
 
-fn canister_with_dependencies(config: &Config, some_canister: Option<&str>) -> DfxResult<Vec<String>> {
+fn canister_with_dependencies(
+    config: &Config,
+    some_canister: Option<&str>,
+) -> DfxResult<Vec<String>> {
     let mut canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(some_canister)?;
