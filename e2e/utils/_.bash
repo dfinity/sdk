@@ -193,10 +193,10 @@ dfx_start_replica_and_bootstrap() {
 
 # Start the replica in the background.
 dfx_stop_replica_and_bootstrap() {
-    if [[ -v DFX_REPLICA_PID ]]; then
+    if [ -v DFX_REPLICA_PID ]; then
         kill -TERM "$DFX_REPLICA_PID"
     fi
-    if [[ -v DFX_BOOTSTRAP_PID ]]; then
+    if [ -v DFX_BOOTSTRAP_PID ]; then
         kill -TERM "$DFX_BOOTSTRAP_PID"
     fi
 }
