@@ -32,8 +32,6 @@ rm bats-support.tar.gz
 # Packages needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
      brew install mitmproxy
-     mitmproxy --version
-     mitmdump --help
 fi
 
 # Set environment variables.

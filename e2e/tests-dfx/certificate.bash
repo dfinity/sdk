@@ -14,6 +14,12 @@ setup() {
 
     BACKEND="$(jq -r .networks.local.bind dfx.json)"
 
+    if [ "$(mitmdump --version | grep Mitmproxy | cut -d ' ' -f 2 | cut -c 1-2)" = "4." ]; then
+        MODIFY_BODY_ARG="--replacements"
+    else
+        MODIFY_BODY_ARG="--modify-body"
+    fi
+
     # Sometimes, something goes wrong with mitmdump's initialization.
     # It reports that it is listening, and the `nc` call succeeds,
     # but it does not actually respond to requests.
@@ -31,7 +37,7 @@ setup() {
         # shellcheck disable=SC2094
         cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$MITM_PORT"'"' dfx.json)" >dfx.json
 
-        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  --modify-body '/~s/Hello,/Hullo,' &
+        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  "$MODIFY_BODY_ARG" '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
         timeout 5 sh -c \
