@@ -20,7 +20,7 @@ jobs:
         run: |
           set -x
           TESTS="$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]))' tests-dfx/*.bash tests-replica/*.bash)"
-          echo "${TESTS}
+          echo "${TESTS}"
           echo "::set-output name=tests::${TESTS}"
   test:
     runs-on: ${{ matrix.os }}
