@@ -29,7 +29,7 @@ jobs:
       matrix:
         os: [ macos-latest, ubuntu-latest ]
         rust: [ '1.52.1' ]
-        ic_ref: [ 0, 1 ]
+        ic: [ 'ic-ref', 'replica' ]
         test: [
             "tests-dfx/assetscanister.bash",
             "tests-dfx/base.bash",
@@ -71,11 +71,13 @@ jobs:
         ]
         #test: ${{fromJson(needs.list_tests.outputs.tests)}}
     env:
-      USE_IC_REF: ${{ matrix.ic_ref }}
+      USE_IC_REF: ${{ matrix.ic == 'ic-ref' }}
       E2E_TEST: ${{ matrix.test }}
 
     steps:
       - uses: actions/checkout@v1
+      - name: Show env
+        run: export
       - name: Cache Cargo
         uses: actions/cache@v2
         with:
@@ -107,6 +109,9 @@ jobs:
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
           echo "assets=$(pwd)/e2e/assets" >> "$GITHUB_ENV"
           echo "utils=$(pwd)/e2e/utils" >> "$GITHUB_ENV"
+          if [ "${{ matrix.ic }}" == "ic-ref" ]; then
+              echo "USE_IC_REF=1" >> "$GITHUB_ENV"
+          fi
 
       - name: Run e2e test
         run: |
