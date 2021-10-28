@@ -23,6 +23,9 @@ sudo mkdir /usr/local/lib/bats-support
 sudo tar --directory /usr/local/lib/bats-support --extract --file v$version.tar.gz --strip-components 1
 rm v$version.tar.gz
 
+# Packages needed for some tests
+sudo apt-get install --yes mitmproxy
+
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"
 echo "BATSLIB=${BATS_SUPPORT}" >> "$GITHUB_ENV"

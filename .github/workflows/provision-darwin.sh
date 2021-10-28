@@ -29,6 +29,9 @@ mkdir /usr/local/lib/bats-support
 tar --directory /usr/local/lib/bats-support --extract --file bats-support.tar.gz --strip-components 1
 rm bats-support.tar.gz
 
+# Packages needed for some tests
+brew install mitmproxy
+
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"
 echo "BATSLIB=${BATS_SUPPORT}" >> "$GITHUB_ENV"
