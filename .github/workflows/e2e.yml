@@ -30,10 +30,45 @@ jobs:
         rust: [ '1.52.1' ]
         ic_ref: [ 0, 1 ]
         test_manual: [
-                'tests-dfx/assetscanister.bash',
-                'tests-dfx/base.bash'
+            "tests-dfx/assetscanister.bash",
+            "tests-dfx/base.bash",
+            "tests-dfx/basic-project.bash",
+            "tests-dfx/bootstrap.bash",
+            "tests-dfx/build.bash",
+            "tests-dfx/build_granular.bash",
+            "tests-dfx/call.bash",
+            "tests-dfx/candid_ui.bash",
+            "tests-dfx/certificate.bash",
+            "tests-dfx/certified_info.bash",
+            "tests-dfx/config.bash",
+            "tests-dfx/create.bash",
+            "tests-dfx/dfx_install.bash",
+            "tests-dfx/frontend.bash",
+            "tests-dfx/id.bash",
+            "tests-dfx/identity.bash",
+            "tests-dfx/identity_command.bash",
+            "tests-dfx/install.bash",
+            "tests-dfx/leak.bash",
+            "tests-dfx/network.bash",
+            "tests-dfx/new.bash",
+            "tests-dfx/packtool.bash",
+            "tests-dfx/ping.bash",
+            "tests-dfx/print.bash",
+            "tests-dfx/provider.bash",
+            "tests-dfx/request_status.bash",
+            "tests-dfx/secp256k1.bash",
+            "tests-dfx/sign_send.bash",
+            "tests-dfx/signals.bash",
+            "tests-dfx/start.bash",
+            "tests-dfx/update_settings.bash",
+            "tests-dfx/upgrade.bash",
+            "tests-dfx/usage.bash",
+            "tests-dfx/usage_env.bash",
+            "tests-dfx/wallet.bash",
+            "tests-replica/deploy.bash",
+            "tests-replica/lifecycle.bash"
         ]
-        test: ${{fromJson(needs.list_tests.outputs.tests)}}
+        #test: ${{fromJson(needs.list_tests.outputs.tests)}}
     env:
       USE_IC_REF: ${{ matrix.ic_ref }}
 
