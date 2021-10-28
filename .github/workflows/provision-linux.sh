@@ -26,6 +26,8 @@ rm v$version.tar.gz
 # Packages needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     sudo apt-get install --yes mitmproxy
+    mitmproxy --version
+    mitmdump --help
 fi
 
 # Set environment variables.
