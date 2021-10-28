@@ -15,7 +15,8 @@ jobs:
       - id: set-tests
         # see https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
         # run: echo "::set-output name=tests::$(cd e2e ; echo -n "$(find tests-dfx -name '*.bash')\n$(find tests-replica -name '*.bash')") | jq --raw-input --slurp 'split("\n")'"
-        run: echo "::set-output name=tests::$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash)"
+        # run: echo "::set-output name=tests::$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash)"
+        run: echo "::set-output name=tests::[\"tests-dfx/base.bash\"]"
   test:
     runs-on: ${{ matrix.os }}
     strategy:
