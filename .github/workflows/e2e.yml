@@ -52,4 +52,5 @@ jobs:
       - name: Run e2e test
         run: |
           export
+          curl --version
           bats e2e/${{ matrix.test }}
