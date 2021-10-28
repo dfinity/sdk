@@ -71,13 +71,10 @@ jobs:
         ]
         #test: ${{fromJson(needs.list_tests.outputs.tests)}}
     env:
-      USE_IC_REF: ${{ matrix.ic == 'ic-ref' }}
       E2E_TEST: ${{ matrix.test }}
 
     steps:
       - uses: actions/checkout@v1
-      - name: Show env
-        run: export
       - name: Cache Cargo
         uses: actions/cache@v2
         with:
