@@ -39,8 +39,17 @@ let
               agent-rs = self.naersk.buildPackage {
                 name = "agent-rs";
                 root = self.sources.agent-rs;
-                cargoBuildOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
-                cargoTestOptions = x: x ++ [ "-p" "icx" "-p" "icx-proxy" ];
+                cargoBuildOptions = x: x ++ [ "-p" "icx" ];
+                cargoTestOptions = x: x ++ [ "-p" "icx" ];
+                buildInputs = [ self.pkgsStatic.openssl self.pkg-config ]
+                ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
+                override = attrs: { OPENSSL_STATIC = "1"; };
+              };
+              icx-proxy = self.naersk.buildPackage {
+                name = "icx-proxy";
+                root = self.sources.icx-proxy;
+                cargoBuildOptions = x: x ++ [ "-p" "icx-proxy" ];
+                cargoTestOptions = x: x ++ [ "-p" "icx-proxy" ];
                 buildInputs = [ self.pkgsStatic.openssl self.pkg-config ]
                 ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
                 override = attrs: { OPENSSL_STATIC = "1"; };
