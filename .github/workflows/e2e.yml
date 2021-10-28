@@ -20,7 +20,7 @@ jobs:
           echo X
           echo ${{ fromJson(4) }}
           echo ${{ fromJson('[]') }}
-          echo ${{ fromJson($(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash) ) }}
+          echo ${{ fromJson("'"$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash) "'") }}
           echo "::set-output name=tests::[\"tests-dfx/base.bash\"]"
   test:
     runs-on: ${{ matrix.os }}
