@@ -19,6 +19,7 @@ jobs:
         run: |
           echo X
           echo ${{ fromJson(4) }}
+          echo ${{ fromJson('[]') }}
           echo "::set-output name=tests::[\"tests-dfx/base.bash\"]"
   test:
     runs-on: ${{ matrix.os }}
