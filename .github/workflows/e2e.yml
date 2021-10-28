@@ -17,6 +17,7 @@ jobs:
         # run: echo "::set-output name=tests::$(cd e2e ; echo -n "$(find tests-dfx -name '*.bash')\n$(find tests-replica -name '*.bash')") | jq --raw-input --slurp 'split("\n")'"
         # run: echo "::set-output name=tests::$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash)"
         run: |
+          set -x
           TESTS="$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash)"
           echo "${TESTS}
           echo "::set-output name=tests::${TESTS}"
