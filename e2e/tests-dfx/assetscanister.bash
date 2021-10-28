@@ -94,7 +94,7 @@ teardown() {
     assert_command curl --fail -vv --output lws-curl-output.bin "http://localhost:$PORT/large%20with%20spaces.bin?canisterId=$ID"
     diff 'src/e2e_project_assets/assets/large with spaces.bin' lws-curl-output.bin
 
-    assert_command_fail curl --fail -vv http://localhost:"$PORT"/'filename with space'.txt?canisterId="$ID"
+    assert_command_fail curl --fail -vv --path-as-is http://localhost:"$PORT"/'filename with space'.txt?canisterId="$ID"
     assert_match "400 Bad Request" "$stderr"
 }
 
