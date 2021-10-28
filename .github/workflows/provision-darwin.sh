@@ -30,7 +30,9 @@ tar --directory /usr/local/lib/bats-support --extract --file bats-support.tar.gz
 rm bats-support.tar.gz
 
 # Packages needed for some tests
-brew install mitmproxy
+if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
+     brew install mitmproxy
+fi
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"

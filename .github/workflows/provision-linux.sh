@@ -24,7 +24,9 @@ sudo tar --directory /usr/local/lib/bats-support --extract --file v$version.tar.
 rm v$version.tar.gz
 
 # Packages needed for some tests
-sudo apt-get install --yes mitmproxy
+if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
+    sudo apt-get install --yes mitmproxy
+fi
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"
