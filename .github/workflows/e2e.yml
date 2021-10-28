@@ -39,7 +39,7 @@ jobs:
             "tests-dfx/build_granular.bash",
             "tests-dfx/call.bash",
             "tests-dfx/candid_ui.bash",
-            "tests-dfx/certificate.bash"
+            "tests-dfx/certificate.bash",
             "tests-dfx/certified_info.bash",
             "tests-dfx/config.bash",
             "tests-dfx/create.bash",
