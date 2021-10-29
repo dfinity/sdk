@@ -168,7 +168,7 @@ jobs:
       - name: Run e2e test
         run: |
           bats "e2e/$E2E_TEST"
-          if [ -f $HOME"/test.log ]; then
+          if [ -f "$GITHUB_WORKSPACE"/test.log ]; then
             echo "test log:"
-            cat "$HOME"/test.log
+            cat "$GITHUB_WORKSPACE"/test.log
           fi

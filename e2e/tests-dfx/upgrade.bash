@@ -9,7 +9,7 @@ setup() {
 }
 
 log() {
-    echo "$(date) $1" >>"$HOME"/test.log
+    echo "$(date) $1" >>"$GITHUB_WORKSPACE"/test.log
 }
 
 @test "upgrade succeeds" {
