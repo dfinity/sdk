@@ -61,6 +61,9 @@ dfx_new() {
 
 dfx_patchelf() {
     log "dfx_patchelf enter"
+    if [ -v GITHUB_ACTIONS ]; then
+      return
+    fi
     # Only run this function on Linux
     (uname -a | grep Linux) || return 0
     echo dfx = $(which dfx)
