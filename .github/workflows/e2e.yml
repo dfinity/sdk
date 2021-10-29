@@ -113,10 +113,13 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
-          path: /usr/local/bin/dfx
+          path: /usr/local/bin
       - name: Setup dfx binary
         run: |
+          echo "/usr/local/bin:"
           ls -l /usr/local/bin
+          echo "/usr/local/bin/dfx:"
+          ls -l /usr/local/bin/dfx
           chmod +x /usr/local/bin/dfx
           echo "PATH is $PATH"
           dfx --version
