@@ -33,9 +33,9 @@ jobs:
         run: cargo build
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
-          with:
-            name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
-            path: target/debug/dfx
+        with:
+          name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
+          path: target/debug/dfx
 
   list_tests:
     runs-on: ubuntu-latest
