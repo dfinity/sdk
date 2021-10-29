@@ -6,6 +6,37 @@ on: [push]
 #  pull_request:
 
 jobs:
+  build_dfx:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ macos-latest, ubuntu-latest ]
+        rust: [ '1.52.1' ]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-1
+      - name: Install Rust
+        run: |
+          rustup update ${{ matrix.rust }} --no-self-update
+          rustup default ${{ matrix.rust }}
+          rustup target add wasm32-unknown-unknown
+          rustup component add rustfmt
+      - name: Build
+        run: cargo build
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+          with:
+            name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
+            path: target/debug/dfx
+
   list_tests:
     runs-on: ubuntu-latest
     outputs:
@@ -24,82 +55,73 @@ jobs:
           echo "::set-output name=tests::${TESTS}"
   test:
     runs-on: ${{ matrix.os }}
+    needs: build_dfx
     strategy:
       fail-fast: true
       matrix:
         test: [
-            "tests-dfx/assetscanister.bash",
-            "tests-dfx/base.bash",
-            "tests-dfx/basic-project.bash",
-            "tests-dfx/bootstrap.bash",
-            "tests-dfx/build.bash",
-            "tests-dfx/build_granular.bash",
-            "tests-dfx/call.bash",
-            "tests-dfx/candid_ui.bash",
-            "tests-dfx/certificate.bash",
-            "tests-dfx/certified_info.bash",
-            "tests-dfx/config.bash",
-            "tests-dfx/create.bash",
-            "tests-dfx/dfx_install.bash",
-            "tests-dfx/frontend.bash",
-            "tests-dfx/id.bash",
-            "tests-dfx/identity.bash",
-            "tests-dfx/identity_command.bash",
-            "tests-dfx/install.bash",
-            "tests-dfx/leak.bash",
-            "tests-dfx/network.bash",
-            "tests-dfx/new.bash",
-            "tests-dfx/packtool.bash",
-            "tests-dfx/ping.bash",
-            "tests-dfx/print.bash",
-            "tests-dfx/provider.bash",
-            "tests-dfx/request_status.bash",
-            "tests-dfx/secp256k1.bash",
-            "tests-dfx/sign_send.bash",
-            "tests-dfx/signals.bash",
-            "tests-dfx/start.bash",
-            "tests-dfx/update_settings.bash",
-            "tests-dfx/upgrade.bash",
-            "tests-dfx/usage.bash",
-            "tests-dfx/usage_env.bash",
-            "tests-dfx/wallet.bash",
-            "tests-replica/deploy.bash",
-            "tests-replica/lifecycle.bash"
+            "dfx/assetscanister",
+            "dfx/base",
+            "dfx/basic-project",
+            "dfx/bootstrap",
+            "dfx/build",
+            "dfx/build_granular",
+            "dfx/call",
+            "dfx/candid_ui",
+            "dfx/certificate",
+            "dfx/certified_info",
+            "dfx/config",
+            "dfx/create",
+            "dfx/dfx_install",
+            "dfx/frontend",
+            "dfx/id",
+            "dfx/identity",
+            "dfx/identity_command",
+            "dfx/install",
+            "dfx/leak",
+            "dfx/network",
+            "dfx/new",
+            "dfx/packtool",
+            "dfx/ping",
+            "dfx/print",
+            "dfx/provider",
+            "dfx/request_status",
+            "dfx/secp256k1",
+            "dfx/sign_send",
+            "dfx/signals",
+            "dfx/start",
+            "dfx/update_settings",
+            "dfx/upgrade",
+            "dfx/usage",
+            "dfx/usage_env",
+            "dfx/wallet",
+            "replica/deploy",
+            "replica/lifecycle"
         ]
         #test: ${{fromJson(needs.list_tests.outputs.tests)}}
         backend: [ 'ic-ref', 'replica' ]
         os: [ macos-latest, ubuntu-latest ]
         rust: [ '1.52.1' ]
     env:
-      E2E_TEST: ${{ matrix.test }}
+      E2E_TEST: tests-${{ matrix.test }}.bash
 
     steps:
       - uses: actions/checkout@v1
-      - name: Cache Cargo
-        uses: actions/cache@v2
+      - name: Download dfx artifact
+        uses: actions/download-artifact@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-1
-      - name: Install Rust
+          name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
+          path: /usr/local/bin/dfx
+      - name: Setup dfx binary
         run: |
-          rustup update ${{ matrix.rust }} --no-self-update
-          rustup default ${{ matrix.rust }}
-          rustup target add wasm32-unknown-unknown
-          rustup component add rustfmt
+          ls -l /usr/local/bin
+          chmod +x /usr/local/bin/dfx
       - name: Provision Darwin
         if: matrix.os == 'macos-latest'
         run: bash .github/workflows/provision-darwin.sh
       - name: Provision Linux
         if: matrix.os == 'ubuntu-latest'
         run: bash .github/workflows/provision-linux.sh
-
-      - name: Build
-        run: |
-          cargo build
-          echo "$(pwd)/target/debug" >>$GITHUB_PATH
 
       - name: Prepare environment
         run: |
@@ -113,4 +135,4 @@ jobs:
           python --version
 
       - name: Run e2e test
-        run: bats e2e/${{ matrix.test }}
+        run: bats "e2e/$E2E_TEST"
