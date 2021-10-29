@@ -27,10 +27,11 @@ jobs:
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
           rustup default ${{ matrix.rust }}
-          rustup target add wasm32-unknown-unknown
           rustup component add rustfmt
       - name: Build
-        run: cargo build
+        run: |
+          cargo build
+          ls -l target/debug
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -53,6 +54,7 @@ jobs:
           TESTS="$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash)"
           echo "${TESTS}"
           echo "::set-output name=tests::${TESTS}"
+
   test:
     runs-on: ${{ matrix.os }}
     needs: build_dfx
@@ -116,6 +118,8 @@ jobs:
         run: |
           ls -l /usr/local/bin
           chmod +x /usr/local/bin/dfx
+          echo "PATH is $PATH"
+          dfx --version
       - name: Provision Darwin
         if: matrix.os == 'macos-latest'
         run: bash .github/workflows/provision-darwin.sh
