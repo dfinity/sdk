@@ -2,10 +2,6 @@
 
 load ../utils/_
 
-log() {
-    echo "$(date) $1" >>"$HOME"/test.log
-}
-
 setup() {
     log "setup - standard"
     standard_setup

@@ -1,5 +1,9 @@
 load ${BATSLIB}/load.bash
+log() {
+    echo "$(date)" "$@" >>"$GITHUB_WORKSPACE"/test.log
+}
 load ../utils/assertions
+
 
 # Takes a name of the asset folder, and copy those files to the current project.
 install_asset() {
@@ -12,6 +16,7 @@ install_asset() {
 }
 
 standard_setup() {
+    log "standard_setup"
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export DFX_E2E_TEMP_DIR="$x"
@@ -28,10 +33,12 @@ standard_setup() {
 }
 
 standard_teardown() {
+    log "standard_teardown"
     rm -rf "$DFX_E2E_TEMP_DIR"
 }
 
 dfx_new_frontend() {
+    log "dfx_new_frontend"
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --frontend
     test -d ${project_name}
@@ -42,6 +49,7 @@ dfx_new_frontend() {
 }
 
 dfx_new() {
+    log "dfx_new"
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --no-frontend
     test -d ${project_name}
@@ -52,6 +60,7 @@ dfx_new() {
 }
 
 dfx_patchelf() {
+    log "dfx_patchelf enter"
     # Only run this function on Linux
     (uname -a | grep Linux) || return 0
     echo dfx = $(which dfx)
@@ -69,10 +78,12 @@ dfx_patchelf() {
         chmod +rw "${BINARY}"
         test -n "$IS_STATIC" || test -z "$USE_LIB64" || patchelf --set-interpreter "${LD_LINUX_SO}" "${BINARY}"
     done
+    log "dfx_patchelf leave"
 }
 
 # Start the replica in the background.
 dfx_start() {
+    log "dfx_start enter"
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
@@ -115,9 +126,11 @@ dfx_start() {
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
+    log "dfx_start leave"
 }
 
 wait_until_replica_healthy() {
+    log "wait_until_replica_healthy enter"
     echo "waiting for replica to become healthy"
     (
         # dfx ping has side effects, like creating a default identity.
@@ -125,10 +138,12 @@ wait_until_replica_healthy() {
         dfx ping --wait-healthy
     )
     echo "replica became healthy"
+    log "wait_until_replica_healthy leave"
 }
 
 # Start the replica in the background.
 dfx_start_replica_and_bootstrap() {
+    log "dfx_start_replica_and_bootstrap enter"
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
@@ -189,6 +204,8 @@ dfx_start_replica_and_bootstrap() {
 
     local proxy_port=$(cat .dfx/proxy-port)
     printf "Proxy Configured Port: %s\n", "${proxy_port}"
+    log "dfx_start_replica_and_bootstrap leave"
+
 }
 
 # Start the replica in the background.

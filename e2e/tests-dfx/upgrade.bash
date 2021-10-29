@@ -8,10 +8,6 @@ setup() {
     standard_setup
 }
 
-log() {
-    echo "$(date) $1" >>"$GITHUB_WORKSPACE"/test.log
-}
-
 @test "upgrade succeeds" {
     log "upgrade succeeds - start"
     latest_version="0.4.7"

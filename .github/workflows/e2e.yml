@@ -74,18 +74,18 @@ jobs:
       - name: start and deploy
         run: |
           pwd
-          dfx cache install
-          dfx new smoke
+          time dfx cache install
+          time dfx new smoke
           cd smoke
           if [ "${{ matrix.backend}}" = "ic-ref" ]; then
-              dfx start --emulator --background
+              time dfx start --emulator --background
           else
-              dfx start --background
+              time dfx start --background
           fi
-          dfx deploy
-          dfx canister call smoke greet '("fire")'
-          curl --fail http://localhost:8000/sample-asset.tst?canisterId=$(dfx canister id smoke_assets)
-          dfx stop
+          time dfx deploy
+          time dfx canister call smoke greet '("fire")'
+          time curl --fail http://localhost:8000/sample-asset.tst?canisterId=$(dfx canister id smoke_assets)
+          time dfx stop
 
   test:
     runs-on: ${{ matrix.os }}

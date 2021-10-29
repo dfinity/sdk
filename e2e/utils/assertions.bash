@@ -7,6 +7,7 @@
 # Returns:
 #   none
 assert_command() {
+    log "assert_command" "$@"
     local stderrf="$(mktemp)"
     local stdoutf="$(mktemp)"
     local statusf="$(mktemp)"
@@ -33,6 +34,8 @@ assert_command() {
 # Returns:
 #   none
 assert_command_fail() {
+    log "assert_command_fail" "$@"
+
     local stderrf="$(mktemp)"
     local stdoutf="$(mktemp)"
     local statusf="$(mktemp)"
