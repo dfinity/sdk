@@ -53,6 +53,38 @@ jobs:
           echo "${TESTS}"
           echo "::set-output name=tests::${TESTS}"
 
+  smoke:
+    runs-on: ${{ matrix.os }}
+    needs: build_dfx
+    strategy:
+      fail-fast: true
+      matrix:
+        backend: [ 'ic-ref', 'replica' ]
+        os: [ macos-latest, ubuntu-latest ]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Download dfx binary
+        uses: actions/download-artifact@v2
+        with:
+          name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
+          path: /usr/local/bin
+      - name: Setup dfx binary
+        run: chmod +x /usr/local/bin/dfx
+      - name: start and deploy
+        run: |
+          pwd
+          if [ "${{ matrix.backend}}" = "ic-ref" ]; then
+              EMULATOR="--emulator"
+          fi
+          dfx cache install
+          dfx new smoke
+          cd smoke
+          dfx start "$EMULATOR" --background
+          dfx deploy
+          dfx canister call smoke greet '("fire")'
+          curl --fail http://localhost:8000/sample-asset.tst?canisterId=$(dfx canister id smoke_assets)
+          dfx stop
+
   test:
     runs-on: ${{ matrix.os }}
     needs: build_dfx
