@@ -14,7 +14,7 @@ jobs:
         os: [ macos-latest, ubuntu-latest ]
         rust: [ '1.52.1' ]
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Cache Cargo
         uses: actions/cache@v2
         with:
@@ -41,7 +41,7 @@ jobs:
     outputs:
       tests: ${{ steps.set-tests.outputs.tests }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - id: set-tests
         # see https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
         # run: echo "::set-output name=tests::$(cd e2e ; echo -n "$(find tests-dfx -name '*.bash')\n$(find tests-replica -name '*.bash')") | jq --raw-input --slurp 'split("\n")'"
@@ -63,7 +63,7 @@ jobs:
         os: [ macos-latest, ubuntu-latest ]
         rust: [ '1.52.1' ]
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
@@ -140,7 +140,7 @@ jobs:
       E2E_TEST: tests-${{ matrix.test }}.bash
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
