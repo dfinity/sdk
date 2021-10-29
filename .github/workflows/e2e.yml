@@ -57,7 +57,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: build_dfx
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         backend: [ 'ic-ref', 'replica' ]
         os: [ macos-latest, ubuntu-latest ]
