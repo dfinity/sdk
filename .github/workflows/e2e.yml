@@ -74,13 +74,14 @@ jobs:
       - name: start and deploy
         run: |
           pwd
-          if [ "${{ matrix.backend}}" = "ic-ref" ]; then
-              EMULATOR="--emulator"
-          fi
           dfx cache install
           dfx new smoke
           cd smoke
-          dfx start "$EMULATOR" --background
+          if [ "${{ matrix.backend}}" = "ic-ref" ]; then
+              dfx start --emulator --background
+          else
+              dfx start --background
+          fi
           dfx deploy
           dfx canister call smoke greet '("fire")'
           curl --fail http://localhost:8000/sample-asset.tst?canisterId=$(dfx canister id smoke_assets)
@@ -169,5 +170,5 @@ jobs:
           bats "e2e/$E2E_TEST"
           if [ -f $HOME"/test.log ]; then
             echo "test log:"
-            cat $HOME"/test.log
+            cat "$HOME"/test.log
           fi
