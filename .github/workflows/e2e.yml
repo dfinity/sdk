@@ -27,9 +27,6 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ macos-latest, ubuntu-latest ]
-        rust: [ '1.52.1' ]
-        ic: [ 'ic-ref', 'replica' ]
         test: [
             "tests-dfx/assetscanister.bash",
             "tests-dfx/base.bash",
@@ -70,6 +67,9 @@ jobs:
             "tests-replica/lifecycle.bash"
         ]
         #test: ${{fromJson(needs.list_tests.outputs.tests)}}
+        backend: [ 'ic-ref', 'replica' ]
+        os: [ macos-latest, ubuntu-latest ]
+        rust: [ '1.52.1' ]
     env:
       E2E_TEST: ${{ matrix.test }}
 
@@ -106,10 +106,11 @@ jobs:
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
           echo "assets=$(pwd)/e2e/assets" >> "$GITHUB_ENV"
           echo "utils=$(pwd)/e2e/utils" >> "$GITHUB_ENV"
-          if [ "${{ matrix.ic }}" == "ic-ref" ]; then
+          if [ "${{ matrix.backend }}" == "ic-ref" ]; then
               echo "USE_IC_REF=1" >> "$GITHUB_ENV"
           fi
           export
+          python --version
 
       - name: Run e2e test
         run: bats e2e/${{ matrix.test }}
