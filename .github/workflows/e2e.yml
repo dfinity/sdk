@@ -29,9 +29,7 @@ jobs:
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt
       - name: Build
-        run: |
-          cargo build
-          ls -l target/debug
+        run: cargo build
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -109,20 +107,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - name: Download dfx artifact
+      - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
           path: /usr/local/bin
       - name: Setup dfx binary
-        run: |
-          echo "/usr/local/bin:"
-          ls -l /usr/local/bin
-          echo "/usr/local/bin/dfx:"
-          ls -l /usr/local/bin/dfx
-          chmod +x /usr/local/bin/dfx
-          echo "PATH is $PATH"
-          dfx --version
+        run: chmod +x /usr/local/bin/dfx
       - name: Provision Darwin
         if: matrix.os == 'macos-latest'
         run: bash .github/workflows/provision-darwin.sh
@@ -139,7 +130,6 @@ jobs:
               echo "USE_IC_REF=1" >> "$GITHUB_ENV"
           fi
           export
-          python --version
 
       - name: Run e2e test
         run: bats "e2e/$E2E_TEST"

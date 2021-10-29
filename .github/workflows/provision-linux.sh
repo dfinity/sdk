@@ -27,7 +27,6 @@ rm v$version.tar.gz
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     sudo apt-get install --yes mitmproxy
 fi
-sudo apt-get install --yes python3
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"
