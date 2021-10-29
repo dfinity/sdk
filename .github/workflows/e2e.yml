@@ -109,9 +109,7 @@ jobs:
           if [ "${{ matrix.ic }}" == "ic-ref" ]; then
               echo "USE_IC_REF=1" >> "$GITHUB_ENV"
           fi
+          export
 
       - name: Run e2e test
-        run: |
-          export
-          curl --version
-          bats e2e/${{ matrix.test }}
+        run: bats e2e/${{ matrix.test }}
