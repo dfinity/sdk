@@ -66,6 +66,7 @@ setup() {
     # on github, we can reach sdk.dfinity.org
 
     cp "$(which dfx)" .
+    ls -l dfx
     version=$(./dfx --version)
 
     # Override current version to force upgrade
@@ -80,6 +81,7 @@ setup() {
     assert_command ./dfx upgrade
     assert_match "Already up to date"
 
+    ls -l dfx
     assert_command ./dfx --version
-    assert_match "$version"
+    assert_match "$(jq -r .tags.latest public/manifest.json)"
 }
