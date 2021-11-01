@@ -65,6 +65,9 @@ setup() {
     [ "$NIX_STORE" ] && skip "skipping on nix"
     # on github, we can reach sdk.dfinity.org
 
+    cp "$(which dfx)" .
+    version=$(./dfx --version)
+
     # Override current version to force upgrade
     log "dfx update (1)"
     assert_command ./dfx upgrade \
@@ -76,4 +79,7 @@ setup() {
     log "dfx update (2)"
     assert_command ./dfx upgrade
     assert_match "Already up to date"
+
+    assert_command ./dfx --version
+    assert_match "$version"
 }

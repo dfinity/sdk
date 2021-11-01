@@ -91,7 +91,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: build_dfx
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         test: [
 #            "dfx/assetscanister",
