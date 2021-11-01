@@ -8,7 +8,9 @@ setup() {
     standard_setup
 }
 
-@test "upgrade succeeds" {
+@test "upgrade succeeds (nix)" {
+    [ "$GITHUB_WORKFLOW" ] && skip "skipping on github workflow"
+
     log "upgrade succeeds - start"
     latest_version="0.4.7"
     latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr '[:upper:]' '[:lower:]')/"
@@ -57,4 +59,21 @@ setup() {
     kill "$WEB_SERVER_PID"
     assert_command ./dfx --version
     assert_match "$version"
+}
+
+@test "upgrade succeeds (github)" {
+    [ "$NIX_STORE" ] && skip "skipping on nix"
+    # on github, we can reach sdk.dfinity.org
+
+    # Override current version to force upgrade
+    log "dfx update (1)"
+    assert_command ./dfx upgrade \
+        --current-version 0.4.6
+    assert_match "Current version: .*"
+    assert_match "Fetching manifest .*"
+    assert_match "New version available: .*"
+
+    log "dfx update (2)"
+    assert_command ./dfx upgrade
+    assert_match "Already up to date"
 }
