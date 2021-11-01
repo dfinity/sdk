@@ -9,7 +9,7 @@ setup() {
 }
 
 @test "upgrade succeeds (nix)" {
-    [ "$GITHUB_WORKFLOW" ] && skip "skipping on github workflow"
+    [ ! "$GITHUB_WORKSPACE" ] && skip "skipping on github workflow"
 
     log "upgrade succeeds - start"
     latest_version="0.4.7"
@@ -62,12 +62,11 @@ setup() {
 }
 
 @test "upgrade succeeds (github)" {
-    [ "$NIX_STORE" ] && skip "skipping on nix"
+    [ ! "$GITHUB_WORKSPACE" ] && skip "skipping because GITHUB_WORKSPACE is not set"
     # on github, we can reach sdk.dfinity.org
 
     cp "$(which dfx)" .
     ls -l dfx
-    version=$(./dfx --version)
 
     # Override current version to force upgrade
     log "dfx update (1)"
@@ -83,5 +82,5 @@ setup() {
 
     ls -l dfx
     assert_command ./dfx --version
-    assert_match "$(jq -r .tags.latest public/manifest.json)"
+    assert_match "$(jq -r .tags.latest "$GITHUB_WORKSPACE"/public/manifest.json)"
 }
