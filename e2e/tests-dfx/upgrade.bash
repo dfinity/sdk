@@ -9,8 +9,7 @@ setup() {
 }
 
 @test "upgrade succeeds (nix)" {
-    [ ! "$GITHUB_WORKSPACE" ] && skip "skipping on github workflow"
-
+    [ "$NIX_STORE" ] || skip "nix only"
     log "upgrade succeeds - start"
     latest_version="0.4.7"
     latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr '[:upper:]' '[:lower:]')/"
@@ -62,7 +61,7 @@ setup() {
 }
 
 @test "upgrade succeeds (github)" {
-    [ ! "$GITHUB_WORKSPACE" ] && skip "skipping because GITHUB_WORKSPACE is not set"
+    [ "$GITHUB_WORKSPACE" ] || skip "github workflow only"
     # on github, we can reach sdk.dfinity.org
 
     cp "$(which dfx)" .

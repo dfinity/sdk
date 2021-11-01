@@ -38,7 +38,7 @@ standard_teardown() {
 }
 
 dfx_new_frontend() {
-    log "dfx_new_frontend"
+    log "dfx_new_frontend (enter)"
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --frontend
     test -d ${project_name}
@@ -46,10 +46,11 @@ dfx_new_frontend() {
     cd ${project_name}
 
     echo PWD: $(pwd) >&2
+    log "dfx_new_frontend (leave)"
 }
 
 dfx_new() {
-    log "dfx_new"
+    log "dfx_new (enter)"
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --no-frontend
     test -d ${project_name}
@@ -57,6 +58,7 @@ dfx_new() {
     cd ${project_name}
 
     echo PWD: $(pwd) >&2
+    log "dfx_new (leave)"
 }
 
 dfx_patchelf() {
