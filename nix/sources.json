@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "remove-icx-proxy",
+        "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "dc476cd66228542ea9e463ba77f63e04fbd5fb24",
+        "rev": "68fcd7db69d42e0c678274e40f629bfd0fcf30d0",
         "type": "git"
     },
     "bats-support": {
