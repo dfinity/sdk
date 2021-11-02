@@ -21,6 +21,7 @@ teardown() {
 }
 
 @test "bootstrap fetches candid file" {
+    log "test enter"
     log "bootstrap fetches candid file"
 
     dfx_start_replica_and_bootstrap
@@ -45,16 +46,20 @@ teardown() {
     # Relax diff as it's produced by two different compilers.
     assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello/hello.did.js ./web.txt
 
+    log "test leave"
 }
 
 @test "forbid starting webserver with a forwarded port" {
+    log "test enter"
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     assert_command_fail dfx bootstrap --port 8000
     assert_match "Cannot forward API calls to the same bootstrap server"
+    log "test leave"
 }
 
 @test "bootstrap supports http requests" {
+    log "test enter"
     log "bootstrap supports http requests"
 
     dfx_start_replica_and_bootstrap
@@ -73,4 +78,5 @@ teardown() {
     assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
     # shellcheck disable=SC2154
     assert_eq "This is a sample asset!" "$stdout"
+    log "test leave"
 }

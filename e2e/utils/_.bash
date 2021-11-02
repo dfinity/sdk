@@ -35,6 +35,8 @@ standard_setup() {
 standard_teardown() {
     log "standard_teardown"
     rm -rf "$DFX_E2E_TEMP_DIR"
+
+    log "$(ps aux || ps aux failed)"
 }
 
 dfx_new_frontend() {
@@ -223,6 +225,8 @@ dfx_stop_replica_and_bootstrap() {
         log "killing bootstrap pid $DFX_BOOTSTRAP_PID"
         kill -TERM "$DFX_BOOTSTRAP_PID"
     fi
+
+    log "$(ps aux || echo ps aux failed)"
 }
 
 # Stop the replica and verify it is very very stopped.
