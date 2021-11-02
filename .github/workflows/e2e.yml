@@ -13,6 +13,7 @@ jobs:
       matrix:
         os: [ macos-latest, ubuntu-latest ]
         rust: [ '1.52.1' ]
+        binary_path: target/release
     steps:
       - uses: actions/checkout@v1
       - name: Cache Cargo
@@ -29,12 +30,22 @@ jobs:
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt
       - name: Build
-        run: cargo build
+        run: cargo build --locked --release
+        env:
+          OPENSSL_STATIC: yes
+      - name: Strip binaries
+        run: |
+          cd ${{ matrix.binary_path }}
+          sudo chown -R $(whoami) .
+          ls -l dfx
+          strip dfx
+          ls -l dfx
+        if: contains(matrix.os, 'ubuntu')
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
-          path: target/debug/dfx
+          path: ${{ matrix.binary_path }}/dfx
 
   list_tests:
     runs-on: ubuntu-latest
