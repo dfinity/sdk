@@ -183,7 +183,7 @@ jobs:
               echo "test log:"
               cat "$GITHUB_WORKSPACE"/test.log
             fi
-            ps
+            ps -f || echo no ps output
           }
           trap display_log EXIT
           timeout 600 bats "e2e/$E2E_TEST"
