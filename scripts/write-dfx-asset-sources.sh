@@ -23,7 +23,7 @@ read_sha256_from_nix_sources() {
 
     SHA256_BASE32=$(jq -r .'"'"$KEY"'".sha256' "$NIX_SOURCES_JSON")
 
-    nix to-base16 --type sha256 "$SHA256_BASE32"
+    nix-hash --to-base16 --type sha256 "$SHA256_BASE32"
 }
 
 read_url_from_nix_sources() {
