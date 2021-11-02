@@ -36,7 +36,7 @@ standard_teardown() {
     log "standard_teardown"
     rm -rf "$DFX_E2E_TEMP_DIR"
 
-    log "$(ps aux || ps aux failed)"
+    # log "$(ps aux || ps aux failed)"
 }
 
 dfx_new_frontend() {
@@ -159,6 +159,7 @@ dfx_start_replica_and_bootstrap() {
         # to close this pipe, otherwise Bats will wait indefinitely.
         dfx replica --emulator --port 0 "$@" 3>&- &
         export DFX_REPLICA_PID=$!
+        log "DFX_REPLICA_PID is $DFX_REPLICA_PID"
 
         timeout 60 sh -c \
             "until test -s .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
@@ -173,6 +174,7 @@ dfx_start_replica_and_bootstrap() {
         # to close this pipe, otherwise Bats will wait indefinitely.
         dfx replica --port 0 "$@" 3>&- &
         export DFX_REPLICA_PID=$!
+        log "DFX_REPLICA_PID is $DFX_REPLICA_PID"
 
         timeout 60 sh -c \
             "until test -s .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
@@ -204,7 +206,7 @@ dfx_start_replica_and_bootstrap() {
     #    "Cannot find canister ryjl3-tyaaa-aaaaa-aaaba-cai for network http___127_0_0_1_54084"
     dfx bootstrap --port 0 3>&- &
     export DFX_BOOTSTRAP_PID=$!
-
+    log "DFX_BOOTSTRAP_PID is $DFX_BOOTSTRAP_PID"
     timeout 5 sh -c \
         'until nc -z localhost $(cat .dfx/proxy-port); do echo waiting for bootstrap; sleep 1; done' \
         || (echo "could not connect to bootstrap on port $(cat .dfx/proxy-port)" && exit 1)
@@ -217,16 +219,18 @@ dfx_start_replica_and_bootstrap() {
 
 # Start the replica in the background.
 dfx_stop_replica_and_bootstrap() {
+    log "DFX_REPLICA_PID is $DFX_REPLICA_PID"
     if [ -v DFX_REPLICA_PID ]; then
         log "killing replica pid $DFX_REPLICA_PID"
         kill -TERM "$DFX_REPLICA_PID"
     fi
+    log "DFX_BOOTSTRAP_PID is $DFX_BOOTSTRAP_PID"
     if [ -v DFX_BOOTSTRAP_PID ]; then
         log "killing bootstrap pid $DFX_BOOTSTRAP_PID"
         kill -TERM "$DFX_BOOTSTRAP_PID"
     fi
 
-    log "$(ps aux || echo ps aux failed)"
+    # log "$(ps aux || echo ps aux failed)"
 }
 
 # Stop the replica and verify it is very very stopped.
