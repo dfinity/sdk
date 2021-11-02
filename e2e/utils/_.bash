@@ -220,15 +220,10 @@ dfx_start_replica_and_bootstrap() {
 # Start the replica in the background.
 dfx_stop_replica_and_bootstrap() {
     log "DFX_REPLICA_PID is $DFX_REPLICA_PID"
-    if [ -v DFX_REPLICA_PID ]; then
-        log "killing replica pid $DFX_REPLICA_PID"
-        kill -TERM "$DFX_REPLICA_PID"
-    fi
+    [ "$DFX_REPLICA_PID" ] && kill -TERM "$DFX_REPLICA_PID"
+
     log "DFX_BOOTSTRAP_PID is $DFX_BOOTSTRAP_PID"
-    if [ -v DFX_BOOTSTRAP_PID ]; then
-        log "killing bootstrap pid $DFX_BOOTSTRAP_PID"
-        kill -TERM "$DFX_BOOTSTRAP_PID"
-    fi
+    [ "$DFX_BOOTSTRAP_PID" ] && kill -TERM "$DFX_BOOTSTRAP_PID"
 
     # log "$(ps aux || echo ps aux failed)"
 }
