@@ -16,6 +16,8 @@ teardown() {
 
     log "teardown - standard"
     standard_teardown
+
+    log "$(ps)"
 }
 
 @test "bootstrap fetches candid file" {
