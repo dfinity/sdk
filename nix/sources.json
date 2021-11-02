@@ -32,9 +32,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "master",
+        "branch": "IDX-1990-update-cargo-audit",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "8fd13772016f9273a3ce61efa77b9f6a3345a67a",
+        "rev": "f2a94bbc93c4fa0a8c3addd7ed9ed8cc9866f3d8",
         "type": "git"
     },
     "ic-ref-x86_64-darwin": {
