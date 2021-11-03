@@ -8,10 +8,10 @@ export
 pushd /tmp
 
 # Install Node.
-wget --output-document install-node.sh "https://deb.nodesource.com/setup_14.x"
-sudo bash install-node.sh
-sudo apt-get install --yes nodejs
-rm install-node.sh
+#wget --output-document install-node.sh "https://deb.nodesource.com/setup_14.x"
+#sudo bash install-node.sh
+#sudo apt-get install --yes nodejs
+#rm install-node.sh
 
 # Install Bats.
 sudo apt-get install --yes bats
