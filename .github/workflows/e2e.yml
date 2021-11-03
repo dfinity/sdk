@@ -13,7 +13,7 @@ jobs:
       matrix:
         os: [ macos-latest, ubuntu-latest ]
         rust: [ '1.52.1' ]
-        binary_path: [ 'target/debug' ]
+        binary_path: [ 'target/release' ]
     steps:
       - uses: actions/checkout@v1
       - name: Cache Cargo
@@ -30,8 +30,7 @@ jobs:
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt
       - name: Build
-        # run: cargo build --locked --release
-        run: cargo build --locked
+        run: cargo build --locked --release
         env:
           OPENSSL_STATIC: yes
       - name: Strip binaries
