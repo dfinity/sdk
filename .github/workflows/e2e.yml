@@ -59,7 +59,7 @@ jobs:
         # run: echo "::set-output name=tests::$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash)"
         #
         run: |
-          MATRIX="$(.github/workflows/e2e-matrix.py)"
+          MATRIX="$(scripts/workflows/e2e-matrix.py)"
           echo "${MATRIX}"
           echo "::set-output name=matrix::${MATRIX}"
 
@@ -161,10 +161,10 @@ jobs:
         run: chmod +x /usr/local/bin/dfx
       - name: Provision Darwin
         if: matrix.os == 'macos-latest'
-        run: bash .github/workflows/provision-darwin.sh
+        run: bash scripts/workflows/provision-darwin.sh
       - name: Provision Linux
         if: matrix.os == 'ubuntu-latest'
-        run: bash .github/workflows/provision-linux.sh
+        run: bash scripts/workflows/provision-linux.sh
 
       - name: Prepare environment
         run: |

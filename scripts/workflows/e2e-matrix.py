@@ -12,7 +12,8 @@ def test_scripts(prefix):
     return tests
 
 
-test = test_scripts('dfx') + test_scripts('replica')
+test = sorted(test_scripts('dfx') + test_scripts('replica'))
+
 # test = [
 #     'dfx/assetscanister',
 #     'dfx/base',
