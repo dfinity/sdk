@@ -87,7 +87,7 @@ jobs:
           fi
           time dfx deploy
           time dfx canister call smoke greet '("fire")'
-          time curl --fail http://localhost:8000/sample-asset.tst?canisterId=$(dfx canister id smoke_assets)
+          time curl --fail http://localhost:8000/sample-asset.txt?canisterId=$(dfx canister id smoke_assets)
           time dfx stop
 
   test:
