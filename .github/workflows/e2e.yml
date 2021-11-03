@@ -13,7 +13,7 @@ jobs:
       matrix:
         os: [ macos-latest, ubuntu-latest ]
         rust: [ '1.52.1' ]
-        binary_path: [ 'target/release' ]
+        binary_path: [ 'target/debug' ]
     steps:
       - uses: actions/checkout@v1
       - name: Cache Cargo
@@ -30,7 +30,8 @@ jobs:
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt
       - name: Build
-        run: cargo build --locked --release
+        # run: cargo build --locked --release
+        run: cargo build --locked
         env:
           OPENSSL_STATIC: yes
       - name: Strip binaries
@@ -50,19 +51,18 @@ jobs:
   list_tests:
     runs-on: ubuntu-latest
     outputs:
-      tests: ${{ steps.set-tests.outputs.tests }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v1
-      - id: set-tests
+      - id: set-matrix
         # see https://github.blog/changelog/2020-04-15-github-actions-new-workflow-features/
         # run: echo "::set-output name=tests::$(cd e2e ; echo -n "$(find tests-dfx -name '*.bash')\n$(find tests-replica -name '*.bash')") | jq --raw-input --slurp 'split("\n")'"
         # run: echo "::set-output name=tests::$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash)"
         #
         run: |
-          set -x
-          TESTS="$(cd e2e ; python -c 'import json; import sys; print(json.dumps(sys.argv[1:]).replace("\"", "\\\""))' tests-dfx/*.bash tests-replica/*.bash)"
-          echo "${TESTS}"
-          echo "::set-output name=tests::${TESTS}"
+          MATRIX="$(.github/workflows/e2e-matrix.py)"
+          echo "${MATRIX}"
+          echo "::set-output name=matrix::${MATRIX}"
 
   smoke:
     runs-on: ${{ matrix.os }}
@@ -100,10 +100,11 @@ jobs:
 
   test:
     runs-on: ${{ matrix.os }}
-    needs: build_dfx
+    needs: [ build_dfx, list_tests ]
     strategy:
       fail-fast: false
-      matrix:
+      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
+      _matrix:
         test: [
             "dfx/assetscanister",
             "dfx/base",
