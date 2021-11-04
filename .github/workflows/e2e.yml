@@ -6,7 +6,26 @@ on: [push]
 #  pull_request:
 
 jobs:
+  http:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, ubuntu-latest ]
+    steps:
+      - name: troubleshoot
+        run: |
+          RANDOM_EMPHEMERAL_PORT=$(shuf -i 49152-65535 -n 1)
+          echo "port is $RANDOM_EPHEMERAL_PORT"
+          python3 -m http.server "$RANDOM_EMPHEMERAL_PORT" &
+          WEB_SERVER_PID=$!
+          echo "WEB_SERVER_PID is $WEB_SERVER_PID"
+
+          timeout 60 sh -c "while ! nc -z localhost $RANDOM_EMPHEMERAL_PORT; do sleep 1; done"
+          kill "$WEB_SERVER_PID"
+
   build_dfx:
+    needs: http
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -37,9 +56,7 @@ jobs:
         run: |
           cd ${{ matrix.binary_path }}
           sudo chown -R $(whoami) .
-          ls -l dfx
           strip dfx
-          ls -l dfx
         if: contains(matrix.os, 'ubuntu')
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
@@ -47,7 +64,8 @@ jobs:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
           path: ${{ matrix.binary_path }}/dfx
 
-  list_tests:
+  make_matrix:
+    needs: http
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -90,12 +108,12 @@ jobs:
           time curl --fail http://localhost:8000/sample-asset.txt?canisterId=$(dfx canister id smoke_assets)
           time dfx stop
 
-  test:
+  e2e:
     runs-on: ${{ matrix.os }}
-    needs: [ build_dfx, list_tests ]
+    needs: [ build_dfx, make_matrix ]
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
+      matrix: ${{fromJson(needs.make_matrix.outputs.matrix)}}
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
 
