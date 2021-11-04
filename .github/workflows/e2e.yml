@@ -132,6 +132,7 @@ jobs:
               echo "test log:"
               cat "$GITHUB_WORKSPACE"/test.log
             fi
+            ps aux | grep icx-proxy || echo "no ps output"
           }
           trap display_log EXIT
           timeout 3600 bats "e2e/$E2E_TEST"

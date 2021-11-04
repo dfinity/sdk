@@ -230,12 +230,16 @@ dfx_stop_replica_and_bootstrap() {
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
+    log "dfx_stop (enter)"
+    log "$(ps aux | grep icx-proxy || echo "no ps/grep/icx-proxy output")"
+
     dfx stop
     local dfx_root=.dfx/
     rm -rf $dfx_root
 
     # Verify that processes are killed.
     assert_no_dfx_start_or_replica_processes
+    log "dfx_stop (leave)"
 }
 
 dfx_set_wallet() {
