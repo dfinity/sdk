@@ -8,8 +8,7 @@ setup() {
     standard_setup
 }
 
-@test "upgrade succeeds (nix)" {
-    [ "$NIX_STORE" ] || skip "nix only"
+@test "upgrade succeeds" {
     log "upgrade succeeds - start"
     latest_version="0.4.7"
     latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr '[:upper:]' '[:lower:]')/"
@@ -60,26 +59,26 @@ setup() {
     assert_match "$version"
 }
 
-@test "upgrade succeeds (github)" {
-    [ "$GITHUB_WORKSPACE" ] || skip "github workflow only"
-    # on github, we can reach sdk.dfinity.org
-
-    cp "$(which dfx)" .
-    ls -l dfx
-
-    # Override current version to force upgrade
-    log "dfx update (1)"
-    assert_command ./dfx upgrade \
-        --current-version 0.4.6
-    assert_match "Current version: .*"
-    assert_match "Fetching manifest .*"
-    assert_match "New version available: .*"
-
-    log "dfx update (2)"
-    assert_command ./dfx upgrade
-    assert_match "Already up to date"
-
-    ls -l dfx
-    assert_command ./dfx --version
-    assert_match "$(jq -r .tags.latest "$GITHUB_WORKSPACE"/public/manifest.json)"
-}
+#@test "upgrade succeeds (github)" {
+#    [ "$GITHUB_WORKSPACE" ] || skip "github workflow only"
+#    # on github, we can reach sdk.dfinity.org
+#
+#    cp "$(which dfx)" .
+#    ls -l dfx
+#
+#    # Override current version to force upgrade
+#    log "dfx update (1)"
+#    assert_command ./dfx upgrade \
+#        --current-version 0.4.6
+#    assert_match "Current version: .*"
+#    assert_match "Fetching manifest .*"
+#    assert_match "New version available: .*"
+#
+#    log "dfx update (2)"
+#    assert_command ./dfx upgrade
+#    assert_match "Already up to date"
+#
+#    ls -l dfx
+#    assert_command ./dfx --version
+#    assert_match "$(jq -r .tags.latest "$GITHUB_WORKSPACE"/public/manifest.json)"
+#}

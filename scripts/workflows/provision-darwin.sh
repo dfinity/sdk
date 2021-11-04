@@ -7,6 +7,8 @@ export
 # Enter temporary directory.
 pushd /tmp
 
+brew install coreutils
+
 # Install Bats.
 brew unlink bats
 brew install bats-core
