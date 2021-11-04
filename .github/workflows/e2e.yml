@@ -28,6 +28,7 @@ jobs:
 #          kill "$WEB_SERVER_PID"
 
   build_dfx:
+    needs: http
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -67,6 +68,7 @@ jobs:
           path: ${{ matrix.binary_path }}/dfx
 
   make_matrix:
+    needs: http
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
