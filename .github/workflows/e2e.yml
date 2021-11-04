@@ -6,26 +6,26 @@ on: [push]
 #  pull_request:
 
 jobs:
-#  http:
-#    runs-on: ${{ matrix.os }}
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        os: [ macos-latest, ubuntu-latest ]
-#    steps:
-#      - name: Install shuf
-#        if: matrix.os == 'macos-latest'
-#        run: brew install coreutils
-#      - name: troubleshoot
-#        run: |
-#          RANDOM_EMPHEMERAL_PORT=$(shuf -i 49152-65535 -n 1)
-#          echo "port is $RANDOM_EPHEMERAL_PORT"
-#          python3 -m http.server "$RANDOM_EMPHEMERAL_PORT" &
-#          WEB_SERVER_PID=$!
-#          echo "WEB_SERVER_PID is $WEB_SERVER_PID"
-#
-#          timeout 60 sh -c "while ! nc -z localhost $RANDOM_EMPHEMERAL_PORT; do sleep 1; done"
-#          kill "$WEB_SERVER_PID"
+  http:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, ubuntu-latest ]
+    steps:
+      - name: Install shuf
+        if: matrix.os == 'macos-latest'
+        run: brew install coreutils
+      - name: troubleshoot
+        run: |
+          RANDOM_EMPHEMERAL_PORT=$(shuf -i 49152-65535 -n 1)
+          echo "port is $RANDOM_EPHEMERAL_PORT"
+          python3 -m http.server "$RANDOM_EMPHEMERAL_PORT" &
+          WEB_SERVER_PID=$!
+          echo "WEB_SERVER_PID is $WEB_SERVER_PID"
+
+          timeout 60 sh -c "while ! nc -z localhost $RANDOM_EMPHEMERAL_PORT; do sleep 1; done"
+          kill "$WEB_SERVER_PID"
 
   build_dfx:
     needs: http
