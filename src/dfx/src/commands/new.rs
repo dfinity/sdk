@@ -424,7 +424,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
 
         #[cfg(not(target_os = "macos"))]
         {
-            init_git(log, &project_name)?;
+            init_git(log, project_name)?;
         }
     }
 
