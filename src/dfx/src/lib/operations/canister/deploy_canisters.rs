@@ -110,7 +110,7 @@ async fn register_canisters(
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
-        .filter(|n| canister_id_store.find(&n).is_none())
+        .filter(|n| canister_id_store.find(n).is_none())
         .cloned()
         .collect::<Vec<String>>();
     if canisters_to_create.is_empty() {
@@ -149,10 +149,10 @@ async fn register_canisters(
             let controllers = None;
             create_canister(
                 env,
-                &canister_name,
+                canister_name,
                 timeout,
                 with_cycles,
-                &call_sender,
+                call_sender,
                 CanisterSettings {
                     controllers,
                     compute_allocation,
@@ -169,9 +169,9 @@ async fn register_canisters(
 fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Config) -> DfxResult {
     info!(env.get_logger(), "Building canisters...");
     let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, &canister_names)?;
+    let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
 
-    canister_pool.build_or_fail(BuildConfig::from_config(&config)?)
+    canister_pool.build_or_fail(BuildConfig::from_config(config)?)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -198,7 +198,7 @@ async fn install_canisters(
         let (install_mode, installed_module_hash) = if force_reinstall {
             (InstallMode::Reinstall, None)
         } else {
-            match initial_canister_id_store.find(&canister_name) {
+            match initial_canister_id_store.find(canister_name) {
                 Some(canister_id) => {
                     match agent
                         .read_state_canister_info(canister_id, "module_hash")
@@ -219,8 +219,8 @@ async fn install_canisters(
             }
         };
 
-        let canister_id = canister_id_store.get(&canister_name)?;
-        let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
+        let canister_id = canister_id_store.get(canister_name)?;
+        let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
@@ -228,12 +228,12 @@ async fn install_canisters(
 
         install_canister(
             env,
-            &agent,
+            agent,
             &canister_info,
             &install_args,
             install_mode,
             timeout,
-            &call_sender,
+            call_sender,
             installed_module_hash,
         )
         .await?;
