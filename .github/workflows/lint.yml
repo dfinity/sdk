@@ -1,10 +1,8 @@
-name: Lint
-
 on: [pull_request]
 
 jobs:
-  test:
-    name: lint
+  lint:
+    name: Lint
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -35,11 +33,19 @@ jobs:
   aggregate:
     name: lint:required
     if: ${{ always() }}
-    needs: test
+    needs: lint
     runs-on: ubuntu-latest
     steps:
-      - name: check with needs
-        if: ${{ needs.test.result != 'success' }}
+      - name: display
+        env:
+          needs_lint: ${{toJSON(needs.lint)}}
+          jobs_lint: ${{toJSON(jobs.lint)}}
+          cancelled: ${{toJSON(cancelled())}}
+          failure: ${{toJSON(failure())}}
+          success: ${{toJSON(success())}}
+        run: export
+      - name: check step result directly
+        if: ${{ needs.lint.result != 'success' }}
         run: exit 1
       - name: A job failed
         if: ${{ failure() }}
