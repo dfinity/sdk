@@ -31,3 +31,17 @@ jobs:
         run: cargo clippy --verbose --tests --benches -- -D clippy::all
         env:
           RUST_BACKTRACE: 1
+
+  aggregate:
+    name: lint_required
+    needs: test
+    steps:
+      - name: aggregate
+        run: |
+          echo "success is ${{ success() }}"
+          if [ "${{ success }}" = "true" ]; then
+              echo "pass"
+          else
+              echo "fail"
+              exit 1
+          fi
