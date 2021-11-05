@@ -39,8 +39,7 @@ jobs:
       - name: display
         env:
           needs_lint: ${{toJSON(needs.lint)}}
-          jobs_lint: ${{toJSON(jobs.lint)}}
-          cancelled: ${{toJSON(cancelled())}}
+          #cancelled: ${{toJSON(cancelled())}}
           failure: ${{toJSON(failure())}}
           success: ${{toJSON(success())}}
         run: export
