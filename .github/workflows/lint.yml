@@ -43,9 +43,9 @@ jobs:
           #failure: ${{toJSON(failure())}}
           #success: ${{toJSON(success())}}
         run: export
-#      - name: check step result directly
-#        if: ${{ needs.lint.result != 'success' }}
-#        run: exit 1
+      - name: check step result directly
+        if: ${{ needs.lint.result != 'success' }}
+        run: exit 1
 #      - name: A job failed
 #        if: ${{ failure() }}
 #        run: exit 1
