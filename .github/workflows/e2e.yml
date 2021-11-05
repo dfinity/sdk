@@ -9,7 +9,7 @@ jobs:
   build_dfx:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ macos-latest, ubuntu-latest ]
         rust: [ '1.52.1' ]
@@ -37,9 +37,7 @@ jobs:
         run: |
           cd ${{ matrix.binary_path }}
           sudo chown -R $(whoami) .
-          ls -l dfx
           strip dfx
-          ls -l dfx
         if: contains(matrix.os, 'ubuntu')
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
@@ -98,7 +96,6 @@ jobs:
       matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
-
     steps:
       - uses: actions/checkout@v1
       - name: Download dfx binary
@@ -114,7 +111,6 @@ jobs:
       - name: Provision Linux
         if: matrix.os == 'ubuntu-latest'
         run: bash scripts/workflows/provision-linux.sh
-
       - name: Prepare environment
         run: |
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
@@ -124,6 +120,5 @@ jobs:
               echo "USE_IC_REF=1" >> "$GITHUB_ENV"
           fi
           export
-
       - name: Run e2e test
         run: timeout 1200 bats "e2e/$E2E_TEST"

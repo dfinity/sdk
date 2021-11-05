@@ -1,7 +1,6 @@
 load ${BATSLIB}/load.bash
 load ../utils/assertions
 
-
 # Takes a name of the asset folder, and copy those files to the current project.
 install_asset() {
     ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
@@ -186,6 +185,7 @@ dfx_start_replica_and_bootstrap() {
     #    "Cannot find canister ryjl3-tyaaa-aaaaa-aaaba-cai for network http___127_0_0_1_54084"
     dfx bootstrap --port 0 3>&- &
     export DFX_BOOTSTRAP_PID=$!
+
     timeout 5 sh -c \
         'until nc -z localhost $(cat .dfx/proxy-port); do echo waiting for bootstrap; sleep 1; done' \
         || (echo "could not connect to bootstrap on port $(cat .dfx/proxy-port)" && exit 1)
