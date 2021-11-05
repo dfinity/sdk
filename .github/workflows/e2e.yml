@@ -136,7 +136,7 @@ jobs:
       - name: aggregate
         run: |
           echo "success is ${{ success() }}"
-          if [ "${{ success }}" = "true" ]; then
+          if [ "${{ success() }}" = "true" ]; then
               echo "pass"
           else
               echo "fail"
