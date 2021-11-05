@@ -21,11 +21,13 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
     argument: Option<&str>,
     argument_type: Option<&str>,
+    force_reinstall: bool,
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
@@ -37,16 +39,27 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let canister_names = canisters_to_deploy(&config, some_canister)?;
+    let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
+
+    let canisters_to_deploy = if force_reinstall {
+        // don't force-reinstall the dependencies too.
+        match some_canister {
+            Some(canister_name) => vec!(String::from(canister_name)),
+            None => bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."),
+        }
+    } else {
+        canisters_to_build.clone()
+    };
+
     if some_canister.is_some() {
-        info!(log, "Deploying: {}", canister_names.join(" "));
+        info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
     } else {
         info!(log, "Deploying all canisters.");
     }
 
     register_canisters(
         env,
-        &canister_names,
+        &canisters_to_build,
         &initial_canister_id_store,
         timeout,
         with_cycles,
@@ -55,15 +68,16 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    build_canisters(env, &canister_names, &config)?;
+    build_canisters(env, &canisters_to_build, &config)?;
 
     install_canisters(
         env,
-        &canister_names,
+        &canisters_to_deploy,
         &initial_canister_id_store,
         &config,
         argument,
         argument_type,
+        force_reinstall,
         timeout,
         call_sender,
     )
@@ -74,7 +88,10 @@ pub async fn deploy_canisters(
     Ok(())
 }
 
-fn canisters_to_deploy(config: &Config, some_canister: Option<&str>) -> DfxResult<Vec<String>> {
+fn canister_with_dependencies(
+    config: &Config,
+    some_canister: Option<&str>,
+) -> DfxResult<Vec<String>> {
     let mut canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(some_canister)?;
@@ -129,7 +146,7 @@ async fn register_canisters(
                         )
                         .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
                     });
-            let controller = None;
+            let controllers = None;
             create_canister(
                 env,
                 &canister_name,
@@ -137,7 +154,7 @@ async fn register_canisters(
                 with_cycles,
                 &call_sender,
                 CanisterSettings {
-                    controller,
+                    controllers,
                     compute_allocation,
                     memory_allocation,
                     freezing_threshold,
@@ -165,6 +182,7 @@ async fn install_canisters(
     config: &Config,
     argument: Option<&str>,
     argument_type: Option<&str>,
+    force_reinstall: bool,
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
@@ -177,7 +195,9 @@ async fn install_canisters(
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     for canister_name in canister_names {
-        let (install_mode, installed_module_hash) =
+        let (install_mode, installed_module_hash) = if force_reinstall {
+            (InstallMode::Reinstall, None)
+        } else {
             match initial_canister_id_store.find(&canister_name) {
                 Some(canister_id) => {
                     match agent
@@ -196,7 +216,8 @@ async fn install_canisters(
                     }
                 }
                 None => (InstallMode::Install, None),
-            };
+            }
+        };
 
         let canister_id = canister_id_store.get(&canister_name)?;
         let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;

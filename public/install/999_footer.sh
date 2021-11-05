@@ -95,7 +95,7 @@ main() {
     # Read flags.
     read_flags "$@"
 
-    log "Executing DFINITY SDK install script, commit: $SCRIPT_COMMIT_DESC"
+    log "Executing dfx install script, commit: $SCRIPT_COMMIT_DESC"
 
     downloader --check
     need_cmd uname
@@ -106,11 +106,6 @@ main() {
     need_cmd tar
     need_cmd gzip
     need_cmd touch
-
-    if ! confirm_license; then
-        echo "Please accept the license to continue."
-        exit
-    fi
 
     get_architecture || return 1
     local _arch="$RETVAL"
@@ -133,7 +128,7 @@ main() {
 
     log "Creating uninstall script in ~/.cache/dfinity"
     mkdir -p "${HOME}/.cache/dfinity/"
-    # Ensure there is a way to uninstall dfinity sdk.
+    # Ensure there is a way to uninstall dfx
     install_uninstall_script
 
     log "Checking for latest release..."

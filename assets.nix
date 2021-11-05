@@ -3,7 +3,7 @@
 }:
 let
   icx-proxy-standalone = pkgs.lib.standaloneRust {
-    drv = pkgs.agent-rs;
+    drv = pkgs.icx-proxy;
     exename = "icx-proxy";
     usePackager = false;
   };
@@ -14,10 +14,10 @@ let
 
     gunzip <${replica-bin} >$out/replica
     gunzip <${starter-bin} >$out/ic-starter
-    cp -R ${pkgs.motoko.base-src} $out/base
-    cp ${pkgs.motoko.mo-doc}/bin/mo-doc $out
-    cp ${pkgs.motoko.mo-ide}/bin/mo-ide $out
-    cp ${pkgs.motoko.moc}/bin/moc $out
+    cp -R ${pkgs.sources.motoko-base}/src $out/base
+    cp ${pkgs.motoko}/bin/mo-doc $out
+    cp ${pkgs.motoko}/bin/mo-ide $out
+    cp ${pkgs.motoko}/bin/moc $out
     cp ${pkgs.ic-ref}/bin/* $out
     cp ${icx-proxy-standalone}/bin/icx-proxy $out
   '';

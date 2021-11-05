@@ -45,10 +45,6 @@ pub struct StartOpts {
     /// Runs a dedicated emulator instead of the replica
     #[clap(long)]
     emulator: bool,
-
-    /// Removes the artificial delay in the local replica added to simulate the networked IC environment.
-    #[clap(long)]
-    no_artificial_delay: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -62,7 +58,7 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     // wait for frontend to come up
     let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(30))
+        .timeout(std::time::Duration::from_secs(60))
         .throttle(std::time::Duration::from_secs(1))
         .build();
 
@@ -70,8 +66,15 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
         waiter.start();
         loop {
             let status = agent.status().await;
-            if status.is_ok() {
-                break;
+            if let Ok(status) = &status {
+                let healthy = match &status.replica_health_status {
+                    Some(status) if status == "healthy" => true,
+                    None => true, // emulator doesn't report replica_health_status
+                    _ => false,
+                };
+                if healthy {
+                    break;
+                }
             }
             waiter
                 .wait()
@@ -164,13 +167,19 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
             .join("replica-configuration")
             .join("replica-1.port");
 
-        let replica_config = ReplicaConfig::new(&env.get_state_dir(), opts.no_artificial_delay)
-            .with_random_port(&replica_port_path);
+        let replica_config =
+            ReplicaConfig::new(&env.get_state_dir()).with_random_port(&replica_port_path);
         let replica = start_replica_actor(env, replica_config, shutdown_controller.clone())?;
         replica.recipient()
     };
 
     let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
+    let icx_proxy_config = IcxProxyConfig {
+        bind: address_and_port,
+        proxy_port: webserver_bind.port(),
+        providers: vec![],
+        fetch_root_key: !network_descriptor.is_ic,
+    };
 
     let _webserver_coordinator = start_webserver_coordinator(
         env,
@@ -180,11 +189,6 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
         shutdown_controller.clone(),
     )?;
 
-    let icx_proxy_config = IcxProxyConfig {
-        bind: address_and_port,
-        proxy_port: webserver_bind.port(),
-        providers: vec![],
-    };
     let _proxy = start_icx_proxy_actor(
         env,
         icx_proxy_config,

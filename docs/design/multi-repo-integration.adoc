@@ -1,6 +1,6 @@
 = SDK Multi Repo Integration
 // Author field:
-Hans Larsen <hans@dfinity.org>
+John User <user@email.org>
 v0.1, 2020-01-01
 :draft:
 :toc:

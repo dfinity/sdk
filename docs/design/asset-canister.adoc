@@ -1,6 +1,5 @@
 = FeatureTemplate Design Doc
 // Author field:
-Eric Swanson <eric.swanson@dfinity.org>
 v0.1, 2021-02-03
 :draft:
 :toc:

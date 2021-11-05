@@ -1,6 +1,75 @@
+= 0.8.4
+
+== DFX
+
+=== feat: environment variable overrides for executable pathnames
+
+You can now override the location of any executable normally called from the cache by specifying
+an environment variable. For example, DFX_ICX_PROXY_PATH will specify the path for `icx-proxy`.
+
+=== feat: dfx deploy --mode=reinstall <canister>
+
+`dfx deploy` can now reinstall a single canister, controlled by a new `--mode=reinstall` parameter.
+This is destructive (it resets the state of the canister), so it requires a confirmation
+and can only be performed on a single canister at a time.
+
+`dfx canister install --mode=reinstall <canister>` also requires the same confirmation,
+and no longer works with `--all`.
+
+== Replica
+
+The included replica now supports canister_heartbeat.  This only works with rust canisters for the time being,
+and does not work with the emulator (`dfx start --emulator`).
+
+= 0.8.3
+
+== DFX
+
+=== fix: ic-ref linux binary no longer references /nix/store
+
+This means `dfx start --emulator` has a chance of working if nix is not installed.
+This has always been broken, even before dfx 0.7.0.
+
+=== fix: replica and ic-starter linux binaries no longer reference /nix/store
+
+This means `dfx start` will work again on linux.  This bug was introduced in dfx 0.8.2.
+
+=== feat: replaced --no_artificial_delay option with a sensible default.
+
+The `--no-artificial-delay` option not being the default has been causing a lot of confusion.
+Now that we have measured in production and already applied a default of 600ms to most subnets deployed out there,
+we have set the same default for dfx and removed the option.
+
+== Motoko
+
+Updated Motoko from 0.6.10 to 0.6.11.
+
+* Assertion error messages are now reproducible (#2821)
+
 = 0.8.2
 
 == DFX
+
+=== feat: dfx canister delete can now return cycles to a wallet or dank
+
+By default `dfx canister delete` will return cycles to the default cycles wallet.
+Cycles can be returned to a designated canister with `--withdraw-cycles-to-canister` and
+cycles can be returned to dank at the current identity principal with `--withdraw-cycles-to-dank`
+and to a designated principal with `--withdraw-cycles-to-dank-principal`.
+
+=== feat: dfx canister create now accepts multiple instances of --controller argument
+
+It is now possible to create canisters with more than one controller by
+passing multiple instances of the `--controller parameter to `dfx canister create`.
+
+You will need to upgrade your wallet with `dfx wallet upgrade`, or `dfx wallet --network ic upgrade`
+
+=== feat: dfx canister update-settings now accepts multiple instance of --controller argument
+
+It is now possible to configure a canister to have more than one controller by
+passing multiple instances of the `--controller parameter to `dfx canister update-settings`.
+
+=== feat: dfx canister info and dfx canister status now display all controllers
 
 === feat!: dfx canister create --controller <controller> named parameter
 
@@ -9,6 +78,44 @@ rather than optionally following the canister name.
 
 Old: dfx canister create [canister name] [controller]
 New: dfx canister create --controller <controller> [canister name]
+
+=== fix: dfx now respects $DFX_CONFIG_ROOT when looking for legacy credentials
+
+Previously this would always look in `$HOME/.dfinity/identity/creds.pem`.
+
+=== fix: changed dfx canister (create|update-settings) --memory-allocation limit to 12 GiB
+
+Updated the maximum value for the --memory-allocation value to be 12 GiB (12,884,901,888 bytes)
+
+== Cycles Wallet
+
+- Module hash: 9183a38dd2eb1a4295f360990f87e67aa006f225910ab14880748e091248e086
+- https://github.com/dfinity/cycles-wallet/commit/9ef38bb7cd0fe17cda749bf8e9bbec5723da0e95
+
+=== Added support for multiple controllers
+
+You will need to upgrade your wallet with `dfx wallet upgrade`, or `dfx wallet --network ic upgrade`
+
+== Replica
+
+The included replica now supports public spec 0.18.0
+
+* Canisters can now have more than one controller
+* Adds support for 64-bit stable memory
+* The replica now goes through an initialization sequence, reported in its status
+as `replica_health_status`.  Until this reports as `healthy`, queries or updates will
+fail.
+** `dfx start --background` waits to exit until `replica_health_status` is `healthy`.
+** If you run `dfx start` without `--background`, you can call `dfx ping --wait-healthy`
+to wait until the replica is healthy.
+
+== Motoko
+
+Updated Motoko from 0.6.7 to 0.6.10
+
+* add Debug.trap : Text -> None (motoko-base #288)
+* Introduce primitives for `Int` ⇔ `Float` conversions (#2733)
+* Fix crashing bug for formatting huge floats (#2737)
 
 = 0.8.1
 
