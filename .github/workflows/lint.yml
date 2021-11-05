@@ -38,5 +38,15 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - if: ${{ !success() }}
+      - name: A job failed
+        if: ${{ failure() }}
+        run: exit 1
+      - name: The workflow was cancelled
+        if: ${{ cancelled() }}
+        run: exit 1
+      - name: All jobs succeeded
+        if: ${{ success() }}
+        run: echo pass
+      - name: Not success
+        if: ${{ !success() }}
         run: exit 1
