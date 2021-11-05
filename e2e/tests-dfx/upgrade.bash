@@ -9,14 +9,12 @@ setup() {
 }
 
 @test "upgrade succeeds" {
-    log "upgrade succeeds - start"
     latest_version="0.4.7"
     latest_version_dir="downloads/dfx/$latest_version/x86_64-$(uname -s | tr '[:upper:]' '[:lower:]')/"
     dfx_archive_file_name="dfx-$latest_version.tar.gz"
     mkdir -p "$latest_version_dir"
     cp "$(which dfx)" .
     version=$(./dfx --version)
-    log "tar"
     tar -czf "$latest_version_dir/$dfx_archive_file_name" dfx
     echo '{
       "tags": {
@@ -28,18 +26,14 @@ setup() {
         "0.4.7"
       ]
     }' > manifest.json
-    log "start python http server"
     python3 -m http.server "$RANDOM_EMPHEMERAL_PORT" &
     WEB_SERVER_PID=$!
 
-    log "wait for http server"
     while ! nc -z localhost "$RANDOM_EMPHEMERAL_PORT"; do
         sleep 1
     done
-    log "http server ready"
 
     # Override current version to force upgrade
-    log "dfx update (1)"
     assert_command ./dfx upgrade \
         --current-version 0.4.6 \
         --release-root "http://localhost:$RANDOM_EMPHEMERAL_PORT"
@@ -47,12 +41,9 @@ setup() {
     assert_match "Fetching manifest .*"
     assert_match "New version available: .*"
 
-    log "dfx update (2)"
     assert_command ./dfx upgrade \
         --release-root "http://localhost:$RANDOM_EMPHEMERAL_PORT"
     assert_match "Already up to date"
-
-    log "kill web server"
 
     kill "$WEB_SERVER_PID"
     assert_command ./dfx --version

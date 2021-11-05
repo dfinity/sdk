@@ -1,7 +1,4 @@
 load ${BATSLIB}/load.bash
-log() {
-    echo "$(date)" "$@" >>"$GITHUB_WORKSPACE"/test.log
-}
 load ../utils/assertions
 
 
@@ -16,7 +13,6 @@ install_asset() {
 }
 
 standard_setup() {
-    log "standard_setup"
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export DFX_E2E_TEMP_DIR="$x"
@@ -33,14 +29,10 @@ standard_setup() {
 }
 
 standard_teardown() {
-    log "standard_teardown"
     rm -rf "$DFX_E2E_TEMP_DIR"
-
-    # log "$(ps aux || ps aux failed)"
 }
 
 dfx_new_frontend() {
-    log "dfx_new_frontend (enter)"
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --frontend
     test -d ${project_name}
@@ -48,11 +40,9 @@ dfx_new_frontend() {
     cd ${project_name}
 
     echo PWD: $(pwd) >&2
-    log "dfx_new_frontend (leave)"
 }
 
 dfx_new() {
-    log "dfx_new (enter)"
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --no-frontend
     test -d ${project_name}
@@ -60,14 +50,12 @@ dfx_new() {
     cd ${project_name}
 
     echo PWD: $(pwd) >&2
-    log "dfx_new (leave)"
 }
 
 dfx_patchelf() {
-    log "dfx_patchelf enter"
-    if [ -v GITHUB_ACTIONS ]; then
-      return
-    fi
+    # Don't run this function during github actions
+    [ "$GITHUB_ACTIONS" ] && return 0
+
     # Only run this function on Linux
     (uname -a | grep Linux) || return 0
     echo dfx = $(which dfx)
@@ -85,12 +73,10 @@ dfx_patchelf() {
         chmod +rw "${BINARY}"
         test -n "$IS_STATIC" || test -z "$USE_LIB64" || patchelf --set-interpreter "${LD_LINUX_SO}" "${BINARY}"
     done
-    log "dfx_patchelf leave"
 }
 
 # Start the replica in the background.
 dfx_start() {
-    log "dfx_start enter"
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
@@ -133,11 +119,9 @@ dfx_start() {
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
-    log "dfx_start leave"
 }
 
 wait_until_replica_healthy() {
-    log "wait_until_replica_healthy enter"
     echo "waiting for replica to become healthy"
     (
         # dfx ping has side effects, like creating a default identity.
@@ -145,12 +129,10 @@ wait_until_replica_healthy() {
         dfx ping --wait-healthy
     )
     echo "replica became healthy"
-    log "wait_until_replica_healthy leave"
 }
 
 # Start the replica in the background.
 dfx_start_replica_and_bootstrap() {
-    log "dfx_start_replica_and_bootstrap enter"
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
@@ -159,7 +141,6 @@ dfx_start_replica_and_bootstrap() {
         # to close this pipe, otherwise Bats will wait indefinitely.
         dfx replica --emulator --port 0 "$@" 3>&- &
         export DFX_REPLICA_PID=$!
-        log "DFX_REPLICA_PID is $DFX_REPLICA_PID"
 
         timeout 60 sh -c \
             "until test -s .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
@@ -174,7 +155,6 @@ dfx_start_replica_and_bootstrap() {
         # to close this pipe, otherwise Bats will wait indefinitely.
         dfx replica --port 0 "$@" 3>&- &
         export DFX_REPLICA_PID=$!
-        log "DFX_REPLICA_PID is $DFX_REPLICA_PID"
 
         timeout 60 sh -c \
             "until test -s .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
@@ -206,32 +186,26 @@ dfx_start_replica_and_bootstrap() {
     #    "Cannot find canister ryjl3-tyaaa-aaaaa-aaaba-cai for network http___127_0_0_1_54084"
     dfx bootstrap --port 0 3>&- &
     export DFX_BOOTSTRAP_PID=$!
-    log "DFX_BOOTSTRAP_PID is $DFX_BOOTSTRAP_PID"
     timeout 5 sh -c \
         'until nc -z localhost $(cat .dfx/proxy-port); do echo waiting for bootstrap; sleep 1; done' \
         || (echo "could not connect to bootstrap on port $(cat .dfx/proxy-port)" && exit 1)
 
     local proxy_port=$(cat .dfx/proxy-port)
     printf "Proxy Configured Port: %s\n", "${proxy_port}"
-    log "dfx_start_replica_and_bootstrap leave"
-
 }
 
 # Start the replica in the background.
 dfx_stop_replica_and_bootstrap() {
-    log "DFX_REPLICA_PID is $DFX_REPLICA_PID"
     [ "$DFX_REPLICA_PID" ] && kill -TERM "$DFX_REPLICA_PID"
 
-    log "DFX_BOOTSTRAP_PID is $DFX_BOOTSTRAP_PID"
     [ "$DFX_BOOTSTRAP_PID" ] && kill -TERM "$DFX_BOOTSTRAP_PID"
-
-    # log "$(ps aux || echo ps aux failed)"
 }
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
-    log "dfx_stop (enter)"
-    log "$(ps aux | grep icx-proxy || echo "no ps/grep/icx-proxy output")"
+    # A suspicion: "address already is use" errors are due to an extra icx-proxy process.
+    echo "icx-proxy processes:"
+    ps aux | grep icx-proxy || echo "no ps/grep/icx-proxy output"
 
     dfx stop
     local dfx_root=.dfx/
@@ -239,7 +213,6 @@ dfx_stop() {
 
     # Verify that processes are killed.
     assert_no_dfx_start_or_replica_processes
-    log "dfx_stop (leave)"
 }
 
 dfx_set_wallet() {

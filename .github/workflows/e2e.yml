@@ -126,13 +126,4 @@ jobs:
           export
 
       - name: Run e2e test
-        run: |
-          function display_log() {
-            if [ -f "$GITHUB_WORKSPACE"/test.log ]; then
-              echo "test log:"
-              cat "$GITHUB_WORKSPACE"/test.log
-            fi
-            ps aux | grep icx-proxy || echo "no ps output"
-          }
-          trap display_log EXIT
-          timeout 3600 bats "e2e/$E2E_TEST"
+        run: timeout 1200 bats "e2e/$E2E_TEST"
