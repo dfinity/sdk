@@ -38,6 +38,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - name: check with needs
+        if: ${{ needs.test.result != 'success' }}
+        run: exit 1
       - name: A job failed
         if: ${{ failure() }}
         run: exit 1
