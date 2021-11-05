@@ -34,6 +34,7 @@ jobs:
 
   aggregate:
     name: lint:required
+    if: ${{ always() }}
     needs: test
     runs-on: ubuntu-latest
     steps:
