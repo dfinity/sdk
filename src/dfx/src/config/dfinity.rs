@@ -196,19 +196,19 @@ impl ConfigDefaultsBuild {
 impl ConfigDefaults {
     pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
         match &self.bootstrap {
-            Some(x) => &x,
+            Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_BOOTSTRAP,
         }
     }
     pub fn get_build(&self) -> &ConfigDefaultsBuild {
         match &self.build {
-            Some(x) => &x,
+            Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_BUILD,
         }
     }
     pub fn get_replica(&self) -> &ConfigDefaultsReplica {
         match &self.replica {
-            Some(x) => &x,
+            Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_REPLICA,
         }
     }
@@ -217,7 +217,7 @@ impl ConfigDefaults {
 impl ConfigInterface {
     pub fn get_defaults(&self) -> &ConfigDefaults {
         match &self.defaults {
-            Some(v) => &v,
+            Some(v) => v,
             _ => &EMPTY_CONFIG_DEFAULTS,
         }
     }
@@ -422,8 +422,8 @@ impl Config {
     }
 
     fn from_slice(path: PathBuf, content: &[u8]) -> std::io::Result<Config> {
-        let config = serde_json::from_slice(&content)?;
-        let json = serde_json::from_slice(&content)?;
+        let config = serde_json::from_slice(content)?;
+        let json = serde_json::from_slice(content)?;
         Ok(Config { path, json, config })
     }
 
