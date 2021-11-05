@@ -225,7 +225,7 @@ fn scaffold_frontend_code(
         let js_agent_version = if let Some(v) = agent_version {
             v.clone()
         } else {
-            get_agent_js_version_from_npm(&AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
+            get_agent_js_version_from_npm(AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
                 .map_err(|err| anyhow!("Cannot execute npm: {}", err))?
         };
 
@@ -418,7 +418,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
             }
 
             if should_git {
-                init_git(log, &project_name)?;
+                init_git(log, project_name)?;
             }
         }
 

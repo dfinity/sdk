@@ -57,11 +57,11 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
-        stop_canister(env, &canister, timeout, call_sender).await
+        stop_canister(env, canister, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                stop_canister(env, &canister, timeout, call_sender).await?;
+                stop_canister(env, canister, timeout, call_sender).await?;
             }
         }
         Ok(())

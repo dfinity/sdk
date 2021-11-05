@@ -135,9 +135,9 @@ fn apply_arguments(
     _env: &dyn Environment,
     opts: BootstrapOpts,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
-    let ip = get_ip(&config, opts.ip.as_deref())?;
-    let port = get_port(&config, opts.port.as_deref())?;
-    let timeout = get_timeout(&config, opts.timeout.as_deref())?;
+    let ip = get_ip(config, opts.ip.as_deref())?;
+    let port = get_port(config, opts.port.as_deref())?;
+    let timeout = get_timeout(config, opts.timeout.as_deref())?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
