@@ -85,7 +85,7 @@ impl IdentityManager {
         };
 
         if let Some(identity) = identity_override {
-            mgr.require_identity_exists(&identity)?;
+            mgr.require_identity_exists(identity)?;
         }
 
         Ok(mgr)
@@ -315,7 +315,7 @@ fn initialize(
     let config = Configuration {
         default: String::from(DEFAULT_IDENTITY_NAME),
     };
-    write_configuration(&identity_json_path, &config)?;
+    write_configuration(identity_json_path, &config)?;
     slog::info!(logger, r#"Created the "default" identity."#);
 
     Ok(config)

@@ -207,7 +207,7 @@ async fn delete_canister(
         canister_id.to_text(),
     );
 
-    canister::delete_canister(env, canister_id, timeout, &call_sender).await?;
+    canister::delete_canister(env, canister_id, timeout, call_sender).await?;
 
     canister_id_store.remove(canister)?;
 
