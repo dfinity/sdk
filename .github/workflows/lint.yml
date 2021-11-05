@@ -40,8 +40,8 @@ jobs:
         env:
           needs_lint: ${{toJSON(needs.lint)}}
           #cancelled: ${{toJSON(cancelled())}}
-          failure: ${{toJSON(failure())}}
-          success: ${{toJSON(success())}}
+          #failure: ${{toJSON(failure())}}
+          #success: ${{toJSON(success())}}
         run: export
       - name: check step result directly
         if: ${{ needs.lint.result != 'success' }}
