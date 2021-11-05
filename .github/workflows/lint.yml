@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         rust: [ '1.52.1', '1.55.0' ]
-        os: [ ubuntu-latest ]
+        os: [ ubuntu-latest, macos-latest ]
 
     steps:
       - uses: actions/checkout@v2
