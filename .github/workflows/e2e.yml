@@ -122,3 +122,18 @@ jobs:
           export
       - name: Run e2e test
         run: timeout 1200 bats "e2e/$E2E_TEST"
+
+  aggregate:
+    name: e2e_required
+    if: ${{ always() }}
+    needs: test
+    steps:
+      - name: aggregate
+        run: |
+          echo "success is ${{ success() }}"
+          if [ "${{ success }}" = "true" ]; then
+              echo "pass"
+          else
+              echo "fail"
+              exit 1
+          fi
