@@ -24,7 +24,6 @@ teardown() {
 
     ID=$(dfx canister id hello)
     PORT=$(cat .dfx/webserver-port)
-
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID" -o ./web.txt
     assert_command diff .dfx/local/canisters/hello/hello.did ./web.txt
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt
