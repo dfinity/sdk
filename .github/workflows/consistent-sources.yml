@@ -1,10 +1,6 @@
 name: Check that nix/sources.json and scripts/dfx-asset-sources.sh are consistent
 on:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
   push:
     branches:
       - master
