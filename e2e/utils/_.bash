@@ -77,10 +77,20 @@ dfx_patchelf() {
 # Start the replica in the background.
 dfx_start() {
     dfx_patchelf
+
+    if [ "$GITHUB_WORKSPACE" ]; then
+        # no need for random ports on github workflow; even using a random port we sometimes
+        # get 'address in use', so the hope is to avoid that by using a fixed port.
+        FRONTEND_HOST="127.0.0.1:8000"
+    else
+        # Start on random port for parallel test execution (needed on nix/hydra)
+        FRONTEND_HOST="127.0.0.1:0"
+    fi
+
     if [ "$USE_IC_REF" ]
     then
         if [[ "$@" == "" ]]; then
-            dfx start --emulator --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
+            dfx start --emulator --background --host "$FRONTEND_HOST" 3>&-
         else
             batslib_decorate "no arguments to dfx start --emulator supported yet"
             fail
@@ -97,7 +107,7 @@ dfx_start() {
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
         if [[ "$@" == "" ]]; then
-            dfx start --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
+            dfx start --background --host "$FRONTEND_HOST" 3>&- # Start on random port for parallel test execution
         else
             dfx start --background "$@" 3>&-
         fi
