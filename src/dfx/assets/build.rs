@@ -1,41 +1,92 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use std::env;
-use std::fs::File;
-use std::io::Write;
+use openssl::sha::Sha256;
+use std::fs::{read_to_string, File};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::{env, fs};
+
+const INPUTS: &[&str] = &[
+    "nix/sources.json",
+    "scripts/dfx-asset-sources.sh",
+    "scripts/prepare-dfx-assets.sh",
+    "src/distributed/assetstorage.did",
+    "src/distributed/assetstorage.wasm",
+    "src/distributed/ui.did",
+    "src/distributed/ui.wasm",
+    "src/distributed/wallet.did",
+    "src/distributed/wallet.wasm",
+];
+
+fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
+    let mut sha256 = Sha256::new();
+
+    for input in INPUTS {
+        let pathname = project_root_path.join(input);
+        let mut f = File::open(pathname).expect("unable to open input file");
+        let mut buffer = Vec::new();
+        f.read_to_end(&mut buffer)
+            .expect("unable to read input file");
+        sha256.update(&buffer);
+    }
+
+    hex::encode(sha256.finish())
+}
 
 fn find_assets() -> PathBuf {
+    println!("cargo:rerun-if-env-changed=DFX_ASSETS");
     if let Ok(a) = env::var("DFX_ASSETS") {
         PathBuf::from(a)
     } else {
-        let assets_nix = PathBuf::from(format!("{}/../../assets.nix", env!("CARGO_MANIFEST_DIR")))
+        let project_root_dir = format!("{}/../..", env!("CARGO_MANIFEST_DIR"));
+        let project_root_path: PathBuf = PathBuf::from(project_root_dir)
             .canonicalize()
-            .expect("assets.nix doesn't exist!");
-        eprintln!("cargo:rerun-if-changed={}", assets_nix.display());
-        let assets = Command::new("nix-build")
-            .arg("--no-out-link")
-            .arg(assets_nix)
+            .expect("Unable to determine project root");
+
+        let prepare_script_path = project_root_path.join("scripts/prepare-dfx-assets.sh");
+        for input in INPUTS {
+            println!(
+                "cargo:rerun-if-changed={}",
+                project_root_path.join(input).display()
+            );
+        }
+        let hash_of_inputs = calculate_hash_of_inputs(&project_root_path);
+
+        let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+        let dfx_assets_path = out_dir.join("dfx-assets");
+        let last_hash_of_inputs_path = out_dir.join("dfx-assets-inputs-hash");
+
+        if dfx_assets_path.exists() && last_hash_of_inputs_path.exists() {
+            let last_hash_of_inputs = read_to_string(&last_hash_of_inputs_path)
+                .expect("unable to read last hash of inputs");
+            if last_hash_of_inputs == hash_of_inputs {
+                return dfx_assets_path;
+            }
+        }
+
+        let result = Command::new(&prepare_script_path)
+            .arg(&dfx_assets_path)
             .output()
-            .expect("unable to run local nix-build");
-        if !assets.status.success() {
-            eprintln!("cargo:warning=unable to run nix-build:");
-            eprintln!("cargo:warning={}", String::from_utf8_lossy(&assets.stderr));
+            .expect("unable to run prepare script");
+        if !result.status.success() {
+            println!(
+                "cargo:error=unable to run {}:",
+                prepare_script_path.to_string_lossy()
+            );
+            println!("cargo:error={}", String::from_utf8_lossy(&result.stderr));
             std::process::exit(1)
         }
-        let path = String::from_utf8_lossy(&assets.stdout)
-            .trim_end()
-            .to_string();
-        env::set_var("DFX_ASSETS", &path);
-        PathBuf::from(path)
+
+        fs::write(last_hash_of_inputs_path, hash_of_inputs)
+            .expect("unable to write last hash of inputs");
+        dfx_assets_path
     }
 }
 
-fn add_asset_archive(fn_name: &str, f: &mut File) {
+fn add_asset_archive(fn_name: &str, f: &mut File, assets_path: &Path) {
     let filename_tgz = format!("{}.tgz", fn_name);
 
-    let assets_path = find_assets();
     let prebuilt_file = assets_path.join(&filename_tgz);
 
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -108,10 +159,11 @@ fn main() {
     )
     .unwrap();
 
-    add_asset_archive("binary_cache", &mut f);
-    add_asset_archive("assetstorage_canister", &mut f);
-    add_asset_archive("wallet_canister", &mut f);
-    add_asset_archive("ui_canister", &mut f);
+    let dfx_assets = find_assets();
+    add_asset_archive("binary_cache", &mut f, &dfx_assets);
+    add_asset_archive("assetstorage_canister", &mut f, &dfx_assets);
+    add_asset_archive("wallet_canister", &mut f, &dfx_assets);
+    add_asset_archive("ui_canister", &mut f, &dfx_assets);
     add_assets_from_directory("language_bindings", &mut f, "assets/language_bindings");
     add_assets_from_directory("new_project_files", &mut f, "assets/new_project_files");
     add_assets_from_directory(

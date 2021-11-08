@@ -15,30 +15,30 @@ const DEFAULT_PATH: &str = ".dfinity/default";
 #[derive(Debug, Eq, PartialEq)]
 pub enum Toolchain {
     /// Complete semver such as '0.6.21'
-    CompleteVersionToolchain(Version),
+    CompleteVersion(Version),
 
     /// Partial semver such as '0.6', '1.0'
-    MajorMinorToolchain(u8, u8),
+    MajorMinor(u8, u8),
 
     /// Tag such as 'latest'
-    TagToolchain(String),
+    Tag(String),
 }
 
 impl FromStr for Toolchain {
     type Err = DfxError;
     fn from_str(s: &str) -> DfxResult<Self> {
         if let Ok(v) = Version::parse(s) {
-            Ok(Toolchain::CompleteVersionToolchain(v))
+            Ok(Toolchain::CompleteVersion(v))
         } else if VersionReq::parse(s).is_ok()
             && s.chars().all(|c| c.is_ascii_digit() || c == '.')
             && s.split('.').count() == 2
         {
             let major = s.split('.').next().unwrap().parse::<u8>()?;
             let minor = s.split('.').nth(1).unwrap().parse::<u8>()?;
-            Ok(Toolchain::MajorMinorToolchain(major, minor))
+            Ok(Toolchain::MajorMinor(major, minor))
         } else {
             match s {
-                "latest" => Ok(Toolchain::TagToolchain("latest".to_string())),
+                "latest" => Ok(Toolchain::Tag("latest".to_string())),
                 _ => bail!("Invalid toolchain name: {}", s),
             }
         }
@@ -48,9 +48,9 @@ impl FromStr for Toolchain {
 impl fmt::Display for Toolchain {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::CompleteVersionToolchain(v) => write!(f, "{}", v),
-            Self::MajorMinorToolchain(major, minor) => write!(f, "{0}.{1}", major, minor),
-            Self::TagToolchain(t) => write!(f, "{}", t),
+            Self::CompleteVersion(v) => write!(f, "{}", v),
+            Self::MajorMinor(major, minor) => write!(f, "{0}.{1}", major, minor),
+            Self::Tag(t) => write!(f, "{}", t),
         }
     }
 }
@@ -79,9 +79,9 @@ impl Toolchain {
         }
 
         let resolved_version: Version = match self {
-            Toolchain::CompleteVersionToolchain(v) => is_version_available(v)?,
-            Toolchain::MajorMinorToolchain(major, minor) => get_compatible_version(major, minor)?,
-            Toolchain::TagToolchain(t) => get_tag_version(t)?,
+            Toolchain::CompleteVersion(v) => is_version_available(v)?,
+            Toolchain::MajorMinor(major, minor) => get_compatible_version(major, minor)?,
+            Toolchain::Tag(t) => get_tag_version(t)?,
         };
         eprintln!("The latest compatible SDK version is {}", resolved_version);
 
@@ -219,15 +219,15 @@ mod tests {
     fn test_good_toolchain_name() {
         assert_eq!(
             Toolchain::from_str("0.6.21").unwrap(),
-            Toolchain::CompleteVersionToolchain(Version::new(0, 6, 21))
+            Toolchain::CompleteVersion(Version::new(0, 6, 21))
         );
         assert_eq!(
             Toolchain::from_str("0.6").unwrap(),
-            Toolchain::MajorMinorToolchain(0, 6)
+            Toolchain::MajorMinor(0, 6)
         );
         assert_eq!(
             Toolchain::from_str("latest").unwrap(),
-            Toolchain::TagToolchain("latest".to_string())
+            Toolchain::Tag("latest".to_string())
         );
     }
 
