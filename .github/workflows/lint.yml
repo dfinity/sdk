@@ -1,19 +1,19 @@
-name: Check cargo build
-on:
-  pull_request:
-  push:
-    branches:
-      - master
+name: Lint
+
+on: [pull_request]
 
 jobs:
-  builds:
+  test:
+    name: lint
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust: [ '1.52.1' ]
+        rust: [ '1.52.1', '1.55.0' ]
         os: [ ubuntu-latest, macos-latest ]
+
     steps:
       - uses: actions/checkout@v2
+
       - uses: actions/cache@v2
         with:
           path: |
@@ -21,11 +21,23 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install Rust
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
-          rustup component add clippy
           rustup default ${{ matrix.rust }}
+          rustup component add clippy
+      - name: Run Lint
+        run: cargo clippy --verbose --tests --benches -- -D clippy::all
+        env:
+          RUST_BACKTRACE: 1
 
-      - name: Check cargo build
-        run: cargo build
+  aggregate:
+    name: lint:required
+    if: ${{ always() }}
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: check step result directly
+        if: ${{ needs.test.result != 'success' }}
+        run: exit 1

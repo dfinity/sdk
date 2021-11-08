@@ -40,7 +40,7 @@ async fn start_canister(
         canister_id.to_text(),
     );
 
-    canister::start_canister(env, canister_id, timeout, &call_sender).await?;
+    canister::start_canister(env, canister_id, timeout, call_sender).await?;
 
     Ok(())
 }
@@ -56,11 +56,11 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
-        start_canister(env, &canister, timeout, call_sender).await
+        start_canister(env, canister, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                start_canister(env, &canister, timeout, call_sender).await?;
+                start_canister(env, canister, timeout, call_sender).await?;
             }
         }
         Ok(())

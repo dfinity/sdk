@@ -1,31 +1,34 @@
-name: Check cargo build
-on:
-  pull_request:
-  push:
-    branches:
-      - master
+name: Format
+
+on: [pull_request]
 
 jobs:
-  builds:
+  test:
+    name: fmt
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         rust: [ '1.52.1' ]
-        os: [ ubuntu-latest, macos-latest ]
+        os: [ ubuntu-latest ]
+
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+
+      - name: Cache Cargo
+        uses: actions/cache@v2
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-1
+
       - name: Install Rust
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
-          rustup component add clippy
           rustup default ${{ matrix.rust }}
-
-      - name: Check cargo build
-        run: cargo build
+          rustup component add rustfmt
+      - name: Run Cargo Fmt
+        run: cargo fmt --all -- --check
+        env:
+          RUST_BACKTRACE: 1

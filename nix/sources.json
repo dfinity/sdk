@@ -34,7 +34,7 @@
     "common": {
         "branch": "nixpkgs-21.05",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "29a127f75bc1aa1395eec883ef9c57c21be37347",
+        "rev": "82a3c6e571a506ffd5cd678d5d9ffd606067db55",
         "type": "git"
     },
     "ic-ref-x86_64-darwin": {
@@ -74,7 +74,7 @@
     "icx-proxy": {
         "branch": "main",
         "repo": "https://github.com/dfinity/icx-proxy",
-        "rev": "788c1cd7207075a74113321084d8c50e4143fdf1",
+        "rev": "d2cd4d822be4fa8d0af2f27e4dcc635d2032fcfb",
         "type": "git"
     },
     "motoko-base": {

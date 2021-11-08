@@ -44,11 +44,11 @@ async fn candid(
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
     let store =
-        CanisterIdStore::for_network(&network_descriptor).map_err(ErrorInternalServerError)?;
+        CanisterIdStore::for_network(network_descriptor).map_err(ErrorInternalServerError)?;
 
     let candid_path = store
         .get_name(&id)
-        .map(|canister_name| canister_did_location(&data.build_output_root, &canister_name))
+        .map(|canister_name| canister_did_location(&data.build_output_root, canister_name))
         .ok_or_else(|| {
             anyhow!(
                 "Cannot find canister {} for network {}",
