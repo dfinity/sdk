@@ -22,6 +22,6 @@ teardown() {
     dfx deploy
     for _ in {1..50}
     do
-      dfx canister install --all --mode=reinstall
+      echo yes | dfx canister install --mode=reinstall custom
     done
 }

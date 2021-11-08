@@ -24,7 +24,7 @@ teardown() {
     assert_match '("Hello, Names are difficult!")'
 }
 
-@test "call random value" {
+@test "call random value (pattern)" {
     install_asset greet
     dfx_start
     dfx canister create --all
@@ -41,7 +41,7 @@ teardown() {
     assert_command_fail dfx canister call hello greet
 }
 
-@test "call random value" {
+@test "call random value (empty)" {
     install_asset greet
     dfx_start
     dfx canister create --all

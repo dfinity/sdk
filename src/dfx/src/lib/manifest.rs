@@ -14,7 +14,7 @@ fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>
 where
     D: Deserializer<'de>,
 {
-    semver::Version::parse(&version)
+    semver::Version::parse(version)
         .map_err(|e| serde::de::Error::custom(format!("invalid SemVer: {}", e)))
 }
 
@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_parse_manifest() {
-        let manifest: Manifest = serde_json::from_str(&MANIFEST).unwrap();
+        let manifest: Manifest = serde_json::from_str(MANIFEST).unwrap();
         let mut tags = BTreeMap::new();
         tags.insert(
             "latest".to_string(),

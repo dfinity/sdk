@@ -82,6 +82,13 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     std::fs::write(&proxy_port_path, "")?;
     std::fs::write(&proxy_port_path, webserver_bind.port().to_string())?;
 
+    let icx_proxy_config = IcxProxyConfig {
+        bind: socket_addr,
+        proxy_port: webserver_bind.port(),
+        providers,
+        fetch_root_key: !network_descriptor.is_ic,
+    };
+
     let _webserver_coordinator = start_webserver_coordinator(
         env,
         network_descriptor,
@@ -90,11 +97,6 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
         shutdown_controller.clone(),
     )?;
 
-    let icx_proxy_config = IcxProxyConfig {
-        bind: socket_addr,
-        proxy_port: webserver_bind.port(),
-        providers,
-    };
     let port_ready_subscribe = None;
     let _proxy = start_icx_proxy_actor(
         env,
@@ -133,9 +135,9 @@ fn apply_arguments(
     _env: &dyn Environment,
     opts: BootstrapOpts,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
-    let ip = get_ip(&config, opts.ip.as_deref())?;
-    let port = get_port(&config, opts.port.as_deref())?;
-    let timeout = get_timeout(&config, opts.timeout.as_deref())?;
+    let ip = get_ip(config, opts.ip.as_deref())?;
+    let port = get_port(config, opts.port.as_deref())?;
+    let timeout = get_timeout(config, opts.timeout.as_deref())?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
