@@ -1,10 +1,6 @@
 name: Check shell scripts
 on:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
     paths:
       - 'e2e/**'
       - '.github/**'
