@@ -4,7 +4,7 @@ on: [pull_request]
 
 jobs:
   test:
-    name: fmt
+    name: fmt:required
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
