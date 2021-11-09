@@ -68,6 +68,7 @@ pub struct CanisterDeleteOpts {
     withdraw_cycles_to_dank_principal: Option<String>,
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn delete_canister(
     env: &dyn Environment,
     canister: &str,
@@ -216,14 +217,13 @@ async fn delete_canister(
                     info!(log, "Too few cycles to withdraw: {}.", cycles);
                 }
                 stop_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
-                call_sender = &CallSender::SelectedId;
             } else {
                 info!(
                     log,
                     "Failed to install temporary wallet, deleting without withdrawl."
                 );
-                call_sender = &CallSender::SelectedId;
             }
+            call_sender = &CallSender::SelectedId;
         } else {
             info!(
                 log,
