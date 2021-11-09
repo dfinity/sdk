@@ -26,7 +26,7 @@ setup() {
         "0.4.7"
       ]
     }' > manifest.json
-    python -m http.server "$RANDOM_EMPHEMERAL_PORT" &
+    python3 -m http.server "$RANDOM_EMPHEMERAL_PORT" &
     WEB_SERVER_PID=$!
 
     while ! nc -z localhost "$RANDOM_EMPHEMERAL_PORT"; do
