@@ -32,7 +32,11 @@ let
       '';
       nativeBuildInputs = (
         attrs.nativeBuildInputs or []
-      ) ++ lib.optional pkgs.stdenv.isDarwin pkgs.pkgsStatic.darwin.libiconv;
+      ) ++ lib.optionals pkgs.stdenv.isDarwin [
+        pkgs.pkgsStatic.darwin.libiconv
+        pkgs.pkgsStatic.pkgsStatic.openssl
+      ];
+      OPENSSL_STATIC = "1";
     };
   };
 
