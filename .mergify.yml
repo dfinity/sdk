@@ -5,6 +5,7 @@ pull_request_rules:
       - "#changes-requested-reviews-by=0"
       - status-success=hydra:dfinity-ci-build:evaluation
       - status-success=hydra:dfinity-ci-build:sdk:required
+      - status-success=e2e:required
       - status-success=fmt:required
       - status-success=lint:required
       - base=master
