@@ -34,9 +34,10 @@ let
         attrs.nativeBuildInputs or []
       ) ++ lib.optionals pkgs.stdenv.isDarwin [
         pkgs.pkgsStatic.darwin.libiconv
-        pkgs.pkgsStatic.pkgsStatic.openssl
       ];
-      OPENSSL_STATIC = "1";
+      OPENSSL_STATIC = true;
+      OPENSSL_LIB_DIR = "${pkgs.pkgsStatic.openssl.out}/lib";
+      OPENSSL_INCLUDE_DIR = "${pkgs.pkgsStatic.openssl.dev}/include";
     };
   };
 
