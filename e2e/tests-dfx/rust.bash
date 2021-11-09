@@ -15,6 +15,7 @@ teardown() {
 }
 
 @test "build uses default build args" {
+    [ "$GITHUB_WORKFLOW" ] || skip "github workflow only"
     install_asset rust
 
     rustup default stable
