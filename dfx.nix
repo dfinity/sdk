@@ -33,7 +33,7 @@ let
       nativeBuildInputs = (
         attrs.nativeBuildInputs or []
       ) ++ lib.optionals pkgs.stdenv.isDarwin [
-        pkgs.pkgsStatic.darwin.libiconv
+        pkgs.pkgsStatic.libiconv
         pkgs.pkgsStatic.openssl
       ];
     };
