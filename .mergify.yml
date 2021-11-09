@@ -5,6 +5,7 @@ pull_request_rules:
       - "#changes-requested-reviews-by=0"
       - status-success=hydra:dfinity-ci-build:evaluation
       - status-success=hydra:dfinity-ci-build:sdk:required
+      - status-success=lint:required
       - base=master
       - label=automerge-squash
     actions:
