@@ -165,7 +165,11 @@ fn main() {
     add_asset_archive("wallet_canister", &mut f, &dfx_assets);
     add_asset_archive("ui_canister", &mut f, &dfx_assets);
     add_assets_from_directory("language_bindings", &mut f, "assets/language_bindings");
-    add_assets_from_directory("new_project_files", &mut f, "assets/new_project_files");
+    add_assets_from_directory(
+        "new_project_motoko_files",
+        &mut f,
+        "assets/new_project_motoko_files",
+    );
     add_assets_from_directory(
         "new_project_node_files",
         &mut f,

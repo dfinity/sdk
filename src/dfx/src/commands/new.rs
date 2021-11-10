@@ -389,7 +389,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     // Default to start with motoko
     let mut new_project_files = match (opts.motoko, opts.rust) {
         (_, true) => assets::new_project_rust_files()?,
-        _ => assets::new_project_files()?,
+        _ => assets::new_project_motoko_files()?,
     };
     write_files_from_entries(
         log,
