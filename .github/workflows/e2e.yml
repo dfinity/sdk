@@ -110,10 +110,10 @@ jobs:
       - name: Setup dfx binary
         run: chmod +x /usr/local/bin/dfx
       - name: Provision Darwin
-        if: matrix.os == 'macos-latest'
+        if: contains(matrix.os, 'macos')
         run: bash scripts/workflows/provision-darwin.sh
       - name: Provision Linux
-        if: matrix.os == 'ubuntu-latest'
+        if: contains(matrix.os, 'ubuntu')
         run: bash scripts/workflows/provision-linux.sh
       - name: Prepare environment
         run: |
