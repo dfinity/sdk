@@ -10,9 +10,9 @@ pushd /tmp
 brew install coreutils
 
 # Install Bats.
-export
-uname -r
-#brew unlink bats
+if [ "$(uname -r)" = "19.6.0" ]; then
+    brew unlink bats
+fi
 brew install bats-core
 
 # Install Bats support.
