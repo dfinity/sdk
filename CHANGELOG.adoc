@@ -2,6 +2,12 @@
 
 == DFX
 
+=== chore: updating dfx new template
+
+Updates dependencies to latest for Webpack, and updates config. Additionally simplifies environment variables for canister ID's in config.
+
+Additionally adds some polish to the starter template, including a favicon and using more semantic html in the example app
+
 === feat: environment variable overrides for executable pathnames
 
 You can now override the location of any executable normally called from the cache by specifying
