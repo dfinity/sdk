@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest, ubuntu-latest ]
+        os: [ macos-latest, ubuntu-latest, macos-11, ubuntu-18.04 ]
         rust: [ '1.52.1' ]
         binary_path: [ 'target/release' ]
     steps:
@@ -61,7 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         backend: [ 'ic-ref', 'replica' ]
-        os: [ macos-latest, ubuntu-latest ]
+        # macos-latest is currently macos-10.15, ubuntu-latest is currently ubuntu-20.04
+        os: [ macos-latest, ubuntu-latest, macos-11, ubuntu-18.04 ]
         rust: [ '1.52.1' ]
     steps:
       - uses: actions/checkout@v1
