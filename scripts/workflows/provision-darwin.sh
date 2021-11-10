@@ -10,7 +10,9 @@ pushd /tmp
 brew install coreutils
 
 # Install Bats.
-brew unlink bats
+export
+uname -r
+#brew unlink bats
 brew install bats-core
 
 # Install Bats support.
