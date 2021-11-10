@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "dfx": "{dfx_version}",
+  "canisters": {
+    "{project_name}": {
+      "type": "rust",
+      "package": "{project_name}",
+      "candid": "src/{project_name}/{project_name}.did"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "",
+      "args": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  }
+}
