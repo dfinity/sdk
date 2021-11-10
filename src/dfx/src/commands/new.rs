@@ -44,6 +44,14 @@ pub struct NewOpts {
     #[clap(validator(project_name_validator))]
     project_name: String,
 
+    /// Starts with Motoko canister development. This defaults to true.
+    #[clap(long)]
+    motoko: bool,
+
+    /// Starts with Rust canister development.
+    #[clap(long, conflicts_with = "motoko")]
+    rust: bool,
+
     /// Provides a preview the directories and files to be created without adding them to the file system.
     #[clap(long)]
     dry_run: bool,
@@ -378,7 +386,11 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     .cloned()
     .collect();
 
-    let mut new_project_files = assets::new_project_files()?;
+    // Default to start with motoko
+    let mut new_project_files = match (opts.motoko, opts.rust) {
+        (_, true) => assets::new_project_rust_files()?,
+        _ => assets::new_project_files()?,
+    };
     write_files_from_entries(
         log,
         &mut new_project_files,
@@ -387,15 +399,18 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         &variables,
     )?;
 
-    scaffold_frontend_code(
-        env,
-        dry_run,
-        project_name,
-        opts.no_frontend,
-        opts.frontend,
-        &opts.agent_version,
-        &variables,
-    )?;
+    // Currently, the rust starter project is not compatible with the frontend starter.
+    if !opts.rust {
+        scaffold_frontend_code(
+            env,
+            dry_run,
+            project_name,
+            opts.no_frontend,
+            opts.frontend,
+            &opts.agent_version,
+            &variables,
+        )?;
+    }
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.

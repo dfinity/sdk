@@ -171,6 +171,11 @@ fn main() {
         &mut f,
         "assets/new_project_node_files",
     );
+    add_assets_from_directory(
+        "new_project_rust_files",
+        &mut f,
+        "assets/new_project_rust_files",
+    );
 
     // Pass a version in the environment, or the git describe version at time of build,
     // or let the cargo.toml version.
