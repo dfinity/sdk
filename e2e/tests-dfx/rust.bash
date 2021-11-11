@@ -13,12 +13,13 @@ teardown() {
 }
 
 @test "rust starter project can build and call" {
-    dfx_new_rust print
+    dfx_new_rust hello
 
     dfx_start
     dfx canister --no-wallet create --all
-    assert_command dfx build print
+    assert_command dfx build hello
     assert_match "Finished"
-    assert_command dfx canister --no-wallet install print
-    assert_command dfx canister --no-wallet call print print
+    assert_command dfx canister --no-wallet install hello
+    assert_command dfx canister --no-wallet call hello greet dfinity
+    assert_match '("Hello, dfinity!")'
 }
