@@ -2,6 +2,38 @@
 
 == DFX
 
+=== feat: "rust" canister type
+
+You can now declare "rust" canisters in dfx.json.
+[source, json]
+----
+{
+  "canisters": {
+    "canister_name": {
+      "type": "rust",
+      "package": "crate_name",
+      "candid": "path/to/canister_name.did"
+    }
+  }
+}
+----
+
+Don't forget to place a `Cargo.toml` in your project root.
+Then dfx will build the rust canister with your rust toolchain. 
+Please also make sure that you have added the WebAssembly compilation target.
+
+[source, bash]
+----
+rustup target add wasm32-unknown-unknown
+----
+
+You can also create new dfx project with a default rust canister.
+
+[source, bash]
+----
+dfx new --rust <project-name>
+----
+
 === chore: updating dfx new template
 
 Updates dependencies to latest for Webpack, and updates config. Additionally simplifies environment variables for canister ID's in config.

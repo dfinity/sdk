@@ -1,5 +1,5 @@
 [package]
-name = "print_rs"
+name = "{project_name}"
 version = "0.1.0"
 edition = "2018"
 
@@ -10,6 +10,5 @@ path = "lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-ic-cdk =  "0.3"
+ic-cdk = "0.3"
 ic-cdk-macros = "0.3"
-
