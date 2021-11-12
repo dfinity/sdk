@@ -24,6 +24,10 @@ and no longer works with `--all`.
 
 == Replica
 
+Updated replica to blessed commit 3a1286e844ed3b53b1848533cb844ea29b508f28.
+
+See https://dashboard.internetcomputer.org/proposal/29235[Executed proposal 29235]
+
 The included replica now supports canister_heartbeat.  This only works with rust canisters for the time being,
 and does not work with the emulator (`dfx start --emulator`).
 
