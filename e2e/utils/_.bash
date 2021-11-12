@@ -55,7 +55,7 @@ dfx_new_rust() {
     local project_name=${1:-e2e_project}
     rustup default stable
     rustup target add wasm32-unknown-unknown
-    dfx new ${project_name} --rust --no-frontend
+    dfx new ${project_name} --type=rust --no-frontend
     test -d ${project_name}
     test -f ${project_name}/dfx.json
     test -f ${project_name}/Cargo.toml
