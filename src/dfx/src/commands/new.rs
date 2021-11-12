@@ -44,13 +44,9 @@ pub struct NewOpts {
     #[clap(validator(project_name_validator))]
     project_name: String,
 
-    /// Starts with Motoko canister development. This defaults to true.
-    #[clap(long)]
-    motoko: bool,
-
-    /// Starts with Rust canister development.
-    #[clap(long, conflicts_with = "motoko")]
-    rust: bool,
+    /// Choose the type of canister in the starter project. Default to be motoko.
+    #[clap(long, possible_values(&["motoko", "rust"]), default_value = "motoko")]
+    r#type: String,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
     #[clap(long)]
@@ -387,9 +383,10 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     .collect();
 
     // Default to start with motoko
-    let mut new_project_files = match (opts.motoko, opts.rust) {
-        (_, true) => assets::new_project_rust_files()?,
-        _ => assets::new_project_motoko_files()?,
+    let mut new_project_files = match opts.r#type.as_str() {
+        "rust" => assets::new_project_rust_files()?,
+        "motoko" => assets::new_project_motoko_files()?,
+        t => bail!("Unsupported canister type: {}", t),
     };
     write_files_from_entries(
         log,
