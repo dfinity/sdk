@@ -57,8 +57,7 @@ and no longer works with `--all`.
 == Replica
 
 Updated replica to blessed commit 3a1286e844ed3b53b1848533cb844ea29b508f28.
-
-This incorporates the following executed proposals,
+This incorporates the following executed proposals:
 
 - https://dashboard.internetcomputer.org/proposal/29235[29235]
 - https://dashboard.internetcomputer.org/proposal/28784[28784]
