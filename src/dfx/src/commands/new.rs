@@ -399,18 +399,15 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         &variables,
     )?;
 
-    // Currently, the rust starter project is not compatible with the frontend starter.
-    if !opts.rust {
-        scaffold_frontend_code(
-            env,
-            dry_run,
-            project_name,
-            opts.no_frontend,
-            opts.frontend,
-            &opts.agent_version,
-            &variables,
-        )?;
-    }
+    scaffold_frontend_code(
+        env,
+        dry_run,
+        project_name,
+        opts.no_frontend,
+        opts.frontend,
+        &opts.agent_version,
+        &variables,
+    )?;
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.
