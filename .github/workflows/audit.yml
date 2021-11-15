@@ -50,7 +50,7 @@ jobs:
           cd sdk
           # RUSTSEC-2020-0159 - direct dependency on chrono
           # RUSTSEC-2020-0071 - indirect dependency on time
-          cargo audit --db "${GITHUB_WORKSPACE}/advisory-db \
+          cargo audit --db "${GITHUB_WORKSPACE}"/advisory-db \
               --ignore RUSTSEC-2020-0159 \
               --ignore RUSTSEC-2020-0071
         env:
