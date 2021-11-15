@@ -15,7 +15,7 @@ jobs:
         rust: [ '1.52.1', '1.55.0' ]
         os: [ ubuntu-latest, macos-latest ]
         cargo-audit: [ '0.15.2' ]
-        cargo-audit-ref: 'f494f83f8edffecba0d2535be051c1a6d8dfaa39'
+        cargo-audit-ref: [ 'f494f83f8edffecba0d2535be051c1a6d8dfaa39' ]
 
     steps:
       - uses: actions/checkout@v2
