@@ -25,7 +25,7 @@ jobs:
         with:
           repository: 'RustSec/advisory-db'
           path: advisory-db
-          # ref: 'f494f83f8edffecba0d2535be051c1a6d8dfaa39'
+          ref: ${{ matrix.cargo-audit-ref }}
 
       - uses: actions/cache@v2
         with:
@@ -48,15 +48,10 @@ jobs:
           ls -l "${GITHUB_WORKSPACE}"
           echo "contents of ${GITHUB_WORKSPACE}/advisory-db :"
           ls -l "${GITHUB_WORKSPACE}/advisory-db"
-          (
-              cd "${GITHUB_WORKSPACE}"/advisory-db
-              git status
-              git checkout ${{ matrix.cargo-audit-ref }}
-          )
           cd sdk
           # RUSTSEC-2020-0159 - direct dependency on chrono
           # RUSTSEC-2020-0071 - indirect dependency on time
-          cargo audit --db "${GITHUB_WORKSPACE}"/advisory-db \
+          cargo audit --no-fetch --db "${GITHUB_WORKSPACE}"/advisory-db \
               --ignore RUSTSEC-2020-0159 \
               --ignore RUSTSEC-2020-0071
         env:
