@@ -1,4 +1,4 @@
 [workspace]
 members = [
-    "src/print_rs",
+    "src/{project_name}",
 ]
