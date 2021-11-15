@@ -45,12 +45,12 @@ jobs:
           echo "pwd is $(pwd)"
           echo "contents of ${GITHUB_WORKSPACE} :"
           ls -l "${GITHUB_WORKSPACE}"
-          echo "contents of ${RUNNER_WORKSPACE}/advisory-db :"
-          ls -l "${RUNNER_WORKSPACE}/advisory-db"
+          echo "contents of ${GITHUB_WORKSPACE}/advisory-db :"
+          ls -l "${GITHUB_WORKSPACE}/advisory-db"
           cd sdk
           # RUSTSEC-2020-0159 - direct dependency on chrono
           # RUSTSEC-2020-0071 - indirect dependency on time
-          cargo audit --db "${RUNNER_WORKSPACE}/advisory-db \
+          cargo audit --db "${GITHUB_WORKSPACE}/advisory-db \
               --ignore RUSTSEC-2020-0159 \
               --ignore RUSTSEC-2020-0071
         env:
