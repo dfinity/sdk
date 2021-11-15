@@ -42,12 +42,6 @@ jobs:
           cargo install --force --version ${{ matrix.cargo-audit }} cargo-audit
       - name: Audit
         run: |
-          export
-          echo "pwd is $(pwd)"
-          echo "contents of ${GITHUB_WORKSPACE} :"
-          ls -l "${GITHUB_WORKSPACE}"
-          echo "contents of ${GITHUB_WORKSPACE}/advisory-db :"
-          ls -l "${GITHUB_WORKSPACE}/advisory-db"
           cd sdk
           # RUSTSEC-2020-0159 - direct dependency on chrono
           # RUSTSEC-2020-0071 - indirect dependency on time
