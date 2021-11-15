@@ -37,7 +37,7 @@ jobs:
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
           rustup default ${{ matrix.rust }}
-          rustup component add audit
+          cargo install cargo-audit
       - name: Audit
         run: |
           export
