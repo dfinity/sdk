@@ -14,6 +14,7 @@ jobs:
       matrix:
         rust: [ '1.52.1', '1.55.0' ]
         os: [ ubuntu-latest, macos-latest ]
+        cargo-audit: [ '0.15.2' ]
 
     steps:
       - uses: actions/checkout@v2
@@ -37,16 +38,19 @@ jobs:
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
           rustup default ${{ matrix.rust }}
-          cargo install cargo-audit
+          cargo install --version ${{ matrix.cargo-audit }} cargo-audit
       - name: Audit
         run: |
           export
+          echo "pwd is $(pwd)"
+          echo "contents of ${GITHUB_WORKSPACE} :"
           ls -l "${GITHUB_WORKSPACE}"
-          ls -l "${GITHUB_WORKSPACE}/advisory-db
+          echo "contents of ${RUNNER_WORKSPACE}/advisory-db :"
+          ls -l "${RUNNER_WORKSPACE}/advisory-db"
           cd sdk
           # RUSTSEC-2020-0159 - direct dependency on chrono
           # RUSTSEC-2020-0071 - indirect dependency on time
-          cargo audit --db "${GITHUB_WORKSPACE}/advisory-db \
+          cargo audit --db "${RUNNER_WORKSPACE}/advisory-db \
               --ignore RUSTSEC-2020-0159 \
               --ignore RUSTSEC-2020-0071
         env:
