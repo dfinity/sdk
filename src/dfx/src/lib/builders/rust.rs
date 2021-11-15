@@ -78,7 +78,7 @@ impl CanisterBuilder for RustBuilder {
             .arg("--release")
             .arg("-p")
             .arg(package);
-        info!(self.logger, "Executing: {:?}", cargo);
+        info!(self.logger, "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package);
         let output = cargo.output().context("Failed to run cargo build")?;
 
         if output.status.success() {
