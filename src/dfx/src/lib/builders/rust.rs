@@ -10,7 +10,7 @@ use crate::lib::models::canister::CanisterPool;
 use anyhow::{anyhow, bail, Context};
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
-use slog::{info, o};
+use slog::{info, o, warn};
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -78,7 +78,10 @@ impl CanisterBuilder for RustBuilder {
             .arg("--release")
             .arg("-p")
             .arg(package);
-        info!(self.logger, "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package);
+        info!(
+            self.logger,
+            "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
+        );
         let output = cargo.output().context("Failed to run cargo build")?;
 
         if output.status.success() {
