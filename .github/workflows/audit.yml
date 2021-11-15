@@ -47,6 +47,7 @@ jobs:
           ls -l "${GITHUB_WORKSPACE}"
           echo "contents of ${GITHUB_WORKSPACE}/advisory-db :"
           ls -l "${GITHUB_WORKSPACE}/advisory-db"
+          (cd "${GITHUB_WORKSPACE}"/advisory-db ; git status)
           cd sdk
           # RUSTSEC-2020-0159 - direct dependency on chrono
           # RUSTSEC-2020-0071 - indirect dependency on time
