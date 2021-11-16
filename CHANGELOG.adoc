@@ -31,7 +31,7 @@ You can also create new dfx project with a default rust canister.
 
 [source, bash]
 ----
-dfx new --rust <project-name>
+dfx new --type=rust <project-name>
 ----
 
 === chore: updating dfx new template
