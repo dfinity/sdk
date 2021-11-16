@@ -84,6 +84,35 @@ impl CanisterBuilder for RustBuilder {
         );
         let output = cargo.output().context("Failed to run cargo build")?;
 
+        if std::process::Command::new("ic-cdk-optimizer")
+            .arg("--version")
+            .output()
+            .is_ok()
+        {
+            let mut optimizer = std::process::Command::new("ic-cdk-optimizer");
+            let wasm_path = format!("target/wasm32-unknown-unknown/release/{}.wasm", package);
+            optimizer
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .arg("-o")
+                .arg(&wasm_path)
+                .arg(&wasm_path);
+            // The optimized wasm overwrites the original wasm.
+            // Because the `get_output_wasm_path` must give the same path,
+            // no matter optimized or not.
+            info!(
+                self.logger,
+                "Executing: ic-cdk-optimizer -o {0} {0}", &wasm_path
+            );
+        } else {
+            warn!(
+                self.logger,
+                "`ic-cdk-optimizer` not installed, the output WASM module is not optimized in size.
+Run `cargo install ic-cdk-optimizer` to install it.
+                "
+            );
+        }
+
         if output.status.success() {
             Ok(BuildOutput {
                 canister_id,
