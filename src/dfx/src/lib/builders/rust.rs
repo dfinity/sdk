@@ -107,7 +107,7 @@ impl CanisterBuilder for RustBuilder {
         } else {
             warn!(
                 self.logger,
-                "`ic-cdk-optimizer` not installed, the output WASM module is not optimized in size.
+                "ic-cdk-optimizer not installed, the output WASM module is not optimized in size.
 Run `cargo install ic-cdk-optimizer` to install it.
                 "
             );
