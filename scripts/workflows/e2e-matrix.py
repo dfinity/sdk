@@ -17,7 +17,7 @@ test = sorted(test_scripts('dfx') + test_scripts('replica'))
 matrix = {
     'test': test,
     'backend': [ 'ic-ref', 'replica' ],
-    'os': [ 'macos-latest', 'ubuntu-latest' ],
+    'os': [ 'macos-11', 'ubuntu-20.04' ],
     'rust': [ '1.52.1' ]
 }
 
