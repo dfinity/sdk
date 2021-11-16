@@ -32,9 +32,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "common": {
-        "branch": "master",
+        "branch": "ericswanson/non-master-default-branch",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "37d3aab21dfd7b99bde8d31d20fc13d724bd7da3",
+        "rev": "6a765bf1a465abdd7d6c7cb5a49a9e5e148bd4f3",
         "type": "git"
     },
     "ic-ref-x86_64-darwin": {
