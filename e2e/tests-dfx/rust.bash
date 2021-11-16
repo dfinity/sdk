@@ -20,6 +20,7 @@ teardown() {
     assert_command dfx build hello
     assert_match "ic-cdk-optimizer not installed"
     cargo install ic-cdk-optimizer
+    export PATH="$HOME/.cargo/bin/:$PATH"
     assert_command dfx build hello
     assert_match "Executing: ic-cdk-optimizer"
     assert_command dfx canister --no-wallet install hello
