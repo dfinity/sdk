@@ -18,7 +18,7 @@ teardown() {
     dfx_start
     dfx canister --no-wallet create --all
     assert_command dfx build hello
-    assert_match "`ic-cdk-optimizer` not installed"
+    assert_match "ic-cdk-optimizer not installed"
     cargo install ic-cdk-optimizer
     assert_command dfx build hello
     assert_match "Executing: ic-cdk-optimizer"
