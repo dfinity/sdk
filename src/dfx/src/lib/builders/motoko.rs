@@ -10,7 +10,6 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 
-use anyhow::Context;
 use ic_types::principal::Principal as CanisterId;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
@@ -146,6 +145,19 @@ impl CanisterBuilder for MotokoBuilder {
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
+        // Generate stable types
+        let output_stable_path = motoko_info.get_output_stable_path();
+        let params = MotokoParams {
+            build_target: BuildTarget::StableTypes,
+            suppress_warning: true,
+            input: input_path,
+            package_arguments: &moc_arguments,
+            output: &output_stable_path,
+            idl_path: idl_dir_path,
+            idl_map: &id_map,
+        };
+        motoko_compile(&self.logger, cache.as_ref(), &params)?;
+
         // Generate wasm
         let params = MotokoParams {
             build_target: match profile {
@@ -170,62 +182,6 @@ impl CanisterBuilder for MotokoBuilder {
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
         })
     }
-
-    fn generate_idl(
-        &self,
-        pool: &CanisterPool,
-        info: &CanisterInfo,
-        config: &BuildConfig,
-    ) -> DfxResult<PathBuf> {
-        let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        let input_path = motoko_info.get_main_path();
-
-        let id_map = pool
-            .get_canister_list()
-            .iter()
-            .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
-            .collect();
-
-        let generate_output_dir = &info
-            .get_declarations_config()
-            .output
-            .as_ref()
-            .context("output here must not be None")?;
-
-        std::fs::create_dir_all(generate_output_dir)?;
-        let cache = &self.cache;
-        let idl_dir_path = &config.idl_root;
-        std::fs::create_dir_all(&idl_dir_path)?;
-
-        let package_arguments =
-            package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
-
-        let moc_arguments = match motoko_info.get_args() {
-            Some(args) => [
-                package_arguments,
-                args.split_whitespace().map(str::to_string).collect(),
-            ]
-            .concat(),
-            None => package_arguments,
-        };
-
-        // Generate IDL
-        let output_idl_path = generate_output_dir
-            .join(info.get_name())
-            .with_extension("did");
-        let params = MotokoParams {
-            build_target: BuildTarget::Idl,
-            suppress_warning: false,
-            input: input_path,
-            package_arguments: &moc_arguments,
-            output: &output_idl_path,
-            idl_path: idl_dir_path,
-            idl_map: &id_map,
-        };
-        motoko_compile(&self.logger, cache.as_ref(), &params)?;
-
-        Ok(output_idl_path)
-    }
 }
 
 type CanisterIdMap = BTreeMap<String, String>;
@@ -234,6 +190,7 @@ enum BuildTarget {
     Release,
     Debug,
     Idl,
+    StableTypes,
 }
 
 struct MotokoParams<'a> {
@@ -255,6 +212,10 @@ impl MotokoParams<'_> {
             BuildTarget::Release => cmd.args(&["-c", "--release"]),
             BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
             BuildTarget::Idl => cmd.arg("--idl"),
+            BuildTarget::StableTypes => cmd.arg("--stable-types"),
+        };
+        if matches!(self.build_target, BuildTarget::Release | BuildTarget::Debug) {
+            cmd.arg("--public-metadata").arg("candid:service");
         };
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
