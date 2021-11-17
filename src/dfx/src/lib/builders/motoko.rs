@@ -152,7 +152,7 @@ impl CanisterBuilder for MotokoBuilder {
             suppress_warning: true,
             input: input_path,
             package_arguments: &moc_arguments,
-            output: &output_stable_path,
+            output: output_stable_path,
             idl_path: idl_dir_path,
             idl_map: &id_map,
         };

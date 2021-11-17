@@ -56,7 +56,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
         canister_info.get_name().to_owned()
     ))?;
     if matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
-        let candid = read_module_metadata(&agent, canister_id, "candid:service").await;
+        let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = candid {
             use crate::util::check_candid_file;
             let candid_path = canister_info
@@ -82,7 +82,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
         let info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let stable_path = info.get_output_stable_path();
         let deployed_stable_path = stable_path.with_extension("old.most");
-        let stable_types = read_module_metadata(&agent, canister_id, "motoko:stable-types").await;
+        let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
         if let Some(stable_types) = stable_types {
             std::fs::write(&deployed_stable_path, stable_types)?;
             let cache = env.get_cache();
