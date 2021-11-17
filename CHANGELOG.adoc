@@ -2,6 +2,10 @@
 
 == DFX
 
+=== feat: Add --no-withdrawal flag for "canister delete" for when the canister is out of cycles
+
+`dfx canister delete --no-withdrawal <canister>` can be used to delete a canister without attempting to withdraw cycles.
+
 === feat: "rust" canister type
 
 You can now declare "rust" canisters in dfx.json.
