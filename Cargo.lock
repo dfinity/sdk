@@ -1065,7 +1065,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1814,7 +1814,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.9.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=c712fdfe4edc7f34a0140dba129025f6d58ffd06#c712fdfe4edc7f34a0140dba129025f6d58ffd06"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2#c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 dependencies = [
  "async-trait",
  "base32",
@@ -1844,7 +1844,7 @@ dependencies = [
 [[package]]
 name = "ic-asset"
 version = "0.4.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=c712fdfe4edc7f34a0140dba129025f6d58ffd06#c712fdfe4edc7f34a0140dba129025f6d58ffd06"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2#c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 dependencies = [
  "anyhow",
  "candid",
@@ -1867,7 +1867,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.3.6"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=c712fdfe4edc7f34a0140dba129025f6d58ffd06#c712fdfe4edc7f34a0140dba129025f6d58ffd06"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2#c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1896,7 +1896,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.7.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=c712fdfe4edc7f34a0140dba129025f6d58ffd06#c712fdfe4edc7f34a0140dba129025f6d58ffd06"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2#c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 dependencies = [
  "async-trait",
  "candid",
@@ -2934,6 +2934,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 
 [[package]]
+name = "quickcheck"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "588f6378e4dd99458b60ec275b4477add41ce4fa9f64dcba6f15adccb19b50d6"
+dependencies = [
+ "rand 0.8.4",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3607,14 +3616,14 @@ dependencies = [
 
 [[package]]
 name = "simple_asn1"
-version = "0.5.4"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eb4ea60fb301dc81dfc113df680571045d375ab7345d171c5dc7d7e13107a80"
+checksum = "69e392b68e8f171f7399608dabaa3a099525b7daca0fd1c8690bda08eb110355"
 dependencies = [
- "chrono",
  "num-bigint 0.4.2",
  "num-traits",
  "thiserror",
+ "time 0.3.4",
 ]
 
 [[package]]
@@ -3960,9 +3969,21 @@ dependencies = [
  "libc",
  "standback",
  "stdweb",
- "time-macros",
+ "time-macros 0.1.1",
  "version_check 0.9.3",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "time"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99beeb0daeac2bd1e86ac2c21caddecb244b39a093594da1a661ec2060c7aedd"
+dependencies = [
+ "itoa",
+ "libc",
+ "quickcheck",
+ "time-macros 0.2.3",
 ]
 
 [[package]]
@@ -3974,6 +3995,12 @@ dependencies = [
  "proc-macro-hack",
  "time-macros-impl",
 ]
+
+[[package]]
+name = "time-macros"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25eb0ca3468fc0acc11828786797f6ef9aa1555e4a211a60d64cc8e4d1be47d6"
 
 [[package]]
 name = "time-macros-impl"
