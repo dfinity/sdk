@@ -29,7 +29,7 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
-const WITHDRAWL_COST: u64 = 10_000_000_000; // Emperically estimated.
+const WITHDRAWAL_COST: u64 = 10_000_000_000; // Emperically estimated.
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a canister on the Internet Computer network.
@@ -43,19 +43,19 @@ pub struct CanisterDeleteOpts {
     #[clap(long, required_unless_present("canister"))]
     all: bool,
 
-    /// Do not withdrawl cycles, just delete the canister.
+    /// Do not withdrawal cycles, just delete the canister.
     #[clap(long)]
-    no_withdrawl: bool,
+    no_withdrawal: bool,
 
     /// Withdraw cycles from canister(s) to canister/wallet before deleting.
-    #[clap(long, conflicts_with("no-withdrawl"))]
+    #[clap(long, conflicts_with("no-withdrawal"))]
     withdraw_cycles_to_canister: Option<String>,
 
     /// Withdraw cycles to dank with the current principal.
     #[clap(
         long,
         conflicts_with("withdraw-cycles-to-canister"),
-        conflicts_with("no-withdrawl")
+        conflicts_with("no-withdrawal")
     )]
     withdraw_cycles_to_dank: bool,
 
@@ -63,7 +63,7 @@ pub struct CanisterDeleteOpts {
     #[clap(
         long,
         conflicts_with("withdraw-cycles-to-canister"),
-        conflicts_with("no-withdrawl")
+        conflicts_with("no-withdrawal")
     )]
     withdraw_cycles_to_dank_principal: Option<String>,
 }
@@ -74,7 +74,7 @@ async fn delete_canister(
     canister: &str,
     timeout: Duration,
     call_sender: &CallSender,
-    no_withdrawl: bool,
+    no_withdrawal: bool,
     withdraw_cycles_to_canister: Option<String>,
     withdraw_cycles_to_dank: bool,
     withdraw_cycles_to_dank_principal: Option<String>,
@@ -87,7 +87,7 @@ async fn delete_canister(
     let to_dank = withdraw_cycles_to_dank || withdraw_cycles_to_dank_principal.is_some();
 
     // Get the canister to transfer the cycles to.
-    let target_canister_id = if no_withdrawl {
+    let target_canister_id = if no_withdrawal {
         None
     } else if to_dank {
         Some(Principal::from_text("aanaa-xaaaa-aaaah-aaeiq-cai")?)
@@ -126,7 +126,7 @@ async fn delete_canister(
     if let Some(target_canister_id) = target_canister_id {
         info!(
             log,
-            "Beginning withdrawl of cycles to canister {}; on failure try --no-wallet --no-withdrawl.",
+            "Beginning withdrawal of cycles to canister {}; on failure try --no-wallet --no-withdrawal.",
             target_canister_id
         );
 
@@ -169,11 +169,16 @@ async fn delete_canister(
                 .await;
             if install_result.is_ok() {
                 start_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
-                let status =
-                    canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
+                let status = canister::get_canister_status(
+                    env,
+                    canister_id,
+                    timeout,
+                    &CallSender::SelectedId,
+                )
+                .await?;
                 let mut cycles = status.cycles.0.to_u64().unwrap();
-                if cycles > WITHDRAWL_COST {
-                    cycles -= WITHDRAWL_COST;
+                if cycles > WITHDRAWAL_COST {
+                    cycles -= WITHDRAWAL_COST;
 
                     if !to_dank {
                         info!(
@@ -220,7 +225,7 @@ async fn delete_canister(
             } else {
                 info!(
                     log,
-                    "Failed to install temporary wallet, deleting without withdrawl."
+                    "Failed to install temporary wallet, deleting without withdrawal."
                 );
             }
             call_sender = &CallSender::SelectedId;
@@ -262,7 +267,7 @@ pub async fn exec(
             canister,
             timeout,
             call_sender,
-            opts.no_withdrawl,
+            opts.no_withdrawal,
             opts.withdraw_cycles_to_canister,
             opts.withdraw_cycles_to_dank,
             opts.withdraw_cycles_to_dank_principal,
@@ -276,7 +281,7 @@ pub async fn exec(
                     canister,
                     timeout,
                     call_sender,
-                    opts.no_withdrawl,
+                    opts.no_withdrawal,
                     opts.withdraw_cycles_to_canister.clone(),
                     opts.withdraw_cycles_to_dank,
                     opts.withdraw_cycles_to_dank_principal.clone(),
