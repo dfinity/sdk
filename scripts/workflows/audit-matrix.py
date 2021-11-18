@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import glob
-import os
 
 def get_cargo_audit_ref():
     with open('nix/sources.json') as json_file:
