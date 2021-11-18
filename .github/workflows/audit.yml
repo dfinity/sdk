@@ -7,15 +7,21 @@ on:
   pull_request:
 
 jobs:
+  build_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v1
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$(scripts/workflows/audit-matrix.py)"
+
   test:
     name: audit
     runs-on: ${{ matrix.os }}
+    needs: [ build_matrix ]
     strategy:
-      matrix:
-        rust: [ '1.52.1', '1.55.0' ]
-        os: [ ubuntu-latest, macos-latest ]
-        cargo-audit: [ '0.15.2' ]
-        cargo-audit-ref: [ 'f494f83f8edffecba0d2535be051c1a6d8dfaa39' ]
+      matrix: ${{fromJson(needs.build_matrix.outputs.matrix)}}
 
     steps:
       - uses: actions/checkout@v2
@@ -25,7 +31,7 @@ jobs:
         with:
           repository: 'RustSec/advisory-db'
           path: advisory-db
-          ref: ${{ matrix.cargo-audit-ref }}
+          ref: ${{ matrix.advisory-db-rev }}
 
       - uses: actions/cache@v2
         with:
