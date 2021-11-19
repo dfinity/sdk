@@ -91,6 +91,7 @@
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
+        "rev": "8459514233ab21109c691b6d033b3ef94892c680",
         "sha256": "0k7xy6p9sj6liz3n84h51q9radsc85xh4saqybilmwfpfqq3v30y",
         "type": "file",
         "url": "https://github.com/dfinity/motoko/releases/download/0.6.11/motoko-macos-0.6.11.tar.gz",
@@ -99,6 +100,7 @@
     },
     "motoko-x86_64-linux": {
         "builtin": false,
+        "rev": "8459514233ab21109c691b6d033b3ef94892c680",
         "sha256": "003qkpaj7cycf2cagi6mna240v58kyvhs5067ia9r63gfx5hgj7k",
         "type": "file",
         "url": "https://github.com/dfinity/motoko/releases/download/0.6.11/motoko-linux64-0.6.11.tar.gz",
