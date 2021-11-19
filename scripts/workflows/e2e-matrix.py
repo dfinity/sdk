@@ -18,7 +18,7 @@ matrix = {
     'test': test,
     'backend': [ 'ic-ref', 'replica' ],
     'os': [ 'macos-11', 'ubuntu-20.04' ],
-    'rust': [ '1.52.1' ]
+    'rust': [ '1.55.0' ]
 }
 
 print(json.dumps(matrix))
