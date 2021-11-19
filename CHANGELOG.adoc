@@ -19,7 +19,7 @@ Updated Motoko from 0.6.11 to 0.6.14.
 * Eliminate bignum calls from for-iteration on arrays
 * Improve scheduling
 * Improve performance of bignum equality
-* stable signatures: frontend, metadata, command-line args
+* Stable signatures: frontend, metadata, command-line args
 
 = 0.8.4
 
