@@ -22,7 +22,7 @@ jobs:
       - name: niv-updater-action
         uses: knl/niv-updater-action@60f23607814cf4f2e80a1e32ee74f8323897d09e
         with:
-          whitelist: 'motoko'
+          whitelist: 'motoko-x86_64-darwin,motoko-x86_64-linux'
           title_prefix: 'build: '
           labels: |
             automerge-squash
