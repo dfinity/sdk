@@ -182,7 +182,7 @@ impl MotokoParams<'_> {
         match self.build_target {
             BuildTarget::Release => cmd.args(&["-c", "--release"]),
             BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
-        }
+        };
         cmd.arg("--idl").arg("--stable-types");
         cmd.arg("--public-metadata").arg("candid:service");
         if !self.idl_map.is_empty() {
