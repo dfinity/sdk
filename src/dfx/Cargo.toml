@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.8.3"
+version = "0.8.5-beta.0"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -72,7 +72,7 @@ sysinfo = "0.9.6"
 tar = "0.4.37"
 tempfile = "3.1.0"
 thiserror = "1.0.20"
-tokio = { version = "1.8.1", features = [ "fs" ] }
+tokio = { version = "1.14.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"

@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "f494f83f8edffecba0d2535be051c1a6d8dfaa39",
-        "sha256": "0v0aqkivfpmh1abm7v5b2ig384jdgahcalshxm5a9bznsz5m7696",
+        "rev": "2a4f5887aac7345ada1723ea67f48a42297037ac",
+        "sha256": "0f8hqyw6rhkpglfz8sf0qq3j11si1c31rqhj3rvq3zb05whicv03",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/f494f83f8edffecba0d2535be051c1a6d8dfaa39.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/2a4f5887aac7345ada1723ea67f48a42297037ac.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
@@ -34,7 +34,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "ba5a7e7198f760f5d2adbcba6ddf046daf04903a",
+        "rev": "d865c0cfd64d765a8daf6a31c76dca21a5d4d203",
         "type": "git"
     },
     "ic-ref-x86_64-darwin": {
@@ -83,27 +83,29 @@
         "homepage": null,
         "owner": "dfinity",
         "repo": "motoko-base",
-        "rev": "45bd1abc8e81376d5e1c1dd6322e170e47555c57",
-        "sha256": "18i51cglq8131lyn6w2rjbhx32fbl7y62gga4cs10fdw2fmiw0d8",
+        "rev": "d0a814a3f93a3c168dacbeae2677f2b5d0995c02",
+        "sha256": "0c4b407v493a196a4fw06zhbgkhr5ycnagmnprg8mdvsc64w013q",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko-base/archive/45bd1abc8e81376d5e1c1dd6322e170e47555c57.tar.gz",
+        "url": "https://github.com/dfinity/motoko-base/archive/d0a814a3f93a3c168dacbeae2677f2b5d0995c02.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "0k7xy6p9sj6liz3n84h51q9radsc85xh4saqybilmwfpfqq3v30y",
+        "rev": "8459514233ab21109c691b6d033b3ef94892c680",
+        "sha256": "08lxiz2x3yg9vrg8zd108kf121lpnyixm07dvlss9kxamxb9hxkw",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.11/motoko-macos-0.6.11.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.14/motoko-macos-0.6.14.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
-        "version": "0.6.11"
+        "version": "0.6.14"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "003qkpaj7cycf2cagi6mna240v58kyvhs5067ia9r63gfx5hgj7k",
+        "rev": "8459514233ab21109c691b6d033b3ef94892c680",
+        "sha256": "1897cdv8lfmyyjsld38q4ncs6hpsa2zxkkl4mwymsfkbvpbnkrsy",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.11/motoko-linux64-0.6.11.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.14/motoko-linux64-0.6.14.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
-        "version": "0.6.11"
+        "version": "0.6.14"
     },
     "napalm": {
         "branch": "master",

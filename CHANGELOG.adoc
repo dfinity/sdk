@@ -1,6 +1,61 @@
+= 0.8.5
+
+== DFX
+
+=== feat: Add --no-withdrawal flag for "canister delete" for when the canister is out of cycles
+
+`dfx canister delete --no-withdrawal <canister>` can be used to delete a canister without attempting to withdraw cycles.
+
+== Motoko
+
+Updated Motoko from 0.6.11 to 0.6.14.
+
+* Implement type union/intersection
+* Transform for-loops on arrays into while-loops
+* Tighten typing rules for type annotations in patterns
+* Candid decoding: skip vec any fast
+* Bump up MAX_HP_FOR_GC from 1GB to 3GB
+* Candid decoder: Trap if a principal value is too large
+* Eliminate bignum calls from for-iteration on arrays
+* Improve scheduling
+* Improve performance of bignum equality
+* Stable signatures: frontend, metadata, command-line args
+
 = 0.8.4
 
 == DFX
+
+=== feat: "rust" canister type
+
+You can now declare "rust" canisters in dfx.json.
+[source, json]
+----
+{
+  "canisters": {
+    "canister_name": {
+      "type": "rust",
+      "package": "crate_name",
+      "candid": "path/to/canister_name.did"
+    }
+  }
+}
+----
+
+Don't forget to place a `Cargo.toml` in your project root.
+Then dfx will build the rust canister with your rust toolchain. 
+Please also make sure that you have added the WebAssembly compilation target.
+
+[source, bash]
+----
+rustup target add wasm32-unknown-unknown
+----
+
+You can also create new dfx project with a default rust canister.
+
+[source, bash]
+----
+dfx new --type=rust <project-name>
+----
 
 === chore: updating dfx new template
 

@@ -132,40 +132,13 @@ impl CanisterBuilder for MotokoBuilder {
             None => package_arguments,
         };
 
-        // Generate IDL
-        let output_idl_path = motoko_info.get_output_idl_path();
-        let params = MotokoParams {
-            build_target: BuildTarget::Idl,
-            suppress_warning: false,
-            input: input_path,
-            package_arguments: &moc_arguments,
-            output: output_idl_path,
-            idl_path: idl_dir_path,
-            idl_map: &id_map,
-        };
-        motoko_compile(&self.logger, cache.as_ref(), &params)?;
-
-        // Generate stable types
-        let output_stable_path = motoko_info.get_output_stable_path();
-        let params = MotokoParams {
-            build_target: BuildTarget::StableTypes,
-            suppress_warning: true,
-            input: input_path,
-            package_arguments: &moc_arguments,
-            output: output_stable_path,
-            idl_path: idl_dir_path,
-            idl_map: &id_map,
-        };
-        motoko_compile(&self.logger, cache.as_ref(), &params)?;
-
         // Generate wasm
         let params = MotokoParams {
             build_target: match profile {
                 Profile::Release => BuildTarget::Release,
                 _ => BuildTarget::Debug,
             },
-            // Suppress the warnings the second time we call moc
-            suppress_warning: true,
+            suppress_warning: false,
             input: input_path,
             package_arguments: &moc_arguments,
             output: output_wasm_path,
@@ -189,8 +162,6 @@ type CanisterIdMap = BTreeMap<String, String>;
 enum BuildTarget {
     Release,
     Debug,
-    Idl,
-    StableTypes,
 }
 
 struct MotokoParams<'a> {
@@ -211,12 +182,9 @@ impl MotokoParams<'_> {
         match self.build_target {
             BuildTarget::Release => cmd.args(&["-c", "--release"]),
             BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
-            BuildTarget::Idl => cmd.arg("--idl"),
-            BuildTarget::StableTypes => cmd.arg("--stable-types"),
-        };
-        if matches!(self.build_target, BuildTarget::Release | BuildTarget::Debug) {
-            cmd.arg("--public-metadata").arg("candid:service");
-        };
+        }
+        cmd.arg("--idl").arg("--stable-types");
+        cmd.arg("--public-metadata").arg("candid:service");
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
             for (name, canister_id) in self.idl_map.iter() {
