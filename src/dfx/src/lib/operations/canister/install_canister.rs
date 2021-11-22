@@ -72,7 +72,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
             let old_type = env.merge_type(env2, old_type);
             let result = candid::types::subtype::subtype(&mut gamma, &env, &new_type, &old_type);
             if let Err(err) = result {
-                let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend relying on your canister may stop working.\n\n", canister_info.get_name()) + &err.to_string();
+                let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err.to_string();
                 ask_for_consent(&msg)?;
             }
         }
