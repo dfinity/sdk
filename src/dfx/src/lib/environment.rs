@@ -372,12 +372,14 @@ impl AgentClient {
                         // store the base64 encoding of `username:password`, but we decode it
                         // since the Agent requires username and password as separate fields.
                         let pair = base64::decode(&token).unwrap();
-                        let v: Vec<String> = String::from_utf8_lossy(pair.as_slice())
-                            .split(':')
-                            .take(2)
-                            .map(|s| s.to_owned())
-                            .collect();
-                        Ok(Some((v[0].to_owned(), v[1].to_owned())))
+                        let pair = String::from_utf8_lossy(pair.as_slice());
+                        let colon_pos = pair
+                            .find(':')
+                            .ok_or_else(|| anyhow!("Incorrectly formatted auth string (no `:`)"))?;
+                        Ok(Some((
+                            pair[..colon_pos].to_owned(),
+                            pair[colon_pos + 1..].to_owned(),
+                        )))
                     }
                 } else {
                     Ok(None)
@@ -412,10 +414,16 @@ impl ic_agent::agent::http_transport::PasswordManager for AgentClient {
 
     fn required(&self, _url: &str) -> Result<(String, String), String> {
         eprintln!("Unauthorized HTTP Access... Please enter credentials:");
-        let username = dialoguer::Input::<String>::new()
-            .with_prompt("Username")
-            .interact()
-            .unwrap();
+        let mut username;
+        while {
+            username = dialoguer::Input::<String>::new()
+                .with_prompt("Username")
+                .interact()
+                .unwrap();
+            username.contains(':')
+        } {
+            eprintln!("Invalid username (unexpected `:`)")
+        }
         let password = dialoguer::Password::new()
             .with_prompt("Password")
             .interact()
