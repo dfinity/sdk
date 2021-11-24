@@ -360,7 +360,7 @@ impl AgentClient {
             None => Ok(None),
             Some(h) => {
                 let map = self.read_http_auth_map()?;
-                if let Some(token) = dbg!(map).get(dbg!(&h.to_string())) {
+                if let Some(token) = map.get(&h.to_string()) {
                     if !self.is_secure() {
                         slog::warn!(
                         self.logger,
