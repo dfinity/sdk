@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.8.3"
+version = "0.8.5-beta.0"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -72,7 +72,7 @@ sysinfo = "0.9.6"
 tar = "0.4.37"
 tempfile = "3.1.0"
 thiserror = "1.0.20"
-tokio = { version = "1.8.1", features = [ "fs" ] }
+tokio = { version = "1.14.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
@@ -82,23 +82,23 @@ webpki-roots = "0.21.0"
 [dependencies.ic-agent]
 version = "0.9.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c712fdfe4edc7f34a0140dba129025f6d58ffd06"
+rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
 version = "0.4.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c712fdfe4edc7f34a0140dba129025f6d58ffd06"
+rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 
 [dependencies.ic-identity-hsm]
 version = "0.3.6"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c712fdfe4edc7f34a0140dba129025f6d58ffd06"
+rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 
 [dependencies.ic-utils]
 version = "0.7.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c712fdfe4edc7f34a0140dba129025f6d58ffd06"
+rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 
 [dev-dependencies]
 env_logger = "0.6"

@@ -71,5 +71,5 @@ teardown() {
     assert_command_fail dfx build
     assert_match 'The command.*failed'
     assert_match 'sh.*command-that-fails.bash'
-    assert_match 'exit code: 3'
+    assert_match 'exit (code|status): 3'
 }

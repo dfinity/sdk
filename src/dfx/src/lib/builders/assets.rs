@@ -91,7 +91,7 @@ impl CanisterBuilder for AssetsBuilder {
         }
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        delete_output_directory(&info, &assets_canister_info)?;
+        delete_output_directory(info, &assets_canister_info)?;
 
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
@@ -166,7 +166,7 @@ impl CanisterBuilder for AssetsBuilder {
         }
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        delete_output_directory(&info, &assets_canister_info)?;
+        delete_output_directory(info, &assets_canister_info)?;
 
         // delete unpacked wasm file
         let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));

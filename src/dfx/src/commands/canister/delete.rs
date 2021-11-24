@@ -29,7 +29,7 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
-const WITHDRAWL_COST: u64 = 10_000_000_000; // Emperically estimated.
+const WITHDRAWAL_COST: u64 = 10_000_000_000; // Emperically estimated.
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a canister on the Internet Computer network.
@@ -43,24 +43,38 @@ pub struct CanisterDeleteOpts {
     #[clap(long, required_unless_present("canister"))]
     all: bool,
 
-    /// Withdraw cycles from canister(s) to canister/wallet before deleting.
+    /// Do not withdrawal cycles, just delete the canister.
     #[clap(long)]
+    no_withdrawal: bool,
+
+    /// Withdraw cycles from canister(s) to canister/wallet before deleting.
+    #[clap(long, conflicts_with("no-withdrawal"))]
     withdraw_cycles_to_canister: Option<String>,
 
     /// Withdraw cycles to dank with the current principal.
-    #[clap(long, conflicts_with("withdraw-cycles-to-canister"))]
+    #[clap(
+        long,
+        conflicts_with("withdraw-cycles-to-canister"),
+        conflicts_with("no-withdrawal")
+    )]
     withdraw_cycles_to_dank: bool,
 
     /// Withdraw cycles to dank with the given principal.
-    #[clap(long, conflicts_with("withdraw-cycles-to-canister"))]
+    #[clap(
+        long,
+        conflicts_with("withdraw-cycles-to-canister"),
+        conflicts_with("no-withdrawal")
+    )]
     withdraw_cycles_to_dank_principal: Option<String>,
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn delete_canister(
     env: &dyn Environment,
     canister: &str,
     timeout: Duration,
     call_sender: &CallSender,
+    no_withdrawal: bool,
     withdraw_cycles_to_canister: Option<String>,
     withdraw_cycles_to_dank: bool,
     withdraw_cycles_to_dank_principal: Option<String>,
@@ -73,7 +87,9 @@ async fn delete_canister(
     let to_dank = withdraw_cycles_to_dank || withdraw_cycles_to_dank_principal.is_some();
 
     // Get the canister to transfer the cycles to.
-    let target_canister_id = if to_dank {
+    let target_canister_id = if no_withdrawal {
+        None
+    } else if to_dank {
         Some(Principal::from_text("aanaa-xaaaa-aaaah-aaeiq-cai")?)
     } else {
         match withdraw_cycles_to_canister {
@@ -108,16 +124,15 @@ async fn delete_canister(
     fetch_root_key_if_needed(env).await?;
 
     if let Some(target_canister_id) = target_canister_id {
+        info!(
+            log,
+            "Beginning withdrawal of cycles to canister {}; on failure try --no-wallet --no-withdrawal.",
+            target_canister_id
+        );
+
         // Determine how many cycles we can withdraw.
         let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
-        let mut cycles = status.cycles.0.to_u64().unwrap();
-        if status.status == CanisterStatus::Stopped && cycles > WITHDRAWL_COST {
-            cycles -= WITHDRAWL_COST;
-            info!(
-                log,
-                "Beginning withdrawl of {} cycles to canister {}.", cycles, target_canister_id
-            );
-
+        if status.status == CanisterStatus::Stopped {
             let agent = env
                 .get_agent()
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -148,55 +163,77 @@ async fn delete_canister(
                 .install_code(&canister_id, &wasm_module)
                 .with_raw_arg(args.to_vec())
                 .with_mode(mode);
-            install_builder
+            let install_result = install_builder
                 .build()?
                 .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
-            start_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
-
-            if !to_dank {
-                info!(
-                    log,
-                    "Transfering {} cycles to canister {}.", cycles, target_canister_id
-                );
-                // Transfer cycles from the source canister to the target canister using the temporary wallet.
-                deposit_cycles(
+                .await;
+            if install_result.is_ok() {
+                start_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
+                let status = canister::get_canister_status(
                     env,
-                    target_canister_id,
+                    canister_id,
                     timeout,
-                    &CallSender::Wallet(canister_id),
-                    cycles,
+                    &CallSender::SelectedId,
                 )
                 .await?;
+                let mut cycles = status.cycles.0.to_u64().unwrap();
+                if cycles > WITHDRAWAL_COST {
+                    cycles -= WITHDRAWAL_COST;
+
+                    if !to_dank {
+                        info!(
+                            log,
+                            "Transfering {} cycles to canister {}.", cycles, target_canister_id
+                        );
+                        // Transfer cycles from the source canister to the target canister using the temporary wallet.
+                        deposit_cycles(
+                            env,
+                            target_canister_id,
+                            timeout,
+                            &CallSender::Wallet(canister_id),
+                            cycles,
+                        )
+                        .await?;
+                    } else {
+                        info!(
+                            log,
+                            "Transfering {} cycles to dank principal {}.",
+                            cycles,
+                            dank_target_principal
+                        );
+                        let dank = ic_utils::Canister::builder()
+                            .with_agent(env.get_agent().ok_or_else(|| {
+                                anyhow!("Cannot get HTTP client from environment.")
+                            })?)
+                            .with_canister_id(target_canister_id)
+                            .build()
+                            .unwrap();
+                        let wallet = Identity::build_wallet_canister(canister_id, env)?;
+                        let opt_principal = Some(dank_target_principal);
+                        wallet
+                            .call_forward(
+                                dank.update_("mint").with_arg(opt_principal).build(),
+                                cycles,
+                            )?
+                            .call_and_wait(waiter_with_timeout(timeout))
+                            .await?;
+                    }
+                } else {
+                    info!(log, "Too few cycles to withdraw: {}.", cycles);
+                }
+                stop_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
             } else {
                 info!(
                     log,
-                    "Transfering {} cycles to dank principal {}.", cycles, dank_target_principal
+                    "Failed to install temporary wallet, deleting without withdrawal."
                 );
-                let dank = ic_utils::Canister::builder()
-                    .with_agent(
-                        env.get_agent()
-                            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-                    )
-                    .with_canister_id(target_canister_id)
-                    .build()
-                    .unwrap();
-                let wallet = Identity::build_wallet_canister(canister_id, env)?;
-                let opt_principal = Some(dank_target_principal);
-                wallet
-                    .call_forward(dank.update_("mint").with_arg(opt_principal).build(), cycles)?
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?;
             }
-            stop_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
             call_sender = &CallSender::SelectedId;
-        } else if status.status != CanisterStatus::Stopped {
+        } else {
             info!(
                 log,
                 "Canister {} must be stopped before it is deleted.", canister_id
             );
-        } else {
-            info!(log, "Too few cycles to withdraw: {}.", cycles);
         }
     }
 
@@ -207,7 +244,7 @@ async fn delete_canister(
         canister_id.to_text(),
     );
 
-    canister::delete_canister(env, canister_id, timeout, &call_sender).await?;
+    canister::delete_canister(env, canister_id, timeout, call_sender).await?;
 
     canister_id_store.remove(canister)?;
 
@@ -230,6 +267,7 @@ pub async fn exec(
             canister,
             timeout,
             call_sender,
+            opts.no_withdrawal,
             opts.withdraw_cycles_to_canister,
             opts.withdraw_cycles_to_dank,
             opts.withdraw_cycles_to_dank_principal,
@@ -243,6 +281,7 @@ pub async fn exec(
                     canister,
                     timeout,
                     call_sender,
+                    opts.no_withdrawal,
                     opts.withdraw_cycles_to_canister.clone(),
                     opts.withdraw_cycles_to_dank,
                     opts.withdraw_cycles_to_dank_principal.clone(),

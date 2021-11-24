@@ -17,9 +17,6 @@ let
   };
 in
 {
-  dfx = import ./tests-dfx args;
-  replica = import ./tests-replica args;
-
   shell = pkgs.runCommandNoCC "e2e-test-shell${lib.optionalString use_ic_ref "-use_ic_ref"}" {
     nativeBuildInputs = with pkgs; [
       bats

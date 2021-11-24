@@ -77,7 +77,7 @@ pub async fn exec(
 
         install_canister(
             env,
-            &agent,
+            agent,
             &canister_info,
             &install_args,
             mode,
@@ -100,7 +100,7 @@ pub async fn exec(
 
                 install_canister(
                     env,
-                    &agent,
+                    agent,
                     &canister_info,
                     &install_args,
                     mode,
