@@ -477,8 +477,8 @@ fn create_agent(
 mod tests {
     use std::{env, io};
 
-    use slog::{Drain, Logger, o};
-    use slog_term::{PlainSyncDecorator, FullFormat};
+    use slog::{o, Drain, Logger};
+    use slog_term::{FullFormat, PlainSyncDecorator};
     use tempfile::TempDir;
 
     use super::AgentClient;
@@ -488,9 +488,16 @@ mod tests {
         let cfg_root = TempDir::new().unwrap();
         let old_var = env::var_os("DFX_CONFIG_ROOT");
         env::set_var("DFX_CONFIG_ROOT", cfg_root.path());
-        let log = Logger::root(FullFormat::new(PlainSyncDecorator::new(io::stderr())).build().fuse(), o!());
+        let log = Logger::root(
+            FullFormat::new(PlainSyncDecorator::new(io::stderr()))
+                .build()
+                .fuse(),
+            o!(),
+        );
         let client = AgentClient::new(log, "https://localhost".to_owned()).unwrap();
-        client.save_http_auth("localhost", &base64::encode("default:hunter2:")).unwrap();
+        client
+            .save_http_auth("localhost", &base64::encode("default:hunter2:"))
+            .unwrap();
         let (user, pass) = client.read_http_auth().unwrap().unwrap();
         assert_eq!(user, "default");
         assert_eq!(pass, "hunter2:");
