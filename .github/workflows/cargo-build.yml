@@ -1,10 +1,6 @@
 name: Check cargo build
 on:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
   push:
     branches:
       - master
@@ -14,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust: [ '1.52.1' ]
+        rust: [ '1.55.0' ]
         os: [ ubuntu-latest, macos-latest ]
     steps:
       - uses: actions/checkout@v2

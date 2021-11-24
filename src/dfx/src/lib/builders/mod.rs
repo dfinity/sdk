@@ -108,7 +108,7 @@ pub trait CanisterBuilder {
 
         let generated_idl_path = self.generate_idl(pool, info, config)?;
 
-        let (env, ty) = check_candid_file(&generated_idl_path.as_path())?;
+        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
 
         let bindings = info
             .get_declarations_config()
@@ -265,7 +265,7 @@ impl BuilderPool {
     pub fn get(&self, info: &CanisterInfo) -> Option<Arc<dyn CanisterBuilder>> {
         self.builders
             .iter()
-            .find(|builder| builder.supports(&info))
+            .find(|builder| builder.supports(info))
             .map(|x| Arc::clone(x))
     }
 }

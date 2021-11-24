@@ -105,7 +105,7 @@ impl EnvironmentImpl {
                 None => dfx_version().clone(),
                 Some(c) => match &c.get_config().get_dfx() {
                     None => dfx_version().clone(),
-                    Some(v) => Version::parse(&v)?,
+                    Some(v) => Version::parse(v)?,
                 },
             },
             Ok(v) => {
