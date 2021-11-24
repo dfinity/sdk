@@ -360,7 +360,7 @@ impl AgentClient {
             None => Ok(None),
             Some(h) => {
                 let map = self.read_http_auth_map()?;
-                if let Some(token) = map.get(&h.to_string()) {
+                if let Some(token) = dbg!(map).get(dbg!(&h.to_string())) {
                     if !self.is_secure() {
                         slog::warn!(
                         self.logger,
@@ -471,4 +471,33 @@ fn create_agent(
                 .build()
                 .ok()
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, io};
+
+    use slog::{Drain, Logger, o};
+    use slog_term::{PlainSyncDecorator, FullFormat};
+    use tempfile::TempDir;
+
+    use super::AgentClient;
+
+    #[test]
+    fn test_passwords() {
+        let cfg_root = TempDir::new().unwrap();
+        let old_var = env::var_os("DFX_CONFIG_ROOT");
+        env::set_var("DFX_CONFIG_ROOT", cfg_root.path());
+        let log = Logger::root(FullFormat::new(PlainSyncDecorator::new(io::stderr())).build().fuse(), o!());
+        let client = AgentClient::new(log, "https://localhost".to_owned()).unwrap();
+        client.save_http_auth("localhost", &base64::encode("default:hunter2:")).unwrap();
+        let (user, pass) = client.read_http_auth().unwrap().unwrap();
+        assert_eq!(user, "default");
+        assert_eq!(pass, "hunter2:");
+        if let Some(old_var) = old_var {
+            env::set_var("DFX_CONFIG_ROOT", old_var);
+        } else {
+            env::remove_var("DFX_CONFIG_ROOT");
+        }
+    }
 }
