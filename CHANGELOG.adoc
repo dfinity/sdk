@@ -1,3 +1,301 @@
+= 0.8.5
+
+== DFX
+
+=== feat: Add --no-withdrawal flag for "canister delete" for when the canister is out of cycles
+
+`dfx canister delete --no-withdrawal <canister>` can be used to delete a canister without attempting to withdraw cycles.
+
+== Motoko
+
+Updated Motoko from 0.6.11 to 0.6.14.
+
+* Implement type union/intersection
+* Transform for-loops on arrays into while-loops
+* Tighten typing rules for type annotations in patterns
+* Candid decoding: skip vec any fast
+* Bump up MAX_HP_FOR_GC from 1GB to 3GB
+* Candid decoder: Trap if a principal value is too large
+* Eliminate bignum calls from for-iteration on arrays
+* Improve scheduling
+* Improve performance of bignum equality
+* Stable signatures: frontend, metadata, command-line args
+
+= 0.8.4
+
+== DFX
+
+=== feat: "rust" canister type
+
+You can now declare "rust" canisters in dfx.json.
+[source, json]
+----
+{
+  "canisters": {
+    "canister_name": {
+      "type": "rust",
+      "package": "crate_name",
+      "candid": "path/to/canister_name.did"
+    }
+  }
+}
+----
+
+Don't forget to place a `Cargo.toml` in your project root.
+Then dfx will build the rust canister with your rust toolchain. 
+Please also make sure that you have added the WebAssembly compilation target.
+
+[source, bash]
+----
+rustup target add wasm32-unknown-unknown
+----
+
+You can also create new dfx project with a default rust canister.
+
+[source, bash]
+----
+dfx new --type=rust <project-name>
+----
+
+=== chore: updating dfx new template
+
+Updates dependencies to latest for Webpack, and updates config. Additionally simplifies environment variables for canister ID's in config.
+
+Additionally adds some polish to the starter template, including a favicon and using more semantic html in the example app
+
+=== feat: environment variable overrides for executable pathnames
+
+You can now override the location of any executable normally called from the cache by specifying
+an environment variable. For example, DFX_ICX_PROXY_PATH will specify the path for `icx-proxy`.
+
+=== feat: dfx deploy --mode=reinstall <canister>
+
+`dfx deploy` can now reinstall a single canister, controlled by a new `--mode=reinstall` parameter.
+This is destructive (it resets the state of the canister), so it requires a confirmation
+and can only be performed on a single canister at a time.
+
+`dfx canister install --mode=reinstall <canister>` also requires the same confirmation,
+and no longer works with `--all`.
+
+== Replica
+
+The included replica now supports canister_heartbeat.  This only works with rust canisters for the time being,
+and does not work with the emulator (`dfx start --emulator`).
+
+= 0.8.3
+
+== DFX
+
+=== fix: ic-ref linux binary no longer references /nix/store
+
+This means `dfx start --emulator` has a chance of working if nix is not installed.
+This has always been broken, even before dfx 0.7.0.
+
+=== fix: replica and ic-starter linux binaries no longer reference /nix/store
+
+This means `dfx start` will work again on linux.  This bug was introduced in dfx 0.8.2.
+
+=== feat: replaced --no_artificial_delay option with a sensible default.
+
+The `--no-artificial-delay` option not being the default has been causing a lot of confusion.
+Now that we have measured in production and already applied a default of 600ms to most subnets deployed out there,
+we have set the same default for dfx and removed the option.
+
+== Motoko
+
+Updated Motoko from 0.6.10 to 0.6.11.
+
+* Assertion error messages are now reproducible (#2821)
+
+= 0.8.2
+
+== DFX
+
+=== feat: dfx canister delete can now return cycles to a wallet or dank
+
+By default `dfx canister delete` will return cycles to the default cycles wallet.
+Cycles can be returned to a designated canister with `--withdraw-cycles-to-canister` and
+cycles can be returned to dank at the current identity principal with `--withdraw-cycles-to-dank`
+and to a designated principal with `--withdraw-cycles-to-dank-principal`.
+
+=== feat: dfx canister create now accepts multiple instances of --controller argument
+
+It is now possible to create canisters with more than one controller by
+passing multiple instances of the `--controller parameter to `dfx canister create`.
+
+You will need to upgrade your wallet with `dfx wallet upgrade`, or `dfx wallet --network ic upgrade`
+
+=== feat: dfx canister update-settings now accepts multiple instance of --controller argument
+
+It is now possible to configure a canister to have more than one controller by
+passing multiple instances of the `--controller parameter to `dfx canister update-settings`.
+
+=== feat: dfx canister info and dfx canister status now display all controllers
+
+=== feat!: dfx canister create --controller <controller> named parameter
+
+Breaking change: The controller parameter for `dfx canister create` is now passed as a named parameter,
+rather than optionally following the canister name.
+
+Old: dfx canister create [canister name] [controller]
+New: dfx canister create --controller <controller> [canister name]
+
+=== fix: dfx now respects $DFX_CONFIG_ROOT when looking for legacy credentials
+
+Previously this would always look in `$HOME/.dfinity/identity/creds.pem`.
+
+=== fix: changed dfx canister (create|update-settings) --memory-allocation limit to 12 GiB
+
+Updated the maximum value for the --memory-allocation value to be 12 GiB (12,884,901,888 bytes)
+
+== Cycles Wallet
+
+- Module hash: 9183a38dd2eb1a4295f360990f87e67aa006f225910ab14880748e091248e086
+- https://github.com/dfinity/cycles-wallet/commit/9ef38bb7cd0fe17cda749bf8e9bbec5723da0e95
+
+=== Added support for multiple controllers
+
+You will need to upgrade your wallet with `dfx wallet upgrade`, or `dfx wallet --network ic upgrade`
+
+== Replica
+
+The included replica now supports public spec 0.18.0
+
+* Canisters can now have more than one controller
+* Adds support for 64-bit stable memory
+* The replica now goes through an initialization sequence, reported in its status
+as `replica_health_status`.  Until this reports as `healthy`, queries or updates will
+fail.
+** `dfx start --background` waits to exit until `replica_health_status` is `healthy`.
+** If you run `dfx start` without `--background`, you can call `dfx ping --wait-healthy`
+to wait until the replica is healthy.
+
+== Motoko
+
+Updated Motoko from 0.6.7 to 0.6.10
+
+* add Debug.trap : Text -> None (motoko-base #288)
+* Introduce primitives for `Int` ⇔ `Float` conversions (#2733)
+* Fix crashing bug for formatting huge floats (#2737)
+
+= 0.8.1
+
+== DFX
+
+=== feat: dfx generate types command
+
+[source, bash]
+----
+dfx generate
+----
+
+This new command will generate type declarations for canisters in dfx.json.
+
+You can control what will be generated and how with corresponding configuration in dfx.json.
+
+Under dfx.json → "canisters" → "<canister_name>", developers can add a "declarations" config. Options are:
+
+* "output" → directory to place declarations for that canister | default is "src/declarations/<canister_name>"
+
+* "bindings" → [] list of options, ("js", "ts", "did", "mo") | default is "js", "ts", "did"
+
+* "env_override" → a string that will replace process.env.{canister_name_uppercase}_CANISTER_ID in the "src/dfx/assets/language_bindings/canister.js" template.
+
+js declarations output
+
+* index.js (generated from "src/dfx/assets/language_bindings/canister.js" template)
+
+* <canister_name>.did.js - candid js binding output
+
+ts declarations output
+
+  * <canister_name>.did.d.ts - candid ts binding output
+
+did declarations output
+
+  * <canister_name>.did - candid did binding output
+
+mo declarations output
+
+  * <canister_name>.mo - candid mo binding output
+
+=== feat: dfx now supports the anonymous identity
+
+Use it with either of these forms:
+[source, bash]
+----
+dfx identity use anonymous
+dfx --identity anonymous ...
+----
+
+=== feat: import default identities
+
+Default identities are the pem files generated by `dfx identity new ...` which contain Ed25519 private keys.
+They are located at `~/.config/dfx/identity/xxx/identity.pem`.
+Now, you can copy such pem file to another computer and import it there.
+
+[source, bash]
+----
+dfx identity new alice
+cp ~/.config/dfx/identity/xxx/identity.pem alice.pem
+# copy the pem file to another computer, then
+dfx identity import alice alice.pem
+----
+
+Before, people can manually copy the pem files to the target directory to "import". Such workaround still works.
+We suggest to use the `import` subcommand since it also validate the private key.
+
+=== feat: Can now provide a nonstandard wallet module with DFX_WALLET_WASM environment variable
+
+Define DFX_WALLET_WASM in the environment to use a different wasm module when creating or upgrading the wallet.
+
+== Asset Canister
+
+=== fix: trust full asset SHA-256 hashes provided by the caller
+
+When the caller provides SHA-256 hashes (which dfx does), the asset canister will no longer
+recompute these hashes when committing the changes.  These recomputations were causing
+canisters to run out of cycles, or to attempt to exceed the maximum cycle limit per update.
+
+= 0.8.0
+
+The 0.8.0 release includes updates and fixes that are primarily internal to improve existing features and functions rather than user-visible.
+
+== DFX
+
+=== fix: dfx identity set-wallet no longer requires --force when used with --network ic
+
+This was intended to skip verification of the wallet canister on the IC network,
+but ended up only writing to the wallets.json file if --force was passed.
+
+=== chore: updating dependencies
+
+* Support for the latest version of the {IC} specification and replica.
+
+* Updating to latest versions of Motoko, Candid, and agent-rs
+
+=== feat: Type Inference Update
+
+* Changes to `+dfx new+` project template and JavaScript codegen to support type inference in IDE's
+
+* Adding webpack dev server to project template
+
+* Migration path documented at https://sdk.dfinity.org/docs/release-notes/0.8.0-rn.html
+
+= 0.7.7
+
+Breaking changes to frontend code generation, documented in 0.8.0
+
+== DFX
+
+=== feat: deploy and canister install will now only upgrade a canister if the wasm actually changed
+
+dfx deploy and dfx canister install now compare the hash of the already-installed module
+with the hash of the built canister's wasm output.  If they are the same, they leave the canister
+in place rather than upgrade it.  They will still synchronize assets to an asset canister regardless
+of the result of this comparison.
+
+
 = 0.7.6
 
 == icx-proxy
@@ -12,7 +310,7 @@ The streaming callback mechanism now requires the following record structure for
 
 Previously, the token could be a record with any set of fields.
 
-= 0.7.1
+= 0.7.2
 
 == DFX
 
@@ -20,13 +318,18 @@ Previously, the token could be a record with any set of fields.
 
 Change the default cycle balance of a canister from 10T cycles to 3T cycles.
 
-= 0.7.1
-
 == Cycles Wallet
+
+- Module hash: 1404b28b1c66491689b59e184a9de3c2be0dbdd75d952f29113b516742b7f898
+- https://github.com/dfinity/cycles-wallet/commit/e902708853ab621e52cb68342866d36e437a694b
+
+=== fix: It is no longer possible to remove the last controller.
 
 Fixed an issue where the controller can remove itself from the list of controllers even if it's the only one,
 leaving the wallet uncontrolled.
 Added defensive checks to the wallet's remove_controller and deauthorize methods.
+
+= 0.7.1
 
 == DFX
 
@@ -112,6 +415,28 @@ dfx now supports a dedicated `dfx wallet` subcommand. This allows you to interac
 associated with your selected identity. For example, `dfx wallet balance` to get the cycle balance,
 `dfx wallet list-addresses` to display the associated controllers & custodians, and `dfx wallet send <destination> <amount>`
 to send cycles to another wallet.
+
+== Cycles Wallet
+
+- Module Hash: a609400f2576d1d6df72ce868b359fd08e1d68e58454ef17db2361d2f1c242a1
+- https://github.com/dfinity/cycles-wallet/commit/06bb256ca0738640be51cf84caaced7ea02ca29d
+
+=== feat: Use Internet Identity Service.
+
+= 0.7.0-beta.5
+
+== Cycles Wallet
+
+- Module Hash: 3d5b221387875574a9fd75b3165403cf1b301650a602310e9e4229d2f6766dcc
+- https://github.com/dfinity/cycles-wallet/commit/c3cbfc501564da89e669a2d9de810d32240baf5f
+
+=== feat: Updated to Public Interface 0.17.0
+
+=== feat: The wallet_create_canister method now takes a single record argument, which includes canister settings.
+
+=== fix: Return correct content type and encoding for non-gz files.
+
+=== fix: Updated frontend for changes to canister creation interface.
 
 = 0.7.0-beta.3
 

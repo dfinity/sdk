@@ -13,12 +13,10 @@ let
 
     utils = lib.gitOnlySource ./utils;
     assets = lib.gitOnlySource ./assets;
+    archive = lib.gitOnlySource ./archive;
   };
 in
 {
-  dfx = import ./tests-dfx args;
-  replica = import ./tests-replica args;
-
   shell = pkgs.runCommandNoCC "e2e-test-shell${lib.optionalString use_ic_ref "-use_ic_ref"}" {
     nativeBuildInputs = with pkgs; [
       bats
@@ -43,6 +41,7 @@ in
     USE_IC_REF = use_ic_ref;
     assets = args.assets;
     utils = args.utils;
+    archive = args.archive;
   } ''
     touch $out
   '';

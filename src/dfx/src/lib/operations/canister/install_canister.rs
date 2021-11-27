@@ -7,13 +7,15 @@ use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::named_canister;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::Context;
+use anyhow::{anyhow, bail, Context};
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
+use openssl::sha::Sha256;
 use slog::info;
+use std::io::stdin;
 use std::time::Duration;
 
 #[allow(clippy::too_many_arguments)]
@@ -25,10 +27,33 @@ pub async fn install_canister(
     mode: InstallMode,
     timeout: Duration,
     call_sender: &CallSender,
+    installed_module_hash: Option<Vec<u8>>,
 ) -> DfxResult {
     let network = env.get_network_descriptor().unwrap();
-    if !network.is_ic && named_canister::get_ui_canister_id(&network).is_none() {
-        named_canister::install_ui_canister(env, &network, None).await?;
+    if !network.is_ic && named_canister::get_ui_canister_id(network).is_none() {
+        named_canister::install_ui_canister(env, network, None).await?;
+    }
+
+    if mode == InstallMode::Reinstall {
+        eprintln!("Warning!");
+        eprintln!(
+            "You are about to reinstall the {} canister.",
+            canister_info.get_name()
+        );
+        eprintln!("This will OVERWRITE all the data and code in the canister.");
+        eprintln!();
+        eprintln!("YOU WILL LOSE ALL DATA IN THE CANISTER.");
+        eprintln!();
+        eprintln!("Do you want to proceed? yes/No");
+        let mut input_string = String::new();
+        stdin()
+            .read_line(&mut input_string)
+            .map_err(|err| anyhow!(err))
+            .context("Unable to read input")?;
+        let input_string = input_string.trim_end();
+        if input_string != "yes" {
+            bail!("Refusing to reinstall canister without approval");
+        }
     }
 
     let mgr = ManagementCanister::create(agent);
@@ -57,32 +82,41 @@ pub async fn install_canister(
         .expect("Cannot get WASM output path.");
     let wasm_module = std::fs::read(wasm_path)?;
 
-    match call_sender {
-        CallSender::SelectedId => {
-            let install_builder = mgr
-                .install_code(&canister_id, &wasm_module)
-                .with_raw_arg(args.to_vec())
-                .with_mode(mode);
-            install_builder
-                .build()?
-                .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
-        }
-        CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
-            let install_args = CanisterInstall {
-                mode,
-                canister_id,
-                wasm_module,
-                arg: args.to_vec(),
-            };
-            wallet
-                .call_forward(
-                    mgr.update_("install_code").with_arg(install_args).build(),
-                    0,
-                )?
-                .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
+    if mode == InstallMode::Upgrade
+        && wasm_module_already_installed(&wasm_module, installed_module_hash.as_deref())
+    {
+        println!(
+            "Module hash {} is already installed.",
+            hex::encode(installed_module_hash.unwrap())
+        );
+    } else {
+        match call_sender {
+            CallSender::SelectedId => {
+                let install_builder = mgr
+                    .install_code(&canister_id, &wasm_module)
+                    .with_raw_arg(args.to_vec())
+                    .with_mode(mode);
+                install_builder
+                    .build()?
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?;
+            }
+            CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                let install_args = CanisterInstall {
+                    mode,
+                    canister_id,
+                    wasm_module,
+                    arg: args.to_vec(),
+                };
+                wallet
+                    .call_forward(
+                        mgr.update_("install_code").with_arg(install_args).build(),
+                        0,
+                    )?
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await?;
+            }
         }
     }
 
@@ -113,8 +147,22 @@ pub async fn install_canister(
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(&canister_info, &agent, timeout).await?;
+        post_install_store_assets(canister_info, agent, timeout).await?;
     }
 
     Ok(())
+}
+
+fn wasm_module_already_installed(
+    wasm_to_install: &[u8],
+    installed_module_hash: Option<&[u8]>,
+) -> bool {
+    if let Some(installed_module_hash) = installed_module_hash {
+        let mut sha256 = Sha256::new();
+        sha256.update(wasm_to_install);
+        let installing_module_hash = sha256.finish();
+        installed_module_hash == installing_module_hash
+    } else {
+        false
+    }
 }

@@ -3,12 +3,15 @@
 load ../utils/_
 
 setup() {
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    standard_setup
+
     dfx_new hello
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "call subcommand accepts canister identifier as canister name" {
@@ -21,7 +24,7 @@ teardown() {
     assert_match '("Hello, Names are difficult!")'
 }
 
-@test "call random value" {
+@test "call random value (pattern)" {
     install_asset greet
     dfx_start
     dfx canister create --all
@@ -38,7 +41,7 @@ teardown() {
     assert_command_fail dfx canister call hello greet
 }
 
-@test "call random value" {
+@test "call random value (empty)" {
     install_asset greet
     dfx_start
     dfx canister create --all

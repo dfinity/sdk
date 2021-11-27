@@ -7,8 +7,9 @@ use crate::lib::operations::canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use clap::Clap;
+use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use std::str::FromStr;
@@ -57,6 +58,10 @@ pub async fn exec(
     let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
+    if mode == InstallMode::Reinstall && (opts.canister.is_none() || opts.all) {
+        bail!("The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister.");
+    }
+
     if let Some(canister) = opts.canister.as_deref() {
         let canister_id =
             Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
@@ -67,15 +72,18 @@ pub async fn exec(
         let arguments = opts.argument.as_deref();
         let arg_type = opts.argument_type.as_deref();
         let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
+        let installed_module_hash =
+            read_module_hash(agent, &canister_id_store, &canister_info).await?;
 
         install_canister(
             env,
-            &agent,
+            agent,
             &canister_info,
             &install_args,
             mode,
             timeout,
             call_sender,
+            installed_module_hash,
         )
         .await
     } else if opts.all {
@@ -85,17 +93,20 @@ pub async fn exec(
                 let canister_id =
                     Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
+                let installed_module_hash =
+                    read_module_hash(agent, &canister_id_store, &canister_info).await?;
 
                 let install_args = [];
 
                 install_canister(
                     env,
-                    &agent,
+                    agent,
                     &canister_info,
                     &install_args,
                     mode,
                     timeout,
                     call_sender,
+                    installed_module_hash,
                 )
                 .await?;
             }
@@ -103,5 +114,30 @@ pub async fn exec(
         Ok(())
     } else {
         unreachable!()
+    }
+}
+
+async fn read_module_hash(
+    agent: &Agent,
+    canister_id_store: &CanisterIdStore,
+    canister_info: &CanisterInfo,
+) -> DfxResult<Option<Vec<u8>>> {
+    match canister_id_store.find(canister_info.get_name()) {
+        Some(canister_id) => {
+            match agent
+                .read_state_canister_info(canister_id, "module_hash")
+                .await
+            {
+                Ok(installed_module_hash) => Ok(Some(installed_module_hash)),
+                // If the canister is empty, this path does not exist.
+                // The replica doesn't support negative lookups, therefore if the canister
+                // is empty, the replica will return lookup_path([], Pruned _) = Unknown
+                Err(AgentError::LookupPathUnknown(_)) | Err(AgentError::LookupPathAbsent(_)) => {
+                    Ok(None)
+                }
+                Err(x) => bail!(x),
+            }
+        }
+        None => Ok(None),
     }
 }

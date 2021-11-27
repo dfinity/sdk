@@ -1,4 +1,4 @@
-use crate::config::dfinity::{ConfigNetwork, NetworkType, DEFAULT_IC_GATEWAY};
+use crate::config::dfinity::{Config, ConfigNetwork, NetworkType, DEFAULT_IC_GATEWAY};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
@@ -6,7 +6,6 @@ use crate::util::expiry_duration;
 
 use anyhow::{anyhow, Context};
 use lazy_static::lazy_static;
-use std::io::{Error, ErrorKind};
 use std::sync::{Arc, RwLock};
 use url::Url;
 
@@ -35,12 +34,10 @@ pub fn get_network_descriptor<'a>(
     network: Option<String>,
 ) -> DfxResult<NetworkDescriptor> {
     set_network_context(network);
-    let config = env.get_config().ok_or_else(|| {
-        Error::new(
-            ErrorKind::NotFound,
-            "Command must be run in a project directory (with a dfx.json file).",
-        )
-    })?;
+    let config = env.get_config().unwrap_or_else(|| {
+        eprintln!("dfx.json not found, using default.");
+        Arc::new(Config::from_str("{}").unwrap())
+    });
     let config = config.as_ref().get_config();
     let network_name = get_network_context()?;
     match config.get_network(&network_name) {
@@ -109,7 +106,7 @@ pub fn create_agent_environment<'a>(
 }
 
 pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
-    match parse_provider_url(&s) {
+    match parse_provider_url(s) {
         Ok(url) => Ok(url),
         Err(original_error) => {
             let prefixed_with_http = format!("http://{}", s);

@@ -11,6 +11,26 @@ install_asset() {
     [ -f ./patch.bash ] && source ./patch.bash
 }
 
+standard_setup() {
+    # We want to work from a temporary directory, different for every test.
+    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
+    export DFX_E2E_TEMP_DIR="$x"
+
+    mkdir "$x/working-dir"
+    mkdir "$x/config-root"
+    mkdir "$x/home-dir"
+
+    cd "$x/working-dir" || exit
+
+    export HOME="$x/home-dir"
+    export DFX_CONFIG_ROOT="$x/config-root"
+    export RUST_BACKTRACE=1
+}
+
+standard_teardown() {
+    rm -rf "$DFX_E2E_TEMP_DIR"
+}
+
 dfx_new_frontend() {
     local project_name=${1:-e2e_project}
     dfx new ${project_name} --frontend
@@ -31,14 +51,33 @@ dfx_new() {
     echo PWD: $(pwd) >&2
 }
 
+dfx_new_rust() {
+    local project_name=${1:-e2e_project}
+    rustup default stable
+    rustup target add wasm32-unknown-unknown
+    dfx new ${project_name} --type=rust --no-frontend
+    test -d ${project_name}
+    test -f ${project_name}/dfx.json
+    test -f ${project_name}/Cargo.toml
+    cd ${project_name}
+
+    echo PWD: $(pwd) >&2
+}
+
 dfx_patchelf() {
+    # Don't run this function during github actions
+    [ "$GITHUB_ACTIONS" ] && return 0
+
     # Only run this function on Linux
     (uname -a | grep Linux) || return 0
     echo dfx = $(which dfx)
     local CACHE_DIR="$(dfx cache show)"
+
+    dfx cache install
+
     # Both ldd and iconv are providedin glibc.bin package
     local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
-    for binary in ic-starter replica; do
+    for binary in ic-starter icx-proxy replica; do
         local BINARY="${CACHE_DIR}/${binary}"
         test -f "$BINARY" || continue
         local IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
@@ -51,10 +90,20 @@ dfx_patchelf() {
 # Start the replica in the background.
 dfx_start() {
     dfx_patchelf
+
+    if [ "$GITHUB_WORKSPACE" ]; then
+        # no need for random ports on github workflow; even using a random port we sometimes
+        # get 'address in use', so the hope is to avoid that by using a fixed port.
+        FRONTEND_HOST="127.0.0.1:8000"
+    else
+        # Start on random port for parallel test execution (needed on nix/hydra)
+        FRONTEND_HOST="127.0.0.1:0"
+    fi
+
     if [ "$USE_IC_REF" ]
     then
         if [[ "$@" == "" ]]; then
-            dfx start --emulator --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
+            dfx start --emulator --background --host "$FRONTEND_HOST" 3>&-
         else
             batslib_decorate "no arguments to dfx start --emulator supported yet"
             fail
@@ -71,7 +120,7 @@ dfx_start() {
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
         if [[ "$@" == "" ]]; then
-            dfx start --background --host "127.0.0.1:0" 3>&- # Start on random port for parallel test execution
+            dfx start --background --host "$FRONTEND_HOST" 3>&- # Start on random port for parallel test execution
         else
             dfx start --background "$@" 3>&-
         fi
@@ -92,6 +141,16 @@ dfx_start() {
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
+}
+
+wait_until_replica_healthy() {
+    echo "waiting for replica to become healthy"
+    (
+        # dfx ping has side effects, like creating a default identity.
+        DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
+        dfx ping --wait-healthy
+    )
+    echo "replica became healthy"
 }
 
 # Start the replica in the background.
@@ -140,6 +199,8 @@ dfx_start_replica_and_bootstrap() {
         "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
 
+    wait_until_replica_healthy
+
     # This only works because we use the network by name
     #    (implicitly: --network local)
     # If we passed --network http://127.0.0.1:${replica_port}
@@ -158,16 +219,17 @@ dfx_start_replica_and_bootstrap() {
 
 # Start the replica in the background.
 dfx_stop_replica_and_bootstrap() {
-    if [[ -v DFX_REPLICA_PID ]]; then
-        kill -TERM "$DFX_REPLICA_PID"
-    fi
-    if [[ -v DFX_BOOTSTRAP_PID ]]; then
-        kill -TERM "$DFX_BOOTSTRAP_PID"
-    fi
+    [ "$DFX_REPLICA_PID" ] && kill -TERM "$DFX_REPLICA_PID"
+
+    [ "$DFX_BOOTSTRAP_PID" ] && kill -TERM "$DFX_BOOTSTRAP_PID"
 }
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
+    # A suspicion: "address already is use" errors are due to an extra icx-proxy process.
+    echo "icx-proxy processes:"
+    ps aux | grep icx-proxy || echo "no ps/grep/icx-proxy output"
+
     dfx stop
     local dfx_root=.dfx/
     rm -rf $dfx_root
@@ -186,4 +248,9 @@ setup_actuallylocal_network() {
     webserver_port=$(cat .dfx/webserver-port)
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+}
+
+use_wallet_wasm() {
+    # shellcheck disable=SC2154
+    export DFX_WALLET_WASM="${archive}/wallet/$1/wallet.wasm"
 }

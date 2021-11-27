@@ -3,15 +3,15 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
-    export RUST_BACKTRACE=1
+    standard_setup
 
     dfx_new
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "repeated install wasm" {
@@ -22,6 +22,6 @@ teardown() {
     dfx deploy
     for _ in {1..50}
     do
-      dfx canister install --all --mode=reinstall
+      echo yes | dfx canister install --mode=reinstall custom
     done
 }

@@ -5,8 +5,7 @@ load ../utils/_
 RANDOM_EMPHEMERAL_PORT=$(shuf -i 49152-65535 -n 1)
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    standard_setup
 }
 
 @test "upgrade succeeds" {
@@ -27,7 +26,7 @@ setup() {
         "0.4.7"
       ]
     }' > manifest.json
-    python -m http.server "$RANDOM_EMPHEMERAL_PORT" &
+    python3 -m http.server "$RANDOM_EMPHEMERAL_PORT" &
     WEB_SERVER_PID=$!
 
     while ! nc -z localhost "$RANDOM_EMPHEMERAL_PORT"; do

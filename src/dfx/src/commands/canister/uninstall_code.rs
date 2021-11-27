@@ -57,11 +57,11 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
-        uninstall_code(env, &canister, timeout, call_sender).await
+        uninstall_code(env, canister, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                uninstall_code(env, &canister, timeout, call_sender).await?;
+                uninstall_code(env, canister, timeout, call_sender).await?;
             }
         }
         Ok(())

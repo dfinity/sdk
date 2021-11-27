@@ -1,4 +1,5 @@
 use crate::config::cache::Cache;
+use crate::config::dfinity::DEFAULT_IC_GATEWAY;
 use crate::config::dfx_version;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
@@ -10,7 +11,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use std::fs;
@@ -84,11 +85,13 @@ impl CanisterBuilder for AssetsBuilder {
             if file.header().entry_type().is_dir() {
                 continue;
             }
+            // See https://github.com/alexcrichton/tar-rs/issues/261
+            fs::create_dir_all(info.get_output_root())?;
             file.unpack_in(info.get_output_root())?;
         }
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        delete_output_directory(&info, &assets_canister_info)?;
+        delete_output_directory(info, &assets_canister_info)?;
 
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
@@ -135,6 +138,51 @@ impl CanisterBuilder for AssetsBuilder {
 
         copy_assets(pool.get_logger(), &assets_canister_info)?;
         Ok(())
+    }
+
+    fn generate_idl(
+        &self,
+        _pool: &CanisterPool,
+        info: &CanisterInfo,
+        _config: &BuildConfig,
+    ) -> DfxResult<std::path::PathBuf> {
+        let generate_output_dir = info
+            .get_declarations_config()
+            .output
+            .as_ref()
+            .context("`declarations.output` must not be None")?;
+
+        let mut canister_assets = util::assets::assetstorage_canister()?;
+        for file in canister_assets.entries()? {
+            let mut file = file?;
+
+            if file.header().entry_type().is_dir() {
+                continue;
+            }
+            // See https://github.com/alexcrichton/tar-rs/issues/261
+            fs::create_dir_all(&generate_output_dir)?;
+
+            file.unpack_in(generate_output_dir.clone())?;
+        }
+
+        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
+        delete_output_directory(info, &assets_canister_info)?;
+
+        // delete unpacked wasm file
+        let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));
+        if wasm_path.exists() {
+            std::fs::remove_file(wasm_path)?;
+        }
+
+        let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
+        let idl_path_rename = generate_output_dir
+            .join(info.get_name())
+            .with_extension("did");
+        if idl_path.exists() {
+            std::fs::rename(&idl_path, &idl_path_rename)?;
+        }
+
+        Ok(idl_path_rename)
     }
 }
 
@@ -222,10 +270,15 @@ fn build_frontend(
         // Frontend build.
         slog::info!(logger, "Building frontend...");
         let mut cmd = std::process::Command::new("npm");
+
         cmd.arg("run")
             .arg("build")
             .env("DFX_VERSION", &format!("{}", dfx_version()))
             .env("DFX_NETWORK", &network_name);
+
+        if network_name == "ic" || network_name == DEFAULT_IC_GATEWAY {
+            cmd.env("NODE_ENV", "production");
+        }
 
         for deps in &dependencies {
             let canister = pool.get_canister(deps).unwrap();

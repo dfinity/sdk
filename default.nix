@@ -12,7 +12,7 @@ rec {
   e2e-tests = import ./e2e { inherit pkgs dfx system; };
   e2e-tests-ic-ref = import ./e2e { inherit pkgs dfx system; use_ic_ref = true; };
 
-  cargo-audit = import ./cargo-audit.nix { inherit pkgs RustSec-advisory-db; };
+  check-binaries = import ./check-binaries.nix { inherit pkgs; };
 
   assets = import ./assets.nix { inherit pkgs distributed-canisters; };
 

@@ -25,7 +25,7 @@ use tar::Archive;
 const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
 
 // The dist-tag to use when getting the version from NPM.
-const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "beta";
+const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 
 lazy_static! {
 // Tested on a phone tethering connection. This should be fine with
@@ -43,6 +43,10 @@ pub struct NewOpts {
     /// Specifies the name of the project to create.
     #[clap(validator(project_name_validator))]
     project_name: String,
+
+    /// Choose the type of canister in the starter project. Default to be motoko.
+    #[clap(long, possible_values(&["motoko", "rust"]), default_value = "motoko")]
+    r#type: String,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
     #[clap(long)]
@@ -219,17 +223,22 @@ fn scaffold_frontend_code(
     let project_name_str = project_name
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
+
     if (node_installed && !arg_no_frontend) || arg_frontend {
         // Check if node is available, and if it is create the files for the frontend build.
         let js_agent_version = if let Some(v) = agent_version {
             v.clone()
         } else {
-            get_agent_js_version_from_npm(&AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
+            get_agent_js_version_from_npm(AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
                 .map_err(|err| anyhow!("Cannot execute npm: {}", err))?
         };
 
         let mut variables = variables.clone();
         variables.insert("js_agent_version".to_string(), js_agent_version);
+        variables.insert(
+            "project_name_uppercase".to_string(),
+            project_name_str.to_uppercase(),
+        );
 
         let mut new_project_node_files = assets::new_project_node_files()?;
         write_files_from_entries(
@@ -373,7 +382,12 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     .cloned()
     .collect();
 
-    let mut new_project_files = assets::new_project_files()?;
+    // Default to start with motoko
+    let mut new_project_files = match opts.r#type.as_str() {
+        "rust" => assets::new_project_rust_files()?,
+        "motoko" => assets::new_project_motoko_files()?,
+        t => bail!("Unsupported canister type: {}", t),
+    };
     write_files_from_entries(
         log,
         &mut new_project_files,
@@ -413,13 +427,13 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
             }
 
             if should_git {
-                init_git(log, &project_name)?;
+                init_git(log, project_name)?;
             }
         }
 
         #[cfg(not(target_os = "macos"))]
         {
-            init_git(log, &project_name)?;
+            init_git(log, project_name)?;
         }
     }
 

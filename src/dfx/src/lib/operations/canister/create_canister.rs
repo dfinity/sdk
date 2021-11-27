@@ -7,8 +7,8 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::anyhow;
-use ic_utils::call::AsyncCall;
+use anyhow::{anyhow, bail};
+use ic_agent::AgentError;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
@@ -43,7 +43,7 @@ pub async fn create_canister(
         format!("on network {:?} ", network_name)
     };
 
-    match canister_id_store.find(&canister_name) {
+    match canister_id_store.find(canister_name) {
         Some(canister_id) => {
             info!(
                 log,
@@ -63,9 +63,15 @@ pub async fn create_canister(
                 CallSender::SelectedId => {
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
-                    mgr.create_canister()
-                        .as_provisional_create_with_amount(cycles)
-                        .with_optional_controller(settings.controller)
+                    let mut builder = mgr
+                        .create_canister()
+                        .as_provisional_create_with_amount(cycles);
+                    if let Some(controllers) = settings.controllers {
+                        for controller in controllers {
+                            builder = builder.with_controller(controller);
+                        }
+                    };
+                    builder
                         .with_optional_compute_allocation(settings.compute_allocation)
                         .with_optional_memory_allocation(settings.memory_allocation)
                         .with_optional_freezing_threshold(settings.freezing_threshold)
@@ -80,19 +86,26 @@ pub async fn create_canister(
                         CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
                         |amount| amount.parse::<u64>().unwrap(),
                     );
-                    wallet
+                    match wallet
                         .wallet_create_canister(
                             cycles,
-                            settings.controller,
+                            settings.controllers,
                             settings.compute_allocation,
                             settings.memory_allocation,
                             settings.freezing_threshold,
+                            waiter_with_timeout(timeout),
                         )
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await?
-                        .0
-                        .map_err(|err| anyhow!(err))?
-                        .canister_id
+                        .await
+                    {
+                        Ok(result) => Ok(result.canister_id),
+                        Err(AgentError::WalletUpgradeRequired(s)) => {
+                            bail!(format!(
+                                "{}\nTo upgrade, run dfx wallet upgrade.",
+                                AgentError::WalletUpgradeRequired(s)
+                            ));
+                        }
+                        Err(other) => Err(other),
+                    }?
                 }
             };
             let canister_id = cid.to_text();
@@ -103,7 +116,7 @@ pub async fn create_canister(
                 non_default_network,
                 canister_id
             );
-            canister_id_store.add(&canister_name, canister_id)
+            canister_id_store.add(canister_name, canister_id)
         }
     }?;
 

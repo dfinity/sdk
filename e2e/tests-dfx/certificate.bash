@@ -3,9 +3,7 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
-    export RUST_BACKTRACE=1
+    standard_setup
 
     dfx_new certificate
 
@@ -15,6 +13,15 @@ setup() {
     dfx deploy
 
     BACKEND="$(jq -r .networks.local.bind dfx.json)"
+
+    # In github workflows, at the time of this writing, we get:
+    #     macos-latest: mitmproxy 7.0.4
+    #     ubuntu-latest: mitmproxy 4.x
+    if [ "$(mitmdump --version | grep Mitmproxy | cut -d ' ' -f 2 | cut -c 1-2)" = "4." ]; then
+        MODIFY_BODY_ARG="--replacements"
+    else
+        MODIFY_BODY_ARG="--modify-body"
+    fi
 
     # Sometimes, something goes wrong with mitmdump's initialization.
     # It reports that it is listening, and the `nc` call succeeds,
@@ -33,7 +40,7 @@ setup() {
         # shellcheck disable=SC2094
         cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$MITM_PORT"'"' dfx.json)" >dfx.json
 
-        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  --modify-body '/~s/Hello,/Hullo,' &
+        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  "$MODIFY_BODY_ARG" '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
         timeout 5 sh -c \
@@ -52,6 +59,8 @@ teardown() {
     kill -9 $MITMDUMP_PID
 
     dfx_stop
+
+    standard_teardown
 }
 
 @test "mitm attack - update: attack fails because certificate verification fails" {

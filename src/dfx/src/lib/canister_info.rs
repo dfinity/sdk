@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{CanisterDeclarationsConfig, Config};
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
@@ -11,9 +11,12 @@ use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use self::rust::RustCanisterInfo;
+
 pub mod assets;
 pub mod custom;
 pub mod motoko;
+pub mod rust;
 
 pub trait CanisterInfoFactory {
     /// Returns true if this factory supports creating extra info for this canister info.
@@ -30,6 +33,8 @@ pub struct CanisterInfo {
     name: String,
     canister_type: String,
 
+    declarations_config: CanisterDeclarationsConfig,
+
     workspace_root: PathBuf,
     build_root: PathBuf,
     output_root: PathBuf,
@@ -38,6 +43,7 @@ pub struct CanisterInfo {
     canister_id: Option<CanisterId>,
 
     packtool: Option<String>,
+    args: Option<String>,
 
     extras: BTreeMap<String, serde_json::Value>,
 }
@@ -65,6 +71,18 @@ impl CanisterInfo {
 
         let canister_root = workspace_root.to_path_buf();
         let extras = canister_config.extras.clone();
+        let declarations_config_pre = canister_config.declarations.clone();
+
+        // Fill the default config values if None provided
+        let declarations_config = CanisterDeclarationsConfig {
+            output: declarations_config_pre
+                .output
+                .or_else(|| Some(PathBuf::from("src/declarations").join(name))),
+            bindings: declarations_config_pre
+                .bindings
+                .or_else(|| Some(vec!["js".to_string(), "ts".to_string(), "did".to_string()])),
+            env_override: declarations_config_pre.env_override,
+        };
 
         let output_root = build_root.join(name);
 
@@ -74,9 +92,11 @@ impl CanisterInfo {
             .cloned()
             .unwrap_or_else(|| "motoko".to_owned());
 
-        Ok(CanisterInfo {
+        let canister_info = CanisterInfo {
             name: name.to_string(),
             canister_type,
+
+            declarations_config,
 
             workspace_root: workspace_root.to_path_buf(),
             build_root,
@@ -86,7 +106,19 @@ impl CanisterInfo {
             canister_id,
 
             packtool: build_defaults.get_packtool(),
+            args: build_defaults.get_args(),
             extras,
+        };
+
+        let canister_args: Option<String> = canister_info.get_extra_optional("args")?;
+
+        Ok(match canister_args {
+            None => canister_info,
+            Some(v) if v.is_empty() => canister_info,
+            args => CanisterInfo {
+                args,
+                ..canister_info
+            },
         })
     }
 
@@ -95,6 +127,9 @@ impl CanisterInfo {
     }
     pub fn get_type(&self) -> &str {
         &self.canister_type
+    }
+    pub fn get_declarations_config(&self) -> &CanisterDeclarationsConfig {
+        &self.declarations_config
     }
     pub fn get_workspace_root(&self) -> &Path {
         &self.workspace_root
@@ -139,12 +174,28 @@ impl CanisterInfo {
                 T::deserialize(v).map_err(|_| anyhow!("Field '{}' is of the wrong type.", name))
             })
     }
+
+    pub fn get_extra_optional<T: serde::de::DeserializeOwned>(
+        &self,
+        name: &str,
+    ) -> DfxResult<Option<T>> {
+        if self.has_extra(name) {
+            self.get_extra(name).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+
     pub fn get_extras(&self) -> &BTreeMap<String, serde_json::Value> {
         &self.extras
     }
 
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+
+    pub fn get_args(&self) -> &Option<String> {
+        &self.args
     }
 
     pub fn get_build_wasm_path(&self) -> PathBuf {
@@ -161,12 +212,21 @@ impl CanisterInfo {
             .with_extension("did")
     }
 
+    pub fn get_index_js_path(&self) -> PathBuf {
+        self.build_root
+            .join(PathBuf::from(&self.name))
+            .join("index")
+            .with_extension("js")
+    }
+
     pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
         if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
         } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
         } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
+            Some(info.get_output_wasm_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
             Some(info.get_output_wasm_path().to_path_buf())
         } else {
             None
@@ -179,6 +239,8 @@ impl CanisterInfo {
         } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
+            Some(info.get_output_idl_path().to_path_buf())
+        } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else {
             None

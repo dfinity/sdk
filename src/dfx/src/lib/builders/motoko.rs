@@ -9,6 +9,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
+
 use ic_types::principal::Principal as CanisterId;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
@@ -122,18 +123,14 @@ impl CanisterBuilder for MotokoBuilder {
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
 
-        // Generate IDL
-        let output_idl_path = motoko_info.get_output_idl_path();
-        let params = MotokoParams {
-            build_target: BuildTarget::Idl,
-            surpress_warning: false,
-            input: &input_path,
-            package_arguments: &package_arguments,
-            output: &output_idl_path,
-            idl_path: &idl_dir_path,
-            idl_map: &id_map,
+        let moc_arguments = match motoko_info.get_args() {
+            Some(args) => [
+                package_arguments,
+                args.split_whitespace().map(str::to_string).collect(),
+            ]
+            .concat(),
+            None => package_arguments,
         };
-        motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
         // Generate wasm
         let params = MotokoParams {
@@ -141,12 +138,11 @@ impl CanisterBuilder for MotokoBuilder {
                 Profile::Release => BuildTarget::Release,
                 _ => BuildTarget::Debug,
             },
-            // Surpress the warnings the second time we call moc
-            surpress_warning: true,
-            input: &input_path,
-            package_arguments: &package_arguments,
-            output: &output_wasm_path,
-            idl_path: &idl_dir_path,
+            suppress_warning: false,
+            input: input_path,
+            package_arguments: &moc_arguments,
+            output: output_wasm_path,
+            idl_path: idl_dir_path,
             idl_map: &id_map,
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
@@ -166,7 +162,6 @@ type CanisterIdMap = BTreeMap<String, String>;
 enum BuildTarget {
     Release,
     Debug,
-    Idl,
 }
 
 struct MotokoParams<'a> {
@@ -177,17 +172,16 @@ struct MotokoParams<'a> {
     output: &'a Path,
     input: &'a Path,
     // The following fields are control flags for dfx and will not be used by self.to_args()
-    surpress_warning: bool,
+    suppress_warning: bool,
 }
 
 impl MotokoParams<'_> {
     fn to_args(&self, cmd: &mut std::process::Command) {
         cmd.arg(self.input);
-        cmd.arg("-o").arg(self.output);
+        cmd.arg("-o").arg(self.output).arg("--idl");
         match self.build_target {
             BuildTarget::Release => cmd.args(&["-c", "--release"]),
             BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
-            BuildTarget::Idl => cmd.arg("--idl"),
         };
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
@@ -203,7 +197,7 @@ impl MotokoParams<'_> {
 fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
     params.to_args(&mut cmd);
-    run_command(logger, &mut cmd, params.surpress_warning)?;
+    run_command(logger, &mut cmd, params.suppress_warning)?;
     Ok(())
 }
 
@@ -280,7 +274,7 @@ impl TryFrom<&str> for MotokoImport {
 fn run_command(
     logger: &slog::Logger,
     cmd: &mut std::process::Command,
-    surpress_warning: bool,
+    suppress_warning: bool,
 ) -> DfxResult<Output> {
     trace!(logger, r#"Running {}..."#, format!("{:?}", cmd));
 
@@ -296,7 +290,7 @@ fn run_command(
         if !output.stdout.is_empty() {
             info!(logger, "{}", String::from_utf8_lossy(&output.stdout));
         }
-        if !surpress_warning && !output.stderr.is_empty() {
+        if !suppress_warning && !output.stderr.is_empty() {
             warn!(logger, "{}", String::from_utf8_lossy(&output.stderr));
         }
         Ok(output)

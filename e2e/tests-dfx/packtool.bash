@@ -3,14 +3,15 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
+    standard_setup
 
     dfx_new
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
 }
 
 @test "build fails if packtool is not configured" {
@@ -70,5 +71,5 @@ teardown() {
     assert_command_fail dfx build
     assert_match 'The command.*failed'
     assert_match 'sh.*command-that-fails.bash'
-    assert_match 'exit code: 3'
+    assert_match 'exit (code|status): 3'
 }

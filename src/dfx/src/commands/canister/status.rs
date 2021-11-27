@@ -36,10 +36,18 @@ async fn canister_status(
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nController: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
+    let mut controllers: Vec<_> = status
+        .settings
+        .controllers
+        .iter()
+        .map(Principal::to_text)
+        .collect();
+    controllers.sort();
+
+    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
         canister,
         status.status,
-        status.settings.controller,
+        controllers.join(" "),
         status.settings.memory_allocation,
         status.settings.compute_allocation,
         status.settings.freezing_threshold,
@@ -61,11 +69,11 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
-        canister_status(env, &canister, timeout, call_sender).await
+        canister_status(env, canister, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                canister_status(env, &canister, timeout, call_sender).await?;
+                canister_status(env, canister, timeout, call_sender).await?;
             }
         }
         Ok(())

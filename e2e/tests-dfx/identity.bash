@@ -3,21 +3,15 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
-
-    # Each test gets its own home directory in order to have its own identities.
-    x=$(pwd)/home-for-test
-    mkdir "$x"
-    export HOME="$x"
+    standard_setup
 
     dfx_new
 }
 
 teardown() {
     dfx_stop
-    x=$(pwd)/home-for-test
-    rm -rf "$x"
+
+    standard_teardown
 }
 
 
@@ -38,6 +32,30 @@ teardown() {
 
     if [ "$PRINCPAL_ID" -ne "$SENDER_ID" ]; then
       echo "IDs did not match: Principal '${PRINCPAL_ID}' != Sender '${SENDER_ID}'..." | fail
+    fi
+}
+
+@test "identity get-principal (anonymous): the get-principal is the same as sender id" {
+    install_asset identity
+    dfx_start
+    assert_command dfx identity new jose
+
+    ANONYMOUS_PRINCIPAL_ID="2vxsx-fae"
+
+    PRINCIPAL_ID=$(dfx --identity anonymous identity get-principal)
+
+    if [ "$PRINCIPAL_ID" -ne "$ANONYMOUS_PRINCIPAL_ID" ]; then
+      echo "IDs did not match: Principal '${ANONYMOUS_PRINCIPAL_ID}' != Sender '${PRINCIPAL_ID}'..." | fail
+    fi
+
+    dfx --identity jose canister create e2e_project
+    dfx --identity jose build e2e_project
+    dfx --identity jose canister install e2e_project
+
+    SENDER_ID=$(dfx --identity anonymous canister call e2e_project fromCall)
+
+    if [ "$ANONYMOUS_PRINCIPAL_ID" -ne "$SENDER_ID" ]; then
+      echo "IDs did not match: Principal '${ANONYMOUS_PRINCIPAL_ID}' != Sender '${SENDER_ID}'..." | fail
     fi
 }
 

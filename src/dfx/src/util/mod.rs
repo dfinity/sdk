@@ -1,9 +1,9 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 
-use candid::parser::typing::{check_prog, TypeEnv};
+use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
-use candid::{parser::value::IDLValue, IDLArgs, IDLProg};
+use candid::{parser::value::IDLValue, IDLArgs};
 use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
 use std::net::{IpAddr, SocketAddr};
@@ -51,7 +51,7 @@ pub fn print_idl_blob(
         "idl" | "pp" => {
             let result = match method_type {
                 None => candid::IDLArgs::from_bytes(blob),
-                Some((env, func)) => candid::IDLArgs::from_bytes_with_types(blob, &env, &func.rets),
+                Some((env, func)) => candid::IDLArgs::from_bytes_with_types(blob, env, &func.rets),
             };
             if result.is_err() {
                 let hex_string = hex::encode(blob);
@@ -97,11 +97,7 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
 }
 
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    let idl_file = std::fs::read_to_string(idl_path)?;
-    let ast = candid::pretty_parse::<IDLProg>(&idl_path.to_string_lossy(), &idl_file)?;
-    let mut env = TypeEnv::new();
-    let actor = check_prog(&mut env, &ast)?;
-    Ok((env, actor))
+    Ok(pretty_check_file(idl_path)?)
 }
 
 pub fn blob_from_arguments(
@@ -122,7 +118,7 @@ pub fn blob_from_arguments(
             let typed_args = match method_type {
                 None => {
                     let arguments = arguments.unwrap_or("()");
-                    candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
+                    candid::pretty_parse::<IDLArgs>("Candid argument", arguments)
                         .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
                         .to_bytes()
                 }
@@ -138,15 +134,15 @@ pub fn blob_from_arguments(
                                 if candid::types::Type::Text == func.args[0] && !is_quote {
                                     Ok(IDLValue::Text(arguments.to_string()))
                                 } else {
-                                    candid::pretty_parse::<IDLValue>("Candid argument", &arguments)
+                                    candid::pretty_parse::<IDLValue>("Candid argument", arguments)
                                 }
                                 .map(|v| IDLArgs::new(&[v]))
                             } else {
-                                candid::pretty_parse::<IDLArgs>("Candid argument", &arguments)
+                                candid::pretty_parse::<IDLArgs>("Candid argument", arguments)
                             }
                         });
                         args.map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
-                            .to_bytes_with_types(&env, &func.args)
+                            .to_bytes_with_types(env, &func.args)
                     } else if func.args.is_empty() {
                         use candid::Encode;
                         Encode!()
@@ -161,9 +157,9 @@ pub fn blob_from_arguments(
                         let mut rng = rand::thread_rng();
                         let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
                         let config = candid::parser::configs::Configs::from_dhall(random)?;
-                        let args = IDLArgs::any(&seed, &config, &env, &func.args)?;
+                        let args = IDLArgs::any(&seed, &config, env, &func.args)?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
-                        args.to_bytes_with_types(&env, &func.args)
+                        args.to_bytes_with_types(env, &func.args)
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));
                     }

@@ -24,7 +24,10 @@ const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsB
     timeout: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild { packtool: None };
+const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
+    packtool: None,
+    args: None,
+};
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
     message_gas_limit: None,
@@ -42,8 +45,27 @@ pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 pub struct ConfigCanistersCanister {
     pub r#type: Option<String>,
 
+    #[serde(default)]
+    pub declarations: CanisterDeclarationsConfig,
+
     #[serde(flatten)]
     pub extras: BTreeMap<String, Value>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CanisterDeclarationsConfig {
+    // Directory to place declarations for that canister
+    // Default is "src/declarations/<canister_name>"
+    pub output: Option<PathBuf>,
+
+    // A list of languages to generate type declarations
+    // Supported options are "js", "ts", "did", "mo"
+    // default is ["js", "ts", "did"]
+    pub bindings: Option<Vec<String>>,
+
+    // A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID
+    // in the "src/dfx/assets/language_bindings/canister.js" template
+    pub env_override: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -56,6 +78,7 @@ pub struct ConfigDefaultsBootstrap {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBuild {
     pub packtool: Option<String>,
+    pub args: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -162,24 +185,30 @@ impl ConfigDefaultsBuild {
             _ => None,
         }
     }
+    pub fn get_args(&self) -> Option<String> {
+        match &self.args {
+            Some(v) if !v.is_empty() => self.args.to_owned(),
+            _ => None,
+        }
+    }
 }
 
 impl ConfigDefaults {
     pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
         match &self.bootstrap {
-            Some(x) => &x,
+            Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_BOOTSTRAP,
         }
     }
     pub fn get_build(&self) -> &ConfigDefaultsBuild {
         match &self.build {
-            Some(x) => &x,
+            Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_BUILD,
         }
     }
     pub fn get_replica(&self) -> &ConfigDefaultsReplica {
         match &self.replica {
-            Some(x) => &x,
+            Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_REPLICA,
         }
     }
@@ -188,7 +217,7 @@ impl ConfigDefaults {
 impl ConfigInterface {
     pub fn get_defaults(&self) -> &ConfigDefaults {
         match &self.defaults {
-            Some(v) => &v,
+            Some(v) => v,
             _ => &EMPTY_CONFIG_DEFAULTS,
         }
     }
@@ -393,8 +422,8 @@ impl Config {
     }
 
     fn from_slice(path: PathBuf, content: &[u8]) -> std::io::Result<Config> {
-        let config = serde_json::from_slice(&content)?;
-        let json = serde_json::from_slice(&content)?;
+        let config = serde_json::from_slice(content)?;
+        let json = serde_json::from_slice(content)?;
         Ok(Config { path, json, config })
     }
 

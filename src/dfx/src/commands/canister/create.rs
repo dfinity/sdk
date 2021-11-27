@@ -36,14 +36,18 @@ pub struct CanisterCreateOpts {
     with_cycles: Option<String>,
 
     /// Specifies the identity name or the principal of the new controller.
-    controller: Option<String>,
+    #[clap(long, multiple(true), number_of_values(1))]
+    controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
     #[clap(long, short('c'), validator(compute_allocation_validator))]
     compute_allocation: Option<String>,
 
     /// Specifies how much memory the canister is allowed to use in total.
-    /// This should be a value in the range [0..256 TB]
+    /// This should be a value in the range [0..12 GiB]
+    /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
+    /// It will only be charged for the memory it uses, but at any point in time may stop running
+    /// if it tries to allocate more memory when there isn’t space available on the subnet.
     #[clap(long, validator(memory_allocation_validator))]
     memory_allocation: Option<String>,
 
@@ -65,24 +69,33 @@ pub async fn exec(
 
     let config_interface = config.get_config();
 
-    let controller = if let Some(controller) = opts.controller.clone() {
-        match CanisterId::from_text(controller.clone()) {
-            Ok(principal) => Some(principal),
-            Err(_) => {
-                let current_id = env.get_selected_identity().unwrap();
-                if current_id == &controller {
-                    Some(env.get_selected_identity_principal().unwrap())
-                } else {
-                    let identity_name = &controller;
-                    let sender = IdentityManager::new(env)?
-                        .instantiate_identity_from_name(&identity_name.clone())?;
-                    Some(sender.sender().map_err(|err| anyhow!(err))?)
-                }
-            }
-        }
-    } else {
-        None
-    };
+    let controllers: Option<Vec<_>> = opts
+        .controller
+        .clone()
+        .map(|controllers| {
+            controllers
+                .iter()
+                .map(
+                    |controller| match CanisterId::from_text(controller.clone()) {
+                        Ok(principal) => Ok(principal),
+                        Err(_) => {
+                            let current_id = env.get_selected_identity().unwrap();
+                            if current_id == controller {
+                                Ok(env.get_selected_identity_principal().unwrap())
+                            } else {
+                                let identity_name = controller;
+                                IdentityManager::new(env)?
+                                    .instantiate_identity_from_name(identity_name)
+                                    .and_then(|identity| {
+                                        identity.sender().map_err(|err| anyhow!(err))
+                                    })
+                            }
+                        }
+                    },
+                )
+                .collect::<DfxResult<Vec<_>>>()
+        })
+        .transpose()?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
         let compute_allocation = get_compute_allocation(
@@ -107,7 +120,7 @@ pub async fn exec(
             with_cycles,
             call_sender,
             CanisterSettings {
-                controller,
+                controllers,
                 compute_allocation,
                 memory_allocation,
                 freezing_threshold,
@@ -141,7 +154,7 @@ pub async fn exec(
                     with_cycles,
                     call_sender,
                     CanisterSettings {
-                        controller,
+                        controllers: controllers.clone(),
                         compute_allocation,
                         memory_allocation,
                         freezing_threshold,

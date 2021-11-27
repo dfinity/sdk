@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.7.5"
+version = "0.8.5-beta.0"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -11,6 +11,8 @@ path = "src/main.rs"
 
 [build-dependencies]
 flate2 = "1.0.11"
+hex = "0.4.2"
+openssl = "0.10.32"
 tar = "0.4.26"
 
 [dependencies]
@@ -22,20 +24,21 @@ actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
 anyhow = "1.0.34"
 atty = "0.2.13"
 base64 = "0.11.0"
-candid = { version = "0.7.1", features = [ "random" ] }
+candid = { version = "0.7.6", features = [ "random" ] }
 chrono = "0.4.9"
-clap = "3.0.0-beta.2"
+clap = "=3.0.0-beta.2"
+clap_derive = "=3.0.0-beta.2"
 console = "0.7.7"
 crc32fast = "1.2.0"
-crossbeam = "0.7.3"
-ctrlc = { version = "3.1.6", features = [ "termination" ] }
+crossbeam = "0.8.1"
+ctrlc = { version = "3.2.1", features = [ "termination" ] }
 dialoguer = "0.6.2"
 erased-serde = "0.3.10"
 flate2 = "1.0.11"
 futures = "0.3.5"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
-ic-types = "0.2.0"
+ic-types = "0.2.2"
 indicatif = "0.13.0"
 lazy-init = "0.5.0"
 lazy_static = "1.4.0"
@@ -45,13 +48,14 @@ mime = "0.3.16"
 mime_guess = "2.0.3"
 mockall = "0.6.0"
 net2 = "0.2.34"
+num-traits = "0.2"
 openssl = "0.10.32"
 pem = "0.7.0"
 petgraph = "0.5.0"
 rand = "0.7.2"
 regex = "1.3.1"
 ring = "0.16.11"
-reqwest = { version = "0.10.4", features = [ "blocking", "json", "rustls-tls" ] }
+reqwest = { version = "0.11.4", features = [ "blocking", "json", "rustls-tls" ] }
 rustls = "0.18.0"
 rust_decimal = "1.10.3"
 semver = "0.9.0"
@@ -65,10 +69,10 @@ slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
 slog-term = "2.5.0"
 sysinfo = "0.9.6"
-tar = "0.4.26"
+tar = "0.4.37"
 tempfile = "3.1.0"
 thiserror = "1.0.20"
-tokio = { version = "1.2.0", features = [ "fs" ] }
+tokio = { version = "1.14.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
@@ -76,25 +80,25 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.5.1"
+version = "0.9.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
+rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.0.1"
+version = "0.4.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
+rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 
 [dependencies.ic-identity-hsm]
-version = "0.3.2"
+version = "0.3.6"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
+rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 
 [dependencies.ic-utils]
-version = "0.3.2"
+version = "0.7.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "168123af93e5dd9ef9a56ee794eb81c076523dc3"
+rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
 
 [dev-dependencies]
 env_logger = "0.6"

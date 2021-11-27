@@ -3,15 +3,44 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    cd "$(mktemp -d -t dfx-e2e-XXXXXXXX)" || exit
-    export RUST_BACKTRACE=1
+    standard_setup
 
     dfx_new
 }
 
 teardown() {
     dfx_stop
+
+    standard_teardown
+}
+
+@test "build uses default build args" {
+    install_asset default_args
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx build --check
+    assert_match "unknown option"
+    assert_match "compacting-gcX"
+}
+
+@test "build uses canister build args" {
+    install_asset canister_args
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx build --check
+    assert_match "unknown option"
+    assert_match "compacting-gcY"
+    assert_not_match "compacting-gcX"
+}
+
+@test "empty canister build args don't shadow default" {
+    install_asset empty_canister_args
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx build --check
+    assert_match '"--error-detail" "5"'
+    assert_match "unknown option"
+    assert_match "compacting-gcX"
 }
 
 @test "build fails on invalid motoko" {
