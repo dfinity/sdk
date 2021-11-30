@@ -33,3 +33,13 @@ jobs:
 
       - name: Prepare dfx assets
         run: scripts/prepare-dfx-assets.sh "$(mktemp -d)"
+
+  aggregate:
+    name: prepare-dfx-assets:required
+    if: ${{ always() }}
+    needs: builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: check step result directly
+        if: ${{ needs.builds.result != 'success' }}
+        run: exit 1
