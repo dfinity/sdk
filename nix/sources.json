@@ -131,7 +131,7 @@
     "replica-x86_64-linux": {
         "builtin": false,
         "rev": "5ba08e57d607fc8fb159013fe30e46302cb4667d",
-        "sha256": "1mngh4v9rk37yn3c0lmm7j5kg3wi6mpijhshl4gzsqkkm5ivcbpj",
+        "sha256": "1faaxsklhqbc3pjw1fvnhzqlap3zzgjw4g07phzpz9drm8d0zah2",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/replica.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/replica.gz"
