@@ -29,4 +29,4 @@ jobs:
           rustup default ${{ matrix.rust }}
 
       - name: Prepare dfx assets
-        run: scripts/prepare-dfx-assets.sh
+        run: scripts/prepare-dfx-assets.sh aaa
