@@ -22,6 +22,13 @@ if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     sudo apt-get install --yes mitmproxy
 fi
 
+echo "What is happening with pyparsing"
+python3 --version
+python3 -c "
+import pyparsing as pp
+print(pp.__version__)
+"
+
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"
 echo "BATSLIB=${BATS_SUPPORT}" >> "$GITHUB_ENV"
