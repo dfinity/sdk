@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  builds:
+  prepare:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -37,9 +37,9 @@ jobs:
   aggregate:
     name: prepare-dfx-assets:required
     if: ${{ always() }}
-    needs: builds
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: check step result directly
-        if: ${{ needs.builds.result != 'success' }}
+        if: ${{ needs.prepare.result != 'success' }}
         run: exit 1
