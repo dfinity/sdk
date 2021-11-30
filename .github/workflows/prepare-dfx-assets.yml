@@ -1,4 +1,4 @@
-name: Check cargo build
+name: Check prepare dfx assets
 on:
   pull_request:
   push:
@@ -28,5 +28,5 @@ jobs:
           rustup component add clippy
           rustup default ${{ matrix.rust }}
 
-      - name: Check cargo build
-        run: cargo build
+      - name: Prepare dfx assets
+        run: scripts/prepare-dfx-assets.sh
