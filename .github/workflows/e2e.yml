@@ -29,12 +29,14 @@ jobs:
           rustup update ${{ matrix.rust }} --no-self-update
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt
-      - name: Prepare dfx assets
-        run: scripts/prepare-dfx-assets.sh aaaa
-        env:
-          OPENSSL_STATIC: yes
+#      - name: Prepare dfx assets
+#        run: scripts/prepare-dfx-assets.sh aaaa
+#        env:
+#          OPENSSL_STATIC: yes
       - name: Build
-        run: cargo build --locked --release
+        run: |
+          cargo clean
+          cargo build --locked --release
         env:
           OPENSSL_STATIC: yes
       - name: Strip binaries
