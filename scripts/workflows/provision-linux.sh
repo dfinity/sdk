@@ -21,7 +21,7 @@ rm v$version.tar.gz
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     # pyparsing 3.x renamed something, resulting in this error:
     # # AttributeError: module 'pyparsing' has no attribute 'operatorPrecedence'
-    sudo apt-get install --yes mitmproxy python3-pyparsing=2.4.6-1
+    sudo apt-get install --yes mitmproxy python-pyparsing=2.4.6-1 python3-pyparsing=2.4.6-1
 fi
 
 echo "What is happening with pyparsing"
