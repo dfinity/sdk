@@ -5,7 +5,7 @@ use crate::lib::error::DfxResult;
 
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::get_network_context;
-use crate::util::check_candid_file;
+use crate::util::{self, check_candid_file};
 
 use anyhow::{bail, Context};
 use ic_types::principal::Principal as CanisterId;
@@ -226,7 +226,9 @@ impl BuildConfig {
     pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = get_network_context()?;
-        let build_root = config.get_temp_path().join(&network_name);
+        let build_root = config
+            .get_temp_path()
+            .join(util::network_to_pathcompat(&network_name));
         let build_root = build_root.join("canisters");
 
         Ok(BuildConfig {
