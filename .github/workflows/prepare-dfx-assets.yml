@@ -1,20 +1,23 @@
-name: Lint
+name: Check dfx asset preparation
+# The cargo build steps in other workflows often benefit from caching of the results of this process,
+# so this workflow runs it separately.
 
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master
 
 jobs:
-  test:
-    name: lint
+  prepare:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         rust: [ '1.55.0' ]
         os: [ ubuntu-latest, macos-latest ]
-
     steps:
       - uses: actions/checkout@v2
-
       - uses: actions/cache@v2
         with:
           path: |
@@ -22,23 +25,21 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Install Rust
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
-          rustup default ${{ matrix.rust }}
           rustup component add clippy
-      - name: Run Lint
-        run: cargo clippy --verbose --tests --benches -- -D clippy::all
-        env:
-          RUST_BACKTRACE: 1
+          rustup default ${{ matrix.rust }}
+
+      - name: Prepare dfx assets
+        run: scripts/prepare-dfx-assets.sh "$(mktemp -d)"
 
   aggregate:
-    name: lint:required
+    name: prepare-dfx-assets:required
     if: ${{ always() }}
-    needs: test
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: check step result directly
-        if: ${{ needs.test.result != 'success' }}
+        if: ${{ needs.prepare.result != 'success' }}
         run: exit 1

@@ -60,7 +60,7 @@
         "rev": "5ba08e57d607fc8fb159013fe30e46302cb4667d",
         "sha256": "1jshdygx7pr0v7s4v2bm277y8jqyrpd9gdhwqmx1762nk7rqq8q0",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/x86_64-darwin/ic-starter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/x86_64-darwin/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/ic-starter.gz"
     },
     "ic-starter-x86_64-linux": {
@@ -68,7 +68,7 @@
         "rev": "5ba08e57d607fc8fb159013fe30e46302cb4667d",
         "sha256": "1cnib147bwmxi1hp8kwl002d0hp3pxdrmjy1s47fr3i3la18mw55",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/ic-starter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/ic-starter.gz"
     },
     "icx-proxy": {
@@ -125,7 +125,7 @@
         "rev": "5ba08e57d607fc8fb159013fe30e46302cb4667d",
         "sha256": "1m3z228k2kzx9l7g0f8k52pk6hnr5l01jabvanchl2mbip3d27d6",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/x86_64-darwin/replica.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/x86_64-darwin/replica.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/replica.gz"
     },
     "replica-x86_64-linux": {
@@ -133,7 +133,7 @@
         "rev": "5ba08e57d607fc8fb159013fe30e46302cb4667d",
         "sha256": "1faaxsklhqbc3pjw1fvnhzqlap3zzgjw4g07phzpz9drm8d0zah2",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/replica.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/replica.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/replica.gz"
     }
 }

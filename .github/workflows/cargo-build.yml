@@ -9,6 +9,7 @@ jobs:
   builds:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         rust: [ '1.55.0' ]
         os: [ ubuntu-latest, macos-latest ]
