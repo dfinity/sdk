@@ -10,9 +10,20 @@ setup() {
     install_asset certificate
     dfx_start
 
+    (uname -a | grep Linux) && return 0
+
     dfx deploy
 
     BACKEND="$(jq -r .networks.local.bind dfx.json)"
+
+    # In github workflows, at the time of this writing, we get:
+    #     macos-latest: mitmproxy 7.0.4
+    #     ubuntu-latest: mitmproxy 4.x
+    if [ "$(mitmdump --version | grep Mitmproxy | cut -d ' ' -f 2 | cut -c 1-2)" = "4." ]; then
+        MODIFY_BODY_ARG="--replacements"
+    else
+        MODIFY_BODY_ARG="--modify-body"
+    fi
 
     # Sometimes, something goes wrong with mitmdump's initialization.
     # It reports that it is listening, and the `nc` call succeeds,
@@ -31,7 +42,7 @@ setup() {
         # shellcheck disable=SC2094
         cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$MITM_PORT"'"' dfx.json)" >dfx.json
 
-        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  --modify-body '/~s/Hello,/Hullo,' &
+        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  "$MODIFY_BODY_ARG" '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
         timeout 5 sh -c \
@@ -55,11 +66,14 @@ teardown() {
 }
 
 @test "mitm attack - update: attack fails because certificate verification fails" {
+    (uname -a | grep Linux) && skip "See SDK-221: mitmproxy / pyparsing incompatibility on ubuntu-latest"
+
     assert_command_fail dfx canister call certificate hello_update '("Buckaroo")'
     assert_match 'Certificate verification failed.'
 }
 
 @test "mitm attack - query: attack succeeds because there is no certificate to verify" {
+    (uname -a | grep Linux) && skip "See SDK-221: mitmproxy / pyparsing incompatibility on ubuntu-latest"
     # The wallet does not have a query call forward method (currently calls forward from wallet's update method)
     # So call with users Identity as sender here
     # There may need to be a query version of wallet_call

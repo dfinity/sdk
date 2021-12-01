@@ -103,7 +103,7 @@ pub fn create_agent_environment<'a>(
 }
 
 pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
-    match parse_provider_url(&s) {
+    match parse_provider_url(s) {
         Ok(url) => Ok(url),
         Err(original_error) => {
             let prefixed_with_http = format!("http://{}", s);

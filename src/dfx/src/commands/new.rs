@@ -44,6 +44,10 @@ pub struct NewOpts {
     #[clap(validator(project_name_validator))]
     project_name: String,
 
+    /// Choose the type of canister in the starter project. Default to be motoko.
+    #[clap(long, possible_values(&["motoko", "rust"]), default_value = "motoko")]
+    r#type: String,
+
     /// Provides a preview the directories and files to be created without adding them to the file system.
     #[clap(long)]
     dry_run: bool,
@@ -225,7 +229,7 @@ fn scaffold_frontend_code(
         let js_agent_version = if let Some(v) = agent_version {
             v.clone()
         } else {
-            get_agent_js_version_from_npm(&AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
+            get_agent_js_version_from_npm(AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
                 .map_err(|err| anyhow!("Cannot execute npm: {}", err))?
         };
 
@@ -378,7 +382,12 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     .cloned()
     .collect();
 
-    let mut new_project_files = assets::new_project_files()?;
+    // Default to start with motoko
+    let mut new_project_files = match opts.r#type.as_str() {
+        "rust" => assets::new_project_rust_files()?,
+        "motoko" => assets::new_project_motoko_files()?,
+        t => bail!("Unsupported canister type: {}", t),
+    };
     write_files_from_entries(
         log,
         &mut new_project_files,
@@ -418,13 +427,13 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
             }
 
             if should_git {
-                init_git(log, &project_name)?;
+                init_git(log, project_name)?;
             }
         }
 
         #[cfg(not(target_os = "macos"))]
         {
-            init_git(log, &project_name)?;
+            init_git(log, project_name)?;
         }
     }
 

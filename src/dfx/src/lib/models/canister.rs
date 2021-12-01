@@ -407,7 +407,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
 
         let new_file_contents = file_contents
             .replace("{canister_id}", &canister_id.to_text())
-            .replace("{canister_name}", &canister_info.get_name())
+            .replace("{canister_name}", canister_info.get_name())
             .replace(
                 "{canister_name_uppercase}",
                 &canister_info.get_name().to_uppercase(),

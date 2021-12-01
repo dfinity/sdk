@@ -30,8 +30,8 @@ pub async fn install_canister(
     installed_module_hash: Option<Vec<u8>>,
 ) -> DfxResult {
     let network = env.get_network_descriptor().unwrap();
-    if !network.is_ic && named_canister::get_ui_canister_id(&network).is_none() {
-        named_canister::install_ui_canister(env, &network, None).await?;
+    if !network.is_ic && named_canister::get_ui_canister_id(network).is_none() {
+        named_canister::install_ui_canister(env, network, None).await?;
     }
 
     if mode == InstallMode::Reinstall {
@@ -147,7 +147,7 @@ pub async fn install_canister(
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(&canister_info, &agent, timeout).await?;
+        post_install_store_assets(canister_info, agent, timeout).await?;
     }
 
     Ok(())
@@ -159,7 +159,7 @@ fn wasm_module_already_installed(
 ) -> bool {
     if let Some(installed_module_hash) = installed_module_hash {
         let mut sha256 = Sha256::new();
-        sha256.update(&wasm_to_install);
+        sha256.update(wasm_to_install);
         let installing_module_hash = sha256.finish();
         installed_module_hash == installing_module_hash
     } else {

@@ -64,11 +64,11 @@ impl AccountIdentifier {
         check_sum(*hex)
     }
 
-    pub fn to_hex(&self) -> String {
+    pub fn to_hex(self) -> String {
         hex::encode(self.to_vec())
     }
 
-    pub fn to_vec(&self) -> Vec<u8> {
+    pub fn to_vec(self) -> Vec<u8> {
         [&self.generate_checksum()[..], &self.hash[..]].concat()
     }
 
@@ -159,7 +159,7 @@ pub struct Subaccount(pub [u8; 32]);
 
 impl Subaccount {
     #[allow(dead_code)]
-    pub fn to_vec(&self) -> Vec<u8> {
+    pub fn to_vec(self) -> Vec<u8> {
         self.0.to_vec()
     }
 }

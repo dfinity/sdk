@@ -43,7 +43,7 @@ pub async fn create_canister(
         format!("on network {:?} ", network_name)
     };
 
-    match canister_id_store.find(&canister_name) {
+    match canister_id_store.find(canister_name) {
         Some(canister_id) => {
             info!(
                 log,
@@ -116,7 +116,7 @@ pub async fn create_canister(
                 non_default_network,
                 canister_id
             );
-            canister_id_store.add(&canister_name, canister_id)
+            canister_id_store.add(canister_name, canister_id)
         }
     }?;
 
