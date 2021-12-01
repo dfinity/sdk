@@ -80,25 +80,25 @@ wasmparser = "0.45.0"
 webpki-roots = "0.21.0"
 
 [dependencies.ic-agent]
-version = "0.9.0"
+version = "0.10.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
+rev = "dc47d2ddb311ff8695d422adac5c8842b152beac"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.4.0"
+version = "0.10.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
+rev = "dc47d2ddb311ff8695d422adac5c8842b152beac"
 
 [dependencies.ic-identity-hsm]
-version = "0.3.6"
+version = "0.10.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
+rev = "dc47d2ddb311ff8695d422adac5c8842b152beac"
 
 [dependencies.ic-utils]
-version = "0.7.0"
+version = "0.10.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
+rev = "dc47d2ddb311ff8695d422adac5c8842b152beac"
 
 [dev-dependencies]
 env_logger = "0.6"
