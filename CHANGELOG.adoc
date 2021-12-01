@@ -6,6 +6,10 @@
 
 `dfx canister delete --no-withdrawal <canister>` can be used to delete a canister without attempting to withdraw cycles.
 
+=== fix: set RUST_MIN_STACK to 8MB for ic-starter (and therefore replica)
+
+This matches the value used in production and is meant to exceed the configured 5 MB wasmtime stack.
+
 == Motoko
 
 Updated Motoko from 0.6.11 to 0.6.14.
