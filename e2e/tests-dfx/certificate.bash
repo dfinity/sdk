@@ -10,6 +10,8 @@ setup() {
     install_asset certificate
     dfx_start
 
+    (uname -a | grep Linux) && return 0
+
     dfx deploy
 
     BACKEND="$(jq -r .networks.local.bind dfx.json)"
@@ -64,11 +66,14 @@ teardown() {
 }
 
 @test "mitm attack - update: attack fails because certificate verification fails" {
+    (uname -a | grep Linux) && skip "See SDK-221: mitmproxy / pyparsing incompatibility on ubuntu-latest"
+
     assert_command_fail dfx canister call certificate hello_update '("Buckaroo")'
     assert_match 'Certificate verification failed.'
 }
 
 @test "mitm attack - query: attack succeeds because there is no certificate to verify" {
+    (uname -a | grep Linux) && skip "See SDK-221: mitmproxy / pyparsing incompatibility on ubuntu-latest"
     # The wallet does not have a query call forward method (currently calls forward from wallet's update method)
     # So call with users Identity as sender here
     # There may need to be a query version of wallet_call
