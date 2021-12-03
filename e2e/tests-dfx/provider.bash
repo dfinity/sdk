@@ -62,7 +62,7 @@ teardown() {
     dfx_start
     webserver_port=$(cat .dfx/webserver-port)
     dfx canister --network "http://127.0.0.1:$webserver_port" create --all
-    dfx build --network "http://127.0.0.1:$webserver_port" create --all
+    dfx build --network "http://127.0.0.1:$webserver_port"
     dfx canister --network "http://127.0.0.1:$webserver_port" install --all
     [ "$(find .dfx/http* -maxdepth 0 | wc -l)" = "1" ]
 }
