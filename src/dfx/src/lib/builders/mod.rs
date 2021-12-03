@@ -225,10 +225,10 @@ pub struct BuildConfig {
 impl BuildConfig {
     pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
-        let network_name = get_network_context()?;
+        let network_name = util::network_to_pathcompat(&get_network_context()?);
         let build_root = config
             .get_temp_path()
-            .join(util::network_to_pathcompat(&network_name));
+            .join(&network_name);
         let build_root = build_root.join("canisters");
 
         Ok(BuildConfig {
