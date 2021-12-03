@@ -254,6 +254,11 @@ fn replica_start_thread(
             // For our production network, we actually set them to 600ms.
             "600",
         ]);
+
+        // This should agree with the value at
+        // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/ic-os/guestos/rootfs/etc/systemd/system/ic-replica.service
+        cmd.env("RUST_MIN_STACK", "8192000");
+
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
