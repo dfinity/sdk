@@ -5,6 +5,7 @@ use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::DfxResult;
 use crate::lib::provider::get_network_context;
+use crate::util;
 
 use anyhow::{anyhow, bail};
 use ic_types::principal::Principal as CanisterId;
@@ -57,7 +58,9 @@ impl CanisterInfo {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
         let network_name = get_network_context()?;
-        let build_root = config.get_temp_path().join(network_name);
+        let build_root = config
+            .get_temp_path()
+            .join(util::network_to_pathcompat(&network_name));
         let build_root = build_root.join("canisters");
         std::fs::create_dir_all(&build_root)?;
 
