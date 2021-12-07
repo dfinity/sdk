@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
 
 use ic_types::principal::Principal;
 
@@ -12,10 +11,7 @@ pub enum CallSender {
 
 // Determine whether the selected Identity, the selected Identitys wallet,
 // or the provided wallet canister ID should be the Sender of the call.
-pub async fn call_sender(
-    env: &dyn Environment,
-    wallet: &Option<String>,
-) -> DfxResult<CallSender> {
+pub async fn call_sender(_env: &dyn Environment, wallet: &Option<String>) -> DfxResult<CallSender> {
     // if wallet.is_none() && !no_wallet_flag {
     //     if should_wallet_proxy_by_default {
     //         let network = env

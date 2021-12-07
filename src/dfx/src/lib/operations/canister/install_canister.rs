@@ -121,29 +121,26 @@ pub async fn install_canister(
     }
 
     if canister_info.get_type() == "assets" {
-        match call_sender {
-            CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
-                let identity_name = env.get_selected_identity().expect("No selected identity.");
-                info!(
-                    log,
-                    "Authorizing our identity ({}) to the asset canister...", identity_name
-                );
-                let canister = Canister::builder()
-                    .with_agent(agent)
-                    .with_canister_id(canister_id)
-                    .build()
-                    .unwrap();
-                let self_id = env
-                    .get_selected_identity_principal()
-                    .expect("Selected identity not instantiated.");
-                // Before storing assets, make sure the DFX principal is in there first.
-                wallet
-                    .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?;
-            }
-            _ => (),
+        if let CallSender::Wallet(wallet_id) = call_sender {
+            let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+            let identity_name = env.get_selected_identity().expect("No selected identity.");
+            info!(
+                log,
+                "Authorizing our identity ({}) to the asset canister...", identity_name
+            );
+            let canister = Canister::builder()
+                .with_agent(agent)
+                .with_canister_id(canister_id)
+                .build()
+                .unwrap();
+            let self_id = env
+                .get_selected_identity_principal()
+                .expect("Selected identity not instantiated.");
+            // Before storing assets, make sure the DFX principal is in there first.
+            wallet
+                .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
         };
 
         info!(log, "Uploading assets to asset canister...");

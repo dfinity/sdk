@@ -84,10 +84,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let call_sender = runtime.block_on(call_sender(
-        &env,
-        &opts.wallet,
-    ))?;
+    let call_sender = runtime.block_on(call_sender(&env, &opts.wallet))?;
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(
