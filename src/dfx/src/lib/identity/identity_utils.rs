@@ -7,7 +7,6 @@ use ic_types::principal::Principal;
 #[derive(Debug, PartialEq)]
 pub enum CallSender {
     SelectedId,
-    SelectedIdWallet(Principal),
     Wallet(Principal),
 }
 

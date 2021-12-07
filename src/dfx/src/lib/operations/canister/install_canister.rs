@@ -101,7 +101,7 @@ pub async fn install_canister(
                     .call_and_wait(waiter_with_timeout(timeout))
                     .await?;
             }
-            CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+            CallSender::Wallet(wallet_id) => {
                 let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 let install_args = CanisterInstall {
                     mode,
@@ -122,7 +122,7 @@ pub async fn install_canister(
 
     if canister_info.get_type() == "assets" {
         match call_sender {
-            CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+            CallSender::Wallet(wallet_id) => {
                 let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 let identity_name = env.get_selected_identity().expect("No selected identity.");
                 info!(

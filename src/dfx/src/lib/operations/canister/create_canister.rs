@@ -79,7 +79,7 @@ pub async fn create_canister(
                         .await?
                         .0
                 }
-                CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+                CallSender::Wallet(wallet_id) => {
                     let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.map_or(
