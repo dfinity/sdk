@@ -30,13 +30,13 @@ teardown() {
 }
 
 @test "rust canister can resolve dependencies" {
+    dfx_new_rust rust_deps
+    install_asset rust_deps
+
     # TODO: cargo install may takes too much time
     cargo install ic-cdk-optimizer
     # shellcheck disable=SC2031
     export PATH="$HOME/.cargo/bin/:$PATH"
-
-    dfx_new_rust rust_deps
-    install_asset rust_deps
 
     dfx_start
     assert_command dfx deploy
