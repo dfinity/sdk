@@ -83,22 +83,7 @@ teardown() {
     assert_match "dns error: failed to lookup address information"
 }
 
-
 @test "create accepts --controller <controller> named parameter, with controller by identity name" {
-    dfx_start
-    dfx identity new alice
-    ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
-
-    assert_command dfx canister create --all --controller alice
-    assert_command dfx canister info e2e_project
-    assert_match "Controllers: $ALICE_PRINCIPAL"
-
-    assert_command_fail dfx deploy --no-wallet
-    assert_command_fail dfx deploy
-    assert_command dfx --identity alice deploy --no-wallet
-}
-
-@test "create accepts --controller <controller> named parameter, with controller by principal" {
     dfx_start
     dfx identity new alice
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
@@ -107,9 +92,22 @@ teardown() {
     assert_command dfx canister info e2e_project
     assert_match "Controllers: $ALICE_PRINCIPAL"
 
-    assert_command_fail dfx deploy --no-wallet
     assert_command_fail dfx deploy
-    assert_command dfx --identity alice deploy --no-wallet
+    assert_command dfx --identity alice deploy
+}
+
+@test "create accepts --controller <controller> named parameter, with controller by principal" {
+    dfx_start
+    dfx identity new alice
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+
+    assert_command dfx canister create --all --controller "${ALICE_WALLET}"
+    assert_command dfx canister info e2e_project
+    assert_match "Controllers: $ALICE_WALLET"
+
+    assert_command_fail dfx deploy
+    assert_command_fail dfx --identity alice deploy
+    assert_command dfx --identity alice deploy --wallet "${ALICE_WALLET}"
 }
 
 @test "create accepts --controller <controller> named parameter, with controller by name of selected identity" {
@@ -128,9 +126,8 @@ teardown() {
     assert_command dfx canister info e2e_project
     assert_match "Controllers: $BOB_PRINCIPAL"
 
-    assert_command_fail dfx deploy --no-wallet
     assert_command_fail dfx deploy
-    assert_command dfx --identity bob deploy --no-wallet
+    assert_command dfx --identity bob deploy
 }
 
 @test "create single controller accepts --controller <controller> named parameter, with controller by identity name" {
@@ -149,15 +146,13 @@ teardown() {
     assert_command dfx canister info e2e_project_assets
     assert_match "Controllers: $BOB_PRINCIPAL"
 
-    assert_command_fail dfx --identity alice deploy e2e_project_assets
-    assert_command_fail dfx --identity bob deploy e2e_project
     # check this first, because alice will deploy e2e_project in the next step
-    assert_command_fail dfx --identity bob deploy --no-wallet e2e_project
+    assert_command_fail dfx --identity bob deploy e2e_project
     # this actually deploys e2e_project before failing, because it is a dependency
-    assert_command_fail dfx --identity alice deploy --no-wallet e2e_project_assets
+    assert_command_fail dfx --identity alice deploy e2e_project_assets
 
-    assert_command dfx --identity alice deploy --no-wallet e2e_project
-    assert_command dfx --identity bob deploy --no-wallet e2e_project_assets
+    assert_command dfx --identity alice deploy e2e_project
+    assert_command dfx --identity bob deploy e2e_project_assets
 }
 
 @test "create canister with multiple controllers" {
@@ -167,21 +162,21 @@ teardown() {
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
     # awk step is to avoid trailing space
-    WALLETS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
+    PRINCIPALS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
     assert_command dfx --identity alice canister create --all --controller alice --controller bob
     assert_command dfx canister info e2e_project
-    assert_match "Controllers: ${WALLETS_SORTED}"
+    assert_match "Controllers: ${PRINCIPALS_SORTED}"
 
-    assert_command dfx --identity alice deploy --no-wallet
-    assert_command_fail dfx --identity bob deploy --no-wallet
+    assert_command dfx --identity alice deploy
+    assert_command_fail dfx --identity bob deploy
 
     # The certified assets canister will have added alice as an authorized user, because she was the caller
     # at initialization time.  Bob has to be added separately.  BUT, the canister has to be deployed first
     # in order to call the authorize method.
     assert_command dfx --identity alice canister call e2e_project_assets authorize "(principal \"$BOB_PRINCIPAL\")"
 
-    assert_command dfx --identity bob deploy --no-wallet
+    assert_command dfx --identity bob deploy
 }
 
 @test "reports wallet must be upgraded if attempting to create a canister with multiple controllers through an old wallet" {
@@ -192,15 +187,16 @@ teardown() {
     dfx identity new bob
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
     # awk step is to avoid trailing space
-    WALLETS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
+    # WALLETS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    assert_command_fail dfx --identity alice canister create --all --controller alice --controller bob
+    assert_command_fail dfx --identity alice canister --wallet "$ALICE_WALLET" create --all --controller alice --controller bob
     assert_match "The wallet canister must be upgraded: The installed wallet does not support multiple controllers."
     assert_match "To upgrade, run dfx wallet upgrade"
 
     use_wallet_wasm 0.8.2
     assert_command dfx --identity alice wallet upgrade
-    assert_command dfx --identity alice canister create --all --controller alice --controller bob
+    assert_command dfx --identity alice canister --wallet "$ALICE_WALLET" create --all --controller alice --controller bob
 }
 

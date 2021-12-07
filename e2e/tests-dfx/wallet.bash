@@ -94,8 +94,6 @@ teardown() {
     dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
     dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
 
-    rm "$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
-
     assert_command_fail dfx identity set-wallet "${ID}"
     assert_not_match "Setting wallet for identity"
     assert_command dfx identity --network ic set-wallet "${ID}"
@@ -119,10 +117,6 @@ teardown() {
     dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
     dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
 
-    # We're testing on a local network so the create command actually creates a wallet
-    # Delete this file to force associate wallet created by deploy-wallet to identity
-    rm "$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
-
     assert_command dfx identity --network actuallylocal deploy-wallet "${ID}"
     GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)
     assert_eq "$ID" "$GET_WALLET_RES"
@@ -135,39 +129,41 @@ teardown() {
     dfx_new
     dfx_start
     WALLET_ID=$(dfx identity get-wallet)
-    CREATE_RES=$(dfx canister --no-wallet call "${WALLET_ID}" wallet_create_wallet "(record { cycles = (2000000000000:nat64); settings = record {controller = opt principal \"$(dfx identity get-principal)\";};})")
+    CREATE_RES=$(dfx canister call "${WALLET_ID}" wallet_create_wallet "(record { cycles = (2000000000000:nat64); settings = record {controller = opt principal \"$(dfx identity get-principal)\";};})")
     CHILD_ID=$(echo "${CREATE_RES}" | tr '\n' ' ' |  cut -d'"' -f 2)
-    assert_command dfx canister --no-wallet call "${CHILD_ID}" wallet_balance '()'
+    assert_command dfx canister call "${CHILD_ID}" wallet_balance '()'
 }
 
-@test "bypass wallet call as user" {
+@test "forward user call through wallet" {
     dfx_new
     install_asset identity
     dfx_start
-    assert_command dfx canister --no-wallet create --all
+    WALLET=$(dfx identity get-wallet)
+    assert_command dfx canister --wallet "$WALLET" create --all
     assert_command dfx build
-    assert_command dfx canister --no-wallet install --all
+    assert_command dfx canister --wallet "$WALLET" install --all
 
-    CALL_RES=$(dfx canister --no-wallet call e2e_project fromCall)
+    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project fromCall)
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
-    ID=$(dfx identity get-principal)
-    assert_eq "$CALLER" "$ID"
+    assert_eq "$CALLER" "$WALLET"
 
-    assert_command dfx canister --no-wallet call e2e_project amInitializer
-    assert_eq '(true)'
+    assert_command dfx canister call "$WALLET" wallet_call \
+        "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 }
 
-@test "bypass wallet call as user: deploy" {
+@test "forward user call through wallet: deploy" {
     dfx_new
     install_asset identity
     dfx_start
-    assert_command dfx deploy --no-wallet
-
-    CALL_RES=$(dfx canister --no-wallet call e2e_project fromCall)
+    WALLET=$(dfx identity get-wallet)
+    assert_command dfx deploy --wallet "$WALLET"
+    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project fromCall)
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
-    ID=$(dfx identity get-principal)
-    assert_eq "$CALLER" "$ID"
+    assert_eq "$CALLER" "$WALLET"
 
-    assert_command dfx canister --no-wallet call e2e_project amInitializer
-    assert_eq '(true)'
+    assert_command dfx canister call e2e_project amInitializer
+    assert_command dfx canister call "$WALLET" wallet_call \
+        "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 }
