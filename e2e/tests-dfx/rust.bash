@@ -20,6 +20,7 @@ teardown() {
     assert_command dfx build hello
     assert_match "ic-cdk-optimizer not installed"
     cargo install ic-cdk-optimizer
+    # shellcheck disable=SC2030
     export PATH="$HOME/.cargo/bin/:$PATH"
     assert_command dfx build hello
     assert_match "Executing: ic-cdk-optimizer"
@@ -31,6 +32,7 @@ teardown() {
 @test "rust canister can resolve dependencies" {
     # TODO: cargo install may takes too much time
     cargo install ic-cdk-optimizer
+    # shellcheck disable=SC2031
     export PATH="$HOME/.cargo/bin/:$PATH"
 
     dfx_new_rust rust_deps
