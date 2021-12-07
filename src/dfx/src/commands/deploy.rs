@@ -53,11 +53,6 @@ pub struct DeployOpts {
     /// If none specified, defaults to use the selected Identity's wallet canister.
     #[clap(long)]
     wallet: Option<String>,
-
-    /// Performs the call with the user Identity as the Sender of messages.
-    /// Bypasses the Wallet canister.
-    #[clap(long, conflicts_with("wallet"))]
-    no_wallet: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -89,12 +84,9 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let default_wallet_proxy = true;
     let call_sender = runtime.block_on(call_sender(
         &env,
         &opts.wallet,
-        opts.no_wallet,
-        default_wallet_proxy,
     ))?;
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 

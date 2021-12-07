@@ -38,11 +38,6 @@ pub struct CanisterOpts {
     #[clap(long)]
     wallet: Option<String>,
 
-    /// Performs the call with the user Identity as the Sender of messages.
-    /// Bypasses the Wallet canister.
-    #[clap(long, conflicts_with("wallet"))]
-    no_wallet: bool,
-
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
@@ -69,17 +64,11 @@ enum SubCommand {
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.clone())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let default_wallet_proxy = !matches!(
-        opts.subcmd,
-        SubCommand::Call(_) | SubCommand::Send(_) | SubCommand::Sign(_)
-    );
 
     runtime.block_on(async {
         let call_sender = call_sender(
             &agent_env,
             &opts.wallet,
-            opts.no_wallet,
-            default_wallet_proxy,
         )
         .await?;
         match opts.subcmd {
