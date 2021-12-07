@@ -27,3 +27,21 @@ teardown() {
     assert_command dfx canister --no-wallet call hello greet dfinity
     assert_match '("Hello, dfinity!")'
 }
+
+@test "rust canister can resolve dependencies" {
+    # TODO: cargo install may takes too much time
+    cargo install ic-cdk-optimizer
+    export PATH="$HOME/.cargo/bin/:$PATH"
+
+    dfx_new_rust rust_deps
+    install_asset rust_deps
+
+    dfx_start
+    assert_command dfx deploy
+    assert_command dfx canister call multiply_deps read
+    assert_match '(1 : nat)'
+    assert_command dfx canister call multiply_deps mul '(3)'
+    assert_match '(9 : nat)'
+    assert_command dfx canister call rust_deps read
+    assert_match '(9 : nat)'
+}
