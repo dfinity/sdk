@@ -59,7 +59,7 @@ impl CanisterBuilder for RustBuilder {
 
     fn build(
         &self,
-        _pool: &CanisterPool,
+        pool: &CanisterPool,
         canister_info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
@@ -78,6 +78,27 @@ impl CanisterBuilder for RustBuilder {
             .arg("--release")
             .arg("-p")
             .arg(package);
+
+        if let Ok(dependencies) = self.get_dependencies(pool, canister_info) {
+            for deps in dependencies {
+                let canister = pool.get_canister(&deps).unwrap();
+                cargo.env(
+                    format!("CANISTER_ID_{}", canister.get_name()),
+                    deps.to_text(),
+                );
+                if let Some(output) = canister.get_build_output() {
+                    let candid_path = match &output.idl {
+                        IdlBuildOutput::File(p) => p.as_os_str(),
+                    };
+
+                    cargo.env(
+                        format!("CANISTER_CANDID_{}", canister.get_name()),
+                        candid_path,
+                    );
+                }
+            }
+        }
+
         info!(
             self.logger,
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
