@@ -22,6 +22,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-1
       - name: Install Rust
@@ -29,6 +30,8 @@ jobs:
           rustup update ${{ matrix.rust }} --no-self-update
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt
+      - name: Install ic-cdk-optimizer
+        run: cargo install ic-cdk-optimizer
       - name: Build
         # note: since there is no 'cargo clean' here, the results of scripts/prepare-dfx-assets.sh
         # are often cached.
