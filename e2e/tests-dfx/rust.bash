@@ -33,11 +33,6 @@ teardown() {
     dfx_new_rust rust_deps
     install_asset rust_deps
 
-    # TODO: cargo install may takes too much time
-    cargo install ic-cdk-optimizer
-    # shellcheck disable=SC2031
-    export PATH="$HOME/.cargo/bin/:$PATH"
-
     dfx_start
     assert_command dfx deploy
     assert_command dfx canister call multiply_deps read
