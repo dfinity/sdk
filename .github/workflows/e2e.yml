@@ -22,7 +22,6 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-1
       - name: Install Rust
@@ -128,7 +127,7 @@ jobs:
           fi
           export
       - name: Run e2e test
-        run: timeout 1200 bats "e2e/$E2E_TEST"
+        run: timeout 1800 bats "e2e/$E2E_TEST"
 
   aggregate:
     name: e2e:required

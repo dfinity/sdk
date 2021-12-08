@@ -34,5 +34,3 @@ echo "BATSLIB=${BATS_SUPPORT}" >> "$GITHUB_ENV"
 
 # Exit temporary directory.
 popd
-
-cargo install ic-cdk-optimizer

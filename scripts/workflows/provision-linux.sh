@@ -29,5 +29,3 @@ echo "$HOME/bin" >> "$GITHUB_PATH"
 
 # Exit temporary directory.
 popd
-
-cargo install ic-cdk-optimizer
