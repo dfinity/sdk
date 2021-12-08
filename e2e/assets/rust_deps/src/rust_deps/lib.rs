@@ -4,7 +4,8 @@ use ic_cdk::export::candid;
 #[import(canister = "multiply_deps")]
 struct CounterCanister;
 
-#[query]
+// Inter-canister call can only be from a update call
+#[update]
 async fn read() -> candid::Nat {
     CounterCanister::read().await.0
 }
