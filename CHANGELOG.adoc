@@ -27,8 +27,8 @@ Updated Motoko from 0.6.11 to 0.6.14.
 
 == Cycles wallet
 
-Module hash: 983acc59e65d470e4e3ba97512864cdc9a2b560caaca1c89afc9f2fc78aa2643
-https://github.com/dfinity/cycles-wallet/commit/0f4e6c9f243f2a19caef7f7c552c9adc6ad43140
+Module hash: 53ec1b030f1891bf8fd3877773b15e66ca040da539412cc763ff4ebcaf4507c5
+https://github.com/dfinity/cycles-wallet/commit/57e53fcb679d1ea33cc713d2c0c24fc5848a9759
 
 = 0.8.4
 
