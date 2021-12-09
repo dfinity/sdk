@@ -266,5 +266,5 @@ teardown() {
     # make bob a controller
     assert_command dfx canister update-settings hello --add-controller bob
     # check that bob has the authority to make someone else a controller
-    assert_command dfx --identity bob canister --no-wallet update-settings hello --add-controller charlie
+    assert_command dfx --identity bob canister update-settings hello --add-controller charlie
 }
