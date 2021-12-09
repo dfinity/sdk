@@ -25,6 +25,11 @@ Updated Motoko from 0.6.11 to 0.6.14.
 * Improve performance of bignum equality
 * Stable signatures: frontend, metadata, command-line args
 
+== Cycles wallet
+
+Module hash: 53ec1b030f1891bf8fd3877773b15e66ca040da539412cc763ff4ebcaf4507c5
+https://github.com/dfinity/cycles-wallet/commit/57e53fcb679d1ea33cc713d2c0c24fc5848a9759
+
 = 0.8.4
 
 == DFX
