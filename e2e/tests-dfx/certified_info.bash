@@ -26,6 +26,7 @@ teardown() {
     HASH="0x"
     HASH+=$(echo "${RESULT}" | cut -d' ' -f 2)
 
+
     dfx canister install hello    
     assert_command dfx canister info "$(dfx canister id hello)"
     assert_match "Controllers: $(dfx identity get-principal) Module hash: $(HASH)"
