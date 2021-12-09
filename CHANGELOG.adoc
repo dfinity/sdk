@@ -2,6 +2,12 @@
 
 == DFX
 
+=== feat!: Remove the wallet proxy and the --no-wallet flag
+
+Breaking change: Canister commands and `dfx deploy` will now call as the user, rather than the user's wallet. The `--no-wallet` flag is thus removed as its behavior is the default.
+
+When upgrading existing canisters, use the `--wallet` flag in conjunction with `dfx identity get-wallet` in order to restore the old behavior.
+
 === feat: Add --no-withdrawal flag for "canister delete" for when the canister is out of cycles
 
 `dfx canister delete --no-withdrawal <canister>` can be used to delete a canister without attempting to withdraw cycles.
