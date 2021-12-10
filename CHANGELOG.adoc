@@ -2,6 +2,10 @@
 
 == DFX
 
+=== feat: Add --add-controller and --remove-controller flags for "canister update-settings"
+
+`dfx canister update-settings` previously only let you overwrite the entire controller list; `--add-controller` and `--remove-controller` instead add or remove from the list.
+
 === feat: Add --no-withdrawal flag for "canister delete" for when the canister is out of cycles
 
 `dfx canister delete --no-withdrawal <canister>` can be used to delete a canister without attempting to withdraw cycles.
