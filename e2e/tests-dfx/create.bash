@@ -27,6 +27,25 @@ teardown() {
     [[ -f .dfx/local/canister_ids.json ]]
 }
 
+@test "create without parameters sets wallet and self as controller" {
+    dfx_start
+    PRINCIPAL=$(dfx identity get-principal)
+    WALLET=$(dfx identity get-wallet)
+    assert_command dfx canister create --all
+    assert_command dfx canister info e2e_project
+    assert_match "Controllers: ($PRINCIPAL $WALLET|$WALLET $PRINCIPAL)"
+}
+
+@test "create with --no-wallet sets only self as controller" {
+    dfx_start
+    PRINCIPAL=$(dfx identity get-principal)
+    WALLET=$(dfx identity get-wallet)
+    assert_command dfx canister create --all --no-wallet
+    assert_command dfx canister info e2e_project
+    assert_not_match "Controllers: ($PRINCIPAL $WALLET|$WALLET $PRINCIPAL)"
+    assert_match "Controllers: $PRINCIPAL"
+}
+
 @test "build fails without create" {
     dfx_start
     assert_command_fail dfx build
@@ -87,9 +106,11 @@ teardown() {
     dfx_start
     dfx identity new alice
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
 
     assert_command dfx canister create --all --controller "${ALICE_PRINCIPAL}"
     assert_command dfx canister info e2e_project
+    assert_not_match "Controllers: ($ALICE_WALLET $ALICE_PRINCIPAL|$ALICE_PRINCIPAL $ALICE_WALLET)"
     assert_match "Controllers: $ALICE_PRINCIPAL"
 
     assert_command_fail dfx deploy
@@ -185,18 +206,13 @@ teardown() {
     dfx_start
     dfx identity new alice
     dfx identity new bob
-    ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
-    BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
-    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
-    # awk step is to avoid trailing space
-    # WALLETS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    assert_command_fail dfx --identity alice canister --wallet "$ALICE_WALLET" create --all --controller alice --controller bob
+    assert_command_fail dfx --identity alice canister create --all --controller alice --controller bob
     assert_match "The wallet canister must be upgraded: The installed wallet does not support multiple controllers."
     assert_match "To upgrade, run dfx wallet upgrade"
 
     use_wallet_wasm 0.8.2
     assert_command dfx --identity alice wallet upgrade
-    assert_command dfx --identity alice canister --wallet "$ALICE_WALLET" create --all --controller alice --controller bob
+    assert_command dfx --identity alice canister create --all --controller alice --controller bob
 }
 

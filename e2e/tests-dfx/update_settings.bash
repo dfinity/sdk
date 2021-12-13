@@ -203,9 +203,9 @@ teardown() {
     # awk step is to avoid trailing space
     WALLETS_SORTED=$(echo "${ALICE_WALLET}" "${BOB_WALLET}" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    dfx canister --wallet "${ALICE_WALLET}" create hello
+    dfx canister create hello
     dfx build hello
-    dfx canister --wallet "${ALICE_WALLET}" install hello
+    dfx canister install hello
     ID=$(dfx canister id hello)
 
     # Set controller using canister name and identity name
@@ -234,7 +234,7 @@ teardown() {
     # awk step is to avoid trailing space
     WALLETS_SORTED=$(echo "${ALICE_WALLET}" "${BOB_WALLET}" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    dfx canister --wallet "${ALICE_WALLET}" create hello
+    dfx canister create hello
     dfx build hello
     dfx canister --wallet "${ALICE_WALLET}" install hello
     ID=$(dfx canister id hello)
