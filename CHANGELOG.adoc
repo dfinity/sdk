@@ -14,6 +14,10 @@
 
 This matches the value used in production and is meant to exceed the configured 5 MB wasmtime stack.
 
+=== fix: asset uploads will retry failed requests as expected
+
+Fixed a defect in asset synchronization where no retries would be attempted after the first 30 seconds overall.
+
 == Motoko
 
 Updated Motoko from 0.6.11 to 0.6.14.
