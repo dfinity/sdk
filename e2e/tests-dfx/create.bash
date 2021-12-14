@@ -105,10 +105,12 @@ teardown() {
 @test "create accepts --controller <controller> named parameter, with controller by identity name" {
     dfx_start
     dfx identity new alice
+    ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
+    
     
     assert_command dfx canister create --all --controller alice
     assert_command dfx canister info e2e_project
-    assert_match "Controllers: alice"
+    assert_match "Controllers: $ALICE_PRINCIPAL"
 
     assert_command_fail dfx deploy
     assert_command dfx --identity alice deploy
