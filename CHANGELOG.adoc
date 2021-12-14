@@ -6,7 +6,9 @@
 
 Breaking change: Canister commands, except for `dfx canister create`, will make the call directly, rather than via the user's wallet. The `--no-wallet` flag is thus removed from `dfx canister` as its behavior is the default.
 
-When working with existing canisters, use the `--wallet` flag in conjunction with `dfx identity get-wallet` in order to restore the old behavior. To upgrade an existing canister to work seamlessly with the new system, the following command should be used (substituting `canister_name` for your own):
+When working with existing canisters, use the `--wallet` flag in conjunction with `dfx identity get-wallet` in order to restore the old behavior.
+
+You will need to upgrade each of your existing canisters to work with the new system.  To do so, execute the following command for each of your canisters (substituting `canister_name` for your own):
 [source, bash]
 ----
 dfx canister --wallet "$(dfx identity get-wallet)" update-settings <canister_name> --add-controller "$(dfx identity get-principal)"
