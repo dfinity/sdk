@@ -76,7 +76,7 @@ tokio = { version = "1.14.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
-wasmparser = "0.81.0"
+wasmparser = "0.45.0"
 
 [dependencies.ic-agent]
 version = "0.10.1"
