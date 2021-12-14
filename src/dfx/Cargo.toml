@@ -56,7 +56,7 @@ rand = "0.7.2"
 regex = "1.3.1"
 ring = "0.16.11"
 reqwest = { version = "0.11.7", features = [ "blocking", "json", "rustls-tls" ] }
-rustls = "0.20.2"
+rustls = "0.18.0"
 rust_decimal = "1.18.0"
 semver = "1.0.4"
 serde = "1.0"
