@@ -56,7 +56,7 @@ pub struct DeployOpts {
 
     /// Performs the create call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
-    #[clap(long)]
+    #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
 }
 
