@@ -18,7 +18,9 @@ teardown() {
     dfx_start
     dfx canister create hello
     assert_command dfx canister info "$(dfx canister id hello)"
-    assert_match "Controllers: $(dfx identity get-wallet) Module hash: None"
+    WALLET_ID=$(dfx identity get-wallet)
+    SELF_ID=$(dfx identity get-principal)
+    assert_match "Controllers: ($WALLET_ID $SELF_ID|$SELF_ID $WALLET_ID) Module hash: None"
 
     dfx build hello
     RESULT="$(openssl dgst -sha256 .dfx/local/canisters/hello/hello.wasm)"
@@ -26,7 +28,8 @@ teardown() {
     HASH="0x"
     HASH+=$(echo "${RESULT}" | cut -d' ' -f 2)
 
+
     dfx canister install hello    
     assert_command dfx canister info "$(dfx canister id hello)"
-    assert_match "Controllers: $(dfx identity get-wallet) Module hash: $(HASH)"
+    assert_match "Controllers: ($WALLET_ID $SELF_ID|$SELF_ID $WALLET_ID) Module hash: $(HASH)"
 }

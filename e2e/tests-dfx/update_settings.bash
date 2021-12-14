@@ -173,3 +173,21 @@ teardown() {
     assert_command dfx canister info hello
     assert_match "Controllers: ${WALLETS_SORTED}"
 }
+
+@test "add controller to existing canister" {
+    assert_command dfx identity new alice
+    assert_command dfx identity new bob
+    assert_command dfx identity new charlie
+
+    dfx identity use alice
+    dfx_start
+    
+    dfx canister create hello
+    dfx build hello
+    dfx canister install hello
+    
+    # make bob a controller
+    assert_command dfx canister update-settings hello --add-controller bob
+    # check that bob has the authority to make someone else a controller
+    assert_command dfx --identity bob canister --no-wallet update-settings hello --add-controller charlie
+}
