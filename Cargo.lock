@@ -502,6 +502,12 @@ checksum = "23ce669cd6c8588f79e15cf450314f9638f967fc5770ff1c7c1deb0925ea7cfa"
 
 [[package]]
 name = "base64"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
+
+[[package]]
+name = "base64"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
@@ -1038,7 +1044,7 @@ dependencies = [
  "net2",
  "num-traits",
  "openssl",
- "pem",
+ "pem 0.7.0",
  "petgraph 0.6.0",
  "proptest",
  "rand 0.7.3",
@@ -1740,7 +1746,7 @@ dependencies = [
  "leb128",
  "mime",
  "openssl",
- "pem",
+ "pem 1.0.1",
  "rand 0.8.4",
  "reqwest",
  "ring",
@@ -2517,6 +2523,17 @@ name = "paste"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf547ad0c65e31259204bd90935776d1c693cec2f4ff7abb7a1bbbd40dfe58"
+
+[[package]]
+name = "pem"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1581760c757a756a41f0ee3ff01256227bdf64cb752839779b95ffb01c59793"
+dependencies = [
+ "base64 0.11.0",
+ "lazy_static",
+ "regex",
+]
 
 [[package]]
 name = "pem"
