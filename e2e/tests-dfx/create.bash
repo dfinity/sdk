@@ -105,6 +105,18 @@ teardown() {
 @test "create accepts --controller <controller> named parameter, with controller by identity name" {
     dfx_start
     dfx identity new alice
+    
+    assert_command dfx canister create --all --controller alice
+    assert_command dfx canister info e2e_project
+    assert_match "Controllers: alice"
+
+    assert_command_fail dfx deploy
+    assert_command dfx --identity alice deploy
+}
+
+@test "create accepts --controller <controller> named parameter, with controller by identity principal" {
+    dfx_start
+    dfx identity new alice
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
 
@@ -117,7 +129,7 @@ teardown() {
     assert_command dfx --identity alice deploy
 }
 
-@test "create accepts --controller <controller> named parameter, with controller by principal" {
+@test "create accepts --controller <controller> named parameter, with controller by wallet principal" {
     dfx_start
     dfx identity new alice
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
