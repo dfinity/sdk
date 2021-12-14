@@ -38,6 +38,19 @@ Updated Motoko from 0.6.11 to 0.6.14.
 Module hash: 53ec1b030f1891bf8fd3877773b15e66ca040da539412cc763ff4ebcaf4507c5
 https://github.com/dfinity/cycles-wallet/commit/57e53fcb679d1ea33cc713d2c0c24fc5848a9759
 
+== Replica
+
+Updated replica to blessed commit 3a1286e844ed3b53b1848533cb844ea29b508f28.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/29235[29235]
+* https://dashboard.internetcomputer.org/proposal/28784[28784]
+* https://dashboard.internetcomputer.org/proposal/27975[27975]
+* https://dashboard.internetcomputer.org/proposal/26833[26833]
+* https://dashboard.internetcomputer.org/proposal/25343[25343]
+* https://dashboard.internetcomputer.org/proposal/23633[23633]
+* https://dashboard.internetcomputer.org/proposal/33828[33828]
+
 = 0.8.4
 
 == DFX
@@ -95,17 +108,6 @@ and can only be performed on a single canister at a time.
 and no longer works with `--all`.
 
 == Replica
-
-Updated replica to blessed commit 3a1286e844ed3b53b1848533cb844ea29b508f28.
-This incorporates the following executed proposals:
-
-* https://dashboard.internetcomputer.org/proposal/29235[29235]
-* https://dashboard.internetcomputer.org/proposal/28784[28784]
-* https://dashboard.internetcomputer.org/proposal/27975[27975]
-* https://dashboard.internetcomputer.org/proposal/26833[26833]
-* https://dashboard.internetcomputer.org/proposal/25343[25343]
-* https://dashboard.internetcomputer.org/proposal/23633[23633]
-* https://dashboard.internetcomputer.org/proposal/33828[33828]
 
 The included replica now supports `canister_heartbeat`.  This only works with rust canisters for the time being,
 and does not work with the emulator (`dfx start --emulator`).
