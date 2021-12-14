@@ -1135,6 +1135,7 @@ dependencies = [
  "url",
  "walkdir",
  "wasmparser",
+ "webpki-roots 0.21.1",
 ]
 
 [[package]]
