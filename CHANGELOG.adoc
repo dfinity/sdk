@@ -8,15 +8,15 @@ Breaking change: Canister commands, except for `dfx canister create`, will make 
 
 When working with existing canisters, use the `--wallet` flag in conjunction with `dfx identity get-wallet` in order to restore the old behavior.
 
-You will need to upgrade each of your existing canisters to work with the new system.  To do so, execute the following command for each of your canisters (substituting `canister_name` for your own):
+You will need to upgrade each of your existing canisters to work with the new system.  To do so, execute the following command for each of your canisters:
 [source, bash]
 ----
-dfx canister --wallet "$(dfx identity get-wallet)" update-settings <canister_name> --add-controller "$(dfx identity get-principal)"
+dfx canister --wallet "$(dfx identity get-wallet)" update-settings --all --add-controller "$(dfx identity get-principal)"
 ----
 Or, if you're upgrading a canister on the IC:
 [source, bash]
 ----
-dfx canister --network ic --wallet "$(dfx identity --network ic get-wallet)" update-settings <canister_name> --add-controller "$(dfx identity get-principal)"
+dfx canister --network ic --wallet "$(dfx identity --network ic get-wallet)" update-settings --all --add-controller "$(dfx identity get-principal)"
 ----
 
 === feat: Add --add-controller and --remove-controller flags for "canister update-settings"
