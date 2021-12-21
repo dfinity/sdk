@@ -57,19 +57,19 @@
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
-        "rev": "3a1286e844ed3b53b1848533cb844ea29b508f28",
-        "sha256": "0gc5mq2ws7by6qvawl3x2svlhxjhk3sdsrl10gqrg5plxgisjzka",
+        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
+        "sha256": "0hca2xklnb6mbc6wjrvg1vx2fdhc847rbirk774vg8z2ddmhplpd",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/x86_64-darwin/ic-starter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/nix-release/x86_64-darwin/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/nix-release/x86_64-darwin/ic-starter.gz"
     },
     "ic-starter-x86_64-linux": {
         "builtin": false,
-        "rev": "3a1286e844ed3b53b1848533cb844ea29b508f28",
-        "sha256": "14an3bhpcgmy8929s6p1wi8f40pxfzywczbikq68n3n0krhb8hgs",
+        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
+        "sha256": "1z4ljr40pzm5l86zf2w1ni2z5ax8a5ncxiv7ah9wkzsfsw2fsf08",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/ic-starter.gz",
-        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/nix-release/ic-starter.gz"
+        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/release/ic-starter.gz",
+        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/release/ic-starter.gz"
     },
     "icx-proxy": {
         "branch": "main",
@@ -122,18 +122,18 @@
     },
     "replica-x86_64-darwin": {
         "builtin": false,
-        "rev": "3a1286e844ed3b53b1848533cb844ea29b508f28",
-        "sha256": "0chknfdfxq0yc1r5rjk974rcdcfmg8i1pin7z8fbv9ykbx2ngjh0",
+        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
+        "sha256": "1bvqqjb7ri37yb34d5jxfhv40fkqngvca7ki2hmwj8a1jjbknbp7",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/x86_64-darwin/replica.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/nix-release/x86_64-darwin/replica.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/nix-release/x86_64-darwin/replica.gz"
     },
     "replica-x86_64-linux": {
         "builtin": false,
-        "rev": "3a1286e844ed3b53b1848533cb844ea29b508f28",
-        "sha256": "1ic5iyj8v3j0j6bml7933hmp4wmcnwqcpx4g53xy743bwckrwrnc",
+        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
+        "sha256": "12687mc4fa33lw483izxl8f1r7s3q72cwgffcfkjzrbqqsjq9dkr",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/5ba08e57d607fc8fb159013fe30e46302cb4667d/nix-release/replica.gz",
-        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/nix-release/replica.gz"
+        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/release/replica.gz",
+        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/release/replica.gz"
     }
 }
