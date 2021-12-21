@@ -31,36 +31,36 @@ teardown() {
     dfx deploy
 
     # decode as expected
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/filename%20with%20space.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_command dfx canister  call --query e2e_project_assets http_request '(record{url="/filename%20with%20space.txt";headers=vec{};method="GET";body=vec{}})'
     assert_match "contents of file with space in filename"
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/has%2bplus.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_command dfx canister call --query e2e_project_assets http_request '(record{url="/has%2bplus.txt";headers=vec{};method="GET";body=vec{}})'
     assert_match "contents of file with plus in filename"
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/has%2Bplus.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_command dfx canister call --query e2e_project_assets http_request '(record{url="/has%2Bplus.txt";headers=vec{};method="GET";body=vec{}})'
     assert_match "contents of file with plus in filename"
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/has%%percent.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_command dfx canister call --query e2e_project_assets http_request '(record{url="/has%%percent.txt";headers=vec{};method="GET";body=vec{}})'
     assert_match "contents of file with percent in filename"
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
+    assert_command dfx canister call --query e2e_project_assets http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
     assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%%";headers=vec{};method="GET";body=vec{}})'
+    assert_command dfx canister call --query e2e_project_assets http_request '(record{url="/%%";headers=vec{};method="GET";body=vec{}})'
     assert_match "filename is percent"
      # this test ensures url decoding happens after removing the query string
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/filename%3fwithqmark.txt";headers=vec{};method="GET";body=vec{}})'
+    assert_command dfx canister call --query e2e_project_assets http_request '(record{url="/filename%3fwithqmark.txt";headers=vec{};method="GET";body=vec{}})'
     assert_match "filename contains question mark"
 
     # these error conditions can't be tested with curl, because something responds first with Bad Request.
     # THESE TESTS WERE REMOVED BECAUSE THE RUST CANISTER DOES NOT SUPPORT REJECTING MESSAGES
     # TODO: Reenable those tests.
-    #    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%";headers=vec{};method="GET";body=vec{}})'
+    #    assert_command_fail dfx canister call --query e2e_project_assets http_request '(record{url="/%";headers=vec{};method="GET";body=vec{}})'
     #    assert_match "error decoding url: % must be followed by '%' or two hex digits"
-    #    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%z";headers=vec{};method="GET";body=vec{}})'
+    #    assert_command_fail dfx canister call --query e2e_project_assets http_request '(record{url="/%z";headers=vec{};method="GET";body=vec{}})'
     #    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
-    #    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%zz";headers=vec{};method="GET";body=vec{}})'
+    #    assert_command_fail dfx canister call --query e2e_project_assets http_request '(record{url="/%zz";headers=vec{};method="GET";body=vec{}})'
     #    assert_match "error decoding url: neither character after % is a hex digit"
-    #    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%e";headers=vec{};method="GET";body=vec{}})'
+    #    assert_command_fail dfx canister call --query e2e_project_assets http_request '(record{url="/%e";headers=vec{};method="GET";body=vec{}})'
     #    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
-    #    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%g6";headers=vec{};method="GET";body=vec{}})'
+    #    assert_command_fail dfx canister call --query e2e_project_assets http_request '(record{url="/%g6";headers=vec{};method="GET";body=vec{}})'
     #    assert_match "error decoding url: first character after % is not a hex digit"
-    #    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request '(record{url="/%ch";headers=vec{};method="GET";body=vec{}})'
+    #    assert_command_fail dfx canister call --query e2e_project_assets http_request '(record{url="/%ch";headers=vec{};method="GET";body=vec{}})'
     #    assert_match "error decoding url: second character after % is not a hex digit"
 
     ID=$(dfx canister id e2e_project_assets)
@@ -152,15 +152,15 @@ teardown() {
     dfx_start
     dfx deploy
 
-    assert_command dfx canister --no-wallet call --update e2e_project_assets store '(record{key="/sample-asset.txt"; content_type="text/plain"; content_encoding="arbitrary"; content=blob "content encoded in another way!"})'
+    assert_command dfx canister call --update e2e_project_assets store '(record{key="/sample-asset.txt"; content_type="text/plain"; content_encoding="arbitrary"; content=blob "content encoded in another way!"})'
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
 
     dfx deploy
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
-    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
+    assert_command_fail dfx canister call --query e2e_project_assets get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
 }
 
 @test "verifies sha256, if specified" {
@@ -169,16 +169,16 @@ teardown() {
     dfx_start
     dfx deploy
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
-    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
+    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
+    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister call --query e2e_project_assets get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
     assert_match 'sha256 mismatch'
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
-    assert_command dfx canister --no-wallet call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
-    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
+    assert_command dfx canister call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
+    assert_command dfx canister call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister call --query e2e_project_assets http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
     assert_match 'sha256 mismatch'
 
 }
@@ -238,23 +238,23 @@ CHERRIES" "$stdout"
     dd if=/dev/urandom of=src/e2e_project_assets/assets/large-asset.bin bs=1000000 count=6
 
     dfx_start
-    dfx canister --no-wallet create --all
+    dfx canister create --all
     dfx build
-    dfx canister --no-wallet install e2e_project_assets
+    dfx canister install e2e_project_assets
 
     # retrieve() refuses to serve just part of an asset
     assert_command_fail dfx canister call --query e2e_project_assets retrieve '("/large-asset.bin")'
     assert_match 'Asset too large.'
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
+    assert_command dfx canister call --query e2e_project_assets get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
     assert_match 'total_length = 6_000_000'
     assert_match 'content_type = "application/octet-stream"'
     assert_match 'content_encoding = "identity"'
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2})'
+    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2})'
 
-    assert_command dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
-    assert_command_fail dfx canister --no-wallet call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
+    assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
+    assert_command_fail dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
 
     PORT=$(cat .dfx/webserver-port)
     CANISTER_ID=$(dfx canister id e2e_project_assets)

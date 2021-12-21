@@ -1,9 +1,9 @@
-use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::call_sender;
+use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::{environment::Environment, identity::Identity};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
@@ -54,7 +54,7 @@ pub struct DeployOpts {
     #[clap(long)]
     wallet: Option<String>,
 
-    /// Performs the call with the user Identity as the Sender of messages.
+    /// Performs the create call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
     #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
@@ -89,13 +89,21 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let default_wallet_proxy = true;
-    let call_sender = runtime.block_on(call_sender(
-        &env,
-        &opts.wallet,
-        opts.no_wallet,
-        default_wallet_proxy,
-    ))?;
+    let call_sender = runtime.block_on(call_sender(&env, &opts.wallet))?;
+    let proxy_sender;
+    let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
+        let wallet = runtime.block_on(Identity::get_or_create_wallet_canister(
+            &env,
+            env.get_network_descriptor()
+                .expect("Couldn't get the network descriptor"),
+            env.get_selected_identity().expect("No selected identity"),
+            true,
+        ))?;
+        proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+        &proxy_sender
+    } else {
+        &call_sender
+    };
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(
@@ -107,5 +115,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         timeout,
         with_cycles,
         &call_sender,
+        create_call_sender,
     ))
 }

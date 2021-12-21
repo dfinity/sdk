@@ -34,7 +34,7 @@ teardown() {
 
     # Using call --async and request-status.
     # Call with user Identity as Sender
-    assert_command dfx canister --no-wallet call --async hello greet Blueberry
+    assert_command dfx canister call --async hello greet Blueberry
     # At this point $output is the request ID.
     # shellcheck disable=SC2154
     assert_command dfx canister request-status "$stdout" "$(dfx canister id hello)"
@@ -88,7 +88,7 @@ teardown() {
 
     # Write has no return value. But we can _call_ read too.
     # Call with user Identity as Sender
-    assert_command dfx canister --no-wallet call hello read --async
+    assert_command dfx canister call hello read --async
     assert_command dfx canister request-status "$stdout" "$(dfx canister id hello)"
     assert_eq "(1_337 : nat)"
 

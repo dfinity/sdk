@@ -31,6 +31,7 @@ pub async fn deploy_canisters(
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
+    create_call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -63,7 +64,7 @@ pub async fn deploy_canisters(
         &initial_canister_id_store,
         timeout,
         with_cycles,
-        call_sender,
+        create_call_sender,
         &config,
     )
     .await?;
