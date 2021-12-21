@@ -40,16 +40,20 @@ https://github.com/dfinity/cycles-wallet/commit/57e53fcb679d1ea33cc713d2c0c24fc5
 
 == Replica
 
-Updated replica to blessed commit 3a1286e844ed3b53b1848533cb844ea29b508f28.
+Updated replica to blessed commit 75138bbf11e201aac47266f07bee289dc18a082b.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/33828[33828]
+* https://dashboard.internetcomputer.org/proposal/31275[31275]
+* https://dashboard.internetcomputer.org/proposal/31165[31165]
+* https://dashboard.internetcomputer.org/proposal/30392[30392]
+* https://dashboard.internetcomputer.org/proposal/30078[30078]
 * https://dashboard.internetcomputer.org/proposal/29235[29235]
 * https://dashboard.internetcomputer.org/proposal/28784[28784]
 * https://dashboard.internetcomputer.org/proposal/27975[27975]
 * https://dashboard.internetcomputer.org/proposal/26833[26833]
 * https://dashboard.internetcomputer.org/proposal/25343[25343]
 * https://dashboard.internetcomputer.org/proposal/23633[23633]
-* https://dashboard.internetcomputer.org/proposal/33828[33828]
 
 = 0.8.4
 
@@ -109,7 +113,7 @@ and no longer works with `--all`.
 
 == Replica
 
-The included replica now supports `canister_heartbeat`.  This only works with rust canisters for the time being,
+The included replica now supports canister_heartbeat.  This only works with rust canisters for the time being,
 and does not work with the emulator (`dfx start --emulator`).
 
 = 0.8.3
