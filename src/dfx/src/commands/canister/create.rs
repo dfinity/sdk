@@ -5,6 +5,7 @@ use crate::lib::ic_attributes::{
 };
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::identity::Identity;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::cycle_amount_validator;
@@ -15,7 +16,7 @@ use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use clap::{ArgSettings, Clap};
-use ic_agent::identity::Identity;
+use ic_agent::Identity as _;
 use ic_types::principal::Principal as CanisterId;
 
 /// Creates an empty canister on the Internet Computer and
@@ -53,12 +54,17 @@ pub struct CanisterCreateOpts {
 
     #[clap(long, validator(freezing_threshold_validator), setting = ArgSettings::Hidden)]
     freezing_threshold: Option<String>,
+
+    /// Performs the call with the user Identity as the Sender of messages.
+    /// Bypasses the Wallet canister.
+    #[clap(long)]
+    no_wallet: bool,
 }
 
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCreateOpts,
-    call_sender: &CallSender,
+    mut call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
@@ -68,6 +74,20 @@ pub async fn exec(
     let with_cycles = opts.with_cycles.as_deref();
 
     let config_interface = config.get_config();
+
+    let proxy_sender;
+    if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
+        let wallet = Identity::get_or_create_wallet_canister(
+            env,
+            env.get_network_descriptor()
+                .expect("Couldn't get the network descriptor"),
+            env.get_selected_identity().expect("No selected identity"),
+            true,
+        )
+        .await?;
+        proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+        call_sender = &proxy_sender;
+    }
 
     let controllers: Option<Vec<_>> = opts
         .controller

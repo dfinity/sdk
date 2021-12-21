@@ -53,7 +53,7 @@ where
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?
         }
-        CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+        CallSender::Wallet(wallet_id) => {
             let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
             let out: O = wallet
                 .call_forward(mgr.update_(method).with_arg(arg).build(), cycles)?
