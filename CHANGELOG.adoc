@@ -57,6 +57,23 @@ Updated Motoko from 0.6.11 to 0.6.14.
 Module hash: 53ec1b030f1891bf8fd3877773b15e66ca040da539412cc763ff4ebcaf4507c5
 https://github.com/dfinity/cycles-wallet/commit/57e53fcb679d1ea33cc713d2c0c24fc5848a9759
 
+== Replica
+
+Updated replica to blessed commit 75138bbf11e201aac47266f07bee289dc18a082b.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/33828[33828]
+* https://dashboard.internetcomputer.org/proposal/31275[31275]
+* https://dashboard.internetcomputer.org/proposal/31165[31165]
+* https://dashboard.internetcomputer.org/proposal/30392[30392]
+* https://dashboard.internetcomputer.org/proposal/30078[30078]
+* https://dashboard.internetcomputer.org/proposal/29235[29235]
+* https://dashboard.internetcomputer.org/proposal/28784[28784]
+* https://dashboard.internetcomputer.org/proposal/27975[27975]
+* https://dashboard.internetcomputer.org/proposal/26833[26833]
+* https://dashboard.internetcomputer.org/proposal/25343[25343]
+* https://dashboard.internetcomputer.org/proposal/23633[23633]
+
 = 0.8.4
 
 == DFX
