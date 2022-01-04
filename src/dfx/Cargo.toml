@@ -24,7 +24,7 @@ actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
 anyhow = "1.0.51"
 atty = "0.2.13"
 base64 = "0.13.0"
-candid = { version = "0.7.8", features = [ "random" ] }
+candid = { version = "0.7.9", features = [ "random" ] }
 chrono = "0.4.9"
 clap = "=3.0.0-beta.2"
 clap_derive = "=3.0.0-beta.2"
@@ -35,7 +35,7 @@ ctrlc = { version = "3.2.1", features = [ "termination" ] }
 dialoguer = "0.9.0"
 erased-serde = "0.3.10"
 flate2 = "1.0.11"
-futures = "0.3.5"
+futures = "0.3.19"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
 ic-types = "0.2.2"
@@ -55,7 +55,7 @@ petgraph = "0.6.0"
 rand = "0.7.2"
 regex = "1.3.1"
 ring = "0.16.11"
-reqwest = { version = "0.11.7", features = [ "blocking", "json", "rustls-tls" ] }
+reqwest = { version = "0.11.8", features = [ "blocking", "json", "rustls-tls" ] }
 rustls = "0.20.2"
 rust_decimal = "1.18.0"
 semver = "1.0.4"
@@ -69,35 +69,35 @@ slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
 slog-term = "2.5.0"
 sysinfo = "0.9.6"
-tar = "0.4.37"
+tar = "0.4.38"
 tempfile = "3.1.0"
 thiserror = "1.0.20"
-tokio = { version = "1.14.0", features = [ "fs" ] }
+tokio = { version = "1.5.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
 wasmparser = "0.81.0"
 
 [dependencies.ic-agent]
-version = "0.10.1"
+version = "0.10.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "34f6f909eb82ff2acfed4f39dfebfe7812bddc86"
+rev = "b6b74b25c83bd26d21e9c9e737befd9fbd60bd70"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.10.1"
+version = "0.10.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "34f6f909eb82ff2acfed4f39dfebfe7812bddc86"
+rev = "b6b74b25c83bd26d21e9c9e737befd9fbd60bd70"
 
 [dependencies.ic-identity-hsm]
-version = "0.10.1"
+version = "0.10.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "34f6f909eb82ff2acfed4f39dfebfe7812bddc86"
+rev = "b6b74b25c83bd26d21e9c9e737befd9fbd60bd70"
 
 [dependencies.ic-utils]
-version = "0.10.1"
+version = "0.10.2"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "34f6f909eb82ff2acfed4f39dfebfe7812bddc86"
+rev = "b6b74b25c83bd26d21e9c9e737befd9fbd60bd70"
 
 [dev-dependencies]
 env_logger = "0.9"
