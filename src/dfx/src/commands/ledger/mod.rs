@@ -3,8 +3,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::nns_types::{
-    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, SendArgs, CYCLE_MINTER_CANISTER_ID,
-    LEDGER_CANISTER_ID,
+    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, SendArgs, TimeStamp,
+    CYCLE_MINTER_CANISTER_ID, LEDGER_CANISTER_ID,
 };
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -14,8 +14,12 @@ use crate::util::expiry_duration;
 use anyhow::anyhow;
 use candid::{Decode, Encode};
 use clap::Clap;
+use garcon::{Delay, Waiter};
+use ic_agent::agent_error::HttpErrorPayload;
+use ic_agent::AgentError;
 use ic_types::principal::Principal;
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 
 const SEND_METHOD: &str = "send_dfx";
@@ -114,21 +118,64 @@ async fn send_and_notify(
     fetch_root_key_if_needed(env).await?;
 
     let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
+    let timestamp_nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64;
 
-    let result = agent
-        .update(&ledger_canister_id, SEND_METHOD)
-        .with_arg(Encode!(&SendArgs {
-            memo,
-            amount,
-            fee,
-            from_subaccount: None,
-            to,
-            created_at_time: None,
-        })?)
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+    let mut waiter = Delay::builder()
+        .with(Delay::count_timeout(30))
+        .exponential_backoff_capped(
+            std::time::Duration::from_secs(1),
+            2.0,
+            std::time::Duration::from_secs(16),
+        )
+        .build();
+    waiter.start();
 
-    let block_height = Decode!(&result, BlockHeight)?;
+    let mut n = 1;
+
+    let block_height: BlockHeight = loop {
+        match agent
+            .update(&ledger_canister_id, SEND_METHOD)
+            .with_arg(Encode!(&SendArgs {
+                memo,
+                amount,
+                fee,
+                from_subaccount: None,
+                to,
+                created_at_time: Some(TimeStamp { timestamp_nanos }),
+            })?)
+            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .await
+        {
+            Ok(data) => {
+                n = n + 1;
+                if n < 12 {
+                    if let Ok(_) = waiter.async_wait().await {
+                        eprintln!("force retry (no error)");
+                        continue;
+                    }
+                }
+                break Ok(Decode!(&data, BlockHeight)?)
+            },
+            // Err(agent_err) if let Some(block_height) = tx_duplicate(&agent_err) {
+            //     break Ok()
+            // }
+            Err(agent_err) if !retryable(&agent_err) => {
+                eprintln!("non-retryable error");
+                break Err(agent_err);
+            }
+            Err(agent_err) => {
+                eprintln!("retryable error {:?}", &agent_err);
+                if let Err(_waiter_err) = waiter.async_wait().await {
+                    break Err(agent_err);
+                }
+            }
+        }
+    }?;
+
+    //let block_height = Decode!(&result, BlockHeight)?;
     println!("Transfer sent at BlockHeight: {}", block_height);
 
     let result = agent
@@ -145,4 +192,34 @@ async fn send_and_notify(
 
     let result = Decode!(&result, CyclesResponse)?;
     Ok(result)
+}
+
+fn retryable(agent_error: &AgentError) -> bool {
+    match agent_error {
+        AgentError::ReplicaError {
+            reject_code,
+            reject_message,
+        } if *reject_code == 5 && reject_message.contains("is out of cycles") => false,
+        AgentError::HttpError(HttpErrorPayload {
+            status,
+            content_type: _,
+            content: _,
+        }) if *status == 403 => {
+            // sometimes out of cycles looks like this
+            // assume any 403(unauthorized) is not retryable
+            false
+        }
+        _ => true,
+    }
+}
+
+fn tx_duplicate(agent_err: &AgentError) -> Option<BlockHeight> {
+    match agent_err {
+        AgentError::ReplicaError {
+            reject_code, reject_message,
+        } if *reject_code == 5 && reject_message.contains("TxDuplicate { duplicate_of:") => {
+            Some(2)
+        }
+        _ => None,
+    }
 }
