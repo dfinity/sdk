@@ -39,7 +39,7 @@ pub struct AccountBalanceArgs {
     pub account: String,
 }
 
-#[derive(CandidType)]
+#[derive(CandidType, Debug)]
 pub struct TimeStamp {
     pub timestamp_nanos: u64,
 }

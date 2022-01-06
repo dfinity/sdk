@@ -21,7 +21,7 @@ use ic_types::principal::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
-use crate::lib::ledger_types::{Timestamp, TransferArgs, TransferResult, MAINNET_LEDGER_CANISTER_ID, Tokens, TransferError};
+use crate::lib::ledger_types::{TransferArgs, TransferResult, MAINNET_LEDGER_CANISTER_ID, Tokens, TransferError};
 use crate::lib::ledger_types;
 
 const SEND_METHOD: &str = "send_dfx";
@@ -141,8 +141,8 @@ async fn transfer_and_notify(
     let mut n = 0;
 
     let block_height: BlockHeight = loop {
-        let amount = Tokens::from_e8s( amount.get_e8s() );
-        let fee = Tokens::from_e8s( fee.get_e8s() );
+        //let amount = Tokens::from_e8s( amount.get_e8s() );
+        //let fee = Tokens::from_e8s( fee.get_e8s() );
         match agent
             .update(&MAINNET_LEDGER_CANISTER_ID, TRANSFER_METHOD)
             .with_arg(Encode!(&TransferArgs {
@@ -151,7 +151,7 @@ async fn transfer_and_notify(
                 fee,
                 from_subaccount: None,
                 to,
-                created_at_time: Some(Timestamp { timestamp_nanos }),
+                created_at_time: Some(TimeStamp { timestamp_nanos }),
             })?)
             .call_and_wait(waiter_with_timeout(expiry_duration()))
             .await

@@ -9,8 +9,9 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 use candid::CandidType;
 use ic_types::principal::Principal;
-use crate::lib::nns_types::Memo;
+use crate::lib::nns_types::{Memo, BlockHeight, TimeStamp};
 use crate::lib::nns_types::account_identifier::Subaccount;
+use crate::lib::nns_types::icpts::ICPTs;
 
 /// The subaccont that is used by default.
 pub const DEFAULT_SUBACCOUNT: Subaccount = Subaccount([0; 32]);
@@ -22,13 +23,13 @@ pub const DEFAULT_FEE: Tokens = Tokens { e8s: 10_000 };
 pub const MAINNET_LEDGER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x01]);
 
-/// Number of nanoseconds from the UNIX epoch in UTC timezone.
-#[derive(
-CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
-)]
-pub struct Timestamp {
-    pub timestamp_nanos: u64,
-}
+// /// Number of nanoseconds from the UNIX epoch in UTC timezone.
+// #[derive(
+// CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
+// )]
+// pub struct Timestamp {
+//     pub timestamp_nanos: u64,
+// }
 
 /// A type for representing amounts of Tokens.
 ///
@@ -119,50 +120,50 @@ impl fmt::Display for Tokens {
 // )]
 // pub struct Subaccount(pub [u8; 32]);
 
-/// AccountIdentifier is a 32-byte array.
-/// The first 4 bytes is big-endian encoding of a CRC32 checksum of the last 28 bytes.
-#[derive(
-CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
-)]
-pub struct AccountIdentifier([u8; 32]);
+// /// AccountIdentifier is a 32-byte array.
+// /// The first 4 bytes is big-endian encoding of a CRC32 checksum of the last 28 bytes.
+// #[derive(
+// CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
+// )]
+// pub struct AccountIdentifier([u8; 32]);
 pub type AccountIdBlob = [u8; 32];
 
-impl AccountIdentifier {
-    pub fn new(owner: &Principal, subaccount: &Subaccount) -> Self {
-        let mut hasher = sha2::Sha224::new();
-        hasher.update(b"\x0Aaccount-id");
-        hasher.update(owner.as_slice());
-        hasher.update(&subaccount.0[..]);
-        let hash: [u8; 28] = hasher.finalize().into();
+// impl AccountIdentifier {
+//     pub fn new(owner: &Principal, subaccount: &Subaccount) -> Self {
+//         let mut hasher = sha2::Sha224::new();
+//         hasher.update(b"\x0Aaccount-id");
+//         hasher.update(owner.as_slice());
+//         hasher.update(&subaccount.0[..]);
+//         let hash: [u8; 28] = hasher.finalize().into();
+//
+//         let mut hasher = crc32fast::Hasher::new();
+//         hasher.update(&hash);
+//         let crc32_bytes = hasher.finalize().to_be_bytes();
+//
+//         let mut result = [0u8; 32];
+//         result[0..4].copy_from_slice(&crc32_bytes[..]);
+//         result[4..32].copy_from_slice(hash.as_ref());
+//         Self(result)
+//     }
+// }
+//
+// impl AsRef<[u8]> for AccountIdentifier {
+//     fn as_ref(&self) -> &[u8] {
+//         &self.0
+//     }
+// }
+//
+// impl fmt::Display for AccountIdentifier {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "{}", hex::encode(self.as_ref()))
+//     }
+// }
 
-        let mut hasher = crc32fast::Hasher::new();
-        hasher.update(&hash);
-        let crc32_bytes = hasher.finalize().to_be_bytes();
-
-        let mut result = [0u8; 32];
-        result[0..4].copy_from_slice(&crc32_bytes[..]);
-        result[4..32].copy_from_slice(hash.as_ref());
-        Self(result)
-    }
-}
-
-impl AsRef<[u8]> for AccountIdentifier {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl fmt::Display for AccountIdentifier {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", hex::encode(self.as_ref()))
-    }
-}
-
-/// Arguments for the `account_balance` call.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct AccountBalanceArgs {
-    pub account: AccountIdentifier,
-}
+// /// Arguments for the `account_balance` call.
+// #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+// pub struct AccountBalanceArgs {
+//     pub account: AccountIdentifier,
+// }
 
 // /// An arbitrary number associated with a transaction.
 // /// The caller can set it in a `transfer` call as a correlation identifier.
@@ -172,21 +173,21 @@ pub struct AccountBalanceArgs {
 // pub struct Memo(pub u64);
 
 /// Arguments for the `transfer` call.
-#[derive(CandidType, Clone, Debug)]
+#[derive(CandidType, Debug)]
 pub struct TransferArgs {
     pub memo: Memo,
-    pub amount: Tokens,
-    pub fee: Tokens,
+    pub amount: ICPTs,
+    pub fee: ICPTs,
     pub from_subaccount: Option<Subaccount>,
     pub to: AccountIdBlob,
-    pub created_at_time: Option<Timestamp>,
+    pub created_at_time: Option<TimeStamp>,
 }
 
-/// The sequence number of a block in the Tokens ledger blockchain.
-pub type BlockIndex = u64;
+// /// The sequence number of a block in the Tokens ledger blockchain.
+// pub type BlockIndex = u64;
 
 /// Result of the `transfer` call.
-pub type TransferResult = Result<BlockIndex, TransferError>;
+pub type TransferResult = Result<BlockHeight, TransferError>;
 
 /// Error of the `transfer` call.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -195,7 +196,7 @@ pub enum TransferError {
     InsufficientFunds { balance: Tokens },
     TxTooOld { allowed_window_nanos: u64 },
     TxCreatedInFuture,
-    TxDuplicate { duplicate_of: BlockIndex },
+    TxDuplicate { duplicate_of: BlockHeight },
 }
 
 impl fmt::Display for TransferError {
