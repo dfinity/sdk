@@ -11,7 +11,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use candid::{Decode, Encode};
 use clap::Clap;
 use garcon::{Delay, Waiter};
@@ -21,8 +21,11 @@ use ic_types::principal::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
+use crate::lib::ledger_types::{Timestamp, TransferArgs, TransferResult, MAINNET_LEDGER_CANISTER_ID, Tokens, TransferError};
+use crate::lib::ledger_types;
 
 const SEND_METHOD: &str = "send_dfx";
+const TRANSFER_METHOD: &str = "transfer";
 const NOTIFY_METHOD: &str = "notify_dfx";
 
 mod account_id;
@@ -99,12 +102,12 @@ fn get_icpts_from_args(
     }
 }
 
-async fn send_and_notify(
+async fn transfer_and_notify(
     env: &dyn Environment,
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
-    to_subaccount: Option<Subaccount>,
+    to_subaccount: Subaccount,
     max_fee: ICPTs,
 ) -> DfxResult<CyclesResponse> {
     let ledger_canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
@@ -117,7 +120,9 @@ async fn send_and_notify(
 
     fetch_root_key_if_needed(env).await?;
 
-    let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
+    //let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
+    let to = ledger_types::AccountIdentifier::new(&cycle_minter_id, &to_subaccount);
+    //let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
     let timestamp_nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -136,20 +141,24 @@ async fn send_and_notify(
     let mut n = 1;
 
     let block_height: BlockHeight = loop {
+        let amount = Tokens::from_e8s( amount.get_e8s() );
+        let fee = Tokens::from_e8s( fee.get_e8s() );
         match agent
-            .update(&ledger_canister_id, SEND_METHOD)
-            .with_arg(Encode!(&SendArgs {
+            .update(&MAINNET_LEDGER_CANISTER_ID, TRANSFER_METHOD)
+            .with_arg(Encode!(&TransferArgs {
                 memo,
                 amount,
                 fee,
                 from_subaccount: None,
                 to,
-                created_at_time: Some(TimeStamp { timestamp_nanos }),
+                created_at_time: Some(Timestamp { timestamp_nanos }),
             })?)
             .call_and_wait(waiter_with_timeout(expiry_duration()))
             .await
         {
             Ok(data) => {
+                let result = Decode!(&data, TransferResult)?;
+                eprintln!("transfer result: {:?}", &result);
                 n = n + 1;
                 if n < 12 {
                     if let Ok(_) = waiter.async_wait().await {
@@ -157,23 +166,67 @@ async fn send_and_notify(
                         continue;
                     }
                 }
-                break Ok(Decode!(&data, BlockHeight)?)
+                match result {
+                    Ok(block_height) => break block_height,
+                    Err(TransferError::TxDuplicate { duplicate_of } ) => break duplicate_of,
+                    Err(transfer_err) => bail!(transfer_err),
+                }
             },
             // Err(agent_err) if let Some(block_height) = tx_duplicate(&agent_err) {
             //     break Ok()
             // }
             Err(agent_err) if !retryable(&agent_err) => {
                 eprintln!("non-retryable error");
-                break Err(agent_err);
+                bail!(agent_err);
             }
             Err(agent_err) => {
                 eprintln!("retryable error {:?}", &agent_err);
                 if let Err(_waiter_err) = waiter.async_wait().await {
-                    break Err(agent_err);
+                    bail!(agent_err);
                 }
             }
         }
-    }?;
+    };
+
+    // let block_height: BlockHeight = loop {
+    //     match agent
+    //         .update(&ledger_canister_id, SEND_METHOD)
+    //         .with_arg(Encode!(&SendArgs {
+    //             memo,
+    //             amount,
+    //             fee,
+    //             from_subaccount: None,
+    //             to,
+    //             created_at_time: Some(TimeStamp { timestamp_nanos }),
+    //         })?)
+    //         .call_and_wait(waiter_with_timeout(expiry_duration()))
+    //         .await
+    //     {
+    //         Ok(data) => {
+    //             n = n + 1;
+    //             if n < 12 {
+    //                 if let Ok(_) = waiter.async_wait().await {
+    //                     eprintln!("force retry (no error)");
+    //                     continue;
+    //                 }
+    //             }
+    //             break Ok(Decode!(&data, BlockHeight)?)
+    //         },
+    //         // Err(agent_err) if let Some(block_height) = tx_duplicate(&agent_err) {
+    //         //     break Ok()
+    //         // }
+    //         Err(agent_err) if !retryable(&agent_err) => {
+    //             eprintln!("non-retryable error");
+    //             break Err(agent_err);
+    //         }
+    //         Err(agent_err) => {
+    //             eprintln!("retryable error {:?}", &agent_err);
+    //             if let Err(_waiter_err) = waiter.async_wait().await {
+    //                 break Err(agent_err);
+    //             }
+    //         }
+    //     }
+    // }?;
 
     //let block_height = Decode!(&result, BlockHeight)?;
     println!("Transfer sent at BlockHeight: {}", block_height);
@@ -185,7 +238,7 @@ async fn send_and_notify(
             max_fee,
             from_subaccount: None,
             to_canister: cycle_minter_id,
-            to_subaccount,
+            to_subaccount: Some(to_subaccount),
         })?)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;

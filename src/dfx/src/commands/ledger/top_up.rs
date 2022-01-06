@@ -1,4 +1,4 @@
-use crate::commands::ledger::{get_icpts_from_args, send_and_notify};
+use crate::commands::ledger::{get_icpts_from_args, transfer_and_notify};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::Subaccount;
@@ -52,14 +52,14 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     let memo = Memo(MEMO_TOP_UP_CANISTER);
 
-    let to_subaccount = Some(Subaccount::from(&Principal::from_text(opts.canister)?));
+    let to_subaccount = Subaccount::from(&Principal::from_text(opts.canister)?);
 
     let max_fee = opts
         .max_fee
         .map_or(Ok(TRANSACTION_FEE), |v| ICPTs::from_str(&v))
         .map_err(|err| anyhow!(err))?;
 
-    let result = send_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
+    let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
 
     match result {
         CyclesResponse::ToppedUp(()) => {

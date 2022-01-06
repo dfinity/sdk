@@ -9,6 +9,8 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 use candid::CandidType;
 use ic_types::principal::Principal;
+use crate::lib::nns_types::Memo;
+use crate::lib::nns_types::account_identifier::Subaccount;
 
 /// The subaccont that is used by default.
 pub const DEFAULT_SUBACCOUNT: Subaccount = Subaccount([0; 32]);
@@ -109,13 +111,13 @@ impl fmt::Display for Tokens {
         )
     }
 }
-/// Subaccount is an arbitrary 32-byte byte array.
-/// Ledger uses subaccounts to compute account address, which enables one
-/// principal to control multiple ledger accounts.
-#[derive(
-CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
-)]
-pub struct Subaccount(pub [u8; 32]);
+// /// Subaccount is an arbitrary 32-byte byte array.
+// /// Ledger uses subaccounts to compute account address, which enables one
+// /// principal to control multiple ledger accounts.
+// #[derive(
+// CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
+// )]
+// pub struct Subaccount(pub [u8; 32]);
 
 /// AccountIdentifier is a 32-byte array.
 /// The first 4 bytes is big-endian encoding of a CRC32 checksum of the last 28 bytes.
@@ -161,15 +163,15 @@ pub struct AccountBalanceArgs {
     pub account: AccountIdentifier,
 }
 
-/// An arbitrary number associated with a transaction.
-/// The caller can set it in a `transfer` call as a correlation identifier.
-#[derive(
-CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
-)]
-pub struct Memo(pub u64);
+// /// An arbitrary number associated with a transaction.
+// /// The caller can set it in a `transfer` call as a correlation identifier.
+// #[derive(
+// CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
+// )]
+// pub struct Memo(pub u64);
 
 /// Arguments for the `transfer` call.
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Clone, Debug)]
 pub struct TransferArgs {
     pub memo: Memo,
     pub amount: Tokens,
