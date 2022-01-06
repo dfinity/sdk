@@ -4,13 +4,13 @@
 // https://gitlab.com/dfinity-lab/public/ic/-/blob/master/rs/rosetta-api/ledger_canister/src/lib.rs
 // https://github.com/dfinity/cdk-rs/blob/main/src/ic-ledger-types/src/lib.rs
 
-use serde::{Deserialize, Serialize};
-use std::fmt;
-use candid::CandidType;
-use ic_types::principal::Principal;
-use crate::lib::nns_types::{Memo, BlockHeight, TimeStamp};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::ICPTs;
+use crate::lib::nns_types::{BlockHeight, Memo, TimeStamp};
+use candid::CandidType;
+use ic_types::principal::Principal;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 /// Id of the ledger canister on the IC.
 pub const MAINNET_LEDGER_CANISTER_ID: Principal =

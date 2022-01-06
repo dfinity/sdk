@@ -3,14 +3,17 @@ use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::nns_types::{
-    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, TimeStamp,
-    CYCLE_MINTER_CANISTER_ID, LEDGER_CANISTER_ID,
+    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, TimeStamp, CYCLE_MINTER_CANISTER_ID,
+    LEDGER_CANISTER_ID,
 };
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
+use crate::lib::ledger_types::{
+    TransferArgs, TransferError, TransferResult, MAINNET_LEDGER_CANISTER_ID,
+};
 use anyhow::{anyhow, bail};
 use candid::{Decode, Encode};
 use clap::Clap;
@@ -21,7 +24,6 @@ use ic_types::principal::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
-use crate::lib::ledger_types::{TransferArgs, TransferResult, MAINNET_LEDGER_CANISTER_ID, TransferError};
 
 const TRANSFER_METHOD: &str = "transfer";
 const NOTIFY_METHOD: &str = "notify_dfx";
@@ -166,10 +168,10 @@ async fn transfer_and_notify(
                 }
                 match result {
                     Ok(block_height) => break block_height,
-                    Err(TransferError::TxDuplicate { duplicate_of } ) => break duplicate_of,
+                    Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
                     Err(transfer_err) => bail!(transfer_err),
                 }
-            },
+            }
             // Err(agent_err) if let Some(block_height) = tx_duplicate(&agent_err) {
             //     break Ok()
             // }
