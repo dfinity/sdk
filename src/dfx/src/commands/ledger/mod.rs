@@ -11,15 +11,13 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use crate::lib::ledger_types::{
-    TransferArgs, TransferError, TransferResult, MAINNET_LEDGER_CANISTER_ID,
-};
+use crate::lib::ledger_types::{TransferArgs, TransferError, TransferResult, MAINNET_LEDGER_CANISTER_ID, AccountIdBlob};
 use anyhow::{anyhow, bail};
 use candid::{Decode, Encode};
 use clap::Clap;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
-use ic_agent::AgentError;
+use ic_agent::{AgentError, Agent};
 use ic_types::principal::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -102,27 +100,13 @@ fn get_icpts_from_args(
     }
 }
 
-async fn transfer_and_notify(
-    env: &dyn Environment,
+pub async fn transfer(
+    agent: &Agent,
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
-    to_subaccount: Option<Subaccount>,
-    max_fee: ICPTs,
-) -> DfxResult<CyclesResponse> {
-    let ledger_canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
-
-    let cycle_minter_id = Principal::from_text(CYCLE_MINTER_CANISTER_ID)?;
-
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-
-    fetch_root_key_if_needed(env).await?;
-
-    //let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
-    //let to = ledger_types::AccountIdentifier::new(&cycle_minter_id, &to_subaccount);
-    let to = AccountIdentifier::new(cycle_minter_id, to_subaccount).to_address();
+    to: AccountIdBlob,
+) -> DfxResult<BlockHeight> {
     let timestamp_nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -141,8 +125,6 @@ async fn transfer_and_notify(
     let mut n = 0;
 
     let block_height: BlockHeight = loop {
-        //let amount = Tokens::from_e8s( amount.get_e8s() );
-        //let fee = Tokens::from_e8s( fee.get_e8s() );
         match agent
             .update(&MAINNET_LEDGER_CANISTER_ID, TRANSFER_METHOD)
             .with_arg(Encode!(&TransferArgs {
@@ -184,6 +166,31 @@ async fn transfer_and_notify(
             }
         }
     };
+
+    Ok(block_height)
+}
+
+async fn transfer_and_notify(
+    env: &dyn Environment,
+    memo: Memo,
+    amount: ICPTs,
+    fee: ICPTs,
+    to_subaccount: Option<Subaccount>,
+    max_fee: ICPTs,
+) -> DfxResult<CyclesResponse> {
+    let ledger_canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
+
+    let cycle_minter_id = Principal::from_text(CYCLE_MINTER_CANISTER_ID)?;
+
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    fetch_root_key_if_needed(env).await?;
+
+    let to = AccountIdentifier::new(cycle_minter_id, to_subaccount).to_address();
+
+    let block_height = transfer(agent, memo, amount, fee, to).await?;
 
     println!("Transfer sent at BlockHeight: {}", block_height);
 
