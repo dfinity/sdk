@@ -11,13 +11,15 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use crate::lib::ledger_types::{TransferArgs, TransferError, TransferResult, MAINNET_LEDGER_CANISTER_ID, AccountIdBlob};
+use crate::lib::ledger_types::{
+    AccountIdBlob, TransferArgs, TransferError, TransferResult, MAINNET_LEDGER_CANISTER_ID,
+};
 use anyhow::{anyhow, bail};
 use candid::{Decode, Encode};
 use clap::Clap;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
-use ic_agent::{AgentError, Agent};
+use ic_agent::{Agent, AgentError};
 use ic_types::principal::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -141,12 +143,10 @@ pub async fn transfer(
             Ok(data) => {
                 let result = Decode!(&data, TransferResult)?;
                 eprintln!("transfer result: {:?}", &result);
-                n = n + 1;
-                if n < 2 {
-                    if let Ok(_) = waiter.async_wait().await {
-                        eprintln!("force retry (no error)");
-                        continue;
-                    }
+                n += 1;
+                if n < 2 && waiter.async_wait().await.is_ok() {
+                    eprintln!("force retry (no error)");
+                    continue;
                 }
                 match result {
                     Ok(block_height) => break block_height,

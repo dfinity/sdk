@@ -50,7 +50,9 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
     // validated by memo_validator
     let memo = Memo(opts.memo.parse::<u64>().unwrap());
 
-    let to = AccountIdentifier::from_str(&opts.to).map_err(|err| anyhow!(err))?.to_address();
+    let to = AccountIdentifier::from_str(&opts.to)
+        .map_err(|err| anyhow!(err))?
+        .to_address();
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
