@@ -125,6 +125,7 @@ impl fmt::Display for Tokens {
 CandidType, Serialize, Deserialize, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
 )]
 pub struct AccountIdentifier([u8; 32]);
+pub type AccountIdBlob = [u8; 32];
 
 impl AccountIdentifier {
     pub fn new(owner: &Principal, subaccount: &Subaccount) -> Self {
@@ -177,7 +178,7 @@ pub struct TransferArgs {
     pub amount: Tokens,
     pub fee: Tokens,
     pub from_subaccount: Option<Subaccount>,
-    pub to: AccountIdentifier,
+    pub to: AccountIdBlob,
     pub created_at_time: Option<Timestamp>,
 }
 

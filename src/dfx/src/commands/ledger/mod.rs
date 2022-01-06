@@ -121,8 +121,8 @@ async fn transfer_and_notify(
     fetch_root_key_if_needed(env).await?;
 
     //let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
-    let to = ledger_types::AccountIdentifier::new(&cycle_minter_id, &to_subaccount);
-    //let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
+    //let to = ledger_types::AccountIdentifier::new(&cycle_minter_id, &to_subaccount);
+    let to = AccountIdentifier::new(cycle_minter_id, Some(to_subaccount)).to_address();
     let timestamp_nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -138,7 +138,7 @@ async fn transfer_and_notify(
         .build();
     waiter.start();
 
-    let mut n = 1;
+    let mut n = 0;
 
     let block_height: BlockHeight = loop {
         let amount = Tokens::from_e8s( amount.get_e8s() );
@@ -160,7 +160,7 @@ async fn transfer_and_notify(
                 let result = Decode!(&data, TransferResult)?;
                 eprintln!("transfer result: {:?}", &result);
                 n = n + 1;
-                if n < 12 {
+                if n < 2 {
                     if let Ok(_) = waiter.async_wait().await {
                         eprintln!("force retry (no error)");
                         continue;
@@ -188,47 +188,6 @@ async fn transfer_and_notify(
         }
     };
 
-    // let block_height: BlockHeight = loop {
-    //     match agent
-    //         .update(&ledger_canister_id, SEND_METHOD)
-    //         .with_arg(Encode!(&SendArgs {
-    //             memo,
-    //             amount,
-    //             fee,
-    //             from_subaccount: None,
-    //             to,
-    //             created_at_time: Some(TimeStamp { timestamp_nanos }),
-    //         })?)
-    //         .call_and_wait(waiter_with_timeout(expiry_duration()))
-    //         .await
-    //     {
-    //         Ok(data) => {
-    //             n = n + 1;
-    //             if n < 12 {
-    //                 if let Ok(_) = waiter.async_wait().await {
-    //                     eprintln!("force retry (no error)");
-    //                     continue;
-    //                 }
-    //             }
-    //             break Ok(Decode!(&data, BlockHeight)?)
-    //         },
-    //         // Err(agent_err) if let Some(block_height) = tx_duplicate(&agent_err) {
-    //         //     break Ok()
-    //         // }
-    //         Err(agent_err) if !retryable(&agent_err) => {
-    //             eprintln!("non-retryable error");
-    //             break Err(agent_err);
-    //         }
-    //         Err(agent_err) => {
-    //             eprintln!("retryable error {:?}", &agent_err);
-    //             if let Err(_waiter_err) = waiter.async_wait().await {
-    //                 break Err(agent_err);
-    //             }
-    //         }
-    //     }
-    // }?;
-
-    //let block_height = Decode!(&result, BlockHeight)?;
     println!("Transfer sent at BlockHeight: {}", block_height);
 
     let result = agent
