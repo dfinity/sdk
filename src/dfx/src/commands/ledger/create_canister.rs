@@ -52,7 +52,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
 
     let memo = Memo(MEMO_CREATE_CANISTER);
 
-    let to_subaccount = Subaccount::from(&Principal::from_text(opts.controller)?);
+    let to_subaccount = Some(Subaccount::from(&Principal::from_text(opts.controller)?));
 
     let max_fee = opts
         .max_fee

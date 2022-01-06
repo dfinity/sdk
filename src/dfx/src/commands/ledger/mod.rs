@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::nns_types::{
-    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, SendArgs, TimeStamp,
+    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, TimeStamp,
     CYCLE_MINTER_CANISTER_ID, LEDGER_CANISTER_ID,
 };
 use crate::lib::provider::create_agent_environment;
@@ -21,10 +21,8 @@ use ic_types::principal::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
-use crate::lib::ledger_types::{TransferArgs, TransferResult, MAINNET_LEDGER_CANISTER_ID, Tokens, TransferError};
-use crate::lib::ledger_types;
+use crate::lib::ledger_types::{TransferArgs, TransferResult, MAINNET_LEDGER_CANISTER_ID, TransferError};
 
-const SEND_METHOD: &str = "send_dfx";
 const TRANSFER_METHOD: &str = "transfer";
 const NOTIFY_METHOD: &str = "notify_dfx";
 
@@ -107,7 +105,7 @@ async fn transfer_and_notify(
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
-    to_subaccount: Subaccount,
+    to_subaccount: Option<Subaccount>,
     max_fee: ICPTs,
 ) -> DfxResult<CyclesResponse> {
     let ledger_canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
@@ -122,7 +120,7 @@ async fn transfer_and_notify(
 
     //let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
     //let to = ledger_types::AccountIdentifier::new(&cycle_minter_id, &to_subaccount);
-    let to = AccountIdentifier::new(cycle_minter_id, Some(to_subaccount)).to_address();
+    let to = AccountIdentifier::new(cycle_minter_id, to_subaccount).to_address();
     let timestamp_nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -197,7 +195,7 @@ async fn transfer_and_notify(
             max_fee,
             from_subaccount: None,
             to_canister: cycle_minter_id,
-            to_subaccount: Some(to_subaccount),
+            to_subaccount: to_subaccount,
         })?)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
@@ -222,16 +220,5 @@ fn retryable(agent_error: &AgentError) -> bool {
             false
         }
         _ => true,
-    }
-}
-
-fn tx_duplicate(agent_err: &AgentError) -> Option<BlockHeight> {
-    match agent_err {
-        AgentError::ReplicaError {
-            reject_code, reject_message,
-        } if *reject_code == 5 && reject_message.contains("TxDuplicate { duplicate_of:") => {
-            Some(2)
-        }
-        _ => None,
     }
 }
