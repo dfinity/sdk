@@ -1,6 +1,9 @@
 use crate::commands::ledger::get_icpts_from_args;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::{
+    TransferArgs, TransferError, TransferResult, MAINNET_LEDGER_CANISTER_ID,
+};
 use crate::lib::nns_types::account_identifier::AccountIdentifier;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::nns_types::{BlockHeight, Memo, SendArgs, LEDGER_CANISTER_ID};
@@ -15,7 +18,7 @@ use clap::Clap;
 use ic_types::principal::Principal;
 use std::str::FromStr;
 
-const SEND_METHOD: &str = "send_dfx";
+const TRANSFER_METHOD: &str = "transfer";
 
 /// Transfer ICP from the user to the destination AccountIdentifier
 #[derive(Clap)]
@@ -56,7 +59,11 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
     // validated by memo_validator
     let memo = Memo(opts.memo.parse::<u64>().unwrap());
 
-    let to = AccountIdentifier::from_str(&opts.to).map_err(|err| anyhow!(err))?;
+    let to = AccountIdentifier::from_str(&opts.to).map_err(|err| anyhow!(err))?.to_address();
+    // let timestamp_nanos = SystemTime::now()
+    //     .duration_since(UNIX_EPOCH)
+    //     .unwrap()
+    //     .as_nanos() as u64;
 
     let agent = env
         .get_agent()
@@ -67,8 +74,8 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
     let canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
 
     let result = agent
-        .update(&canister_id, SEND_METHOD)
-        .with_arg(Encode!(&SendArgs {
+        .update(&MAINNET_LEDGER_CANISTER_ID, TRANSFER_METHOD)
+        .with_arg(Encode!(&TransferArgs {
             memo,
             amount,
             fee,
@@ -79,8 +86,10 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
 
-    let block_height = Decode!(&result, BlockHeight)?;
-    println!("Transfer sent at BlockHeight: {}", block_height);
+    let transfer_result = Decode!(&result, TransferResult)?;
+    if let Ok(block_height) = transfer_result {
+        println!("Transfer sent at BlockHeight: {}", block_height);
+    }
 
     Ok(())
 }
