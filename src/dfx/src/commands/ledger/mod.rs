@@ -197,7 +197,7 @@ async fn transfer_and_notify(
             max_fee,
             from_subaccount: None,
             to_canister: cycle_minter_id,
-            to_subaccount: to_subaccount,
+            to_subaccount,
         })?)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
