@@ -172,9 +172,6 @@ async fn transfer_and_notify(
                     Err(transfer_err) => bail!(transfer_err),
                 }
             }
-            // Err(agent_err) if let Some(block_height) = tx_duplicate(&agent_err) {
-            //     break Ok()
-            // }
             Err(agent_err) if !retryable(&agent_err) => {
                 eprintln!("non-retryable error");
                 bail!(agent_err);
