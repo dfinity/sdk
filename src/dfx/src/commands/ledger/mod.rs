@@ -120,8 +120,8 @@ pub async fn transfer(
         .build();
     waiter.start();
 
-    let mut n = 0;
-
+    // let mut n = 0;
+    //
     let block_height: BlockHeight = loop {
         match agent
             .update(&MAINNET_LEDGER_CANISTER_ID, TRANSFER_METHOD)
@@ -138,12 +138,12 @@ pub async fn transfer(
         {
             Ok(data) => {
                 let result = Decode!(&data, TransferResult)?;
-                eprintln!("transfer result: {:?}", &result);
-                n += 1;
-                if n < 2 && waiter.async_wait().await.is_ok() {
-                    eprintln!("force retry (no error)");
-                    continue;
-                }
+                // eprintln!("transfer result: {:?}", &result);
+                // n += 1;
+                // if n < 2 && waiter.async_wait().await.is_ok() {
+                //     eprintln!("force retry (no error)");
+                //     continue;
+                // }
                 match result {
                     Ok(block_height) => break block_height,
                     Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
@@ -151,11 +151,11 @@ pub async fn transfer(
                 }
             }
             Err(agent_err) if !retryable(&agent_err) => {
-                eprintln!("non-retryable error");
+                // eprintln!("non-retryable error");
                 bail!(agent_err);
             }
             Err(agent_err) => {
-                eprintln!("retryable error {:?}", &agent_err);
+                // eprintln!("retryable error {:?}", &agent_err);
                 if let Err(_waiter_err) = waiter.async_wait().await {
                     bail!(agent_err);
                 }
