@@ -1,26 +1,22 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::{
+    AccountIdBlob, BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, TimeStamp, TransferArgs,
+    TransferError, TransferResult, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+};
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
-use crate::lib::nns_types::{
-    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, TimeStamp, CYCLE_MINTER_CANISTER_ID,
-    LEDGER_CANISTER_ID,
-};
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use crate::lib::ledger_types::{
-    AccountIdBlob, TransferArgs, TransferError, TransferResult, MAINNET_LEDGER_CANISTER_ID,
-};
 use anyhow::{anyhow, bail};
 use candid::{Decode, Encode};
 use clap::Clap;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
-use ic_types::principal::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
@@ -178,29 +174,25 @@ async fn transfer_and_notify(
     to_subaccount: Option<Subaccount>,
     max_fee: ICPTs,
 ) -> DfxResult<CyclesResponse> {
-    let ledger_canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
-
-    let cycle_minter_id = Principal::from_text(CYCLE_MINTER_CANISTER_ID)?;
-
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
 
-    let to = AccountIdentifier::new(cycle_minter_id, to_subaccount).to_address();
+    let to = AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, to_subaccount).to_address();
 
     let block_height = transfer(agent, memo, amount, fee, to).await?;
 
     println!("Transfer sent at BlockHeight: {}", block_height);
 
     let result = agent
-        .update(&ledger_canister_id, NOTIFY_METHOD)
+        .update(&MAINNET_LEDGER_CANISTER_ID, NOTIFY_METHOD)
         .with_arg(Encode!(&NotifyCanisterArgs {
             block_height,
             max_fee,
             from_subaccount: None,
-            to_canister: cycle_minter_id,
+            to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
             to_subaccount,
         })?)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
