@@ -15,7 +15,7 @@
     "agent-rs": {
         "branch": "main",
         "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "b6b74b25c83bd26d21e9c9e737befd9fbd60bd70",
+        "rev": "22c7bb2ec77be4779f85313791a066ff75939bfb",
         "type": "git"
     },
     "bats-support": {
@@ -34,7 +34,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "e43a116ae05fad8c9d4262b88298c32d5d144667",
+        "rev": "3becc8d335d4f7a09cfb12871fad864b0ca316ae",
         "type": "git"
     },
     "ic-ref-x86_64-darwin": {

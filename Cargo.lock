@@ -662,9 +662,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.7.9"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31e50722722e50168832c537161079e6a72d624ab23f815beb7b9e628be3377f"
+checksum = "12970d8d0620d2bdb7e81a5b13ed11e41fcdfeba53d61e45b5853afcbf9611fd"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -1626,13 +1626,13 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1323096b05d41827dadeaee54c9981958c0f94e670bc94ed80037d1a7b8b186b"
+checksum = "31f4c6746584866f0feabcc69893c5b51beef3831656a968ed7ae254cdc4fd03"
 dependencies = [
  "bytes 1.1.0",
  "fnv",
- "itoa 0.4.8",
+ "itoa 1.0.1",
 ]
 
 [[package]]
@@ -1725,8 +1725,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.10.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=b6b74b25c83bd26d21e9c9e737befd9fbd60bd70#b6b74b25c83bd26d21e9c9e737befd9fbd60bd70"
+version = "0.11.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=22c7bb2ec77be4779f85313791a066ff75939bfb#22c7bb2ec77be4779f85313791a066ff75939bfb"
 dependencies = [
  "async-trait",
  "base32",
@@ -1755,8 +1755,8 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.10.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=b6b74b25c83bd26d21e9c9e737befd9fbd60bd70#b6b74b25c83bd26d21e9c9e737befd9fbd60bd70"
+version = "0.11.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=22c7bb2ec77be4779f85313791a066ff75939bfb#22c7bb2ec77be4779f85313791a066ff75939bfb"
 dependencies = [
  "anyhow",
  "candid",
@@ -1778,8 +1778,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.10.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=b6b74b25c83bd26d21e9c9e737befd9fbd60bd70#b6b74b25c83bd26d21e9c9e737befd9fbd60bd70"
+version = "0.11.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=22c7bb2ec77be4779f85313791a066ff75939bfb#22c7bb2ec77be4779f85313791a066ff75939bfb"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1792,9 +1792,9 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.2.2"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2c021c11ae1d716f45d783f5764f418a11f12aea1fdc4fc8a2b2242e0dae708"
+checksum = "0e78ec6f58886cdc252d6f912dc794211bd6bbc39ddc9dcda434b2dc16c335b3"
 dependencies = [
  "base32",
  "crc32fast",
@@ -1807,8 +1807,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.10.2"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=b6b74b25c83bd26d21e9c9e737befd9fbd60bd70#b6b74b25c83bd26d21e9c9e737befd9fbd60bd70"
+version = "0.11.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=22c7bb2ec77be4779f85313791a066ff75939bfb#22c7bb2ec77be4779f85313791a066ff75939bfb"
 dependencies = [
  "async-trait",
  "candid",
@@ -3316,9 +3316,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.132"
+version = "1.0.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b9875c23cf305cd1fd7eb77234cbb705f21ea6a72c637a5c6db5fe4b8e7f008"
+checksum = "97565067517b60e2d1ea8b268e59ce036de907ac523ad83a0475da04e818989a"
 dependencies = [
  "serde_derive",
 ]
@@ -3344,9 +3344,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.132"
+version = "1.0.133"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecc0db5cb2556c0e558887d9bbdcf6ac4471e83ff66cf696e5419024d1606276"
+checksum = "ed201699328568d8d08208fdd080e3ff594e6c422e438b6705905da01005d537"
 dependencies = [
  "proc-macro2",
  "quote",
