@@ -39,7 +39,7 @@ Fixed a defect in asset synchronization where no retries would be attempted afte
 
 == Motoko
 
-Updated Motoko from 0.6.11 to 0.6.14.
+Updated Motoko from 0.6.11 to 0.6.20.
 
 * Implement type union/intersection
 * Transform for-loops on arrays into while-loops
@@ -51,6 +51,7 @@ Updated Motoko from 0.6.11 to 0.6.14.
 * Improve scheduling
 * Improve performance of bignum equality
 * Stable signatures: frontend, metadata, command-line args
+* Added heartbeat support
 
 == Cycles wallet
 
