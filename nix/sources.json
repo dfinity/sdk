@@ -83,29 +83,27 @@
         "homepage": null,
         "owner": "dfinity",
         "repo": "motoko-base",
-        "rev": "d0a814a3f93a3c168dacbeae2677f2b5d0995c02",
-        "sha256": "0c4b407v493a196a4fw06zhbgkhr5ycnagmnprg8mdvsc64w013q",
+        "rev": "0c6f57a7fee067c1086dc96cc4f3d93d50e0af14",
+        "sha256": "1s0blqj5d22cnrgi77sldwmwh942kv42xfz945pj3ywd13nl23v1",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko-base/archive/d0a814a3f93a3c168dacbeae2677f2b5d0995c02.tar.gz",
+        "url": "https://github.com/dfinity/motoko-base/archive/0c6f57a7fee067c1086dc96cc4f3d93d50e0af14.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "rev": "8459514233ab21109c691b6d033b3ef94892c680",
-        "sha256": "08lxiz2x3yg9vrg8zd108kf121lpnyixm07dvlss9kxamxb9hxkw",
+        "sha256": "116v6kbdc5vz36vcq565qvlshm20pi995328qhapkrgm48lndnn3",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.14/motoko-macos-0.6.14.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.20/motoko-macos-0.6.20.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
-        "version": "0.6.14"
+        "version": "0.6.20"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "rev": "8459514233ab21109c691b6d033b3ef94892c680",
-        "sha256": "1897cdv8lfmyyjsld38q4ncs6hpsa2zxkkl4mwymsfkbvpbnkrsy",
+        "sha256": "0fw2amhdqawsh04pimvb3i28sssf16yb63n18hfm4gmw04scmjm2",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.14/motoko-linux64-0.6.14.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.20/motoko-linux64-0.6.20.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
-        "version": "0.6.14"
+        "version": "0.6.20"
     },
     "napalm": {
         "branch": "master",
