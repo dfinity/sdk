@@ -3,9 +3,10 @@ name: Publish
 on:
   push:
     tags:
-      - 'ens-[0-9]+.[0-9]+.[0-9]+(-beta.[0-9]+)?'
-      - 'ens-1.2.4'
+      #- 'ens-[0-9]+.[0-9]+.[0-9]+(-beta.[0-9]+)?'
+      #- 'ens-1.2.4'
       - 'ens-[0-9]+.[0-9]+.[0-9]+'
+      - 'ens-[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
 
 jobs:
   build_dfx:
@@ -73,3 +74,4 @@ jobs:
         run: |
           echo "GITHUB_REF is $GITHUB_REF"
           echo "VERSION is $VERSION"
+          echo "second try ${GITHUB_REF/refs\/tags\//}"
