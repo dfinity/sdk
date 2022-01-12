@@ -1,0 +1,72 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'ens-[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?'
+
+jobs:
+  build_dfx:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-11, ubuntu-20.04 ]
+        rust: [ '1.55.0' ]
+        binary_path: [ 'target/release' ]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-1
+      - name: Install Rust
+        run: |
+          rustup update ${{ matrix.rust }} --no-self-update
+          rustup default ${{ matrix.rust }}
+          rustup component add rustfmt
+      - name: Build
+        # note: since there is no 'cargo clean' here, the results of scripts/prepare-dfx-assets.sh
+        # are often cached.
+        run: cargo build --locked --release
+        env:
+          OPENSSL_STATIC: yes
+      - name: Strip binaries
+        run: |
+          cd ${{ matrix.binary_path }}
+          sudo chown -R $(whoami) .
+          strip dfx
+        if: contains(matrix.os, 'ubuntu')
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
+          path: ${{ matrix.binary_path }}/dfx
+
+  publish:
+    runs-on: ${{ matrix.os }}
+    needs: build_dfx
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-11, ubuntu-20.04 ]
+        rust: [ '1.55.0' ]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: Download dfx binary
+        uses: actions/download-artifact@v2
+        with:
+          name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
+          path: /usr/local/bin
+      - name: Setup dfx binary
+        run: chmod 0755 /usr/local/bin/dfx
+      - name: package and deploy
+        run: |
+          echo "VERSION is $VERSION"
