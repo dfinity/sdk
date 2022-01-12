@@ -3,8 +3,6 @@ name: Publish
 on:
   push:
     tags:
-      #- 'ens-[0-9]+.[0-9]+.[0-9]+(-beta.[0-9]+)?'
-      #- 'ens-1.2.4'
       - 'ens-[0-9]+.[0-9]+.[0-9]+'
       - 'ens-[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
 
@@ -60,9 +58,6 @@ jobs:
         rust: [ '1.55.0' ]
     steps:
       - uses: actions/checkout@v1
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
       - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
@@ -72,6 +67,15 @@ jobs:
         run: chmod 0755 /usr/local/bin/dfx
       - name: package and deploy
         run: |
+          export VERSION="${GITHUB_REF/refs\/tags\//}"
           echo "GITHUB_REF is $GITHUB_REF"
           echo "VERSION is $VERSION"
           echo "second try ${GITHUB_REF/refs\/tags\//}"
+
+          tmp=$(mktemp -d)
+          cp /usr/local/bin/dfx $tmp/dfx
+          chmod 0755 $tmp/dfx
+          tar -czf "dfx-$VERSION.tar.gz" -C $tmp/ .
+          ls -l
+          tar -tvf "dfx-$VERSION.tar.gz"
+          
