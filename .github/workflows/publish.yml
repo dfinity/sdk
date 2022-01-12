@@ -3,7 +3,7 @@ name: Publish
 on:
   push:
     tags:
-      - 'ens-[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?'
+      - 'ens-[0-9]+.[0-9]+.[0-9]+(-beta.[0-9]+)?'
       - 'ens-1.2.4'
 
 jobs:
@@ -70,4 +70,5 @@ jobs:
         run: chmod 0755 /usr/local/bin/dfx
       - name: package and deploy
         run: |
+          echo "GITHUB_REF is $GITHUB_REF"
           echo "VERSION is $VERSION"
