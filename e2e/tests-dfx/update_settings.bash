@@ -350,3 +350,21 @@ teardown() {
     # check that bob has the authority to make someone else a controller
     assert_command dfx --identity bob canister update-settings hello --add-controller charlie
 }
+
+@test "add controller to all canisters" {
+    assert_command dfx identity new alice
+    assert_command dfx identity new bob 
+    assert_command dfx identity new charlie
+
+    dfx identity use alice
+    dfx_start
+
+    dfx canister create --all
+    dfx build --all
+    dfx canister install --all
+
+    # make bob a controller
+    assert_command dfx canister update-settings --all --add-controller bob
+    # check that bob has the authority to make someone else a controller
+    assert_command dfx --identity bob canister update-settings --all --add-controller charlie
+}
