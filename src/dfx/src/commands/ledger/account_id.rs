@@ -8,18 +8,18 @@ use std::convert::TryFrom;
 
 use clap::Clap;
 
-/// Prints the selected identity's AccountIdentifier.
+/// Prints the ledger account identifier corresponding to a principal.
 #[derive(Clap)]
 pub struct AccountIdOpts {
-    #[clap(long)]
+    #[clap(long, value_name = "PRINCIPAL")]
     /// Principal controlling the account.
     pub of_principal: Option<Principal>,
 
-    #[clap(long)]
+    #[clap(long, value_name = "ALIAS")]
     /// Alias of the canister controlling the account.
     pub of_canister: Option<String>,
 
-    #[clap(long)]
+    #[clap(long, value_name = "SUBACCOUNT")]
     /// Subaccount identifier (64 character long hex string).
     pub subaccount: Option<String>,
 }
