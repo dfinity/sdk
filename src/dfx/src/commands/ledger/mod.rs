@@ -91,7 +91,7 @@ fn get_icpts_from_args(
             let amount = icp + icp_from_e8s;
             Ok(amount.map_err(|err| anyhow!(err))?)
         }
-        Some(amount) => Ok(ICPTs::from_str(&amount)
+        Some(amount) => Ok(ICPTs::from_str(amount)
             .map_err(|err| anyhow!("Could not add ICPs and e8s: {}", err))?),
     }
 }
