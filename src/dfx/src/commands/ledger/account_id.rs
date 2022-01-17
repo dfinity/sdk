@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use ic_types::Principal;
 use std::convert::TryFrom;
 
@@ -36,6 +36,11 @@ pub async fn exec(env: &dyn Environment, opts: AccountIdOpts) -> DfxResult {
         None => None,
     };
     let principal = if let Some(principal) = opts.of_principal {
+        if opts.of_canister.is_some() {
+            return Err(anyhow!(
+                "You can specify at most one of of-principal and of-canister arguments."
+            ));
+        }
         principal
     } else if let Some(alias) = opts.of_canister {
         let canister_id_store = CanisterIdStore::for_env(env)?;
