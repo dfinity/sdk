@@ -44,7 +44,7 @@ pub struct CreateCanisterOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult {
-    let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
+    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
 
     let fee = opts.fee.map_or(Ok(TRANSACTION_FEE), |v| {
         ICPTs::from_str(&v).map_err(|err| anyhow!(err))

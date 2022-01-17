@@ -18,6 +18,10 @@ const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
 pub struct BalanceOpts {
     /// Specifies an AccountIdentifier to get the balance of
     of: Option<String>,
+
+    /// Canister ID of the ledger canister.
+    #[clap(long)]
+    ledger_canister_id: Option<Principal>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
@@ -34,7 +38,11 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
+
+    let canister_id = opts.ledger_canister_id.unwrap_or_else(|| {
+        Principal::from_text(LEDGER_CANISTER_ID)
+            .expect("bug: failed to parse statically known canister id")
+    });
 
     let result = agent
         .query(&canister_id, ACCOUNT_BALANCE_METHOD)
