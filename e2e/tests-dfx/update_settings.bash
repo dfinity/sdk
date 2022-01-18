@@ -340,6 +340,12 @@ teardown() {
 
     dfx identity use alice
     dfx_start
+
+    ALICE=$(dfx --identity alice identity get-principal)
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    BOB=$(dfx --identity bob identity get-principal)
+    CHARLIE=$(dfx --identity charlie identity get-principal)
+    SORTED=$(echo "$ALICE" "$ALICE_WALLET" "$BOB" "$CHARLIE" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s %s %s",$1,$2,$3,$4}' )
     
     dfx canister create hello
     dfx build hello
@@ -349,4 +355,32 @@ teardown() {
     assert_command dfx canister update-settings hello --add-controller bob
     # check that bob has the authority to make someone else a controller
     assert_command dfx --identity bob canister update-settings hello --add-controller charlie
+    assert_command dfx canister info hello
+    assert_match "Controllers: $SORTED"
+}
+
+@test "add controller to all canisters" {
+    assert_command dfx identity new alice
+    assert_command dfx identity new bob 
+    assert_command dfx identity new charlie
+
+    dfx identity use alice
+    dfx_start
+
+    ALICE=$(dfx --identity alice identity get-principal)
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    BOB=$(dfx --identity bob identity get-principal)
+    CHARLIE=$(dfx --identity charlie identity get-principal)
+    SORTED=$(echo "$ALICE" "$ALICE_WALLET" "$BOB" "$CHARLIE" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s %s %s",$1,$2,$3,$4}' )
+    
+    dfx canister create --all
+    dfx build --all
+    dfx canister install --all
+
+    # make bob a controller
+    assert_command dfx canister update-settings --all --add-controller bob
+    # check that bob has the authority to make someone else a controller
+    assert_command dfx --identity bob canister update-settings --all --add-controller charlie
+    assert_command dfx canister info hello
+    assert_match "Controllers: $SORTED"
 }
