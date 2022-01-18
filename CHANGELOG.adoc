@@ -1,4 +1,4 @@
-= 0.8.6
+= 0.9.0
 
 == DFX
 
@@ -74,12 +74,6 @@ This incorporates the following executed proposals:
 * https://dashboard.internetcomputer.org/proposal/26833[26833]
 * https://dashboard.internetcomputer.org/proposal/25343[25343]
 * https://dashboard.internetcomputer.org/proposal/23633[23633]
-
-= 0.8.5
-
-== DFX
-
-The same as dfx 0.8.6, except dfx 0.8.6 fixed a bug in dfx 0.8.5's `dfx canister update-settings --all`.
 
 = 0.8.4
 
