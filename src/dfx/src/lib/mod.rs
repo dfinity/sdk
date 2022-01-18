@@ -7,6 +7,7 @@ pub mod error;
 pub mod ic_attributes;
 pub mod identity;
 pub mod installers;
+pub mod ledger_types;
 pub mod locations;
 pub mod logger;
 pub mod manifest;
