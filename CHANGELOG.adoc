@@ -1,4 +1,5 @@
 = 0.9.1 UNRELEASED
+
 == DFX
 
 === feat: `dfx ledger account-id` can now compute canister addresses
@@ -29,6 +30,95 @@ Caused by:
 
 `quill generate` currently outputs .pem files without an `EC PARAMETERS` section.
 `dfx identity import` will now correctly identify these as EC keys, rather than Ed25519.
+
+=== feat: Remote canister support
+
+It's now possible to specify that a canister in dfx.json references a "remote" canister on a specific network,
+that is, a canister that already exists on that network and is managed by some other project.
+
+Motoko, Rust, and custom canisters may be configured in this way.
+
+This is the general format of the configuration in dfx.json:
+[source, json]
+----
+{
+  "canisters": {
+    "<canister name>": {
+      "remote": {
+        "candid": "<path to candid file to use when building on remote networks>"
+        "id": {
+          "<network name>": "<principal on network>"
+        }
+      }
+    }
+  }
+}
+----
+
+The "id" field, if set for a given network, specifies the canister ID for the canister on that network.
+The canister will not be created or installed on these remote networks.
+For other networks, the canister will be created and installed as usual.
+
+The "candid" field, if set within the remote object, specifies the candid file to build against when
+building other canisters on a network for which the canister is remote.
+
+For example, if have an installation of the ICP Ledger (see https://github.com/dfinity/ic/tree/master/rs/rosetta-api/ledger_canister#deploying-locally[Ledger Installation Guide])
+in your dfx.json, you could configure the canister ID of the Ledger canister on the ic network like so:
+[source, json]
+----
+{
+  "canisters": {
+    "ledger": {
+      "type": "custom",
+      "wasm": "ledger.wasm",
+      "candid": "ledger.public.did",
+      "remote": {
+        "id": {
+          "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+        }
+      }
+    },
+    "app": {
+      "type": "motoko",
+      "src": "src/app/main.mo",
+      "dependencies": [ "ledger" ]
+    }
+  }
+}
+----
+
+As a second example, suppose that you wanted to write a mock of the ledger in Motoko.
+In this case, since the candid definition is provided for remote networks,
+`dfx build` (with implicit `--network local`) will build app against the candid
+definitions defined by mock.mo, but `dfx build --network ic` will build app against
+`ledger.public.did`.
+
+This way, you can define public update/query functions to aid in local testing, but
+when building/deploying to mainnet, references to methods not found in `ledger.public.did`
+will be reports as compilation errors.
+
+[source, json]
+----
+{
+  "canisters": {
+    "ledger": {
+      "type": "motoko",
+      "src": "src/ledger/mock.mo",
+      "remote": {
+        "candid": "ledger.public.did",
+        "id": {
+          "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+        }
+      }
+    },
+    "app": {
+      "type": "motoko",
+      "src": "src/app/main.mo",
+      "dependencies": [ "ledger" ]
+    }
+  }
+}
+----
 
 == ic-ref
 
