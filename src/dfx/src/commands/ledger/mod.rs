@@ -1,24 +1,27 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::{
+    AccountIdBlob, BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, TimeStamp, TransferArgs,
+    TransferError, TransferResult, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+};
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
-use crate::lib::nns_types::{
-    BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, SendArgs, CYCLE_MINTER_CANISTER_ID,
-    LEDGER_CANISTER_ID,
-};
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use candid::{Decode, Encode};
 use clap::Clap;
-use ic_types::principal::Principal;
+use garcon::{Delay, Waiter};
+use ic_agent::agent_error::HttpErrorPayload;
+use ic_agent::{Agent, AgentError};
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 
-const SEND_METHOD: &str = "send_dfx";
+const TRANSFER_METHOD: &str = "transfer";
 const NOTIFY_METHOD: &str = "notify_dfx";
 
 mod account_id;
@@ -95,7 +98,66 @@ fn get_icpts_from_args(
     }
 }
 
-async fn send_and_notify(
+pub async fn transfer(
+    agent: &Agent,
+    memo: Memo,
+    amount: ICPTs,
+    fee: ICPTs,
+    to: AccountIdBlob,
+) -> DfxResult<BlockHeight> {
+    let timestamp_nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64;
+
+    let mut waiter = Delay::builder()
+        .with(Delay::count_timeout(30))
+        .exponential_backoff_capped(
+            std::time::Duration::from_secs(1),
+            2.0,
+            std::time::Duration::from_secs(16),
+        )
+        .build();
+    waiter.start();
+
+    let block_height: BlockHeight = loop {
+        match agent
+            .update(&MAINNET_LEDGER_CANISTER_ID, TRANSFER_METHOD)
+            .with_arg(Encode!(&TransferArgs {
+                memo,
+                amount,
+                fee,
+                from_subaccount: None,
+                to,
+                created_at_time: Some(TimeStamp { timestamp_nanos }),
+            })?)
+            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .await
+        {
+            Ok(data) => {
+                let result = Decode!(&data, TransferResult)?;
+                match result {
+                    Ok(block_height) => break block_height,
+                    Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
+                    Err(transfer_err) => bail!(transfer_err),
+                }
+            }
+            Err(agent_err) if !retryable(&agent_err) => {
+                bail!(agent_err);
+            }
+            Err(agent_err) => {
+                eprintln!("Waiting to retry after error: {:?}", &agent_err);
+                if let Err(_waiter_err) = waiter.async_wait().await {
+                    bail!(agent_err);
+                }
+            }
+        }
+    };
+
+    Ok(block_height)
+}
+
+async fn transfer_and_notify(
     env: &dyn Environment,
     memo: Memo,
     amount: ICPTs,
@@ -103,41 +165,25 @@ async fn send_and_notify(
     to_subaccount: Option<Subaccount>,
     max_fee: ICPTs,
 ) -> DfxResult<CyclesResponse> {
-    let ledger_canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
-
-    let cycle_minter_id = Principal::from_text(CYCLE_MINTER_CANISTER_ID)?;
-
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
 
-    let to = AccountIdentifier::new(cycle_minter_id, to_subaccount);
+    let to = AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, to_subaccount).to_address();
 
-    let result = agent
-        .update(&ledger_canister_id, SEND_METHOD)
-        .with_arg(Encode!(&SendArgs {
-            memo,
-            amount,
-            fee,
-            from_subaccount: None,
-            to,
-            created_at_time: None,
-        })?)
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+    let block_height = transfer(agent, memo, amount, fee, to).await?;
 
-    let block_height = Decode!(&result, BlockHeight)?;
     println!("Transfer sent at BlockHeight: {}", block_height);
 
     let result = agent
-        .update(&ledger_canister_id, NOTIFY_METHOD)
+        .update(&MAINNET_LEDGER_CANISTER_ID, NOTIFY_METHOD)
         .with_arg(Encode!(&NotifyCanisterArgs {
             block_height,
             max_fee,
             from_subaccount: None,
-            to_canister: cycle_minter_id,
+            to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
             to_subaccount,
         })?)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
@@ -145,4 +191,23 @@ async fn send_and_notify(
 
     let result = Decode!(&result, CyclesResponse)?;
     Ok(result)
+}
+
+fn retryable(agent_error: &AgentError) -> bool {
+    match agent_error {
+        AgentError::ReplicaError {
+            reject_code,
+            reject_message,
+        } if *reject_code == 5 && reject_message.contains("is out of cycles") => false,
+        AgentError::HttpError(HttpErrorPayload {
+            status,
+            content_type: _,
+            content: _,
+        }) if *status == 403 => {
+            // sometimes out of cycles looks like this
+            // assume any 403(unauthorized) is not retryable
+            false
+        }
+        _ => true,
+    }
 }
