@@ -1,3 +1,18 @@
+= 0.9.1 UNRELEASED
+== DFX
+
+=== feat: `dfx ledger account-id` can now compute canister addresses
+
+The `dfx ledger account-id` can now compute addresses of principals and canisters.
+The command now also supports ledger subaccounts.
+
+[source, bash]
+----
+dfx ledger account-id --of-principal 53zcu-tiaaa-aaaaa-qaaba-cai
+dfx ledger --network small02 account-id --of-canister ledger_demo
+dfx ledger account-id --of-principal 53zcu-tiaaa-aaaaa-qaaba-cai --subaccount 0000000000000000000000000000000000000000000000000000000000000001
+----
+
 = 0.9.0
 
 == DFX
