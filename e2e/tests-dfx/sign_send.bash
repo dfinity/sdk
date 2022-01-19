@@ -26,10 +26,10 @@ teardown() {
     echo y | assert_command dfx canister send message.json
 
     assert_command_fail dfx canister send message.json --status
-    assert_eq "Can only check request_status on update calls."
+    assert_eq "Error: Can only check request_status on update calls."
 
     assert_command_fail dfx canister sign --query hello read
-    assert_eq "[message.json] already exists, please specify a different output file name."
+    assert_eq "Error: [message.json] already exists, please specify a different output file name."
 
     assert_command dfx canister sign --update hello inc --file message-inc.json
     assert_eq "Update message generated at [message-inc.json] Signed request_status append to update message in [message-inc.json]"

@@ -1,3 +1,30 @@
+= 0.9.1 UNRELEASED
+== DFX
+
+=== feat: `dfx ledger account-id` can now compute canister addresses
+
+The `dfx ledger account-id` can now compute addresses of principals and canisters.
+The command also supports ledger subaccounts now.
+
+[source, bash]
+----
+dfx ledger account-id --of-principal 53zcu-tiaaa-aaaaa-qaaba-cai
+dfx ledger --network small02 account-id --of-canister ledger_demo
+dfx ledger account-id --of-principal 53zcu-tiaaa-aaaaa-qaaba-cai --subaccount 0000000000000000000000000000000000000000000000000000000000000001
+----
+
+=== feat: Print the full error chain in case of a failure
+
+All `dfx` commands will now print the full stack of errors that led to the problem, not just the most recent error.
+Example:
+
+[source]
+----
+Error: Subaccount '00000000000000000000000000000000000000000000000000000000000000000' is not a valid hex string
+Caused by:
+  Odd number of digits
+----
+
 = 0.9.0
 
 == DFX
