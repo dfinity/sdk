@@ -4,7 +4,7 @@
 === feat: `dfx ledger account-id` can now compute canister addresses
 
 The `dfx ledger account-id` can now compute addresses of principals and canisters.
-The command now also supports ledger subaccounts.
+The command also supports ledger subaccounts now.
 
 [source, bash]
 ----
