@@ -25,6 +25,7 @@ pub async fn install_canister(
     canister_info: &CanisterInfo,
     args: &[u8],
     mode: InstallMode,
+    force_reinstall: bool,
     timeout: Duration,
     call_sender: &CallSender,
     installed_module_hash: Option<Vec<u8>>,
@@ -34,7 +35,7 @@ pub async fn install_canister(
         named_canister::install_ui_canister(env, network, None).await?;
     }
 
-    if mode == InstallMode::Reinstall {
+    if mode == InstallMode::Reinstall && !force_reinstall {
         eprintln!("Warning!");
         eprintln!(
             "You are about to reinstall the {} canister.",

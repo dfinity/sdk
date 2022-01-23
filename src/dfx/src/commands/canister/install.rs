@@ -28,6 +28,10 @@ pub struct CanisterInstallOpts {
     #[clap(long)]
     async_call: bool,
 
+    /// Specifies whether to automatically proceed with reinstalling a canister without prompting the user for manual confirmation. Only matters if mode is reinstall.
+    #[clap(long, short('y')]
+    yes: bool,
+
     /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
     #[clap(long, short('m'), default_value("install"),
         possible_values(&["install", "reinstall", "upgrade"]))]
@@ -81,6 +85,7 @@ pub async fn exec(
             &canister_info,
             &install_args,
             mode,
+            yes,
             timeout,
             call_sender,
             installed_module_hash,
