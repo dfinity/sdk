@@ -1,6 +1,26 @@
-= 0.8.6
+= 0.9.1
 
 == DFX
+
+=== feat!: Support for local ledger calls
+
+If you have an installation of the ICP Ledger (see https://github.com/dfinity/ic/tree/master/rs/rosetta-api/ledger_canister#deploying-locally[Ledger Installation Guide]), `dfx ledger balance` and `dfx ledger transfer` now support
+`--ledger-canister-id` parameter.
+
+Some examples:
+```
+$ dfx ledger \
+  --network local \
+  balance \
+  --ledger-canister-id  rrkah-fqaaa-aaaaa-aaaaq-cai
+1000.00000000 ICP
+
+$ dfx ledger \
+  --network local \
+  transfer --amount 0.1 --memo 0 \
+  --ledger-canister-id  rrkah-fqaaa-aaaaa-aaaaq-cai 8af54f1fa09faeca18d294e0787346264f9f1d6189ed20ff14f029a160b787e8
+Transfer sent at block height: 1
+```
 
 === feat!: Remove the wallet proxy and the --no-wallet flag
 
