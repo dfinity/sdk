@@ -11,12 +11,12 @@ MOTOKO_X86_64_DARWIN_SHA256="c3da662922f5e57915c4488c9252bc4054a8e9c6c514ccb6197
 MOTOKO_X86_64_DARWIN_URL="https://github.com/dfinity/motoko/releases/download/0.6.20/motoko-macos-0.6.20.tar.gz"
 MOTOKO_X86_64_LINUX_SHA256="a2caca3401bc3e521d44c10eb3bc094e6b8d441c6bd77809809a2bdc6055823b"
 MOTOKO_X86_64_LINUX_URL="https://github.com/dfinity/motoko/releases/download/0.6.20/motoko-linux64-0.6.20.tar.gz"
-# The replica and canister_sandbox binaries must have the same revision.
+# The replica and canister-sandbox binaries must have the same revision.
 REPLICA_X86_64_DARWIN_SHA256="e72e3b97944121c92b14711ec5f6b3783a4036745d9646c6f267c47c96c478af"
 REPLICA_X86_64_DARWIN_URL="https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/nix-release/x86_64-darwin/replica.gz"
 REPLICA_X86_64_LINUX_SHA256="79b684a5c678e52fa763ce3dcec4c1439f1c1ca2fdc78108a7632847583dc888"
 REPLICA_X86_64_LINUX_URL="https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/release/replica.gz"
-# The replica and canister_sandbox binaries must have the same revision.
+# The replica and canister-sandbox binaries must have the same revision.
 CANISTER_SANDBOX_X86_64_DARWIN_SHA256="ea157ca877e3b8b29988fb1aa3eba01048971d4831ae721ec810dead77587648"
 CANISTER_SANDBOX_X86_64_DARWIN_URL="https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/nix-release/x86_64-darwin/canister_sandbox.gz"
 CANISTER_SANDBOX_X86_64_LINUX_SHA256="45531c5e571589a36e2f96f8152e0ef24a4dfb7f0d3bc95246ad260f312f02ca"
