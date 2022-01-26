@@ -120,6 +120,7 @@
     },
     "replica-x86_64-darwin": {
         "builtin": false,
+        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
         "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
         "sha256": "1bvqqjb7ri37yb34d5jxfhv40fkqngvca7ki2hmwj8a1jjbknbp7",
         "type": "file",
@@ -128,10 +129,30 @@
     },
     "replica-x86_64-linux": {
         "builtin": false,
+        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
         "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
         "sha256": "12687mc4fa33lw483izxl8f1r7s3q72cwgffcfkjzrbqqsjq9dkr",
         "type": "file",
         "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/release/replica.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/release/replica.gz"
+    },
+    "canister-sandbox-x86_64-darwin": {
+        "builtin": false,
+        "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
+        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
+        "sha256": "0j3nb1vsvphhr0g75bii90frfj0hl3ms66pvi2cv5f73fyl7q5ga",
+        "type": "file",
+        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/nix-release/x86_64-darwin/canister_sandbox.gz",
+        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/nix-release/x86_64-darwin/canister_sandbox.gz"
+    },
+    "canister-sandbox-x86_64-linux": {
+        "builtin": false,
+        "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
+        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
+        "sha256": "1jh25wqhy9md8r9cjfqdgzxlsjpj1qp1by4n5xpa728maxg1qls5",
+        "type": "file",
+        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/release/canister_sandbox.gz",
+        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/release/canister_sandbox.gz"
     }
 }
+
