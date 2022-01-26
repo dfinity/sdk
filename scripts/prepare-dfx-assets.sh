@@ -137,7 +137,7 @@ build_icx_proxy() {
 
 add_binary_cache() {
     download_binary "replica"
-    download_binary "canister-sandbox"
+    download_binary "canister_sandbox"
     download_binary "ic-starter"
     download_ic_ref
     download_motoko_binaries

@@ -14,7 +14,7 @@ let
     mkdir -p $out
 
     gunzip <${replica-bin} >$out/replica
-    gunzip <${canister-sandbox-bin} >$out/canister-sandbox
+    gunzip <${canister-sandbox-bin} >$out/canister_sandbox
     gunzip <${starter-bin} >$out/ic-starter
     cp -R ${pkgs.sources.motoko-base}/src $out/base
     cp ${pkgs.motoko}/bin/mo-doc $out
