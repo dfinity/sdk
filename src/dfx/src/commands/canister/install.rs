@@ -24,10 +24,6 @@ pub struct CanisterInstallOpts {
     #[clap(long, required_unless_present("canister"))]
     all: bool,
 
-    /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
-    #[clap(long)]
-    async_call: bool,
-
     /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
     #[clap(long, short('m'), default_value("install"),
         possible_values(&["install", "reinstall", "upgrade"]))]
