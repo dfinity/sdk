@@ -30,6 +30,8 @@ jobs:
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt
       - name: Build
+        # note: since there is no 'cargo clean' here, the results of scripts/prepare-dfx-assets.sh
+        # are often cached.
         run: cargo build --locked --release
         env:
           OPENSSL_STATIC: yes
@@ -125,7 +127,7 @@ jobs:
           fi
           export
       - name: Run e2e test
-        run: timeout 1200 bats "e2e/$E2E_TEST"
+        run: timeout 1800 bats "e2e/$E2E_TEST"
 
   aggregate:
     name: e2e:required

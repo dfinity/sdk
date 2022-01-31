@@ -95,9 +95,7 @@ async fn delete_canister(
         match withdraw_cycles_to_canister {
             Some(ref target_canister_id) => Some(Principal::from_text(target_canister_id)?),
             None => match call_sender {
-                CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-                    Some(*wallet_id)
-                }
+                CallSender::Wallet(wallet_id) => Some(*wallet_id),
                 CallSender::SelectedId => {
                     let network = env.get_network_descriptor().unwrap();
                     let agent_env = create_agent_environment(env, Some(network.name.clone()))?;

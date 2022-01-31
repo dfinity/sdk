@@ -1,14 +1,72 @@
-= 0.8.5
+= 0.9.1 UNRELEASED
+== DFX
+
+=== feat: `dfx ledger account-id` can now compute canister addresses
+
+The `dfx ledger account-id` can now compute addresses of principals and canisters.
+The command also supports ledger subaccounts now.
+
+[source, bash]
+----
+dfx ledger account-id --of-principal 53zcu-tiaaa-aaaaa-qaaba-cai
+dfx ledger --network small02 account-id --of-canister ledger_demo
+dfx ledger account-id --of-principal 53zcu-tiaaa-aaaaa-qaaba-cai --subaccount 0000000000000000000000000000000000000000000000000000000000000001
+----
+
+=== feat: Print the full error chain in case of a failure
+
+All `dfx` commands will now print the full stack of errors that led to the problem, not just the most recent error.
+Example:
+
+[source]
+----
+Error: Subaccount '00000000000000000000000000000000000000000000000000000000000000000' is not a valid hex string
+Caused by:
+  Odd number of digits
+----
+
+= 0.9.0
 
 == DFX
+
+=== feat!: Remove the wallet proxy and the --no-wallet flag
+
+Breaking change: Canister commands, except for `dfx canister create`, will make the call directly, rather than via the user's wallet. The `--no-wallet` flag is thus removed from `dfx canister` as its behavior is the default.
+
+When working with existing canisters, use the `--wallet` flag in conjunction with `dfx identity get-wallet` in order to restore the old behavior.
+
+You will need to upgrade your wallet and each of your existing canisters to work with the new system.  To do so, execute the following in each of your dfx projects:
+[source, bash]
+----
+dfx wallet upgrade
+dfx canister --wallet "$(dfx identity get-wallet)" update-settings --all --add-controller "$(dfx identity get-principal)"
+----
+To upgrade projects that you have deployed to the IC mainnet, execute the following:
+[source, bash]
+----
+dfx wallet --network ic upgrade
+dfx canister --network ic --wallet "$(dfx identity --network ic get-wallet)" update-settings --all --add-controller "$(dfx identity get-principal)"
+----
+
+=== feat: Add --add-controller and --remove-controller flags for "canister update-settings"
+
+`dfx canister update-settings` previously only let you overwrite the entire controller list; `--add-controller` and `--remove-controller` instead add or remove from the list.
 
 === feat: Add --no-withdrawal flag for "canister delete" for when the canister is out of cycles
 
 `dfx canister delete --no-withdrawal <canister>` can be used to delete a canister without attempting to withdraw cycles.
 
+=== fix: set RUST_MIN_STACK to 8MB for ic-starter (and therefore replica)
+
+This matches the value used in production and is meant to exceed the configured 5 MB wasmtime stack.
+
+=== fix: asset uploads will retry failed requests as expected
+
+Fixed a defect in asset synchronization where no retries would be attempted after the first 30 seconds overall.
+
 == Motoko
 
-Updated Motoko from 0.6.11 to 0.6.14.
+Updated Motoko from 0.6.11 to 0.6.20.
 
 * Implement type union/intersection
 * Transform for-loops on arrays into while-loops
@@ -20,6 +78,29 @@ Updated Motoko from 0.6.11 to 0.6.14.
 * Improve scheduling
 * Improve performance of bignum equality
 * Stable signatures: frontend, metadata, command-line args
+* Added heartbeat support
+
+== Cycles wallet
+
+Module hash: 53ec1b030f1891bf8fd3877773b15e66ca040da539412cc763ff4ebcaf4507c5
+https://github.com/dfinity/cycles-wallet/commit/57e53fcb679d1ea33cc713d2c0c24fc5848a9759
+
+== Replica
+
+Updated replica to blessed commit 75138bbf11e201aac47266f07bee289dc18a082b.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/33828[33828]
+* https://dashboard.internetcomputer.org/proposal/31275[31275]
+* https://dashboard.internetcomputer.org/proposal/31165[31165]
+* https://dashboard.internetcomputer.org/proposal/30392[30392]
+* https://dashboard.internetcomputer.org/proposal/30078[30078]
+* https://dashboard.internetcomputer.org/proposal/29235[29235]
+* https://dashboard.internetcomputer.org/proposal/28784[28784]
+* https://dashboard.internetcomputer.org/proposal/27975[27975]
+* https://dashboard.internetcomputer.org/proposal/26833[26833]
+* https://dashboard.internetcomputer.org/proposal/25343[25343]
+* https://dashboard.internetcomputer.org/proposal/23633[23633]
 
 = 0.8.4
 

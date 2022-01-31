@@ -57,3 +57,12 @@ teardown() {
     dfx canister --network "http://127.0.0.1:$webserver_port" create --all
     [ -d ".dfx/http___127_0_0_1_$webserver_port" ]
 }
+
+@test "network as URL does not create unexpected names" {
+    dfx_start
+    webserver_port=$(cat .dfx/webserver-port)
+    dfx canister --network "http://127.0.0.1:$webserver_port" create --all
+    dfx build --network "http://127.0.0.1:$webserver_port" --all
+    dfx canister --network "http://127.0.0.1:$webserver_port" install --all
+    assert_eq 1 "$(find .dfx/http* -maxdepth 0 | wc -l | tr -d ' ')"
+}
