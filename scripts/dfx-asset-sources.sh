@@ -2,7 +2,7 @@
 IC_REF_X86_64_DARWIN_SHA256="407ac5a195315290c0659f9d3d8206c443c2c1014ad04bc6e07280d5545ad1be"
 IC_REF_X86_64_DARWIN_URL="https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ab8e3f5a-x86_64-darwin.tar.gz"
 IC_REF_X86_64_LINUX_SHA256="9342175f9c2c4ff9174f7859f5f5c43d9f944fe91cd0237fbed448b6cf029f4b"
-IC_REF_X86_64_LINUX_URL="https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-a432156f-x86_64-linux.tar.gz"
+IC_REF_X86_64_LINUX_URL="https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ab8e3f5a-x86_64-linux.tar.gz"
 IC_STARTER_X86_64_DARWIN_SHA256="edd20b6b6be2a3b7c93933c7950f410c3627fa0e6f67c90d5bd52c4b67178a41"
 IC_STARTER_X86_64_DARWIN_URL="https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/nix-release/x86_64-darwin/ic-starter.gz"
 IC_STARTER_X86_64_LINUX_SHA256="0838ed04d74effc9135467c7ce6c51a8abf245b4810bf70da2a5fe0b489694fc"

@@ -70,9 +70,9 @@
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
         "sha256": "0jwz0b7vcj6lprzj7l0wx57r97rxqkszanbq9wbzjkrckigifhlk",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-a432156f-x86_64-linux.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ab8e3f5a-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
-        "version": "0.0.1-a432156f"
+        "version": "0.0.1-ab8e3f5a"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
