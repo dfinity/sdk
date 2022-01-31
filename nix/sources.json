@@ -57,7 +57,6 @@
     },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
-        "ref": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
         "sha256": "1gnib9adb03jw334pl2a070w4hy40s13v7czcp090liijnhwayj0",
         "type": "file",
@@ -68,7 +67,7 @@
     "ic-ref-x86_64-linux": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "0jwz0b7vcj6lprzj7l0wx57r97rxqkszanbq9wbzjkrckigifhlk",
+        "sha256": "0r50b38sf2bvfmb2w75cfcnnp1k29c9j8c3f4cfhgv4nw1dyij3j",
         "type": "file",
         "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ab8e3f5a-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
