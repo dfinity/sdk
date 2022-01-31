@@ -67,7 +67,7 @@
     "ic-ref-x86_64-linux": {
         "builtin": false,
         "rev": "07b9a9d2aa30fb8b458fef5a6140b8757569b8cc",
-        "sha256": "0jwz0b7vcj6lprzj7l0wx57r97rxqkszanbq9wbzjkrckigifhlk",
+        "sha256": "0riar9gw3c9m1qv6af9ayis1fxcvpyfl32hqz08ivcinccsmryqz",
         "type": "file",
         "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-07b9a9d2-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
