@@ -125,7 +125,16 @@ fn main() {
         Err(e) => Err(e),
     };
     if let Err(err) = result {
-        eprintln!("{}", err);
+        for (level, cause) in err.chain().enumerate() {
+            if level == 0 {
+                eprintln!("Error: {}", err);
+                continue;
+            }
+            if level == 1 {
+                eprintln!("Caused by:");
+            }
+            eprintln!("{:width$}{}", "", cause, width = level * 2);
+        }
 
         std::process::exit(255);
     }
