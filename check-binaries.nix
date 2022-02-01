@@ -42,7 +42,8 @@ pkgs.runCommand "check-binaries" {
               return 1
           fi
       else
-          libraries="$(echo "$output" | grep -v '^\/' | cut -f 1 -d ' ')"
+          # A refernce to /nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee means the dependency wasn't used
+          libraries="$(echo "$output" | grep -v '^\/' | cut -f 1 -d ' ' | grep -v "/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")"
           echo "$output"
           echo "Libraries:"
           echo "$libraries"
