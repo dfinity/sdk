@@ -1,6 +1,9 @@
 name: Check PR title
 on:
-  pull_request:
+  # SAFETY: dfinity/conventional-pr-title-action does not run any of the committed code.
+  # Therefore it is ok to give it R/W permission.
+  # More details see here: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+  pull_request_target:
     types:
       - opened
       - reopened
