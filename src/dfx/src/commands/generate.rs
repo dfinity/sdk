@@ -40,7 +40,9 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     for canister in canister_pool.get_canister_list() {
         let canister_id = store.get(canister.get_name())?;
         if let Some(info) = canister_pool.get_canister_info(&canister_id) {
-            build_before_generate = info.get_type() == "motoko";
+            if info.get_type() == "motoko" {
+                build_before_generate = true;
+            }
         }
     }
 
