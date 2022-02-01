@@ -43,10 +43,10 @@
     "canister-sandbox-x86_64-linux": {
         "builtin": false,
         "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
-        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
-        "sha256": "1jh25wqhy9md8r9cjfqdgzxlsjpj1qp1by4n5xpa728maxg1qls5",
+        "rev": "50ead5a8d4b750a1be62f84323d3ea3a94c0ede7",
+        "sha256": "1r9nprdzmb9skabmv1sjvx0hdrbwx0g22zjs4j9qwd2rciv3483s",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/release/canister_sandbox.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/50ead5a8d4b750a1be62f84323d3ea3a94c0ede7/release/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/release/canister_sandbox.gz"
     },
     "common": {
@@ -83,10 +83,10 @@
     },
     "ic-starter-x86_64-linux": {
         "builtin": false,
-        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
-        "sha256": "1z4ljr40pzm5l86zf2w1ni2z5ax8a5ncxiv7ah9wkzsfsw2fsf08",
+        "rev": "50ead5a8d4b750a1be62f84323d3ea3a94c0ede7",
+        "sha256": "1znv138rnl4q61w2jg98gbamv9mafmxw4bfc7qhbsyv7v6r1rcdd",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/release/ic-starter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/50ead5a8d4b750a1be62f84323d3ea3a94c0ede7/release/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/release/ic-starter.gz"
     },
     "icx-proxy": {
@@ -148,10 +148,10 @@
     "replica-x86_64-linux": {
         "builtin": false,
         "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
-        "rev": "75138bbf11e201aac47266f07bee289dc18a082b",
-        "sha256": "12687mc4fa33lw483izxl8f1r7s3q72cwgffcfkjzrbqqsjq9dkr",
+        "rev": "50ead5a8d4b750a1be62f84323d3ea3a94c0ede7",
+        "sha256": "183if8a8rx98b6phq8a0r3p092fs5ank94ac1vc9xbbsj4m4w5z9",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/75138bbf11e201aac47266f07bee289dc18a082b/release/replica.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/50ead5a8d4b750a1be62f84323d3ea3a94c0ede7/release/replica.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/release/replica.gz"
     }
 }
