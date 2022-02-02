@@ -172,7 +172,7 @@ fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Co
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
 
-    canister_pool.build_or_fail(BuildConfig::from_config(config)?)
+    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)
 }
 
 #[allow(clippy::too_many_arguments)]
