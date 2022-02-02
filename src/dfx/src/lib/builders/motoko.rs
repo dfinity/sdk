@@ -10,6 +10,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 
+use anyhow::Context;
 use ic_types::principal::Principal as CanisterId;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
@@ -155,10 +156,36 @@ impl CanisterBuilder for MotokoBuilder {
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
         })
     }
+
+    fn generate_idl(
+        &self,
+        _pool: &CanisterPool,
+        info: &CanisterInfo,
+        _config: &BuildConfig,
+    ) -> DfxResult<PathBuf> {
+        let generate_output_dir = &info
+            .get_declarations_config()
+            .output
+            .as_ref()
+            .context("output here must not be None")?;
+
+        std::fs::create_dir_all(generate_output_dir)?;
+
+        let output_idl_path = generate_output_dir
+            .join(info.get_name())
+            .with_extension("did");
+
+        // get the path to candid file from dfx build
+        let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
+        let idl_from_build = motoko_info.get_output_idl_path().to_path_buf();
+
+        std::fs::copy(&idl_from_build, &output_idl_path)?;
+
+        Ok(output_idl_path)
+    }
 }
 
 type CanisterIdMap = BTreeMap<String, String>;
-
 enum BuildTarget {
     Release,
     Debug,
