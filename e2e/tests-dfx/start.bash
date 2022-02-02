@@ -47,6 +47,8 @@ teardown() {
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
+    echo "force failure"
+    exit 1
 }
 
 @test "dfx restarts icx-proxy" {
