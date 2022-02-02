@@ -119,6 +119,7 @@ dfx_start() {
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
+        echo "umask is $(umask)"
         if [[ "$@" == "" ]]; then
             dfx start --background --host "$FRONTEND_HOST" 3>&- # Start on random port for parallel test execution
         else

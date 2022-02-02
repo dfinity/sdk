@@ -27,6 +27,7 @@ teardown() {
     REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
 
     echo "replica pid is $REPLICA_PID"
+    echo "umask is $(umask)"
     ls -lR .dfx
 
     kill -KILL "$REPLICA_PID"
