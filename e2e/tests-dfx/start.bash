@@ -27,8 +27,7 @@ teardown() {
     REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
 
     echo "replica pid is $REPLICA_PID"
-    ls -l .dfx/state/replicated-state/node-100
-    ls -l .dfx/state/replicated-state/node-100/crypto
+    ls -lR .dfx
 
     kill -KILL "$REPLICA_PID"
     assert_process_exits "$REPLICA_PID" 15s
