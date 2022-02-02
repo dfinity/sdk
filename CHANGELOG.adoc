@@ -33,6 +33,13 @@ Upgraded from a432156f24faa16d387c9d36815f7ddc5d50e09f to ab8e3f5a04f0f061b8157c
 * Include canister_ranges in the state tree
 * Removed limit on cycles in a canister
 
+== Replica
+
+Updated replica to blessed commit 936bf9ccaabd566c68232e5cb3f3ce7d5ae89328.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/38541[38541]
+
 = 0.9.0
 
 == DFX
