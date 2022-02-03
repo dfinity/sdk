@@ -13,7 +13,8 @@ impl NetworkDescriptor {
     // Determines whether the provided connection is the official IC or not.
     pub fn is_ic(network_name: &str, providers: &Vec<String>) -> bool {
         let name_match = network_name == "ic" || network_name == DEFAULT_IC_GATEWAY;
-        let provider_match = { providers.len() == 1 && providers.get(0).unwrap() == "https://ic0.app" };
+        let provider_match =
+            { providers.len() == 1 && providers.get(0).unwrap() == "https://ic0.app" };
         name_match || provider_match
     }
 }
@@ -21,29 +22,44 @@ impl NetworkDescriptor {
 #[cfg(test)]
 mod test {
     use super::*;
-    
+
     #[test]
     fn ic_by_netname() {
         assert_eq!(NetworkDescriptor::is_ic("ic", &vec![]), true);
     }
-    
+
     #[test]
     fn ic_by_provider() {
-        assert_eq!(NetworkDescriptor::is_ic("not_ic", &vec!["https://ic0.app".to_string()]), true);
+        assert_eq!(
+            NetworkDescriptor::is_ic("not_ic", &vec!["https://ic0.app".to_string()]),
+            true
+        );
     }
-    
+
     #[test]
     fn ic_by_netname_fail() {
         assert_eq!(NetworkDescriptor::is_ic("not_ic", &vec![]), false);
     }
-    
+
     #[test]
     fn ic_by_provider_fail_string() {
-        assert_eq!(NetworkDescriptor::is_ic("not_ic", &vec!["not_ic_provider".to_string()]), false);
+        assert_eq!(
+            NetworkDescriptor::is_ic("not_ic", &vec!["not_ic_provider".to_string()]),
+            false
+        );
     }
-    
+
     #[test]
     fn ic_by_provider_fail_unique() {
-        assert_eq!(NetworkDescriptor::is_ic("not_ic", &vec!["https://ic0.app".to_string(), "some_other_provider".to_string()]), false);
+        assert_eq!(
+            NetworkDescriptor::is_ic(
+                "not_ic",
+                &vec![
+                    "https://ic0.app".to_string(),
+                    "some_other_provider".to_string()
+                ]
+            ),
+            false
+        );
     }
 }
