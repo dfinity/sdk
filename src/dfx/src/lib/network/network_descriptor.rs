@@ -31,7 +31,7 @@ mod test {
 
     #[test]
     fn ic_by_provider() {
-        assert!(!NetworkDescriptor::is_ic(
+        assert!(NetworkDescriptor::is_ic(
             "not_ic",
             &vec!["https://ic0.app".to_string()]
         ));
@@ -52,7 +52,7 @@ mod test {
 
     #[test]
     fn ic_by_provider_fail_unique() {
-        assert!(NetworkDescriptor::is_ic(
+        assert!(!NetworkDescriptor::is_ic(
             "not_ic",
             &vec![
                 "https://ic0.app".to_string(),
