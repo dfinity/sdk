@@ -1,4 +1,4 @@
-use crate::config::dfinity::{NetworkType, DEFAULT_IC_GATEWAY};
+use crate::config::dfinity::NetworkType;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::network_descriptor::NetworkDescriptor;
@@ -39,11 +39,12 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
             warn!(logger, "{}", err);
             let network_name = get_network_context()?;
             let url = command_line_provider_to_url(&network_name)?;
+            let is_ic = NetworkDescriptor::is_ic(&network_name, &vec![url.to_string()]);
             let network_descriptor = NetworkDescriptor {
                 name: "-ping-".to_string(),
                 providers: vec![url],
                 r#type: NetworkType::Ephemeral,
-                is_ic: network_name == "ic" || network_name == DEFAULT_IC_GATEWAY,
+                is_ic,
             };
             Ok(network_descriptor)
         })?;
