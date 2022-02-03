@@ -11,6 +11,7 @@ pub struct NetworkDescriptor {
 
 impl NetworkDescriptor {
     // Determines whether the provided connection is the official IC or not.
+    #[allow(clippy::ptr_arg)]
     pub fn is_ic(network_name: &str, providers: &Vec<String>) -> bool {
         let name_match = network_name == "ic" || network_name == DEFAULT_IC_GATEWAY;
         let provider_match =
@@ -25,41 +26,38 @@ mod test {
 
     #[test]
     fn ic_by_netname() {
-        assert_eq!(NetworkDescriptor::is_ic("ic", &vec![]), true);
+        assert!(NetworkDescriptor::is_ic("ic", &vec![]));
     }
 
     #[test]
     fn ic_by_provider() {
-        assert_eq!(
-            NetworkDescriptor::is_ic("not_ic", &vec!["https://ic0.app".to_string()]),
-            true
-        );
+        assert!(!NetworkDescriptor::is_ic(
+            "not_ic",
+            &vec!["https://ic0.app".to_string()]
+        ));
     }
 
     #[test]
     fn ic_by_netname_fail() {
-        assert_eq!(NetworkDescriptor::is_ic("not_ic", &vec![]), false);
+        assert!(!NetworkDescriptor::is_ic("not_ic", &vec![]));
     }
 
     #[test]
     fn ic_by_provider_fail_string() {
-        assert_eq!(
-            NetworkDescriptor::is_ic("not_ic", &vec!["not_ic_provider".to_string()]),
-            false
-        );
+        assert!(!NetworkDescriptor::is_ic(
+            "not_ic",
+            &vec!["not_ic_provider".to_string()]
+        ));
     }
 
     #[test]
     fn ic_by_provider_fail_unique() {
-        assert_eq!(
-            NetworkDescriptor::is_ic(
-                "not_ic",
-                &vec![
-                    "https://ic0.app".to_string(),
-                    "some_other_provider".to_string()
-                ]
-            ),
-            false
-        );
+        assert!(NetworkDescriptor::is_ic(
+            "not_ic",
+            &vec![
+                "https://ic0.app".to_string(),
+                "some_other_provider".to_string()
+            ]
+        ));
     }
 }

@@ -276,7 +276,7 @@ fn build_frontend(
             .env("DFX_VERSION", &format!("{}", dfx_version()))
             .env("DFX_NETWORK", &network_name);
 
-        if NetworkDescriptor::is_ic(&network_name, &vec![]) {
+        if NetworkDescriptor::is_ic(network_name, &vec![]) {
             cmd.env("NODE_ENV", "production");
         }
 
