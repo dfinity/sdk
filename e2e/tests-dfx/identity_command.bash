@@ -364,3 +364,19 @@ teardown() {
     assert_match 'Creating identity: "bob".' "$stderr"
     assert_match 'Invalid Ed25519 private key in PEM file at' "$stderr"
 }
+
+@test "identity: can import an EC key without an EC PARAMETERS section (as quill generate makes)" {
+    cat >private-key-no-ec-parameters.pem <<XXX
+-----BEGIN EC PRIVATE KEY-----
+MHQCAQEEIE+3ipe2ruuJOmeBAhImUP/jic7Qwk2fXC8BaAmu6VK4oAcGBSuBBAAK
+oUQDQgAEBQKn0CLyiA/fQf6L8S07/MDJ9kIJTzZvm2jFo2/yvSToGee+XzP/GCE4
+08ZcZFM1EwUsknDBoSd0EF1PzFRmJg==
+-----END EC PRIVATE KEY-----
+XXX
+    assert_command dfx identity import private-key-no-ec-parameters private-key-no-ec-parameters.pem
+    assert_command dfx --identity private-key-no-ec-parameters identity get-principal
+    assert_eq "j4p4p-o5ogq-4gzev-t3kay-hpm5o-xuwpz-yvrpp-47cc4-qyunt-k76yw-qae"
+    echo "{}" >dfx.json # avoid "dfx.json not found, using default."
+    assert_command dfx --identity private-key-no-ec-parameters ledger account-id
+    assert_eq "3c00cf85d77b9dbf74a2acec1d9a9e73a3fc65f5048c64800b15f3b2c4c8eb11"
+}
