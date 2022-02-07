@@ -36,7 +36,6 @@ pub struct CanisterInfo {
     canister_type: String,
 
     declarations_config: CanisterDeclarationsConfig,
-    //remote_id: Option<BTreeMap<String, Principal>>,
     remote: Option<ConfigCanistersCanisterRemote>,
 
     workspace_root: PathBuf,

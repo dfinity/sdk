@@ -57,9 +57,6 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub declarations: CanisterDeclarationsConfig,
 
-    //#[serde(default)]
-    //pub remote_id: Option<BTreeMap<String, Principal>>,
-
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
 
@@ -320,16 +317,13 @@ impl ConfigInterface {
         canister: &str,
         network: &str,
     ) -> DfxResult<Option<Principal>> {
-        let canister_map = (&self.canisters)
+        let maybe_principal = (&self.canisters)
             .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
-
-        let x = canister_map.get(canister).ok_or_else(|| {
+            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?
+            .get(canister).ok_or_else(|| {
             error_invalid_argument!("Canister {} not found in dfx.json", canister)
-        })?;
-
-        let x = x.remote.as_ref().and_then(|r| r.id.get(network)).copied();
-        Ok(x)
+        })?.remote.as_ref().and_then(|r| r.id.get(network)).copied();
+        Ok(maybe_principal)
     }
 
     pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {

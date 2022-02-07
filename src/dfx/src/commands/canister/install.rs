@@ -104,7 +104,6 @@ pub async fn exec(
                     .get_config()
                     .is_remote_canister(canister, &network.name)?
                 {
-                    // print something?
                     info!(
                         env.get_logger(),
                         "Skipping canister '{}' because it is remote for network '{}'",
