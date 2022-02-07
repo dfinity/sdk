@@ -11,7 +11,7 @@ use clap::Clap;
 #[derive(Clap)]
 pub struct GenerateOpts {
     /// Specifies the name of the canister to build.
-    /// If you do not specify a canister names, generates types for all canisters.
+    /// If you do not specify a canister name, generates types for all canisters.
     canister_name: Option<String>,
 }
 
