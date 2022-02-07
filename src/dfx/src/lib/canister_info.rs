@@ -145,7 +145,7 @@ impl CanisterInfo {
             .copied()
     }
     pub fn get_remote_candid(&self) -> Option<String> {
-        self.remote.as_ref().and_then(|r|r.candid.clone())
+        self.remote.as_ref().and_then(|r| r.candid.clone())
     }
     pub fn get_workspace_root(&self) -> &Path {
         &self.workspace_root

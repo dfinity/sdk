@@ -31,7 +31,10 @@ impl CanisterIdStore {
 
         let remote_ids = get_remote_ids(env)?;
 
-        Ok(CanisterIdStore { remote_ids, ..store })
+        Ok(CanisterIdStore {
+            remote_ids,
+            ..store
+        })
     }
 
     pub fn for_network(network_descriptor: &NetworkDescriptor) -> DfxResult<Self> {
