@@ -27,11 +27,11 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
         let network_descriptor = env.get_network_descriptor().expect("no network descriptor");
-        let x = CanisterIdStore::for_network(network_descriptor)?;
+        let store = CanisterIdStore::for_network(network_descriptor)?;
 
         let remote_ids = get_remote_ids(env)?;
 
-        Ok(CanisterIdStore { remote_ids, ..x })
+        Ok(CanisterIdStore { remote_ids, ..store })
     }
 
     pub fn for_network(network_descriptor: &NetworkDescriptor) -> DfxResult<Self> {
@@ -59,6 +59,7 @@ impl CanisterIdStore {
     }
 
     pub fn get_name(&self, canister_id: &str) -> Option<&String> {
+        // todo remote canisters
         self.ids
             .iter()
             .find(|(_, nn)| nn.get(&self.network_descriptor.name) == Some(&canister_id.to_string()))

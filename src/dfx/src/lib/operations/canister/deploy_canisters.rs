@@ -41,13 +41,8 @@ pub async fn deploy_canisters(
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
     let network = env.get_network_descriptor().unwrap();
-    //let remote_canisters = config.get_config();
-    //let remote_canisters = remote_canisters.get_remote_canister_names(&network.name)?;
 
-    let canisters_to_build: Vec<String> = canister_with_dependencies(&config, some_canister)?
-        .into_iter()
-        //.filter(|s| !remote_canisters.contains(s))
-        .collect();
+    let canisters_to_build: Vec<String> = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
