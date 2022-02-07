@@ -320,9 +320,12 @@ impl ConfigInterface {
         let maybe_principal = (&self.canisters)
             .as_ref()
             .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?
-            .get(canister).ok_or_else(|| {
-            error_invalid_argument!("Canister {} not found in dfx.json", canister)
-        })?.remote.as_ref().and_then(|r| r.id.get(network)).copied();
+            .get(canister)
+            .ok_or_else(|| error_invalid_argument!("Canister {} not found in dfx.json", canister))?
+            .remote
+            .as_ref()
+            .and_then(|r| r.id.get(network))
+            .copied();
         Ok(maybe_principal)
     }
 
