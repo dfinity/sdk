@@ -30,7 +30,8 @@ teardown() {
     install_asset remote/basic
     setup_actuallylocal_network
     setup_local_network
-    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\" dfx.json)" >dfx.json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
 
     assert_command_fail dfx canister --network actuallylocal create remote
     assert_match "remote" canister is remote on network actuallylocal and has canister id: "$REMOTE_CANISTER_ID"
@@ -52,7 +53,8 @@ teardown() {
     install_asset remote/basic
     setup_actuallylocal_network
     setup_local_network
-    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\" dfx.json)" >dfx.json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
 
     assert_command_fail dfx canister --network actuallylocal install remote
     assert_match "Error: Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
@@ -82,7 +84,8 @@ teardown() {
     install_asset remote/basic
     setup_actuallylocal_network
     setup_local_network
-    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\" dfx.json)" >dfx.json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
 
     # Here we want to make sure that create+build+install works with the common flow
     assert_command dfx canister create --all
@@ -146,7 +149,8 @@ teardown() {
     install_asset remote/extra
     setup_actuallylocal_network
     setup_local_network
-    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\" dfx.json)" >dfx.json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
 
     # We expect the local network deploy to succeed, because it is built using the candid file from
     # the local canister.
@@ -186,7 +190,8 @@ teardown() {
     install_asset remote/basic
     setup_actuallylocal_network
     setup_local_network
-    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\" dfx.json)" >dfx.json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
 
     assert_command dfx deploy
     assert_command dfx canister call basic read_remote
