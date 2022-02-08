@@ -215,6 +215,10 @@ pub fn list_versions() -> DfxResult<Vec<Version>> {
     for entry in std::fs::read_dir(root)? {
         let entry = entry?;
         if let Some(version) = entry.file_name().to_str() {
+            if version.starts_with('_') {
+                // temp directory for version being installed
+                continue;
+            }
             result.push(Version::parse(version)?);
         }
     }

@@ -1,21 +1,15 @@
-use crate::commands::ledger::get_icpts_from_args;
+use crate::commands::ledger::{get_icpts_from_args, transfer};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::Memo;
 use crate::lib::nns_types::account_identifier::AccountIdentifier;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::nns_types::{BlockHeight, Memo, SendArgs, LEDGER_CANISTER_ID};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator, memo_validator};
-use crate::util::expiry_duration;
 
 use anyhow::anyhow;
-use candid::{Decode, Encode};
 use clap::Clap;
-use ic_types::principal::Principal;
 use std::str::FromStr;
-
-const SEND_METHOD: &str = "send_dfx";
 
 /// Transfer ICP from the user to the destination AccountIdentifier
 #[derive(Clap)]
@@ -56,30 +50,17 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
     // validated by memo_validator
     let memo = Memo(opts.memo.parse::<u64>().unwrap());
 
-    let to = AccountIdentifier::from_str(&opts.to).map_err(|err| anyhow!(err))?;
-
+    let to = AccountIdentifier::from_str(&opts.to)
+        .map_err(|err| anyhow!(err))?
+        .to_address();
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
 
-    let canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
+    let block_height = transfer(agent, memo, amount, fee, to).await?;
 
-    let result = agent
-        .update(&canister_id, SEND_METHOD)
-        .with_arg(Encode!(&SendArgs {
-            memo,
-            amount,
-            fee,
-            from_subaccount: None,
-            to,
-            created_at_time: None,
-        })?)
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
-
-    let block_height = Decode!(&result, BlockHeight)?;
     println!("Transfer sent at BlockHeight: {}", block_height);
 
     Ok(())

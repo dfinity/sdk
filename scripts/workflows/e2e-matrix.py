@@ -17,8 +17,8 @@ test = sorted(test_scripts('dfx') + test_scripts('replica'))
 matrix = {
     'test': test,
     'backend': [ 'ic-ref', 'replica' ],
-    'os': [ 'macos-latest', 'ubuntu-latest' ],
-    'rust': [ '1.52.1' ]
+    'os': [ 'macos-11', 'ubuntu-20.04' ],
+    'rust': [ '1.55.0' ]
 }
 
 print(json.dumps(matrix))

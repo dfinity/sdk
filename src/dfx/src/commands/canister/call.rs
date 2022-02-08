@@ -239,7 +239,7 @@ pub async fn exec(
                     .call()
                     .await?
             }
-            CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+            CallSender::Wallet(wallet_id) => {
                 let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 do_wallet_call(
                     &wallet,
@@ -271,7 +271,7 @@ pub async fn exec(
                     .call()
                     .await?
             }
-            CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+            CallSender::Wallet(wallet_id) => {
                 let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 // This is overkill, wallet.call should accept a Principal parameter
                 // Why do we need to construct a Canister?
@@ -305,7 +305,7 @@ pub async fn exec(
                     .call_and_wait(waiter_with_exponential_backoff())
                     .await?
             }
-            CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
+            CallSender::Wallet(wallet_id) => {
                 let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
                 do_wallet_call(
                     &wallet,

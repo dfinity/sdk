@@ -314,9 +314,9 @@ impl CanisterPool {
     /// Build all canisters, returning a vector of results of each builds.
     pub fn build(
         &self,
-        build_config: BuildConfig,
+        build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(&build_config)
+        self.step_prebuild_all(build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let graph = self.build_dependencies_graph()?;
@@ -340,14 +340,14 @@ impl CanisterPool {
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
                 result.push(
-                    self.step_prebuild(&build_config, canister)
+                    self.step_prebuild(build_config, canister)
                         .map_err(|e| BuildError::PreBuildStepFailed(*canister_id, Box::new(e)))
                         .and_then(|_| {
-                            self.step_build(&build_config, canister)
+                            self.step_build(build_config, canister)
                                 .map_err(|e| BuildError::BuildStepFailed(*canister_id, Box::new(e)))
                         })
                         .and_then(|o| {
-                            self.step_postbuild(&build_config, canister, o)
+                            self.step_postbuild(build_config, canister, o)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(*canister_id, Box::new(e))
                                 })
@@ -357,7 +357,7 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(&build_config, &order)
+        self.step_postbuild_all(build_config, &order)
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
@@ -365,7 +365,7 @@ impl CanisterPool {
 
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
-    pub fn build_or_fail(&self, build_config: BuildConfig) -> DfxResult<()> {
+    pub fn build_or_fail(&self, build_config: &BuildConfig) -> DfxResult<()> {
         let outputs = self.build(build_config)?;
 
         for output in outputs {

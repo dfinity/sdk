@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.8.3"
+version = "0.9.0"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -21,87 +21,86 @@ actix-cors = "0.4.0"
 actix-files = "0.3.0"
 actix-server = "1.0.4"
 actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
-anyhow = "1.0.34"
+anyhow = "1.0.51"
 atty = "0.2.13"
-base64 = "0.11.0"
-candid = { version = "0.7.6", features = [ "random" ] }
+base64 = "0.13.0"
+candid = { version = "0.7.10", features = [ "random" ] }
 chrono = "0.4.9"
 clap = "=3.0.0-beta.2"
 clap_derive = "=3.0.0-beta.2"
-console = "0.7.7"
-crc32fast = "1.2.0"
+console = "0.15.0"
+crc32fast = "1.3.0"
 crossbeam = "0.8.1"
 ctrlc = { version = "3.2.1", features = [ "termination" ] }
-dialoguer = "0.6.2"
+dialoguer = "0.9.0"
 erased-serde = "0.3.10"
 flate2 = "1.0.11"
-futures = "0.3.5"
+futures = "0.3.19"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
-ic-types = "0.2.2"
+ic-types = "0.3.0"
 indicatif = "0.13.0"
 lazy-init = "0.5.0"
 lazy_static = "1.4.0"
-libflate = "0.1.27"
+libflate = "1.1.1"
 humanize-rs = "0.1.5"
 mime = "0.3.16"
 mime_guess = "2.0.3"
-mockall = "0.6.0"
+mockall = "0.11.0"
 net2 = "0.2.34"
 num-traits = "0.2"
 openssl = "0.10.32"
-pem = "0.7.0"
-petgraph = "0.5.0"
+pem = "1.0.1"
+petgraph = "0.6.0"
 rand = "0.7.2"
 regex = "1.3.1"
 ring = "0.16.11"
-reqwest = { version = "0.11.4", features = [ "blocking", "json", "rustls-tls" ] }
-rustls = "0.18.0"
-rust_decimal = "1.10.3"
-semver = "0.9.0"
+reqwest = { version = "0.11.8", features = [ "blocking", "json", "rustls-tls" ] }
+rustls = "0.20.2"
+rust_decimal = "1.18.0"
+semver = "1.0.4"
 serde = "1.0"
 serde_bytes = "0.11.2"
 serde_cbor = "0.11.1"
-serde_json = "1.0.57"
+serde_json = "1.0.73"
 serde_repr = "0.1.5"
 shell-words = "1.0.0"
 slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
 slog-term = "2.5.0"
 sysinfo = "0.9.6"
-tar = "0.4.37"
+tar = "0.4.38"
 tempfile = "3.1.0"
 thiserror = "1.0.20"
-tokio = { version = "1.8.1", features = [ "fs" ] }
+tokio = { version = "1.5.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
-wasmparser = "0.45.0"
-webpki-roots = "0.21.0"
+wasmparser = "0.81.0"
 
 [dependencies.ic-agent]
-version = "0.9.0"
+version = "0.11.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
+rev = "22c7bb2ec77be4779f85313791a066ff75939bfb"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.4.0"
+version = "0.11.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
+rev = "22c7bb2ec77be4779f85313791a066ff75939bfb"
 
 [dependencies.ic-identity-hsm]
-version = "0.3.6"
+version = "0.11.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
+rev = "22c7bb2ec77be4779f85313791a066ff75939bfb"
 
 [dependencies.ic-utils]
-version = "0.7.0"
+version = "0.11.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "c5c2b1ffe5392a48db5c15b1ae47491f5a7fd4d2"
+rev = "22c7bb2ec77be4779f85313791a066ff75939bfb"
 
 [dev-dependencies]
-env_logger = "0.6"
-proptest = "0.9.5"
-mockito = "0.27.0"
+env_logger = "0.9"
+proptest = "1.0"
+mockito = "0.30.0"
 tempfile = "3.1.0"

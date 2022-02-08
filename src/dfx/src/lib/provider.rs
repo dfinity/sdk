@@ -2,7 +2,7 @@ use crate::config::dfinity::{Config, ConfigNetwork, NetworkType, DEFAULT_IC_GATE
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
-use crate::util::expiry_duration;
+use crate::util::{self, expiry_duration};
 
 use anyhow::{anyhow, Context};
 use lazy_static::lazy_static;
@@ -78,10 +78,7 @@ pub fn get_network_descriptor<'a>(
             if let Ok(url) = parse_provider_url(&network_name) {
                 // Replace any non-ascii-alphanumeric characters with `_`, to create an
                 // OS-friendly directory name for it.
-                let name = network_name
-                    .chars()
-                    .map(|x| if x.is_ascii_alphanumeric() { x } else { '_' })
-                    .collect();
+                let name = util::network_to_pathcompat(&network_name);
 
                 Ok(NetworkDescriptor {
                     name,

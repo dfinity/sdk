@@ -10,7 +10,7 @@ use crate::lib::models::canister::CanisterPool;
 use anyhow::{anyhow, bail, Context};
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
-use slog::{info, o};
+use slog::{info, o, warn};
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -59,7 +59,7 @@ impl CanisterBuilder for RustBuilder {
 
     fn build(
         &self,
-        _pool: &CanisterPool,
+        pool: &CanisterPool,
         canister_info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
@@ -78,8 +78,61 @@ impl CanisterBuilder for RustBuilder {
             .arg("--release")
             .arg("-p")
             .arg(package);
-        info!(self.logger, "Executing: {:?}", cargo);
+
+        if let Ok(dependencies) = self.get_dependencies(pool, canister_info) {
+            for deps in dependencies {
+                let canister = pool.get_canister(&deps).unwrap();
+                cargo.env(
+                    format!("CANISTER_ID_{}", canister.get_name()),
+                    deps.to_text(),
+                );
+                if let Some(output) = canister.get_build_output() {
+                    let candid_path = match &output.idl {
+                        IdlBuildOutput::File(p) => p.as_os_str(),
+                    };
+
+                    cargo.env(
+                        format!("CANISTER_CANDID_{}", canister.get_name()),
+                        candid_path,
+                    );
+                }
+            }
+        }
+
+        info!(
+            self.logger,
+            "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
+        );
         let output = cargo.output().context("Failed to run cargo build")?;
+
+        if std::process::Command::new("ic-cdk-optimizer")
+            .arg("--version")
+            .output()
+            .is_ok()
+        {
+            let mut optimizer = std::process::Command::new("ic-cdk-optimizer");
+            let wasm_path = format!("target/wasm32-unknown-unknown/release/{}.wasm", package);
+            optimizer
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .arg("-o")
+                .arg(&wasm_path)
+                .arg(&wasm_path);
+            // The optimized wasm overwrites the original wasm.
+            // Because the `get_output_wasm_path` must give the same path,
+            // no matter optimized or not.
+            info!(
+                self.logger,
+                "Executing: ic-cdk-optimizer -o {0} {0}", &wasm_path
+            );
+        } else {
+            warn!(
+                self.logger,
+                "ic-cdk-optimizer not installed, the output WASM module is not optimized in size.
+Run `cargo install ic-cdk-optimizer` to install it.
+                "
+            );
+        }
 
         if output.status.success() {
             Ok(BuildOutput {

@@ -5,8 +5,6 @@ load ../utils/assertions
 install_asset() {
     ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
     cp -R $ASSET_ROOT/* .
-    # set write perms to overwrite local bind in assets which have a dfx.json
-    chmod -R a+w .
 
     [ -f ./patch.bash ] && source ./patch.bash
 }
@@ -46,6 +44,19 @@ dfx_new() {
     dfx new ${project_name} --no-frontend
     test -d ${project_name}
     test -f ${project_name}/dfx.json
+    cd ${project_name}
+
+    echo PWD: $(pwd) >&2
+}
+
+dfx_new_rust() {
+    local project_name=${1:-e2e_project}
+    rustup default stable
+    rustup target add wasm32-unknown-unknown
+    dfx new ${project_name} --type=rust --no-frontend
+    test -d ${project_name}
+    test -f ${project_name}/dfx.json
+    test -f ${project_name}/Cargo.toml
     cd ${project_name}
 
     echo PWD: $(pwd) >&2

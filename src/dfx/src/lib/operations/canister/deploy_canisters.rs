@@ -31,6 +31,7 @@ pub async fn deploy_canisters(
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
+    create_call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -63,7 +64,7 @@ pub async fn deploy_canisters(
         &initial_canister_id_store,
         timeout,
         with_cycles,
-        call_sender,
+        create_call_sender,
         &config,
     )
     .await?;
@@ -171,7 +172,7 @@ fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Co
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
 
-    canister_pool.build_or_fail(BuildConfig::from_config(config)?)
+    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)
 }
 
 #[allow(clippy::too_many_arguments)]
