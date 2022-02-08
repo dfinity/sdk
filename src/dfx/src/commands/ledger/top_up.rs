@@ -1,9 +1,9 @@
-use crate::commands::ledger::{get_icpts_from_args, send_and_notify};
+use crate::commands::ledger::{get_icpts_from_args, transfer_and_notify};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::{CyclesResponse, Memo};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::nns_types::{CyclesResponse, Memo};
 
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
@@ -59,7 +59,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
         .map_or(Ok(TRANSACTION_FEE), |v| ICPTs::from_str(&v))
         .map_err(|err| anyhow!(err))?;
 
-    let result = send_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
+    let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
 
     match result {
         CyclesResponse::ToppedUp(()) => {

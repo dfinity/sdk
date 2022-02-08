@@ -1,21 +1,16 @@
-use crate::commands::ledger::get_icpts_from_args;
+use crate::commands::ledger::{get_icpts_from_args, transfer};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::{Memo, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::AccountIdentifier;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::nns_types::{BlockHeight, Memo, SendArgs, LEDGER_CANISTER_ID};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator, memo_validator};
-use crate::util::expiry_duration;
 
 use anyhow::{anyhow, Context};
-use candid::{Decode, Encode};
 use clap::Clap;
-use ic_types::principal::Principal;
+use ic_types::Principal;
 use std::str::FromStr;
-
-const SEND_METHOD: &str = "send_dfx";
 
 /// Transfer ICP from the user to the destination account identifier.
 #[derive(Clap)]
@@ -70,7 +65,8 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
                 "Failed to parse transfer destination from string '{}'.",
                 &opts.to
             )
-        })?;
+        })?
+        .to_address();
 
     let agent = env
         .get_agent()
@@ -80,32 +76,13 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         .await
         .context("Failed to fetch root subnet key.")?;
 
-    let canister_id = opts.ledger_canister_id.unwrap_or_else(|| {
-        Principal::from_text(LEDGER_CANISTER_ID)
-            .expect("bug: statically known ledger canister id does not parse")
-    });
+    let canister_id = opts
+        .ledger_canister_id
+        .unwrap_or(MAINNET_LEDGER_CANISTER_ID);
 
-    let result = agent
-        .update(&canister_id, SEND_METHOD)
-        .with_arg(
-            Encode!(&SendArgs {
-                memo,
-                amount,
-                fee,
-                from_subaccount: None,
-                to,
-                created_at_time: None,
-            })
-            .expect("bug: failed to encode transfer call arguments"),
-        )
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await
-        .context("Ledger transfer call failed.")?;
+    let block_height = transfer(agent, &canister_id, memo, amount, fee, to).await?;
 
-    let block_height = Decode!(&result, BlockHeight)
-        .with_context(|| format!("Failed to decode ledger response: {:?}.", result))?;
-
-    println!("Transfer sent at block height: {}", block_height);
+    println!("Transfer sent at BlockHeight: {}", block_height);
 
     Ok(())
 }
