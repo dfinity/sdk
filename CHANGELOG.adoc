@@ -1,5 +1,20 @@
 = 0.9.1 UNRELEASED
 == DFX
+=== feat: `dfx ledger balance` and `dfx ledger transfer` can now work with locally installed ledger
+
+The `dfx ledger balance` and `dfx ledger transfer` commands support two new mutally exclusive flags:
+
+* `--ledger-principal` specifies the canister id of the ledger canister.
+* `--ledger-alias` specifies the alias of the ledger canister.
+
+Examples:
+[source, bash]
+----
+dfx ledger balance --ledger-principal rrkah-fqaaa-aaaaa-aaaaq-cai $(dfx ledger account-id)
+dfx ledger balance --ledger-alias local_ledger $(dfx ledger account-id)
+dfx ledger transfer --ledger-principal rrkah-fqaaa-aaaaa-aaaaq-cai --memo 0 --amount 0.001 $(dfx ledger account-id)
+dfx ledger transfer --ledger-alias local_ledger --memo 0 --amount 0.001 $(dfx ledger account-id)
+----
 
 === feat: `dfx ledger account-id` can now compute canister addresses
 
