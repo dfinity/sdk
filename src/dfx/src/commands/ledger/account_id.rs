@@ -1,17 +1,54 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::nns_types::account_identifier::AccountIdentifier;
+use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
+use anyhow::{anyhow, Context};
+use ic_types::Principal;
+use std::convert::TryFrom;
 
 use clap::Clap;
 
-/// Prints the selected identity's AccountIdentifier.
+/// Prints the ledger account identifier corresponding to a principal.
 #[derive(Clap)]
-pub struct AccountIdOpts {}
+pub struct AccountIdOpts {
+    #[clap(long, value_name = "PRINCIPAL")]
+    /// Principal controlling the account.
+    pub of_principal: Option<Principal>,
 
-pub async fn exec(env: &dyn Environment, _opts: AccountIdOpts) -> DfxResult {
-    let sender = env
-        .get_selected_identity_principal()
-        .expect("Selected identity not instantiated.");
-    println!("{}", AccountIdentifier::new(sender, None));
+    #[clap(long, value_name = "ALIAS", conflicts_with("of_principal"))]
+    /// Alias of the canister controlling the account.
+    pub of_canister: Option<String>,
+
+    #[clap(long, value_name = "SUBACCOUNT")]
+    /// Subaccount identifier (64 character long hex string).
+    pub subaccount: Option<String>,
+}
+
+pub async fn exec(env: &dyn Environment, opts: AccountIdOpts) -> DfxResult {
+    let subaccount = match opts.subaccount {
+        Some(sub_hex) => {
+            let sub_bytes = hex::decode(&sub_hex)
+                .with_context(|| format!("Subaccount '{}' is not a valid hex string", sub_hex))?;
+            let sub = Subaccount::try_from(&sub_bytes[..])
+                .with_context(|| format!("Subaccount '{}' is not 64 characters long", sub_hex))?;
+            Some(sub)
+        }
+        None => None,
+    };
+    let principal = if let Some(principal) = opts.of_principal {
+        if opts.of_canister.is_some() {
+            return Err(anyhow!(
+                "You can specify at most one of of-principal and of-canister arguments."
+            ));
+        }
+        principal
+    } else if let Some(alias) = opts.of_canister {
+        let canister_id_store = CanisterIdStore::for_env(env)?;
+        canister_id_store.get(&alias)?
+    } else {
+        env.get_selected_identity_principal()
+            .context("No identity is selected")?
+    };
+    println!("{}", AccountIdentifier::new(principal, subaccount));
     Ok(())
 }

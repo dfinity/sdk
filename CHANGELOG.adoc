@@ -1,4 +1,55 @@
-= 0.8.6
+= 0.9.1 UNRELEASED
+== DFX
+
+=== feat: `dfx ledger account-id` can now compute canister addresses
+
+The `dfx ledger account-id` can now compute addresses of principals and canisters.
+The command also supports ledger subaccounts now.
+
+[source, bash]
+----
+dfx ledger account-id --of-principal 53zcu-tiaaa-aaaaa-qaaba-cai
+dfx ledger --network small02 account-id --of-canister ledger_demo
+dfx ledger account-id --of-principal 53zcu-tiaaa-aaaaa-qaaba-cai --subaccount 0000000000000000000000000000000000000000000000000000000000000001
+----
+
+=== feat: Print the full error chain in case of a failure
+
+All `dfx` commands will now print the full stack of errors that led to the problem, not just the most recent error.
+Example:
+
+[source]
+----
+Error: Subaccount '00000000000000000000000000000000000000000000000000000000000000000' is not a valid hex string
+Caused by:
+  Odd number of digits
+----
+
+=== fix: dfx import will now import pem files created by `quill generate`
+
+`quill generate` currently outputs .pem files without an `EC PARAMETERS` section.
+`dfx identity import` will now correctly identify these as EC keys, rather than Ed25519.
+
+== ic-ref
+
+Upgraded from a432156f24faa16d387c9d36815f7ddc5d50e09f to ab8e3f5a04f0f061b8157c2889f8f5de05f952bb
+
+* Support 128-bit system api for cycles
+* Include canister_ranges in the state tree
+* Removed limit on cycles in a canister
+
+== Replica
+
+Updated replica to blessed commit 936bf9ccaabd566c68232e5cb3f3ce7d5ae89328.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/38541[38541]
+
+== Motoko
+
+Updated Motoko from 0.6.20 to 0.6.21.
+
+= 0.9.0
 
 == DFX
 
@@ -74,12 +125,6 @@ This incorporates the following executed proposals:
 * https://dashboard.internetcomputer.org/proposal/26833[26833]
 * https://dashboard.internetcomputer.org/proposal/25343[25343]
 * https://dashboard.internetcomputer.org/proposal/23633[23633]
-
-= 0.8.5
-
-== DFX
-
-The same as dfx 0.8.6, except dfx 0.8.6 fixed a bug in dfx 0.8.5's `dfx canister update-settings --all`.
 
 = 0.8.4
 

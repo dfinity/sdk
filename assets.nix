@@ -8,11 +8,13 @@ let
     usePackager = false;
   };
   replica-bin = pkgs.sources."replica-${pkgs.system}";
+  canister-sandbox-bin = pkgs.sources."canister-sandbox-${pkgs.system}";
   starter-bin = pkgs.sources."ic-starter-${pkgs.system}";
   looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
     mkdir -p $out
 
     gunzip <${replica-bin} >$out/replica
+    gunzip <${canister-sandbox-bin} >$out/canister_sandbox
     gunzip <${starter-bin} >$out/ic-starter
     cp -R ${pkgs.sources.motoko-base}/src $out/base
     cp ${pkgs.motoko}/bin/mo-doc $out

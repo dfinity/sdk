@@ -1,14 +1,14 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::{AccountBalanceArgs, MAINNET_LEDGER_CANISTER_ID};
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::nns_types::account_identifier::AccountIdentifier;
 use crate::lib::nns_types::icpts::ICPTs;
-use crate::lib::nns_types::AccountBalanceArgs;
-use crate::lib::nns_types::LEDGER_CANISTER_ID;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::{Decode, Encode};
 use clap::Clap;
-use ic_types::principal::Principal;
+use ic_types::Principal;
 use std::str::FromStr;
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
@@ -20,8 +20,12 @@ pub struct BalanceOpts {
     of: Option<String>,
 
     /// Canister ID of the ledger canister.
-    #[clap(long)]
-    ledger_canister_id: Option<Principal>,
+    #[clap(long, value_name = "CANISTER_ID")]
+    ledger_principal: Option<Principal>,
+
+    /// Alias of the ledger canister.
+    #[clap(long, value_name = "ALIAS", conflicts_with("ledger-principal"))]
+    ledger_alias: Option<String>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
@@ -39,10 +43,14 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    let canister_id = opts.ledger_canister_id.unwrap_or_else(|| {
-        Principal::from_text(LEDGER_CANISTER_ID)
-            .expect("bug: failed to parse statically known canister id")
-    });
+    let canister_id = if let Some(principal) = opts.ledger_principal {
+        principal
+    } else if let Some(alias) = opts.ledger_alias {
+        let canister_id_store = CanisterIdStore::for_env(env)?;
+        canister_id_store.get(&alias)?
+    } else {
+        MAINNET_LEDGER_CANISTER_ID
+    };
 
     let result = agent
         .query(&canister_id, ACCOUNT_BALANCE_METHOD)
@@ -50,9 +58,10 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
             account: acc_id.to_string()
         })?)
         .call()
-        .await?;
+        .await
+        .context("Ledger account_balance call failed")?;
 
-    let balance = Decode!(&result, ICPTs)?;
+    let balance = Decode!(&result, ICPTs).context("Failed to decode ledger result")?;
 
     println!("{}", balance);
 
