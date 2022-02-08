@@ -60,10 +60,13 @@ The canister will not be created or installed on these remote networks.
 For other networks, the canister will be created and installed as usual.
 
 The "candid" field, if set within the remote object, specifies the candid file to build against when
-building other canisters on a network for which the canister is remote.
+building other canisters on a network for which the canister is remote.  This definition can differ
+from the candid definitions for local builds.
 
 For example, if have an installation of the ICP Ledger (see https://github.com/dfinity/ic/tree/master/rs/rosetta-api/ledger_canister#deploying-locally[Ledger Installation Guide])
-in your dfx.json, you could configure the canister ID of the Ledger canister on the ic network like so:
+in your dfx.json, you could configure the canister ID of the Ledger canister on the ic network as below.  In this case,
+the private interfaces would be available for local builds, but only the public interfaces would be available
+when building for `--network ic`.
 [source, json]
 ----
 {
@@ -71,8 +74,9 @@ in your dfx.json, you could configure the canister ID of the Ledger canister on 
     "ledger": {
       "type": "custom",
       "wasm": "ledger.wasm",
-      "candid": "ledger.public.did",
+      "candid": "ledger.private.did",
       "remote": {
+        "candid": "ledger.public.did",
         "id": {
           "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
         }
