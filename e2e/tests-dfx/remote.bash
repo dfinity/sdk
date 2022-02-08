@@ -14,6 +14,18 @@ teardown() {
     standard_teardown
 }
 
+@test "canister call" {
+  # exercise this code path:
+  #    dfx canister call --query, by canister ID (of the remote canister), to an update call
+  #    this means the correct query/update value will have to come from the candid file
+
+  echo
+}
+
+@test "canister sign" {
+  echo
+}
+
 @test "canister create <canister> fails for a remote canister" {
     install_asset remote/actual
     dfx_start
