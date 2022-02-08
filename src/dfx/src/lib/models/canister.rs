@@ -81,6 +81,10 @@ impl Canister {
         self.info.get_canister_id().unwrap()
     }
 
+    pub fn get_info(&self) -> &CanisterInfo {
+        &self.info
+    }
+
     // this function is only ever used when build_config.build_mode_check is true
     pub fn generate_random_canister_id() -> DfxResult<CanisterId> {
         let mut rng = thread_rng();
