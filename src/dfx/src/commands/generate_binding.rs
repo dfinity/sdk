@@ -12,7 +12,7 @@ use std::path::Path;
 /// File endings that didc can generate bindings for.
 const DIDC_SUPPORTED_LANGUAGES: [&str; 4] = ["mo", "rs", "ts", "js"];
 
-/// Generate .mo, .rs, .ts, or .js bindings for remote canisters from their .did declarations
+/// Generate bindings for remote canisters from their .did declarations
 #[derive(Clap)]
 pub struct GenerateBindingOpts {
     /// Specifies the name of the canister to generate bindings for.
@@ -97,7 +97,8 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         main,
                         candid,
                         canister.get_name()
-                    )
+                    );
+                    todo!("add error handling when didc fails");
                 } else {
                     info!(
                         log,

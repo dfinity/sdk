@@ -58,6 +58,22 @@ get_variable() {
     echo "$VAR_VALUE"
 }
 
+download_exeutable () {
+    NAME="$1"
+    SHA256=$(get_variable "$NAME" "SHA256")
+    URL=$(get_variable "$NAME" "URL")
+
+    DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/$NAME"
+    BINARY_CACHE_PATH="$BINARY_CACHE_TEMP_DIR/$NAME"
+
+    echo "Downloading $NAME: $SHA256, $URL" > ~/Desktop/out.log
+
+    download_url_and_check_sha "$URL" "$SHA256" "$DOWNLOAD_PATH"
+
+    mv "$DOWNLOAD_PATH" "$BINARY_CACHE_PATH"
+    chmod 0500 "$BINARY_CACHE_PATH"
+}
+
 download_binary() {
     NAME="$1"
     SHA256=$(get_variable "$NAME" "SHA256")
@@ -144,6 +160,7 @@ add_binary_cache() {
     copy_motoko_base_from_clone
 
     build_icx_proxy
+    download_exeutable "didc" 
 
     tar -czf "$DFX_ASSETS_TEMP_DIR"/binary_cache.tgz -C "$BINARY_CACHE_TEMP_DIR" .
 }

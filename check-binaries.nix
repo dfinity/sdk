@@ -66,7 +66,7 @@ pkgs.runCommand "check-binaries" {
     result=1
   fi
 
-  for a in ic-ref ic-starter icx-proxy mo-doc mo-ide moc replica;
+  for a in didc ic-ref ic-starter icx-proxy mo-doc mo-ide moc replica;
   do
       if ! check_binary "$CACHE_DIR/$a"; then
           result=1

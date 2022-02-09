@@ -55,6 +55,24 @@
         "rev": "3a552ee5f5545786973089be1fc2b4e16adc7336",
         "type": "git"
     },
+    "didc-x86_64-darwin": {
+        "builtin": false,
+        "rev": "e46a85def88496006328e37da0e601dc0bd85448",
+        "sha256": "7fe3313cee170af3282f2d282d58b60e2996b6f7fe8fed022fa1fd621fbe80dc",
+        "type": "file",
+        "url": "https://github.com/dfinity/candid/releases/download/2022-01-06/didc-macos",
+        "url_template": "https://github.com/dfinity/candid/releases/download/<release-date>/didc-macos",
+        "version": "0.1.3"
+    },
+    "didc-x86_64-linux": {
+        "builtin": false,
+        "rev": "e46a85def88496006328e37da0e601dc0bd85448",
+        "sha256": "6fe52219149624ba58f028073504e0fd3ce418480e0fb40edbea54cd64717700",
+        "type": "file",
+        "url": "https://github.com/dfinity/candid/releases/download/2022-01-06/didc-linux64",
+        "url_template": "https://github.com/dfinity/candid/releases/download/<release-date>/didc-linux64",
+        "version": "0.1.3"
+    },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",

@@ -21,6 +21,7 @@ let
     cp ${pkgs.motoko}/bin/mo-ide $out
     cp ${pkgs.motoko}/bin/moc $out
     cp ${pkgs.ic-ref}/bin/* $out
+    cp ${pkgs.didc}/bin/didc $out
     cp ${icx-proxy-standalone}/bin/icx-proxy $out
   '';
 in
