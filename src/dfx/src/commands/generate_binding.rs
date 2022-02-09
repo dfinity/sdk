@@ -69,7 +69,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                     } else {
                         info!(
                             log,
-                            "Main file {} of canister {} already exists. Skipping.",
+                            "Main file {} of canister {} already exists. Skipping. Use --overwrite if you want to re-create it.",
                             main,
                             canister.get_name()
                         );
@@ -82,23 +82,31 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                     .iter()
                     .find(|&filetype| main.ends_with(filetype))
                 {
-                    let mocks = cache
+                    let bindings = cache
                         .get_binary_command("didc")?
                         .arg("bind")
                         .arg(&candid)
                         .arg("-t")
                         .arg(bind_lang)
                         .output()?;
-                    let mut main_file = File::create(&main_path)?;
-                    main_file.write_all(&mocks.stdout[..])?;
-                    info!(
-                        log,
-                        "Generated {} using {} for canister {}.",
-                        main,
-                        candid,
-                        canister.get_name()
-                    );
-                    todo!("add error handling when didc fails");
+                    if bindings.status.success() {
+                        let mut main_file = File::create(&main_path)?;
+                        main_file.write_all(&bindings.stdout[..])?;
+                        info!(
+                            log,
+                            "Generated {} using {} for canister {}.",
+                            main,
+                            candid,
+                            canister.get_name()
+                        );
+                    } else {
+                        info!(
+                            log,
+                            "didc ran into trouble when generating main for canister {}. Error text:\n{}",
+                            canister.get_name(),
+                            String::from_utf8(bindings.stderr)?
+                        )
+                    }
                 } else {
                     info!(
                         log,
