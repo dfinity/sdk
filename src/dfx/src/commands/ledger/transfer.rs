@@ -1,17 +1,18 @@
 use crate::commands::ledger::{get_icpts_from_args, transfer};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::ledger_types::Memo;
+use crate::lib::ledger_types::{Memo, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::AccountIdentifier;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator, memo_validator};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Clap;
+use ic_types::Principal;
 use std::str::FromStr;
 
-/// Transfer ICP from the user to the destination AccountIdentifier
+/// Transfer ICP from the user to the destination account identifier.
 #[derive(Clap)]
 pub struct TransferOpts {
     /// AccountIdentifier of transfer destination.
@@ -38,28 +39,48 @@ pub struct TransferOpts {
     /// Transaction fee, default is 10000 e8s.
     #[clap(long, validator(icpts_amount_validator))]
     fee: Option<String>,
+
+    #[clap(long)]
+    /// Canister ID of the ledger canister.
+    ledger_canister_id: Option<Principal>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
-    let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
+    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
 
-    let fee = opts.fee.map_or(Ok(TRANSACTION_FEE), |v| {
-        ICPTs::from_str(&v).map_err(|err| anyhow!(err))
-    })?;
+    let fee = opts.fee.clone().map_or(TRANSACTION_FEE, |v| {
+        ICPTs::from_str(&v).expect("bug: amount_validator did not validate the fee")
+    });
 
-    // validated by memo_validator
-    let memo = Memo(opts.memo.parse::<u64>().unwrap());
+    let memo = Memo(
+        opts.memo
+            .parse::<u64>()
+            .expect("bug: memo_validator did not validate the memo"),
+    );
 
     let to = AccountIdentifier::from_str(&opts.to)
-        .map_err(|err| anyhow!(err))?
+        .map_err(|e| anyhow!(e))
+        .with_context(|| {
+            format!(
+                "Failed to parse transfer destination from string '{}'.",
+                &opts.to
+            )
+        })?
         .to_address();
+
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root subnet key.")?;
 
-    let block_height = transfer(agent, memo, amount, fee, to).await?;
+    let canister_id = opts
+        .ledger_canister_id
+        .unwrap_or(MAINNET_LEDGER_CANISTER_ID);
+
+    let block_height = transfer(agent, &canister_id, memo, amount, fee, to).await?;
 
     println!("Transfer sent at BlockHeight: {}", block_height);
 
