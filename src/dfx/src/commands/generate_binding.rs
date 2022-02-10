@@ -10,6 +10,8 @@ use std::io::Write;
 use std::path::Path;
 
 /// File endings that didc can generate bindings for.
+// To update this list, run `didc bind --help` and the possible values will be listed next to the --target option.
+// "did" is not listed since that's our source format
 const DIDC_SUPPORTED_LANGUAGES: [&str; 4] = ["mo", "rs", "ts", "js"];
 
 /// Generate bindings for remote canisters from their .did declarations

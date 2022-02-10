@@ -120,6 +120,27 @@ will be reports as compilation errors.
 }
 ----
 
+=== feat: Generating remote canister bindings
+
+It's now possible to generate the interface of a remote canister using a .did file. This makes it easier to write mocks for local development.
+
+Currently, dfx can generate .mo, .rs, .ts, and .js bindings.
+
+This is how you specify how to generate the bindings in dfx.json:
+[source, json]
+----
+{
+  "canisters": {
+    "<canister name>": {
+      "main": "<path to mo/rs/ts/js file that will be generated>",
+      "remote": {
+        "candid": "<path to candid file to use when generating bindings>"
+      }
+    }
+  }
+}
+----
+
 == ic-ref
 
 Upgraded from a432156f24faa16d387c9d36815f7ddc5d50e09f to ab8e3f5a04f0f061b8157c2889f8f5de05f952bb
