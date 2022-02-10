@@ -50,6 +50,14 @@ Caused by:
 `quill generate` currently outputs .pem files without an `EC PARAMETERS` section.
 `dfx identity import` will now correctly identify these as EC keys, rather than Ed25519.
 
+=== fix: retry on failure for ledger create-canister, top-up, transfer
+
+dfx now calls `transfer` rather than `send_dfx`, and sets the created_at_time field in order to retry the following commands:
+
+* dfx ledger create-canister
+* dfx ledger top-up
+* dfx ledger transfer
+
 == ic-ref
 
 Upgraded from a432156f24faa16d387c9d36815f7ddc5d50e09f to ab8e3f5a04f0f061b8157c2889f8f5de05f952bb
