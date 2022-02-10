@@ -93,3 +93,19 @@ make sure the installer actually downloads and installs the new DFX release the
    (the CD script) and execute it.
 
 
+== Troubleshooting
+This section provides solutions to problems you might encounter when using `dfx`
+
+=== Project Reset
+
+This command will remove the build directory and restart your replica
+```shell
+dfx stop && dfx start --clean --background
+```
+
+=== Using Internet Identity Locally
+If you're encountering issues using II locally, this command will deploy the Internet Identity canister into your replica.
+
+```shell
+II_ENV=development dfx deploy --no-wallet --argument '(null)'
+```
