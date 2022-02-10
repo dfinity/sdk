@@ -9,6 +9,7 @@ use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use console::{style, Style};
 use fn_error_context::context;
+use handlebars::Handlebars;
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
 use semver::Version;
@@ -152,6 +153,20 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
     Ok(())
 }
 
+fn is_template(p: &Path) -> bool {
+    let ext = p.extension();
+    if ext.is_none() {
+        return false;
+    }
+    
+    let ext = ext.unwrap();
+    if ext != "hbs" {
+        return false;
+    }
+    
+    true
+}
+
 #[context("Failed to unpack archive to {}.", root.to_string_lossy())]
 fn write_files_from_entries<R: Sized + Read>(
     log: &Logger,
@@ -170,21 +185,31 @@ fn write_files_from_entries<R: Sized + Read>(
         let mut v = Vec::new();
         file.read_to_end(&mut v).map_err(DfxError::from)?;
 
+        let file_path = file.header().path()?;
+
         let v = match String::from_utf8(v) {
             Err(err) => err.into_bytes(),
             Ok(mut s) => {
+                let reg = Handlebars::new();
+
+                // Process templates.
+                if is_template(&file_path) {
+                    s = reg.render_template(&s, &variables)?;
+                }
+
                 // Perform replacements.
                 variables.iter().for_each(|(name, value)| {
                     let pattern = "{".to_owned() + name + "}";
                     s = s.replace(pattern.as_str(), value);
                 });
+
                 s.into_bytes()
             }
         };
 
         // Perform path replacements.
         let mut p = root
-            .join(file.header().path()?)
+            .join(file_path.clone())
             .to_str()
             .expect("Non unicode project name path.")
             .to_string();
@@ -193,6 +218,11 @@ fn write_files_from_entries<R: Sized + Read>(
             let pattern = "__".to_owned() + name + "__";
             p = p.replace(pattern.as_str(), value);
         });
+
+        // Rename templates.
+        if is_template(&file_path) {
+            p = p.replace(".hbs", "");
+        }
 
         let p = PathBuf::from(p);
         create_file(log, p.as_path(), &v, dry_run)?;
@@ -385,10 +415,17 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
+    let include_frontend = !opts.no_frontend || opts.frontend;
+    let include_frontend_str = if include_frontend { "yes" } else { "" };
+
     let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
         ("dfx_version".to_string(), version_str.clone()),
         ("dot".to_string(), ".".to_string()),
+        (
+            "include_frontend".to_string(),
+            include_frontend_str.to_string(),
+        ),
     ]
     .iter()
     .cloned()
@@ -408,15 +445,17 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         &variables,
     )?;
 
-    scaffold_frontend_code(
-        env,
-        dry_run,
-        project_name,
-        opts.no_frontend,
-        opts.frontend,
-        &opts.agent_version,
-        &variables,
-    )?;
+    if include_frontend {
+        scaffold_frontend_code(
+            env,
+            dry_run,
+            project_name,
+            opts.no_frontend,
+            opts.frontend,
+            &opts.agent_version,
+            &variables,
+        )?;
+    }
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.
