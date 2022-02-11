@@ -18,7 +18,6 @@ let
     gunzip <${canister-sandbox-bin} >$out/canister_sandbox
     gunzip <${starter-bin} >$out/ic-starter
     cp -R ${pkgs.sources.motoko-base}/src $out/base
-    cp ${didc-bin} $out/didc
     cp ${pkgs.motoko}/bin/mo-doc $out
     cp ${pkgs.motoko}/bin/mo-ide $out
     cp ${pkgs.motoko}/bin/moc $out

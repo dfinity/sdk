@@ -2,17 +2,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::create_agent_environment;
+use crate::util::check_candid_file;
 
 use clap::Clap;
 use slog::info;
-use std::fs::File;
-use std::io::Write;
 use std::path::Path;
-
-/// File endings that didc can generate bindings for.
-// To update this list, run `didc bind --help` and the possible values will be listed next to the --target option.
-// "did" is not listed since that's our source format
-const DIDC_SUPPORTED_LANGUAGES: [&str; 4] = ["mo", "rs", "ts", "js"];
 
 /// Generate bindings for remote canisters from their .did declarations
 #[derive(Clap)]
@@ -78,44 +72,33 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         continue;
                     }
                 }
-                let cache = env.get_cache();
-                cache.install()?;
-                if let Some(bind_lang) = DIDC_SUPPORTED_LANGUAGES
-                    .iter()
-                    .find(|&filetype| main.ends_with(filetype))
-                {
-                    let bindings = cache
-                        .get_binary_command("didc")?
-                        .arg("bind")
-                        .arg(&candid)
-                        .arg("-t")
-                        .arg(bind_lang)
-                        .output()?;
-                    if bindings.status.success() {
-                        let mut main_file = File::create(&main_path)?;
-                        main_file.write_all(&bindings.stdout[..])?;
-                        info!(
-                            log,
-                            "Generated {} using {} for canister {}.",
-                            main,
-                            candid,
-                            canister.get_name()
-                        );
-                    } else {
-                        info!(
-                            log,
-                            "didc ran into trouble when generating main for canister {}. Error text:\n{}",
-                            canister.get_name(),
-                            String::from_utf8(bindings.stderr)?
-                        )
-                    }
+                let (type_env, did_types) = check_candid_file(&candid_path)?;
+                let bindings = if main.ends_with(&".mo") {
+                    Some(candid::bindings::motoko::compile(&type_env, &did_types))
+                } else if main.ends_with(&".rs") {
+                    Some(candid::bindings::rust::compile(&type_env, &did_types))
+                } else if main.ends_with(&".js") {
+                    Some(candid::bindings::javascript::compile(&type_env, &did_types))
+                } else if main.ends_with(&".ts") {
+                    Some(candid::bindings::typescript::compile(&type_env, &did_types))
                 } else {
                     info!(
                         log,
-                        "No supported file type: {}. Supported types are {:?}",
-                        main,
-                        DIDC_SUPPORTED_LANGUAGES
+                        "Unsupported filetype found in main: {}. Use one of the following: .mo, .rs, .js, .ts",
+                        main
                     );
+                    None
+                };
+
+                if let Some(bindings_string) = bindings {
+                    std::fs::write(&main_path, &bindings_string)?;
+                    info!(
+                        log,
+                        "Generated {} using {} for canister {}.",
+                        main,
+                        candid,
+                        canister.get_name()
+                    )
                 }
             } else {
                 info!(
