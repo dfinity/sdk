@@ -1,4 +1,4 @@
-use crate::config::dfinity::{Config, ConfigNetwork, NetworkType, DEFAULT_IC_GATEWAY};
+use crate::config::dfinity::{Config, ConfigNetwork, NetworkType};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
@@ -55,9 +55,9 @@ pub fn get_network_descriptor<'a>(
                 .collect::<DfxResult<_>>();
             validated_urls.map(|provider_urls| NetworkDescriptor {
                 name: network_name.to_string(),
-                providers: provider_urls,
                 r#type: network_provider.r#type,
-                is_ic: network_name == "ic" || network_name == DEFAULT_IC_GATEWAY,
+                is_ic: NetworkDescriptor::is_ic(&network_name.to_string(), &provider_urls),
+                providers: provider_urls,
             })
         }
         Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
@@ -79,12 +79,13 @@ pub fn get_network_descriptor<'a>(
                 // Replace any non-ascii-alphanumeric characters with `_`, to create an
                 // OS-friendly directory name for it.
                 let name = util::network_to_pathcompat(&network_name);
+                let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
 
                 Ok(NetworkDescriptor {
                     name,
                     providers: vec![url],
                     r#type: NetworkType::Ephemeral,
-                    is_ic: network_name == "ic" || network_name == DEFAULT_IC_GATEWAY,
+                    is_ic,
                 })
             } else {
                 Err(anyhow!("ComputeNetworkNotFound({})", network_name))
