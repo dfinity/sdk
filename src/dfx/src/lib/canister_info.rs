@@ -37,6 +37,8 @@ pub struct CanisterInfo {
 
     declarations_config: CanisterDeclarationsConfig,
     remote: Option<ConfigCanistersCanisterRemote>,
+    //remote_candid: Option<String>,
+    //remote_principal: Option<Principal>,
 
     workspace_root: PathBuf,
     build_root: PathBuf,

@@ -8,7 +8,14 @@ actor {
     id
   };
 
-  public query func write_update_on_actual(v: Text) : async () {
+  public func actual_query_mock_update_remote_candid_query(v: Text) : async () {
+    id := v;
+  };
+  public query func actual_update_mock_query_remote_candid_update(v: Text) : async Text {
+    v # " mock actual_update_mock_query_remote_candid_update"
+  };
+
+  public func actual_update_remote_candid_query(v: Text) : async () {
     id := v;
   };
 

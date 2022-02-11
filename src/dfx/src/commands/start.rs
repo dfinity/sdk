@@ -136,6 +136,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if opts.clean {
+        eprintln!("temp dir: {:?}", temp_dir);
         clean_state(temp_dir, &state_root)?;
     }
 

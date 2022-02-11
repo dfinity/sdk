@@ -1,0 +1,8 @@
+service : {
+  actual_update_remote_candid_query: (text) -> () query;
+  actual_query_mock_update_remote_candid_query: (text) -> () query;
+  actual_update_mock_query_remote_candid_update: (text) -> (text);
+  read: () -> (text) query;
+  which_am_i: () -> (text) query;
+  write: (text) -> ();
+}

@@ -260,8 +260,19 @@ pub fn get_local_cid_and_candid_path(
 ) -> DfxResult<(CanisterId, Option<PathBuf>)> {
     let config = env.get_config_or_anyhow()?;
     let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
+
+    let candid_path = canister_info.get_output_idl_path();
+
+    // let network = env.get_network_descriptor().unwrap();
+    // if let Some(_principal) = canister_info.get_remote_id(&network.name) {
+    //     if let Some(candid) = canister_info.get_remote_candid() {
+    //         let output_idl_path = canister_info.get_workspace_root().join(candid);
+    //         candid_path = Some(output_idl_path);
+    //     }
+    // }
+
     Ok((
         canister_info.get_canister_id()?,
-        canister_info.get_output_idl_path(),
+        candid_path,
     ))
 }

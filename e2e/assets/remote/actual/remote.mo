@@ -11,4 +11,8 @@ actor {
   public query func which_am_i() : async Text {
     "actual"
   };
+
+  public func write_update_on_actual(v: Text) : async () {
+    id := v;
+  };
 };
