@@ -51,18 +51,18 @@ impl Canister {
         pool: &CanisterPool,
         build_config: &BuildConfig,
     ) -> DfxResult<&BuildOutput> {
-        let mut output = self.builder.build(pool, &self.info, build_config)?;
+        let output = self.builder.build(pool, &self.info, build_config)?;
 
         // For remote builds, use the remote candid path if specified.
-//        if let Some(_principal) = self.info.get_remote_id(&build_config.network_name) {
-//         if let Some(candid) = self.info.get_remote_candid() {
-//             let output_idl_path = self.info.get_workspace_root().join(candid);
-//             output = BuildOutput {
-//                 idl: IdlBuildOutput::File(output_idl_path),
-//                 ..output
-//             }
-//         }
-//        }
+        //        if let Some(_principal) = self.info.get_remote_id(&build_config.network_name) {
+        //         if let Some(candid) = self.info.get_remote_candid() {
+        //             let output_idl_path = self.info.get_workspace_root().join(candid);
+        //             output = BuildOutput {
+        //                 idl: IdlBuildOutput::File(output_idl_path),
+        //                 ..output
+        //             }
+        //         }
+        //        }
 
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));

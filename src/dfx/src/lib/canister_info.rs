@@ -134,7 +134,7 @@ impl CanisterInfo {
             canister_type,
 
             declarations_config,
-//            remote,
+            //            remote,
             remote_candid,
             remote_id,
 
