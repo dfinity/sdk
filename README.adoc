@@ -98,14 +98,19 @@ This section provides solutions to problems you might encounter when using `dfx`
 
 === Project Reset
 
-This command will remove the build directory and restart your replica
-```shell
+This command will remove the build directory and restart your replica:
+
+[source, bash]
+----
 dfx stop && dfx start --clean --background
-```
+----
 
 === Using Internet Identity Locally
-If you're encountering issues using II locally, this command will deploy the Internet Identity canister into your replica.
+You can deploy the Internet Identity canister into your replica alongside your project by cloning https://github.com/dfinity/internet-identity. From the `internet-identity` directory, run the following command:
 
-```shell
+[source, bash]
+----
 II_ENV=development dfx deploy --no-wallet --argument '(null)'
-```
+----
+
+There are more notes at https://github.com/dfinity/internet-identity#running-locally that may be helpful.
