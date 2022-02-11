@@ -271,8 +271,5 @@ pub fn get_local_cid_and_candid_path(
     //     }
     // }
 
-    Ok((
-        canister_info.get_canister_id()?,
-        candid_path,
-    ))
+    Ok((canister_info.get_canister_id()?, candid_path))
 }

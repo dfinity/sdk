@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::config::dfinity::{CanisterDeclarationsConfig, Config, ConfigCanistersCanisterRemote};
+use crate::config::dfinity::{CanisterDeclarationsConfig, Config};
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
@@ -36,9 +36,9 @@ pub struct CanisterInfo {
     canister_type: String,
 
     declarations_config: CanisterDeclarationsConfig,
-    remote: Option<ConfigCanistersCanisterRemote>,
-    //remote_candid: Option<String>,
-    //remote_principal: Option<Principal>,
+    //remote: Option<ConfigCanistersCanisterRemote>,
+    remote_id: Option<Principal>,
+    remote_candid: Option<String>, // remote_id must be present for this to also be present
 
     workspace_root: PathBuf,
     build_root: PathBuf,
@@ -79,7 +79,36 @@ impl CanisterInfo {
         let canister_root = workspace_root.to_path_buf();
         let extras = canister_config.extras.clone();
         let declarations_config_pre = canister_config.declarations.clone();
-        let remote = canister_config.remote.clone();
+
+        //let remote = canister_config.remote.clone();
+        let remote_id = canister_config
+            .remote
+            .as_ref()
+            .and_then(|remote| remote.id.get(&network_name))
+            .copied();
+        let remote_candid = remote_id.and_then(|_| {
+            canister_config
+                .remote
+                .as_ref()
+                .and_then(|r| r.candid.as_ref())
+                .cloned()
+        });
+        // let (remote_candid, remote_principal) = match &canister_config
+        //     .remote
+        //     .as_ref()
+        //     .and_then(|remote| remote.id.get(&network_name))
+        // {
+        //     Some(principal) => {
+        //         let remote_principal = *(*principal);
+        //         let remote_candid = canister_config
+        //             .remote
+        //             .as_ref()
+        //             .and_then(|remote| remote.candid.as_ref())
+        //             .cloned();
+        //         (remote_candid, Some(remote_principal))
+        //     }
+        //     None => (None, None),
+        // };
 
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {
@@ -105,7 +134,9 @@ impl CanisterInfo {
             canister_type,
 
             declarations_config,
-            remote,
+//            remote,
+            remote_candid,
+            remote_id,
 
             workspace_root: workspace_root.to_path_buf(),
             build_root,
@@ -140,14 +171,11 @@ impl CanisterInfo {
     pub fn get_declarations_config(&self) -> &CanisterDeclarationsConfig {
         &self.declarations_config
     }
-    pub fn get_remote_id(&self, network: &str) -> Option<Principal> {
-        (&self.remote)
-            .as_ref()
-            .and_then(|r| r.id.get(network))
-            .copied()
+    pub fn get_remote_id(&self) -> Option<Principal> {
+        self.remote_id
     }
     pub fn get_remote_candid(&self) -> Option<String> {
-        self.remote.as_ref().and_then(|r| r.candid.clone())
+        self.remote_candid.as_ref().cloned()
     }
     pub fn get_workspace_root(&self) -> &Path {
         &self.workspace_root
