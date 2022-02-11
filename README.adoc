@@ -93,3 +93,24 @@ make sure the installer actually downloads and installs the new DFX release the
    (the CD script) and execute it.
 
 
+== Troubleshooting
+This section provides solutions to problems you might encounter when using `dfx`
+
+=== Project Reset
+
+This command will remove the build directory and restart your replica:
+
+[source, bash]
+----
+dfx stop && dfx start --clean --background
+----
+
+=== Using Internet Identity Locally
+You can deploy the Internet Identity canister into your replica alongside your project by cloning https://github.com/dfinity/internet-identity. From the `internet-identity` directory, run the following command:
+
+[source, bash]
+----
+II_ENV=development dfx deploy --no-wallet --argument '(null)'
+----
+
+There are more notes at https://github.com/dfinity/internet-identity#running-locally that may be helpful.
