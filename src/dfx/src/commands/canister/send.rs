@@ -7,13 +7,13 @@ use ic_agent::agent::ReplicaV2Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 
 use anyhow::{anyhow, bail};
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 
 /// Send a signed message
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CanisterSendOpts {
     /// Specifies the file name of the message
     file_name: String,

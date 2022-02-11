@@ -8,14 +8,14 @@ use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use ic_types::principal::Principal;
 use std::str::FromStr;
 
 const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;
 
 /// Create a canister from ICP
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CreateCanisterOpts {
     /// Specify the controller of the new canister
     controller: String,

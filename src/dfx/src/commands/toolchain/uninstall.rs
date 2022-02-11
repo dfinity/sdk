@@ -2,10 +2,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::toolchain::Toolchain;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Uninstall toolchain(s)
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("uninstall"))]
 pub struct ToolchainUninstall {
     /// Toolchain name, such as '0.6.22', '0.6', 'latest'

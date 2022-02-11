@@ -3,11 +3,11 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use ic_agent::identity::Identity;
 
 /// Shows the textual representation of the Principal associated with the current identity.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct GetPrincipalOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetPrincipalOpts) -> DfxResult {

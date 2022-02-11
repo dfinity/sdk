@@ -2,11 +2,11 @@ use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 
 /// Remove a wallet controller.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct RemoveControllerOpts {
     /// Principal of the controller to remove.
     controller: String,

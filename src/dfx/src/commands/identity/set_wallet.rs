@@ -6,7 +6,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::wallet::BalanceResult;
@@ -14,7 +14,7 @@ use slog::{debug, error, info};
 use tokio::runtime::Runtime;
 
 /// Sets the wallet canister ID to use for your identity on a network.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct SetWalletOpts {
     /// The Canister ID of the wallet to associate with this identity.
     canister_name: String,

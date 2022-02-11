@@ -6,10 +6,10 @@ use anyhow::{anyhow, Context};
 use ic_types::Principal;
 use std::convert::TryFrom;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Prints the ledger account identifier corresponding to a principal.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct AccountIdOpts {
     #[clap(long, value_name = "PRINCIPAL")]
     /// Principal controlling the account.

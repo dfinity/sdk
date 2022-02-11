@@ -5,12 +5,12 @@ use crate::lib::identity::identity_manager::{
 };
 use crate::util::clap::validators::is_hsm_key_id;
 
-use clap::Clap;
+use clap::Parser;
 use slog::info;
 use IdentityCreationParameters::{Hardware, Pem};
 
 /// Creates a new identity.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct NewIdentityOpts {
     /// The identity to create.
     identity: String,

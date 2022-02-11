@@ -2,10 +2,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::toolchain;
 
-use clap::Clap;
+use clap::Parser;
 
 /// List installed toolchains
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("list"))]
 pub struct ToolchainList {}
 

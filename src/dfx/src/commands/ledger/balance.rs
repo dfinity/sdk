@@ -6,14 +6,14 @@ use crate::lib::nns_types::icpts::ICPTs;
 
 use anyhow::anyhow;
 use candid::{Decode, Encode};
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 use std::str::FromStr;
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
 
 /// Prints the account balance of the user
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct BalanceOpts {
     /// Specifies an AccountIdentifier to get the balance of
     of: Option<String>,
