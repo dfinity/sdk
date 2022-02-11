@@ -17,6 +17,7 @@ use clap::Clap;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
+use ic_types::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
@@ -69,37 +70,39 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
 }
 
 fn get_icpts_from_args(
-    amount: Option<String>,
-    icp: Option<String>,
-    e8s: Option<String>,
+    amount: &Option<String>,
+    icp: &Option<String>,
+    e8s: &Option<String>,
 ) -> DfxResult<ICPTs> {
-    if amount.is_none() {
-        let icp = match icp {
-            Some(s) => {
-                // validated by e8s_validator
-                let icps = s.parse::<u64>().unwrap();
-                ICPTs::from_icpts(icps).map_err(|err| anyhow!(err))?
-            }
-            None => ICPTs::from_e8s(0),
-        };
-        let icp_from_e8s = match e8s {
-            Some(s) => {
-                // validated by e8s_validator
-                let e8s = s.parse::<u64>().unwrap();
-                ICPTs::from_e8s(e8s)
-            }
-            None => ICPTs::from_e8s(0),
-        };
-        let amount = icp + icp_from_e8s;
-        Ok(amount.map_err(|err| anyhow!(err))?)
-    } else {
-        Ok(ICPTs::from_str(&amount.unwrap())
-            .map_err(|err| anyhow!("Could not add ICPs and e8s: {}", err))?)
+    match amount {
+        None => {
+            let icp = match icp {
+                Some(s) => {
+                    // validated by e8s_validator
+                    let icps = s.parse::<u64>().unwrap();
+                    ICPTs::from_icpts(icps).map_err(|err| anyhow!(err))?
+                }
+                None => ICPTs::from_e8s(0),
+            };
+            let icp_from_e8s = match e8s {
+                Some(s) => {
+                    // validated by e8s_validator
+                    let e8s = s.parse::<u64>().unwrap();
+                    ICPTs::from_e8s(e8s)
+                }
+                None => ICPTs::from_e8s(0),
+            };
+            let amount = icp + icp_from_e8s;
+            Ok(amount.map_err(|err| anyhow!(err))?)
+        }
+        Some(amount) => Ok(ICPTs::from_str(amount)
+            .map_err(|err| anyhow!("Could not add ICPs and e8s: {}", err))?),
     }
 }
 
 pub async fn transfer(
     agent: &Agent,
+    canister_id: &Principal,
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
@@ -122,7 +125,7 @@ pub async fn transfer(
 
     let block_height: BlockHeight = loop {
         match agent
-            .update(&MAINNET_LEDGER_CANISTER_ID, TRANSFER_METHOD)
+            .update(canister_id, TRANSFER_METHOD)
             .with_arg(Encode!(&TransferArgs {
                 memo,
                 amount,
@@ -173,7 +176,7 @@ async fn transfer_and_notify(
 
     let to = AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, to_subaccount).to_address();
 
-    let block_height = transfer(agent, memo, amount, fee, to).await?;
+    let block_height = transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, to).await?;
 
     println!("Transfer sent at BlockHeight: {}", block_height);
 
