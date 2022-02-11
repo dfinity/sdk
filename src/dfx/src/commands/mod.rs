@@ -10,7 +10,7 @@ mod canister;
 mod config;
 mod deploy;
 mod generate;
-mod generate_binding;
+mod generate_remote_binding;
 mod identity;
 mod language_service;
 mod ledger;
@@ -32,7 +32,7 @@ pub enum Command {
     Config(config::ConfigOpts),
     Deploy(deploy::DeployOpts),
     Generate(generate::GenerateOpts),
-    GenerateBinding(generate_binding::GenerateBindingOpts),
+    GenerateRemoteBinding(generate_remote_binding::GenerateRemoteBindingOpts),
     Identity(identity::IdentityOpt),
     #[clap(name("_language-service"))]
     LanguageServices(language_service::LanguageServiceOpts),
@@ -56,7 +56,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Config(v) => config::exec(env, v),
         Command::Deploy(v) => deploy::exec(env, v),
         Command::Generate(v) => generate::exec(env, v),
-        Command::GenerateBinding(v) => generate_binding::exec(env, v),
+        Command::GenerateRemoteBinding(v) => generate_remote_binding::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
         Command::LanguageServices(v) => language_service::exec(env, v),
         Command::Ledger(v) => ledger::exec(env, v),

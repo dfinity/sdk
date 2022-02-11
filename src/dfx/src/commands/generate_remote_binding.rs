@@ -10,9 +10,10 @@ use std::path::Path;
 
 /// Generate bindings for remote canisters from their .did declarations
 #[derive(Clap)]
-pub struct GenerateBindingOpts {
+pub struct GenerateRemoteBindingOpts {
     /// Specifies the name of the canister to generate bindings for.
     /// You must specify either canister name/id or the --all option.
+    /// Generates bindings into <canister-name>.main from <canister-name>.remote.candid
     canister: Option<String>,
 
     /// Builds bindings for all canisters.
@@ -27,7 +28,7 @@ pub struct GenerateBindingOpts {
     overwrite: bool,
 }
 
-pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: GenerateRemoteBindingOpts) -> DfxResult {
     let env = create_agent_environment(env, None)?;
     let config = env.get_config_or_anyhow()?;
     let log = env.get_logger();
@@ -72,7 +73,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         continue;
                     }
                 }
-                let (type_env, did_types) = check_candid_file(&candid_path)?;
+                let (type_env, did_types) = check_candid_file(candid_path)?;
                 let bindings = if main.ends_with(&".mo") {
                     Some(candid::bindings::motoko::compile(&type_env, &did_types))
                 } else if main.ends_with(&".rs") {
@@ -84,7 +85,8 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 } else {
                     info!(
                         log,
-                        "Unsupported filetype found in main: {}. Use one of the following: .mo, .rs, .js, .ts",
+                        "Unsupported filetype found in {}.main: {}. Use one of the following: .mo, .rs, .js, .ts",
+                        canister.get_name(),
                         main
                     );
                     None

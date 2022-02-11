@@ -122,7 +122,7 @@ will be reports as compilation errors.
 
 === feat: Generating remote canister bindings
 
-It's now possible to generate the interface of a remote canister using a .did file. This makes it easier to write mocks for local development.
+It's now possible to generate the interface of a remote canister using a .did file using the `dfx generate-remote-binding` command. This makes it easier to write mocks for local development.
 
 Currently, dfx can generate .mo, .rs, .ts, and .js bindings.
 
