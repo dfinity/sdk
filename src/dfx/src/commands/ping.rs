@@ -8,13 +8,13 @@ use crate::lib::provider::{
 use crate::util::expiry_duration;
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use garcon::{Delay, Waiter};
 use slog::warn;
 use tokio::runtime::Runtime;
 
 /// Pings an Internet Computer network and returns its status.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct PingOpts {
     /// The provider to use.
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special

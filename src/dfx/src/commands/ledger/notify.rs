@@ -14,7 +14,7 @@ use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use candid::{Decode, Encode};
-use clap::Clap;
+use clap::Parser;
 use ic_types::principal::Principal;
 use std::str::FromStr;
 
@@ -24,7 +24,7 @@ const NOTIFY_METHOD: &str = "notify_dfx";
 /// This command should only be used if `dfx ledger create-canister` or `dfx ledger top-up`
 /// successfully sent a message to the ledger, and a transaction was recorded at some block height, but
 /// for some reason the subsequent notify failed.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct NotifyOpts {
     /// BlockHeight at which the send transation was recorded.
     #[clap(validator(e8s_validator))]

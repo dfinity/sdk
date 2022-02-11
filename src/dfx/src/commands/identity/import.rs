@@ -2,12 +2,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::{IdentityCreationParameters, IdentityManager};
 
-use clap::Clap;
+use clap::Parser;
 use slog::info;
 use std::path::PathBuf;
 
 /// Creates a new identity from a PEM file.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct ImportOpts {
     /// The identity to create.
     identity: String,

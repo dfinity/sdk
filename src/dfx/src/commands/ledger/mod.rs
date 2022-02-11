@@ -13,7 +13,7 @@ use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
 use candid::{Decode, Encode};
-use clap::Clap;
+use clap::Parser;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
@@ -33,7 +33,7 @@ mod top_up;
 mod transfer;
 
 /// Ledger commands.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("ledger"))]
 pub struct LedgerOpts {
     /// Override the compute network to connect to. By default, the local network is used.
@@ -44,7 +44,7 @@ pub struct LedgerOpts {
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     AccountId(account_id::AccountIdOpts),
     Balance(balance::BalanceOpts),
