@@ -32,18 +32,10 @@ pub struct UpdateSettingsOpts {
     #[clap(long, multiple_occurrences(true))]
     controller: Option<Vec<String>>,
 
-    #[clap(
-        long,
-        multiple_occurrences(true),
-        conflicts_with("controller")
-    )]
+    #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
     add_controller: Option<Vec<String>>,
 
-    #[clap(
-        long,
-        multiple_occurrences(true),
-        conflicts_with("controller")
-    )]
+    #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
