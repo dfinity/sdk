@@ -14,12 +14,7 @@ teardown() {
     standard_teardown
 }
 
-@test "canister call" {
-  # exercise this code path:
-  #    dfx canister call --query, by canister ID (of the remote canister), to an update call
-  #    this means the correct query/update value will have to come from the candid file
-  #    the call, as a query, would fail (because it's an update method)
-
+@test "canister call and sign" {
     install_asset remote/call/actual
     dfx_start
     setup_actuallylocal_network
@@ -29,7 +24,7 @@ teardown() {
     assert_command dfx --identity alice deploy --network actuallylocal
     assert_command dfx --identity alice canister --network actuallylocal call remote write '("initial data in the remote canister")'
     assert_command dfx --identity alice canister --network actuallylocal call remote read
-    #assert_eq '("initial data in the remote canister")'
+    assert_eq '("initial data in the remote canister")'
 
     REMOTE_CANISTER_ID=$(jq -r .remote.actuallylocal canister_ids.json)
     echo "Remote canister id: $REMOTE_CANISTER_ID"
@@ -46,96 +41,56 @@ teardown() {
     # call remote method as update to make a change
     assert_command dfx deploy --network actuallylocal
     assert_command dfx canister --network actuallylocal call remote which_am_i
-    #assert_eq '("actual")'
+    assert_eq '("actual")'
 
     cat dfx.json
     cat canister_ids.json
 
-    assert_command dfx canister --network actuallylocal call --query "$REMOTE_CANISTER_ID" make_struct '("A", "B")'
-    # if looking up a remote canister by principal id did not work, the candid decoder would not know the field names.
-    assert_eq '(record { a = "A"; b = "B" })' "$stdout"
+    #
+    # Here the mock doesn't know about the method at all.
+    # In order for the candid decoder to know the type, dfx must both:
+    #   - look up the canister by (remote) canister id
+    #   - use the remote candid definition
+    #
+    assert_command dfx canister --network actuallylocal call --query  "$REMOTE_CANISTER_ID" make_struct '("A query by principal", "B query by principal")'
+    assert_eq '(record { a = "A query by principal"; b = "B query by principal" })'
+    assert_command dfx canister --network actuallylocal call          "$REMOTE_CANISTER_ID" make_struct '("A default by principal", "B default by principal")'
+    assert_eq '(record { a = "A default by principal"; b = "B default by principal" })'
+    assert_command dfx canister --network actuallylocal call --update "$REMOTE_CANISTER_ID" make_struct '("A update by principal", "B update by principal")'
+    assert_eq '(record { a = "A update by principal"; b = "B update by principal" })'
 
-    # if the remote.candid field is not used here, the call would fail, because the called method is actually an query
-    # the actual method: an query
-    # the local mock: a update
-    # the remote/candid: a query
-    # if remote.candid is not used: call fails (attempt to call query as an update)
-    # if remote.candid is used: call succeeds (call query as query, per remote/candid)
+    assert_command dfx canister --network actuallylocal call --query  remote make_struct '("A query by name", "B query by name")'
+    assert_eq '(record { a = "A query by name"; b = "B query by name" })'
+    assert_command dfx canister --network actuallylocal call          remote make_struct '("A default by name", "B default by name")'
+    assert_eq '(record { a = "A default by name"; b = "B default by name" })'
+    assert_command dfx canister --network actuallylocal call --update remote make_struct '("A update by name", "B update by name")'
+    assert_eq '(record { a = "A update by name"; b = "B update by name" })'
 
-    # If the lookup by principal id failed here, the method would be assumed to be an update
-    # since the remote candid indicates the method is a query, it is instead called as a query; no change
-    # this verifies that a remote canister can be looked up by canister id to find the method type.
-    assert_command dfx --identity alice canister --network actuallylocal call remote write '("initial data in the remote canister")'
-    assert_command dfx canister --network actuallylocal call --query  "$REMOTE_CANISTER_ID" actual_query_mock_query_remote_candid_query '("A0 call by principal with --query")'
-    assert_match 'A0 call by principal with --query actual actual_query_mock_query_remote_candid_query'
-    assert_command dfx --identity alice canister --network actuallylocal call remote read
-    assert_match 'initial data in the remote canister'
+    # We can't check this for sign, because dfx canister send outputs something like this:
+    #   To see the content of response, copy-paste the encoded string into cbor.me.
+    #   Response: d9d9f7a2667374617475736[snip]2696e636970616c
 
-    assert_command dfx --identity alice canister --network actuallylocal call remote write '("initial data in the remote canister")'
-    assert_command dfx canister --network actuallylocal call          "$REMOTE_CANISTER_ID" actual_query_mock_query_remote_candid_query '("A0 call by principal with default")'
-    assert_match 'A0 call by principal with default actual actual_query_mock_query_remote_candid_query'
-    assert_command dfx --identity alice canister --network actuallylocal call remote read
-    assert_match 'initial data in the remote canister'
+    #
+    # Here:
+    #   - the actual method is an update
+    #   - the mock method is a query
+    #   - in remote candid definition, the method is an update
+    # We try to call with --query.
+    # We expect dfx to notice that the method is in fact an update, which it knows from the remote candid definition.
+    #
+    assert_command_fail dfx canister --network actuallylocal call --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("call by principal with --query")'
+    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_command_fail dfx canister --network actuallylocal call --query remote actual_update_mock_query_remote_candid_update '("call by name with --query")'
+    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
 
-    assert_command dfx --identity alice canister --network actuallylocal call remote write '("initial data in the remote canister")'
-    assert_command dfx canister --network actuallylocal call --update "$REMOTE_CANISTER_ID" actual_query_mock_query_remote_candid_query '("A0 call by principal with --update")'
-    assert_match 'A0 call by principal with --update actual actual_query_mock_query_remote_candid_query'
-    assert_command dfx --identity alice canister --network actuallylocal call remote read
-    assert_match 'initial data in the remote canister'
-
-#    return 0
-#    ###
-#    assert_command dfx --identity alice canister --network actuallylocal call remote write '("initial data in the remote canister")'
-#    assert_command dfx canister --network actuallylocal call --query  "$REMOTE_CANISTER_ID" actual_query_mock_query_remote_candid_update '("A1 call by principal with --query")'
-#    assert_match 'A1 call by principal with --query actual actual_query_mock_query_remote_candid_update'
-#    assert_command dfx --identity alice canister --network actuallylocal call remote read
-#    assert_match '("initial data in the remote canister")'
-#
-#    # should pick update from the remote candid, call the query function as an update, actually make a change
-#    assert_command dfx --identity alice canister --network actuallylocal call remote write '("initial data in the remote canister")'
-#    assert_command dfx canister --network actuallylocal call          "$REMOTE_CANISTER_ID" actual_query_mock_query_remote_candid_update '("A2 call by principal with --query")'
-#    assert_command dfx --identity alice canister --network actuallylocal call remote read
-#    assert_match '("initial data in the remote canister")'
-#
-#    return 0
-#
-#    assert_command_fail dfx canister --network actuallylocal call --update "$REMOTE_CANISTER_ID" actual_query_mock_query_remote_candid_update '("A3 call by principal with --query")'
-#
-#    assert_command_fail dfx canister --network actuallylocal call --query  remote_mo actual_query_mock_query_remote_candid_update '("A1 call by name with --query")'
-#
-#    assert_command_fail dfx canister --network actuallylocal call          remote_mo actual_query_mock_query_remote_candid_update '("A2 call by name with --query")'
-#
-#    assert_command_fail dfx canister --network actuallylocal call --update remote_mo actual_query_mock_query_remote_candid_update '("A3 call by name with --query")'
-#
-#
-#
-#    # can't call an update method with --query
-#    assert_command_fail dfx canister --network actuallylocal call --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("A call by principal with --query")'
-#    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
-#
-#    assert_command dfx canister --network actuallylocal call "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("B call by principal with defaul)")'
-#    assert_eq "call by principal (default) actual actual_update_mock_query_remote_candid_update"
-#    assert_command dfx canister --network actuallylocal call --update "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("C call by principal with --update")'
-#    assert_eq "Y"
-#
-#    # can't call an update method with --query
-#    assert_command_fail dfx canister --network actuallylocal call --query remote actual_update_mock_query_remote_candid_update '("D call by name with --query")'
-#    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
-#
-#    assert_command dfx canister --network actuallylocal call remote actual_update_mock_query_remote_candid_update '("E call by name with default")'
-#    assert_eq "Z"
-#    assert_command dfx canister --network actuallylocal call --update remote actual_update_mock_query_remote_candid_update '("F call by name with --update")'
-#    assert_eq "W"
-#
-}
-
-@test "canister sign" {
-  skip
-  echo
+    # And the same for dfx canister sign:
+    assert_command_fail dfx canister --network actuallylocal sign --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("call by principal with --query")'
+    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_command_fail dfx canister --network actuallylocal sign --query remote actual_update_mock_query_remote_candid_update '("call by name with --query")'
+    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
 }
 
 @test "canister create <canister> fails for a remote canister" {
-  skip
     install_asset remote/actual
     dfx_start
     setup_actuallylocal_network
@@ -159,7 +114,6 @@ teardown() {
 }
 
 @test "canister install <canister> fails for a remote canister" {
-  skip
     install_asset remote/actual
     dfx_start
     setup_actuallylocal_network
@@ -183,7 +137,6 @@ teardown() {
 }
 
 @test "canister create --all and canister install --all skip remote canisters" {
-  skip
     install_asset remote/actual
     dfx_start
     setup_actuallylocal_network
@@ -249,7 +202,6 @@ teardown() {
 }
 
 @test "for remote build, checks imports against the candid file rather than the mock" {
-  skip
     # In this test, a canister with a remote ID also has a candid file specified.
     # When building for the remote network, we expect to use this candid file,
     # and for methods calls that don't match the candid file to fail.
@@ -291,7 +243,6 @@ teardown() {
 }
 
 @test "build + install + call -- remote" {
-  skip
     install_asset remote/actual
     dfx_start
     setup_actuallylocal_network
