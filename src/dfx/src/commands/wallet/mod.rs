@@ -8,7 +8,7 @@ use crate::util::expiry_duration;
 
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
-use clap::Clap;
+use clap::Parser;
 use ic_utils::call::SyncCall;
 use tokio::runtime::Runtime;
 
@@ -26,7 +26,7 @@ mod set_name;
 mod upgrade;
 
 /// Helper commands to manage the user's cycles wallet.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("wallet"))]
 pub struct WalletOpts {
     /// Override the compute network to connect to. By default, the local network is used.
@@ -40,7 +40,7 @@ pub struct WalletOpts {
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     Addresses(list_addresses::AddressesOpts),
     AddController(add_controller::AddControllerOpts),

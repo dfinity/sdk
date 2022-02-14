@@ -11,7 +11,7 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_i
 
 use anyhow::{anyhow, bail, Context};
 use candid::{CandidType, Decode, Deserialize};
-use clap::{ArgSettings, Clap};
+use clap::Parser;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::canister::{Argument, Canister};
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
@@ -22,7 +22,7 @@ use std::option::Option;
 use std::str::FromStr;
 
 /// Calls a method on a deployed canister.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CanisterCallOpts {
     /// Specifies the name of the canister to build.
     /// You must specify either a canister name or the --all option.
@@ -49,7 +49,7 @@ pub struct CanisterCallOpts {
     argument: Option<String>,
 
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"), setting = ArgSettings::AllowEmptyValues)]
+    #[clap(long, conflicts_with("argument"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.

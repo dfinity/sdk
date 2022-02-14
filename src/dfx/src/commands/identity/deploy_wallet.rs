@@ -5,12 +5,12 @@ use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use ic_types::principal::Principal as CanisterId;
 use tokio::runtime::Runtime;
 
 /// Installs the wallet WASM to the provided canister id.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct DeployWalletOpts {
     /// The ID of the canister where the wallet WASM will be deployed.
     canister_id: String,

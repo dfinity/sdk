@@ -1,21 +1,21 @@
-use crate::commands::ledger::{get_icpts_from_args, send_and_notify};
+use crate::commands::ledger::{get_icpts_from_args, transfer_and_notify};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::{CyclesResponse, Memo};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::nns_types::{CyclesResponse, Memo};
 
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use ic_types::principal::Principal;
 use std::str::FromStr;
 
 const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;
 
 /// Create a canister from ICP
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CreateCanisterOpts {
     /// Specify the controller of the new canister
     controller: String,
@@ -44,7 +44,7 @@ pub struct CreateCanisterOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult {
-    let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
+    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
 
     let fee = opts.fee.map_or(Ok(TRANSACTION_FEE), |v| {
         ICPTs::from_str(&v).map_err(|err| anyhow!(err))
@@ -59,7 +59,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         .map_or(Ok(TRANSACTION_FEE), |v| ICPTs::from_str(&v))
         .map_err(|err| anyhow!(err))?;
 
-    let result = send_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
+    let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
 
     match result {
         CyclesResponse::CanisterCreated(v) => {

@@ -14,12 +14,12 @@ use crate::util::clap::validators::{
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
-use clap::{ArgSettings, Clap};
+use clap::{ArgSettings, Parser};
 use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct UpdateSettingsOpts {
     /// Specifies the canister name or id to update. You must specify either canister name/id or the --all option.
     canister: Option<String>,
@@ -29,23 +29,13 @@ pub struct UpdateSettingsOpts {
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
-    #[clap(long, multiple(true), number_of_values(1))]
+    #[clap(long, multiple_occurrences(true))]
     controller: Option<Vec<String>>,
 
-    #[clap(
-        long,
-        multiple(true),
-        number_of_values(1),
-        conflicts_with("controller")
-    )]
+    #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
     add_controller: Option<Vec<String>>,
 
-    #[clap(
-        long,
-        multiple(true),
-        number_of_values(1),
-        conflicts_with("controller")
-    )]
+    #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
@@ -81,11 +71,12 @@ pub async fn exec(
             .collect::<DfxResult<Vec<_>>>();
         y
     });
-    let mut controllers = controllers.transpose()?;
+    let controllers = controllers.transpose()?;
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     if let Some(canister_name_or_id) = opts.canister.as_deref() {
+        let mut controllers = controllers;
         let canister_id = CanisterId::from_text(canister_name_or_id)
             .or_else(|_| canister_id_store.get(canister_name_or_id))?;
         let textual_cid = canister_id.to_text();
@@ -145,6 +136,7 @@ pub async fn exec(
         // Update all canister settings.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
+                let mut controllers = controllers.clone();
                 let canister_id = canister_id_store.get(canister_name)?;
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
@@ -161,12 +153,6 @@ pub async fn exec(
                     config_interface,
                     canister_name,
                 )?;
-                let settings = CanisterSettings {
-                    controllers: controllers.clone(),
-                    compute_allocation,
-                    memory_allocation,
-                    freezing_threshold,
-                };
                 if let Some(added) = &opts.add_controller {
                     let status =
                         get_canister_status(env, canister_id, timeout, call_sender).await?;
@@ -194,6 +180,12 @@ pub async fn exec(
                         }
                     }
                 }
+                let settings = CanisterSettings {
+                    controllers,
+                    compute_allocation,
+                    memory_allocation,
+                    freezing_threshold,
+                };
                 update_settings(env, canister_id, settings, timeout, call_sender).await?;
                 display_controller_update(&opts, canister_name);
             }

@@ -5,10 +5,10 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Generate type declarations for canisters from the code in your project
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct GenerateOpts {
     /// Specifies the name of the canister to build.
     /// If you do not specify a canister names, generates types for all canisters.
@@ -35,11 +35,26 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
 
     // This is just to display an error if trying to generate before creating the canister.
     let store = CanisterIdStore::for_env(&env)?;
+    // If generate for motoko canister, build first
+    let mut build_before_generate = false;
     for canister in canister_pool.get_canister_list() {
-        store.get(canister.get_name())?;
+        let canister_id = store.get(canister.get_name())?;
+        if let Some(info) = canister_pool.get_canister_info(&canister_id) {
+            if info.get_type() == "motoko" {
+                build_before_generate = true;
+            }
+        }
     }
 
     let build_config = BuildConfig::from_config(&config)?;
+
+    if build_before_generate {
+        slog::info!(
+            env.get_logger(),
+            "Building canisters before generate for Motoko"
+        );
+        canister_pool.build_or_fail(&build_config)?;
+    }
 
     for canister in canister_pool.get_canister_list() {
         canister.generate(&canister_pool, &build_config)?;

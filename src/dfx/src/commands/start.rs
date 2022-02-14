@@ -16,7 +16,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use actix::{Actor, Addr, Recipient};
 use anyhow::{anyhow, bail, Context};
-use clap::Clap;
+use clap::Parser;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
@@ -28,7 +28,7 @@ use sysinfo::{System, SystemExt};
 use tokio::runtime::Runtime;
 
 /// Starts the local replica and a web server for the current project.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct StartOpts {
     /// Specifies the host name and port number to bind the frontend to.
     #[clap(long)]

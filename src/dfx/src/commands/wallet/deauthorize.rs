@@ -2,11 +2,11 @@ use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 
 /// Deauthorize a wallet custodian.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct DeauthorizeOpts {
     /// Principal of the custodian to deauthorize.
     custodian: String,

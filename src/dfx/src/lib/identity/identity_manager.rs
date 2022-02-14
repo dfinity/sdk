@@ -416,7 +416,9 @@ pub(super) fn validate_pem_file(pem_file: &Path) -> DfxResult {
         "Cannot read PEM file at '{}'.",
         PathBuf::from(pem_file).display()
     ))?;
-    if contents.starts_with(b"-----BEGIN EC PARAMETERS-----") {
+    if contents.starts_with(b"-----BEGIN EC PARAMETERS-----")
+        || contents.starts_with(b"-----BEGIN EC PRIVATE KEY-----")
+    {
         let private_key = EcKey::private_key_from_pem(&contents).context(format!(
             "Cannot decode PEM file at '{}'.",
             PathBuf::from(pem_file).display()

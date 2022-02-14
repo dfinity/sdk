@@ -1,10 +1,11 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::{
+    CyclesResponse, NotifyCanisterArgs, MAINNET_CYCLE_MINTER_CANISTER_ID,
+    MAINNET_LEDGER_CANISTER_ID,
+};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::nns_types::{
-    CyclesResponse, NotifyCanisterArgs, CYCLE_MINTER_CANISTER_ID, LEDGER_CANISTER_ID,
-};
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -13,7 +14,7 @@ use crate::util::expiry_duration;
 
 use anyhow::anyhow;
 use candid::{Decode, Encode};
-use clap::Clap;
+use clap::Parser;
 use ic_types::principal::Principal;
 use std::str::FromStr;
 
@@ -23,7 +24,7 @@ const NOTIFY_METHOD: &str = "notify_dfx";
 /// This command should only be used if `dfx ledger create-canister` or `dfx ledger top-up`
 /// successfully sent a message to the ledger, and a transaction was recorded at some block height, but
 /// for some reason the subsequent notify failed.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct NotifyOpts {
     /// BlockHeight at which the send transation was recorded.
     #[clap(validator(e8s_validator))]
@@ -48,9 +49,6 @@ pub async fn exec(env: &dyn Environment, opts: NotifyOpts) -> DfxResult {
         .map_or(Ok(TRANSACTION_FEE), |v| ICPTs::from_str(&v))
         .map_err(|err| anyhow!(err))?;
 
-    let ledger_canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
-    let cycle_minter_id = Principal::from_text(CYCLE_MINTER_CANISTER_ID)?;
-
     let to_subaccount = Some(Subaccount::from(&Principal::from_text(
         opts.destination_principal,
     )?));
@@ -62,12 +60,12 @@ pub async fn exec(env: &dyn Environment, opts: NotifyOpts) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
 
     let result = agent
-        .update(&ledger_canister_id, NOTIFY_METHOD)
+        .update(&MAINNET_LEDGER_CANISTER_ID, NOTIFY_METHOD)
         .with_arg(Encode!(&NotifyCanisterArgs {
             block_height,
             max_fee,
             from_subaccount: None,
-            to_canister: cycle_minter_id,
+            to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
             to_subaccount,
         })?)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
