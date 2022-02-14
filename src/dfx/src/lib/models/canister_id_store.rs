@@ -101,13 +101,10 @@ impl CanisterIdStore {
     }
 
     pub fn find(&self, canister_name: &str) -> Option<CanisterId> {
-        if let Some(remote_ids) = &self.remote_ids {
-            if let Some(canister_id) = self.find_in(canister_name, remote_ids) {
-                return Some(canister_id);
-            }
-        }
-
-        self.find_in(canister_name, &self.ids)
+        self.remote_ids
+            .as_ref()
+            .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
+            .or_else(|| self.find_in(canister_name, &self.ids))
     }
 
     fn find_in(&self, canister_name: &str, canister_ids: &CanisterIds) -> Option<CanisterId> {
