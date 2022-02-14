@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::call_sender;
 use crate::lib::provider::create_agent_environment;
 
-use clap::Clap;
+use clap::{Parser, Subcommand};
 use tokio::runtime::Runtime;
 
 mod call;
@@ -23,7 +23,7 @@ mod uninstall_code;
 mod update_settings;
 
 /// Manages canisters deployed on a network replica.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("canister"))]
 pub struct CanisterOpts {
     /// Override the compute network to connect to. By default, the local network is used.
@@ -42,7 +42,7 @@ pub struct CanisterOpts {
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Subcommand)]
 enum SubCommand {
     Call(call::CanisterCallOpts),
     Create(create::CanisterCreateOpts),

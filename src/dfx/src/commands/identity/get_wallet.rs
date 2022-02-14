@@ -4,11 +4,11 @@ use crate::lib::identity::Identity;
 use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 
-use clap::Clap;
+use clap::Parser;
 use tokio::runtime::Runtime;
 
 /// Gets the canister ID for the wallet associated with your identity on a network.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct GetWalletOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>) -> DfxResult {

@@ -8,13 +8,13 @@ use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
-use clap::Clap;
+use clap::Parser;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct DeployOpts {
     /// Specifies the name of the canister you want to deploy.
     /// If you don’t specify a canister name, all canisters defined in the dfx.json file are deployed.

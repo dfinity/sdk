@@ -15,14 +15,14 @@ use crate::util::clap::validators::{
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
-use clap::{ArgSettings, Clap};
+use clap::{ArgSettings, Parser};
 use ic_agent::Identity as _;
 use ic_types::principal::Principal as CanisterId;
 use slog::info;
 
 /// Creates an empty canister on the Internet Computer and
 /// associates the Internet Computer assigned Canister ID to the canister name.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CanisterCreateOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
     canister_name: Option<String>,
@@ -38,7 +38,7 @@ pub struct CanisterCreateOpts {
     with_cycles: Option<String>,
 
     /// Specifies the identity name or the principal of the new controller.
-    #[clap(long, multiple(true), number_of_values(1))]
+    #[clap(long, multiple_occurrences(true))]
     controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]

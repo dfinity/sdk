@@ -2,11 +2,11 @@ use crate::commands::wallet::wallet_query;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 
 /// List the wallet's controllers.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct ControllersOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: ControllersOpts) -> DfxResult {

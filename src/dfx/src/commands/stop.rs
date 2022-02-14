@@ -1,11 +1,11 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
 /// Stops the local network replica.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct StopOpts {}
 
 fn list_all_descendants(pid: Pid) -> Vec<Pid> {

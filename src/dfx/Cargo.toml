@@ -19,6 +19,7 @@ tar = "0.4.26"
 actix = "0.10.0"
 actix-cors = "0.4.0"
 actix-files = "0.3.0"
+actix-http = { version = "2.2.2", default-features = false }
 actix-server = "1.0.4"
 actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
 anyhow = "1.0.51"
@@ -26,8 +27,7 @@ atty = "0.2.13"
 base64 = "0.13.0"
 candid = { version = "0.7.10", features = [ "random" ] }
 chrono = "0.4.9"
-clap = "=3.0.0-beta.2"
-clap_derive = "=3.0.0-beta.2"
+clap = { version = "3.0.14", features = [ "derive" ] }
 console = "0.15.0"
 crc32fast = "1.3.0"
 crossbeam = "0.8.1"
@@ -79,25 +79,25 @@ walkdir = "2.2.9"
 wasmparser = "0.81.0"
 
 [dependencies.ic-agent]
-version = "0.11.0"
+version = "0.12.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "22c7bb2ec77be4779f85313791a066ff75939bfb"
+rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.11.0"
+version = "0.12.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "22c7bb2ec77be4779f85313791a066ff75939bfb"
+rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
 
 [dependencies.ic-identity-hsm]
-version = "0.11.0"
+version = "0.12.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "22c7bb2ec77be4779f85313791a066ff75939bfb"
+rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
 
 [dependencies.ic-utils]
-version = "0.11.0"
+version = "0.12.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "22c7bb2ec77be4779f85313791a066ff75939bfb"
+rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
 
 [dev-dependencies]
 env_logger = "0.9"

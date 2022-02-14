@@ -2,10 +2,10 @@ use crate::config::cache;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Shows the path of the cache used by this version.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("show"))]
 pub struct CacheShowOpts {}
 
