@@ -63,18 +63,21 @@ impl CanisterIdStore {
 
     pub fn get_name(&self, canister_id: &str) -> Option<&String> {
         if let Some(remote_ids) = &self.remote_ids {
-            let remote_canister_name = remote_ids
-                .iter()
-                .find(|(_, nn)| {
-                    nn.get(&self.network_descriptor.name) == Some(&canister_id.to_string())
-                })
-                .map(|(canister_name, _)| canister_name);
+            let remote_canister_name = self.get_name_in(canister_id, remote_ids);
             if remote_canister_name.is_some() {
                 return remote_canister_name;
             }
         }
 
-        self.ids
+        self.get_name_in(canister_id, &self.ids)
+    }
+
+    pub fn get_name_in<'a, 'b>(
+        &'a self,
+        canister_id: &'b str,
+        canister_ids: &'a CanisterIds,
+    ) -> Option<&'a String> {
+        canister_ids
             .iter()
             .find(|(_, nn)| nn.get(&self.network_descriptor.name) == Some(&canister_id.to_string()))
             .map(|(canister_name, _)| canister_name)
