@@ -62,14 +62,10 @@ impl CanisterIdStore {
     }
 
     pub fn get_name(&self, canister_id: &str) -> Option<&String> {
-        if let Some(remote_ids) = &self.remote_ids {
-            let remote_canister_name = self.get_name_in(canister_id, remote_ids);
-            if remote_canister_name.is_some() {
-                return remote_canister_name;
-            }
-        }
-
-        self.get_name_in(canister_id, &self.ids)
+        self.remote_ids
+            .as_ref()
+            .and_then(|remote_ids| self.get_name_in(canister_id, remote_ids))
+            .or_else(|| self.get_name_in(canister_id, &self.ids))
     }
 
     pub fn get_name_in<'a, 'b>(
