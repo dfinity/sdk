@@ -5,10 +5,10 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Generate type declarations for canisters from the code in your project
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct GenerateOpts {
     /// Specifies the name of the canister to build.
     /// If you do not specify a canister names, generates types for all canisters.

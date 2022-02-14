@@ -9,13 +9,13 @@ use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::commands::start::start_webserver_coordinator;
 use anyhow::{anyhow, Context};
-use clap::Clap;
+use clap::Parser;
 use std::default::Default;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use url::Url;
 
 /// Starts the bootstrap server.
-#[derive(Clap, Clone)]
+#[derive(Parser, Clone)]
 pub struct BootstrapOpts {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
     #[clap(long)]

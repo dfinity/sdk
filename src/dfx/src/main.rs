@@ -2,7 +2,7 @@ use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
-use clap::{AppSettings, Clap};
+use clap::Parser;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -13,8 +13,8 @@ mod lib;
 mod util;
 
 /// The DFINITY Executor.
-#[derive(Clap)]
-#[clap(name("dfx"), version = dfx_version_str(), global_setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
+#[clap(name("dfx"), version = dfx_version_str())]
 pub struct CliOpts {
     #[clap(long, short('v'), parse(from_occurrences))]
     verbose: u64,

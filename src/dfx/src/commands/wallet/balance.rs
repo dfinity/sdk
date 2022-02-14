@@ -2,11 +2,11 @@ use crate::commands::wallet::wallet_query;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 use ic_utils::interfaces::wallet::BalanceResult;
 
 /// Get the cycle balance of the selected Identity's cycles wallet.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct WalletBalanceOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: WalletBalanceOpts) -> DfxResult {

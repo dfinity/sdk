@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 
 mod deploy_wallet;
 mod get_wallet;
@@ -17,7 +17,7 @@ mod whoami;
 
 /// Manages identities used to communicate with the Internet Computer network.
 /// Setting an identity enables you to test user-based access controls.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("identity"))]
 pub struct IdentityOpt {
     /// Override the compute network to connect to. By default, the local network is used.
@@ -28,7 +28,7 @@ pub struct IdentityOpt {
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     DeployWallet(deploy_wallet::DeployWalletOpts),
     GetWallet(get_wallet::GetWalletOpts),
