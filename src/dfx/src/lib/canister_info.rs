@@ -36,7 +36,6 @@ pub struct CanisterInfo {
     canister_type: String,
 
     declarations_config: CanisterDeclarationsConfig,
-    //remote: Option<ConfigCanistersCanisterRemote>,
     remote_id: Option<Principal>,
     remote_candid: Option<String>, // remote_id must be present for this to also be present
 
@@ -80,7 +79,6 @@ impl CanisterInfo {
         let extras = canister_config.extras.clone();
         let declarations_config_pre = canister_config.declarations.clone();
 
-        //let remote = canister_config.remote.clone();
         let remote_id = canister_config
             .remote
             .as_ref()
@@ -93,22 +91,6 @@ impl CanisterInfo {
                 .and_then(|r| r.candid.as_ref())
                 .cloned()
         });
-        // let (remote_candid, remote_principal) = match &canister_config
-        //     .remote
-        //     .as_ref()
-        //     .and_then(|remote| remote.id.get(&network_name))
-        // {
-        //     Some(principal) => {
-        //         let remote_principal = *(*principal);
-        //         let remote_candid = canister_config
-        //             .remote
-        //             .as_ref()
-        //             .and_then(|remote| remote.candid.as_ref())
-        //             .cloned();
-        //         (remote_candid, Some(remote_principal))
-        //     }
-        //     None => (None, None),
-        // };
 
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {
@@ -134,7 +116,6 @@ impl CanisterInfo {
             canister_type,
 
             declarations_config,
-            //            remote,
             remote_candid,
             remote_id,
 
