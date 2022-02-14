@@ -178,15 +178,17 @@ pub async fn exec(
             get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
         }
     };
-    eprintln!("canister_id: {}", canister_id);
-    eprintln!("maybe_candid_path: {:?}", maybe_candid_path);
+    //eprintln!("canister_id: {}", canister_id);
+    //eprintln!("maybe_candid_path: {:?}", maybe_candid_path);
 
     let is_management_canister = canister_id == CanisterId::management_canister();
 
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
-    eprintln!("method_type: {:?}", method_type);
+    //eprintln!("method_type: {:?}", method_type);
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
-    eprintln!("is_query_method: {:?}", is_query_method);
+    //eprintln!("is_query_method: {:?}", is_query_method);
+    //eprintln!("opts.query is {}", opts.query);
+    //eprintln!("opts.async is {}", opts.r#async);
 
     let arguments = opts.argument.as_deref();
     let arg_type = opts.r#type.as_deref();
@@ -209,7 +211,7 @@ pub async fn exec(
             None => opts.query,
         }
     };
-    eprintln!("is_query: {}", is_query);
+    //eprintln!("is_query: {}", is_query);
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.

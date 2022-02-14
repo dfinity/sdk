@@ -263,13 +263,5 @@ pub fn get_local_cid_and_candid_path(
 
     let candid_path = canister_info.get_output_idl_path();
 
-    // let network = env.get_network_descriptor().unwrap();
-    // if let Some(_principal) = canister_info.get_remote_id(&network.name) {
-    //     if let Some(candid) = canister_info.get_remote_candid() {
-    //         let output_idl_path = canister_info.get_workspace_root().join(candid);
-    //         candid_path = Some(output_idl_path);
-    //     }
-    // }
-
     Ok((canister_info.get_canister_id()?, candid_path))
 }
