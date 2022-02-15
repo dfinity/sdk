@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "canisters": {
+    "basic": {
+      "main": "basic.mo",
+      "dependencies": [ "remote" ]
+    },
+    "remote": {
+      "main": "remote.mo"
+    }
+  },
+  "defaults": {
+    "build": {
+      "output": "canisters/"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000"
+    }
+  }
+}

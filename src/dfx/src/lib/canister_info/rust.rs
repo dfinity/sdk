@@ -35,7 +35,12 @@ impl CanisterInfoFactory for RustCanisterInfo {
             "target/wasm32-unknown-unknown/release/{}.wasm",
             package
         ));
-        let output_idl_path = workspace_root.join(info.get_extra::<PathBuf>("candid")?);
+        let candid = if let Some(remote_candid) = info.get_remote_candid() {
+            PathBuf::from(remote_candid)
+        } else {
+            info.get_extra::<PathBuf>("candid")?
+        };
+        let output_idl_path = workspace_root.join(candid);
 
         Ok(Self {
             package,
