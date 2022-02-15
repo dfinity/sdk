@@ -42,7 +42,7 @@ pub async fn deploy_canisters(
 
     let network = env.get_network_descriptor().unwrap();
 
-    let canisters_to_build: Vec<String> = canister_with_dependencies(&config, some_canister)?;
+    let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
