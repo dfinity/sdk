@@ -14,10 +14,11 @@ use crate::util::clap::validators::{
 };
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use clap::{ArgSettings, Parser};
 use ic_agent::Identity as _;
 use ic_types::principal::Principal as CanisterId;
+use slog::info;
 
 /// Creates an empty canister on the Internet Computer and
 /// associates the Internet Computer assigned Canister ID to the canister name.
@@ -74,6 +75,7 @@ pub async fn exec(
     let with_cycles = opts.with_cycles.as_deref();
 
     let config_interface = config.get_config();
+    let network = env.get_network_descriptor().unwrap();
 
     let proxy_sender;
     if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
@@ -118,6 +120,12 @@ pub async fn exec(
         .transpose()?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
+        if config
+            .get_config()
+            .is_remote_canister(canister_name, &network.name)?
+        {
+            bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
+        }
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),
             config_interface,
@@ -152,6 +160,19 @@ pub async fn exec(
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
+                if config
+                    .get_config()
+                    .is_remote_canister(canister_name, &network.name)?
+                {
+                    info!(
+                        env.get_logger(),
+                        "Skipping canister '{}' because it is remote for network '{}'",
+                        canister_name,
+                        &network.name,
+                    );
+
+                    continue;
+                }
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
                     config_interface,

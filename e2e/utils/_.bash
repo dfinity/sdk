@@ -248,6 +248,18 @@ setup_actuallylocal_network() {
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 }
 
+setup_local_network() {
+    if [ "$USE_IC_REF" ]
+    then
+        local replica_port=$(cat .dfx/ic-ref.port)
+    else
+        local replica_port=$(cat .dfx/replica-configuration/replica-1.port)
+    fi
+
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json)" >dfx.json
+}
+
 use_wallet_wasm() {
     # shellcheck disable=SC2154
     export DFX_WALLET_WASM="${archive}/wallet/$1/wallet.wasm"
