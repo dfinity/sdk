@@ -35,6 +35,7 @@ teardown() {
     setup_local_network
     # shellcheck disable=SC2094
     cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.canisters.remote.remote.candid="remote.did"' dfx.json)" >dfx.json
 
     # set up: remote method is update, local is query
