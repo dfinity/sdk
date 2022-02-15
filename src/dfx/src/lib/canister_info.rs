@@ -116,8 +116,8 @@ impl CanisterInfo {
             canister_type,
 
             declarations_config,
-            remote_candid,
             remote_id,
+            remote_candid,
 
             workspace_root: workspace_root.to_path_buf(),
             build_root,

@@ -260,8 +260,8 @@ pub fn get_local_cid_and_candid_path(
 ) -> DfxResult<(CanisterId, Option<PathBuf>)> {
     let config = env.get_config_or_anyhow()?;
     let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
-
-    let candid_path = canister_info.get_output_idl_path();
-
-    Ok((canister_info.get_canister_id()?, candid_path))
+    Ok((
+        canister_info.get_canister_id()?,
+        canister_info.get_output_idl_path(),
+    ))
 }
