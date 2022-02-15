@@ -132,7 +132,7 @@ This is how you specify how to generate the bindings in dfx.json:
 {
   "canisters": {
     "<canister name>": {
-      "main": "<path to mo/rs/ts/js file that will be generated>",
+      "src": "<path to mo/rs/ts/js file that will be generated>",
       "remote": {
         "candid": "<path to candid file to use when generating bindings>"
       }

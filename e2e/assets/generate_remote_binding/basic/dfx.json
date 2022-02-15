@@ -2,7 +2,7 @@
     "version": 1,
     "canisters": {
       "remote": {
-        "main": "remote.mo",
+        "src": "remote.mo",
         "remote": {
           "candid": "remote.did",
           "id": {}
