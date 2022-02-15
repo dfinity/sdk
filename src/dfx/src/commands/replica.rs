@@ -7,11 +7,11 @@ use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
 use actix::Addr;
-use clap::Clap;
+use clap::Parser;
 use std::default::Default;
 
 /// Starts a local Internet Computer replica.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct ReplicaOpts {
     /// Specifies the port the local replica should listen to.
     #[clap(long)]

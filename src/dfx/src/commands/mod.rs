@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Subcommand;
 
 mod bootstrap;
 mod build;
@@ -23,7 +23,7 @@ mod toolchain;
 mod upgrade;
 mod wallet;
 
-#[derive(Clap)]
+#[derive(Subcommand)]
 pub enum Command {
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),

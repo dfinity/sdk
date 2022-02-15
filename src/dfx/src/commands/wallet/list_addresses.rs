@@ -2,11 +2,11 @@ use crate::commands::wallet::wallet_query;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 use ic_utils::interfaces::wallet::AddressEntry;
 
 /// Print wallet's address book.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct AddressesOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: AddressesOpts) -> DfxResult {

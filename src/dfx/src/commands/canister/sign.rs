@@ -15,7 +15,7 @@ use ic_types::principal::Principal;
 
 use anyhow::{anyhow, bail};
 use chrono::Utc;
-use clap::Clap;
+use clap::Parser;
 use humanize_rs::duration;
 use slog::info;
 
@@ -26,7 +26,7 @@ use std::str::FromStr;
 use std::time::SystemTime;
 
 /// Sign a canister call and generate message file in json
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CanisterSignOpts {
     /// Specifies the name of the canister to call.
     canister_name: String,

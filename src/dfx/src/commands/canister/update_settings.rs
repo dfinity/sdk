@@ -14,12 +14,12 @@ use crate::util::clap::validators::{
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
-use clap::{ArgSettings, Clap};
+use clap::{ArgSettings, Parser};
 use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct UpdateSettingsOpts {
     /// Specifies the canister name or id to update. You must specify either canister name/id or the --all option.
     canister: Option<String>,
@@ -29,23 +29,13 @@ pub struct UpdateSettingsOpts {
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
-    #[clap(long, multiple(true), number_of_values(1))]
+    #[clap(long, multiple_occurrences(true))]
     controller: Option<Vec<String>>,
 
-    #[clap(
-        long,
-        multiple(true),
-        number_of_values(1),
-        conflicts_with("controller")
-    )]
+    #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
     add_controller: Option<Vec<String>>,
 
-    #[clap(
-        long,
-        multiple(true),
-        number_of_values(1),
-        conflicts_with("controller")
-    )]
+    #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]

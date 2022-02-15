@@ -6,13 +6,13 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
 /// Stops a canister that is currently running on the Internet Computer network.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CanisterStopOpts {
     /// Specifies the name or id of the canister to stop.
     /// You must specify either a canister name/id or the --all option.

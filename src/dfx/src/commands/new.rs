@@ -6,7 +6,7 @@ use crate::util::assets;
 use crate::util::clap::validators::project_name_validator;
 
 use anyhow::{anyhow, bail, Context};
-use clap::Clap;
+use clap::Parser;
 use console::{style, Style};
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
@@ -38,7 +38,7 @@ lazy_static! {
 }
 
 /// Creates a new project.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
     #[clap(validator(project_name_validator))]

@@ -4,12 +4,12 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::create_agent_environment;
 use crate::util::check_candid_file;
 
-use clap::Clap;
+use clap::Parser;
 use slog::info;
 use std::path::Path;
 
 /// Generate bindings for remote canisters from their .did declarations
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct GenerateRemoteBindingOpts {
     /// Specifies the name of the canister to generate bindings for.
     /// You must specify either canister name/id or the --all option.

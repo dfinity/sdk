@@ -8,14 +8,14 @@ use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use ic_types::principal::Principal;
 use std::str::FromStr;
 
 const MEMO_TOP_UP_CANISTER: u64 = 1347768404_u64;
 
 /// Top up a canister with cycles minted from ICP
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct TopUpOpts {
     /// Specify the canister id to top up
     canister: String,
@@ -44,7 +44,7 @@ pub struct TopUpOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
-    let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
+    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
 
     let fee = opts.fee.map_or(Ok(TRANSACTION_FEE), |v| {
         ICPTs::from_str(&v).map_err(|err| anyhow!(err))
