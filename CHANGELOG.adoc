@@ -8,7 +8,8 @@ If you have an installation of the ICP Ledger (see https://github.com/dfinity/ic
 `--ledger-canister-id` parameter.
 
 Some examples:
-```
+[source, bash]
+----
 $ dfx ledger \
   --network local \
   balance \
@@ -20,7 +21,7 @@ $ dfx ledger \
   transfer --amount 0.1 --memo 0 \
   --ledger-canister-id  rrkah-fqaaa-aaaaa-aaaaq-cai 8af54f1fa09faeca18d294e0787346264f9f1d6189ed20ff14f029a160b787e8
 Transfer sent at block height: 1
-```
+----
 
 === feat: `dfx ledger account-id` can now compute canister addresses
 
@@ -162,9 +163,18 @@ Upgraded from a432156f24faa16d387c9d36815f7ddc5d50e09f to ab8e3f5a04f0f061b8157c
 
 == Replica
 
-Updated replica to blessed commit 936bf9ccaabd566c68232e5cb3f3ce7d5ae89328.
+Updated replica to blessed commit 04fe8b0a1262f07c0cec1fdfa838a37607370a61.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/45091[45091]
+* https://dashboard.internetcomputer.org/proposal/43635[43635]
+* https://dashboard.internetcomputer.org/proposal/43633[43633]
+* https://dashboard.internetcomputer.org/proposal/42783[42783]
+* https://dashboard.internetcomputer.org/proposal/42410[42410]
+* https://dashboard.internetcomputer.org/proposal/40908[40908]
+* https://dashboard.internetcomputer.org/proposal/40647[40647]
+* https://dashboard.internetcomputer.org/proposal/40328[40328]
+* https://dashboard.internetcomputer.org/proposal/39791[39791]
 * https://dashboard.internetcomputer.org/proposal/38541[38541]
 
 == Motoko
