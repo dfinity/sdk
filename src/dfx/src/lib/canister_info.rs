@@ -157,7 +157,7 @@ impl CanisterInfo {
         self.remote_candid.as_ref().cloned()
     }
     pub fn get_remote_candid_if_remote(&self) -> Option<String> {
-        if let Some(_) = self.remote_id {
+        if self.remote_id.is_some() {
             self.get_remote_candid()
         } else {
             None
