@@ -2,6 +2,20 @@
 
 == DFX
 
+=== feat: Unified environment variables across build commands
+
+The three canister types that use a custom build tool - `assets`, `rust`, and `custom` - now all support the same set of environment variables during the build task: 
+
+* `DFX_VERSION` - The version of DFX that was used to build the canister.
+* `DFX_NETWORK` - The network name being built for. Usually `ic` or `local`.
+* `CANISTER_ID_{canister}` - The canister principal ID of the canister `{canister}` registered in `dfx.json`.
+* `CANISTER_CANDID_PATH_{canister}` - The path to the Candid interface file for the canister `{canister}` among your canister's dependencies.
+* `CANISTER_ID` - Same as `CANISTER_ID_{self}`, where `{self}` is the name of _this_ canister.
+* `CANISTER_CANDID_PATH` - Same as `CANISTER_CANDID_PATH_{self}`, where `{self}` is the name of _this_ canister.
+
+This would break compatibility with `rust` and `custom`, which currently use `CANISTER_CANDID_{canister}`. For now, this naming scheme is available
+for compatibility reasons, but will be removed in 0.10.
+
 === feat: Support for local ledger calls
 
 If you have an installation of the ICP Ledger (see https://github.com/dfinity/ic/tree/master/rs/rosetta-api/ledger_canister#deploying-locally[Ledger Installation Guide]), `dfx ledger balance` and `dfx ledger transfer` now support
