@@ -36,8 +36,8 @@ pub struct CanisterInfo {
     canister_type: String,
 
     declarations_config: CanisterDeclarationsConfig,
-    remote_id: Option<Principal>,
-    remote_candid: Option<String>, // remote_id must be present for this to also be present
+    remote_id: Option<Principal>, // id on the currently selected network
+    remote_candid: Option<String>, // always exists if the field is configured
 
     workspace_root: PathBuf,
     build_root: PathBuf,
@@ -84,13 +84,11 @@ impl CanisterInfo {
             .as_ref()
             .and_then(|remote| remote.id.get(&network_name))
             .copied();
-        let remote_candid = remote_id.and_then(|_| {
-            canister_config
-                .remote
-                .as_ref()
-                .and_then(|r| r.candid.as_ref())
-                .cloned()
-        });
+        let remote_candid = canister_config
+            .remote
+            .as_ref()
+            .and_then(|r| r.candid.as_ref())
+            .cloned();
 
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {
@@ -157,6 +155,13 @@ impl CanisterInfo {
     }
     pub fn get_remote_candid(&self) -> Option<String> {
         self.remote_candid.as_ref().cloned()
+    }
+    pub fn get_remote_candid_if_remote(&self) -> Option<String> {
+        if let Some(_) = self.remote_id {
+            self.get_remote_candid()
+        } else {
+            None
+        }
     }
     pub fn get_workspace_root(&self) -> &Path {
         &self.workspace_root
