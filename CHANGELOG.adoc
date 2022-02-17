@@ -113,7 +113,7 @@ when building for `--network ic`.
     },
     "app": {
       "type": "motoko",
-      "src": "src/app/main.mo",
+      "main": "src/app/main.mo",
       "dependencies": [ "ledger" ]
     }
   }
@@ -136,7 +136,7 @@ will be reports as compilation errors.
   "canisters": {
     "ledger": {
       "type": "motoko",
-      "src": "src/ledger/mock.mo",
+      "main": "src/ledger/mock.mo",
       "remote": {
         "candid": "ledger.public.did",
         "id": {
@@ -146,8 +146,30 @@ will be reports as compilation errors.
     },
     "app": {
       "type": "motoko",
-      "src": "src/app/main.mo",
+      "main": "src/app/main.mo",
       "dependencies": [ "ledger" ]
+    }
+  }
+}
+----
+
+=== feat: Generating remote canister bindings
+
+It's now possible to generate the interface of a remote canister using a .did file using the `dfx remote generate-binding <canister name>|--all` command. This makes it easier to write mocks for local development.
+
+Currently, dfx can generate .mo, .rs, .ts, and .js bindings.
+
+This is how you specify how to generate the bindings in dfx.json:
+[source, json]
+----
+{
+  "canisters": {
+    "<canister name>": {
+      "main": "<path to mo/rs/ts/js file that will be generated>",
+      "remote": {
+        "candid": "<path to candid file to use when generating bindings>"
+        "id": {}
+      }
     }
   }
 }
