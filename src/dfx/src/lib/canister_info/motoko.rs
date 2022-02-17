@@ -76,7 +76,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         } else {
             output_wasm_path.with_extension("did")
         };
-        let output_stable_path = output_wasm_path.with_extension("most");            
+        let output_stable_path = output_wasm_path.with_extension("most");
         let output_did_js_path = output_wasm_path.with_extension("did.js");
         let output_canister_js_path = output_wasm_path.with_extension("js");
         let output_assets_root = output_root.join("assets");
