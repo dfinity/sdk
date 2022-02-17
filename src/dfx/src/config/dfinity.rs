@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::{error_invalid_config, error_invalid_data};
+use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::anyhow;
+use ic_types::Principal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
@@ -35,6 +36,14 @@ const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsRepli
     round_gas_limit: None,
 };
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigCanistersCanisterRemote {
+    pub candid: Option<String>,
+
+    // network -> canister ID
+    pub id: BTreeMap<String, Principal>,
+}
+
 const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 
@@ -47,6 +56,9 @@ pub struct ConfigCanistersCanister {
 
     #[serde(default)]
     pub declarations: CanisterDeclarationsConfig,
+
+    #[serde(default)]
+    pub remote: Option<ConfigCanistersCanisterRemote>,
 
     #[serde(flatten)]
     pub extras: BTreeMap<String, Value>,
@@ -298,6 +310,27 @@ impl ConfigInterface {
         };
 
         Ok(canister_names)
+    }
+
+    pub fn get_remote_canister_id(
+        &self,
+        canister: &str,
+        network: &str,
+    ) -> DfxResult<Option<Principal>> {
+        let maybe_principal = (&self.canisters)
+            .as_ref()
+            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?
+            .get(canister)
+            .ok_or_else(|| error_invalid_argument!("Canister {} not found in dfx.json", canister))?
+            .remote
+            .as_ref()
+            .and_then(|r| r.id.get(network))
+            .copied();
+        Ok(maybe_principal)
+    }
+
+    pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
+        Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
     pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {

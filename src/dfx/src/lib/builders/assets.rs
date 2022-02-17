@@ -1,5 +1,4 @@
 use crate::config::cache::Cache;
-use crate::config::dfinity::DEFAULT_IC_GATEWAY;
 use crate::config::dfx_version;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
@@ -9,6 +8,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
@@ -276,7 +276,7 @@ fn build_frontend(
             .env("DFX_VERSION", &format!("{}", dfx_version()))
             .env("DFX_NETWORK", &network_name);
 
-        if network_name == "ic" || network_name == DEFAULT_IC_GATEWAY {
+        if NetworkDescriptor::is_ic(network_name, &vec![]) {
             cmd.env("NODE_ENV", "production");
         }
 

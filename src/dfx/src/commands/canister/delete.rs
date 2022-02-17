@@ -20,7 +20,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::CanisterStatus;
 
 use anyhow::anyhow;
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
@@ -33,7 +33,7 @@ const WITHDRAWAL_COST: u64 = 10_000_000_000; // Emperically estimated.
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a canister on the Internet Computer network.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CanisterDeleteOpts {
     /// Specifies the name of the canister to delete.
     /// You must specify either a canister name/id or the --all flag.

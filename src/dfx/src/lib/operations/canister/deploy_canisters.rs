@@ -40,17 +40,36 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
+    let network = env.get_network_descriptor().unwrap();
+
     let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
         match some_canister {
-            Some(canister_name) => vec!(String::from(canister_name)),
+            Some(canister_name) => {
+                if config.get_config().is_remote_canister(canister_name, &network.name)? {
+                    bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
+                    canister_name, &network.name);
+                }
+                vec!(String::from(canister_name))
+            },
             None => bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."),
         }
     } else {
         canisters_to_build.clone()
     };
+    let canisters_to_deploy: Vec<String> = canisters_to_deploy
+        .into_iter()
+        .filter(|canister_name| {
+            !matches!(
+                config
+                    .get_config()
+                    .get_remote_canister_id(canister_name, &network.name),
+                Ok(Some(_))
+            )
+        })
+        .collect();
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
@@ -172,7 +191,7 @@ fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Co
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
 
-    canister_pool.build_or_fail(BuildConfig::from_config(config)?)
+    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)
 }
 
 #[allow(clippy::too_many_arguments)]

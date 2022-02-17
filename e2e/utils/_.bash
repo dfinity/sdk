@@ -5,8 +5,6 @@ load ../utils/assertions
 install_asset() {
     ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
     cp -R $ASSET_ROOT/* .
-    # set write perms to overwrite local bind in assets which have a dfx.json
-    chmod -R a+w .
 
     [ -f ./patch.bash ] && source ./patch.bash
 }
@@ -248,6 +246,18 @@ setup_actuallylocal_network() {
     webserver_port=$(cat .dfx/webserver-port)
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+}
+
+setup_local_network() {
+    if [ "$USE_IC_REF" ]
+    then
+        local replica_port=$(cat .dfx/ic-ref.port)
+    else
+        local replica_port=$(cat .dfx/replica-configuration/replica-1.port)
+    fi
+
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json)" >dfx.json
 }
 
 use_wallet_wasm() {

@@ -9,6 +9,7 @@ use crate::util;
 
 use anyhow::{anyhow, bail};
 use ic_types::principal::Principal as CanisterId;
+use ic_types::Principal;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -35,6 +36,8 @@ pub struct CanisterInfo {
     canister_type: String,
 
     declarations_config: CanisterDeclarationsConfig,
+    remote_id: Option<Principal>,
+    remote_candid: Option<String>, // remote_id must be present for this to also be present
 
     workspace_root: PathBuf,
     build_root: PathBuf,
@@ -76,6 +79,19 @@ impl CanisterInfo {
         let extras = canister_config.extras.clone();
         let declarations_config_pre = canister_config.declarations.clone();
 
+        let remote_id = canister_config
+            .remote
+            .as_ref()
+            .and_then(|remote| remote.id.get(&network_name))
+            .copied();
+        let remote_candid = remote_id.and_then(|_| {
+            canister_config
+                .remote
+                .as_ref()
+                .and_then(|r| r.candid.as_ref())
+                .cloned()
+        });
+
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {
             output: declarations_config_pre
@@ -100,6 +116,8 @@ impl CanisterInfo {
             canister_type,
 
             declarations_config,
+            remote_id,
+            remote_candid,
 
             workspace_root: workspace_root.to_path_buf(),
             build_root,
@@ -133,6 +151,12 @@ impl CanisterInfo {
     }
     pub fn get_declarations_config(&self) -> &CanisterDeclarationsConfig {
         &self.declarations_config
+    }
+    pub fn get_remote_id(&self) -> Option<Principal> {
+        self.remote_id
+    }
+    pub fn get_remote_candid(&self) -> Option<String> {
+        self.remote_candid.as_ref().cloned()
     }
     pub fn get_workspace_root(&self) -> &Path {
         &self.workspace_root

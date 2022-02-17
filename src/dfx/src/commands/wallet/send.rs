@@ -5,11 +5,11 @@ use crate::util::clap::validators::cycle_amount_validator;
 
 use anyhow::anyhow;
 use candid::CandidType;
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 
 /// Send cycles to another cycles wallet.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct SendOpts {
     /// Canister ID of the destination cycles wallet.
     destination: String,

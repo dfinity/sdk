@@ -2,11 +2,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 
-use clap::Clap;
+use clap::Parser;
 use slog::info;
 
 /// Removes an existing identity.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct RemoveOpts {
     /// The identity to remove.
     identity: String,

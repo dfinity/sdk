@@ -4,14 +4,14 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, bail};
-use clap::Clap;
+use clap::Parser;
 use ic_agent::AgentError;
 use ic_types::Principal;
 use serde_cbor::Value;
 use std::convert::TryFrom;
 
 /// Get the hash of a canister’s WASM module and its current controller in a certified way.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct InfoOpts {
     /// Specifies the name or id of the canister to get its certified canister information.
     canister: String,

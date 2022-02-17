@@ -3,10 +3,10 @@ use crate::lib::error::DfxResult;
 use crate::lib::toolchain;
 use crate::lib::toolchain::Toolchain;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Set default toolchain or get current default toolchain
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("default"))]
 pub struct ToolchainDefault {
     /// Toolchain name, such as '0.6.22', '0.6', 'latest'
