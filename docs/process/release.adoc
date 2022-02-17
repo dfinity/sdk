@@ -84,6 +84,8 @@ For example, if creating the release branch for 0.7.0, you would run the followi
 git switch -c release-0.7.0 && git push
 ....
 
+. Edit CHANGELOG.md to remove the "UNRELEASED" note from the version to be released.  Commit this to change to the release branch.
+
 === Resuming on an Existing Release Branch
 
 . Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
