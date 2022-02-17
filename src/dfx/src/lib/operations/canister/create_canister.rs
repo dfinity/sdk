@@ -31,11 +31,23 @@ pub async fn create_canister(
     let log = env.get_logger();
     info!(log, "Creating canister {:?}...", canister_name);
 
-    let _ = env.get_config_or_anyhow();
+    let config = env.get_config_or_anyhow()?;
 
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
     let network_name = get_network_context()?;
+
+    if let Some(remote_canister_id) = config
+        .get_config()
+        .get_remote_canister_id(canister_name, &network_name)?
+    {
+        bail!(
+            "{:?} canister is remote on network {} and has canister id: {:?}",
+            canister_name,
+            network_name,
+            remote_canister_id.to_text()
+        );
+    }
 
     let non_default_network = if network_name == "local" {
         format!("")
