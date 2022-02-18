@@ -20,22 +20,22 @@ teardown() {
 @test "add optional field in stable variable upgrade" {
   dfx_start
   dfx deploy
-  dfx canister call hello add '()'
-  dfx config canisters/hello/main database_v2.mo
+  dfx canister call upgrade add '()'
+  dfx config canisters/upgrade/main database_v2.mo
   dfx deploy
-  dfx canister call hello dump '()'
+  dfx canister call upgrade dump '()'
   assert_match "hjkhgjkh"
 }
 
 @test "add non-optional field in stable variable upgrade" {
     dfx_start
     dfx deploy
-    dfx canister call hello add '()'
-    dfx config canisters/hello/main database_v2_bad.mo
+    dfx canister call upgrade add '()'
+    dfx config canisters/upgrade/main database_v2_bad.mo
     echo yes | (
       dfx deploy
       assert_match "Stable interface compatibility check failed"
     )
-    dfx canister call hello dump '()'
+    dfx canister call upgrade dump '()'
     assert_match "[]"
 }

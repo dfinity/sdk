@@ -1,1 +1,1 @@
-dfx config canisters/hello/main database_v1.mo
+dfx config canisters/upgrade/main database_v1.mo
