@@ -57,10 +57,13 @@ to verify:
 
 image:is-master-green.png[]
 
-=== Update your repository with merged commits
+=== Preparation
 
 . Connect to VPN.
 . Open a terminal and `cd` into your local copy of the `sdk` repo.
+
+=== Creating a New Release Branch
+
 . Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
 +
 [source, bash]
@@ -68,8 +71,35 @@ image:is-master-green.png[]
 git checkout master && git pull
 ----
 
+. Create the release branch.  Note that the branch name never includes alpha, beta, and so forth. All of these will be released on the same release branch.
++
+[source, bash]
+----
+git switch -c release-<n.n.n> && git push
+----
++
+For example, if creating the release branch for 0.7.0, you would run the following command:
++
+....
+git switch -c release-0.7.0 && git push
+....
+
+. Edit CHANGELOG.md to remove the "UNRELEASED" note from the version to be released.  Commit this to change to the release branch.
+
+=== Resuming on an Existing Release Branch
+
+. Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
++
+[source, bash]
+----
+git checkout release-<n.n.n> && git pull
+----
+
+=== Ready
+
 At this point, you are ready to build a release candidate.
 There are two ways you can build a release candidate:
+
 - Using the <<script,SCRIPT-BASED release process>> to automate the build process and skip manual testing.
 - Using the <<manual,MANUAL STEPS release process>> to build and test the release.
 
