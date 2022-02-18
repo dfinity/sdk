@@ -91,6 +91,21 @@ teardown() {
         echo "remote.rs not created"
         exit 1
     fi
+
+    if [[ -f remote.mo ]]; then 
+        echo "remote.mo created when it shouldn't"
+        exit 1
+    fi
+
+    if [[ -f remote.ts ]]; then
+        echo "remote.ts created when it shouldn't"
+        exit 1
+    fi
+
+    if [[ -f remote.js ]]; then
+        echo "remote.js created when it shouldn't"
+        exit 1
+    fi
 }
 
 @test "remote generate-binding succeeds for specific motoko canister" {
@@ -100,6 +115,21 @@ teardown() {
 
     if [[ ! -f remote.mo ]]; then 
         echo "remote.mo not created"
+        exit 1
+    fi
+
+    if [[ -f remote.rs ]]; then
+        echo "remote.rs created when it shouldn't"
+        exit 1
+    fi
+
+    if [[ -f remote.ts ]]; then
+        echo "remote.ts created when it shouldn't"
+        exit 1
+    fi
+
+    if [[ -f remote.js ]]; then
+        echo "remote.js created when it shouldn't"
         exit 1
     fi
 }
@@ -113,6 +143,21 @@ teardown() {
         echo "remote.js not created"
         exit 1
     fi
+
+    if [[ -f remote.mo ]]; then 
+        echo "remote.mo created when it shouldn't"
+        exit 1
+    fi
+
+    if [[ -f remote.rs ]]; then
+        echo "remote.rs created when it shouldn't"
+        exit 1
+    fi
+
+    if [[ -f remote.ts ]]; then
+        echo "remote.ts created when it shouldn't"
+        exit 1
+    fi
 }
 
 @test "remote generate-binding succeeds for specific typescript canister" {
@@ -122,6 +167,21 @@ teardown() {
 
     if [[ ! -f remote.ts ]]; then 
         echo "remote.ts not created"
+        exit 1
+    fi
+
+    if [[ -f remote.mo ]]; then 
+        echo "remote.mo created when it shouldn't"
+        exit 1
+    fi
+
+    if [[ -f remote.rs ]]; then
+        echo "remote.rs created when it shouldn't"
+        exit 1
+    fi
+
+    if [[ -f remote.js ]]; then
+        echo "remote.js created when it shouldn't"
         exit 1
     fi
 }
