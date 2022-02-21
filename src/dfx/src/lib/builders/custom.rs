@@ -12,7 +12,7 @@ use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::info;
 use slog::Logger;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Stdio;
 
 /// Set of extras that can be specified in the dfx.json.
@@ -107,7 +107,7 @@ impl CanisterBuilder for CustomBuilder {
         &self,
         pool: &CanisterPool,
         info: &CanisterInfo,
-        _config: &BuildConfig,
+        config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let CustomBuilderExtra {
             candid,
@@ -117,6 +117,7 @@ impl CanisterBuilder for CustomBuilder {
         } = CustomBuilderExtra::try_from(info, pool)?;
 
         let canister_id = info.get_canister_id().unwrap();
+        let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
 
         for command in build {
             info!(
@@ -131,7 +132,7 @@ impl CanisterBuilder for CustomBuilder {
                 .context(format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &canister_id, &candid, dependencies.clone(), pool)?;
+                run_command(args, &vars)?;
             }
         }
 
@@ -169,39 +170,17 @@ impl CanisterBuilder for CustomBuilder {
     }
 }
 
-fn run_command(
-    args: Vec<String>,
-    canister_id: &CanisterId,
-    candid: &Path,
-    dependencies: Vec<CanisterId>,
-    pool: &CanisterPool,
-) -> DfxResult<()> {
+fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
 
     let mut cmd = std::process::Command::new(command_name);
 
     cmd.args(arguments)
         .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .env("CANISTER_ID", canister_id.to_text())
-        .env("CANISTER_CANDID_PATH", candid.as_os_str());
+        .stderr(Stdio::inherit());
 
-    for deps in &dependencies {
-        let canister = pool.get_canister(deps).unwrap();
-        cmd.env(
-            format!("CANISTER_ID_{}", canister.get_name()),
-            deps.to_text(),
-        );
-        if let Some(output) = canister.get_build_output() {
-            let candid_path = match &output.idl {
-                IdlBuildOutput::File(p) => p.as_os_str(),
-            };
-
-            cmd.env(
-                format!("CANISTER_CANDID_{}", canister.get_name()),
-                candid_path,
-            );
-        }
+    for (key, value) in vars {
+        cmd.env(key.as_ref(), value);
     }
 
     let output = cmd.output().expect("Could not run custom tool.");

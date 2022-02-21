@@ -61,7 +61,7 @@ impl CanisterBuilder for RustBuilder {
         &self,
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
-        _config: &BuildConfig,
+        config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let rust_info = canister_info.as_info::<RustCanisterInfo>()?;
         let package = rust_info.get_package();
@@ -79,24 +79,13 @@ impl CanisterBuilder for RustBuilder {
             .arg("-p")
             .arg(package);
 
-        if let Ok(dependencies) = self.get_dependencies(pool, canister_info) {
-            for deps in dependencies {
-                let canister = pool.get_canister(&deps).unwrap();
-                cargo.env(
-                    format!("CANISTER_ID_{}", canister.get_name()),
-                    deps.to_text(),
-                );
-                if let Some(output) = canister.get_build_output() {
-                    let candid_path = match &output.idl {
-                        IdlBuildOutput::File(p) => p.as_os_str(),
-                    };
-
-                    cargo.env(
-                        format!("CANISTER_CANDID_{}", canister.get_name()),
-                        candid_path,
-                    );
-                }
-            }
+        let dependencies = self
+            .get_dependencies(pool, canister_info)
+            .unwrap_or_default();
+        let vars =
+            super::environment_variables(canister_info, &config.network_name, pool, &dependencies);
+        for (key, val) in vars {
+            cargo.env(key.as_ref(), val);
         }
 
         info!(
