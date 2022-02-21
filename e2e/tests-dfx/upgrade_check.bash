@@ -25,7 +25,7 @@ teardown() {
   dfx config canisters/hello/main v2.mo
   dfx deploy
   dfx canister call hello read '()'
-  assert_match "(1)"
+  assert_match "(1 : nat)"
 }
 
 @test "add non-optional field in stable variable upgrade" {
@@ -36,8 +36,8 @@ teardown() {
     dfx config canisters/hello/main v2_bad.mo
     echo yes | (
       dfx deploy
-      assert_match "Stable interface compatibility check failed"
+      assert_match "Stable interface compatibility check failed for canister 'hello'"
     )
     dfx canister call hello read '()'
-    assert_match "(0)"
+    assert_match "(0 : nat)"
 }
