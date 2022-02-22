@@ -65,9 +65,11 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
             let deployed_path = candid_path.with_extension("old.did");
             std::fs::write(&deployed_path, candid)?;
             let (mut env, opt_new) = check_candid_file(&candid_path)?;
-            let new_type = opt_new.expect("Generated did file should contain some service interface");
+            let new_type =
+                opt_new.expect("Generated did file should contain some service interface");
             let (env2, opt_old) = check_candid_file(&deployed_path)?;
-            let old_type = opt_old.expect("Deployed did file should contain some service interface");
+            let old_type =
+                opt_old.expect("Deployed did file should contain some service interface");
             let mut gamma = HashSet::new();
             let old_type = env.merge_type(env2, old_type);
             let result = candid::types::subtype::subtype(&mut gamma, &env, &new_type, &old_type);
