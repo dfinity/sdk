@@ -48,7 +48,7 @@ teardown() {
     dfx deploy
     dfx canister call hello inc '()'
     dfx config canisters/hello/main v2_bad.mo
-    dfx canister install hello --mode=reinstall
+    echo yes | dfx canister install hello --mode=reinstall
     assert_command dfx canister call hello read '()'
     assert_match "(0 : nat)"    
 }
@@ -60,7 +60,7 @@ teardown() {
     dfx canister call hello inc '()'
     dfx config canisters/hello/main v3_bad.mo
     echo yes | (
-      assert_command dfx canister install hello --mode=reinstall
+      assert_command dfx deploy
       assert_match "Candid interface compatibility check failed"
     )
     assert_command dfx canister call hello read2 '()'
