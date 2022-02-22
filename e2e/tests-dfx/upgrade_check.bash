@@ -17,7 +17,7 @@ teardown() {
     rm -rf "$DFX_CONFIG_ROOT"
 }
 
-@test "add optional field in stable variable upgrade" {
+@test "safe upgrade by adding a new stable variable" {
   install_asset upgrade
   dfx_start
   dfx deploy
@@ -28,7 +28,7 @@ teardown() {
   assert_match "(1 : nat)"
 }
 
-@test "add non-optional field in stable variable upgrade" {
+@test "changing stable variable from Int to Nat is not allowed" {
     install_asset upgrade
     dfx_start
     dfx deploy
@@ -40,4 +40,29 @@ teardown() {
     )
     assert_command dfx canister call hello read '()'
     assert_match "(0 : nat)"
+}
+
+@test "changing stable variable from Int to Nat with reinstall is allowed" {
+    install_asset upgrade
+    dfx_start
+    dfx deploy
+    dfx canister call hello inc '()'
+    dfx config canisters/hello/main v2_bad.mo
+    dfx canister install hello --mode=reinstall
+    assert_command dfx canister call hello read '()'
+    assert_match "(0 : nat)"    
+}
+
+@test "warning for changing method name" {
+    install_asset upgrade
+    dfx_start
+    dfx deploy
+    dfx canister call hello inc '()'
+    dfx config canisters/hello/main v3_bad.mo
+    echo yes | (
+      assert_command dfx canister install hello --mode=reinstall
+      assert_match "Candid interface compatibility check failed"
+    )
+    assert_command dfx canister call hello read2 '()'
+    assert_match "(1 : int)"
 }
