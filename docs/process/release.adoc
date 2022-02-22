@@ -80,9 +80,10 @@ git switch -c release-<n.n.n> && git push
 +
 For example, if creating the release branch for 0.7.0, you would run the following command:
 +
-....
+[source, bash]
+----
 git switch -c release-0.7.0 && git push
-....
+----
 
 . Edit CHANGELOG.md to remove the "UNRELEASED" note from the version to be released.  Commit this to change to the release branch.
 
@@ -307,13 +308,9 @@ git add --all
 git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
 git push origin $USER/release-$NEW_DFX_VERSION
 ----
-. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
+. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.  Change the base branch to `release-<n.n.n>`.
 . Have the validator review and approve the PR.
-. Apply the `automerge-squash` label.
-+
-image:automerge-label.png[]
-
-. Wait for the pull request to get merged.
+. Merge the PR manually (the automerge-squash label only works for PRs to the master branch).
 +
 NOTE: Depending on the number of jobs queued up, this step can take 45 to 60 minutes to complete.
 
@@ -333,7 +330,7 @@ git pull origin stable
 +
 [source, bash]
 ----
-git pull origin master --ff-only
+git pull origin release-<n.n.n> --ff-only
 ----
 . Create a new tag by running the following command:
 +

@@ -179,7 +179,8 @@ build_release_branch() {
         $DRY_RUN_ECHO git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
         $DRY_RUN_ECHO git push origin $BRANCH
 
-        echo "Please open a pull request, review and approve it, label automerge-squash, and wait for it to be merged."
+        echo "Please open a pull request to the $FINAL_RELEASE_BRANCH branch, review and approve it, then merge it manually."
+        echo "  (The automerge-squash label will not work because the PR is not to the master branch)"
 EOF
     )
     # echo "$NIX_COMMAND"
