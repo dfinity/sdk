@@ -67,7 +67,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let input_path = workspace_root.join(&main_path);
         let output_root = build_root.join(name);
         let output_wasm_path = output_root.join(name).with_extension("wasm");
-        let output_idl_path = if let Some(remote_candid) = info.get_remote_candid() {
+        let output_idl_path = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
             workspace_root.join(remote_candid)
         } else {
             output_wasm_path.with_extension("did")
