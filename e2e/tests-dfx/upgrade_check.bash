@@ -24,7 +24,7 @@ teardown() {
   dfx canister call hello inc '()'
   dfx config canisters/hello/main v2.mo
   dfx deploy
-  dfx canister call hello read '()'
+  assert_command dfx canister call hello read '()'
   assert_match "(1 : nat)"
 }
 
@@ -35,9 +35,9 @@ teardown() {
     dfx canister call hello inc '()'
     dfx config canisters/hello/main v2_bad.mo
     echo yes | (
-      dfx deploy
-      assert_match "Stable interface compatibility check failed for canister 'hello'"
+      assert_command dfx deploy
+      assert_match "Stable interface compatibility check failed"
     )
-    dfx canister call hello read '()'
+    assert_command dfx canister call hello read '()'
     assert_match "(0 : nat)"
 }
