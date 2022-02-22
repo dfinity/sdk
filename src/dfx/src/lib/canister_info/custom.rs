@@ -24,7 +24,7 @@ impl CanisterInfoFactory for CustomCanisterInfo {
     fn create(info: &CanisterInfo) -> DfxResult<Self> {
         let workspace_root = info.get_workspace_root();
         let output_wasm_path = workspace_root.join(info.get_extra::<PathBuf>("wasm")?);
-        let candid = if let Some(remote_candid) = info.get_remote_candid() {
+        let candid = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
             PathBuf::from(remote_candid)
         } else {
             info.get_extra::<PathBuf>("candid")?

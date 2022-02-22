@@ -158,6 +158,26 @@ assert_no_dfx_start_or_replica_processes() {
     fi
 }
 
+assert_file_exists() {
+    filename="$1"
+
+    if [[ ! -f $filename ]]; then
+        echo "$filename does not exist" \
+        | batslib_decorate "Missing file" \
+        | fail
+    fi
+}
+
+assert_file_not_exists() {
+    filename="$1"
+
+    if [[ -f $filename ]]; then
+        cat "$filename" | head -n 10 \
+        | batslib_decorate "Expected file to not exist. $filename exists and starts with:" \
+        | fail
+    fi
+}
+
 assert_file_eventually_exists() {
     filename="$1"
     timeout="$2"
