@@ -1,5 +1,4 @@
 use crate::config::cache::Cache;
-use crate::config::dfx_version;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -125,12 +124,13 @@ impl CanisterBuilder for AssetsBuilder {
             })
             .collect::<DfxResult<Vec<CanisterId>>>()?;
 
+        let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
+
         build_frontend(
             pool.get_logger(),
             info.get_workspace_root(),
             &config.network_name,
-            dependencies,
-            pool,
+            vars,
         )?;
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
@@ -260,8 +260,7 @@ fn build_frontend(
     logger: &slog::Logger,
     project_root: &Path,
     network_name: &str,
-    dependencies: Vec<CanisterId>,
-    pool: &CanisterPool,
+    vars: Vec<super::Env<'_>>,
 ) -> DfxResult {
     let build_frontend = project_root.join("package.json").exists();
     // If there is not a package.json, we don't have a frontend and can quit early.
@@ -271,33 +270,14 @@ fn build_frontend(
         slog::info!(logger, "Building frontend...");
         let mut cmd = std::process::Command::new("npm");
 
-        cmd.arg("run")
-            .arg("build")
-            .env("DFX_VERSION", &format!("{}", dfx_version()))
-            .env("DFX_NETWORK", &network_name);
+        cmd.arg("run").arg("build");
 
         if NetworkDescriptor::is_ic(network_name, &vec![]) {
             cmd.env("NODE_ENV", "production");
         }
 
-        for deps in &dependencies {
-            let canister = pool.get_canister(deps).unwrap();
-            if let Some(output) = canister.get_build_output() {
-                let candid_path = match &output.idl {
-                    IdlBuildOutput::File(p) => p.as_os_str(),
-                };
-
-                cmd.env(
-                    format!("CANISTER_CANDID_PATH_{}", canister.get_name()),
-                    candid_path,
-                );
-            }
-        }
-        for canister in pool.get_canister_list() {
-            cmd.env(
-                format!("CANISTER_ID_{}", canister.get_name()),
-                canister.canister_id().to_text(),
-            );
+        for (var, value) in vars {
+            cmd.env(var.as_ref(), value);
         }
 
         cmd.current_dir(project_root)
