@@ -66,6 +66,10 @@ impl Canister {
         self.info.get_name()
     }
 
+    pub fn get_info(&self) -> &CanisterInfo {
+        &self.info
+    }
+
     pub fn canister_id(&self) -> CanisterId {
         self.info.get_canister_id().unwrap()
     }
