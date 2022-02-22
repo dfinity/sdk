@@ -48,9 +48,10 @@ teardown() {
     dfx deploy
     dfx canister call hello inc '()'
     dfx config canisters/hello/main v2_bad.mo
+    dfx build
     echo yes | dfx canister install hello --mode=reinstall
     assert_command dfx canister call hello read '()'
-    assert_match "(0 : nat)"    
+    assert_match "(0 : nat)"
 }
 
 @test "warning for changing method name" {
