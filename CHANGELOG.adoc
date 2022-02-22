@@ -1,4 +1,4 @@
-= 0.9.1 UNRELEASED
+= 0.9.1
 
 == DFX
 
@@ -11,6 +11,18 @@ Newly deployed Motoko canisters now embed the Candid interface and Motoko stable
 	2) the type safety of Motoko stable variable type in upgrade mode to avoid accidentally lossing data;
 
 See https://smartcontracts.org/docs/language-guide/compatibility.html[Upgrade compatibility] for more details.
+
+=== feat: Unified environment variables across build commands
+
+The three canister types that use a custom build tool - `assets`, `rust`, and `custom` - now all support the same set of environment variables during the build task: 
+
+* `DFX_VERSION` - The version of DFX that was used to build the canister.
+* `DFX_NETWORK` - The network name being built for. Usually `ic` or `local`.
+* `CANISTER_ID_{canister}` - The canister principal ID of the canister `{canister}` registered in `dfx.json`.
+* `CANISTER_CANDID_PATH_{canister}` - The path to the Candid interface file for the canister `{canister}` among your canister's dependencies.
+* `CANISTER_CANDID_{canister}` (deprecated) - the same as `CANISTER_CANDID_PATH_{canister}`.  This is provided for backwards compatibility with `rust` and `custom` canisters, and will be removed in dfx 0.10.0.
+* `CANISTER_ID` - Same as `CANISTER_ID_{self}`, where `{self}` is the name of _this_ canister.
+* `CANISTER_CANDID_PATH` - Same as `CANISTER_CANDID_PATH_{self}`, where `{self}` is the name of _this_ canister.
 
 === feat: Support for local ledger calls
 

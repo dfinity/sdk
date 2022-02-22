@@ -45,7 +45,7 @@ jobs:
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
           rustup default ${{ matrix.rust }}
-          cargo install --force --version ${{ matrix.cargo-audit }} cargo-audit
+          cargo install --force --version ${{ matrix.cargo-audit }} cargo-audit --locked
       - name: Audit
         run: |
           cd sdk
