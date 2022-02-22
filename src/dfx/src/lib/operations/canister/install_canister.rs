@@ -6,6 +6,7 @@ use crate::lib::identity::Identity;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::named_canister;
 use crate::lib::waiter::waiter_with_timeout;
+use crate::util::read_module_metadata;
 
 use anyhow::{anyhow, bail, Context};
 use ic_agent::Agent;
@@ -15,6 +16,7 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Canister;
 use openssl::sha::Sha256;
 use slog::info;
+use std::collections::HashSet;
 use std::io::stdin;
 use std::time::Duration;
 
@@ -35,25 +37,16 @@ pub async fn install_canister(
     }
 
     if mode == InstallMode::Reinstall {
-        eprintln!("Warning!");
-        eprintln!(
-            "You are about to reinstall the {} canister.",
+        let msg = format!(
+            "You are about to reinstall the {} canister",
             canister_info.get_name()
-        );
-        eprintln!("This will OVERWRITE all the data and code in the canister.");
-        eprintln!();
-        eprintln!("YOU WILL LOSE ALL DATA IN THE CANISTER.");
-        eprintln!();
-        eprintln!("Do you want to proceed? yes/No");
-        let mut input_string = String::new();
-        stdin()
-            .read_line(&mut input_string)
-            .map_err(|err| anyhow!(err))
-            .context("Unable to read input")?;
-        let input_string = input_string.trim_end();
-        if input_string != "yes" {
-            bail!("Refusing to reinstall canister without approval");
-        }
+        ) + r#"
+This will OVERWRITE all the data and code in the canister.
+
+YOU WILL LOSE ALL DATA IN THE CANISTER.");
+
+"#;
+        ask_for_consent(&msg)?;
     }
 
     let mgr = ManagementCanister::create(agent);
@@ -62,6 +55,51 @@ pub async fn install_canister(
         "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
         canister_info.get_name().to_owned()
     ))?;
+    if matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
+        let candid = read_module_metadata(agent, canister_id, "candid:service").await;
+        if let Some(candid) = candid {
+            use crate::util::check_candid_file;
+            let candid_path = canister_info
+                .get_output_idl_path()
+                .expect("Generated did file not found");
+            let deployed_path = candid_path.with_extension("old.did");
+            std::fs::write(&deployed_path, candid)?;
+            let (mut env, opt_new) = check_candid_file(&candid_path)?;
+            let new_type =
+                opt_new.expect("Generated did file should contain some service interface");
+            let (env2, opt_old) = check_candid_file(&deployed_path)?;
+            let old_type =
+                opt_old.expect("Deployed did file should contain some service interface");
+            let mut gamma = HashSet::new();
+            let old_type = env.merge_type(env2, old_type);
+            let result = candid::types::subtype::subtype(&mut gamma, &env, &new_type, &old_type);
+            if let Err(err) = result {
+                let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err.to_string();
+                ask_for_consent(&msg)?;
+            }
+        }
+    }
+    if canister_info.get_type() == "motoko" && matches!(mode, InstallMode::Upgrade) {
+        use crate::lib::canister_info::motoko::MotokoCanisterInfo;
+        let info = canister_info.as_info::<MotokoCanisterInfo>()?;
+        let stable_path = info.get_output_stable_path();
+        let deployed_stable_path = stable_path.with_extension("old.most");
+        let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
+        if let Some(stable_types) = stable_types {
+            std::fs::write(&deployed_stable_path, stable_types)?;
+            let cache = env.get_cache();
+            let output = cache
+                .get_binary_command("moc")?
+                .arg("--stable-compatible")
+                .arg(&deployed_stable_path)
+                .arg(&stable_path)
+                .output()?;
+            if !output.status.success() {
+                let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &String::from_utf8_lossy(&output.stderr);
+                ask_for_consent(&msg)?;
+            }
+        }
+    }
 
     let mode_str = match mode {
         InstallMode::Install => "Installing",
@@ -162,4 +200,20 @@ fn wasm_module_already_installed(
     } else {
         false
     }
+}
+
+fn ask_for_consent(message: &str) -> DfxResult {
+    eprintln!("WARNING!");
+    eprintln!("{}", message);
+    eprintln!("Do you want to proceed? yes/No");
+    let mut input_string = String::new();
+    stdin()
+        .read_line(&mut input_string)
+        .map_err(|err| anyhow!(err))
+        .context("Unable to read input")?;
+    let input_string = input_string.trim_end();
+    if input_string != "yes" {
+        bail!("Refusing to install canister without approval");
+    }
+    Ok(())
 }
