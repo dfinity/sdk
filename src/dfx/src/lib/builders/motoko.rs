@@ -211,6 +211,7 @@ impl MotokoParams<'_> {
             BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
         };
         cmd.arg("--idl").arg("--stable-types");
+        // TODO add a flag in dfx.json to opt-out public interface
         cmd.arg("--public-metadata").arg("candid:service");
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
