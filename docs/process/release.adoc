@@ -38,7 +38,7 @@ If you don't have a VPN connection set up for your computer, you'll need to foll
 +
 NOTE: If you are installing Nix for the first time, building the cache can take hours and might timeout depending on the reliability of your network connection.
 
-- You must have a registered NPM account.
+- You must have a registered NPM account and `npm` installed on your system.
 +
 If you don't have an account, you can go to the link:https://www.npmjs.com/[NPMJS] website and click *Sign Up* to create one using your `firstname.lastname@dfinity.org` email address.
 +
