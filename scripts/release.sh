@@ -27,9 +27,10 @@ term_reset() {
 
 get_parameters() {
     [ "$#" -eq 1 ] || die "Usage: $0 <n.n.n>"
-    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(beta|alpha)\.[0-9]+)?$ ]] || \
+    [[ "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-(beta|alpha)\.[0-9]+)?$ ]] || \
         die "'$1' is not a valid semantic version"
 
+    export FINAL_RELEASE_BRANCH="release-${BASH_REMATCH[1]}"
     export NEW_DFX_VERSION=$1
     export BRANCH=$USER/release-$NEW_DFX_VERSION
 
@@ -41,7 +42,7 @@ get_parameters() {
         dry_run_explain=' (dry run)'
     fi
 
-    announce "Building release $NEW_DFX_VERSION as branch $BRANCH $dry_run_explain"
+    announce "Building release $NEW_DFX_VERSION as branch $BRANCH ($FINAL_RELEASE_BRANCH) $dry_run_explain"
 }
 
 pre_release_check() {
@@ -178,7 +179,8 @@ build_release_branch() {
         $DRY_RUN_ECHO git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
         $DRY_RUN_ECHO git push origin $BRANCH
 
-        echo "Please open a pull request, review and approve it, label automerge-squash, and wait for it to be merged."
+        echo "Please open a pull request to the $FINAL_RELEASE_BRANCH branch, review and approve it, then merge it manually."
+        echo "  (The automerge-squash label will not work because the PR is not to the master branch)"
 EOF
     )
     # echo "$NIX_COMMAND"
@@ -200,10 +202,8 @@ update_stable_branch() {
         echo "Pulling the remove stable branch into the local stable branch."
         $DRY_RUN_ECHO git pull origin stable
 
-        # This seems like a race condition in our release process.
-        # A PR could have been merged to master.
         echo "Pulling the merged changes into the stable branch."
-        $DRY_RUN_ECHO git pull origin master --ff-only
+        $DRY_RUN_ECHO git pull origin "$FINAL_RELEASE_BRANCH" --ff-only
 
         echo "Creating a new tag $NEW_DFX_VERSION"
         $DRY_RUN_ECHO git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
