@@ -1,3 +1,10 @@
+= dfx changelog
+:doctype: book
+
+= 0.9.3
+
+== DFX
+
 = 0.9.2
 
 == DFX
