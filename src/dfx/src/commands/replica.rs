@@ -76,7 +76,7 @@ fn start_replica(
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
-    let system = actix::System::new("dfx-replica");
+    let system = actix::System::new();
     let shutdown_controller = start_shutdown_controller(env)?;
     if opts.emulator {
         start_emulator_actor(env, shutdown_controller)?;

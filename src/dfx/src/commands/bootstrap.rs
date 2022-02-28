@@ -73,7 +73,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
 
     verify_unique_ports(&providers, &socket_addr)?;
 
-    let system = actix::System::new("dfx-bootstrap");
+    let system = actix::System::new();
 
     let shutdown_controller = start_shutdown_controller(env)?;
 

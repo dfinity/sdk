@@ -154,7 +154,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
-    let system = actix::System::new("dfx-start");
+    let system = actix::System::new();
 
     let shutdown_controller = start_shutdown_controller(env)?;
 

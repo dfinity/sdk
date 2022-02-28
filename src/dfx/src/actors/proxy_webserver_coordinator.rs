@@ -6,7 +6,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::webserver::run_webserver;
 
 use crate::actors::proxy_webserver_coordinator::signals::StartWebserver;
-use actix::clock::{delay_for, Duration};
+use actix::clock::sleep;
 use actix::fut::wrap_future;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, ResponseFuture};
 use actix_server::Server;
@@ -15,6 +15,7 @@ use futures::future::FutureExt;
 use slog::{error, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::time::Duration;
 
 pub mod signals {
     use actix::prelude::*;
@@ -81,7 +82,7 @@ impl Handler<StartWebserver> for ProxyWebserverCoordinator {
 
     fn handle(&mut self, msg: StartWebserver, ctx: &mut Self::Context) {
         if let Some(server) = &self.server {
-            ctx.wait(wrap_future(server.stop(true)));
+            ctx.wait(wrap_future(server.handle().stop(true)));
             self.server = None;
             ctx.address().do_send(msg);
         } else {
@@ -91,7 +92,7 @@ impl Handler<StartWebserver> for ProxyWebserverCoordinator {
                 }
                 Err(e) => {
                     error!(self.logger, "Unable to start webserver: {}", e);
-                    ctx.wait(wrap_future(delay_for(Duration::from_secs(2))));
+                    ctx.wait(wrap_future(sleep(Duration::from_secs(2))));
                     ctx.address().do_send(msg);
                 }
             }
@@ -107,7 +108,7 @@ impl Handler<Shutdown> for ProxyWebserverCoordinator {
             // We stop the webserver before shutting down because
             // if we don't, the process will segfault
             // while dropping actix stuff after main() returns.
-            Box::pin(server.stop(true).map(Ok))
+            Box::pin(server.handle().stop(true).map(Ok))
         } else {
             Box::pin(future::ok(()))
         }
