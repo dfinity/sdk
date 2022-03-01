@@ -8,7 +8,7 @@ use crate::util::get_reusable_socket_addr;
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::commands::start::start_webserver_coordinator;
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, Context, Error};
 use clap::Parser;
 use std::default::Default;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -74,37 +74,39 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     verify_unique_ports(&providers, &socket_addr)?;
 
     let system = actix::System::new();
+    system.block_on(async move {
+        let shutdown_controller = start_shutdown_controller(env)?;
 
-    let shutdown_controller = start_shutdown_controller(env)?;
+        let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
+        let proxy_port_path = env.get_temp_dir().join("proxy-port");
+        std::fs::write(&proxy_port_path, "")?;
+        std::fs::write(&proxy_port_path, webserver_bind.port().to_string())?;
 
-    let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
-    let proxy_port_path = env.get_temp_dir().join("proxy-port");
-    std::fs::write(&proxy_port_path, "")?;
-    std::fs::write(&proxy_port_path, webserver_bind.port().to_string())?;
+        let icx_proxy_config = IcxProxyConfig {
+            bind: socket_addr,
+            proxy_port: webserver_bind.port(),
+            providers,
+            fetch_root_key: !network_descriptor.is_ic,
+        };
 
-    let icx_proxy_config = IcxProxyConfig {
-        bind: socket_addr,
-        proxy_port: webserver_bind.port(),
-        providers,
-        fetch_root_key: !network_descriptor.is_ic,
-    };
+        let _webserver_coordinator = start_webserver_coordinator(
+            env,
+            network_descriptor,
+            webserver_bind,
+            build_output_root,
+            shutdown_controller.clone(),
+        )?;
 
-    let _webserver_coordinator = start_webserver_coordinator(
-        env,
-        network_descriptor,
-        webserver_bind,
-        build_output_root,
-        shutdown_controller.clone(),
-    )?;
-
-    let port_ready_subscribe = None;
-    let _proxy = start_icx_proxy_actor(
-        env,
-        icx_proxy_config,
-        port_ready_subscribe,
-        shutdown_controller,
-        icx_proxy_pid_file_path,
-    )?;
+        let port_ready_subscribe = None;
+        let _proxy = start_icx_proxy_actor(
+            env,
+            icx_proxy_config,
+            port_ready_subscribe,
+            shutdown_controller,
+            icx_proxy_pid_file_path,
+        )?;
+        Ok::<_, Error>(())
+    })?;
     system.run()?;
 
     Ok(())

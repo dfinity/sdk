@@ -77,12 +77,15 @@ fn start_replica(
 /// replica at the moment) and the proxy.
 pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let system = actix::System::new();
-    let shutdown_controller = start_shutdown_controller(env)?;
-    if opts.emulator {
-        start_emulator_actor(env, shutdown_controller)?;
-    } else {
-        start_replica(env, opts, shutdown_controller)?;
-    }
+    system.block_on(async move {
+        let shutdown_controller = start_shutdown_controller(env)?;
+        if opts.emulator {
+            start_emulator_actor(env, shutdown_controller)?;
+        } else {
+            start_replica(env, opts, shutdown_controller)?;
+        }
+        DfxResult::Ok(())
+    })?;
     system.run()?;
     Ok(())
 }
