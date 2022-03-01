@@ -15,7 +15,7 @@ use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use actix::{Actor, Addr, Recipient};
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
@@ -121,7 +121,15 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment) and the proxy.
-pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
+pub fn exec(
+    env: &dyn Environment,
+    StartOpts {
+        host,
+        background,
+        emulator,
+        clean,
+    }: StartOpts,
+) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let network_descriptor = get_network_descriptor(env, None)?;
     let temp_dir = env.get_temp_dir();
@@ -135,7 +143,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
-    if opts.clean {
+    if clean {
         clean_state(temp_dir, &state_root)?;
     }
 
@@ -143,8 +151,7 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     std::fs::write(&icx_proxy_pid_file_path, "")?;
     std::fs::write(&webserver_port_path, "")?;
 
-    let background = opts.background;
-    let (frontend_url, address_and_port) = frontend_address(opts.host, &config, background)?;
+    let (frontend_url, address_and_port) = frontend_address(host, &config, background)?;
 
     if background {
         send_background()?;
@@ -155,49 +162,50 @@ pub fn exec(env: &dyn Environment, opts: StartOpts) -> DfxResult {
     std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let system = actix::System::new();
+    system.block_on(async move {
+        let shutdown_controller = start_shutdown_controller(env)?;
 
-    let shutdown_controller = start_shutdown_controller(env)?;
+        let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
+            let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
+            emulator.recipient()
+        } else {
+            let replica_port_path = env
+                .get_temp_dir()
+                .join("replica-configuration")
+                .join("replica-1.port");
 
-    let port_ready_subscribe: Recipient<PortReadySubscribe> = if opts.emulator {
-        let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
-        emulator.recipient()
-    } else {
-        let replica_port_path = env
-            .get_temp_dir()
-            .join("replica-configuration")
-            .join("replica-1.port");
+            let replica_config =
+                ReplicaConfig::new(&env.get_state_dir()).with_random_port(&replica_port_path);
+            let replica = start_replica_actor(env, replica_config, shutdown_controller.clone())?;
+            replica.recipient()
+        };
 
-        let replica_config =
-            ReplicaConfig::new(&env.get_state_dir()).with_random_port(&replica_port_path);
-        let replica = start_replica_actor(env, replica_config, shutdown_controller.clone())?;
-        replica.recipient()
-    };
+        let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
+        let icx_proxy_config = IcxProxyConfig {
+            bind: address_and_port,
+            proxy_port: webserver_bind.port(),
+            providers: vec![],
+            fetch_root_key: !network_descriptor.is_ic,
+        };
 
-    let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
-    let icx_proxy_config = IcxProxyConfig {
-        bind: address_and_port,
-        proxy_port: webserver_bind.port(),
-        providers: vec![],
-        fetch_root_key: !network_descriptor.is_ic,
-    };
+        let _webserver_coordinator = start_webserver_coordinator(
+            env,
+            network_descriptor,
+            webserver_bind,
+            build_output_root,
+            shutdown_controller.clone(),
+        )?;
 
-    let _webserver_coordinator = start_webserver_coordinator(
-        env,
-        network_descriptor,
-        webserver_bind,
-        build_output_root,
-        shutdown_controller.clone(),
-    )?;
-
-    let _proxy = start_icx_proxy_actor(
-        env,
-        icx_proxy_config,
-        Some(port_ready_subscribe),
-        shutdown_controller,
-        icx_proxy_pid_file_path,
-    )?;
+        let _proxy = start_icx_proxy_actor(
+            env,
+            icx_proxy_config,
+            Some(port_ready_subscribe),
+            shutdown_controller,
+            icx_proxy_pid_file_path,
+        )?;
+        Ok::<_, Error>(())
+    })?;
     system.run()?;
-
     Ok(())
 }
 
