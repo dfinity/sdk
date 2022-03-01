@@ -10,7 +10,6 @@ use actix_web::error::ErrorInternalServerError;
 use actix_web::http::StatusCode;
 use actix_web::{http, middleware, web, App, Error, HttpResponse, HttpServer};
 use anyhow::anyhow;
-use awc::{ClientBuilder, Connector};
 use serde::Deserialize;
 use slog::{info, Logger};
 use std::net::SocketAddr;
@@ -92,11 +91,6 @@ pub fn run_webserver(
     let handler =
         HttpServer::new(move || {
             App::new()
-                .app_data(web::Data::new(
-                    ClientBuilder::new()
-                        .connector(Connector::new().limit(1).finish())
-                        .finish(),
-                ))
                 .app_data(candid_data.clone())
                 .wrap(
                     Cors::default()
