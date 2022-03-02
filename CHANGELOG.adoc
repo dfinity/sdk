@@ -5,6 +5,12 @@
 
 == DFX
 
+== icx-proxy
+
+Updated to commit 0230bff9cc62d5ef32dfed7009c7f85a3af1e716
+
+* upgrade HTTP calls upon canister request
+
 = 0.9.2
 
 == DFX

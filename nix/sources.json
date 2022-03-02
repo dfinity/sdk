@@ -92,7 +92,7 @@
     "icx-proxy": {
         "branch": "main",
         "repo": "https://github.com/dfinity/icx-proxy",
-        "rev": "d2cd4d822be4fa8d0af2f27e4dcc635d2032fcfb",
+        "rev": "0230bff9cc62d5ef32dfed7009c7f85a3af1e716",
         "type": "git"
     },
     "motoko-base": {
