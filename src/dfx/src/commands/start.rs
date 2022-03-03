@@ -159,7 +159,7 @@ pub fn exec(
     std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let system = actix::System::new();
-    system.block_on(async move {
+    let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
@@ -192,14 +192,14 @@ pub fn exec(
             webserver_bind,
         )?);
 
-        let _proxy = start_icx_proxy_actor(
+        let proxy = start_icx_proxy_actor(
             env,
             icx_proxy_config,
             Some(port_ready_subscribe),
             shutdown_controller,
             icx_proxy_pid_file_path,
         )?;
-        Ok::<_, Error>(())
+        Ok::<_, Error>(proxy)
     })?;
     system.run()?;
     Ok(())

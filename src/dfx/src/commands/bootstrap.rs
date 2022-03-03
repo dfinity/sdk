@@ -74,7 +74,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     verify_unique_ports(&providers, &socket_addr)?;
 
     let system = actix::System::new();
-    system.block_on(async move {
+    let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
@@ -97,14 +97,14 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
         )?);
 
         let port_ready_subscribe = None;
-        let _proxy = start_icx_proxy_actor(
+        let proxy = start_icx_proxy_actor(
             env,
             icx_proxy_config,
             port_ready_subscribe,
             shutdown_controller,
             icx_proxy_pid_file_path,
         )?;
-        Ok::<_, Error>(())
+        Ok::<_, Error>(proxy)
     })?;
     system.run()?;
 
