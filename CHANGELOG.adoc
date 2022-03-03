@@ -7,7 +7,7 @@
 
 == icx-proxy
 
-Updated icx-proxy to commit 0230bff9cc62d5ef32dfed7009c7f85a3af1e716
+Updated icx-proxy to commit 0230bff9cc62d5ef32dfed7009c7f85a3af1e716, now static-linked.
 
 * upgrade HTTP calls upon canister request
 

@@ -104,8 +104,8 @@
         "sha256": "1rkvidic28663hwjhkz7gfa5nxk7qgm0c6zmlfwmb6wmj2zvmj2z",
         "shortrev": "0230bff",
         "type": "file",
-        "url": "https://github.com/dfinity/icx-proxy/releases/download/0230bff/binaries-linux-gnu.tar.gz",
-        "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<shortrev>/binaries-linux-gnu.tar.gz"
+        "url": "https://github.com/dfinity/icx-proxy/releases/download/0230bff/binaries-linux.tar.gz",
+        "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<shortrev>/binaries-linux.tar.gz"
     },
     "motoko-base": {
         "branch": "next-moc",
