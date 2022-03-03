@@ -7,12 +7,14 @@ let
     exename = "icx-proxy";
     usePackager = false;
   };
+  icx-proxy-bin = pkgs.sources."icx-proxy-${pkgs.system}";
   replica-bin = pkgs.sources."replica-${pkgs.system}";
   canister-sandbox-bin = pkgs.sources."canister-sandbox-${pkgs.system}";
   starter-bin = pkgs.sources."ic-starter-${pkgs.system}";
   looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
     mkdir -p $out
 
+    gunzip <${icx-proxy-bin} >$out/icx-proxy
     gunzip <${replica-bin} >$out/replica
     gunzip <${canister-sandbox-bin} >$out/canister_sandbox
     gunzip <${starter-bin} >$out/ic-starter
@@ -21,7 +23,6 @@ let
     cp ${pkgs.motoko}/bin/mo-ide $out
     cp ${pkgs.motoko}/bin/moc $out
     cp ${pkgs.ic-ref}/bin/* $out
-    cp ${icx-proxy-standalone}/bin/icx-proxy $out
   '';
 in
 pkgs.runCommandNoCCLocal "assets" {} ''

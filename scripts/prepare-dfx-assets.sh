@@ -91,6 +91,11 @@ download_ic_ref() {
     chmod 0500 "$BINARY_CACHE_TEMP_DIR/ic-ref"
 }
 
+download_icx_proxy() {
+    download_tarball "icx-proxy"
+    chmod 0500 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
+}
+
 download_motoko_binaries() {
     download_tarball "motoko"
 
@@ -116,34 +121,14 @@ copy_motoko_base_from_clone() {
     )
 }
 
-build_icx_proxy() {
-    BRANCH="$ICX_PROXY_BRANCH"
-    REV="$ICX_PROXY_REV"
-    REPO="$ICX_PROXY_REPO"
-
-    (
-        cd "$DOWNLOAD_TEMP_DIR" # ok technically we are not downloading
-
-        git clone -b "$BRANCH" --single-branch "$REPO"
-        (
-            cd icx-proxy
-            git checkout "$REV"
-            cargo build --release -p icx-proxy
-            cp target/release/icx-proxy "$BINARY_CACHE_TEMP_DIR/icx-proxy"
-            chmod 0500 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
-        )
-    )
-}
-
 add_binary_cache() {
     download_binary "replica"
     download_binary "canister_sandbox"
     download_binary "ic-starter"
     download_ic_ref
+    download_icx_proxy
     download_motoko_binaries
     copy_motoko_base_from_clone
-
-    build_icx_proxy
 
     tar -czf "$DFX_ASSETS_TEMP_DIR"/binary_cache.tgz -C "$BINARY_CACHE_TEMP_DIR" .
 }
