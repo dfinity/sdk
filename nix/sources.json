@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "0ff38eb722fac2ef0f0f353b4775580bfd2067db",
-        "sha256": "1xqlgc8fyv927v4khxbhmv5391r02a0zk3jnmrm1g30lsdhvxs69",
+        "rev": "616ecfe7a324fcdf799f165441b191db84ce3da9",
+        "sha256": "0nc3vmvhv14hl2vmwgpax0zxiw1m4qijgmn7m11chc2zjrf1f7c2",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/0ff38eb722fac2ef0f0f353b4775580bfd2067db.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/616ecfe7a324fcdf799f165441b191db84ce3da9.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
@@ -52,7 +52,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "88692b94684330030cec7bed8e29cf00fcdc1559",
+        "rev": "d6118b3e376ff1277a522db21a37022ebed38e9c",
         "type": "git"
     },
     "ic-ref-x86_64-darwin": {
