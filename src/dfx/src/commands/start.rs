@@ -1,4 +1,3 @@
-use crate::actors;
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::{
     start_emulator_actor, start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
@@ -10,11 +9,9 @@ use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
-use crate::actors::proxy_webserver_coordinator::ProxyWebserverCoordinator;
-use crate::actors::shutdown_controller::ShutdownController;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::webserver::run_webserver;
 use crate::lib::provider::get_network_descriptor;
-use actix::{Actor, Addr, Recipient};
+use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use garcon::{Delay, Waiter};
@@ -188,13 +185,13 @@ pub fn exec(
             fetch_root_key: !network_descriptor.is_ic,
         };
 
-        let _webserver_coordinator = start_webserver_coordinator(
-            env,
+        actix::spawn(run_webserver(
+            env.get_logger().clone(),
+            build_output_root,
             network_descriptor,
             webserver_bind,
-            build_output_root,
-            shutdown_controller.clone(),
-        )?;
+        )?);
+        
 
         let _proxy = start_icx_proxy_actor(
             env,
@@ -227,23 +224,6 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
         ))?;
     }
     Ok(())
-}
-
-pub fn start_webserver_coordinator(
-    env: &dyn Environment,
-    network_descriptor: NetworkDescriptor,
-    bind: SocketAddr,
-    build_output_root: PathBuf,
-    shutdown_controller: Addr<ShutdownController>,
-) -> DfxResult<Addr<ProxyWebserverCoordinator>> {
-    let actor_config = actors::proxy_webserver_coordinator::Config {
-        logger: Some(env.get_logger().clone()),
-        shutdown_controller,
-        bind,
-        build_output_root,
-        network_descriptor,
-    };
-    Ok(ProxyWebserverCoordinator::new(actor_config).start())
 }
 
 fn send_background() -> DfxResult<()> {

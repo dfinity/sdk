@@ -3,11 +3,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::get_network_descriptor;
+use crate::lib::webserver::run_webserver;
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
-use crate::commands::start::start_webserver_coordinator;
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
 use std::default::Default;
@@ -89,13 +89,13 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
             fetch_root_key: !network_descriptor.is_ic,
         };
 
-        let _webserver_coordinator = start_webserver_coordinator(
-            env,
+
+        actix::spawn(run_webserver(
+            env.get_logger().clone(),
+            build_output_root,
             network_descriptor,
             webserver_bind,
-            build_output_root,
-            shutdown_controller.clone(),
-        )?;
+        )?);
 
         let port_ready_subscribe = None;
         let _proxy = start_icx_proxy_actor(
