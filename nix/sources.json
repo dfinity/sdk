@@ -101,7 +101,7 @@
     "icx-proxy-x86_64-linux": {
         "builtin": false,
         "rev": "0230bff9cc62d5ef32dfed7009c7f85a3af1e716",
-        "sha256": "1rkvidic28663hwjhkz7gfa5nxk7qgm0c6zmlfwmb6wmj2zvmj2z",
+        "sha256": "0va9y4f84zv0zdsc2zq898p3g1fn8gl8fhjq1s7y62l4dpn998f8",
         "shortrev": "0230bff",
         "type": "file",
         "url": "https://github.com/dfinity/icx-proxy/releases/download/0230bff/binaries-linux.tar.gz",
