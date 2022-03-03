@@ -89,7 +89,6 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
             fetch_root_key: !network_descriptor.is_ic,
         };
 
-
         actix::spawn(run_webserver(
             env.get_logger().clone(),
             build_output_root,

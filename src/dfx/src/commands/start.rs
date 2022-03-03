@@ -9,8 +9,8 @@ use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
-use crate::lib::webserver::run_webserver;
 use crate::lib::provider::get_network_descriptor;
+use crate::lib::webserver::run_webserver;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
@@ -191,7 +191,6 @@ pub fn exec(
             network_descriptor,
             webserver_bind,
         )?);
-        
 
         let _proxy = start_icx_proxy_actor(
             env,
