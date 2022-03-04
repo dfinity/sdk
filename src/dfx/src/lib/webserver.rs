@@ -35,10 +35,12 @@ struct CandidRequest {
     format: Option<Format>,
 }
 
+#[allow(unused)]
 async fn candid(
     web::Query(info): web::Query<CandidRequest>,
     data: web::Data<CandidData>,
 ) -> Result<HttpResponse, Error> {
+    panic!();
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
     let store =
