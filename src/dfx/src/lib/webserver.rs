@@ -112,6 +112,10 @@ pub fn run_webserver(
         // N.B. This is an arbitrary timeout for now.
         .shutdown_timeout(SHUTDOWN_WAIT_TIME)
         .run();
-    thread::spawn(|| actix::run(async { handler.await.unwrap(); }));
+    thread::spawn(|| {
+        actix::run(async {
+            handler.await.unwrap();
+        })
+    });
     Ok(())
 }
