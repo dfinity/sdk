@@ -107,7 +107,6 @@ pub fn run_webserver(
                 ))
                 .default_service(web::get().to(|| HttpResponse::build(StatusCode::NOT_FOUND)))
         })
-        .max_connections(1)
         .bind(bind)?
         // N.B. This is an arbitrary timeout for now.
         .shutdown_timeout(SHUTDOWN_WAIT_TIME)
