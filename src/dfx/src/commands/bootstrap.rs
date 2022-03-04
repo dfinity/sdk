@@ -89,12 +89,12 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
             fetch_root_key: !network_descriptor.is_ic,
         };
 
-        actix::spawn(run_webserver(
+        run_webserver(
             env.get_logger().clone(),
             build_output_root,
             network_descriptor,
             webserver_bind,
-        )?);
+        )?;
 
         let port_ready_subscribe = None;
         let proxy = start_icx_proxy_actor(

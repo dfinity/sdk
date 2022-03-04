@@ -185,12 +185,12 @@ pub fn exec(
             fetch_root_key: !network_descriptor.is_ic,
         };
 
-        actix::spawn(run_webserver(
+        run_webserver(
             env.get_logger().clone(),
             build_output_root,
             network_descriptor,
             webserver_bind,
-        )?);
+        )?;
 
         let proxy = start_icx_proxy_actor(
             env,

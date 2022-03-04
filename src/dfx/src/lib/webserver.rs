@@ -5,7 +5,6 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::check_candid_file;
 
 use actix_cors::Cors;
-use actix_server::Server;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::http::StatusCode;
 use actix_web::{http, middleware, web, App, Error, HttpResponse, HttpServer};
@@ -14,6 +13,7 @@ use serde::Deserialize;
 use slog::{info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::thread;
 
 struct CandidData {
     pub build_output_root: PathBuf,
@@ -74,13 +74,13 @@ async fn candid(
     Ok(response)
 }
 
-/// Run the webserver in the current thread.
+/// Run the webserver in another thread.
 pub fn run_webserver(
     logger: Logger,
     build_output_root: PathBuf,
     network_descriptor: NetworkDescriptor,
     bind: SocketAddr,
-) -> DfxResult<Server> {
+) -> DfxResult {
     const SHUTDOWN_WAIT_TIME: u64 = 60;
     info!(logger, "binding to: {:?}", bind);
     let candid_data = web::Data::new(CandidData {
@@ -112,6 +112,6 @@ pub fn run_webserver(
         // N.B. This is an arbitrary timeout for now.
         .shutdown_timeout(SHUTDOWN_WAIT_TIME)
         .run();
-
-    Ok(handler)
+    thread::spawn(|| actix::run(async { handler.await.unwrap(); }));
+    Ok(())
 }
