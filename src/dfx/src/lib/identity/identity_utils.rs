@@ -84,7 +84,7 @@ mod test {
     use super::*;
     use proptest::prelude::*;
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(50))] // takes ~2.6s per case
+        #![proptest_config(ProptestConfig::with_cases(10))] // takes ~2.6s per case
         #[test]
         fn decrypt_reverts_encrypt(pass in ".*", content in ".*") {
             let config = EncryptionConfiguration::new().unwrap();
