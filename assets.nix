@@ -10,6 +10,7 @@ let
   icx-proxy-bin = pkgs.sources."icx-proxy-${pkgs.system}";
   replica-bin = pkgs.sources."replica-${pkgs.system}";
   canister-sandbox-bin = pkgs.sources."canister-sandbox-${pkgs.system}";
+  sandbox-launcher-bin = pkgs.sources."sandbox-launcher-${pkgs.system}";
   starter-bin = pkgs.sources."ic-starter-${pkgs.system}";
   looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
     mkdir -p $out
@@ -17,6 +18,7 @@ let
     gunzip <${icx-proxy-bin} >$out/icx-proxy
     gunzip <${replica-bin} >$out/replica
     gunzip <${canister-sandbox-bin} >$out/canister_sandbox
+    gunzip <${sandbox-launcher-bin} >$out/sandbox_launcher
     gunzip <${starter-bin} >$out/ic-starter
     cp -R ${pkgs.sources.motoko-base}/src $out/base
     cp ${pkgs.motoko}/bin/mo-doc $out
