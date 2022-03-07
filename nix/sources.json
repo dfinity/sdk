@@ -13,9 +13,9 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
-        "branch": "main",
-        "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "22c7bb2ec77be4779f85313791a066ff75939bfb",
+        "branch": "dbloom/token",
+        "repo": "https://github.com/Daniel-Bloom-dfinity/agent-rs.git",
+        "rev": "e66b39173e63b9f58c3905fcb2dcb75f38717b6c",
         "type": "git"
     },
     "bats-support": {
