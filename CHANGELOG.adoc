@@ -96,7 +96,7 @@ This is the general format of the configuration in dfx.json:
   "canisters": {
     "<canister name>": {
       "remote": {
-        "candid": "<path to candid file to use when building on remote networks>"
+        "candid": "<path to candid file to use when building on remote networks>",
         "id": {
           "<network name>": "<principal on network>"
         }

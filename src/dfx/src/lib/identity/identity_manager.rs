@@ -2,6 +2,7 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::{
+    identity_utils::{decrypt, encrypt},
     Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
 };
 
@@ -11,7 +12,7 @@ use ic_types::Principal;
 use openssl::ec::EcKey;
 use openssl::nid::Nid;
 use pem::{encode, Pem};
-use ring::{rand, signature};
+use ring::{rand, rand::SecureRandom, signature};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::boxed::Box;
@@ -33,6 +34,38 @@ fn default_identity() -> String {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct IdentityConfiguration {
     pub hsm: Option<HardwareIdentityConfiguration>,
+
+    /// If the identity's .pem file is encrypted this contains everything (except the password) to decrypt the file.
+    pub encryption: Option<EncryptionConfiguration>,
+}
+
+/// The information necessary to de- and encrypt (except the password) the identity's .pem file
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct EncryptionConfiguration {
+    /// Salt used for deriving the key from the password
+    pub pw_salt: Vec<u8>,
+
+    /// 96 bit Nonce used to decrypt the file
+    pub file_nonce: Vec<u8>,
+}
+
+impl EncryptionConfiguration {
+    /// Generates a random salt and nonce. Use this for every new identity
+    pub fn new() -> DfxResult<Self> {
+        let mut salt: [u8; 64] = [0; 64];
+        let mut nonce: [u8; 12] = [0; 12];
+        let sr = rand::SystemRandom::new();
+        sr.fill(&mut salt)?;
+        sr.fill(&mut nonce)?;
+
+        let pw_salt = salt.into();
+        let file_nonce = nonce.into();
+
+        Ok(Self {
+            pw_salt,
+            file_nonce,
+        })
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -45,9 +78,16 @@ pub struct HardwareIdentityConfiguration {
 }
 
 pub enum IdentityCreationParameters {
-    Pem(),
-    PemFile(PathBuf),
-    Hardware(HardwareIdentityConfiguration),
+    Pem {
+        disable_encryption: bool,
+    },
+    PemFile {
+        src_pem_file: PathBuf,
+        disable_encryption: bool,
+    },
+    Hardware {
+        hsm: HardwareIdentityConfiguration,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -158,6 +198,22 @@ impl IdentityManager {
     /// Return the name of the currently selected (active) identity
     pub fn get_selected_identity_name(&self) -> &String {
         &self.selected_identity
+    }
+
+    /// Returns the pem file content of the selected identity
+    pub fn export(&self, name: &str) -> DfxResult<String> {
+        self.require_identity_exists(name)?;
+        let pem_path = self.get_identity_pem_path(name);
+        let json_path = self.get_identity_json_path(name);
+
+        let config = if json_path.exists() {
+            read_identity_configuration(&json_path)?
+        } else {
+            IdentityConfiguration::default()
+        };
+
+        let pem = load_pem_file(&pem_path, Some(&config))?;
+        String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
 
     /// Remove a named identity.
@@ -302,7 +358,8 @@ fn initialize(
                 "  - generating new key at {}",
                 identity_pem_path.display()
             );
-            generate_key(&identity_pem_path)?;
+            let key = generate_key()?;
+            write_pem_file(&identity_pem_path, None, key.as_slice())?;
         }
     } else {
         slog::info!(
@@ -380,49 +437,22 @@ fn remove_identity_file(file: &Path) -> DfxResult {
     Ok(())
 }
 
-pub(super) fn generate_key(pem_file: &Path) -> DfxResult {
+/// Generates a new Ed25519 key and writes it to pem_file.
+pub(super) fn generate_key() -> DfxResult<Vec<u8>> {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
         .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
 
     let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
-    fs::write(&pem_file, encoded_pem)?;
-
-    let mut permissions = fs::metadata(&pem_file)?.permissions();
-    permissions.set_readonly(true);
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        permissions.set_mode(0o400);
-    }
-
-    fs::set_permissions(&pem_file, permissions)?;
-
-    Ok(())
+    Ok(Vec::from(encoded_pem))
 }
 
-pub(super) fn import_pem_file(src_pem_file: &Path, dst_pem_file: &Path) -> DfxResult {
-    std::fs::copy(&src_pem_file, &dst_pem_file).context(format!(
-        "Cannot copy PEM file from '{}' to '{}'.",
-        PathBuf::from(src_pem_file).display(),
-        PathBuf::from(dst_pem_file).display(),
-    ))?;
-    Ok(())
-}
-
-pub(super) fn validate_pem_file(pem_file: &Path) -> DfxResult {
-    let contents = std::fs::read(&pem_file).context(format!(
-        "Cannot read PEM file at '{}'.",
-        PathBuf::from(pem_file).display()
-    ))?;
-    if contents.starts_with(b"-----BEGIN EC PARAMETERS-----")
-        || contents.starts_with(b"-----BEGIN EC PRIVATE KEY-----")
+pub(super) fn validate_pem_file(pem_file: &[u8]) -> DfxResult {
+    if pem_file.starts_with(b"-----BEGIN EC PARAMETERS-----")
+        || pem_file.starts_with(b"-----BEGIN EC PRIVATE KEY-----")
     {
-        let private_key = EcKey::private_key_from_pem(&contents).context(format!(
-            "Cannot decode PEM file at '{}'.",
-            PathBuf::from(pem_file).display()
-        ))?;
+        let private_key =
+            EcKey::private_key_from_pem(pem_file).context("Cannot decode PEM file content.")?;
         let named_curve = private_key.group().curve_name();
         let is_secp256k1 = named_curve == Some(Nid::SECP256K1);
         if !is_secp256k1 {
@@ -430,10 +460,8 @@ pub(super) fn validate_pem_file(pem_file: &Path) -> DfxResult {
         }
     } else {
         // The PEM file generated by `dfx new` don't have EC PARAMETERS header and the curve is Ed25519
-        let _basic_identity = BasicIdentity::from_pem_file(pem_file).context(format!(
-            "Invalid Ed25519 private key in PEM file at {}",
-            PathBuf::from(pem_file).display()
-        ))?;
+        let _basic_identity =
+            BasicIdentity::from_pem(pem_file).context("Invalid Ed25519 private key in PEM file")?;
     }
     Ok(())
 }
@@ -444,4 +472,83 @@ fn encode_pem_private_key(key: &[u8]) -> String {
         contents: key.to_vec(),
     };
     encode(&pem)
+}
+
+/// If the IndentityConfiguration suggests that the content of the pem file should be encrypted,
+/// then the user is prompted for the password to the pem file.
+/// The encrypted pem file content is then returned.
+///
+/// If the pem file should not be encrypted, then the content is returned as is.
+///
+/// `maybe_decrypt_pem` does the opposite.
+pub(super) fn maybe_encrypt_pem(
+    pem_content: &[u8],
+    config: Option<&IdentityConfiguration>,
+) -> DfxResult<Vec<u8>> {
+    if let Some(encryption_config) = config.and_then(|c| c.encryption.as_ref()) {
+        let password = dialoguer::Password::new()
+            .with_prompt("Please enter a passphrase to encrypt your identity")
+            .interact()?;
+        if password.is_empty() {
+            bail!("DANGEROUS: If you want to use no password, use the flag --disable-encryption instead.")
+        };
+        encrypt(pem_content, encryption_config, &password)
+            .context("Problem occurred during encryption")
+    } else {
+        Ok(Vec::from(pem_content))
+    }
+}
+
+/// If the IndentityConfiguration suggests that the content of the pem file is encrypted,
+/// then the user is prompted for the password to the pem file.
+/// The decrypted pem file content is then returned.
+///
+/// If the pem file should not be encrypted, then the content is returned as is.
+///
+/// `maybe_encrypt_pem` does the opposite.
+pub(super) fn maybe_decrypt_pem(
+    pem_content: &[u8],
+    config: Option<&IdentityConfiguration>,
+) -> DfxResult<Vec<u8>> {
+    if let Some(decryption_config) = config.and_then(|c| c.encryption.as_ref()) {
+        let password = dialoguer::Password::new()
+            .with_prompt("Please enter a passphrase to decrypt your identity")
+            .interact()?;
+        decrypt(pem_content, decryption_config, &password)
+            .context("Problem occurred during decryption")
+    } else {
+        Ok(Vec::from(pem_content))
+    }
+}
+
+pub(super) fn load_pem_file(
+    path: &Path,
+    config: Option<&IdentityConfiguration>,
+) -> DfxResult<Vec<u8>> {
+    let content = std::fs::read(path)?;
+    let content = maybe_decrypt_pem(content.as_slice(), config)?;
+    validate_pem_file(&content)?;
+    Ok(content)
+}
+
+pub(super) fn write_pem_file(
+    path: &Path,
+    config: Option<&IdentityConfiguration>,
+    pem_content: &[u8],
+) -> DfxResult<()> {
+    let pem_content = maybe_encrypt_pem(pem_content, config)?;
+    fs::write(&path, pem_content)?;
+
+    let mut permissions = fs::metadata(&path)?.permissions();
+    permissions.set_readonly(true);
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        permissions.set_mode(0o400);
+    }
+
+    fs::set_permissions(&path, permissions)?;
+
+    Ok(())
 }
