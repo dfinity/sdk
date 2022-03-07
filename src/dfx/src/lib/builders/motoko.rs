@@ -205,11 +205,14 @@ struct MotokoParams<'a> {
 impl MotokoParams<'_> {
     fn to_args(&self, cmd: &mut std::process::Command) {
         cmd.arg(self.input);
-        cmd.arg("-o").arg(self.output).arg("--idl");
+        cmd.arg("-o").arg(self.output);
         match self.build_target {
             BuildTarget::Release => cmd.args(&["-c", "--release"]),
             BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
         };
+        cmd.arg("--idl").arg("--stable-types");
+        // TODO add a flag in dfx.json to opt-out public interface
+        cmd.arg("--public-metadata").arg("candid:service");
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
             for (name, canister_id) in self.idl_map.iter() {

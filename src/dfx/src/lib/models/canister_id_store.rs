@@ -21,12 +21,20 @@ pub struct CanisterIdStore {
     pub network_descriptor: NetworkDescriptor,
     pub path: PathBuf,
     pub ids: CanisterIds,
+    remote_ids: Option<CanisterIds>,
 }
 
 impl CanisterIdStore {
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
         let network_descriptor = env.get_network_descriptor().expect("no network descriptor");
-        CanisterIdStore::for_network(network_descriptor)
+        let store = CanisterIdStore::for_network(network_descriptor)?;
+
+        let remote_ids = get_remote_ids(env)?;
+
+        Ok(CanisterIdStore {
+            remote_ids,
+            ..store
+        })
     }
 
     pub fn for_network(network_descriptor: &NetworkDescriptor) -> DfxResult<Self> {
@@ -49,11 +57,23 @@ impl CanisterIdStore {
             network_descriptor: network_descriptor.clone(),
             path,
             ids,
+            remote_ids: None,
         })
     }
 
     pub fn get_name(&self, canister_id: &str) -> Option<&String> {
-        self.ids
+        self.remote_ids
+            .as_ref()
+            .and_then(|remote_ids| self.get_name_in(canister_id, remote_ids))
+            .or_else(|| self.get_name_in(canister_id, &self.ids))
+    }
+
+    pub fn get_name_in<'a, 'b>(
+        &'a self,
+        canister_id: &'b str,
+        canister_ids: &'a CanisterIds,
+    ) -> Option<&'a String> {
+        canister_ids
             .iter()
             .find(|(_, nn)| nn.get(&self.network_descriptor.name) == Some(&canister_id.to_string()))
             .map(|(canister_name, _)| canister_name)
@@ -81,7 +101,14 @@ impl CanisterIdStore {
     }
 
     pub fn find(&self, canister_name: &str) -> Option<CanisterId> {
-        self.ids
+        self.remote_ids
+            .as_ref()
+            .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
+            .or_else(|| self.find_in(canister_name, &self.ids))
+    }
+
+    fn find_in(&self, canister_name: &str, canister_ids: &CanisterIds) -> Option<CanisterId> {
+        canister_ids
             .get(canister_name)
             .and_then(|network_name_to_canister_id| {
                 network_name_to_canister_id.get(&self.network_descriptor.name)
@@ -127,4 +154,38 @@ impl CanisterIdStore {
         }
         self.save_ids()
     }
+}
+
+fn get_remote_ids(env: &dyn Environment) -> DfxResult<Option<CanisterIds>> {
+    let config = env.get_config_or_anyhow()?;
+    let config = config.get_config();
+
+    let mut remote_ids = CanisterIds::new();
+    if let Some(canisters) = &config.canisters {
+        for (canister_name, canister_config) in canisters {
+            if let Some(remote) = &canister_config.remote {
+                for (network_name, canister_id) in &remote.id {
+                    let canister_id = canister_id.to_string();
+                    match remote_ids.get_mut(canister_name) {
+                        Some(network_name_to_canister_id) => {
+                            network_name_to_canister_id
+                                .insert(network_name.to_string(), canister_id);
+                        }
+                        None => {
+                            let mut network_name_to_canister_id = NetworkNametoCanisterId::new();
+                            network_name_to_canister_id
+                                .insert(network_name.to_string(), canister_id);
+                            remote_ids
+                                .insert(canister_name.to_string(), network_name_to_canister_id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(if remote_ids.is_empty() {
+        None
+    } else {
+        Some(remote_ids)
+    })
 }

@@ -7,7 +7,7 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 
 use anyhow::{anyhow, Context};
-use clap::Clap;
+use clap::Parser;
 use garcon::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
@@ -15,7 +15,7 @@ use ic_types::Principal;
 use std::str::FromStr;
 
 /// Requests the status of a specified call from a canister.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct RequestStatusOpts {
     /// Specifies the request identifier.
     /// The request identifier is an hexadecimal string starting with 0x.

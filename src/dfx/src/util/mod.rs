@@ -72,6 +72,22 @@ pub fn print_idl_blob(
     Ok(())
 }
 
+pub async fn read_module_metadata(
+    agent: &ic_agent::Agent,
+    canister_id: ic_types::Principal,
+    metadata: &str,
+) -> Option<String> {
+    Some(
+        String::from_utf8_lossy(
+            &agent
+                .read_state_canister_metadata(canister_id, metadata)
+                .await
+                .ok()?,
+        )
+        .into(),
+    )
+}
+
 /// Parse IDL file into TypeEnv. This is a best effort function: it will succeed if
 /// the IDL file can be parsed and type checked in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.

@@ -7,14 +7,14 @@ use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
-use clap::Clap;
+use clap::Parser;
 use ic_agent::AgentError;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 
 /// Upgrade the wallet's Wasm module to the current Wasm bundled with DFX.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct UpgradeOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {

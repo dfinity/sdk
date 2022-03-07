@@ -38,7 +38,7 @@ If you don't have a VPN connection set up for your computer, you'll need to foll
 +
 NOTE: If you are installing Nix for the first time, building the cache can take hours and might timeout depending on the reliability of your network connection.
 
-- You must have a registered NPM account.
+- You must have a registered NPM account and `npm` installed on your system.
 +
 If you don't have an account, you can go to the link:https://www.npmjs.com/[NPMJS] website and click *Sign Up* to create one using your `firstname.lastname@dfinity.org` email address.
 +
@@ -57,10 +57,13 @@ to verify:
 
 image:is-master-green.png[]
 
-=== Update your repository with merged commits
+=== Preparation
 
 . Connect to VPN.
 . Open a terminal and `cd` into your local copy of the `sdk` repo.
+
+=== Creating a New Release Branch
+
 . Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
 +
 [source, bash]
@@ -68,8 +71,36 @@ image:is-master-green.png[]
 git checkout master && git pull
 ----
 
+. Create the release branch.  Note that the branch name never includes alpha, beta, and so forth. All of these will be released on the same release branch.
++
+[source, bash]
+----
+git switch -c release-<n.n.n> && git push
+----
++
+For example, if creating the release branch for 0.7.0, you would run the following command:
++
+[source, bash]
+----
+git switch -c release-0.7.0 && git push
+----
+
+. Edit CHANGELOG.md to remove the "UNRELEASED" note from the version to be released.  Commit this to change to the release branch.
+
+=== Resuming on an Existing Release Branch
+
+. Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
++
+[source, bash]
+----
+git checkout release-<n.n.n> && git pull
+----
+
+=== Ready
+
 At this point, you are ready to build a release candidate.
 There are two ways you can build a release candidate:
+
 - Using the <<script,SCRIPT-BASED release process>> to automate the build process and skip manual testing.
 - Using the <<manual,MANUAL STEPS release process>> to build and test the release.
 
@@ -277,13 +308,9 @@ git add --all
 git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
 git push origin $USER/release-$NEW_DFX_VERSION
 ----
-. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
+. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.  Change the base branch to `release-<n.n.n>`.
 . Have the validator review and approve the PR.
-. Apply the `automerge-squash` label.
-+
-image:automerge-label.png[]
-
-. Wait for the pull request to get merged.
+. Merge the PR manually (the automerge-squash label only works for PRs to the master branch).
 +
 NOTE: Depending on the number of jobs queued up, this step can take 45 to 60 minutes to complete.
 
@@ -303,7 +330,7 @@ git pull origin stable
 +
 [source, bash]
 ----
-git pull origin master --ff-only
+git pull origin release-<n.n.n> --ff-only
 ----
 . Create a new tag by running the following command:
 +

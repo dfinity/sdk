@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Subcommand;
 
 mod bootstrap;
 mod build;
@@ -15,6 +15,7 @@ mod language_service;
 mod ledger;
 mod new;
 mod ping;
+mod remote;
 mod replica;
 mod start;
 mod stop;
@@ -22,7 +23,7 @@ mod toolchain;
 mod upgrade;
 mod wallet;
 
-#[derive(Clap)]
+#[derive(Subcommand)]
 pub enum Command {
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
@@ -37,6 +38,7 @@ pub enum Command {
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
     Ping(ping::PingOpts),
+    Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
@@ -59,6 +61,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Ledger(v) => ledger::exec(env, v),
         Command::New(v) => new::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
+        Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
         Command::Start(v) => start::exec(env, v),
         Command::Stop(v) => stop::exec(env, v),

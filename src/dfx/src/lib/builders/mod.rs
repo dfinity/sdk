@@ -1,4 +1,5 @@
 use crate::config::dfinity::{Config, Profile};
+use crate::config::dfx_version_str;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -9,6 +10,8 @@ use crate::util::{self, check_candid_file};
 
 use anyhow::{bail, Context};
 use ic_types::principal::Principal as CanisterId;
+use std::borrow::Cow;
+use std::ffi::OsStr;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -208,6 +211,55 @@ fn ensure_trailing_newline(s: String) -> String {
         s.push('\n');
         s
     }
+}
+
+type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
+
+fn environment_variables<'a>(
+    info: &CanisterInfo,
+    network_name: &'a str,
+    pool: &'a CanisterPool,
+    dependencies: &[CanisterId],
+) -> Vec<Env<'a>> {
+    use Cow::*;
+    let mut vars = vec![
+        (
+            Borrowed("DFX_VERSION"),
+            Borrowed(dfx_version_str().as_ref()),
+        ),
+        (Borrowed("DFX_NETWORK"), Borrowed(network_name.as_ref())),
+    ];
+    for dep in dependencies {
+        let canister = pool.get_canister(dep).unwrap();
+        if let Some(output) = canister.get_build_output() {
+            let candid_path = match &output.idl {
+                IdlBuildOutput::File(p) => p.as_os_str(),
+            };
+
+            vars.push((
+                Owned(format!("CANISTER_CANDID_PATH_{}", canister.get_name())),
+                Borrowed(candid_path),
+            ));
+            //FIXME remove in 0.10
+            vars.push((
+                Owned(format!("CANISTER_CANDID_{}", canister.get_name())),
+                Borrowed(candid_path),
+            ));
+        }
+    }
+    for canister in pool.get_canister_list() {
+        vars.push((
+            Owned(format!("CANISTER_ID_{}", canister.get_name())),
+            Owned(canister.canister_id().to_text().into()),
+        ));
+    }
+    if let Ok(id) = info.get_canister_id() {
+        vars.push((Borrowed("CANISTER_ID"), Owned(format!("{}", id).into())));
+    }
+    if let Some(path) = info.get_output_idl_path() {
+        vars.push((Borrowed("CANISTER_CANDID_PATH"), Owned(path.into())))
+    }
+    vars
 }
 
 #[derive(Clone)]

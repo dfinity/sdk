@@ -6,7 +6,7 @@ use crate::lib::error::{DfxError, DfxResult};
 
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use actix::{
-    Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
+    Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::anyhow;

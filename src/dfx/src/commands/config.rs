@@ -3,11 +3,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use anyhow::{anyhow, bail};
-use clap::Clap;
+use clap::Parser;
 use serde_json::value::Value;
 
 /// Configures project options for your currently-selected project.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct ConfigOpts {
     /// Specifies the name of the configuration option to set or read.
     /// Use the period delineated path to specify the option to set or read.

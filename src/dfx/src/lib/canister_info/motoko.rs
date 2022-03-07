@@ -9,6 +9,7 @@ pub struct MotokoCanisterInfo {
 
     output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
+    output_stable_path: PathBuf,
     output_did_js_path: PathBuf,
     output_canister_js_path: PathBuf,
     output_assets_root: PathBuf,
@@ -27,6 +28,9 @@ impl MotokoCanisterInfo {
     }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
+    }
+    pub fn get_output_stable_path(&self) -> &Path {
+        self.output_stable_path.as_path()
     }
     pub fn get_output_did_js_path(&self) -> &Path {
         self.output_did_js_path.as_path()
@@ -67,7 +71,12 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let input_path = workspace_root.join(&main_path);
         let output_root = build_root.join(name);
         let output_wasm_path = output_root.join(name).with_extension("wasm");
-        let output_idl_path = output_wasm_path.with_extension("did");
+        let output_idl_path = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
+            workspace_root.join(remote_candid)
+        } else {
+            output_wasm_path.with_extension("did")
+        };
+        let output_stable_path = output_wasm_path.with_extension("most");
         let output_did_js_path = output_wasm_path.with_extension("did.js");
         let output_canister_js_path = output_wasm_path.with_extension("js");
         let output_assets_root = output_root.join("assets");
@@ -78,6 +87,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
             idl_path,
             output_wasm_path,
             output_idl_path,
+            output_stable_path,
             output_did_js_path,
             output_canister_js_path,
             output_assets_root,

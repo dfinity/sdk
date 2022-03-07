@@ -8,13 +8,13 @@ use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
 use anyhow::bail;
-use clap::Clap;
+use clap::Parser;
 use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
 /// Deposit cycles into the specified canister.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct DepositCyclesOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.

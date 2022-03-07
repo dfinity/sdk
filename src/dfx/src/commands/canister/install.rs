@@ -8,14 +8,15 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use anyhow::{anyhow, bail};
-use clap::Clap;
+use clap::Parser;
 use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use slog::info;
 use std::str::FromStr;
 
 /// Deploys compiled code as a canister on the Internet Computer.
-#[derive(Clap, Clone)]
+#[derive(Parser, Clone)]
 pub struct CanisterInstallOpts {
     /// Specifies the canister to deploy. You must specify either canister name/id or the --all option.
     canister: Option<String>,
@@ -57,12 +58,20 @@ pub async fn exec(
 
     let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
     let canister_id_store = CanisterIdStore::for_env(env)?;
+    let network = env.get_network_descriptor().unwrap();
 
     if mode == InstallMode::Reinstall && (opts.canister.is_none() || opts.all) {
         bail!("The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister.");
     }
 
     if let Some(canister) = opts.canister.as_deref() {
+        if config
+            .get_config()
+            .is_remote_canister(canister, &network.name)?
+        {
+            bail!("Canister '{}' is a remote canister on network '{}', and cannot be installed from here.", canister, &network.name)
+        }
+
         let canister_id =
             Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
         let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
@@ -88,8 +97,22 @@ pub async fn exec(
         .await
     } else if opts.all {
         // Install all canisters.
+
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
+                if config
+                    .get_config()
+                    .is_remote_canister(canister, &network.name)?
+                {
+                    info!(
+                        env.get_logger(),
+                        "Skipping canister '{}' because it is remote for network '{}'",
+                        canister,
+                        &network.name,
+                    );
+
+                    continue;
+                }
                 let canister_id =
                     Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
