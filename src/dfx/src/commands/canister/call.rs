@@ -6,7 +6,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
-use crate::util::clap::validators::cycle_amount_validator64;
+use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, bail, Context};
@@ -63,7 +63,7 @@ pub struct CanisterCallOpts {
 
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
-    #[clap(long, validator(cycle_amount_validator64))]
+    #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
 }
 

@@ -1,7 +1,7 @@
 use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::clap::validators::cycle_amount_validator64;
+use crate::util::clap::validators::cycle_amount_validator;
 
 use anyhow::anyhow;
 use candid::CandidType;
@@ -16,7 +16,7 @@ pub struct SendOpts {
 
     /// Specifies the amount of cycles to send.
     /// Deducted from the wallet.
-    #[clap(validator(cycle_amount_validator64))]
+    #[clap(validator(cycle_amount_validator))]
     amount: String,
 }
 

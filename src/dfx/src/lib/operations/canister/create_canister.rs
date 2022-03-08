@@ -73,7 +73,7 @@ pub async fn create_canister(
             let mgr = ManagementCanister::create(agent);
             let cid = match call_sender {
                 CallSender::SelectedId => {
-                    // amount has been validated by cycle_amount_validator128
+                    // amount has been validated by cycle_amount_validator, which is u64
                     let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
                     let mut builder = mgr
                         .create_canister()
@@ -93,7 +93,7 @@ pub async fn create_canister(
                 }
                 CallSender::Wallet(wallet_id) => {
                     let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
-                    // amount has been validated by cycle_amount_validator128 (!)
+                    // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.map_or(
                         CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
                         |amount| amount.parse::<u64>().unwrap(),
