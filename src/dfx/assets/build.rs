@@ -134,12 +134,11 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
 }
 
 fn get_git_hash() -> Option<String> {
-    let describe = Command::new("git").arg("describe").arg("--dirty").output();
-
-    if let Ok(output) = describe {
-        Some(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        None
+    match Command::new("git").arg("describe").arg("--dirty").output() {
+        Ok(output) if output.status.success() => {
+            Some(String::from_utf8_lossy(&output.stdout).to_string())
+        }
+        _ => None,
     }
 }
 
