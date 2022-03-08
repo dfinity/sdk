@@ -25,9 +25,9 @@ if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
     BITCOIN_CORE_VERSION=22.0
     (
         cd "$(mktemp -d)"
-        BTC_FILENAME="bitcoin-core-$BITCOIN_CORE_VERSION/bitcoin-$BITCOIN_CORE_VERSION-x86_64-linux-gnu.tar.gz"
-        wget "https://bitcoin.org/bin/$BTC_FILENAME"
-        tar xzf "$BTC_FILENAME"
+        BITCOIN_CORE_FILENAME="bitcoin-core-$BITCOIN_CORE_VERSION/bitcoin-$BITCOIN_CORE_VERSION-x86_64-linux-gnu.tar.gz"
+        wget "https://bitcoin.org/bin/$BITCOIN_CORE_FILENAME"
+        tar xzf "$BITCOIN_CORE_FILENAME"
         cd "bitcoin-$BITCOIN_CORE_VERSION/bin"
         sudo install -m 0755 -o root -g root -t /usr/local/bin *
     )
