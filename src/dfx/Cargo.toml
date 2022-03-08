@@ -16,67 +16,67 @@ openssl = "0.10.32"
 tar = "0.4.26"
 
 [dependencies]
-actix = "0.13.0"
-actix-cors = "0.6.1"
+actix = "0.12.0"
+actix-cors = "0.6.0"
 actix-files = "0.6.0"
-actix-http = { version = "3.0.3", default-features = false }
+actix-http = { version = "3.0.0", default-features = false }
 actix-server = "2.0.0"
 actix-web = { version = "4.0.0", features = [ "default", "openssl", "rustls" ] }
-anyhow = "1.0.56"
+anyhow = "1.0.51"
 atty = "0.2.13"
 base64 = "0.13.0"
-candid = { version = "0.7.12", features = [ "random" ] }
+candid = { version = "0.7.10", features = [ "random" ] }
 chrono = "0.4.9"
-clap = { version = "3.1.6", features = [ "derive" ] }
+clap = { version = "3.0.14", features = [ "derive" ] }
 console = "0.15.0"
-crc32fast = "1.3.2"
+crc32fast = "1.3.0"
 crossbeam = "0.8.1"
 ctrlc = { version = "3.2.1", features = [ "termination" ] }
-dialoguer = "0.10.0"
-erased-serde = "0.3.18"
+dialoguer = "0.9.0"
+erased-serde = "0.3.10"
 flate2 = "1.0.11"
-futures = "0.3.21"
+futures = "0.3.19"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
 ic-types = "0.3.0"
 indicatif = "0.13.0"
 lazy-init = "0.5.0"
 lazy_static = "1.4.0"
-libflate = "1.1.2"
+libflate = "1.1.1"
 humanize-rs = "0.1.5"
 mime = "0.3.16"
-mime_guess = "2.0.4"
+mime_guess = "2.0.3"
 mockall = "0.11.0"
 net2 = "0.2.34"
 num-traits = "0.2"
 openssl = "0.10.32"
-pem = "1.0.2"
+pem = "1.0.1"
 petgraph = "0.6.0"
 rand = "0.7.2"
 regex = "1.5.5"
 ring = "0.16.11"
-reqwest = { version = "0.11.9", features = [ "blocking", "json", "rustls-tls" ] }
-rustls = "0.20.4"
-rust_decimal = "1.22.0"
-semver = "1.0.6"
+reqwest = { version = "0.11.8", features = [ "blocking", "json", "rustls-tls" ] }
+rustls = "0.20.2"
+rust_decimal = "1.18.0"
+semver = "1.0.4"
 serde = "1.0"
 serde_bytes = "0.11.2"
 serde_cbor = "0.11.1"
-serde_json = "1.0.79"
+serde_json = "1.0.73"
 serde_repr = "0.1.5"
-shell-words = "1.1.0"
+shell-words = "1.0.0"
 slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
-slog-term = "2.9.0"
+slog-term = "2.5.0"
 sysinfo = "0.9.6"
 tar = "0.4.38"
-tempfile = "3.3.0"
+tempfile = "3.1.0"
 thiserror = "1.0.20"
-tokio = { version = "1.17.0", features = [ "fs" ] }
+tokio = { version = "1.5.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
-wasmparser = "0.83.0"
+wasmparser = "0.81.0"
 
 [dependencies.ic-agent]
 version = "0.12.1"
@@ -102,5 +102,5 @@ rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
 [dev-dependencies]
 env_logger = "0.9"
 proptest = "1.0"
-mockito = "0.31.0"
+mockito = "0.30.0"
 tempfile = "3.1.0"
