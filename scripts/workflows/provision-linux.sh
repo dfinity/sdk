@@ -23,10 +23,12 @@ if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
 fi
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
     BITCOIN_CORE_VERSION=22.0
+    BITCOIN_CORE_FILENAME="bitcoin-$BITCOIN_CORE_VERSION-x86_64-linux-gnu.tar.gz"
+    BITCOIN_CORE_TARBALL_SHA="59ebd25dd82a51638b7a6bb914586201e67db67b919b2a1ff08925a7936d1b16"
     (
         cd "$(mktemp -d)"
-        BITCOIN_CORE_FILENAME="bitcoin-$BITCOIN_CORE_VERSION-x86_64-linux-gnu.tar.gz"
         wget "https://bitcoin.org/bin/bitcoin-core-$BITCOIN_CORE_VERSION/$BITCOIN_CORE_FILENAME"
+        echo "$BITCOIN_CORE_TARBALL_SHA  $BITCOIN_CORE_FILENAME" | shasum -c
         tar xzf "$BITCOIN_CORE_FILENAME"
         cd "bitcoin-$BITCOIN_CORE_VERSION/bin"
         sudo install -m 0755 -o root -g root -t /usr/local/bin *
