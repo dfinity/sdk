@@ -11,7 +11,7 @@ Updated icx-proxy to commit 594b6c81cde6da4e08faee8aa8e5a2e6ae815602, now static
 
 * upgrade HTTP calls upon canister request
 * no longer proxies /_/raw to the dfx internal webserver
-* allows for generix StreamingCallback tokens
+* allows for generic StreamingCallback tokens
 
 = 0.9.2
 
