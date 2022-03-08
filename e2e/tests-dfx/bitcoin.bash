@@ -17,5 +17,5 @@ teardown() {
 @test "noop" {
     assert_command bitcoin-cli -regtest createwallet "test"
     ADDRESS="$(bitcoin-cli -regtest getnewaddress)"
-    assert_command bitcoin-cli generatetoaddress 101 "$ADDRESS"
+    assert_command bitcoin-cli -regtest generatetoaddress 101 "$ADDRESS"
 }
