@@ -8,7 +8,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::cycle_amount_validator;
+use crate::util::clap::validators::cycle_amount_validator128;
 use crate::util::clap::validators::{
     compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
 };
@@ -34,7 +34,7 @@ pub struct CanisterCreateOpts {
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[clap(long, validator(cycle_amount_validator))]
+    #[clap(long, validator(cycle_amount_validator128))]
     with_cycles: Option<String>,
 
     /// Specifies the identity name or the principal of the new controller.

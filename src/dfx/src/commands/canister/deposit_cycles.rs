@@ -4,7 +4,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::cycle_amount_validator;
+use crate::util::clap::validators::cycle_amount_validator64;
 use crate::util::expiry_duration;
 
 use anyhow::bail;
@@ -18,7 +18,7 @@ use std::time::Duration;
 pub struct DepositCyclesOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
-    #[clap(validator(cycle_amount_validator))]
+    #[clap(validator(cycle_amount_validator64))]
     cycles: String,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.

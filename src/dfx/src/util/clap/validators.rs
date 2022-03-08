@@ -37,8 +37,15 @@ pub fn memo_validator(memo: &str) -> Result<(), String> {
     Err("Must specify a non negative whole number.".to_string())
 }
 
-pub fn cycle_amount_validator(cycles: &str) -> Result<(), String> {
+pub fn cycle_amount_validator64(cycles: &str) -> Result<(), String> {
     if cycles.parse::<u64>().is_ok() {
+        return Ok(());
+    }
+    Err("Must be a non negative amount.".to_string())
+}
+
+pub fn cycle_amount_validator128(cycles: &str) -> Result<(), String> {
+    if cycles.parse::<u128>().is_ok() {
         return Ok(());
     }
     Err("Must be a non negative amount.".to_string())
