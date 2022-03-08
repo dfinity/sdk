@@ -26,4 +26,4 @@ CANISTER_SANDBOX_X86_64_DARWIN_URL="https://download.dfinity.systems/blessed/ic/
 CANISTER_SANDBOX_X86_64_LINUX_SHA256="8b0314a56b1357cf7562681e9a5aa28bba785cbf63fc532ba0f1af5060c2a087"
 CANISTER_SANDBOX_X86_64_LINUX_URL="https://download.dfinity.systems/blessed/ic/04fe8b0a1262f07c0cec1fdfa838a37607370a61/sdk-release/x86_64-linux/canister_sandbox.gz"
 MOTOKO_BASE_BRANCH="next-moc"
-MOTOKO_BASE_REV="494824a2787aee24ab4a5888aa519deb05ecfd60"
+MOTOKO_BASE_REV="d93339ae86ad93ecd909ee240c630146fac2ec2d"
