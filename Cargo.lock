@@ -582,9 +582,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.7.10"
+version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12970d8d0620d2bdb7e81a5b13ed11e41fcdfeba53d61e45b5853afcbf9611fd"
+checksum = "7d5d4dbc61f5125dab4168ce321c559aaca5511c2915ccb531e212b1c8d199d8"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -1577,8 +1577,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.12.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427#8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+version = "0.13.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=49ee0917ac4776dedbd2c99bd7aac8bddb70b259#49ee0917ac4776dedbd2c99bd7aac8bddb70b259"
 dependencies = [
  "async-trait",
  "base32",
@@ -1607,8 +1607,8 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.12.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427#8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+version = "0.13.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=49ee0917ac4776dedbd2c99bd7aac8bddb70b259#49ee0917ac4776dedbd2c99bd7aac8bddb70b259"
 dependencies = [
  "anyhow",
  "candid",
@@ -1630,8 +1630,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.12.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427#8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+version = "0.13.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=49ee0917ac4776dedbd2c99bd7aac8bddb70b259#49ee0917ac4776dedbd2c99bd7aac8bddb70b259"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1659,13 +1659,16 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.12.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427#8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+version = "0.13.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=49ee0917ac4776dedbd2c99bd7aac8bddb70b259#49ee0917ac4776dedbd2c99bd7aac8bddb70b259"
 dependencies = [
  "async-trait",
  "candid",
  "garcon",
  "ic-agent",
+ "leb128",
+ "num-bigint 0.4.3",
+ "paste",
  "serde",
  "serde_bytes",
  "strum",
