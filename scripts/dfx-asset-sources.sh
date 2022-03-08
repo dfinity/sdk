@@ -13,7 +13,7 @@ IC_STARTER_X86_64_LINUX_SHA256="52c8b6b7bfc07b4c66fad1344910d67bf7acdced44cf56f4
 IC_STARTER_X86_64_LINUX_URL="https://download.dfinity.systems/blessed/ic/04fe8b0a1262f07c0cec1fdfa838a37607370a61/sdk-release/x86_64-linux/ic-starter.gz"
 MOTOKO_X86_64_DARWIN_SHA256="a2cee1852b612b5b50c07007d29683f2fc326304bf52d060133fef135dcd6b12"
 MOTOKO_X86_64_DARWIN_URL="https://github.com/dfinity/motoko/releases/download/0.6.25/motoko-macos-0.6.25.tar.gz"
-MOTOKO_X86_64_LINUX_SHA256="e2b1ca2f06ab5f111fa61258edaa9b289424b0c0e445ede86d315fd9464ac1b8"
+MOTOKO_X86_64_LINUX_SHA256="9bfe7ca3c179c11af5ab7f2fab980abcfcaefb927f86e6b539d240d9385d24a8"
 MOTOKO_X86_64_LINUX_URL="https://github.com/dfinity/motoko/releases/download/0.6.25/motoko-linux64-0.6.25.tar.gz"
 # The replica and canister_sandbox binaries must have the same revision.
 REPLICA_X86_64_DARWIN_SHA256="007cfb079da1b7642d3165b635a501d0ae5863e7417becf36d5a060f941e3d5a"
