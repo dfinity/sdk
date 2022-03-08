@@ -14,9 +14,14 @@ use std::path::{Path, PathBuf};
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
+    bitcoind: None,
     bootstrap: None,
     build: None,
     replica: None,
+};
+
+const EMPTY_CONFIG_DEFAULTS_BITCOIND: ConfigDefaultsBitcoind = ConfigDefaultsBitcoind {
+    port: None,
 };
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
@@ -78,6 +83,11 @@ pub struct CanisterDeclarationsConfig {
     // A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID
     // in the "src/dfx/assets/language_bindings/canister.js" template
     pub env_override: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsBitcoind {
+    pub port: Option<u16>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -160,6 +170,7 @@ pub enum Profile {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaults {
+    pub bitcoind: Option<ConfigDefaultsBitcoind>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub replica: Option<ConfigDefaultsReplica>,
@@ -206,6 +217,12 @@ impl ConfigDefaultsBuild {
 }
 
 impl ConfigDefaults {
+    pub fn get_bitcoind(&self) -> &ConfigDefaultsBitcoind {
+        match &self.bitcoind {
+            Some(x) => x,
+            None => &EMPTY_CONFIG_DEFAULTS_BITCOIND,
+        }
+    }
     pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
         match &self.bootstrap {
             Some(x) => x,
