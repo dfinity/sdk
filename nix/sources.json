@@ -129,7 +129,7 @@
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "1f61993djpridplfsig4q2q29518kfmfsn0jlqgi2pxb0qpwmcg2",
+        "sha256": "1a14blwdjh6j76syd1kzjbxsxz5w1acanbvzmgsimhbrq6iprzlv",
         "type": "file",
         "url": "https://github.com/dfinity/motoko/releases/download/0.6.25/motoko-linux64-0.6.25.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
