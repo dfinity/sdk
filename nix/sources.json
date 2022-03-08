@@ -121,7 +121,7 @@
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "04kbrmfi7vrz2dhd0lmz0iik5z7jhfbd41vhq185nav15f2y3km2",
+        "sha256": "01cgwkn7kr3h52l1m2pfjrmchs75h61m1hxw8aafw4447cfxsfza",
         "type": "file",
         "url": "https://github.com/dfinity/motoko/releases/download/0.6.25/motoko-macos-0.6.25.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
