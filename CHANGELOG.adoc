@@ -7,9 +7,11 @@
 
 == icx-proxy
 
-Updated icx-proxy to commit 0230bff9cc62d5ef32dfed7009c7f85a3af1e716, now static-linked.
+Updated icx-proxy to commit 594b6c81cde6da4e08faee8aa8e5a2e6ae815602, now static-linked.
 
 * upgrade HTTP calls upon canister request
+* no longer proxies /_/raw to the dfx internal webserver
+* allows for generic StreamingCallback tokens
 
 == Replica
 
