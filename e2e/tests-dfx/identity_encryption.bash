@@ -10,18 +10,11 @@ teardown() {
     standard_teardown
 }
 
-##
-## dfx identity get-principal
-##
-
-@test "identity get-principal: different identities have different principal ids" {
-    assert_command dfx identity new jose
-    assert_command dfx identity new juana
-
-    PRINCPAL_ID_JOSE=$(dfx --identity jose identity get-principal)
-    PRINCPAL_ID_JUANA=$(dfx --identity juana identity get-principal)
-
-    if [ "$PRINCPAL_ID_JOSE" -eq "$PRINCPAL_ID_JUANA" ]; then
-      echo "IDs should not match: Jose '${PRINCPAL_ID_JOSE}' == Juana '${PRINCPAL_ID_JUANA}'..." | fail
-    fi
-}
+# create identity with password succeeds and can be used afterwards
+# create identity without a password
+# create identity with an empty password gets rejected
+# import identity without a password
+# import identity and add a password
+# export identity works without a password
+# export identity works with a password
+# rename identity works on identity with a password
