@@ -11,6 +11,10 @@ Updated icx-proxy to commit 0230bff9cc62d5ef32dfed7009c7f85a3af1e716, now static
 
 * upgrade HTTP calls upon canister request
 
+== Motoko
+
+Updated Motoko from 0.6.21 to 0.6.25.
+
 = 0.9.2
 
 == DFX
