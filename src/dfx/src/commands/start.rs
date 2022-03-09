@@ -24,7 +24,7 @@ use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use sysinfo::{System, SystemExt};
+use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
 /// Starts the local replica and a web server for the current project.
@@ -285,10 +285,10 @@ fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
     if dfx_pid_path.exists() {
         // Read and verify it's not running. If it is just return.
         if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
-            if let Ok(pid) = s.parse::<i32>() {
+            if let Ok(pid) = s.parse::<Pid>() {
                 // If we find the pid in the file, we tell the user and don't start!
                 let system = System::new();
-                if let Some(_process) = system.get_process(pid) {
+                if let Some(_process) = system.process(pid) {
                     bail!("dfx is already running.");
                 }
             }

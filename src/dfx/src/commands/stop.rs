@@ -8,28 +8,26 @@ use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 #[derive(Parser)]
 pub struct StopOpts {}
 
-fn list_all_descendants(pid: Pid) -> Vec<Pid> {
-    let mut result: Vec<Pid> = Vec::new();
-    let system = System::new();
+fn list_all_descendants<'a>(system: &'a System, proc: &'a Process) -> Vec<&'a Process> {
+    let mut result = Vec::new();
 
-    for process in system.get_process_list().values() {
+    for process in system.processes().values() {
         if let Some(ppid) = process.parent() {
-            if ppid == pid {
-                result.append(list_all_descendants(process.pid()).as_mut());
+            if ppid == proc.pid() {
+                result.extend(list_all_descendants(system, process));
             }
         }
     }
-    result.push(pid);
+    result.push(proc);
 
     result
 }
 
 /// Recursively kill a process and ALL its children.
-fn kill_all(pid: Pid) -> DfxResult {
-    let processes = list_all_descendants(pid);
-    for pid in processes {
-        let process = Process::new(pid, None, 0);
-        process.kill(Signal::Term);
+fn kill_all(system: &System, proc: &Process) -> DfxResult {
+    let processes = list_all_descendants(system, proc);
+    for proc in processes {
+        proc.kill_with(Signal::Term);
     }
 
     Ok(())
@@ -40,8 +38,12 @@ pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
     if pid_file_path.exists() {
         // Read and verify it's not running. If it is just return.
         if let Ok(s) = std::fs::read_to_string(&pid_file_path) {
-            if let Ok(pid) = s.parse::<i32>() {
-                kill_all(pid)?;
+            if let Ok(pid) = s.parse::<Pid>() {
+                let mut system = System::new();
+                system.refresh_processes();
+                if let Some(proc) = system.process(pid) {
+                    kill_all(&system, proc)?;
+                }
             }
         }
     } else {
