@@ -33,7 +33,7 @@ let
       nativeBuildInputs = (
         attrs.nativeBuildInputs or []
       ) ++ lib.optional pkgs.stdenv.isDarwin [
-        pkgs.rust.CoreFoundation
+        pkgs.darwin.apple_sdk.frameworks.CoreFoundation
         pkgs.pkgsStatic.libiconv
       ];
     };
