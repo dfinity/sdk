@@ -35,7 +35,7 @@ let
       ) ++ lib.optional pkgs.stdenv.isDarwin [
         pkgs.pkgsStatic.CoreFoundation
         pkgs.pkgsStatic.libiconv
-      ]
+      ];
     };
   };
 
