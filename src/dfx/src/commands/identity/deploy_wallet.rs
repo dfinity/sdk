@@ -37,10 +37,11 @@ pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<Strin
             })?;
         }
         Err(err) => {
-            bail!(format!(
+            bail!(
                 "Cannot convert {} to a valid canister id. Candid error: {}",
-                canister_id, err
-            ));
+                canister_id,
+                err
+            );
         }
     };
     Ok(())
