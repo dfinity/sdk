@@ -6,6 +6,7 @@ use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
 
+use crate::actors::btc_adapter::signals::{BtcAdapterReady, BtcAdapterReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
@@ -39,6 +40,7 @@ pub struct Config {
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
     pub replica_configuration_dir: PathBuf,
+    pub btc_adapter_ready_subscribe: Option<Recipient<BtcAdapterReadySubscribe>>,
 }
 
 /// A replica actor. Starts the replica, can subscribe to a Ready signal and a
@@ -131,6 +133,16 @@ impl Replica {
         Ok(())
     }
 
+    fn stop_replica(&mut self) {
+        if let Some(sender) = self.stop_sender.take() {
+            let _ = sender.send(());
+        }
+
+        if let Some(join) = self.thread_join.take() {
+            let _ = join.join();
+        }
+    }
+
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
             let _ = sub.do_send(PortReadySignal { port });
@@ -142,8 +154,13 @@ impl Actor for Replica {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        self.start_replica(ctx.address())
-            .expect("Could not start the replica");
+        if let Some(btc_adapter_ready_subscribe) = &self.config.btc_adapter_ready_subscribe {
+            let _ = btc_adapter_ready_subscribe
+                .do_send(BtcAdapterReadySubscribe(ctx.address().recipient()));
+        } else {
+            self.start_replica(ctx.address())
+                .expect("Could not start the replica");
+        }
 
         self.config
             .shutdown_controller
@@ -152,13 +169,7 @@ impl Actor for Replica {
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
         info!(self.logger, "Stopping the replica...");
-        if let Some(sender) = self.stop_sender.take() {
-            let _ = sender.send(());
-        }
-
-        if let Some(join) = self.thread_join.take() {
-            let _ = join.join();
-        }
+        self.stop_replica();
 
         info!(self.logger, "Stopped.");
         Running::Stop
@@ -184,6 +195,18 @@ impl Handler<signals::ReplicaRestarted> for Replica {
     fn handle(&mut self, msg: ReplicaRestarted, _ctx: &mut Self::Context) -> Self::Result {
         self.port = Some(msg.port);
         self.send_ready_signal(msg.port);
+    }
+}
+
+impl Handler<BtcAdapterReady> for Replica {
+    type Result = ();
+
+    fn handle(&mut self, _msg: BtcAdapterReady, ctx: &mut Self::Context) {
+        debug!(self.logger, "btc-adapter ready, so re/starting replica");
+
+        self.stop_replica();
+        self.start_replica(ctx.address())
+            .expect("unable to start the replica");
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::{
-    start_emulator_actor, start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
+    start_btc_adapter_actor, start_emulator_actor, start_icx_proxy_actor, start_replica_actor,
+    start_shutdown_controller,
 };
 use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
@@ -16,6 +17,7 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
+use serde_json::Value;
 use std::fs;
 use std::io::Read;
 use std::net::SocketAddr;
@@ -42,6 +44,10 @@ pub struct StartOpts {
     /// Runs a dedicated emulator instead of the replica
     #[clap(long)]
     emulator: bool,
+
+    /// The path of the btc adapter configuration file.  Implies --btc-adapter.
+    #[clap(long, conflicts_with("emulator"))]
+    btc_adapter_config: Option<PathBuf>,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -125,6 +131,7 @@ pub fn exec(
         background,
         emulator,
         clean,
+        btc_adapter_config,
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
@@ -132,6 +139,7 @@ pub fn exec(
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
+    let btc_adapter_pid_file_path = temp_dir.join("ic-btc-adapter-pid");
     let icx_proxy_pid_file_path = temp_dir.join("icx-proxy-pid");
     let webserver_port_path = temp_dir.join("webserver-port");
     let state_root = env.get_state_dir();
@@ -145,6 +153,7 @@ pub fn exec(
     }
 
     std::fs::write(&pid_file_path, "")?; // make sure we can write to this file
+    std::fs::write(&btc_adapter_pid_file_path, "")?;
     std::fs::write(&icx_proxy_pid_file_path, "")?;
     std::fs::write(&webserver_port_path, "")?;
 
@@ -158,6 +167,20 @@ pub fn exec(
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
+    let btc_adapter_config = btc_adapter_config.or_else(|| {
+        config
+            .get_config()
+            .get_defaults()
+            .bitcoin
+            .as_ref()
+            .and_then(|x| x.btc_adapter_config.clone())
+    });
+    let btc_adapter_socket_path = btc_adapter_config
+        .clone()
+        .map(|path| get_btc_adapter_socket_path(&path))
+        .transpose()?
+        .flatten();
+
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
@@ -166,6 +189,19 @@ pub fn exec(
             let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
             emulator.recipient()
         } else {
+            let btc_adapter_ready_subscribe = if let Some(btc_adapter_config) = btc_adapter_config {
+                let btc_adapter = start_btc_adapter_actor(
+                    env,
+                    btc_adapter_config,
+                    btc_adapter_socket_path.clone(),
+                    shutdown_controller.clone(),
+                    btc_adapter_pid_file_path,
+                )?;
+                Some(btc_adapter.recipient())
+            } else {
+                None
+            };
+
             let replica_port_path = env
                 .get_temp_dir()
                 .join("replica-configuration")
@@ -177,10 +213,18 @@ pub fn exec(
                 .get_replica()
                 .subnet_type
                 .unwrap_or_default();
-
-            let replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
+            let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
                 .with_random_port(&replica_port_path);
-            let replica = start_replica_actor(env, replica_config, shutdown_controller.clone())?;
+            if let Some(btc_adapter_socket) = btc_adapter_socket_path {
+                replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+            }
+
+            let replica = start_replica_actor(
+                env,
+                replica_config,
+                shutdown_controller.clone(),
+                btc_adapter_ready_subscribe,
+            )?;
             replica.recipient()
         };
 
@@ -295,4 +339,19 @@ fn write_pid(pid_file_path: &Path) {
     if let Ok(pid) = sysinfo::get_current_pid() {
         let _ = std::fs::write(&pid_file_path, pid.to_string());
     }
+}
+
+pub fn get_btc_adapter_socket_path(btc_config_path: &Path) -> DfxResult<Option<PathBuf>> {
+    let content = std::fs::read(&btc_config_path)
+        .with_context(|| format!("Unable to read {}", btc_config_path.to_string_lossy()))?;
+    let json: Value = serde_json::from_slice(&content).with_context(|| {
+        format!(
+            "Unable to decode {} as json",
+            btc_config_path.to_string_lossy()
+        )
+    })?;
+    Ok(json
+        .pointer("/incoming_source/Path")
+        .and_then(|v| v.as_str())
+        .map(PathBuf::from))
 }

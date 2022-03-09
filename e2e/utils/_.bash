@@ -185,13 +185,10 @@ dfx_start_replica_and_bootstrap() {
         local replica_port=$(cat ${dfx_config_root}/replica-1.port)
 
     fi
-    local webserver_port=$(cat .dfx/webserver-port)
-
     # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
     cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
 
     printf "Replica Configured Port: %s\n" "${replica_port}"
-    printf "Webserver Configured Port: %s\n" "${webserver_port}"
 
     timeout 5 sh -c \
         "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
@@ -213,6 +210,9 @@ dfx_start_replica_and_bootstrap() {
 
     local proxy_port=$(cat .dfx/proxy-port)
     printf "Proxy Configured Port: %s\n", "${proxy_port}"
+
+    local webserver_port=$(cat .dfx/webserver-port)
+    printf "Webserver Configured Port: %s\n", "${webserver_port}"
 }
 
 # Start the replica in the background.

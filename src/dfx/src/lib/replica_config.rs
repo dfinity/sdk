@@ -17,6 +17,11 @@ pub struct HttpHandlerConfig {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct BtcAdapterConfig {
+    pub socket_path: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ArtifactPoolConfig {
     pub consensus_pool_path: PathBuf,
 }
@@ -38,6 +43,7 @@ pub struct ReplicaConfig {
     pub crypto: CryptoConfig,
     pub artifact_pool: ArtifactPoolConfig,
     pub subnet_type: ReplicaSubnetType,
+    pub btc_adapter: BtcAdapterConfig,
 }
 
 impl ReplicaConfig {
@@ -57,6 +63,7 @@ impl ReplicaConfig {
                 consensus_pool_path: state_root.join("consensus_pool"),
             },
             subnet_type,
+            btc_adapter: BtcAdapterConfig { socket_path: None },
         }
     }
 
@@ -70,6 +77,12 @@ impl ReplicaConfig {
     pub fn with_random_port(&mut self, write_port_to: &Path) -> Self {
         self.http_handler.port = None;
         self.http_handler.write_port_to = Some(write_port_to.to_path_buf());
+        let config = &*self;
+        config.clone()
+    }
+
+    pub fn with_btc_adapter_socket(&mut self, socket_path: PathBuf) -> Self {
+        self.btc_adapter.socket_path = Some(socket_path);
         let config = &*self;
         config.clone()
     }

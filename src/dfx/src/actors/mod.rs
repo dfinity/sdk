@@ -6,12 +6,15 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::ReplicaConfig;
 
+use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
+use crate::actors::btc_adapter::BtcAdapter;
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use actix::{Actor, Addr, Recipient};
 use std::fs;
 use std::path::PathBuf;
 
+pub mod btc_adapter;
 pub mod emulator;
 pub mod icx_proxy;
 pub mod replica;
@@ -23,6 +26,28 @@ pub fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<Shutdo
         logger: Some(env.get_logger().clone()),
     };
     Ok(ShutdownController::new(actor_config).start())
+}
+
+pub fn start_btc_adapter_actor(
+    env: &dyn Environment,
+    config_path: PathBuf,
+    socket_path: Option<PathBuf>,
+    shutdown_controller: Addr<ShutdownController>,
+    btc_adapter_pid_file_path: PathBuf,
+) -> DfxResult<Addr<BtcAdapter>> {
+    let btc_adapter_path = env.get_cache().get_binary_command_path("ic-btc-adapter")?;
+
+    let actor_config = btc_adapter::Config {
+        btc_adapter_path,
+
+        config_path,
+        socket_path,
+
+        shutdown_controller,
+        btc_adapter_pid_file_path,
+        logger: Some(env.get_logger().clone()),
+    };
+    Ok(BtcAdapter::new(actor_config).start())
 }
 
 pub fn start_emulator_actor(
@@ -73,6 +98,7 @@ pub fn start_replica_actor(
     env: &dyn Environment,
     replica_config: ReplicaConfig,
     shutdown_controller: Addr<ShutdownController>,
+    btc_adapter_ready_subscribe: Option<Recipient<BtcAdapterReadySubscribe>>,
 ) -> DfxResult<Addr<Replica>> {
     // get binary path
     let replica_path = env.get_cache().get_binary_command_path("replica")?;
@@ -87,6 +113,7 @@ pub fn start_replica_actor(
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
         replica_configuration_dir,
+        btc_adapter_ready_subscribe,
     };
     Ok(Replica::new(actor_config).start())
 }

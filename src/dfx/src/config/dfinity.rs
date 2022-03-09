@@ -14,14 +14,15 @@ use std::path::{Path, PathBuf};
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
-    bitcoind: None,
+    bitcoin: None,
     bootstrap: None,
     build: None,
     replica: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BITCOIND: ConfigDefaultsBitcoind =
-    ConfigDefaultsBitcoind { port: None };
+const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
+    btc_adapter_config: None,
+};
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
@@ -84,8 +85,8 @@ pub struct CanisterDeclarationsConfig {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct ConfigDefaultsBitcoind {
-    pub port: Option<u16>,
+pub struct ConfigDefaultsBitcoin {
+    pub btc_adapter_config: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -192,7 +193,7 @@ pub enum Profile {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaults {
-    pub bitcoind: Option<ConfigDefaultsBitcoind>,
+    pub bitcoin: Option<ConfigDefaultsBitcoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub replica: Option<ConfigDefaultsReplica>,
@@ -239,10 +240,10 @@ impl ConfigDefaultsBuild {
 }
 
 impl ConfigDefaults {
-    pub fn get_bitcoind(&self) -> &ConfigDefaultsBitcoind {
-        match &self.bitcoind {
+    pub fn get_bitcoin(&self) -> &ConfigDefaultsBitcoin {
+        match &self.bitcoin {
             Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_BITCOIND,
+            None => &EMPTY_CONFIG_DEFAULTS_BITCOIN,
         }
     }
     pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
