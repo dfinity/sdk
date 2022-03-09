@@ -13,6 +13,18 @@ Updated icx-proxy to commit 594b6c81cde6da4e08faee8aa8e5a2e6ae815602, now static
 * no longer proxies /_/raw to the dfx internal webserver
 * allows for generic StreamingCallback tokens
 
+== Replica
+
+Updated replica to blessed commit 257c24b257ca4a4c129232665f6696e245caa441.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/48427[48427]
+* https://dashboard.internetcomputer.org/proposal/47611[47611]
+* https://dashboard.internetcomputer.org/proposal/47512[47512]
+* https://dashboard.internetcomputer.org/proposal/47472[47472]
+* https://dashboard.internetcomputer.org/proposal/45984[45984]
+* https://dashboard.internetcomputer.org/proposal/45982[45982]
+
 == Motoko
 
 Updated Motoko from 0.6.21 to 0.6.25.
