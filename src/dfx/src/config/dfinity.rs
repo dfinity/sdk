@@ -20,9 +20,8 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     replica: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BITCOIND: ConfigDefaultsBitcoind = ConfigDefaultsBitcoind {
-    port: None,
-};
+const EMPTY_CONFIG_DEFAULTS_BITCOIND: ConfigDefaultsBitcoind =
+    ConfigDefaultsBitcoind { port: None };
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
