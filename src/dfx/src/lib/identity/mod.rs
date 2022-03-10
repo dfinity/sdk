@@ -28,6 +28,7 @@ use std::path::PathBuf;
 
 pub mod identity_manager;
 pub mod identity_utils;
+pub mod pem_encryption;
 use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
 pub use identity_manager::{
@@ -96,7 +97,7 @@ impl Identity {
                 create(identity_dir)?;
                 let pem_file = manager.get_identity_pem_path(name);
                 let pem_content = identity_manager::generate_key()?;
-                identity_manager::write_pem_file(
+                pem_encryption::write_pem_file(
                     &pem_file,
                     Some(&identity_config),
                     pem_content.as_slice(),
@@ -107,10 +108,10 @@ impl Identity {
                 disable_encryption,
             } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
-                let src_pem_content = identity_manager::load_pem_file(&src_pem_file, None)?;
+                let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
                 create(identity_dir)?;
                 let dst_pem_file = manager.get_identity_pem_path(name);
-                identity_manager::write_pem_file(
+                pem_encryption::write_pem_file(
                     &dst_pem_file,
                     Some(&identity_config),
                     src_pem_content.as_slice(),
@@ -206,9 +207,7 @@ impl Identity {
         } else {
             let dir = manager.get_identity_dir_path(name);
             let pem_path = dir.join(IDENTITY_PEM);
-            let pem_content = std::fs::read(&pem_path)?;
-            let pem_content =
-                identity_manager::maybe_decrypt_pem(pem_content.as_slice(), Some(&config))?;
+            let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
 
             Identity::load_secp256k1_identity(manager, name, &pem_content)
                 .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
