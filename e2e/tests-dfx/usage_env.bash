@@ -12,7 +12,7 @@ teardown() {
 
 @test "dfx config root env var stores identity & cache" {
     #identity
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/default/identity.pem"
 
@@ -32,7 +32,7 @@ teardown() {
         # remove configured variable, should use $HOME now
         unset DFX_CONFIG_ROOT
 
-        dfx identity new bob
+        dfx identity new --disable-encryption bob
         assert_command head "$HOME/.config/dfx/identity/bob/identity.pem"
         assert_command head "$HOME/.config/dfx/identity/default/identity.pem"
 

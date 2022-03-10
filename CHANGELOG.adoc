@@ -5,6 +5,16 @@
 
 == DFX
 
+=== feat: Private keys can be stored in encryped format
+
+`dfx identity new` and `dfx identity import` now ask you for a password to encrypt the private key (PEM file) when it is stored on disk.
+If you decide to use a password, your key will never be written to disk in plain text.
+In case you don't want to enter your password all the time and want to take the risk of storing your private key in plain text, you can use the `--disable-encryption` flag.
+
+=== feat: Identity export
+
+If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`.
+
 == icx-proxy
 
 Updated icx-proxy to commit 0230bff9cc62d5ef32dfed7009c7f85a3af1e716, now static-linked.

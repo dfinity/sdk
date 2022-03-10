@@ -3,10 +3,10 @@ use crate::lib::error::DfxResult;
 
 use super::identity_manager::EncryptionConfiguration;
 
-// use aes_gcm::aead::{Aead, NewAead};
-// use aes_gcm::{Aes256Gcm, Key, Nonce};
-// use anyhow::anyhow;
-// use argon2;
+use aes_gcm::aead::{Aead, NewAead};
+use aes_gcm::{Aes256Gcm, Key, Nonce};
+use anyhow::anyhow;
+use argon2::{password_hash::PasswordHasher, Argon2};
 use ic_types::principal::Principal;
 
 #[derive(Debug, PartialEq)]
@@ -26,59 +26,55 @@ pub async fn call_sender(_env: &dyn Environment, wallet: &Option<String>) -> Dfx
     Ok(sender)
 }
 
-// const ARGON_CONFIG: argon2::Config<'_> = argon2::Config {
-//     ad: &[],
-//     hash_length: 32,
-//     lanes: 1,
-//     mem_cost: 4096,
-//     secret: &[],
-//     thread_mode: argon2::ThreadMode::Sequential,
-//     time_cost: 16,
-//     variant: argon2::Variant::Argon2id,
-//     version: argon2::Version::Version13,
-// };
+fn get_argon_params() -> argon2::Params {
+    argon2::Params::new(64000 /* in kb */, 3, 1, Some(32 /* in bytes */)).unwrap()
+}
 
 pub fn encrypt(
     content: &[u8],
-    _config: &EncryptionConfiguration,
-    _password: &str,
+    config: &EncryptionConfiguration,
+    password: &str,
 ) -> DfxResult<Vec<u8>> {
-    Ok(Vec::from(content))
-    // let key = argon2::hash_raw(
-    //     password.as_bytes(),
-    //     config.pw_salt.as_slice(),
-    //     &ARGON_CONFIG,
-    // )?;
-    // let key = Key::from_slice(key.as_slice());
-    // let cipher = Aes256Gcm::new(key);
-    // let nonce = Nonce::from_slice(config.file_nonce.as_slice());
+    let argon2 = Argon2::new(
+        argon2::Algorithm::Argon2id,
+        argon2::Version::V0x13,
+        get_argon_params(),
+    );
+    let hash = argon2
+        .hash_password(password.as_bytes(), &config.pw_salt)
+        .map_err(|e| anyhow!(format!("Error during password hashing: {}", e)))?;
+    let key = Key::clone_from_slice(hash.hash.unwrap().as_ref());
+    let cipher = Aes256Gcm::new(&key);
+    let nonce = Nonce::from_slice(config.file_nonce.as_slice());
 
-    // let encrypted = cipher
-    //     .encrypt(nonce, content)
-    //     .map_err(|_| anyhow!("Encryption failed."))?;
+    let encrypted = cipher
+        .encrypt(nonce, content)
+        .map_err(|_| anyhow!("Encryption failed."))?;
 
-    // Ok(encrypted)
+    Ok(encrypted)
 }
 
 pub fn decrypt(
     encrypted_content: &[u8],
-    _config: &EncryptionConfiguration,
-    _password: &str,
+    config: &EncryptionConfiguration,
+    password: &str,
 ) -> DfxResult<Vec<u8>> {
-    Ok(Vec::from(encrypted_content))
-    // let key = argon2::hash_raw(
-    //     password.as_bytes(),
-    //     config.pw_salt.as_slice(),
-    //     &ARGON_CONFIG,
-    // )?;
-    // let key = Key::from_slice(key.as_slice());
-    // let cipher = Aes256Gcm::new(key);
-    // let nonce = Nonce::from_slice(config.file_nonce.as_slice());
+    let argon2 = Argon2::new(
+        argon2::Algorithm::Argon2id,
+        argon2::Version::V0x13,
+        get_argon_params(),
+    );
+    let hash = argon2
+        .hash_password(password.as_bytes(), &config.pw_salt)
+        .map_err(|e| anyhow!(format!("Error during password hashing: {}", e)))?;
+    let key = Key::clone_from_slice(hash.hash.unwrap().as_ref());
+    let cipher = Aes256Gcm::new(&key);
+    let nonce = Nonce::from_slice(config.file_nonce.as_slice());
 
-    // let decrypted = cipher
-    //     .decrypt(nonce, encrypted_content.as_ref())
-    //     .map_err(|_| anyhow!("Decryption failed."))?;
-    // Ok(decrypted)
+    let decrypted = cipher
+        .decrypt(nonce, encrypted_content.as_ref())
+        .map_err(|_| anyhow!("Decryption failed."))?;
+    Ok(decrypted)
 }
 
 #[cfg(test)]
@@ -86,7 +82,7 @@ mod test {
     use super::*;
     use proptest::prelude::*;
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(10))] // takes ~2.6s per case
+        #![proptest_config(ProptestConfig::with_cases(5))] // takes ~10s per case
         #[test]
         fn decrypt_reverts_encrypt(pass in ".*", content in ".*") {
             let config = EncryptionConfiguration::new().unwrap();

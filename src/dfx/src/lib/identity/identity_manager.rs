@@ -43,7 +43,7 @@ pub struct IdentityConfiguration {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EncryptionConfiguration {
     /// Salt used for deriving the key from the password
-    pub pw_salt: Vec<u8>,
+    pub pw_salt: String,
 
     /// 96 bit Nonce used to decrypt the file
     pub file_nonce: Vec<u8>,
@@ -52,13 +52,13 @@ pub struct EncryptionConfiguration {
 impl EncryptionConfiguration {
     /// Generates a random salt and nonce. Use this for every new identity
     pub fn new() -> DfxResult<Self> {
-        let mut salt: [u8; 64] = [0; 64];
         let mut nonce: [u8; 12] = [0; 12];
+        let mut salt: [u8; 32] = [0; 32];
         let sr = rand::SystemRandom::new();
-        sr.fill(&mut salt)?;
         sr.fill(&mut nonce)?;
+        sr.fill(&mut salt)?;
 
-        let pw_salt = salt.into();
+        let pw_salt = hex::encode(salt);
         let file_nonce = nonce.into();
 
         Ok(Self {
@@ -486,14 +486,11 @@ pub(super) fn maybe_encrypt_pem(
     config: Option<&IdentityConfiguration>,
 ) -> DfxResult<Vec<u8>> {
     if let Some(encryption_config) = config.and_then(|c| c.encryption.as_ref()) {
-        let password = dialoguer::Password::new()
-            .with_prompt("Please enter a passphrase to encrypt your identity")
-            .interact()?;
-        if password.is_empty() {
-            bail!("DANGEROUS: If you want to use no password, use the flag --disable-encryption instead.")
-        };
-        encrypt(pem_content, encryption_config, &password)
-            .context("Problem occurred during encryption")
+        let password = password_prompt()?;
+        let result = encrypt(pem_content, encryption_config, &password)
+            .context("Problem occurred during encryption");
+        println!("Encryption complete.");
+        result
     } else {
         Ok(Vec::from(pem_content))
     }
@@ -511,14 +508,24 @@ pub(super) fn maybe_decrypt_pem(
     config: Option<&IdentityConfiguration>,
 ) -> DfxResult<Vec<u8>> {
     if let Some(decryption_config) = config.and_then(|c| c.encryption.as_ref()) {
-        let password = dialoguer::Password::new()
-            .with_prompt("Please enter a passphrase to decrypt your identity")
-            .interact()?;
-        decrypt(pem_content, decryption_config, &password)
-            .context("Problem occurred during decryption")
+        let password = password_prompt()?;
+        let result = decrypt(pem_content, decryption_config, &password)
+            .context("Problem occurred during decryption");
+        if result.is_ok() {
+            // print to stderr so that output redirection works for the identity export command
+            eprintln!("Decryption complete.");
+        };
+        result
     } else {
         Ok(Vec::from(pem_content))
     }
+}
+
+pub(super) fn password_prompt() -> DfxResult<String> {
+    let pw = dialoguer::Password::new()
+        .with_prompt("Please enter a passphrase for your identity")
+        .interact()?;
+    Ok(pw)
 }
 
 pub(super) fn load_pem_file(

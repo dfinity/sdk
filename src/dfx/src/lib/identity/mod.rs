@@ -134,22 +134,15 @@ impl Identity {
 
     fn load_basic_identity(
         manager: &IdentityManager,
-        config: &IdentityConfiguration,
         name: &str,
+        pem_content: &[u8],
     ) -> DfxResult<Self> {
-        let dir = manager.get_identity_dir_path(name);
-        let pem_path = dir.join(IDENTITY_PEM);
-        let pem_content = std::fs::read(&pem_path)?;
-        let pem_content =
-            identity_manager::maybe_decrypt_pem(pem_content.as_slice(), Some(config))?;
-        let inner = Box::new(
-            BasicIdentity::from_pem(pem_content.as_slice()).map_err(|e| {
-                DfxError::new(IdentityError::CannotReadIdentityFile(
-                    pem_path.clone(),
-                    Box::new(DfxError::new(e)),
-                ))
-            })?,
-        );
+        let inner = Box::new(BasicIdentity::from_pem(pem_content).map_err(|e| {
+            DfxError::new(IdentityError::CannotReadIdentityFile(
+                name.into(),
+                Box::new(DfxError::new(e)),
+            ))
+        })?);
 
         Ok(Self {
             name: name.to_string(),
@@ -160,22 +153,15 @@ impl Identity {
 
     fn load_secp256k1_identity(
         manager: &IdentityManager,
-        config: &IdentityConfiguration,
         name: &str,
+        pem_content: &[u8],
     ) -> DfxResult<Self> {
-        let dir = manager.get_identity_dir_path(name);
-        let pem_path = dir.join(IDENTITY_PEM);
-        let pem_content = std::fs::read(&pem_path)?;
-        let pem_content =
-            identity_manager::maybe_decrypt_pem(pem_content.as_slice(), Some(config))?;
-        let inner = Box::new(
-            Secp256k1Identity::from_pem(pem_content.as_slice()).map_err(|e| {
-                DfxError::new(IdentityError::CannotReadIdentityFile(
-                    pem_path.clone(),
-                    Box::new(DfxError::new(e)),
-                ))
-            })?,
-        );
+        let inner = Box::new(Secp256k1Identity::from_pem(pem_content).map_err(|e| {
+            DfxError::new(IdentityError::CannotReadIdentityFile(
+                name.into(),
+                Box::new(DfxError::new(e)),
+            ))
+        })?);
 
         Ok(Self {
             name: name.to_string(),
@@ -218,8 +204,14 @@ impl Identity {
         if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            Identity::load_secp256k1_identity(manager, &config, name)
-                .or_else(|_| Identity::load_basic_identity(manager, &config, name))
+            let dir = manager.get_identity_dir_path(name);
+            let pem_path = dir.join(IDENTITY_PEM);
+            let pem_content = std::fs::read(&pem_path)?;
+            let pem_content =
+                identity_manager::maybe_decrypt_pem(pem_content.as_slice(), Some(&config))?;
+
+            Identity::load_secp256k1_identity(manager, name, &pem_content)
+                .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
         }
     }
 
