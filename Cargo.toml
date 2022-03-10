@@ -22,3 +22,6 @@ rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
 version = "0.12.1"
 git = "https://github.com/dfinity/agent-rs.git"
 rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+
+[profile.dev.package.argon2]
+opt-level = 3
