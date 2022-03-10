@@ -22,7 +22,6 @@ standard_setup() {
 
     export HOME="$x/home-dir"
     export DFX_CONFIG_ROOT="$x/config-root"
-    export WORKING_DIR="$x/working-dir"
     export RUST_BACKTRACE=1
 }
 
