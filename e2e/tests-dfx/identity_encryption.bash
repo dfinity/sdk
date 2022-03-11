@@ -16,11 +16,11 @@ teardown() {
 #
 
 @test "can create and use identity with password" {
-    assert_command ${BATS_TEST_DIRNAME}/../assets/expect_scripts/create_identity_with_password.exp
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/create_identity_with_password.exp"
 }
 
 @test "wrong password is rejected" {
-    assert_command ${BATS_TEST_DIRNAME}/../assets/expect_scripts/wrong_password_rejected.exp
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/wrong_password_rejected.exp"
 }
 
 @test "import and export identity with a password are inverse operations" {
@@ -35,15 +35,15 @@ oUQDQgAEjjBKAxko3RPG8ot7PoeXM7ZHtek2xcbRN/JZVfKKNEnNG4wdnMdpRGyk
 37fJkz9WEHR+Wol+nGAuQNnCOIVXdw==
 -----END EC PRIVATE KEY-----
 XXX
-    assert_command ${BATS_TEST_DIRNAME}/../assets/expect_scripts/import_export_identity_with_password.exp
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/import_export_identity_with_password.exp"
     assert_eq "$(cat import.pem)" "$(cat export.pem)"
 
 }
 
 @test "rename identity works on identity with a password" {
-    assert_command ${BATS_TEST_DIRNAME}/../assets/expect_scripts/rename_identity_with_password.exp
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/rename_identity_with_password.exp"
 }
 
 @test "full local hello world deployment workflow with a password. clean up afterwards" {
-    assert_command ${BATS_TEST_DIRNAME}/../assets/expect_scripts/deploy_with_password.exp
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/deploy_with_password.exp"
 }

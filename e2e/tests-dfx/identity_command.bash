@@ -383,7 +383,7 @@ XXX
 
 @test "identity: can export and re-import an identity" {
     assert_command dfx identity new --disable-encryption alice
-    assert_command $(dfx identity export alice > export.pem)
+    dfx identity export alice > export.pem
     assert_file_exists export.pem
     assert_command dfx identity import --disable-encryption bob export.pem
 }
