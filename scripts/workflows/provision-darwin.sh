@@ -26,7 +26,9 @@ rm bats-support.tar.gz
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
      brew install mitmproxy
 fi
-brew install expect
+if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
+     brew install bitcoin
+fi
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"
