@@ -25,7 +25,7 @@ teardown() {
 
 @test "import and export identity with a password are inverse operations" {
     # key generated using `openssl ecparam -genkey -name secp256k1`
-    cat >${WORKING_DIR}/import.pem <<XXX
+    cat >import.pem <<XXX
 -----BEGIN EC PARAMETERS-----
 BgUrgQQACg==
 -----END EC PARAMETERS-----

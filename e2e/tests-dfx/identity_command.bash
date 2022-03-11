@@ -362,7 +362,7 @@ teardown() {
     tail -n 3 alice.pem > bob.pem
     assert_command_fail dfx identity import --disable-encryption bob bob.pem
     assert_match 'Creating identity: "bob".' "$stderr"
-    assert_match 'Invalid Ed25519 private key in PEM file at' "$stderr"
+    assert_match 'Invalid Ed25519 private key in PEM file' "$stderr"
 }
 
 @test "identity: can import an EC key without an EC PARAMETERS section (as quill generate makes)" {
