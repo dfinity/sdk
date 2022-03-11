@@ -1,6 +1,6 @@
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::actors::{start_emulator_actor, start_replica_actor, start_shutdown_controller};
-use crate::config::dfinity::ConfigDefaultsReplica;
+use crate::config::dfinity::{ConfigDefaultsReplica, ReplicaSubnetType};
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -37,7 +37,10 @@ fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConf
         http_handler.port = Some(port);
     };
 
-    let mut replica_config = ReplicaConfig::new(&env.get_state_dir());
+    let mut replica_config = ReplicaConfig::new(
+        &env.get_state_dir(),
+        config.subnet_type.unwrap_or(ReplicaSubnetType::default()),
+    );
     replica_config.http_handler = http_handler;
     Ok(replica_config)
 }

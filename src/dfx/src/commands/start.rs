@@ -2,7 +2,7 @@ use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::{
     start_emulator_actor, start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, ReplicaSubnetType};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
@@ -171,8 +171,15 @@ pub fn exec(
                 .join("replica-configuration")
                 .join("replica-1.port");
 
-            let replica_config =
-                ReplicaConfig::new(&env.get_state_dir()).with_random_port(&replica_port_path);
+            let subnet_type = config
+                .get_config()
+                .get_defaults()
+                .get_replica()
+                .subnet_type
+                .unwrap_or(ReplicaSubnetType::default());
+
+            let replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
+                .with_random_port(&replica_port_path);
             let replica = start_replica_actor(env, replica_config, shutdown_controller.clone())?;
             replica.recipient()
         };
