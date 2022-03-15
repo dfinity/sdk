@@ -23,6 +23,22 @@ Example how to specify the subnet type:
 }
 ----
 
+=== dfx.json
+
+In preparation for BTC integration, added configuration for the bitcoind port:
+
+[source, json]
+----
+{
+  "canisters": {},
+  "defaults": {
+    "bitcoind": {
+      "port": 18333
+    }
+  }
+}
+----
+
 == icx-proxy
 
 Updated icx-proxy to commit 594b6c81cde6da4e08faee8aa8e5a2e6ae815602, now static-linked.
