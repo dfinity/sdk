@@ -150,7 +150,7 @@ impl Default for ReplicaSubnetType {
 
 impl ReplicaSubnetType {
     /// Converts the value to the string expected by ic-starter for its --subnet-type argument
-    pub fn to_string(&self) -> String {
+    pub fn as_ic_starter_string(&self) -> String {
         match self {
             ReplicaSubnetType::System => "system".to_string(),
             ReplicaSubnetType::Application => "application".to_string(),
