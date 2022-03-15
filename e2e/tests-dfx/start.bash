@@ -4,8 +4,6 @@ load ../utils/_
 
 setup() {
     standard_setup
-
-    dfx_new hello
 }
 
 teardown() {
@@ -15,6 +13,7 @@ teardown() {
 }
 
 @test "candid interface available through dfx start" {
+    dfx_new hello
     dfx_start
 
     assert_command dfx deploy
@@ -29,6 +28,7 @@ teardown() {
 }
 
 @test "dfx restarts the replica" {
+    dfx_new hello
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
     dfx_start
@@ -62,6 +62,7 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy" {
+    dfx_new hello
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
     dfx_start
@@ -88,6 +89,7 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
+    dfx_new hello
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
     dfx_start
@@ -129,4 +131,28 @@ teardown() {
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
     assert_command curl --fail http://localhost:"$(cat .dfx/webserver-port)"/sample-asset.txt?canisterId="$ID"
+}
+
+@test "dfx starts replica with subnet_type application" {
+    install_asset subnet_type/application
+
+    assert_command dfx start --background
+    assert_match "subnet_type: Application"
+
+}
+
+@test "dfx starts replica with subnet_type verifiedapplication" {
+    install_asset subnet_type/verified_application
+
+    assert_command dfx start --background
+    assert_match "subnet_type: VerifiedApplication"
+
+}
+
+@test "dfx starts replica with subnet_type system" {
+    install_asset subnet_type/system
+
+    assert_command dfx start --background
+    assert_match "subnet_type: System"
+
 }

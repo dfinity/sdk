@@ -238,7 +238,7 @@ fn replica_start_thread(
             "--consensus-pool-backend",
             "rocksdb",
             "--subnet-type",
-            &dbg!(serde_json::to_string(&config.subnet_type).unwrap()),
+            &config.subnet_type.to_string(),
         ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);

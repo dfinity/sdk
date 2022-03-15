@@ -139,6 +139,17 @@ impl Default for ReplicaSubnetType {
     }
 }
 
+impl ReplicaSubnetType {
+    /// Converts the value to the string expected by ic-starter for its --subnet-type argument
+    pub fn to_string(&self) -> String {
+        match self {
+            ReplicaSubnetType::System => "system".to_string(),
+            ReplicaSubnetType::Application => "application".to_string(),
+            ReplicaSubnetType::VerifiedApplication => "verified_application".to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ConfigNetworkProvider {
     pub providers: Vec<String>,
