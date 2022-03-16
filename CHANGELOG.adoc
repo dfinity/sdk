@@ -15,6 +15,22 @@ In case you don't want to enter your password all the time and want to take the 
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`.
 
+=== dfx.json
+
+In preparation for BTC integration, added configuration for the bitcoind port:
+
+[source, json]
+----
+{
+  "canisters": {},
+  "defaults": {
+    "bitcoind": {
+      "port": 18333
+    }
+  }
+}
+----
+
 == icx-proxy
 
 Updated icx-proxy to commit 594b6c81cde6da4e08faee8aa8e5a2e6ae815602, now static-linked.
