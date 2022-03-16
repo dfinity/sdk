@@ -28,9 +28,9 @@ teardown() {
 }
 
 @test "dfx restarts the replica" {
-    dfx_new hello
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
+    dfx_new hello
     dfx_start
 
     install_asset greet
@@ -62,9 +62,9 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy" {
-    dfx_new hello
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
+    dfx_new hello
     dfx_start
 
     install_asset greet
@@ -89,9 +89,9 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
-    dfx_new hello
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
+    dfx_new hello
     dfx_start
 
     install_asset greet
