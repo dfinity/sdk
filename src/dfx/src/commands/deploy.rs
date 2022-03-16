@@ -151,44 +151,48 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
             {
                 continue;
             }
-            let canister_id = Principal::from_text(canister_name)
-                .or_else(|_| canister_id_store.get(canister_name))?;
-            let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
-            let is_frontend = canister_config.extras.get("frontend").is_some();
+            let canister_id = match Principal::from_text(canister_name) {
+                Ok(principal) => Some(principal),
+                Err(_) => canister_id_store.find(canister_name)
+            };
+            if let Some(canister_id) = canister_id {
+                let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+                let is_frontend = canister_config.extras.get("frontend").is_some();
 
-            if is_frontend {
-                let mut url = Url::parse(&network.providers[0])?;
-
-                if let Some(Domain(domain)) = url.host() {
-                    let host = format!("{}.{}", canister_id, domain);
-                    url.set_host(Some(&host))?;
-                } else {
-                    let query = format!("canisterId={}", canister_id);
-                    url.set_query(Some(&query));
-                };
-                frontend_urls.insert(canister_name, url);
-            }
-
-            if canister_info.get_type() != "assets" {
-                if network.is_ic {
-                    let url = format!(
-                        "https://{}.raw.ic0.app/?id={}",
-                        MAINNET_CANDID_INTERFACE_PRINCIPAL, canister_id
-                    );
-                    candid_urls.insert(canister_name, Url::parse(&url)?);
-                } else if let Some(ui_canister_id) = ui_canister_id {
+                if is_frontend {
                     let mut url = Url::parse(&network.providers[0])?;
+
                     if let Some(Domain(domain)) = url.host() {
-                        let host = format!("{}.{}", ui_canister_id, domain);
-                        let query = format!("id={}", canister_id);
+                        let host = format!("{}.{}", canister_id, domain);
                         url.set_host(Some(&host))?;
-                        url.set_query(Some(&query));
                     } else {
-                        let query = format!("canisterId={}&id={}", ui_canister_id, canister_id);
+                        let query = format!("canisterId={}", canister_id);
                         url.set_query(Some(&query));
-                    }
-                    candid_urls.insert(canister_name, url);
-                };
+                    };
+                    frontend_urls.insert(canister_name, url);
+                }
+
+                if canister_info.get_type() != "assets" {
+                    if network.is_ic {
+                        let url = format!(
+                            "https://{}.raw.ic0.app/?id={}",
+                            MAINNET_CANDID_INTERFACE_PRINCIPAL, canister_id
+                        );
+                        candid_urls.insert(canister_name, Url::parse(&url)?);
+                    } else if let Some(ui_canister_id) = ui_canister_id {
+                        let mut url = Url::parse(&network.providers[0])?;
+                        if let Some(Domain(domain)) = url.host() {
+                            let host = format!("{}.{}", ui_canister_id, domain);
+                            let query = format!("id={}", canister_id);
+                            url.set_host(Some(&host))?;
+                            url.set_query(Some(&query));
+                        } else {
+                            let query = format!("canisterId={}&id={}", ui_canister_id, canister_id);
+                            url.set_query(Some(&query));
+                        }
+                        candid_urls.insert(canister_name, url);
+                    };
+                }
             }
         }
     }
