@@ -5,6 +5,8 @@
 
 == DFX
 
+=== feat: dfx deploy now displays URLs for the frontend and candid interface
+
 === dfx.json
 
 In preparation for BTC integration, added configuration for the bitcoind port:
