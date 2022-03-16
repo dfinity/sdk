@@ -114,6 +114,9 @@ impl CanisterBuilder for RustBuilder {
                 self.logger,
                 "Executing: ic-cdk-optimizer -o {0} {0}", &wasm_path
             );
+            if !matches!(optimizer.status(), Ok(status) if status.success()) {
+                warn!(self.logger, "Failed to run ic-cdk-optimizer.");
+            }
         } else {
             warn!(
                 self.logger,
