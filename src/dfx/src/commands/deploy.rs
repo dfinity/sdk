@@ -153,7 +153,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
             }
             let canister_id = match Principal::from_text(canister_name) {
                 Ok(principal) => Some(principal),
-                Err(_) => canister_id_store.find(canister_name)
+                Err(_) => canister_id_store.find(canister_name),
             };
             if let Some(canister_id) = canister_id {
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
