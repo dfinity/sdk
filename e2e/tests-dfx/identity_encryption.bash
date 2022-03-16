@@ -43,7 +43,3 @@ XXX
 @test "rename identity works on identity with a password" {
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/rename_identity_with_password.exp"
 }
-
-@test "full local hello world deployment workflow with a password. clean up afterwards" {
-    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/deploy_with_password.exp"
-}
