@@ -45,15 +45,6 @@ let
                 ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
                 override = attrs: { OPENSSL_STATIC = "1"; };
               };
-              icx-proxy = self.naersk.buildPackage {
-                name = "icx-proxy";
-                root = self.sources.icx-proxy;
-                cargoBuildOptions = x: x ++ [ "-p" "icx-proxy" ];
-                cargoTestOptions = x: x ++ [ "-p" "icx-proxy" ];
-                buildInputs = [ self.pkgsStatic.openssl self.pkg-config ]
-                ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
-                override = attrs: { OPENSSL_STATIC = "1"; };
-              };
               dfinity =
                 (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
               napalm = self.callPackage self.sources.napalm {
@@ -68,6 +59,12 @@ let
               '';
               motoko = pkgs.runCommandNoCCLocal "motoko" {
                 src = self.sources."motoko-${self.system}";
+              } ''
+                mkdir -p $out/bin
+                tar -C $out/bin -xf $src
+              '';
+              icx-proxy = pkgs.runCommandNoCCLocal "icx-proxy" {
+                src = self.sources."icx-proxy-${pkgs.system}";
               } ''
                 mkdir -p $out/bin
                 tar -C $out/bin -xf $src

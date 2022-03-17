@@ -5,6 +5,8 @@
 
 == DFX
 
+=== feat: dfx deploy now displays URLs for the frontend and candid interface
+
 === feat: Private keys can be stored in encrypted format
 
 `dfx identity new` and `dfx identity import` now ask you for a password to encrypt the private key (PEM file) when it is stored on disk.
