@@ -5,7 +5,7 @@
 
 == DFX
 
-=== feat: Private keys can be stored in encryped format
+=== feat: Private keys can be stored in encrypted format
 
 `dfx identity new` and `dfx identity import` now ask you for a password to encrypt the private key (PEM file) when it is stored on disk.
 If you decide to use a password, your key will never be written to disk in plain text.
