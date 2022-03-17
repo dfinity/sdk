@@ -3,6 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::{
     pem_encryption, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
+    IDENTITY_PEM_ENCRYPTED,
 };
 
 use anyhow::{anyhow, Context};
@@ -199,15 +200,9 @@ impl IdentityManager {
     /// Returns the pem file content of the selected identity
     pub fn export(&self, name: &str) -> DfxResult<String> {
         self.require_identity_exists(name)?;
-        let pem_path = self.get_identity_pem_path(name);
-        let json_path = self.get_identity_json_path(name);
 
-        let config = if json_path.exists() {
-            read_identity_configuration(&json_path)?
-        } else {
-            IdentityConfiguration::default()
-        };
-
+        let config = self.get_identity_config_or_default(name)?;
+        let pem_path = self.get_identity_pem_path(name, &config);
         let pem = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
         String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
@@ -221,8 +216,8 @@ impl IdentityManager {
             return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
         }
 
+        remove_identity_file(&self.load_identity_pem_path(name)?)?;
         remove_identity_file(&self.get_identity_json_path(name))?;
-        remove_identity_file(&self.get_identity_pem_path(name))?;
 
         let dir = self.get_identity_dir_path(name);
         std::fs::remove_dir(&dir).context(format!(
@@ -285,11 +280,11 @@ impl IdentityManager {
             return Ok(());
         }
 
-        let identity_pem_path = self.get_identity_pem_path(name);
+        let json_path = self.get_identity_json_path(name);
+        let identity_pem_path = self.load_identity_pem_path(name)?;
 
         if !identity_pem_path.exists() {
-            let identity_json_path = self.get_identity_json_path(name);
-            if !identity_json_path.exists() {
+            if !json_path.exists() {
                 Err(DfxError::new(IdentityError::IdentityDoesNotExist(
                     String::from(name),
                     identity_pem_path,
@@ -306,12 +301,44 @@ impl IdentityManager {
         self.identity_root_path.join(&identity)
     }
 
-    pub fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
-        self.get_identity_dir_path(identity).join(IDENTITY_PEM)
+    /// Reads identity.json (if present) to determine where the PEM file should be at.
+    pub fn load_identity_pem_path(&self, identity_name: &str) -> DfxResult<PathBuf> {
+        let config = self.get_identity_config_or_default(identity_name)?;
+
+        Ok(self.get_identity_pem_path(identity_name, &config))
+    }
+
+    /// Determines the PEM file path based on the IdentityConfiguration
+    pub fn get_identity_pem_path(
+        &self,
+        identity_name: &str,
+        config: &IdentityConfiguration,
+    ) -> PathBuf {
+        let pem_file = if config.encryption.is_some() {
+            IDENTITY_PEM_ENCRYPTED
+        } else {
+            IDENTITY_PEM
+        };
+        self.get_identity_dir_path(identity_name).join(pem_file)
     }
 
     pub fn get_identity_json_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_JSON)
+    }
+
+    pub fn get_identity_config_or_default(
+        &self,
+        identity: &str,
+    ) -> DfxResult<IdentityConfiguration> {
+        let json_path = self.get_identity_json_path(identity);
+        if json_path.exists() {
+            let content = std::fs::read(json_path)?;
+            let config = serde_json::from_slice(content.as_ref())
+                .context("Error loading identity configuration")?;
+            Ok(config)
+        } else {
+            Ok(IdentityConfiguration::default())
+        }
     }
 }
 

@@ -38,6 +38,7 @@ pub use identity_manager::{
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_PEM: &str = "identity.pem";
+pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
 pub const IDENTITY_JSON: &str = "identity.json";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
@@ -95,7 +96,7 @@ impl Identity {
             IdentityCreationParameters::Pem { disable_encryption } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
                 create(identity_dir)?;
-                let pem_file = manager.get_identity_pem_path(name);
+                let pem_file = manager.get_identity_pem_path(name, &identity_config);
                 let pem_content = identity_manager::generate_key()?;
                 pem_encryption::write_pem_file(
                     &pem_file,
@@ -110,7 +111,7 @@ impl Identity {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
                 let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
                 create(identity_dir)?;
-                let dst_pem_file = manager.get_identity_pem_path(name);
+                let dst_pem_file = manager.get_identity_pem_path(name, &identity_config);
                 pem_encryption::write_pem_file(
                     &dst_pem_file,
                     Some(&identity_config),
@@ -205,8 +206,7 @@ impl Identity {
         if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            let dir = manager.get_identity_dir_path(name);
-            let pem_path = dir.join(IDENTITY_PEM);
+            let pem_path = manager.load_identity_pem_path(name)?;
             let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
 
             Identity::load_secp256k1_identity(manager, name, &pem_content)

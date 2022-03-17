@@ -43,3 +43,7 @@ XXX
 @test "rename identity works on identity with a password" {
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/rename_identity_with_password.exp"
 }
+
+@test "remove identity works on identity with a password" {
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/remove_identity_with_password.exp"
+}
