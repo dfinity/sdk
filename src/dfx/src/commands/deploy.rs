@@ -3,15 +3,26 @@ use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::{environment::Environment, identity::Identity};
+use crate::lib::{environment::Environment, identity::Identity, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
+use std::collections::BTreeMap;
 
+use crate::lib::canister_info::CanisterInfo;
+use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use anyhow::{anyhow, bail};
 use clap::Parser;
+use console::Style;
+use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use slog::info;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
+use url::Host::Domain;
+use url::Url;
+
+const MAINNET_CANDID_INTERFACE_PRINCIPAL: &str = "a4gq6-oaaaa-aaaab-qaa4q-cai";
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
 #[derive(Parser)]
@@ -116,5 +127,92 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         with_cycles,
         &call_sender,
         create_call_sender,
-    ))
+    ))?;
+
+    display_urls(&env)
+}
+
+fn display_urls(env: &dyn Environment) -> DfxResult {
+    let config = env.get_config_or_anyhow()?;
+    let network: &NetworkDescriptor = env.get_network_descriptor().unwrap();
+    let log = env.get_logger();
+    let canister_id_store = CanisterIdStore::for_env(env)?;
+
+    let mut frontend_urls = BTreeMap::new();
+    let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();
+
+    let ui_canister_id = named_canister::get_ui_canister_id(network);
+
+    if let Some(canisters) = &config.get_config().canisters {
+        for (canister_name, canister_config) in canisters {
+            if config
+                .get_config()
+                .is_remote_canister(canister_name, &network.name)?
+            {
+                continue;
+            }
+            let canister_id = match Principal::from_text(canister_name) {
+                Ok(principal) => Some(principal),
+                Err(_) => canister_id_store.find(canister_name),
+            };
+            if let Some(canister_id) = canister_id {
+                let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+                let is_frontend = canister_config.extras.get("frontend").is_some();
+
+                if is_frontend {
+                    let mut url = Url::parse(&network.providers[0])?;
+
+                    if let Some(Domain(domain)) = url.host() {
+                        let host = format!("{}.{}", canister_id, domain);
+                        url.set_host(Some(&host))?;
+                    } else {
+                        let query = format!("canisterId={}", canister_id);
+                        url.set_query(Some(&query));
+                    };
+                    frontend_urls.insert(canister_name, url);
+                }
+
+                if canister_info.get_type() != "assets" {
+                    if network.is_ic {
+                        let url = format!(
+                            "https://{}.raw.ic0.app/?id={}",
+                            MAINNET_CANDID_INTERFACE_PRINCIPAL, canister_id
+                        );
+                        candid_urls.insert(canister_name, Url::parse(&url)?);
+                    } else if let Some(ui_canister_id) = ui_canister_id {
+                        let mut url = Url::parse(&network.providers[0])?;
+                        if let Some(Domain(domain)) = url.host() {
+                            let host = format!("{}.{}", ui_canister_id, domain);
+                            let query = format!("id={}", canister_id);
+                            url.set_host(Some(&host))?;
+                            url.set_query(Some(&query));
+                        } else {
+                            let query = format!("canisterId={}&id={}", ui_canister_id, canister_id);
+                            url.set_query(Some(&query));
+                        }
+                        candid_urls.insert(canister_name, url);
+                    };
+                }
+            }
+        }
+    }
+
+    if !frontend_urls.is_empty() || !candid_urls.is_empty() {
+        info!(log, "URLs:");
+        let green = Style::new().green();
+        if !frontend_urls.is_empty() {
+            info!(log, "  Frontend:");
+            for (name, url) in frontend_urls {
+                info!(log, "    {}: {}", name, green.apply_to(url));
+            }
+        }
+        if !candid_urls.is_empty() {
+            info!(log, "  Candid:");
+            for (name, url) in candid_urls {
+                info!(log, "    {}: {}", name, green.apply_to(url));
+            }
+        }
+    }
+
+    Ok(())
 }
