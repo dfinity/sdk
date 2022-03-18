@@ -1,0 +1,13 @@
+{
+  "canisters": {
+    "e2e_project": {
+      "main": "print.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "replica": {
+      "subnet_type": "system"
+    }
+  }
+}
