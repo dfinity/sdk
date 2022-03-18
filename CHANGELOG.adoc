@@ -43,9 +43,11 @@ Updated icx-proxy to commit 594b6c81cde6da4e08faee8aa8e5a2e6ae815602, now static
 
 == Replica
 
-Updated replica to blessed commit 257c24b257ca4a4c129232665f6696e245caa441.
+Updated replica to blessed commit d004accc3904e24dddb13a11d93451523e1a8a5f.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/49653[49653]
+* https://dashboard.internetcomputer.org/proposal/49011[49011]
 * https://dashboard.internetcomputer.org/proposal/48427[48427]
 * https://dashboard.internetcomputer.org/proposal/47611[47611]
 * https://dashboard.internetcomputer.org/proposal/47512[47512]
