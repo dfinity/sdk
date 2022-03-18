@@ -352,7 +352,15 @@ fn initialize(
     identity_json_path: &Path,
     identity_root_path: &Path,
 ) -> DfxResult<Configuration> {
-    slog::info!(logger, r#"Creating the "default" identity."#);
+    slog::info!(
+        logger,
+        r#"Creating the "default" identity.
+WARNING: The "default" identity is not stored securely. Do not use it to control a lot of cycles/ICP.
+To create a more secure identity, create and use an identity that is protected by a password using the following commands:
+    dfx identity create <my-secure-identity-name> # creates a password protected identity
+    dfx identity use <my-secure-identity-name> # uses this identity by default
+"#
+    );
 
     let identity_dir = identity_root_path.join(DEFAULT_IDENTITY_NAME);
     let identity_pem_path = identity_dir.join(IDENTITY_PEM);

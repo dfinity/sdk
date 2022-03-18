@@ -11,9 +11,19 @@
 If you decide to use a password, your key will never be written to disk in plain text.
 In case you don't want to enter your password all the time and want to take the risk of storing your private key in plain text, you can use the `--disable-encryption` flag.
 
+The `default` identity as well as already existing identities will NOT be encrypted. If you want to encrypt an identity, use the following commands:
+[source, bash]
+----
+dfx identity export identity_name > identity.pem
+# if you have set old_identity_name as the identity that is used by default, switch to a different one
+dfx identity use other_identity
+dfx identity remove identity_name
+dfx identity import identity_name identity.pem
+----
+
 === feat: Identity export
 
-If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`.
+If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
 
 === dfx.json
 
