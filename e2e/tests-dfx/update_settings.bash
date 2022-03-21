@@ -16,8 +16,8 @@ teardown() {
 
 @test "set controller" {
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
     
@@ -64,8 +64,8 @@ teardown() {
 
 @test "set controller with wallet" {
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -114,8 +114,8 @@ teardown() {
     use_wallet_wasm 0.7.2
 
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -163,8 +163,8 @@ teardown() {
 @test "set controller without wallet but using wallet 0.7.2" {
     use_wallet_wasm 0.7.2
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
     
@@ -213,8 +213,8 @@ teardown() {
 
 @test "set multiple controllers" {
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -242,8 +242,8 @@ teardown() {
 }
 
 @test "set multiple controllers with wallet" {
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -273,8 +273,8 @@ teardown() {
 @test "set multiple controllers even with wallet 0.7.2" {
     use_wallet_wasm 0.7.2
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -304,8 +304,8 @@ teardown() {
 @test "set multiple controllers without wallet but using wallet 0.7.2" {
     use_wallet_wasm 0.7.2
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -334,9 +334,9 @@ teardown() {
 }
 
 @test "add controller to existing canister" {
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
-    assert_command dfx identity new charlie
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
+    assert_command dfx identity new --disable-encryption charlie
 
     dfx identity use alice
     dfx_start
@@ -360,9 +360,9 @@ teardown() {
 }
 
 @test "add controller to all canisters" {
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob 
-    assert_command dfx identity new charlie
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob 
+    assert_command dfx identity new --disable-encryption charlie
 
     dfx identity use alice
     dfx_start

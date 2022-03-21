@@ -6,6 +6,7 @@ use crate::config::dfinity::NetworkType;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
+use crate::lib::identity::identity_manager::EncryptionConfiguration;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
@@ -27,6 +28,7 @@ use std::path::PathBuf;
 
 pub mod identity_manager;
 pub mod identity_utils;
+pub mod pem_encryption;
 use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
 pub use identity_manager::{
@@ -36,6 +38,7 @@ pub use identity_manager::{
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_PEM: &str = "identity.pem";
+pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
 pub const IDENTITY_JSON: &str = "identity.json";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
@@ -72,33 +75,55 @@ impl Identity {
         if identity_dir.exists() {
             bail!("Identity already exists.");
         }
+        let identity_config_location = manager.get_identity_json_path(name);
+        let mut identity_config = IdentityConfiguration::default();
         fn create(identity_dir: PathBuf) -> DfxResult {
             std::fs::create_dir_all(&identity_dir).context(format!(
                 "Cannot create identity directory at '{0}'.",
                 identity_dir.display(),
             ))
         }
-        match parameters {
-            IdentityCreationParameters::Pem() => {
-                create(identity_dir)?;
-                let pem_file = manager.get_identity_pem_path(name);
-                identity_manager::generate_key(&pem_file)
-            }
-            IdentityCreationParameters::PemFile(src_pem_file) => {
-                identity_manager::validate_pem_file(&src_pem_file)?;
-                create(identity_dir)?;
-                let dst_pem_file = manager.get_identity_pem_path(name);
-                identity_manager::import_pem_file(&src_pem_file, &dst_pem_file)
-            }
-            IdentityCreationParameters::Hardware(parameters) => {
-                create(identity_dir)?;
-                let identity_configuration = IdentityConfiguration {
-                    hsm: Some(parameters),
-                };
-                let json_file = manager.get_identity_json_path(name);
-                identity_manager::write_identity_configuration(&json_file, &identity_configuration)
+        fn create_encryption_config(
+            disable_encryption: bool,
+        ) -> DfxResult<Option<EncryptionConfiguration>> {
+            if disable_encryption {
+                Ok(None)
+            } else {
+                Ok(Some(identity_manager::EncryptionConfiguration::new()?))
             }
         }
+        match parameters {
+            IdentityCreationParameters::Pem { disable_encryption } => {
+                identity_config.encryption = create_encryption_config(disable_encryption)?;
+                create(identity_dir)?;
+                let pem_file = manager.get_identity_pem_path(name, &identity_config);
+                let pem_content = identity_manager::generate_key()?;
+                pem_encryption::write_pem_file(
+                    &pem_file,
+                    Some(&identity_config),
+                    pem_content.as_slice(),
+                )?;
+            }
+            IdentityCreationParameters::PemFile {
+                src_pem_file,
+                disable_encryption,
+            } => {
+                identity_config.encryption = create_encryption_config(disable_encryption)?;
+                let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
+                create(identity_dir)?;
+                let dst_pem_file = manager.get_identity_pem_path(name, &identity_config);
+                pem_encryption::write_pem_file(
+                    &dst_pem_file,
+                    Some(&identity_config),
+                    src_pem_content.as_slice(),
+                )?;
+            }
+            IdentityCreationParameters::Hardware { hsm } => {
+                identity_config.hsm = Some(hsm);
+                create(identity_dir)?;
+            }
+        }
+        identity_manager::write_identity_configuration(&identity_config_location, &identity_config)
     }
 
     pub fn anonymous() -> Self {
@@ -109,12 +134,14 @@ impl Identity {
         }
     }
 
-    fn load_basic_identity(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
-        let dir = manager.get_identity_dir_path(name);
-        let pem_path = dir.join(IDENTITY_PEM);
-        let inner = Box::new(BasicIdentity::from_pem_file(&pem_path).map_err(|e| {
+    fn load_basic_identity(
+        manager: &IdentityManager,
+        name: &str,
+        pem_content: &[u8],
+    ) -> DfxResult<Self> {
+        let inner = Box::new(BasicIdentity::from_pem(pem_content).map_err(|e| {
             DfxError::new(IdentityError::CannotReadIdentityFile(
-                pem_path.clone(),
+                name.into(),
                 Box::new(DfxError::new(e)),
             ))
         })?);
@@ -126,12 +153,14 @@ impl Identity {
         })
     }
 
-    fn load_secp256k1_identity(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
-        let dir = manager.get_identity_dir_path(name);
-        let pem_path = dir.join(IDENTITY_PEM);
-        let inner = Box::new(Secp256k1Identity::from_pem_file(&pem_path).map_err(|e| {
+    fn load_secp256k1_identity(
+        manager: &IdentityManager,
+        name: &str,
+        pem_content: &[u8],
+    ) -> DfxResult<Self> {
+        let inner = Box::new(Secp256k1Identity::from_pem(pem_content).map_err(|e| {
             DfxError::new(IdentityError::CannotReadIdentityFile(
-                pem_path.clone(),
+                name.into(),
                 Box::new(DfxError::new(e)),
             ))
         })?);
@@ -166,16 +195,22 @@ impl Identity {
 
     pub fn load(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
         let json_path = manager.get_identity_json_path(name);
-        if json_path.exists() {
-            let hsm = identity_manager::read_identity_configuration(&json_path)?
-                .hsm
-                .ok_or_else(|| {
-                    anyhow!("No HardwareIdentityConfiguration for IdentityConfiguration.")
-                })?;
+        let config = if json_path.exists() {
+            identity_manager::read_identity_configuration(&json_path)?
+        } else {
+            IdentityConfiguration {
+                hsm: None,
+                encryption: None,
+            }
+        };
+        if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            Identity::load_secp256k1_identity(manager, name)
-                .or_else(|_| Identity::load_basic_identity(manager, name))
+            let pem_path = manager.load_identity_pem_path(name)?;
+            let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+
+            Identity::load_secp256k1_identity(manager, name, &pem_content)
+                .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
         }
     }
 
