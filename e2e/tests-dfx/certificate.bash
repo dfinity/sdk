@@ -43,7 +43,7 @@ setup() {
         mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  "$MODIFY_BODY_ARG" '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
-        timeout 25 sh -c \
+        timeout 5 sh -c \
             "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done" \
             || (echo "mitmdump did not start on port $MITM_PORT" && exit 1)
 
