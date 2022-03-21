@@ -18,7 +18,7 @@ teardown() {
 @test "identity get-principal: the get-principal is the same as sender id" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new jose
+    assert_command dfx identity new --disable-encryption jose
 
     PRINCPAL_ID=$(dfx --identity jose identity get-principal)
 
@@ -38,7 +38,7 @@ teardown() {
 @test "identity get-principal (anonymous): the get-principal is the same as sender id" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new jose
+    assert_command dfx identity new --disable-encryption jose
 
     ANONYMOUS_PRINCIPAL_ID="2vxsx-fae"
 
@@ -99,8 +99,8 @@ teardown() {
 @test "after using a specific identity while creating a canister, that user is the initializer" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     dfx --identity alice canister create --all
     assert_command dfx --identity alice build
@@ -129,7 +129,7 @@ teardown() {
 @test "after renaming an identity, the renamed identity is still initializer" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
 
     dfx --identity alice canister create --all
     assert_command dfx --identity alice build
