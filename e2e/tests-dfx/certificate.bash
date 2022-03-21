@@ -56,7 +56,8 @@ setup() {
 }
 
 teardown() {
-    kill -9 $MITMDUMP_PID
+    pkill -P $MITMDUMP_PID
+    kill $MITMDUMP_PID
 
     dfx_stop
 
