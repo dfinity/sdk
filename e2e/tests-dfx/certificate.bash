@@ -56,6 +56,7 @@ setup() {
 }
 
 teardown() {
+    # Kill child processes of mitmdump. Otherwise they'll hang around way too long
     pkill -P $MITMDUMP_PID
     kill $MITMDUMP_PID
 
