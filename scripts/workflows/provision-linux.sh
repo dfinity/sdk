@@ -17,20 +17,13 @@ sudo mkdir /usr/local/lib/bats-support
 sudo tar --directory /usr/local/lib/bats-support --extract --file v$version.tar.gz --strip-components 1
 rm v$version.tar.gz
 
-echo "What is happening with pyparsing"
-apt-cache policy mitmproxy
-apt list -a mitmproxy
-apt-cache policy python3-pyparsing
-apt-cache policy python-pyparsing
-python3 --version
-python3 -c "
-import pyparsing as pp
-print(pp.__version__)
-"
-
 # Packages needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
-    sudo apt-get install --yes mitmproxy=7.0.4
+    wget -O mitmproxy.tar.gz https://snapshots.mitmproxy.org/7.0.4/mitmproxy-7.0.4-linux.tar.gz
+    sudo mkdir /usr/local/lib/mitmproxy
+    sudo tar --directory /usr/local/lib/mitmproxy --extract --file mitmproxy.tar.gz
+    find /usr/local/lib/mitmproxy
+    PATH=$PATH:/usr/local/lib/mitmproxy
     echo "mitmproxy version: $(mitmproxy --version)"
 fi
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
