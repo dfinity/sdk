@@ -43,7 +43,7 @@ setup() {
         mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  "$MODIFY_BODY_ARG" '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
-        timeout 5 sh -c \
+        timeout 25 sh -c \
             "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done" \
             || (echo "mitmdump did not start on port $MITM_PORT" && exit 1)
 
@@ -66,6 +66,7 @@ teardown() {
 @test "mitm attack - update: attack fails because certificate verification fails" {
     assert_command_fail dfx canister call certificate hello_update '("Buckaroo")'
     assert_match 'Certificate verification failed.'
+    exit 1
 }
 
 @test "mitm attack - query: attack succeeds because there is no certificate to verify" {
@@ -74,4 +75,5 @@ teardown() {
     # There may need to be a query version of wallet_call
     assert_command dfx canister call certificate hello_query '("Buckaroo")'
     assert_eq '("Hullo, Buckaroo!")'
+    exit 1
 }
