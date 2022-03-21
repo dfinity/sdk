@@ -20,10 +20,7 @@ rm v$version.tar.gz
 # Packages needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     wget -O mitmproxy.tar.gz https://snapshots.mitmproxy.org/7.0.4/mitmproxy-7.0.4-linux.tar.gz
-    sudo mkdir /usr/local/lib/mitmproxy
-    sudo tar --directory /usr/local/lib/mitmproxy --extract --file mitmproxy.tar.gz
-    find /usr/local/lib/mitmproxy
-    export PATH=$PATH:/usr/local/lib/mitmproxy
+    sudo tar --directory /usr/local/bin --extract --file mitmproxy.tar.gz
     echo "mitmproxy version: $(mitmproxy --version)"
 fi
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
