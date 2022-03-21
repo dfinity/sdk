@@ -17,9 +17,24 @@ sudo mkdir /usr/local/lib/bats-support
 sudo tar --directory /usr/local/lib/bats-support --extract --file v$version.tar.gz --strip-components 1
 rm v$version.tar.gz
 
+echo "What is happening with pyparsing"
+apt-cache policy mitmproxy
+apt-cache policy python3-pyparsing
+apt-cache policy python-pyparsing
+python3 --version
+python3 -c "
+import pyparsing as pp
+print(pp.__version__)
+"
+python3 -c "
+import mitmproxy as mp
+print(mp.__version__)
+"
+
 # Packages needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     sudo apt-get install --yes mitmproxy
+    echo "mitmproxy version: $(mitmproxy --version)"
 fi
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
     BITCOIN_CORE_VERSION=22.0
