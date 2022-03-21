@@ -26,10 +26,6 @@ python3 -c "
 import pyparsing as pp
 print(pp.__version__)
 "
-python3 -c "
-import mitmproxy as mp
-print(mp.__version__)
-"
 
 # Packages needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
