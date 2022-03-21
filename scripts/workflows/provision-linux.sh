@@ -23,7 +23,7 @@ if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     sudo mkdir /usr/local/lib/mitmproxy
     sudo tar --directory /usr/local/lib/mitmproxy --extract --file mitmproxy.tar.gz
     find /usr/local/lib/mitmproxy
-    PATH=$PATH:/usr/local/lib/mitmproxy
+    export PATH=$PATH:/usr/local/lib/mitmproxy
     echo "mitmproxy version: $(mitmproxy --version)"
 fi
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
