@@ -29,7 +29,7 @@ print(pp.__version__)
 
 # Packages needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
-    sudo apt-get install --yes mitmproxy
+    sudo apt-get install --yes mitmproxy=7.0.4
     echo "mitmproxy version: $(mitmproxy --version)"
 fi
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
