@@ -2,16 +2,14 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::{
-    Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
+    pem_encryption, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
+    IDENTITY_PEM_ENCRYPTED,
 };
 
-use anyhow::{anyhow, bail, Context};
-use ic_agent::identity::BasicIdentity;
+use anyhow::{anyhow, Context};
 use ic_types::Principal;
-use openssl::ec::EcKey;
-use openssl::nid::Nid;
 use pem::{encode, Pem};
-use ring::{rand, signature};
+use ring::{rand, rand::SecureRandom, signature};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::boxed::Box;
@@ -33,6 +31,38 @@ fn default_identity() -> String {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct IdentityConfiguration {
     pub hsm: Option<HardwareIdentityConfiguration>,
+
+    /// If the identity's .pem file is encrypted this contains everything (except the password) to decrypt the file.
+    pub encryption: Option<EncryptionConfiguration>,
+}
+
+/// The information necessary to de- and encrypt (except the password) the identity's .pem file
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct EncryptionConfiguration {
+    /// Salt used for deriving the key from the password
+    pub pw_salt: String,
+
+    /// 96 bit Nonce used to decrypt the file
+    pub file_nonce: Vec<u8>,
+}
+
+impl EncryptionConfiguration {
+    /// Generates a random salt and nonce. Use this for every new identity
+    pub fn new() -> DfxResult<Self> {
+        let mut nonce: [u8; 12] = [0; 12];
+        let mut salt: [u8; 32] = [0; 32];
+        let sr = rand::SystemRandom::new();
+        sr.fill(&mut nonce)?;
+        sr.fill(&mut salt)?;
+
+        let pw_salt = hex::encode(salt);
+        let file_nonce = nonce.into();
+
+        Ok(Self {
+            pw_salt,
+            file_nonce,
+        })
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -45,9 +75,16 @@ pub struct HardwareIdentityConfiguration {
 }
 
 pub enum IdentityCreationParameters {
-    Pem(),
-    PemFile(PathBuf),
-    Hardware(HardwareIdentityConfiguration),
+    Pem {
+        disable_encryption: bool,
+    },
+    PemFile {
+        src_pem_file: PathBuf,
+        disable_encryption: bool,
+    },
+    Hardware {
+        hsm: HardwareIdentityConfiguration,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -160,6 +197,16 @@ impl IdentityManager {
         &self.selected_identity
     }
 
+    /// Returns the pem file content of the selected identity
+    pub fn export(&self, name: &str) -> DfxResult<String> {
+        self.require_identity_exists(name)?;
+
+        let config = self.get_identity_config_or_default(name)?;
+        let pem_path = self.get_identity_pem_path(name, &config);
+        let pem = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+        String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
+    }
+
     /// Remove a named identity.
     /// Removing the selected identity is not allowed.
     pub fn remove(&self, name: &str) -> DfxResult {
@@ -169,8 +216,8 @@ impl IdentityManager {
             return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
         }
 
+        remove_identity_file(&self.load_identity_pem_path(name)?)?;
         remove_identity_file(&self.get_identity_json_path(name))?;
-        remove_identity_file(&self.get_identity_pem_path(name))?;
 
         let dir = self.get_identity_dir_path(name);
         std::fs::remove_dir(&dir).context(format!(
@@ -233,11 +280,11 @@ impl IdentityManager {
             return Ok(());
         }
 
-        let identity_pem_path = self.get_identity_pem_path(name);
+        let json_path = self.get_identity_json_path(name);
+        let identity_pem_path = self.load_identity_pem_path(name)?;
 
         if !identity_pem_path.exists() {
-            let identity_json_path = self.get_identity_json_path(name);
-            if !identity_json_path.exists() {
+            if !json_path.exists() {
                 Err(DfxError::new(IdentityError::IdentityDoesNotExist(
                     String::from(name),
                     identity_pem_path,
@@ -254,12 +301,44 @@ impl IdentityManager {
         self.identity_root_path.join(&identity)
     }
 
-    pub fn get_identity_pem_path(&self, identity: &str) -> PathBuf {
-        self.get_identity_dir_path(identity).join(IDENTITY_PEM)
+    /// Reads identity.json (if present) to determine where the PEM file should be at.
+    pub fn load_identity_pem_path(&self, identity_name: &str) -> DfxResult<PathBuf> {
+        let config = self.get_identity_config_or_default(identity_name)?;
+
+        Ok(self.get_identity_pem_path(identity_name, &config))
+    }
+
+    /// Determines the PEM file path based on the IdentityConfiguration
+    pub fn get_identity_pem_path(
+        &self,
+        identity_name: &str,
+        config: &IdentityConfiguration,
+    ) -> PathBuf {
+        let pem_file = if config.encryption.is_some() {
+            IDENTITY_PEM_ENCRYPTED
+        } else {
+            IDENTITY_PEM
+        };
+        self.get_identity_dir_path(identity_name).join(pem_file)
     }
 
     pub fn get_identity_json_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_JSON)
+    }
+
+    pub fn get_identity_config_or_default(
+        &self,
+        identity: &str,
+    ) -> DfxResult<IdentityConfiguration> {
+        let json_path = self.get_identity_json_path(identity);
+        if json_path.exists() {
+            let content = std::fs::read(json_path)?;
+            let config = serde_json::from_slice(content.as_ref())
+                .context("Error loading identity configuration")?;
+            Ok(config)
+        } else {
+            Ok(IdentityConfiguration::default())
+        }
     }
 }
 
@@ -273,7 +352,15 @@ fn initialize(
     identity_json_path: &Path,
     identity_root_path: &Path,
 ) -> DfxResult<Configuration> {
-    slog::info!(logger, r#"Creating the "default" identity."#);
+    slog::info!(
+        logger,
+        r#"Creating the "default" identity.
+WARNING: The "default" identity is not stored securely. Do not use it to control a lot of cycles/ICP.
+To create a more secure identity, create and use an identity that is protected by a password using the following commands:
+    dfx identity create <my-secure-identity-name> # creates a password protected identity
+    dfx identity use <my-secure-identity-name> # uses this identity by default
+"#
+    );
 
     let identity_dir = identity_root_path.join(DEFAULT_IDENTITY_NAME);
     let identity_pem_path = identity_dir.join(IDENTITY_PEM);
@@ -302,7 +389,8 @@ fn initialize(
                 "  - generating new key at {}",
                 identity_pem_path.display()
             );
-            generate_key(&identity_pem_path)?;
+            let key = generate_key()?;
+            pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())?;
         }
     } else {
         slog::info!(
@@ -380,62 +468,14 @@ fn remove_identity_file(file: &Path) -> DfxResult {
     Ok(())
 }
 
-pub(super) fn generate_key(pem_file: &Path) -> DfxResult {
+/// Generates a new Ed25519 key and writes it to pem_file.
+pub(super) fn generate_key() -> DfxResult<Vec<u8>> {
     let rng = rand::SystemRandom::new();
     let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
         .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
 
     let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
-    fs::write(&pem_file, encoded_pem)?;
-
-    let mut permissions = fs::metadata(&pem_file)?.permissions();
-    permissions.set_readonly(true);
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        permissions.set_mode(0o400);
-    }
-
-    fs::set_permissions(&pem_file, permissions)?;
-
-    Ok(())
-}
-
-pub(super) fn import_pem_file(src_pem_file: &Path, dst_pem_file: &Path) -> DfxResult {
-    std::fs::copy(&src_pem_file, &dst_pem_file).context(format!(
-        "Cannot copy PEM file from '{}' to '{}'.",
-        PathBuf::from(src_pem_file).display(),
-        PathBuf::from(dst_pem_file).display(),
-    ))?;
-    Ok(())
-}
-
-pub(super) fn validate_pem_file(pem_file: &Path) -> DfxResult {
-    let contents = std::fs::read(&pem_file).context(format!(
-        "Cannot read PEM file at '{}'.",
-        PathBuf::from(pem_file).display()
-    ))?;
-    if contents.starts_with(b"-----BEGIN EC PARAMETERS-----")
-        || contents.starts_with(b"-----BEGIN EC PRIVATE KEY-----")
-    {
-        let private_key = EcKey::private_key_from_pem(&contents).context(format!(
-            "Cannot decode PEM file at '{}'.",
-            PathBuf::from(pem_file).display()
-        ))?;
-        let named_curve = private_key.group().curve_name();
-        let is_secp256k1 = named_curve == Some(Nid::SECP256K1);
-        if !is_secp256k1 {
-            bail!("This functionality is currently restricted to secp256k1 private keys.");
-        }
-    } else {
-        // The PEM file generated by `dfx new` don't have EC PARAMETERS header and the curve is Ed25519
-        let _basic_identity = BasicIdentity::from_pem_file(pem_file).context(format!(
-            "Invalid Ed25519 private key in PEM file at {}",
-            PathBuf::from(pem_file).display()
-        ))?;
-    }
-    Ok(())
+    Ok(Vec::from(encoded_pem))
 }
 
 fn encode_pem_private_key(key: &[u8]) -> String {

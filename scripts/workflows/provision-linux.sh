@@ -23,6 +23,9 @@ if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     sudo tar --directory /usr/local/bin --extract --file mitmproxy.tar.gz
     echo "mitmproxy version: $(mitmproxy --version)"
 fi
+if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ]; then
+    sudo apt-get install --yes expect
+fi
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
     BITCOIN_CORE_VERSION=22.0
     BITCOIN_CORE_FILENAME="bitcoin-$BITCOIN_CORE_VERSION-x86_64-linux-gnu.tar.gz"
