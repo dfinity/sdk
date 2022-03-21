@@ -19,6 +19,7 @@ rm v$version.tar.gz
 
 echo "What is happening with pyparsing"
 apt-cache policy mitmproxy
+apt list -a mitmproxy
 apt-cache policy python3-pyparsing
 apt-cache policy python-pyparsing
 python3 --version
