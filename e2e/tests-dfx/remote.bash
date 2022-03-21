@@ -19,7 +19,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_network
 
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
     assert_command dfx --identity alice canister --network actuallylocal call remote write '("initial data in the remote canister")'
@@ -96,7 +96,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_network
 
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
 
@@ -119,7 +119,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_network
 
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
 
@@ -146,7 +146,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
     assert_command dfx --identity alice canister --network actuallylocal call remote write '("this is data in the remote canister")'
@@ -215,7 +215,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
 
@@ -252,7 +252,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
     assert_command dfx --identity alice canister --network actuallylocal call remote write '("this is data in the remote canister")'
