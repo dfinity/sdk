@@ -121,10 +121,7 @@ jobs:
         name: [ 'macos', 'linux' ]
     steps:
       - name: Setup environment variables
-        run: |
-          echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
-          pwd
-          ls
+        run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
 
       - name: Download Artifacts
         uses: actions/download-artifact@v2
