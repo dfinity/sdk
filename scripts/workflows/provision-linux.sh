@@ -19,7 +19,9 @@ rm v$version.tar.gz
 
 # Packages needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
-    sudo apt-get install --yes mitmproxy
+    wget -O mitmproxy.tar.gz https://snapshots.mitmproxy.org/7.0.4/mitmproxy-7.0.4-linux.tar.gz
+    sudo tar --directory /usr/local/bin --extract --file mitmproxy.tar.gz
+    echo "mitmproxy version: $(mitmproxy --version)"
 fi
 if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ]; then
     sudo apt-get install --yes expect
