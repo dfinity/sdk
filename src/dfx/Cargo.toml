@@ -22,7 +22,9 @@ actix-files = "0.6.0"
 actix-http = { version = "3.0.3", default-features = false }
 actix-server = "2.0.0"
 actix-web = { version = "4.0.0", features = [ "default", "openssl", "rustls" ] }
+aes-gcm = "0.9.4"
 anyhow = "1.0.56"
+argon2 = "0.3.4"
 atty = "0.2.13"
 base64 = "0.13.0"
 candid = { version = "0.7.10", features = [ "random" ] }

@@ -14,7 +14,7 @@ teardown() {
 
 @test "can call a canister using a secp256k1 identity" {
     openssl ecparam -name secp256k1 -genkey -out identity.pem
-    assert_command dfx identity import secp256k1 identity.pem
+    assert_command dfx identity import --disable-encryption secp256k1 identity.pem
     dfx_new # This installs replica and other binaries
     dfx identity use secp256k1
     install_asset whoami

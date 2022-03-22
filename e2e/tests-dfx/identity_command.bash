@@ -15,8 +15,8 @@ teardown() {
 ##
 
 @test "identity get-principal: different identities have different principal ids" {
-    assert_command dfx identity new jose
-    assert_command dfx identity new juana
+    assert_command dfx identity new --disable-encryption jose
+    assert_command dfx identity new --disable-encryption juana
 
     PRINCPAL_ID_JOSE=$(dfx --identity jose identity get-principal)
     PRINCPAL_ID_JUANA=$(dfx --identity juana identity get-principal)
@@ -31,13 +31,13 @@ teardown() {
 ##
 
 @test "identity list: shows identities in alpha order" {
-    assert_command dfx identity new dan
-    assert_command dfx identity new frank
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption dan
+    assert_command dfx identity new --disable-encryption frank
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
     assert_command dfx identity list
     assert_match 'alice anonymous bob dan default frank'
-    assert_command dfx identity new charlie
+    assert_command dfx identity new --disable-encryption charlie
     assert_command dfx identity list
     assert_match 'alice anonymous bob charlie dan default frank'
 }
@@ -60,7 +60,7 @@ teardown() {
 ##
 
 @test "identity new: creates a new identity" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
     assert_match 'Creating identity: "alice".' "$stderr"
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
@@ -72,17 +72,17 @@ teardown() {
 }
 
 @test "identity new: cannot create an identity called anonymous" {
-    assert_command_fail dfx identity new anonymous
+    assert_command_fail dfx identity new --disable-encryption anonymous
 }
 
 @test "identity new: cannot create an identity that already exists" {
-    assert_command dfx identity new bob
-    assert_command_fail dfx identity new bob
+    assert_command dfx identity new --disable-encryption bob
+    assert_command_fail dfx identity new --disable-encryption bob
     assert_match "Identity already exists"
 }
 
 @test "identity new: create an HSM-backed identity" {
-    assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
+    assert_command dfx identity new --disable-encryption --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
     assert_command jq -r .hsm.pkcs11_lib_path "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"
     assert_eq "/something/else/somewhere.so"
     assert_command jq -r .hsm.key_id "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"
@@ -90,12 +90,12 @@ teardown() {
 }
 
 @test "identity new: key_id must be hex digits" {
-    assert_command_fail dfx identity new --hsm-pkcs11-lib-path xxx --hsm-key-id abcx bob
+    assert_command_fail dfx identity new --disable-encryption --hsm-pkcs11-lib-path xxx --hsm-key-id abcx bob
     assert_match "Key id must contain only hex digits"
 }
 
 @test "identity new: key_id must be an even number of digits" {
-    assert_command_fail dfx identity new --hsm-pkcs11-lib-path xxx --hsm-key-id fed64 bob
+    assert_command_fail dfx identity new --disable-encryption --hsm-pkcs11-lib-path xxx --hsm-key-id fed64 bob
     assert_match "Key id must consist of an even number of hex digits"
 }
 
@@ -105,7 +105,7 @@ teardown() {
 
 @test "identity remove: can remove an identity that exists" {
     assert_command_fail head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
 
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
@@ -126,7 +126,7 @@ teardown() {
 }
 
 @test "identity remove: cannot remove the non-default active identity" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity use alice
     assert_command_fail dfx identity remove alice
 
@@ -148,7 +148,7 @@ teardown() {
 }
 
 @test "identity remove: can remove an HSM-backed identity" {
-    assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
+    assert_command dfx identity new --disable-encryption --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
     assert_command jq -r .hsm.pkcs11_lib_path "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"
     assert_eq "/something/else/somewhere.so"
     assert_command jq -r .hsm.key_id "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"
@@ -164,7 +164,7 @@ teardown() {
 ##
 
 @test "identity rename: can rename an identity" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity list
     assert_match 'alice anonymous default'
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
@@ -198,7 +198,7 @@ teardown() {
 }
 
 @test "identity rename: can rename the selected identity, which also changes the default" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity use alice
     assert_command dfx identity list
     assert_match 'alice anonymous default'
@@ -216,14 +216,14 @@ teardown() {
 }
 
 @test "identity rename: cannot create an anonymous identity via rename" {
-  assert_command dfx identity new alice
+  assert_command dfx identity new --disable-encryption alice
     assert_command_fail dfx identity rename alice anonymous
     assert_match "Cannot create an anonymous identity"
 }
 
 @test "identity rename: can rename an HSM-backed identity" {
     skip "Need to instantiate identity when renaming so skipping until we have an hsm mock"
-    assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
+    assert_command dfx identity new --disable-encryption --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
     assert_command dfx identity rename bob alice
     assert_command_fail ls "$DFX_CONFIG_ROOT/.config/dfx/identity/bob"
 
@@ -238,7 +238,7 @@ teardown() {
 ##
 
 @test "identity use: switches to an existing identity" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity whoami
     assert_eq 'default'
     assert_command dfx identity use alice
@@ -280,7 +280,7 @@ teardown() {
 @test "identity whoami: shows the current identity" {
     assert_command dfx identity whoami
     assert_eq 'default' "$stdout"
-    assert_command dfx identity new charlie
+    assert_command dfx identity new --disable-encryption charlie
     assert_command dfx identity whoami
     assert_eq 'default'
     assert_command dfx identity use charlie
@@ -293,8 +293,8 @@ teardown() {
 @test "dfx --identity (name) identity whoami: shows the overriding identity" {
     assert_command dfx identity whoami
     assert_eq 'default' "$stdout"
-    assert_command dfx identity new charlie
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption charlie
+    assert_command dfx identity new --disable-encryption alice
     assert_command dfx --identity charlie identity whoami
     assert_eq 'charlie'
     assert_command dfx --identity alice identity whoami
@@ -304,8 +304,8 @@ teardown() {
 @test "dfx --identity does not persistently change the selected identity" {
     assert_command dfx identity whoami
     assert_eq 'default' "$stdout"
-    assert_command dfx identity new charlie
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption charlie
+    assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity use charlie
     assert_command dfx identity whoami
     assert_eq 'charlie'
@@ -337,7 +337,7 @@ teardown() {
 
 @test "identity: import" {
     openssl ecparam -name secp256k1 -genkey -out identity.pem
-    assert_command dfx identity import alice identity.pem
+    assert_command dfx identity import --disable-encryption alice identity.pem
     assert_match 'Creating identity: "alice".' "$stderr"
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command diff identity.pem "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
@@ -345,8 +345,8 @@ teardown() {
 }
 
 @test "identity: import default" {
-    assert_command dfx identity new alice
-    assert_command dfx identity import bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity import --disable-encryption bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match 'Creating identity: "bob".' "$stderr"
     assert_match 'Created identity: "bob".' "$stderr"
     assert_command diff "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
@@ -354,15 +354,15 @@ teardown() {
 }
 
 @test "identity: cannot import invalid PEM file" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
     assert_command cp "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" ./alice.pem
     # Following 3 lines manipulate the pem file so that it will be invalid
     head -n 1 alice.pem > bob.pem
     echo -n 1 >> bob.pem
     tail -n 3 alice.pem > bob.pem
-    assert_command_fail dfx identity import bob bob.pem
+    assert_command_fail dfx identity import --disable-encryption bob bob.pem
     assert_match 'Creating identity: "bob".' "$stderr"
-    assert_match 'Invalid Ed25519 private key in PEM file at' "$stderr"
+    assert_match 'Invalid Ed25519 private key in PEM file' "$stderr"
 }
 
 @test "identity: can import an EC key without an EC PARAMETERS section (as quill generate makes)" {
@@ -373,10 +373,17 @@ oUQDQgAEBQKn0CLyiA/fQf6L8S07/MDJ9kIJTzZvm2jFo2/yvSToGee+XzP/GCE4
 08ZcZFM1EwUsknDBoSd0EF1PzFRmJg==
 -----END EC PRIVATE KEY-----
 XXX
-    assert_command dfx identity import private-key-no-ec-parameters private-key-no-ec-parameters.pem
+    assert_command dfx identity import --disable-encryption private-key-no-ec-parameters private-key-no-ec-parameters.pem
     assert_command dfx --identity private-key-no-ec-parameters identity get-principal
     assert_eq "j4p4p-o5ogq-4gzev-t3kay-hpm5o-xuwpz-yvrpp-47cc4-qyunt-k76yw-qae"
     echo "{}" >dfx.json # avoid "dfx.json not found, using default."
     assert_command dfx --identity private-key-no-ec-parameters ledger account-id
     assert_eq "3c00cf85d77b9dbf74a2acec1d9a9e73a3fc65f5048c64800b15f3b2c4c8eb11"
+}
+
+@test "identity: can export and re-import an identity" {
+    assert_command dfx identity new --disable-encryption alice
+    dfx identity export alice > export.pem
+    assert_file_exists export.pem
+    assert_command dfx identity import --disable-encryption bob export.pem
 }

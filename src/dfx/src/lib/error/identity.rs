@@ -31,6 +31,6 @@ pub enum IdentityError {
     #[error("Cannot find home directory.")]
     CannotFindHomeDirectory(),
 
-    #[error("Cannot read identity file at '{0}': {1}")]
-    CannotReadIdentityFile(PathBuf, Box<DfxError>),
+    #[error("Cannot read identity file '{0}': {1}")]
+    CannotReadIdentityFile(String, Box<DfxError>),
 }
