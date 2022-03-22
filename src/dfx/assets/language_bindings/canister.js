@@ -17,7 +17,7 @@ export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
   const agent = new HttpAgent({ ...options?.agentOptions });
   if(useNonceForUpdates) {
     // By default we will set a unique nonce so that update calls with
-    // the same parameters will be made unique through that unique nonce.
+    // the same parameter values will be distinguishable from one another.
     agent.addTransform(makeNonceTransform(nonceFn??makeNonce));
   }
 
