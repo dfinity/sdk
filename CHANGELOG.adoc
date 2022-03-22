@@ -1,6 +1,45 @@
 = dfx changelog
 :doctype: book
 
+= 0.9.4
+
+== DFX
+
+=== JS language bindings: createActor now by default configures the HttpAgent to generate a Nonce for updates, ensuring uniqueness
+
+*Important*: It is necessary to run `dfx generate` to update bindings in order for this change to take effect.
+
+Prior to this change, near-simultaneous update calls to a method with the same argument values could be submitted to
+the replica as identical requests.  In some cases the ingress_expiry field would differ, in other cases not.
+
+For example, the following calls could return all the same values:
+
+[source, javascript]
+----
+const val = await Promise.all([
+    dd.inc(),
+    dd.inc(),
+    dd.inc(),
+    dd.inc()
+    ]);
+----
+given this canister code:
+[source, motoko]
+----
+public func inc() : async Nat {
+  counter += 1;
+  counter
+};
+----
+
+Now, by default, the createActor() method in the JS language bindings configures the HttpAgent to generate a nonce, effectively:
+[source, javascript]
+----
+    agent.addTransform(makeNonceTransform(makeNonce));
+----
+This behavior can be controlled by the `useNonceForUpdates` and `nonceFn` options to `createActor`.
+
+
 = 0.9.3
 
 == DFX
