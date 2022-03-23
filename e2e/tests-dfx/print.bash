@@ -23,6 +23,7 @@ teardown() {
     dfx build
     dfx canister install e2e_project
     dfx canister call e2e_project hello
+    sleep 2
     run tail -2 stderr.txt
     assert_match "Hello, World! from DFINITY"
 }

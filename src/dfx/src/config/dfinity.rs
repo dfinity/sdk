@@ -35,9 +35,8 @@ const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
 };
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
-    message_gas_limit: None,
     port: None,
-    round_gas_limit: None,
+    subnet_type: None,
 };
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -104,9 +103,8 @@ pub struct ConfigDefaultsBuild {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsReplica {
-    pub message_gas_limit: Option<u64>,
     pub port: Option<u16>,
-    pub round_gas_limit: Option<u64>,
+    pub subnet_type: Option<ReplicaSubnetType>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -133,6 +131,31 @@ impl NetworkType {
     }
     fn persistent() -> Self {
         NetworkType::Persistent
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReplicaSubnetType {
+    System,
+    Application,
+    VerifiedApplication,
+}
+
+impl Default for ReplicaSubnetType {
+    fn default() -> Self {
+        ReplicaSubnetType::Application
+    }
+}
+
+impl ReplicaSubnetType {
+    /// Converts the value to the string expected by ic-starter for its --subnet-type argument
+    pub fn as_ic_starter_string(&self) -> String {
+        match self {
+            ReplicaSubnetType::System => "system".to_string(),
+            ReplicaSubnetType::Application => "application".to_string(),
+            ReplicaSubnetType::VerifiedApplication => "verified_application".to_string(),
+        }
     }
 }
 

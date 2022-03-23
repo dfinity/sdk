@@ -37,7 +37,8 @@ fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConf
         http_handler.port = Some(port);
     };
 
-    let mut replica_config = ReplicaConfig::new(&env.get_state_dir());
+    let mut replica_config =
+        ReplicaConfig::new(&env.get_state_dir(), config.subnet_type.unwrap_or_default());
     replica_config.http_handler = http_handler;
     Ok(replica_config)
 }
