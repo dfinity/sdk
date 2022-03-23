@@ -24,12 +24,12 @@ jobs:
           - os: macos-latest
             target: x86_64-apple-darwin
             binary_path: target/x86_64-apple-darwin/release
-            name: macos
+            name: x86_64-darwin
             tar: gtar
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             binary_path: target/x86_64-unknown-linux-musl/release
-            name: linux
+            name: x86_64-linux
             tar: tar
     steps:
       - uses: actions/checkout@v2
