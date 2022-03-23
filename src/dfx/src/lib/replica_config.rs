@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::path::{Path, PathBuf};
 
+use crate::config::dfinity::ReplicaSubnetType;
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HttpHandlerConfig {
     /// Instructs the HTTP handler to use the specified port
@@ -35,10 +37,11 @@ pub struct ReplicaConfig {
     pub state_manager: StateManagerConfig,
     pub crypto: CryptoConfig,
     pub artifact_pool: ArtifactPoolConfig,
+    pub subnet_type: ReplicaSubnetType,
 }
 
 impl ReplicaConfig {
-    pub fn new(state_root: &Path) -> Self {
+    pub fn new(state_root: &Path, subnet_type: ReplicaSubnetType) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
@@ -53,6 +56,7 @@ impl ReplicaConfig {
             artifact_pool: ArtifactPoolConfig {
                 consensus_pool_path: state_root.join("consensus_pool"),
             },
+            subnet_type,
         }
     }
 
