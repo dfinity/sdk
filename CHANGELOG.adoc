@@ -5,6 +5,24 @@
 
 == DFX
 
+=== feat: Configure subnet type of local replica
+
+The local replica sets its parameters according to the subnet type defined in defaults.replica.subnet_type, defaulting to 'application' when none is specified.
+This makes it less likely to accidentally hit the 'cycles limit exceeded' error in production.  Since the previous default was `system`, you may see these types errors in development instead.
+Possible values for defaults.replica.subnet_type are: "application", "verifiedapplication", "system"
+
+Example how to specify the subnet type:
+[source, json]
+----
+{
+  "defaults": {
+    "replica": {
+      "subnet_type": "verifiedapplication"
+    }
+  }
+}
+----
+
 === feat: dfx deploy now displays URLs for the frontend and candid interface
 
 === feat: Private keys can be stored in encrypted format

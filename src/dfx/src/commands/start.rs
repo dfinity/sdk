@@ -171,8 +171,15 @@ pub fn exec(
                 .join("replica-configuration")
                 .join("replica-1.port");
 
-            let replica_config =
-                ReplicaConfig::new(&env.get_state_dir()).with_random_port(&replica_port_path);
+            let subnet_type = config
+                .get_config()
+                .get_defaults()
+                .get_replica()
+                .subnet_type
+                .unwrap_or_default();
+
+            let replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
+                .with_random_port(&replica_port_path);
             let replica = start_replica_actor(env, replica_config, shutdown_controller.clone())?;
             replica.recipient()
         };
