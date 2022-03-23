@@ -50,9 +50,9 @@
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/canister_sandbox.gz"
     },
     "common": {
-        "branch": "master",
+        "branch": "rustc-1.58",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "61a7a74ca9947bcb2db1ba6b2566629a2b7bdda6",
+        "rev": "366e44ada3b980b120040eef4e25d1d65e28a580",
         "type": "git"
     },
     "ic-ref-x86_64-darwin": {
