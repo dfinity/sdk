@@ -103,6 +103,7 @@ main() {
     need_cmd mktemp
     need_cmd chmod
     need_cmd mkdir
+    need_cmd shasum
     need_cmd rm
     need_cmd tar
     need_cmd gzip
@@ -149,10 +150,11 @@ main() {
     ensure mkdir -p "$_dir"
     ensure downloader "$_dfx_url" "$_dfx_archive"
     if [[ ! -z "${_dfx_sha256_filename}" ]]; then
+      log "Checking integrity of tarball..."
       ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
-      ensure pushd "${_dir}"
+      ensure pushd "${_dir}" >/dev/null
       ensure shasum -c "${_dfx_sha256_filename}"
-      ensure popd
+      ensure popd >/dev/null
     fi
     tar -xf "$_dfx_archive" -O >"$_dfx_file"
     ensure chmod u+x "$_dfx_file"
