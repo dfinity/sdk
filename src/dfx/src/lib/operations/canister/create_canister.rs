@@ -50,7 +50,7 @@ pub async fn create_canister(
     }
 
     let non_default_network = if network_name == "local" {
-        format!("")
+        String::new()
     } else {
         format!("on network {:?} ", network_name)
     };

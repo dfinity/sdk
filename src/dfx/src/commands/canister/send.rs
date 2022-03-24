@@ -104,7 +104,7 @@ pub async fn exec(
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
             eprint!("Canister ID: ");
-            println!("{}", canister_id.to_string());
+            println!("{}", canister_id);
         }
         // message.validate() guarantee that call_type must be query or update
         _ => unreachable!(),
