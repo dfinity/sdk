@@ -71,10 +71,10 @@ impl Identity {
         name: &str,
         parameters: IdentityCreationParameters,
     ) -> DfxResult {
-        let identity_dir = manager.get_identity_dir_path(name);
-        if identity_dir.exists() {
+        if manager.require_identity_exists(name).is_ok() {
             bail!("Identity already exists.");
         }
+        let identity_dir = manager.get_identity_dir_path(name);
         let identity_config_location = manager.get_identity_json_path(name);
         let mut identity_config = IdentityConfiguration::default();
         fn create(identity_dir: PathBuf) -> DfxResult {

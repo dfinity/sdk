@@ -184,6 +184,12 @@ impl IdentityManager {
             .map(|entry_result| {
                 entry_result.map(|entry| entry.file_name().to_string_lossy().to_string())
             })
+            .filter(|identity_name| {
+                identity_name.is_ok()
+                    && self
+                        .require_identity_exists(identity_name.as_ref().unwrap())
+                        .is_ok()
+            })
             .collect::<Result<Vec<_>, std::io::Error>>()?;
         names.push(ANONYMOUS_IDENTITY_NAME.to_string());
 
@@ -275,7 +281,9 @@ impl IdentityManager {
         write_configuration(&self.identity_json_path, &config)
     }
 
-    fn require_identity_exists(&self, name: &str) -> DfxResult {
+    /// Determines if there are enough files present to consider the identity as existing.
+    /// Does NOT guarantee that the identity will load correctly.
+    pub fn require_identity_exists(&self, name: &str) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
             return Ok(());
         }
