@@ -122,17 +122,18 @@ main() {
     # thus, make sure this handles archives
     log "Version found: $DFX_VERSION"
     case "$DFX_VERSION" in
-         0.[0-9].*)
-           local _dfx_tarball_filename="dfx-${DFX_VERSION}.tar.gz"
-           local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/${_dfx_tarball_filename}"
-           local _dfx_sha256_filename=""
-           ;;
-         *)
-           local _dfx_tarball_filename="dfx-${DFX_VERSION}-${_arch}.tar.gz"
-           local _dfx_url="${DFX_GITHUB_RELEASE_ROOT}/${DFX_VERSION}/${_dfx_tarball_filename}"
-           local _dfx_sha256_filename="${_dfx_tarball_filename}.sha256"
-           local _dfx_sha256_url="${_dfx_url}.sha256"
-           ;;
+        0.[0-9].*)
+            local _dfx_tarball_filename="dfx-${DFX_VERSION}.tar.gz"
+            local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/${_dfx_tarball_filename}"
+            local _dfx_sha256_filename=""
+            ;;
+
+        *)
+            local _dfx_tarball_filename="dfx-${DFX_VERSION}-${_arch}.tar.gz"
+            local _dfx_url="${DFX_GITHUB_RELEASE_ROOT}/${DFX_VERSION}/${_dfx_tarball_filename}"
+            local _dfx_sha256_filename="${_dfx_tarball_filename}.sha256"
+            local _dfx_sha256_url="${_dfx_url}.sha256"
+            ;;
     esac
 
     local _dir
@@ -150,11 +151,11 @@ main() {
     ensure mkdir -p "$_dir"
     ensure downloader "$_dfx_url" "$_dfx_archive"
     if [[ ! -z "${_dfx_sha256_filename}" ]]; then
-      log "Checking integrity of tarball..."
-      ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
-      ensure pushd "${_dir}" >/dev/null
-      ensure shasum -c "${_dfx_sha256_filename}"
-      ensure popd >/dev/null
+        log "Checking integrity of tarball..."
+        ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
+        ensure pushd "${_dir}" >/dev/null
+        ensure shasum -c "${_dfx_sha256_filename}"
+        ensure popd >/dev/null
     fi
     tar -xf "$_dfx_archive" -O >"$_dfx_file"
     ensure chmod u+x "$_dfx_file"
