@@ -3,6 +3,13 @@
 
 = 0.9.4
 
+== DFX
+
+=== fix: Identities cannot exist and not at the same time
+
+When something went wrong during identity creation, the identity was not listed as existing.
+But when trying to create an identity with that name, it was considered to be already existing.
+
 = 0.9.3
 
 == DFX
