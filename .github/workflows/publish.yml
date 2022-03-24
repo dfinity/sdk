@@ -24,12 +24,12 @@ jobs:
           - os: macos-latest
             target: x86_64-apple-darwin
             binary_path: target/x86_64-apple-darwin/release
-            name: macos
+            name: x86_64-darwin
             tar: gtar
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             binary_path: target/x86_64-unknown-linux-musl/release
-            name: linux
+            name: x86_64-linux
             tar: tar
     steps:
       - uses: actions/checkout@v2
@@ -38,6 +38,8 @@ jobs:
           echo "OPENSSL_STATIC=yes" >> $GITHUB_ENV
           echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
           echo "DFX_VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
+          echo "TARBALL_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
+          echo "SHA256_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
 
       - name: Cache Cargo
         uses: actions/cache@v2
@@ -95,14 +97,19 @@ jobs:
           strip dfx
         if: contains(matrix.os, 'ubuntu')
 
-      - name: Create tarball of binaries
-        run: ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f binaries.tar.gz dfx
+      - name: Create tarball of binaries and sha256 of tarball
+        run: |
+          ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_FILENAME }} dfx
+          shasum -a 256 ${{ env.TARBALL_FILENAME }} > $SHA256_FILENAME
+          shasum -c $SHA256_FILENAME
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: binary-tarball-${{ matrix.rust }}-${{ matrix.name }}
-          path: binaries.tar.gz
+          name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
+          path: |
+            ${{ env.TARBALL_FILENAME }}
+            ${{ env.SHA256_FILENAME }}
 
   publish:
     runs-on: ubuntu-latest
@@ -111,7 +118,7 @@ jobs:
       fail-fast: false
       matrix:
         rust: [ '1.58.1' ]
-        name: [ 'macos', 'linux' ]
+        name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
       - name: Setup environment variables
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
@@ -119,12 +126,12 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
-          name: binary-tarball-${{ matrix.rust }}-${{ matrix.name }}
+          name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
 
-      - name: Upload tarball
+      - name: Upload tarball and sha256
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: binaries.tar.gz
-          asset_name: dfx-${{ env.VERSION }}-${{ matrix.name }}.tar.gz
+          file: dfx-*.tar.*
+          file_glob: true
           tag: ${{ env.VERSION }}
