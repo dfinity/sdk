@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.55.0' ]
+        rust: [ '1.58.1' ]
         target: [ x86_64-apple-darwin, x86_64-unknown-linux-musl ]
         include:
           - os: macos-latest
@@ -76,7 +76,7 @@ jobs:
         with:
           args: |
             echo "[toolchain]" >./rust-toolchain.toml
-            echo 'channel = "1.55.0"' >>./rust-toolchain.toml
+            echo 'channel = "1.58.1"' >>./rust-toolchain.toml
             echo 'components = ["rustfmt", "clippy"]' >>./rust-toolchain.toml
             rustup target add ${{ matrix.target }}
 
@@ -117,7 +117,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.55.0' ]
+        rust: [ '1.58.1' ]
         name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
       - name: Setup environment variables
