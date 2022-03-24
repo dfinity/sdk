@@ -150,7 +150,7 @@ main() {
 
     ensure mkdir -p "$_dir"
     ensure downloader "$_dfx_url" "$_dfx_archive"
-    if [[ ! -z "${_dfx_sha256_filename}" ]]; then
+    if [[ -n "${_dfx_sha256_filename}" ]]; then
         log "Checking integrity of tarball..."
         ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
         ensure pushd "${_dir}" >/dev/null
