@@ -196,6 +196,8 @@ nix-build ci/ci.nix -A dfx[.x86_64-linux|.x86_64-darwin]
 To update the replica to a given $SHA from the dfinity repo, execute the following:
 [source,bash]
 ----
+niv update ic-btc-adapter-x86_64-darwin -a rev=$SHA
+niv update ic-btc-adapter-x86_64-linux -a rev=$SHA
 niv update ic-starter-x86_64-darwin -a rev=$SHA
 niv update ic-starter-x86_64-linux -a rev=$SHA
 niv update replica-x86_64-darwin -a rev=$SHA
