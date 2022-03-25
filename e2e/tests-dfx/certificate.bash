@@ -38,7 +38,7 @@ setup() {
             "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done" \
             || (echo "mitmdump did not start on port $MITM_PORT" && exit 1)
 
-        if nc -z localhost $MITM_PORT; then
+        if nc -z localhost "$MITM_PORT"; then
             break
         fi
 
