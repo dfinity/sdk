@@ -221,7 +221,7 @@ async fn install_canisters(
             match initial_canister_id_store.find(canister_name) {
                 Some(canister_id) => {
                     match agent
-                        .read_state_canister_info(canister_id, "module_hash")
+                        .read_state_canister_info(canister_id, "module_hash", false)
                         .await
                     {
                         Ok(installed_module_hash) => {

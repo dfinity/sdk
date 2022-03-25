@@ -3,6 +3,10 @@
 
 = 0.9.4
 
+== updating dependencies
+
+Updated to version 0.14.0 of agent-rs
+
 = 0.9.3
 
 == DFX
