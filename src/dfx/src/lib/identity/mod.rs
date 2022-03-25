@@ -42,6 +42,7 @@ pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
 pub const IDENTITY_JSON: &str = "identity.json";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
+const TEMP_IDENTITY_NAME: &str = "___temp_identity_name";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
@@ -74,12 +75,19 @@ impl Identity {
         if manager.require_identity_exists(name).is_ok() {
             bail!("Identity already exists.");
         }
-        let identity_dir = manager.get_identity_dir_path(name);
-        let identity_config_location = manager.get_identity_json_path(name);
+
+        // Use a temporary directory to prepare all identity parts in so that we don't end up with broken parts if the
+        // creation process fails half-way through.
+        let temp_identity_dir = manager.get_identity_dir_path(TEMP_IDENTITY_NAME);
+        if temp_identity_dir.exists() {
+            // clean traces from previous identity creation attempts
+            std::fs::remove_dir_all(&temp_identity_dir)?;
+        }
+        let identity_config_location = manager.get_identity_json_path(TEMP_IDENTITY_NAME);
         let mut identity_config = IdentityConfiguration::default();
-        fn create(identity_dir: PathBuf) -> DfxResult {
-            std::fs::create_dir_all(&identity_dir).context(format!(
-                "Cannot create identity directory at '{0}'.",
+        fn create(identity_dir: &PathBuf) -> DfxResult {
+            std::fs::create_dir_all(identity_dir).context(format!(
+                "Cannot create temporary identity directory at '{0}'.",
                 identity_dir.display(),
             ))
         }
@@ -95,8 +103,8 @@ impl Identity {
         match parameters {
             IdentityCreationParameters::Pem { disable_encryption } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
-                create(identity_dir)?;
-                let pem_file = manager.get_identity_pem_path(name, &identity_config);
+                create(&temp_identity_dir)?;
+                let pem_file = manager.get_identity_pem_path(TEMP_IDENTITY_NAME, &identity_config);
                 let pem_content = identity_manager::generate_key()?;
                 pem_encryption::write_pem_file(
                     &pem_file,
@@ -110,8 +118,9 @@ impl Identity {
             } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
                 let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
-                create(identity_dir)?;
-                let dst_pem_file = manager.get_identity_pem_path(name, &identity_config);
+                create(&temp_identity_dir)?;
+                let dst_pem_file =
+                    manager.get_identity_pem_path(TEMP_IDENTITY_NAME, &identity_config);
                 pem_encryption::write_pem_file(
                     &dst_pem_file,
                     Some(&identity_config),
@@ -120,10 +129,18 @@ impl Identity {
             }
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config.hsm = Some(hsm);
-                create(identity_dir)?;
+                create(&temp_identity_dir)?;
             }
         }
-        identity_manager::write_identity_configuration(&identity_config_location, &identity_config)
+        identity_manager::write_identity_configuration(
+            &identity_config_location,
+            &identity_config,
+        )?;
+
+        // Everything is created. Now move from the temporary directory to the actual identity location.
+        let identity_dir = manager.get_identity_dir_path(name);
+        std::fs::rename(temp_identity_dir, identity_dir)?;
+        Ok(())
     }
 
     pub fn anonymous() -> Self {
