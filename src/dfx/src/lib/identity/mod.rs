@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use slog::info;
 use std::collections::BTreeMap;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub mod identity_manager;
 pub mod identity_utils;
@@ -85,7 +85,7 @@ impl Identity {
         }
         let identity_config_location = manager.get_identity_json_path(TEMP_IDENTITY_NAME);
         let mut identity_config = IdentityConfiguration::default();
-        fn create(identity_dir: &PathBuf) -> DfxResult {
+        fn create(identity_dir: &Path) -> DfxResult {
             std::fs::create_dir_all(identity_dir).context(format!(
                 "Cannot create temporary identity directory at '{0}'.",
                 identity_dir.display(),
