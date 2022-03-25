@@ -151,7 +151,7 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config(&self) -> Option<Arc<Config>> {
-        self.config.as_ref().map(|x| Arc::clone(x))
+        self.config.as_ref().map(Arc::clone)
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {

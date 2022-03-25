@@ -85,15 +85,20 @@ pub enum CyclesResponse {
 pub type BlockHeight = u64;
 
 #[derive(
-    Serialize, Deserialize, CandidType, Clone, Copy, Hash, Debug, PartialEq, Eq, PartialOrd, Ord,
+    Serialize,
+    Deserialize,
+    CandidType,
+    Clone,
+    Copy,
+    Hash,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Default,
 )]
 pub struct Memo(pub u64);
-
-impl Default for Memo {
-    fn default() -> Memo {
-        Memo(0)
-    }
-}
 
 #[derive(CandidType)]
 pub struct AccountBalanceArgs {

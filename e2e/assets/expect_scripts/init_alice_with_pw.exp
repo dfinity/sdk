@@ -6,9 +6,9 @@
 match_max 100000
 set timeout 30
 
-# try creating the identity alice until it is created
+# repeat until identity properly created
 while {1} {
-	spawn dfx identity import alice import.pem
+	spawn dfx identity new alice
 	expect {
 		"Please enter a passphrase for your identity: " {
 			send -- "testpassword\r"
@@ -33,16 +33,3 @@ while {1} {
 		}
 	}
 }
-
-# use 'bash -c' to use output redirection
-spawn bash -c "dfx identity export alice > export.pem"
-expect {
-	"Please enter a passphrase for your identity: " {
-		send -- "testpassword\r"
-	}
-	timeout {
-		puts stderr "Not asked for a password when exporting encrypted identity!"
-		exit 1
-	}
-}
-expect eof
