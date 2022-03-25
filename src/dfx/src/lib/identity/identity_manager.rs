@@ -302,6 +302,7 @@ impl IdentityManager {
     }
 
     /// Reads identity.json (if present) to determine where the PEM file should be at.
+    /// If not present, it returns the default path.
     pub fn load_identity_pem_path(&self, identity_name: &str) -> DfxResult<PathBuf> {
         let config = self.get_identity_config_or_default(identity_name)?;
 
