@@ -308,7 +308,7 @@ impl IdentityManager {
         Ok(self.get_identity_pem_path(identity_name, &config))
     }
 
-    /// Determines the PEM file path based on the IdentityConfiguration
+    /// Determines the PEM file path based on the IdentityConfiguration.
     pub fn get_identity_pem_path(
         &self,
         identity_name: &str,
