@@ -55,14 +55,14 @@ pre_release_check() {
 
 #
 # build the release candidate and export these environment variables:
-#    sdk_rc                  SDK release candidate
-#    dfx_rc                    - dfx executable within
+#    dfx_rc                    dfx release candidate executable
 #
 build_release_candidate() {
     announce "Building dfx release candidate."
-    x="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
-    export sdk_rc=$x
-    export dfx_rc="$sdk_rc/bin/dfx"
+    cargo clean --release
+    cargo build --release --locked
+    x="$(pwd)/target/release/dfx"
+    export dfx_rc="$x"
 
     echo "Checking for dfx release candidate at $dfx_rc"
     test -x "$dfx_rc"
@@ -158,7 +158,7 @@ build_release_branch() {
         set -e
 
         echo "Cleaning up cargo build files..."
-        $DRY_RUN_ECHO cargo clean
+        $DRY_RUN_ECHO cargo clean --release
 
         echo "Switching to branch: $BRANCH"
         $DRY_RUN_ECHO git switch -c $BRANCH
@@ -168,7 +168,7 @@ build_release_branch() {
         sed -i '0,/^version = ".*"/s//version = "$NEW_DFX_VERSION"/' src/dfx/Cargo.toml
 
         echo "Building dfx with cargo."
-        cargo build
+        cargo build --release --locked
 
         echo "Appending version to public/manifest.json"
         # Append the new version to `public/manifest.json` by appending it to the `versions` list.
@@ -190,20 +190,17 @@ EOF
     wait_for_response 'PR merged'
 }
 
-update_stable_branch() {
-    announce 'Updating stable branch'
+tag_release_commit() {
+    announce 'Tagging release commit'
 
     NIX_COMMAND=$(envsubst <<"EOF"
         set -e
 
-        echo "Switching to the stable branch."
-        $DRY_RUN_ECHO git switch stable
+        echo "Switching to the release branch."
+        $DRY_RUN_ECHO git switch "$FINAL_RELEASE_BRANCH"
 
-        echo "Pulling the remove stable branch into the local stable branch."
-        $DRY_RUN_ECHO git pull origin stable
-
-        echo "Pulling the merged changes into the stable branch."
-        $DRY_RUN_ECHO git pull origin "$FINAL_RELEASE_BRANCH" --ff-only
+        echo "Pulling the remote branch"
+        $DRY_RUN_ECHO git pull
 
         echo "Creating a new tag $NEW_DFX_VERSION"
         $DRY_RUN_ECHO git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
@@ -215,8 +212,6 @@ update_stable_branch() {
         echo "Pushing tag $NEW_DFX_VERSION"
         $DRY_RUN_ECHO git push origin $NEW_DFX_VERSION
 
-        echo "Updating the stable branch."
-        $DRY_RUN_ECHO git push origin stable
 EOF
 )
 
@@ -229,7 +224,7 @@ EOF
     build_release_candidate
     validate_default_project
     build_release_branch
-    update_stable_branch
+    tag_release_commit
 
     echo "All done!"
     exit
