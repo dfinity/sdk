@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::{
     pem_encryption, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
-    IDENTITY_PEM_ENCRYPTED,
+    IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_NAME,
 };
 
 use anyhow::{anyhow, Context};
@@ -286,6 +286,12 @@ impl IdentityManager {
     pub fn require_identity_exists(&self, name: &str) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
             return Ok(());
+        }
+
+        if name == TEMP_IDENTITY_NAME {
+            return Err(DfxError::new(IdentityError::ReservedIdentityName(
+                String::from(TEMP_IDENTITY_NAME),
+            )));
         }
 
         let json_path = self.get_identity_json_path(name);

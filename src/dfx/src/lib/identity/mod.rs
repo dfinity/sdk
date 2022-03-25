@@ -40,9 +40,9 @@ pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_PEM: &str = "identity.pem";
 pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
 pub const IDENTITY_JSON: &str = "identity.json";
+pub const TEMP_IDENTITY_NAME: &str = "___temp_identity_name";
 const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
-const TEMP_IDENTITY_NAME: &str = "___temp_identity_name";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct WalletNetworkMap {
