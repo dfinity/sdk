@@ -48,6 +48,7 @@ setup() {
             || (echo "mitmdump did not start on port $MITM_PORT" && exit 1)
 
         if nc -z localhost "$MITM_PORT"; then
+        echo "nc found a connection at $MITM_PORT. exit mitmdump start loop"
             break
         fi
 
