@@ -212,7 +212,7 @@ pub async fn exec(
         // message from file guaranteed to have request_id becase it is a update message just generated
         let request_id = RequestId::from_str(&message.request_id.unwrap())?;
         let res = sign_agent
-            .request_status_raw(&request_id, canister_id)
+            .request_status_raw(&request_id, canister_id, false)
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {
