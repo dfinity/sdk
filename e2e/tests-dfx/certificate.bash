@@ -34,13 +34,15 @@ setup() {
         mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  "--modify-body" '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
-        if timeout 5 sh -c "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done"; then
+        timeout 5 sh -c \
+            "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done" \
+            || (echo "mitmdump did not start on port $MITM_PORT" && exit 1)
+
+        if timeout 10 dfx ping; then
             break
-        else
-            echo "mitmdump did not start on port $MITM_PORT"
-            pkill -P $MITMDUMP_PID
-            kill $MITMDUMP_PID
         fi
+
+        kill -9 $MITMDUMP_PID
     done
 }
 
