@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::{
     pem_encryption, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
-    IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_NAME,
+    IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
 
 use anyhow::{anyhow, Context};
@@ -288,9 +288,9 @@ impl IdentityManager {
             return Ok(());
         }
 
-        if name == TEMP_IDENTITY_NAME {
+        if name.starts_with(TEMP_IDENTITY_PREFIX) {
             return Err(DfxError::new(IdentityError::ReservedIdentityName(
-                String::from(TEMP_IDENTITY_NAME),
+                String::from(name),
             )));
         }
 
