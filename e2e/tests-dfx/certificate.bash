@@ -35,11 +35,11 @@ setup() {
         MITMDUMP_PID=$!
 
         if timeout 5 sh -c "until nc -z localhost $MITM_PORT; do echo waiting for mitmdump; sleep 1; done"; then
+            break
+        else
             echo "mitmdump did not start on port $MITM_PORT"
             pkill -P $MITMDUMP_PID
             kill $MITMDUMP_PID
-        else
-            break
         fi
     done
 }
