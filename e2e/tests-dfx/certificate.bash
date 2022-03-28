@@ -42,7 +42,6 @@ setup() {
             break
         fi
     done
-    exit 1
 }
 
 teardown() {
