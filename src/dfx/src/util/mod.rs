@@ -80,7 +80,7 @@ pub async fn read_module_metadata(
     Some(
         String::from_utf8_lossy(
             &agent
-                .read_state_canister_metadata(canister_id, metadata)
+                .read_state_canister_metadata(canister_id, metadata, false)
                 .await
                 .ok()?,
         )
