@@ -148,7 +148,7 @@ async fn read_module_hash(
     match canister_id_store.find(canister_info.get_name()) {
         Some(canister_id) => {
             match agent
-                .read_state_canister_info(canister_id, "module_hash")
+                .read_state_canister_info(canister_id, "module_hash", false)
                 .await
             {
                 Ok(installed_module_hash) => Ok(Some(installed_module_hash)),
