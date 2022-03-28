@@ -43,6 +43,10 @@ dfx identity import identity_name identity.pem
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
 
+== updating dependencies
+
+Updated to version 0.14.0 of agent-rs
+
 = 0.9.3
 
 == DFX
