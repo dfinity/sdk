@@ -10,6 +10,9 @@ pub enum IdentityError {
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
 
+    #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
+    ReservedIdentityName(String),
+
     #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
 

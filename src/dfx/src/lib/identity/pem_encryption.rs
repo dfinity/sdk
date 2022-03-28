@@ -21,23 +21,30 @@ pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> Dfx
     Ok(content)
 }
 
+/// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
+///
+/// Automatically creates required directories.
 pub fn write_pem_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
     pem_content: &[u8],
 ) -> DfxResult<()> {
     let pem_content = maybe_encrypt_pem(pem_content, config)?;
+
+    let containing_folder = path.parent().context(format!(
+        "Could not determine parent folder for {}",
+        path.display()
+    ))?;
+    std::fs::create_dir_all(containing_folder)?;
     std::fs::write(&path, pem_content)?;
 
     let mut permissions = std::fs::metadata(&path)?.permissions();
     permissions.set_readonly(true);
-
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         permissions.set_mode(0o400);
     }
-
     std::fs::set_permissions(&path, permissions)?;
 
     Ok(())
@@ -101,11 +108,7 @@ fn get_argon_params() -> argon2::Params {
     argon2::Params::new(64000 /* in kb */, 3, 1, Some(32 /* in bytes */)).unwrap()
 }
 
-pub fn encrypt(
-    content: &[u8],
-    config: &EncryptionConfiguration,
-    password: &str,
-) -> DfxResult<Vec<u8>> {
+fn encrypt(content: &[u8], config: &EncryptionConfiguration, password: &str) -> DfxResult<Vec<u8>> {
     let argon2 = Argon2::new(
         argon2::Algorithm::Argon2id,
         argon2::Version::V0x13,
@@ -125,7 +128,7 @@ pub fn encrypt(
     Ok(encrypted)
 }
 
-pub fn decrypt(
+fn decrypt(
     encrypted_content: &[u8],
     config: &EncryptionConfiguration,
     password: &str,
