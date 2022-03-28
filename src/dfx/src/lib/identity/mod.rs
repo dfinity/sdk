@@ -76,16 +76,6 @@ impl Identity {
             bail!("Identity already exists.");
         }
 
-        // Use a temporary directory to prepare all identity parts in so that we don't end up with broken parts if the
-        // creation process fails half-way through.
-        let temp_identity_name = format!("{}{}", TEMP_IDENTITY_PREFIX, name);
-        let temp_identity_dir = manager.get_identity_dir_path(&temp_identity_name);
-        if temp_identity_dir.exists() {
-            // clean traces from previous identity creation attempts
-            std::fs::remove_dir_all(&temp_identity_dir)?;
-        }
-        let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
-        let mut identity_config = IdentityConfiguration::default();
         fn create(identity_dir: &Path) -> DfxResult {
             std::fs::create_dir_all(identity_dir).context(format!(
                 "Cannot create temporary identity directory at '{0}'.",
@@ -101,12 +91,23 @@ impl Identity {
                 Ok(Some(identity_manager::EncryptionConfiguration::new()?))
             }
         }
+
+        // Use a temporary directory to prepare all identity parts in so that we don't end up with broken parts if the
+        // creation process fails half-way through.
+        let temp_identity_name = format!("{}{}", TEMP_IDENTITY_PREFIX, name);
+        let temp_identity_dir = manager.get_identity_dir_path(&temp_identity_name);
+        if temp_identity_dir.exists() {
+            // clean traces from previous identity creation attempts
+            std::fs::remove_dir_all(&temp_identity_dir)?;
+        }
+
+        let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
+        let mut identity_config = IdentityConfiguration::default();
         match parameters {
             IdentityCreationParameters::Pem { disable_encryption } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
-                create(&temp_identity_dir)?;
-                let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 let pem_content = identity_manager::generate_key()?;
+                let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 pem_encryption::write_pem_file(
                     &pem_file,
                     Some(&identity_config),
@@ -119,7 +120,6 @@ impl Identity {
             } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
                 let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
-                create(&temp_identity_dir)?;
                 let dst_pem_file =
                     manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 pem_encryption::write_pem_file(
