@@ -54,6 +54,16 @@ But when trying to create an identity with that name, it was considered to be al
 
 == updating dependencies
 
+== Replica
+
+Updated replica to blessed commit 9817eb2304d45c2c6ec5e0050b8cc4e72919c314.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/52144[52144]
+* https://dashboard.internetcomputer.org/proposal/51587[51587]
+* https://dashboard.internetcomputer.org/proposal/50282[50282]
+
+
 Updated to version 0.14.0 of agent-rs
 
 = 0.9.3
