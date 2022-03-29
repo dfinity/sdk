@@ -224,7 +224,7 @@ pub async fn exec(
         .map_or(0_u64, |amount| amount.parse::<u64>().unwrap());
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
-        bail!("Cannot provide cycles without proxying through the wallet (did you mean to use `canister --wallet`?)");
+        bail!("Cannot provide cycles without proxying through the wallet (did you mean to use `canister --wallet <wallet id> call`?)");
     }
 
     if is_query {
