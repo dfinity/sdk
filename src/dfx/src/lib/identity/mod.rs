@@ -436,7 +436,9 @@ impl Identity {
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
                 if create {
-                    Identity::create_wallet(env, network, name, None).await
+                    Identity::create_wallet(env, network, name, None)
+                        .await
+                        .context(format!("No wallet found and failed to create a cycles wallet. This error often occurs when you have forgotten to set a wallet or are using the wrong identity (currently using \"{}\").", name))
                 } else {
                     Err(anyhow!(
                         "Could not find wallet for \"{}\" on \"{}\" network.",
