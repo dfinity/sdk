@@ -223,6 +223,10 @@ pub async fn exec(
         .as_deref()
         .map_or(0_u64, |amount| amount.parse::<u64>().unwrap());
 
+    if call_sender == &CallSender::SelectedId && cycles != 0 {
+        bail!("Cannot provide cycles without proxying through the wallet (did you mean to use `canister --wallet`?)");
+    }
+
     if is_query {
         let blob = match call_sender {
             CallSender::SelectedId => {
