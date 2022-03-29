@@ -30,7 +30,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
     let controller_blob = agent
-        .read_state_canister_info(canister_id, "controllers")
+        .read_state_canister_info(canister_id, "controllers", false)
         .await?;
     let cbor: Value = serde_cbor::from_slice(&controller_blob)
         .map_err(|_| anyhow!("Invalid cbor data in controllers canister info."))?;
@@ -52,7 +52,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     }?;
 
     let module_hash_hex = match agent
-        .read_state_canister_info(canister_id, "module_hash")
+        .read_state_canister_info(canister_id, "module_hash", false)
         .await
     {
         Ok(blob) => format!("0x{}", hex::encode(&blob)),

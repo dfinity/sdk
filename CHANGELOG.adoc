@@ -1,9 +1,7 @@
 = dfx changelog
 :doctype: book
 
-= 0.9.4
-
-= 0.9.3
+= 0.10.0
 
 == DFX
 
@@ -25,8 +23,6 @@ Example how to specify the subnet type:
 }
 ----
 
-=== feat: dfx deploy now displays URLs for the frontend and candid interface
-
 === feat: Private keys can be stored in encrypted format
 
 `dfx identity new` and `dfx identity import` now ask you for a password to encrypt the private key (PEM file) when it is stored on disk.
@@ -46,6 +42,21 @@ dfx identity import identity_name identity.pem
 === feat: Identity export
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
+
+=== fix: Identities cannot exist and not at the same time
+
+When something went wrong during identity creation, the identity was not listed as existing.
+But when trying to create an identity with that name, it was considered to be already existing.
+
+== updating dependencies
+
+Updated to version 0.14.0 of agent-rs
+
+= 0.9.3
+
+== DFX
+
+=== feat: dfx deploy now displays URLs for the frontend and candid interface
 
 === dfx.json
 
