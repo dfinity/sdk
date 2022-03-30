@@ -59,3 +59,10 @@ teardown() {
     dfx canister install hello
     assert_command dfx canister call hello recurse 100
 }
+
+@test "call with cycles" {
+    dfx_start
+    dfx deploy
+    assert_command_fail dfx canister call hello greet '' --with-cycles 100
+    assert_command dfx canister --wallet "$(dfx identity get-wallet)" call hello greet '' --with-cycles 100
+}
