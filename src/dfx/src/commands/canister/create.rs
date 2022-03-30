@@ -84,7 +84,7 @@ pub async fn exec(
             env.get_network_descriptor()
                 .expect("Couldn't get the network descriptor"),
             env.get_selected_identity().expect("No selected identity"),
-            true,
+            false,
         )
         .await?;
         proxy_sender = CallSender::Wallet(*wallet.canister_id_());

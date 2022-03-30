@@ -108,7 +108,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
             env.get_network_descriptor()
                 .expect("Couldn't get the network descriptor"),
             env.get_selected_identity().expect("No selected identity"),
-            true,
+            false,
         ))?;
         proxy_sender = CallSender::Wallet(*wallet.canister_id_());
         &proxy_sender

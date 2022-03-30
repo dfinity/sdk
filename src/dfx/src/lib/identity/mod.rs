@@ -425,20 +425,22 @@ impl Identity {
         }
     }
 
+    /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
+    ///
+    /// While developing locally, this always creates a new wallet, even if `create` is false.
     pub async fn get_or_create_wallet(
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
         create: bool,
     ) -> DfxResult<Principal> {
-        // If the network is not the IC, we ignore the error and create a new wallet for the
-        // identity.
         match Identity::wallet_canister_id(env, network, name) {
             Err(_) => {
-                if create {
+                // If the network is not the IC, we ignore the error and create a new wallet for the identity.
+                if !network.is_ic || create {
                     Identity::create_wallet(env, network, name, None)
                         .await
-                        .context(format!("No wallet found and failed to create a cycles wallet. This error often occurs when you have forgotten to set a wallet or are using the wrong identity (currently using \"{}\").", name))
+                        .context("Failed during wallet creation.")
                 } else {
                     Err(anyhow!(
                         "Could not find wallet for \"{}\" on \"{}\" network.",
@@ -502,6 +504,9 @@ impl Identity {
             .unwrap())
     }
 
+    /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
+    ///
+    /// While developing locally, this always creates a new wallet, even if `create` is false.
     #[allow(clippy::needless_lifetimes)]
     pub async fn get_or_create_wallet_canister<'env>(
         env: &'env dyn Environment,
