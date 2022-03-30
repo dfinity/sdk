@@ -20,10 +20,10 @@ SCRIPT_COMMIT_DESC="@revision@"
 get_tag_from_manifest_json() {
     # Find the tag in the file. Then get the last digits.
     # The first grep returns `"tag_name": "1.2.3` (without the last quote).
-    cat \
-        | tr -d '\n' \
-        | grep -o "\"$1\":[[:space:]]*\"[a-zA-Z0-9.]*" \
-        | grep -o "[0-9.]*$"
+    cat |
+        tr -d '\n' |
+        grep -o "\"$1\":[[:space:]]*\"[a-zA-Z0-9.]*" |
+        grep -o "[0-9.]*$"
 }
 
 get_manifest_version() {
@@ -52,8 +52,8 @@ validate_install_dir() {
 
     # We also test it's in the $PATH of the user.
     case ":$PATH:" in
-        *:$dir:*) ;;
-        *) return 3 ;;
+    *:$dir:*) ;;
+    *) return 3 ;;
     esac
 
     return 0
@@ -86,9 +86,9 @@ main() {
     if [ -t 2 ]; then
         if [ "${TERM+set}" = 'set' ]; then
             case "$TERM" in
-                xterm* | rxvt* | urxvt* | linux* | vt*)
-                    _ansi_escapes_are_valid=true
-                    ;;
+            xterm* | rxvt* | urxvt* | linux* | vt*)
+                _ansi_escapes_are_valid=true
+                ;;
             esac
         fi
     fi
@@ -122,18 +122,18 @@ main() {
     # thus, make sure this handles archives
     log "Version found: $DFX_VERSION"
     case "$DFX_VERSION" in
-        0.[0-9].*)
-            local _dfx_tarball_filename="dfx-${DFX_VERSION}.tar.gz"
-            local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/${_dfx_tarball_filename}"
-            local _dfx_sha256_filename=""
-            ;;
+    0.[0-9].*)
+        local _dfx_tarball_filename="dfx-${DFX_VERSION}.tar.gz"
+        local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/${_dfx_tarball_filename}"
+        local _dfx_sha256_filename=""
+        ;;
 
-        *)
-            local _dfx_tarball_filename="dfx-${DFX_VERSION}-${_arch}.tar.gz"
-            local _dfx_url="${DFX_GITHUB_RELEASE_ROOT}/${DFX_VERSION}/${_dfx_tarball_filename}"
-            local _dfx_sha256_filename="${_dfx_tarball_filename}.sha256"
-            local _dfx_sha256_url="${_dfx_url}.sha256"
-            ;;
+    *)
+        local _dfx_tarball_filename="dfx-${DFX_VERSION}-${_arch}.tar.gz"
+        local _dfx_url="${DFX_GITHUB_RELEASE_ROOT}/${DFX_VERSION}/${_dfx_tarball_filename}"
+        local _dfx_sha256_filename="${_dfx_tarball_filename}.sha256"
+        local _dfx_sha256_url="${_dfx_url}.sha256"
+        ;;
     esac
 
     local _dir
@@ -150,7 +150,7 @@ main() {
 
     ensure mkdir -p "$_dir"
     ensure downloader "$_dfx_url" "$_dfx_archive"
-    if [[ -n "${_dfx_sha256_filename}" ]]; then
+    if [ -n "${_dfx_sha256_filename}" ]; then
         log "Checking integrity of tarball..."
         ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
         ensure pushd "${_dir}" >/dev/null
@@ -173,8 +173,8 @@ main() {
         fi
         MV="sudo mv"
     fi
-    $MV "$_dfx_file" "${_install_dir}" 2>/dev/null \
-        || err "Failed to install the DFINITY Development Kit: please check your permissions and try again."
+    $MV "$_dfx_file" "${_install_dir}" 2>/dev/null ||
+        err "Failed to install the DFINITY Development Kit: please check your permissions and try again."
 
     log "Installed $_install_dir/dfx"
 
@@ -201,29 +201,29 @@ get_architecture() {
 
     case "$_ostype" in
 
-        Linux)
-            _ostype=linux
-            ;;
+    Linux)
+        _ostype=linux
+        ;;
 
-        Darwin)
-            _ostype=darwin
-            ;;
+    Darwin)
+        _ostype=darwin
+        ;;
 
-        *)
-            err "unrecognized OS type: $_ostype"
-            ;;
+    *)
+        err "unrecognized OS type: $_ostype"
+        ;;
 
     esac
 
     case "$_cputype" in
 
-        x86_64 | x86-64 | x64 | amd64)
-            _cputype=x86_64
-            ;;
+    x86_64 | x86-64 | x64 | amd64)
+        _cputype=x86_64
+        ;;
 
-        *)
-            err "unknown CPU type: $_cputype"
-            ;;
+    *)
+        err "unknown CPU type: $_cputype"
+        ;;
 
     esac
 

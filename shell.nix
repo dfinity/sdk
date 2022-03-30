@@ -4,6 +4,6 @@ let
 in
 pkgs.mkCompositeShell {
   name = "dfinity-sdk-env";
-  inputsFrom = pkgs.stdenv.lib.attrValues packages.shells;
+  inputsFrom = pkgs.lib.attrValues packages.shells;
   nativeBuildInputs = [ pkgs.nix-fmt ];
 }
