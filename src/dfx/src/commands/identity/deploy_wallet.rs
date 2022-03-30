@@ -4,7 +4,7 @@ use crate::lib::identity::Identity;
 use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 
-use anyhow::anyhow;
+use anyhow::bail;
 use clap::Parser;
 use ic_types::principal::Principal as CanisterId;
 use tokio::runtime::Runtime;
@@ -37,10 +37,11 @@ pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<Strin
             })?;
         }
         Err(err) => {
-            anyhow!(format!(
+            bail!(
                 "Cannot convert {} to a valid canister id. Candid error: {}",
-                canister_id, err
-            ));
+                canister_id,
+                err
+            );
         }
     };
     Ok(())

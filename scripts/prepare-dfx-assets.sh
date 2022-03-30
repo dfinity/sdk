@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 SDK_ROOT_DIR="$( cd -- "$(dirname -- "$( dirname -- "${BASH_SOURCE[0]}" )" )" &> /dev/null && pwd )"
 
@@ -124,6 +124,7 @@ copy_motoko_base_from_clone() {
 add_binary_cache() {
     download_binary "replica"
     download_binary "canister_sandbox"
+    download_binary "sandbox_launcher"
     download_binary "ic-starter"
     download_ic_ref
     download_icx_proxy

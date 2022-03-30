@@ -5,7 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::package_arguments::{self, PackageArguments};
 
 use anyhow::{anyhow, bail};
-use clap::{AppSettings, Parser};
+use clap::Parser;
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
@@ -13,7 +13,7 @@ const CANISTER_ARG: &str = "canister";
 /// Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the
 /// end-user.
 #[derive(Parser)]
-#[clap(setting = AppSettings::Hidden)]
+#[clap(hide(true))]
 pub struct LanguageServiceOpts {
     /// Specifies the canister name. If you don't specify this argument, all canisters are
     /// processed.

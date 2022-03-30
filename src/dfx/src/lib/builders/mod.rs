@@ -318,6 +318,6 @@ impl BuilderPool {
         self.builders
             .iter()
             .find(|builder| builder.supports(info))
-            .map(|x| Arc::clone(x))
+            .map(Arc::clone)
     }
 }

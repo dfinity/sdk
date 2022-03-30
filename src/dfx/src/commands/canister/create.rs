@@ -15,7 +15,7 @@ use crate::util::clap::validators::{
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail};
-use clap::{ArgSettings, Parser};
+use clap::Parser;
 use ic_agent::Identity as _;
 use ic_types::principal::Principal as CanisterId;
 use slog::info;
@@ -53,7 +53,7 @@ pub struct CanisterCreateOpts {
     #[clap(long, validator(memory_allocation_validator))]
     memory_allocation: Option<String>,
 
-    #[clap(long, validator(freezing_threshold_validator), setting = ArgSettings::Hidden)]
+    #[clap(long, validator(freezing_threshold_validator), hide(true))]
     freezing_threshold: Option<String>,
 
     /// Performs the call with the user Identity as the Sender of messages.

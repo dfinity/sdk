@@ -130,7 +130,7 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
 
-    b.set_message(format!("Downloading {}", url).as_str());
+    b.set_message(format!("Downloading {}", url));
     b.enable_steady_tick(80);
     let mut response = reqwest::blocking::get(url).map_err(DfxError::new)?;
     let mut decoder = Decoder::new(&mut response)

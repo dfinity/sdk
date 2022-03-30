@@ -14,10 +14,14 @@ use std::path::{Path, PathBuf};
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
+    bitcoind: None,
     bootstrap: None,
     build: None,
     replica: None,
 };
+
+const EMPTY_CONFIG_DEFAULTS_BITCOIND: ConfigDefaultsBitcoind =
+    ConfigDefaultsBitcoind { port: None };
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
@@ -31,9 +35,8 @@ const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
 };
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
-    message_gas_limit: None,
     port: None,
-    round_gas_limit: None,
+    subnet_type: None,
 };
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -81,6 +84,11 @@ pub struct CanisterDeclarationsConfig {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsBitcoind {
+    pub port: Option<u16>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
     pub port: Option<u16>,
@@ -95,9 +103,8 @@ pub struct ConfigDefaultsBuild {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsReplica {
-    pub message_gas_limit: Option<u64>,
     pub port: Option<u16>,
-    pub round_gas_limit: Option<u64>,
+    pub subnet_type: Option<ReplicaSubnetType>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -124,6 +131,31 @@ impl NetworkType {
     }
     fn persistent() -> Self {
         NetworkType::Persistent
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReplicaSubnetType {
+    System,
+    Application,
+    VerifiedApplication,
+}
+
+impl Default for ReplicaSubnetType {
+    fn default() -> Self {
+        ReplicaSubnetType::Application
+    }
+}
+
+impl ReplicaSubnetType {
+    /// Converts the value to the string expected by ic-starter for its --subnet-type argument
+    pub fn as_ic_starter_string(&self) -> String {
+        match self {
+            ReplicaSubnetType::System => "system".to_string(),
+            ReplicaSubnetType::Application => "application".to_string(),
+            ReplicaSubnetType::VerifiedApplication => "verified_application".to_string(),
+        }
     }
 }
 
@@ -160,6 +192,7 @@ pub enum Profile {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaults {
+    pub bitcoind: Option<ConfigDefaultsBitcoind>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub replica: Option<ConfigDefaultsReplica>,
@@ -206,6 +239,12 @@ impl ConfigDefaultsBuild {
 }
 
 impl ConfigDefaults {
+    pub fn get_bitcoind(&self) -> &ConfigDefaultsBitcoind {
+        match &self.bitcoind {
+            Some(x) => x,
+            None => &EMPTY_CONFIG_DEFAULTS_BITCOIND,
+        }
+    }
     pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
         match &self.bootstrap {
             Some(x) => x,

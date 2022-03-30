@@ -4,21 +4,24 @@ members = [
 ]
 
 [patch.crates-io.ic-agent]
-version = "0.12.1"
+version = "0.14.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+rev = "00fe152af028e196e18bedb30fc226f85c4dfe31"
 
 [patch.crates-io.ic-asset]
-version = "0.12.1"
+version = "0.14.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+rev = "00fe152af028e196e18bedb30fc226f85c4dfe31"
 
 [patch.crates-io.ic-identity-hsm]
-version = "0.12.1"
+version = "0.14.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+rev = "00fe152af028e196e18bedb30fc226f85c4dfe31"
 
 [patch.crates-io.ic-utils]
-version = "0.12.1"
+version = "0.14.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+rev = "00fe152af028e196e18bedb30fc226f85c4dfe31"
+
+[profile.dev.package.argon2]
+opt-level = 3

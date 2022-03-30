@@ -11,6 +11,7 @@ use ic_agent::{Agent, Identity};
 use ic_types::Principal;
 use semver::Version;
 use slog::{Logger, Record};
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
@@ -44,7 +45,7 @@ pub trait Environment {
     fn get_network_descriptor<'a>(&'a self) -> Option<&'a NetworkDescriptor>;
 
     fn get_logger(&self) -> &slog::Logger;
-    fn new_spinner(&self, message: &str) -> ProgressBar;
+    fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
 
     // Explicit lifetimes are actually needed for mockall to work properly.
@@ -150,7 +151,7 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config(&self) -> Option<Arc<Config>> {
-        self.config.as_ref().map(|x| Arc::clone(x))
+        self.config.as_ref().map(Arc::clone)
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
@@ -197,7 +198,7 @@ impl Environment for EnvironmentImpl {
             .expect("Log was not setup, but is being used.")
     }
 
-    fn new_spinner(&self, message: &str) -> ProgressBar {
+    fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
         if self.progress {
             ProgressBar::new_spinner(message)
         } else {
@@ -292,7 +293,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_logger()
     }
 
-    fn new_spinner(&self, message: &str) -> ProgressBar {
+    fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
         self.backend.new_spinner(message)
     }
 

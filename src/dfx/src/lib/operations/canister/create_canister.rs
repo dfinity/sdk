@@ -50,7 +50,7 @@ pub async fn create_canister(
     }
 
     let non_default_network = if network_name == "local" {
-        format!("")
+        String::new()
     } else {
         format!("on network {:?} ", network_name)
     };
@@ -73,8 +73,8 @@ pub async fn create_canister(
             let mgr = ManagementCanister::create(agent);
             let cid = match call_sender {
                 CallSender::SelectedId => {
-                    // amount has been validated by cycle_amount_validator
-                    let cycles = with_cycles.and_then(|amount| amount.parse::<u64>().ok());
+                    // amount has been validated by cycle_amount_validator, which is u64
+                    let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
                     let mut builder = mgr
                         .create_canister()
                         .as_provisional_create_with_amount(cycles);

@@ -58,7 +58,7 @@ impl fmt::Display for Toolchain {
 impl Toolchain {
     // Update the toolchain, install it if nonexisting
     pub fn update(&self) -> DfxResult<()> {
-        eprintln!("Syncing toolchain: {}", self.to_string());
+        eprintln!("Syncing toolchain: {}", self);
 
         let toolchain_path = self.get_path()?;
 

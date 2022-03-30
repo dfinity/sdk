@@ -22,7 +22,7 @@ pub fn get_manifest() -> DfxResult<Manifest> {
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
 
-    b.set_message(&format!("Fetching manifest {}", url));
+    b.set_message(format!("Fetching manifest {}", url));
     b.enable_steady_tick(80);
 
     let response = reqwest::blocking::get(url).map_err(DfxError::new)?;
@@ -68,7 +68,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         let mut dest = fs::File::create(&download_file)?;
         let b = ProgressBar::new_spinner();
         b.set_draw_target(ProgressDrawTarget::stderr());
-        b.set_message(&format!("Downloading {}", url));
+        b.set_message(format!("Downloading {}", url));
         b.enable_steady_tick(80);
         let response = reqwest::blocking::get(url).map_err(DfxError::new)?;
         let content = response.bytes()?;
@@ -84,7 +84,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
 
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
-    b.set_message(&format!("Unpacking file {:?}", download_file));
+    b.set_message(format!("Unpacking file {:?}", download_file));
     b.enable_steady_tick(80);
     let tar_gz = fs::File::open(&download_file)?;
     let tar = Decoder::new(tar_gz)?;

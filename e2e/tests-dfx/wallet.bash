@@ -16,8 +16,8 @@ teardown() {
     dfx_new hello
     dfx_start
 
-    dfx identity new alice
-    dfx identity new bob
+    dfx identity new --disable-encryption alice
+    dfx identity new --disable-encryption bob
 
     use_wallet_wasm 0.7.0
     assert_command dfx --identity alice identity get-wallet
