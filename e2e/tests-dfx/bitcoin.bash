@@ -95,6 +95,7 @@ teardown() {
     timeout 15s sh -c \
       "until curl --fail -o /dev/null http://localhost:$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "replica did not restart" && ps aux && exit 1)
+    # shellcheck disable=SC2094
     cat <<<"$(jq .networks.local.bind=\"127.0.0.1:"$(cat .dfx/replica-configuration/replica-1.port)"\" dfx.json)" >dfx.json
 
     timeout 15s sh -c \
