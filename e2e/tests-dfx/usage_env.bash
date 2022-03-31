@@ -30,6 +30,7 @@ teardown() {
     (
         # use subshell to retain $DFX_CONFIG_ROOT for teardown
         # remove configured variable, should use $HOME now
+        unset DFX_CACHE_ROOT
         unset DFX_CONFIG_ROOT
 
         dfx identity new --disable-encryption bob
