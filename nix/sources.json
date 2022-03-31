@@ -55,6 +55,22 @@
         "rev": "76ec3b125e543450440315dc36e38f48a081fc59",
         "type": "git"
     },
+    "ic-btc-adapter-x86_64-darwin": {
+        "builtin": false,
+        "rev": "9817eb2304d45c2c6ec5e0050b8cc4e72919c314",
+        "sha256": "0f9xkcshilg3i1y2fwkh1ypzm9q8qqcbj3m7wmnn44sj2f3mqgdw",
+        "type": "file",
+        "url": "https://download.dfinity.systems/blessed/ic/9817eb2304d45c2c6ec5e0050b8cc4e72919c314/sdk-release/x86_64-darwin/ic-btc-adapter.gz",
+        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/ic-btc-adapter.gz"
+    },
+    "ic-btc-adapter-x86_64-linux": {
+        "builtin": false,
+        "rev": "9817eb2304d45c2c6ec5e0050b8cc4e72919c314",
+        "sha256": "1nwfp80682q6srcbvw01vx85nainppbrx2zp0d554f4ssas93aix",
+        "type": "file",
+        "url": "https://download.dfinity.systems/blessed/ic/9817eb2304d45c2c6ec5e0050b8cc4e72919c314/sdk-release/x86_64-linux/ic-btc-adapter.gz",
+        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/ic-btc-adapter.gz"
+    },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
