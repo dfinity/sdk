@@ -50,9 +50,9 @@
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/canister_sandbox.gz"
     },
     "common": {
-        "branch": "nixpkgs-21.05",
+        "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "bfaa3b749ba86241d6348c95d8d5d3aadbbd5417",
+        "rev": "76ec3b125e543450440315dc36e38f48a081fc59",
         "type": "git"
     },
     "ic-ref-x86_64-darwin": {
