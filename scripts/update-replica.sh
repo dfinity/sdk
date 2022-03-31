@@ -10,6 +10,8 @@ fi
 
 SHA=$1
 echo "Updating sources to rev ${SHA}"
+niv update ic-btc-adapter-x86_64-darwin -a rev=$SHA
+niv update ic-btc-adapter-x86_64-linux -a rev=$SHA
 niv update ic-starter-x86_64-darwin -a rev=$SHA
 niv update ic-starter-x86_64-linux -a rev=$SHA
 niv update replica-x86_64-darwin -a rev=$SHA

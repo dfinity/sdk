@@ -70,6 +70,8 @@ This incorporates the following executed proposals:
 * https://dashboard.internetcomputer.org/proposal/52144[52144]
 * https://dashboard.internetcomputer.org/proposal/50282[50282]
 
+Added the ic-btc-adapter binary to the cache.
+
 = 0.9.3
 
 == DFX

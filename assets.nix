@@ -2,6 +2,7 @@
 , distributed-canisters ? import ./distributed-canisters.nix { inherit pkgs; }
 }:
 let
+  ic-btc-adapter-bin = pkgs.sources."ic-btc-adapter-${pkgs.system}";
   replica-bin = pkgs.sources."replica-${pkgs.system}";
   canister-sandbox-bin = pkgs.sources."canister-sandbox-${pkgs.system}";
   sandbox-launcher-bin = pkgs.sources."sandbox-launcher-${pkgs.system}";
@@ -9,6 +10,7 @@ let
   looseBinaryCache = pkgs.runCommandNoCCLocal "loose-binary-cache" {} ''
     mkdir -p $out
 
+    gunzip <${ic-btc-adapter-bin} >$out/ic-btc-adapter
     gunzip <${replica-bin} >$out/replica
     gunzip <${canister-sandbox-bin} >$out/canister_sandbox
     gunzip <${sandbox-launcher-bin} >$out/sandbox_launcher

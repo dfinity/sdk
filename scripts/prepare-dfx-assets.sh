@@ -122,6 +122,7 @@ copy_motoko_base_from_clone() {
 }
 
 add_binary_cache() {
+    download_binary "ic-btc-adapter"
     download_binary "replica"
     download_binary "canister_sandbox"
     download_binary "sandbox_launcher"
