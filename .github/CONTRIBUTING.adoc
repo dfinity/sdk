@@ -197,7 +197,7 @@ To update the replica to a given $SHA from the dfinity repo, execute the followi
 [source,bash]
 ----
 # Requires niv to run. To install niv, run nix-env -iA nixpkgs.niv
-./scripts/write-dfx-asset-sources.sh $SHA
+./scripts/update-replica.sh $SHA
 ----
 
 === Licenses
