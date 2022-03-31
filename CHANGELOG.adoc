@@ -5,9 +5,11 @@
 
 == DFX
 
-=== feat!: Introduce DFX_CACHE_ROOT environment variable
+=== feat: Introduce DFX_CACHE_ROOT environment variable
 
 A new environment variable, `DFX_CACHE_ROOT`, has been introduced to allow setting the cache root directory to a different location than the configuration root directory. Previously `DFX_CONFIG_ROOT` was repurposed for this which only allowed one location to be set for both the cache and configuration root directories.
+
+This is a breaking change since setting `DFX_CONFIG_ROOT` will no longer set the cache root directory to that location.
 
 === fix: Error if nonzero cycles are passed without a wallet proxy
 
