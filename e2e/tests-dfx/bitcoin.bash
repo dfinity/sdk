@@ -66,7 +66,7 @@ teardown() {
 
     ID=$(dfx canister id hello_assets)
 
-    (uname -a | grep Darwin) && (echo "exit at L69" && exit 1)
+    # pass (uname -a | grep Darwin) && (echo "exit at L69" && exit 1)
 
     timeout 15s sh -c \
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
@@ -115,7 +115,7 @@ teardown() {
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
 
-    (uname -a | grep Darwin) && (echo "exit at L118" && exit 1)
+    # pass (uname -a | grep Darwin) && (echo "exit at L118" && exit 1)
 
     # Sometimes initially get an error like:
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
