@@ -47,7 +47,7 @@ teardown() {
     assert_process_exits "$BTC_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
 
-    (uname -a | grep Darwin) && (echo "exit at L50" && exit 1)
+    # pass (uname -a | grep Darwin) && (echo "exit at L50" && exit 1)
 
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
@@ -65,6 +65,8 @@ teardown() {
     assert_eq '("Hello, Omega!")'
 
     ID=$(dfx canister id hello_assets)
+
+    (uname -a | grep Darwin) && (echo "exit at L69" && exit 1)
 
     timeout 15s sh -c \
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
@@ -98,7 +100,7 @@ teardown() {
     assert_process_exits "$BTC_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
 
-    (uname -a | grep Darwin) && (echo "exit at L101" && exit 1)
+    # pass (uname -a | grep Darwin) && (echo "exit at L101" && exit 1)
 
     timeout 15s sh -x -c \
       "until curl --fail --verbose -o /dev/null http://localhost:\$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo \"waiting for replica to restart on port \$(cat .dfx/replica-configuration/replica-1.port)\"; sleep 1; done" \
@@ -112,6 +114,8 @@ teardown() {
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
+
+    (uname -a | grep Darwin) && (echo "exit at L118" && exit 1)
 
     # Sometimes initially get an error like:
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
