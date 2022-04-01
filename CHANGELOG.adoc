@@ -5,6 +5,12 @@
 
 == DFX
 
+=== feat: Introduce DFX_CACHE_ROOT environment variable
+
+A new environment variable, `DFX_CACHE_ROOT`, has been introduced to allow setting the cache root directory to a different location than the configuration root directory. Previously `DFX_CONFIG_ROOT` was repurposed for this which only allowed one location to be set for both the cache and configuration root directories.
+
+This is a breaking change since setting `DFX_CONFIG_ROOT` will no longer set the cache root directory to that location.
+
 === fix: Error if nonzero cycles are passed without a wallet proxy
 
 Previously, `dfx canister call --with-cycles 1` would silently ignore the `--with-cycles` argument as the DFX principal has no way to pass cycles and the call must be forwarded through the wallet. Now it will error instead of silently ignoring it. To forward a call through the wallet, use `--wallet $(dfx identity get-wallet)`, or `--wallet $(dfx identity --network ic get-wallet)` for mainnet.

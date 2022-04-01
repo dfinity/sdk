@@ -15,7 +15,7 @@ pkgs.runCommand "check-binaries" {
   ++ lib.optional stdenv.isLinux [ glibc.bin patchelf ];
 } ''
   mkdir -p $out
-  export DFX_CONFIG_ROOT="$out"
+  export DFX_CACHE_ROOT="$out"
   cp ${dfx.standalone}/bin/dfx dfx
 
   ${pkgs.lib.optionalString pkgs.stdenv.isLinux ''
