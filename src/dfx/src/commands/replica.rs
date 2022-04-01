@@ -79,7 +79,7 @@ fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u
 
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
-/// replica at the moment) and the proxy.
+/// replica at the moment), the proxy, and (if configured) the bitcoin adapter.
 pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let system = actix::System::new();
 
@@ -102,25 +102,21 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
                     .and_then(|x| x.btc_adapter_config.clone())
             });
 
-            let btc_adapter_socket_path = btc_adapter_config
-                .as_ref()
-                .map(|btc_adapter_config| get_btc_adapter_socket_path(btc_adapter_config))
-                .transpose()?
-                .flatten();
-
-            let btc_adapter_ready_subscribe = btc_adapter_config
-                .as_ref()
-                .map(|btc_adapter_config| {
-                    start_btc_adapter_actor(
+            let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
+                if let Some(btc_adapter_config) = btc_adapter_config {
+                    let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)?;
+                    let ready_subscribe = start_btc_adapter_actor(
                         env,
-                        btc_adapter_config.clone(),
-                        btc_adapter_socket_path.clone(),
+                        btc_adapter_config,
+                        socket_path.clone(),
                         shutdown_controller.clone(),
                         btc_adapter_pid_file_path,
-                    )
-                    .map(|x| x.recipient())
-                })
-                .transpose()?;
+                    )?
+                    .recipient();
+                    (Some(ready_subscribe), socket_path)
+                } else {
+                    (None, None)
+                };
 
             let replica_config = get_config(env, opts, btc_adapter_socket_path)?;
 

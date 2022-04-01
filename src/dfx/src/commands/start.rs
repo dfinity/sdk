@@ -175,12 +175,6 @@ pub fn exec(
             .as_ref()
             .and_then(|x| x.btc_adapter_config.clone())
     });
-    let btc_adapter_socket_path = btc_adapter_config
-        .clone()
-        .map(|path| get_btc_adapter_socket_path(&path))
-        .transpose()?
-        .flatten();
-
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
@@ -189,18 +183,21 @@ pub fn exec(
             let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
             emulator.recipient()
         } else {
-            let btc_adapter_ready_subscribe = if let Some(btc_adapter_config) = btc_adapter_config {
-                let btc_adapter = start_btc_adapter_actor(
-                    env,
-                    btc_adapter_config,
-                    btc_adapter_socket_path.clone(),
-                    shutdown_controller.clone(),
-                    btc_adapter_pid_file_path,
-                )?;
-                Some(btc_adapter.recipient())
-            } else {
-                None
-            };
+            let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
+                if let Some(btc_adapter_config) = btc_adapter_config {
+                    let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)?;
+                    let ready_subscribe = start_btc_adapter_actor(
+                        env,
+                        btc_adapter_config,
+                        socket_path.clone(),
+                        shutdown_controller.clone(),
+                        btc_adapter_pid_file_path,
+                    )?
+                    .recipient();
+                    (Some(ready_subscribe), socket_path)
+                } else {
+                    (None, None)
+                };
 
             let replica_port_path = env
                 .get_temp_dir()
