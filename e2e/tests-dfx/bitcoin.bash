@@ -92,8 +92,8 @@ teardown() {
     assert_process_exits "$BTC_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
 
-    timeout 15s sh -c \
-      "until curl --fail -o /dev/null http://localhost:$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo waiting for replica to restart; sleep 1; done" \
+    timeout 15s sh -x -c \
+      "until curl --fail --verbose -o /dev/null http://localhost:$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo waiting for replica to restart (port $(cat .dfx/replica-configuration/replica-1.port)); sleep 1; done" \
       || (echo "replica did not restart" && echo "last replica port was $(cat .dfx/replica-configuration/replica-1.port)" && ps aux && exit 1)
     # shellcheck disable=SC2094
     cat <<<"$(jq .networks.local.bind=\"127.0.0.1:"$(cat .dfx/replica-configuration/replica-1.port)"\" dfx.json)" >dfx.json
