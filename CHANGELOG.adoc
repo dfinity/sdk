@@ -39,7 +39,7 @@ Example how to specify the subnet type:
 If you decide to use a password, your key will never be written to disk in plain text.
 In case you don't want to enter your password all the time and want to take the risk of storing your private key in plain text, you can use the `--disable-encryption` flag.
 
-The `default` identity as well as already existing identities will NOT be encrypted. If you want to encrypt an identity, use the following commands:
+The `default` identity as well as already existing identities will NOT be encrypted. If you want to encrypt an existing identity, use the following commands:
 [source, bash]
 ----
 dfx identity export identity_name > identity.pem
@@ -53,6 +53,12 @@ dfx identity import identity_name identity.pem
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
 
+=== fix: Do not automatically create a wallet on IC
+
+When running `dfx deploy --network ic`, `dfx canister --network ic create`, or `dfx identity --network ic get-wallet` dfx no longer automatically creates a cycles wallet for the user if none is configured. Instead, it will simply report that no wallet was found for that user.
+
+Dfx still creates the wallet automatically when running on a local network, so the typical workflow of `dfx start --clean` and `dfx deploy` will still work without having to manually create the wallet.
+
 === fix: Identities cannot exist and not at the same time
 
 When something went wrong during identity creation, the identity was not listed as existing.
@@ -61,6 +67,16 @@ But when trying to create an identity with that name, it was considered to be al
 == updating dependencies
 
 Updated to version 0.14.0 of agent-rs
+
+== Replica
+
+Updated replica to blessed commit 9817eb2304d45c2c6ec5e0050b8cc4e72919c314.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/52144[52144]
+* https://dashboard.internetcomputer.org/proposal/50282[50282]
+
+Added the ic-btc-adapter binary to the cache.
 
 = 0.9.3
 

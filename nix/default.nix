@@ -41,9 +41,12 @@ let
                 root = self.sources.agent-rs;
                 cargoBuildOptions = x: x ++ [ "-p" "icx" ];
                 cargoTestOptions = x: x ++ [ "-p" "icx" ];
-                buildInputs = [ self.pkgsStatic.openssl self.pkg-config ]
-                ++ self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
-                override = attrs: { OPENSSL_STATIC = "1"; };
+                buildInputs = self.lib.optional self.stdenv.isDarwin pkgs.libiconv;
+                override = attrs: {
+                  OPENSSL_STATIC = "1";
+                  OPENSSL_LIB_DIR = "${self.pkgsStatic.openssl.out}/lib";
+                  OPENSSL_INCLUDE_DIR = "${self.pkgsStatic.openssl.dev}/include";
+                };
               };
               dfinity =
                 (import self.sources.dfinity { inherit (self) system; }).dfinity.rs;
