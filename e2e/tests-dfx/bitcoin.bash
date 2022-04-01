@@ -12,6 +12,7 @@ teardown() {
     bitcoin-cli -regtest stop
 
     standard_teardown
+    # dfx_stop_replica_and_bootstrap
 
     # created in bitcoin/patch.bash
     rm -f "/tmp/e2e-ic-btc-adapter.$$.socket"
@@ -25,8 +26,6 @@ teardown() {
 
 @test "dfx restarts replica when ic-btc-adapter restarts" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-
-    # pass (uname -a | grep Darwin) && (echo "exit at start" && exit 1)
 
     dfx_new hello
     install_asset bitcoin
@@ -47,8 +46,6 @@ teardown() {
     assert_process_exits "$BTC_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
 
-    # pass (uname -a | grep Darwin) && (echo "exit at L50" && exit 1)
-
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
       || (echo "replica did not restart" && ps aux && exit 1)
@@ -65,8 +62,6 @@ teardown() {
     assert_eq '("Hello, Omega!")'
 
     ID=$(dfx canister id hello_assets)
-
-    # pass (uname -a | grep Darwin) && (echo "exit at L69" && exit 1)
 
     timeout 15s sh -c \
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
@@ -115,7 +110,7 @@ teardown() {
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
 
-    # pass (uname -a | grep Darwin) && (echo "exit at L118" && exit 1)
+    # (uname -a | grep Darwin) && (echo "exit at L118" && exit 1)
 
     # Sometimes initially get an error like:
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
