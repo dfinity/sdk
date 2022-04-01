@@ -26,7 +26,7 @@ teardown() {
 @test "dfx restarts replica when ic-btc-adapter restarts" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
-    (uname -a | grep Darwin) && (echo "exit at start" && exit 1)
+    # pass (uname -a | grep Darwin) && (echo "exit at start" && exit 1)
 
     dfx_new hello
     install_asset bitcoin
@@ -46,6 +46,8 @@ teardown() {
     kill -KILL "$BTC_ADAPTER_PID"
     assert_process_exits "$BTC_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
+
+    (uname -a | grep Darwin) && (echo "exit at L50" && exit 1)
 
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
@@ -74,7 +76,7 @@ teardown() {
 @test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
-    (uname -a | grep Darwin) && (echo "exit at start" && exit 1)
+    # pass (uname -a | grep Darwin) && (echo "exit at start" && exit 1)
 
     dfx_new hello
     install_asset bitcoin
@@ -95,6 +97,8 @@ teardown() {
     kill -KILL "$BTC_ADAPTER_PID"
     assert_process_exits "$BTC_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
+
+    (uname -a | grep Darwin) && (echo "exit at L101" && exit 1)
 
     timeout 15s sh -x -c \
       "until curl --fail --verbose -o /dev/null http://localhost:\$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo \"waiting for replica to restart on port \$(cat .dfx/replica-configuration/replica-1.port)\"; sleep 1; done" \
