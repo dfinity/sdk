@@ -26,6 +26,8 @@ teardown() {
 @test "dfx restarts replica when ic-btc-adapter restarts" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
+    (uname -a | grep Darwin) && (echo "exit at start" && exit 1)
+
     dfx_new hello
     install_asset bitcoin
     dfx_start
@@ -71,6 +73,8 @@ teardown() {
 
 @test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
+
+    (uname -a | grep Darwin) && (echo "exit at start" && exit 1)
 
     dfx_new hello
     install_asset bitcoin
