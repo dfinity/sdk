@@ -110,7 +110,7 @@ teardown() {
       || (echo "replica did not restart" && ps aux && exit 1)
     wait_until_replica_healthy
 
-    # (uname -a | grep Darwin) && (echo "exit at L118" && exit 1)
+    # pass (uname -a | grep Darwin) && (echo "exit at L118" && exit 1)
 
     # Sometimes initially get an error like:
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
@@ -121,4 +121,9 @@ teardown() {
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
+
+
+    echo "force failure"
+    ps
+    exit 1
 }
