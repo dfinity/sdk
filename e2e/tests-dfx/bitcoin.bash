@@ -122,7 +122,6 @@ teardown() {
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 
-
-    ps
+    ps || "no output from ps"
     exit 0
 }
