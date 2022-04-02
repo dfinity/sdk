@@ -129,6 +129,7 @@ jobs:
       - name: Run e2e test
         # rust tests sometimes fail with a 30-minute timeout
         run: |
+          echo "shellopts are $SHELLOPTS"
           set +e
           timeout 300 bats "e2e/$E2E_TEST"
           TESTRESULT=$?
