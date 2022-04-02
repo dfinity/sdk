@@ -131,7 +131,8 @@ jobs:
         run: |
           timeout 300 bats "e2e/$E2E_TEST"
           TESTRESULT=$?
-          if [ "$TESTRESULT" -eq 124 ]; then
+          echo "testresult is $TESTRESULT"
+          if [ $TESTRESULT -eq 124 ]; then
             echo "Test timed out.  Sometimes this means bats was waiting for a process to exit.  Process list:"
             ps
           fi
