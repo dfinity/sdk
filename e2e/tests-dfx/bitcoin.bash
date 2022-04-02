@@ -11,8 +11,8 @@ setup() {
 teardown() {
     bitcoin-cli -regtest stop
 
-    standard_teardown
     dfx_stop_replica_and_bootstrap
+    standard_teardown
 
     # created in bitcoin/patch.bash
     rm -f "/tmp/e2e-ic-btc-adapter.$$.socket"
@@ -123,7 +123,6 @@ teardown() {
     assert_eq '("Hello, Omega!")'
 
 
-    echo "force failure"
     ps
-    exit 1
+    exit 0
 }
