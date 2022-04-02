@@ -12,7 +12,7 @@ teardown() {
     bitcoin-cli -regtest stop
 
     standard_teardown
-    # dfx_stop_replica_and_bootstrap
+    dfx_stop_replica_and_bootstrap
 
     # created in bitcoin/patch.bash
     rm -f "/tmp/e2e-ic-btc-adapter.$$.socket"

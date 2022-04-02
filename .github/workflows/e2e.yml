@@ -131,7 +131,7 @@ jobs:
         run: |
           echo "shellopts are $SHELLOPTS"
           set +e
-          timeout 300 bats "e2e/$E2E_TEST"
+          timeout 2100 bats "e2e/$E2E_TEST"
           TESTRESULT=$?
           echo "testresult is $TESTRESULT"
           if [ $TESTRESULT -eq 124 ]; then
