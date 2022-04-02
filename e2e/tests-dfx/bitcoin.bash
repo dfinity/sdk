@@ -123,5 +123,6 @@ teardown() {
     assert_eq '("Hello, Omega!")'
 
     ps || "no output from ps"
+    echo "pass"
     exit 0
 }
