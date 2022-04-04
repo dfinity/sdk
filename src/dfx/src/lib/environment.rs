@@ -486,9 +486,9 @@ mod tests {
 
     #[test]
     fn test_passwords() {
-        let cfg_root = TempDir::new().unwrap();
-        let old_var = env::var_os("DFX_CONFIG_ROOT");
-        env::set_var("DFX_CONFIG_ROOT", cfg_root.path());
+        let cache_root = TempDir::new().unwrap();
+        let old_var = env::var_os("DFX_CACHE_ROOT");
+        env::set_var("DFX_CACHE_ROOT", cache_root.path());
         let log = Logger::root(
             FullFormat::new(PlainSyncDecorator::new(io::stderr()))
                 .build()
@@ -503,9 +503,9 @@ mod tests {
         assert_eq!(user, "default");
         assert_eq!(pass, "hunter2:");
         if let Some(old_var) = old_var {
-            env::set_var("DFX_CONFIG_ROOT", old_var);
+            env::set_var("DFX_CACHE_ROOT", old_var);
         } else {
-            env::remove_var("DFX_CONFIG_ROOT");
+            env::remove_var("DFX_CACHE_ROOT");
         }
     }
 }

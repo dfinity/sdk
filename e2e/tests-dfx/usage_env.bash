@@ -21,15 +21,16 @@ teardown() {
 
     #cache
     # create a new project to install dfx cache
-    assert_command_fail ls "$DFX_CONFIG_ROOT/.cache/dfinity/versions"
+    assert_command_fail ls "$DFX_CACHE_ROOT/.cache/dfinity/versions"
     dfx new hello
-    assert_command ls "$DFX_CONFIG_ROOT/.cache/dfinity/versions"
+    assert_command ls "$DFX_CACHE_ROOT/.cache/dfinity/versions"
     assert_command_fail ls "$HOME/.cache/dfinity/versions"
     rm -rf hello
 
     (
         # use subshell to retain $DFX_CONFIG_ROOT for teardown
         # remove configured variable, should use $HOME now
+        unset DFX_CACHE_ROOT
         unset DFX_CONFIG_ROOT
 
         dfx identity new --disable-encryption bob

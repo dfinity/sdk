@@ -15,12 +15,14 @@ standard_setup() {
     export DFX_E2E_TEMP_DIR="$x"
 
     mkdir "$x/working-dir"
+    mkdir "$x/cache-root"
     mkdir "$x/config-root"
     mkdir "$x/home-dir"
 
     cd "$x/working-dir" || exit
 
     export HOME="$x/home-dir"
+    export DFX_CACHE_ROOT="$x/cache-root"
     export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
 }
