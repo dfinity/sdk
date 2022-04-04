@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-11, ubuntu-20.04 ]
+        os: [ macos-10.15, macos-11, ubuntu-20.04 ]
         rust: [ '1.58.1' ]
         binary_path: [ 'target/release' ]
     steps:
@@ -67,7 +67,7 @@ jobs:
         # ubuntu-18.04 not supported due to:
         #     /home/runner/.cache/dfinity/versions/0.8.3-34-g36e39809/ic-starter:
         #     /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found
-        os: [ macos-11, ubuntu-20.04 ]
+        os: [ macos-10.15, macos-11, ubuntu-20.04 ]
         rust: [ '1.58.1' ]
     steps:
       - uses: actions/checkout@v1
@@ -99,22 +99,7 @@ jobs:
     needs: [ build_dfx, list_tests ]
     strategy:
       fail-fast: false
-      matrix: {
-        "test": [
-            "dfx/bitcoin",
-        ],
-        "backend": [
-            "replica"
-        ],
-        "os": [
-            "macos-11",
-            "ubuntu-20.04"
-        ],
-        "rust": [
-            "1.58.1"
-        ]
-      }
-
+      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
     steps:
@@ -143,17 +128,7 @@ jobs:
           export
       - name: Run e2e test
         # rust tests sometimes fail with a 30-minute timeout
-        run: |
-          echo "shellopts are $SHELLOPTS"
-          set +e
-          timeout 300 bats "e2e/$E2E_TEST"
-          TESTRESULT=$?
-          echo "testresult is $TESTRESULT"
-          if [ $TESTRESULT -eq 124 ]; then
-            echo "Test timed out.  Sometimes this means bats was waiting for a process to exit.  Process list:"
-            ps
-          fi
-          exit "$TESTRESULT"
+        run: timeout 2100 bats "e2e/$E2E_TEST"
 
   aggregate:
     name: e2e:required
