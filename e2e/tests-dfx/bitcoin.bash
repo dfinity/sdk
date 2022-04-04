@@ -73,6 +73,8 @@ teardown() {
 @test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
+    skip
+
     # pass (uname -a | grep Darwin) && (echo "exit at start" && exit 1)
 
     dfx_new hello
@@ -121,8 +123,4 @@ teardown() {
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
-
-    ps || "no output from ps"
-    echo "pass"
-    exit 0
 }
