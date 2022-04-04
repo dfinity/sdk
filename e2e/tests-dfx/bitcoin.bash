@@ -27,6 +27,8 @@ teardown() {
 @test "dfx restarts replica when ic-btc-adapter restarts" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
+    skip
+
     dfx_new hello
     install_asset bitcoin
     dfx_start
