@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "fdc6858e6073f6113be7e8728a4e73244e57d37d",
-        "sha256": "09l93lvmxmaxicj6ck3fzb7rv9l68vm27syan79y0swcjana9djz",
+        "rev": "ce150ef8cbed58f21f235c267cd5f501ffa56756",
+        "sha256": "11fmzfnawg2prjl4s8z1p7xans3pnpb4gy91v0qcq3fskhsldahr",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/fdc6858e6073f6113be7e8728a4e73244e57d37d.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/ce150ef8cbed58f21f235c267cd5f501ffa56756.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
