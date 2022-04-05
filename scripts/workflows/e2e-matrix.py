@@ -18,7 +18,13 @@ matrix = {
     'test': test,
     'backend': [ 'ic-ref', 'replica' ],
     'os': [ 'macos-11', 'ubuntu-20.04' ],
-    'rust': [ '1.58.1' ]
+    'rust': [ '1.58.1' ],
+    'exclude': [
+        {
+            'backend': 'ic-ref',
+            'test': 'dfx/bitcoin'
+        }
+    ]
 }
 
 print(json.dumps(matrix))

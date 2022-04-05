@@ -64,6 +64,18 @@ Dfx still creates the wallet automatically when running on a local network, so t
 When something went wrong during identity creation, the identity was not listed as existing.
 But when trying to create an identity with that name, it was considered to be already existing.
 
+=== feat: dfx start and dfx replica can now launch the ic-btc-adapter process
+
+Added command-line parameter:
+    dfx start --btc-adapter-config <path>
+    dfx replica --btc-adapter-config <path>
+
+Defaults to value from dfx.json: .defaults.bitcoin.btc_adapter_config
+
+If set, dfx start/replica will launch the ic-btc-adapter process.
+
+The rest of this isn't hooked up yet.
+
 == updating dependencies
 
 Updated to version 0.14.0 of agent-rs
