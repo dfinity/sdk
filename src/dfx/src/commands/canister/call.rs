@@ -17,7 +17,7 @@ use ic_utils::canister::{Argument, Canister};
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
-use ic_utils::interfaces::Wallet;
+use ic_utils::interfaces::WalletCanister;
 use std::option::Option;
 use std::str::FromStr;
 
@@ -73,12 +73,12 @@ struct CallIn {
     method_name: String,
     #[serde(with = "serde_bytes")]
     args: Vec<u8>,
-    cycles: u64,
+    cycles: u128,
 }
 
-async fn do_wallet_call(wallet: &Canister<'_, Wallet>, args: &CallIn) -> DfxResult<Vec<u8>> {
+async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult<Vec<u8>> {
     let (result,): (Result<CallResult, String>,) = wallet
-        .update_("wallet_call")
+        .update_("wallet_call128")
         .with_arg(args)
         .build()
         .call_and_wait(waiter_with_exponential_backoff())
@@ -87,11 +87,11 @@ async fn do_wallet_call(wallet: &Canister<'_, Wallet>, args: &CallIn) -> DfxResu
 }
 
 async fn request_id_via_wallet_call(
-    wallet: &Canister<'_, Wallet>,
+    wallet: &WalletCanister<'_>,
     canister: &Canister<'_>,
     method_name: &str,
     args: Argument,
-    cycles: u64,
+    cycles: u128,
 ) -> DfxResult<ic_agent::RequestId> {
     let call_forwarder: CallForwarder<'_, '_, (CallResult,)> =
         wallet.call(canister, method_name, args, cycles);
@@ -221,7 +221,7 @@ pub async fn exec(
     let cycles = opts
         .with_cycles
         .as_deref()
-        .map_or(0_u64, |amount| amount.parse::<u64>().unwrap());
+        .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
         bail!("Cannot provide cycles without proxying through the wallet (did you mean to use `canister --wallet <wallet id> call`?)");
@@ -244,7 +244,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -276,7 +276,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 // This is overkill, wallet.call should accept a Principal parameter
                 // Why do we need to construct a Canister?
                 let canister = Canister::builder()
@@ -310,7 +310,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

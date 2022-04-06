@@ -18,8 +18,7 @@ use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
-use ic_utils::interfaces::{ManagementCanister, Wallet};
-use ic_utils::Canister;
+use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use serde::{Deserialize, Serialize};
 use slog::info;
 use std::collections::BTreeMap;
@@ -411,7 +410,7 @@ impl Identity {
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
                     .await?;
 
-                let wallet = Identity::build_wallet_canister(canister_id, env)?;
+                let wallet = Identity::build_wallet_canister(canister_id, env).await?;
 
                 wallet
                     .wallet_store_wallet_wasm(wasm)
@@ -507,19 +506,18 @@ impl Identity {
         })?)
     }
 
-    pub fn build_wallet_canister(
+    pub async fn build_wallet_canister(
         id: Principal,
         env: &dyn Environment,
-    ) -> DfxResult<Canister<'_, Wallet>> {
-        Ok(ic_utils::Canister::builder()
+    ) -> DfxResult<WalletCanister<'_>> {
+        Ok(WalletCanister::from_canister(ic_utils::Canister::builder()
             .with_agent(
                 env.get_agent()
                     .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
             )
             .with_canister_id(id)
-            .with_interface(ic_utils::interfaces::Wallet)
             .build()
-            .unwrap())
+            .unwrap()).await?)
     }
 
     /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
@@ -531,9 +529,9 @@ impl Identity {
         network: &NetworkDescriptor,
         name: &str,
         create: bool,
-    ) -> DfxResult<Canister<'env, Wallet>> {
+    ) -> DfxResult<WalletCanister<'env>> {
         let wallet_canister_id = Identity::get_or_create_wallet(env, network, name, create).await?;
-        Identity::build_wallet_canister(wallet_canister_id, env)
+        Identity::build_wallet_canister(wallet_canister_id, env).await
     }
 }
 

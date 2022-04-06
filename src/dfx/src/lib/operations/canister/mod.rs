@@ -33,7 +33,7 @@ async fn do_management_call<A, O>(
     arg: A,
     timeout: Duration,
     call_sender: &CallSender,
-    cycles: u64,
+    cycles: u128,
 ) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,
@@ -54,7 +54,7 @@ where
                 .await?
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let out: O = wallet
                 .call_forward(mgr.update_(method).with_arg(arg).build(), cycles)?
                 .call_and_wait(waiter_with_timeout(timeout))
@@ -233,7 +233,7 @@ pub async fn deposit_cycles(
     canister_id: Principal,
     timeout: Duration,
     call_sender: &CallSender,
-    cycles: u64,
+    cycles: u128,
 ) -> DfxResult {
     #[derive(CandidType)]
     struct In {

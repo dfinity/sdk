@@ -140,7 +140,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                     .await?;
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 let install_args = CanisterInstall {
                     mode,
                     canister_id,
@@ -160,7 +160,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
 
     if canister_info.get_type() == "assets" {
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,

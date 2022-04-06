@@ -35,7 +35,7 @@ async fn deposit_cycles(
     canister: &str,
     timeout: Duration,
     call_sender: &CallSender,
-    cycles: u64,
+    cycles: u128,
 ) -> DfxResult {
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
@@ -66,7 +66,7 @@ pub async fn exec(
     }
 
     // amount has been validated by cycle_amount_validator
-    let cycles = opts.cycles.parse::<u64>().unwrap();
+    let cycles = opts.cycles.parse::<u128>().unwrap();
 
     let config = env.get_config_or_anyhow()?;
 

@@ -648,9 +648,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.7.12"
+version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d5d4dbc61f5125dab4168ce321c559aaca5511c2915ccb531e212b1c8d199d8"
+checksum = "ba9e536514a3c655568e23e36e68cbef20ee6595f641719ade03a849a13ed0ac"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -1654,8 +1654,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.14.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=00fe152af028e196e18bedb30fc226f85c4dfe31#00fe152af028e196e18bedb30fc226f85c4dfe31"
+version = "0.15.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=db91cc7b40ee6ee36ae056821a7057ed2706a207#db91cc7b40ee6ee36ae056821a7057ed2706a207"
 dependencies = [
  "async-trait",
  "base32",
@@ -1684,8 +1684,8 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.14.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=00fe152af028e196e18bedb30fc226f85c4dfe31#00fe152af028e196e18bedb30fc226f85c4dfe31"
+version = "0.15.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=db91cc7b40ee6ee36ae056821a7057ed2706a207#db91cc7b40ee6ee36ae056821a7057ed2706a207"
 dependencies = [
  "anyhow",
  "candid",
@@ -1707,8 +1707,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.14.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=00fe152af028e196e18bedb30fc226f85c4dfe31#00fe152af028e196e18bedb30fc226f85c4dfe31"
+version = "0.15.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=db91cc7b40ee6ee36ae056821a7057ed2706a207#db91cc7b40ee6ee36ae056821a7057ed2706a207"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1736,8 +1736,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.14.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=00fe152af028e196e18bedb30fc226f85c4dfe31#00fe152af028e196e18bedb30fc226f85c4dfe31"
+version = "0.15.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=db91cc7b40ee6ee36ae056821a7057ed2706a207#db91cc7b40ee6ee36ae056821a7057ed2706a207"
 dependencies = [
  "async-trait",
  "candid",
@@ -1745,7 +1745,9 @@ dependencies = [
  "ic-agent",
  "leb128",
  "num-bigint 0.4.3",
+ "once_cell",
  "paste",
+ "semver",
  "serde",
  "serde_bytes",
  "strum",
@@ -3031,9 +3033,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.6"
+version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4a3381e03edd24287172047536f20cabde766e2cd3e65e6b00fb3af51c4f38d"
+checksum = "d65bd28f48be7196d222d95b9243287f48d27aca604e08497513019ff0502cc4"
 
 [[package]]
 name = "serde"

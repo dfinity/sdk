@@ -8,7 +8,6 @@ use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use anyhow::anyhow;
 use clap::Parser;
 use ic_types::Principal;
-use ic_utils::call::SyncCall;
 use ic_utils::interfaces::wallet::BalanceResult;
 use slog::{debug, error, info};
 use tokio::runtime::Runtime;
@@ -76,11 +75,11 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = Identity::build_wallet_canister(canister_id, env)?;
-                let balance = canister.wallet_balance().call().await;
+                let canister = Identity::build_wallet_canister(canister_id, env).await?;
+                let balance = canister.wallet_balance().await;
 
                 match balance {
-                    Ok((BalanceResult { amount: 0 },)) => {
+                    Ok(BalanceResult { amount: 0 }) => {
                         error!(
                             log,
                             "Impossible to read the canister. Make sure this is a valid wallet and the network is running. Use --force to skip this verification."
