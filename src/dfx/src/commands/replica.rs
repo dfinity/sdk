@@ -7,7 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
-use crate::commands::start::get_btc_adapter_socket_path;
+use crate::commands::start::{get_btc_adapter_config, get_btc_adapter_socket_path};
 use clap::Parser;
 use std::default::Default;
 use std::path::PathBuf;
@@ -26,6 +26,10 @@ pub struct ReplicaOpts {
     /// Runs the bitcoin adapter (not supported with emulator)
     #[clap(long, conflicts_with("emulator"))]
     btc_adapter_config: Option<PathBuf>,
+
+    /// enable the bitcoin adapter
+    #[clap(long)]
+    enable_bitcoin: bool,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -92,15 +96,11 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
             start_emulator_actor(env, shutdown_controller)?;
         } else {
             let config = env.get_config_or_anyhow()?;
-            let btc_adapter_config = opts.btc_adapter_config.clone();
-            let btc_adapter_config: Option<PathBuf> = btc_adapter_config.or_else(|| {
-                config
-                    .get_config()
-                    .get_defaults()
-                    .bitcoin
-                    .as_ref()
-                    .and_then(|x| x.btc_adapter_config.clone())
-            });
+            let btc_adapter_config = get_btc_adapter_config(
+                &config,
+                opts.enable_bitcoin,
+                opts.btc_adapter_config.clone(),
+            )?;
 
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
                 if let Some(btc_adapter_config) = btc_adapter_config {

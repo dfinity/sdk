@@ -66,15 +66,20 @@ But when trying to create an identity with that name, it was considered to be al
 
 === feat: dfx start and dfx replica can now launch the ic-btc-adapter process
 
-Added command-line parameter:
-    dfx start --btc-adapter-config <path>
-    dfx replica --btc-adapter-config <path>
+Added command-line parameters:
+    dfx start   --enable-bitcoin --btc-adapter-config <path>
+    dfx replica --enable-bitcoin --btc-adapter-config <path>
 
-Defaults to value from dfx.json: .defaults.bitcoin.btc_adapter_config
+These default to values from dfx.json:
+    .defaults.bitcoin.btc_adapter_config
+    .defaults.bitcoin.enabled
 
-If set, dfx start/replica will launch the ic-btc-adapter process.
+The --btc-adapter-config parameter, if specified on the command line, implies --enable-bitcoin.
 
-The rest of this isn't hooked up yet.
+If --enable-bitcoin or .defaults.bitcoin.enabled is set, and a btc adapter configuration is specified,
+then dfx start/replica will launch the ic-btc-adapter process.
+
+This integration is not yet complete, pending upcoming functionality in ic-starter.
 
 == updating dependencies
 
