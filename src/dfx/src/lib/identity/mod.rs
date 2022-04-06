@@ -510,14 +510,17 @@ impl Identity {
         id: Principal,
         env: &dyn Environment,
     ) -> DfxResult<WalletCanister<'_>> {
-        Ok(WalletCanister::from_canister(ic_utils::Canister::builder()
-            .with_agent(
-                env.get_agent()
-                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-            )
-            .with_canister_id(id)
-            .build()
-            .unwrap()).await?)
+        Ok(WalletCanister::from_canister(
+            ic_utils::Canister::builder()
+                .with_agent(
+                    env.get_agent()
+                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
+                )
+                .with_canister_id(id)
+                .build()
+                .unwrap(),
+        )
+        .await?)
     }
 
     /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
