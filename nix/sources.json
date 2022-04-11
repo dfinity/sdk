@@ -52,7 +52,7 @@
     "common": {
         "branch": "master",
         "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "161de48bdf3430ab2a64c046a4b3473148fc6d38",
+        "rev": "398e4148b5d1deb0cd977843d4ad72ea95cd18f3",
         "type": "git"
     },
     "ic-btc-adapter-x86_64-darwin": {
