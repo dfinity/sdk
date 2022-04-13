@@ -14,6 +14,16 @@ teardown() {
     standard_teardown
 }
 
+@test "deploy --upgrade-unchanged upgrades even if the .wasm did not change" {
+    dfx_start
+    assert_command dfx deploy
+
+    assert_command dfx deploy
+    assert_match "Module hash.*is already installed"
+
+    assert_command dfx deploy --upgrade-unchanged
+    assert_not_match "Module hash.*is already installed"
+}
 
 @test "deploy without arguments sets wallet and self as the controllers" {
     dfx_start

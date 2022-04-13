@@ -30,6 +30,7 @@ pub async fn install_canister(
     timeout: Duration,
     call_sender: &CallSender,
     installed_module_hash: Option<Vec<u8>>,
+    upgrade_unchanged: bool,
 ) -> DfxResult {
     let network = env.get_network_descriptor().unwrap();
     if !network.is_ic && named_canister::get_ui_canister_id(network).is_none() {
@@ -122,6 +123,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
 
     if mode == InstallMode::Upgrade
         && wasm_module_already_installed(&wasm_module, installed_module_hash.as_deref())
+        && !upgrade_unchanged
     {
         println!(
             "Module hash {} is already installed.",

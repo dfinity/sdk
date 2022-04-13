@@ -14,6 +14,20 @@ teardown() {
     standard_teardown
 }
 
+@test "canister install --upgrade-unchanged upgrades even if the .wasm did not change" {
+    dfx_start
+    dfx canister create --all
+    dfx build
+
+    assert_command dfx canister install --all
+
+    assert_command dfx canister install --all --mode upgrade
+    assert_match "Module hash.*is already installed"
+
+    assert_command dfx canister install --all --mode upgrade --upgrade-unchanged
+    assert_not_match "Module hash.*is already installed"
+}
+
 @test "install fails if no argument is provided" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
