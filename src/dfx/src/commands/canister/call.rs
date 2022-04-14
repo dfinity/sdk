@@ -1,5 +1,5 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -10,10 +10,10 @@ use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, bail, Context};
-use candid::{CandidType, Decode, Deserialize};
+use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
 use ic_types::principal::Principal as CanisterId;
-use ic_utils::canister::{Argument, Canister};
+use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
@@ -88,7 +88,7 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
 
 async fn request_id_via_wallet_call(
     wallet: &WalletCanister<'_>,
-    canister: &Canister<'_>,
+    canister: Principal,
     method_name: &str,
     args: Argument,
     cycles: u128,
@@ -277,17 +277,10 @@ pub async fn exec(
             }
             CallSender::Wallet(wallet_id) => {
                 let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
-                // This is overkill, wallet.call should accept a Principal parameter
-                // Why do we need to construct a Canister?
-                let canister = Canister::builder()
-                    .with_agent(agent)
-                    .with_canister_id(canister_id)
-                    .build()
-                    .map_err(DfxError::from)?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
-                request_id_via_wallet_call(&wallet, &canister, method_name, args, cycles).await?
+                request_id_via_wallet_call(&wallet, canister_id, method_name, args, cycles).await?
             }
         };
         eprint!("Request ID: ");

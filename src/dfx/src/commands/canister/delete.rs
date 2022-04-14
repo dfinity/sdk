@@ -18,6 +18,7 @@ use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
 use ic_utils::interfaces::management_canister::CanisterStatus;
+use ic_utils::Argument;
 
 use anyhow::anyhow;
 use clap::Parser;
@@ -199,20 +200,15 @@ async fn delete_canister(
                             cycles,
                             dank_target_principal
                         );
-                        let dank = ic_utils::Canister::builder()
-                            .with_agent(env.get_agent().ok_or_else(|| {
-                                anyhow!("Cannot get HTTP client from environment.")
-                            })?)
-                            .with_canister_id(target_canister_id)
-                            .build()
-                            .unwrap();
                         let wallet = Identity::build_wallet_canister(canister_id, env).await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
-                            .call_forward(
-                                dank.update_("mint").with_arg(opt_principal).build(),
+                            .call(
+                                target_canister_id,
+                                "mint",
+                                Argument::from_candid((opt_principal,)),
                                 cycles,
-                            )?
+                            )
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?;
                     }

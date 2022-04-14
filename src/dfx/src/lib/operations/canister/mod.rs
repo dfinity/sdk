@@ -4,6 +4,7 @@ mod install_canister;
 
 pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
+use ic_utils::Argument;
 pub use install_canister::install_canister;
 
 use crate::lib::canister_info::CanisterInfo;
@@ -19,7 +20,6 @@ use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
-use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
@@ -39,13 +39,13 @@ where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let mgr = ManagementCanister::create(agent);
-
     let out = match call_sender {
         CallSender::SelectedId => {
+            let agent = env
+                .get_agent()
+                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+            let mgr = ManagementCanister::create(agent);
+
             mgr.update_(method)
                 .with_arg(arg)
                 .with_effective_canister_id(destination_canister)
@@ -56,7 +56,12 @@ where
         CallSender::Wallet(wallet_id) => {
             let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let out: O = wallet
-                .call_forward(mgr.update_(method).with_arg(arg).build(), cycles)?
+                .call(
+                    Principal::management_canister(),
+                    method,
+                    Argument::from_candid((arg,)),
+                    cycles,
+                )
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?;
             out
