@@ -18,7 +18,7 @@ function cleanup {
 }
 trap cleanup EXIT
 
-# We use x86_64 even on Apple M1 (arm64), though rosetta
+# We use x86_64 even on Apple M1 (arm64), through rosetta
 MACHINE=x86_64
 case "$OSTYPE" in
     darwin*)  PLATFORM="darwin" ;;
