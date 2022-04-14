@@ -266,6 +266,10 @@ fn replica_start_thread(
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);
         }
+        if config.btc_adapter.socket_path.is_some() {
+            cmd.args(&["--subnet-features", "bitcoin_testnet_feature"]);
+        }
+
         if let Some(write_port_to) = &write_port_to {
             cmd.args(&[
                 "--http-port-file",

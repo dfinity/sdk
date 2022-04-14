@@ -168,6 +168,18 @@ assert_file_exists() {
     fi
 }
 
+assert_file_not_empty() {
+    filename="$1"
+
+    assert_file_exists "$filename"
+
+    if [[ ! -s $filename ]]; then
+        echo "$filename is empty" \
+        | batslib_decorate "Empty file" \
+        | fail
+    fi
+}
+
 assert_file_not_exists() {
     filename="$1"
 
