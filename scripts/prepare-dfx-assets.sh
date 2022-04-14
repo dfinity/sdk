@@ -18,7 +18,8 @@ function cleanup {
 }
 trap cleanup EXIT
 
-MACHINE=$(uname -m) # ex: x86_64
+# We use x86_64 even on Apple M1 (arm64), though rosetta
+MACHINE=x86_64
 case "$OSTYPE" in
     darwin*)  PLATFORM="darwin" ;;
     linux*)   PLATFORM="linux" ;;
