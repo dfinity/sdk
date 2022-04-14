@@ -28,6 +28,7 @@ pub async fn deploy_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     force_reinstall: bool,
+    upgrade_unchanged: bool,
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
@@ -98,6 +99,7 @@ pub async fn deploy_canisters(
         argument,
         argument_type,
         force_reinstall,
+        upgrade_unchanged,
         timeout,
         call_sender,
     )
@@ -203,6 +205,7 @@ async fn install_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     force_reinstall: bool,
+    upgrade_unchanged: bool,
     timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
@@ -255,6 +258,7 @@ async fn install_canisters(
             timeout,
             call_sender,
             installed_module_hash,
+            upgrade_unchanged,
         )
         .await?;
     }

@@ -34,6 +34,10 @@ pub struct CanisterInstallOpts {
         possible_values(&["install", "reinstall", "upgrade"]))]
     mode: String,
 
+    /// Upgrade the canister even if the .wasm did not change.
+    #[clap(long)]
+    upgrade_unchanged: bool,
+
     /// Specifies the argument to pass to the method.
     #[clap(long)]
     argument: Option<String>,
@@ -93,6 +97,7 @@ pub async fn exec(
             timeout,
             call_sender,
             installed_module_hash,
+            opts.upgrade_unchanged,
         )
         .await
     } else if opts.all {
@@ -130,6 +135,7 @@ pub async fn exec(
                     timeout,
                     call_sender,
                     installed_module_hash,
+                    opts.upgrade_unchanged,
                 )
                 .await?;
             }

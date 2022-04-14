@@ -47,6 +47,10 @@ pub struct DeployOpts {
     possible_values(&["reinstall"]))]
     mode: Option<String>,
 
+    /// Upgrade the canister even if the .wasm did not change.
+    #[clap(long)]
+    upgrade_unchanged: bool,
+
     /// Override the compute network to connect to. By default, the local network is used.
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
     /// ephemeral network will be created specifically for this request. E.g.
@@ -123,6 +127,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument,
         argument_type,
         force_reinstall,
+        opts.upgrade_unchanged,
         timeout,
         with_cycles,
         &call_sender,
