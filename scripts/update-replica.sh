@@ -18,8 +18,6 @@ niv update replica-x86_64-darwin -a rev=$SHA
 niv update replica-x86_64-linux -a rev=$SHA
 niv update canister-sandbox-x86_64-darwin -a rev=$SHA
 niv update canister-sandbox-x86_64-linux -a rev=$SHA
-niv update sandbox-launcher-x86_64-darwin -a rev=$SHA
-niv update sandbox-launcher-x86_64-linux -a rev=$SHA
 
 echo "Writing asset sources"
 ./scripts/write-dfx-asset-sources.sh
