@@ -77,8 +77,13 @@ struct CallIn {
 }
 
 async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult<Vec<u8>> {
-    let (result,): (Result<CallResult, String>,) = wallet
-        .update_("wallet_call128")
+    // todo change to wallet.call when IDLValue implements ArgumentDecoder
+    let builder = if wallet.version_supports_u128_cycles() {
+        wallet.update_("wallet_call128")
+    } else {
+        wallet.update_("wallet_call")
+    };
+    let (result,): (Result<CallResult, String>,) = builder
         .with_arg(args)
         .build()
         .call_and_wait(waiter_with_exponential_backoff())
