@@ -23,6 +23,7 @@ use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Arc;
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -45,9 +46,13 @@ pub struct StartOpts {
     #[clap(long)]
     emulator: bool,
 
-    /// The path of the btc adapter configuration file.  Implies --btc-adapter.
+    /// The path of the btc adapter configuration file.  Implies --enable-bitcoin.
     #[clap(long, conflicts_with("emulator"))]
     btc_adapter_config: Option<PathBuf>,
+
+    /// enable the bitcoin adapter
+    #[clap(long)]
+    enable_bitcoin: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -132,6 +137,7 @@ pub fn exec(
         emulator,
         clean,
         btc_adapter_config,
+        enable_bitcoin,
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
@@ -167,14 +173,8 @@ pub fn exec(
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
-    let btc_adapter_config = btc_adapter_config.or_else(|| {
-        config
-            .get_config()
-            .get_defaults()
-            .bitcoin
-            .as_ref()
-            .and_then(|x| x.btc_adapter_config.clone())
-    });
+    let btc_adapter_config = get_btc_adapter_config(&config, enable_bitcoin, btc_adapter_config)?;
+
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
@@ -351,4 +351,33 @@ pub fn get_btc_adapter_socket_path(btc_config_path: &Path) -> DfxResult<Option<P
         .pointer("/incoming_source/Path")
         .and_then(|v| v.as_str())
         .map(PathBuf::from))
+}
+
+pub fn get_btc_adapter_config(
+    config: &Arc<Config>,
+    enable_bitcoin: bool,
+    btc_adapter_config: Option<PathBuf>,
+) -> DfxResult<Option<PathBuf>> {
+    let btc_adapter_config: Option<PathBuf> = {
+        let enable = enable_bitcoin
+            || btc_adapter_config.is_some()
+            || config.get_config().get_defaults().get_bitcoin().enabled;
+        let config = btc_adapter_config.or_else(|| {
+            config
+                .get_config()
+                .get_defaults()
+                .bitcoin
+                .as_ref()
+                .and_then(|x| x.btc_adapter_config.clone())
+        });
+
+        match (enable, config) {
+            (true, Some(path)) => Some(path),
+            (true, None) => {
+                bail!("Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json")
+            }
+            (false, _) => None,
+        }
+    };
+    Ok(btc_adapter_config)
 }

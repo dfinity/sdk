@@ -21,6 +21,15 @@ teardown() {
     rm -f "/tmp/e2e-ic-btc-adapter.$$.socket"
 }
 
+set_default_btc_adapter_config() {
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.defaults.bitcoin.btc_adapter_config="'"$(pwd)/testnet.config.json"'"' dfx.json)" >dfx.json
+}
+set_default_bitcoin_enabled() {
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.defaults.bitcoin.enabled=true' dfx.json)" >dfx.json
+}
+
 @test "noop" {
     assert_command bitcoin-cli -regtest createwallet "test"
     ADDRESS="$(bitcoin-cli -regtest getnewaddress)"
@@ -30,6 +39,8 @@ teardown() {
 @test "dfx restarts replica when ic-btc-adapter restarts" {
     dfx_new hello
     install_asset bitcoin
+    set_default_btc_adapter_config
+    set_default_bitcoin_enabled
     dfx_start
 
     install_asset greet
@@ -74,6 +85,8 @@ teardown() {
 @test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
     dfx_new hello
     install_asset bitcoin
+    set_default_btc_adapter_config
+    set_default_bitcoin_enabled
     dfx_start_replica_and_bootstrap
 
     install_asset greet
@@ -114,4 +127,55 @@ teardown() {
 
     assert_command dfx canister call hello greet '("Omega")'
     assert_eq '("Hello, Omega!")'
+}
+
+
+@test "dfx start --btc-adapter-config implies --enable-bitcoin" {
+    dfx_new hello
+    install_asset bitcoin
+    dfx_start "--btc-adapter-config" "$(pwd)/testnet.config.json"
+
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
+}
+
+@test "dfx replica --btc-adapter-config implies --enable-bitcoin" {
+    dfx_new hello
+    install_asset bitcoin
+    dfx_start_replica_and_bootstrap "--btc-adapter-config" "$(pwd)/testnet.config.json"
+
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
+}
+
+
+@test "dfx start/replica --enable-bitcoin without a btc adapter config fails" {
+    dfx_new hello
+    install_asset bitcoin
+
+    assert_command_fail dfx start --enable-bitcoin
+    assert_eq "Error: Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json"
+
+    assert_command_fail dfx replica --enable-bitcoin
+    assert_eq "Error: Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json"
+}
+
+@test "can enable bitcoin through default configuration (dfx start)" {
+    dfx_new hello
+    install_asset bitcoin
+    set_default_btc_adapter_config
+    set_default_bitcoin_enabled
+
+    dfx_start
+
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
+}
+
+@test "can enable bitcoin through default configuration (dfx replica)" {
+    dfx_new hello
+    install_asset bitcoin
+    set_default_btc_adapter_config
+    set_default_bitcoin_enabled
+
+    dfx_start_replica_and_bootstrap
+
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
