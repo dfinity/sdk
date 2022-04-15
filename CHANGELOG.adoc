@@ -1,6 +1,17 @@
 = dfx changelog
 :doctype: book
 
+= Unreleased
+
+== DFX 
+
+=== feat: Support for new ledger notify function
+
+Ledger 7424ea8 deprecates the existing `+notify+` function with a switch parameter between creating and topping up a canister, and introduces two
+functions for doing the same. This should *mostly* be invisible to users, except that previously, if `+dfx ledger create-canister+` or `+dfx ledger top-up+`
+failed, you would call `+dfx ledger notify+` after correcting the issue. In order to support the change, this command has been changed to two subcommands:
+`+dfx ledger notify create-canister+` and `+dfx ledger notify top-up+`.
+
 = 0.10.0
 
 == DFX
