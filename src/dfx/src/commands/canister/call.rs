@@ -67,21 +67,23 @@ pub struct CanisterCallOpts {
     with_cycles: Option<String>,
 }
 
-#[derive(CandidType, Deserialize)]
-struct CallIn {
+#[derive(Clone, CandidType, Deserialize)]
+struct CallIn<TCycles = u128> {
     canister: CanisterId,
     method_name: String,
     #[serde(with = "serde_bytes")]
     args: Vec<u8>,
-    cycles: u128,
+    cycles: TCycles,
 }
 
 async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult<Vec<u8>> {
     // todo change to wallet.call when IDLValue implements ArgumentDecoder
     let builder = if wallet.version_supports_u128_cycles() {
-        wallet.update_("wallet_call128")
+        wallet.update_("wallet_call128").with_arg(args)
     } else {
-        wallet.update_("wallet_call")
+        let CallIn { canister, method_name, args, cycles } = args.clone();
+        let args64 = CallIn { canister, method_name, args, cycles: cycles as u64 };
+        wallet.update_("wallet_call").with_arg(args64)
     };
     let (result,): (Result<CallResult, String>,) = builder
         .with_arg(args)
