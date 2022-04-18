@@ -304,9 +304,8 @@ fn frontend_address(
         // Since the user may have provided port "0", we need to grab a dynamically
         // allocated port and construct a resuable SocketAddr which the actix
         // HttpServer will bind to
-        address_and_port =
-            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())
-                .with_context(||format!("Getting frontend address {}", address_and_port))?;
+        address_and_port = get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())
+            .with_context(|| format!("Getting frontend address {}", address_and_port))?;
     }
     let ip = if address_and_port.is_ipv6() {
         format!("[{}]", address_and_port.ip())
