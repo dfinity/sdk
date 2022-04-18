@@ -13,7 +13,7 @@ use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
 use ic_utils::interfaces::ManagementCanister;
-use ic_utils::Canister;
+use ic_utils::Argument;
 use openssl::sha::Sha256;
 use slog::info;
 use std::collections::HashSet;
@@ -142,7 +142,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                     .await?;
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 let install_args = CanisterInstall {
                     mode,
                     canister_id,
@@ -150,10 +150,12 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                     arg: args.to_vec(),
                 };
                 wallet
-                    .call_forward(
-                        mgr.update_("install_code").with_arg(install_args).build(),
+                    .call(
+                        *mgr.canister_id_(),
+                        "install_code",
+                        Argument::from_candid((install_args,)),
                         0,
-                    )?
+                    )
                     .call_and_wait(waiter_with_timeout(timeout))
                     .await?;
             }
@@ -162,23 +164,23 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
 
     if canister_info.get_type() == "assets" {
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,
                 "Authorizing our identity ({}) to the asset canister...", identity_name
             );
-            let canister = Canister::builder()
-                .with_agent(agent)
-                .with_canister_id(canister_id)
-                .build()
-                .unwrap();
             let self_id = env
                 .get_selected_identity_principal()
                 .expect("Selected identity not instantiated.");
             // Before storing assets, make sure the DFX principal is in there first.
             wallet
-                .call_forward(canister.update_("authorize").with_arg(self_id).build(), 0)?
+                .call(
+                    canister_id,
+                    "authorize",
+                    Argument::from_candid((self_id,)),
+                    0,
+                )
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await?;
         };

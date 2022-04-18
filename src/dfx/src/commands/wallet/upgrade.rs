@@ -59,7 +59,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
 
-    let wallet = Identity::build_wallet_canister(canister_id, env)?;
+    let wallet = Identity::build_wallet_canister(canister_id, env).await?;
 
     wallet
         .wallet_store_wallet_wasm(wasm)
