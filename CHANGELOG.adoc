@@ -10,7 +10,7 @@
 dfx will once again display 'dfx is already running' if dfx is already running,
 rather than 'Address already in use'.
 
-As a side effect, after `dfx start` failed to notice that dfx was already running,
+As a consequence, after `dfx start` failed to notice that dfx was already running,
 it would replace .dfx/pid with an empty file.  Later invocations of `dfx stop`
 would display no output and return a successful exit code, but leave dfx running.
 
