@@ -81,8 +81,18 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
     let builder = if wallet.version_supports_u128_cycles() {
         wallet.update_("wallet_call128").with_arg(args)
     } else {
-        let CallIn { canister, method_name, args, cycles } = args.clone();
-        let args64 = CallIn { canister, method_name, args, cycles: cycles as u64 };
+        let CallIn {
+            canister,
+            method_name,
+            args,
+            cycles,
+        } = args.clone();
+        let args64 = CallIn {
+            canister,
+            method_name,
+            args,
+            cycles: cycles as u64,
+        };
         wallet.update_("wallet_call").with_arg(args64)
     };
     let (result,): (Result<CallResult, String>,) = builder

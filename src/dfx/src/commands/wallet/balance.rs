@@ -9,10 +9,7 @@ use clap::Parser;
 pub struct WalletBalanceOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: WalletBalanceOpts) -> DfxResult {
-    let balance = get_wallet(env)
-        .await?
-        .wallet_balance()
-        .await?;
+    let balance = get_wallet(env).await?.wallet_balance().await?;
     println!("{} cycles.", balance.amount);
     Ok(())
 }
