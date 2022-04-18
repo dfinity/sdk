@@ -15,6 +15,25 @@ teardown() {
     standard_teardown
 }
 
+@test "address already in use" {
+    dfx_start
+
+    cat dfx.json | jq
+
+
+    address="$(jq -r .networks.local.bind dfx.json)"
+    assert_command_fail dfx start --background --host "$address"
+
+    # What was the purpose of the address
+    assert_match "frontend address"
+
+    # What was the address we were looking for
+    assert_match "$address"
+
+    # The underlying cause
+    assert_match "Address already in use"
+}
+
 @test "corrupt dfx.json" {
     echo "corrupt" >dfx.json
     assert_command_fail dfx deploy
