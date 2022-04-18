@@ -270,8 +270,12 @@ impl Identity {
             wallet_path.clone(),
             if wallet_path.exists() {
                 let mut buffer = Vec::new();
-                std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
-                serde_json::from_slice::<WalletGlobalConfig>(&buffer)?
+                std::fs::File::open(&wallet_path)
+                    .with_context(||format!("Unable to open {}", wallet_path.to_string_lossy()))?
+                    .read_to_end(&mut buffer)
+                    .with_context(||format!("Unable to read {}", wallet_path.to_string_lossy()))?;
+                serde_json::from_slice::<WalletGlobalConfig>(&buffer)
+                    .with_context(||format!("Unable to parse contents of {} as json", wallet_path.to_string_lossy()))?
             } else {
                 WalletGlobalConfig {
                     identities: BTreeMap::new(),

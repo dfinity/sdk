@@ -15,6 +15,24 @@ teardown() {
     standard_teardown
 }
 
+@test "problems reading wallets.json" {
+    dfx_start
+
+    assert_command dfx identity get-wallet
+
+    echo "invalid json" >.dfx/local/wallets.json
+    assert_command_fail dfx identity get-wallet
+    assert_match "Unable to parse contents of .*/wallets.json as json"
+    assert_match "expected value at line 1 column 1"
+
+    # maybe you were sudo when you made it
+    echo "{}" >.dfx/local/wallets.json
+    chmod -r .dfx/local/wallets.json
+    assert_command_fail dfx identity get-wallet
+    assert_match "Unable to open .*/wallets.json"
+    assert_match "Permission denied"
+}
+
 @test "address already in use" {
     dfx_start
 
