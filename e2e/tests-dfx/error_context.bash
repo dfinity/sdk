@@ -92,6 +92,8 @@ teardown() {
 
     assert_command dfx canister create npm_missing
 
+    whereis --help
+
     touch package.json
     dfx_path=$(whereis -b -q dfx)
     # commands needed by assert_command_fail:
