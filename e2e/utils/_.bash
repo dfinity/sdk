@@ -11,7 +11,7 @@ install_asset() {
 
 standard_setup() {
     # We want to work from a temporary directory, different for every test.
-    x=$(mktemp -d dfx-e2e-XXXXXXXX)
+    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export DFX_E2E_TEMP_DIR="$x"
 
     mkdir "$x/working-dir"
