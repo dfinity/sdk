@@ -21,15 +21,32 @@ teardown() {
     assert_command dfx identity get-wallet
 
     echo "invalid json" >.dfx/local/wallets.json
+
     assert_command_fail dfx identity get-wallet
-    assert_match "Unable to parse contents of .*/wallets.json as json"
+    assert_match "Unable to parse contents of .*/.dfx/local/wallets.json as json"
     assert_match "expected value at line 1 column 1"
 
+    assert_command_fail dfx wallet upgrade
+    assert_match "Unable to parse contents of .*/.dfx/local/wallets.json as json"
+    assert_match "expected value at line 1 column 1"
+
+    echo '{ "identities": {} }' >.dfx/local/wallets.json
+
     # maybe you were sudo when you made it
-    echo "{}" >.dfx/local/wallets.json
-    chmod -r .dfx/local/wallets.json
+    chmod u=w,go= .dfx/local/wallets.json
     assert_command_fail dfx identity get-wallet
-    assert_match "Unable to open .*/wallets.json"
+    assert_match "Unable to open .*/.dfx/local/wallets.json"
+    assert_match "Permission denied"
+
+    assert_command_fail dfx wallet upgrade
+    assert_match "Unable to open .*/.dfx/local/wallets.json"
+    assert_match "Permission denied"
+
+    # can't write it?
+    chmod u=r,go= .dfx/local/wallets.json
+    assert_command dfx identity new --disable-encryption alice
+    assert_command_fail dfx --identity alice identity get-wallet
+    assert_match "Unable to write .*/.dfx/local/wallets.json"
     assert_match "Permission denied"
 }
 
