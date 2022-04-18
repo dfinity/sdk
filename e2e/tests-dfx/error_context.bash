@@ -70,23 +70,17 @@ teardown() {
     assert_command dfx canister create npm_missing
 
     touch package.json
-    (
-        DFX=$(whereis -q dfx)
-        SAVE_PATH="$PATH"
-        # commands needed by assert_command_fail:
-        # export PATH="$(dirname "$(whereis -b -q mktemp)"):$(dirname "$(whereis -b -q rm)")"
-        export PATH="$(whereis -b -q mktemp rm echo | xargs dirname | sort | uniq | tr '\n' ':')"
-        echo "PATH is $PATH"
-        assert_command_fail "$DFX" deploy npm_missing
-        export PATH="$SAVE_PATH"
+    dfx_path=$(whereis -b -q dfx)
+    # commands needed by assert_command_fail:
+    helpers_path="$(whereis -b -q mktemp rm echo | xargs dirname | sort | uniq | tr '\n' ':')"
+    PATH="$helpers_path" assert_command_fail "$dfx_path" deploy npm_missing
 
-        # expect to see the npm command line
-        assert_match '"npm" "run" "build"'
-        # expect to see the name of the canister
-        assert_match "npm_missing"
-        # expect to see the underlying cause
-        assert_match "No such file or directory"
-    )
+    # expect to see the npm command line
+    assert_match '"npm" "run" "build"'
+    # expect to see the name of the canister
+    assert_match "npm_missing"
+    # expect to see the underlying cause
+    assert_match "No such file or directory"
 }
 
 @test "missing asset source directory" {
