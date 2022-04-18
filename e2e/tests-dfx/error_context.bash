@@ -93,9 +93,9 @@ teardown() {
     assert_command dfx canister create npm_missing
 
     touch package.json
-    dfx_path=$(whereis -b dfx | awk '{ print $2 }')
+    dfx_path=$(whereis dfx | awk '{ print $2 }')
     # commands needed by assert_command_fail:
-    helpers_path="$(whereis -b mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':')"
+    helpers_path="$(whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':')"
     PATH="$helpers_path" assert_command_fail "$dfx_path" deploy npm_missing
 
     # expect to see the npm command line
