@@ -15,10 +15,10 @@ use std::format;
 use std::time::Duration;
 
 // The cycle fee for create request is 1T cycles.
-const CANISTER_CREATE_FEE: u64 = 1_000_000_000_000_u64;
+const CANISTER_CREATE_FEE: u128 = 1_000_000_000_000_u128;
 // We do not know the minimum cycle balance a canister should have.
 // For now create the canister with 3T cycle balance.
-const CANISTER_INITIAL_CYCLE_BALANCE: u64 = 3_000_000_000_000_u64;
+const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
 
 pub async fn create_canister(
     env: &dyn Environment,
@@ -73,7 +73,7 @@ pub async fn create_canister(
             let mgr = ManagementCanister::create(agent);
             let cid = match call_sender {
                 CallSender::SelectedId => {
-                    // amount has been validated by cycle_amount_validator, which is u64
+                    // amount has been validated by cycle_amount_validator, which is u128
                     let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
                     let mut builder = mgr
                         .create_canister()
@@ -92,11 +92,11 @@ pub async fn create_canister(
                         .0
                 }
                 CallSender::Wallet(wallet_id) => {
-                    let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                    let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.map_or(
                         CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
-                        |amount| amount.parse::<u64>().unwrap(),
+                        |amount| amount.parse::<u128>().unwrap(),
                     );
                     match wallet
                         .wallet_create_canister(

@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: Support for 128-bit cycle counts
+
+Cycle counts can now exceed the previously set maximum of 2^64. The new limit is 2^128. A new wallet version has been bundled with this release that supports the new cycle count. You will not be able to use this feature with your existing wallets without running `+dfx wallet upgrade+`, but old wallets will still work just fine with old cycle counts.
+
 === fix: dfx start will once again notice if dfx is already running
 
 dfx will once again display 'dfx is already running' if dfx is already running,
@@ -105,6 +109,11 @@ message would be something like "No such file or directory."
 == updating dependencies
 
 Updated to version 0.14.0 of agent-rs
+
+== Cycles wallet
+
+Module hash: 6c71179a123784bd39cd6348306a225e19c443b0df25f839ea2b2080de79ec32
+https://github.com/dfinity/cycles-wallet/commit/f18e9f5c2f96e9807b6f149c975e25638cc3356b
 
 == Replica
 

@@ -171,3 +171,16 @@ teardown() {
         "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 }
+
+@test "a 64-bit wallet can still be called in the 128-bit context" {
+    use_wallet_wasm 0.8.2
+    dfx_new hello
+    dfx_start
+    WALLET=$(dfx identity get-wallet)
+    assert_command dfx wallet balance
+    assert_command dfx deploy --wallet "$WALLET"
+    assert_command dfx canister --wallet "$WALLET" call hello greet '("")' --with-cycles 1
+    dfx identity new alice --disable-encryption
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    dfx wallet send "$ALICE_WALLET" 1
+}

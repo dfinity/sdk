@@ -10,6 +10,7 @@ use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use clap::Parser;
 use ic_utils::call::SyncCall;
+use ic_utils::interfaces::WalletCanister;
 use tokio::runtime::Runtime;
 
 mod add_controller;
@@ -100,16 +101,7 @@ where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
-    let identity_name = env
-        .get_selected_identity()
-        .expect("No selected identity.")
-        .to_string();
-    // Network descriptor will always be set.
-    let network = env.get_network_descriptor().unwrap();
-    let wallet =
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
-
-    fetch_root_key_if_needed(env).await?;
+    let wallet = get_wallet(env).await?;
     let out: O = wallet
         .update_(method)
         .with_arg(arg)
@@ -117,4 +109,17 @@ where
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
     Ok(out)
+}
+
+async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
+    let identity_name = env
+        .get_selected_identity()
+        .expect("No selected identity.")
+        .to_string();
+    // Network descriptor will always be set.
+    let network = env.get_network_descriptor().unwrap();
+    fetch_root_key_if_needed(env).await?;
+    let wallet =
+        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+    Ok(wallet)
 }

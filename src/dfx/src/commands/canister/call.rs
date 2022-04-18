@@ -1,5 +1,5 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -10,14 +10,14 @@ use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, bail, Context};
-use candid::{CandidType, Decode, Deserialize};
+use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
 use ic_types::principal::Principal as CanisterId;
-use ic_utils::canister::{Argument, Canister};
+use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
-use ic_utils::interfaces::Wallet;
+use ic_utils::interfaces::WalletCanister;
 use std::option::Option;
 use std::str::FromStr;
 
@@ -67,18 +67,35 @@ pub struct CanisterCallOpts {
     with_cycles: Option<String>,
 }
 
-#[derive(CandidType, Deserialize)]
-struct CallIn {
+#[derive(Clone, CandidType, Deserialize)]
+struct CallIn<TCycles = u128> {
     canister: CanisterId,
     method_name: String,
     #[serde(with = "serde_bytes")]
     args: Vec<u8>,
-    cycles: u64,
+    cycles: TCycles,
 }
 
-async fn do_wallet_call(wallet: &Canister<'_, Wallet>, args: &CallIn) -> DfxResult<Vec<u8>> {
-    let (result,): (Result<CallResult, String>,) = wallet
-        .update_("wallet_call")
+async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult<Vec<u8>> {
+    // todo change to wallet.call when IDLValue implements ArgumentDecoder
+    let builder = if wallet.version_supports_u128_cycles() {
+        wallet.update_("wallet_call128").with_arg(args)
+    } else {
+        let CallIn {
+            canister,
+            method_name,
+            args,
+            cycles,
+        } = args.clone();
+        let args64 = CallIn {
+            canister,
+            method_name,
+            args,
+            cycles: cycles as u64,
+        };
+        wallet.update_("wallet_call").with_arg(args64)
+    };
+    let (result,): (Result<CallResult, String>,) = builder
         .with_arg(args)
         .build()
         .call_and_wait(waiter_with_exponential_backoff())
@@ -87,11 +104,11 @@ async fn do_wallet_call(wallet: &Canister<'_, Wallet>, args: &CallIn) -> DfxResu
 }
 
 async fn request_id_via_wallet_call(
-    wallet: &Canister<'_, Wallet>,
-    canister: &Canister<'_>,
+    wallet: &WalletCanister<'_>,
+    canister: Principal,
     method_name: &str,
     args: Argument,
-    cycles: u64,
+    cycles: u128,
 ) -> DfxResult<ic_agent::RequestId> {
     let call_forwarder: CallForwarder<'_, '_, (CallResult,)> =
         wallet.call(canister, method_name, args, cycles);
@@ -221,7 +238,7 @@ pub async fn exec(
     let cycles = opts
         .with_cycles
         .as_deref()
-        .map_or(0_u64, |amount| amount.parse::<u64>().unwrap());
+        .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
         bail!("Cannot provide cycles without proxying through the wallet (did you mean to use `canister --wallet <wallet id> call`?)");
@@ -244,7 +261,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -276,18 +293,11 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
-                // This is overkill, wallet.call should accept a Principal parameter
-                // Why do we need to construct a Canister?
-                let canister = Canister::builder()
-                    .with_agent(agent)
-                    .with_canister_id(canister_id)
-                    .build()
-                    .map_err(DfxError::from)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
-                request_id_via_wallet_call(&wallet, &canister, method_name, args, cycles).await?
+                request_id_via_wallet_call(&wallet, canister_id, method_name, args, cycles).await?
             }
         };
         eprint!("Request ID: ");
@@ -310,7 +320,7 @@ pub async fn exec(
                     .await?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

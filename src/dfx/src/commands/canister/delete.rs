@@ -18,6 +18,7 @@ use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
 use ic_utils::interfaces::management_canister::CanisterStatus;
+use ic_utils::Argument;
 
 use anyhow::anyhow;
 use clap::Parser;
@@ -29,7 +30,7 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
-const WITHDRAWAL_COST: u64 = 10_000_000_000; // Emperically estimated.
+const WITHDRAWAL_COST: u128 = 10_000_000_000; // Emperically estimated.
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a canister on the Internet Computer network.
@@ -141,9 +142,9 @@ async fn delete_canister(
             // Set this principal to be a controller and default the other settings.
             let settings = CanisterSettings {
                 controllers: Some(vec![principal]),
-                compute_allocation: Some(ComputeAllocation::try_from(0).unwrap()),
+                compute_allocation: Some(ComputeAllocation::try_from(0u8).unwrap()),
                 memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
-                freezing_threshold: Some(FreezingThreshold::try_from(0).unwrap()),
+                freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
             };
             info!(log, "Setting the controller to identity princpal.");
             update_settings(env, canister_id, settings, timeout, call_sender).await?;
@@ -174,7 +175,7 @@ async fn delete_canister(
                     &CallSender::SelectedId,
                 )
                 .await?;
-                let mut cycles = status.cycles.0.to_u64().unwrap();
+                let mut cycles = status.cycles.0.to_u128().unwrap();
                 if cycles > WITHDRAWAL_COST {
                     cycles -= WITHDRAWAL_COST;
 
@@ -199,20 +200,15 @@ async fn delete_canister(
                             cycles,
                             dank_target_principal
                         );
-                        let dank = ic_utils::Canister::builder()
-                            .with_agent(env.get_agent().ok_or_else(|| {
-                                anyhow!("Cannot get HTTP client from environment.")
-                            })?)
-                            .with_canister_id(target_canister_id)
-                            .build()
-                            .unwrap();
-                        let wallet = Identity::build_wallet_canister(canister_id, env)?;
+                        let wallet = Identity::build_wallet_canister(canister_id, env).await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
-                            .call_forward(
-                                dank.update_("mint").with_arg(opt_principal).build(),
+                            .call(
+                                target_canister_id,
+                                "mint",
+                                Argument::from_candid((opt_principal,)),
                                 cycles,
-                            )?
+                            )
                             .call_and_wait(waiter_with_timeout(timeout))
                             .await?;
                     }
