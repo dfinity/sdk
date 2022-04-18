@@ -18,9 +18,6 @@ teardown() {
 @test "address already in use" {
     dfx_start
 
-    cat dfx.json | jq
-
-
     address="$(jq -r .networks.local.bind dfx.json)"
 
     # fool dfx start into thinking dfx isn't running
