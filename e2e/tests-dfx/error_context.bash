@@ -22,7 +22,11 @@ teardown() {
 
 
     address="$(jq -r .networks.local.bind dfx.json)"
-    assert_command_fail dfx start --background --host "$address"
+
+    # fool dfx start into thinking dfx isn't running
+    mv .dfx/pid .dfx/hidden_pid
+
+    assert_command_fail dfx start  --host "$address"
 
     # What was the purpose of the address
     assert_match "frontend address"
@@ -32,6 +36,9 @@ teardown() {
 
     # The underlying cause
     assert_match "Address already in use"
+
+    # Allow dfx stop to stop dfx in teardown.  Otherwise, bats will never exit
+    mv .dfx/hidden_pid .dfx/pid
 }
 
 @test "corrupt dfx.json" {

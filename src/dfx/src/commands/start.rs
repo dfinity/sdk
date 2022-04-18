@@ -305,7 +305,8 @@ fn frontend_address(
         // allocated port and construct a resuable SocketAddr which the actix
         // HttpServer will bind to
         address_and_port =
-            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
+            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())
+                .with_context(||format!("Getting frontend address {}", address_and_port))?;
     }
     let ip = if address_and_port.is_ipv6() {
         format!("[{}]", address_and_port.ip())
@@ -322,7 +323,8 @@ fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
         if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
             if let Ok(pid) = s.parse::<Pid>() {
                 // If we find the pid in the file, we tell the user and don't start!
-                let system = System::new();
+                let mut system = System::new();
+                system.refresh_processes();
                 if let Some(_process) = system.process(pid) {
                     bail!("dfx is already running.");
                 }
