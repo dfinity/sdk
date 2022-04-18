@@ -7,7 +7,7 @@
 
 === feat: Support for 128-bit cycle counts
 
-Cycle counts can now exceed the previously set maximum of 2^64. The new limit is 2^128. A new wallet version has been bundled with this release that supports the new cycle count. You will not be able to use this feature with your wallet without running `+dfx wallet upgrade+`, but old wallets will still work just fine with old cycle counts.
+Cycle counts can now exceed the previously set maximum of 2^64. The new limit is 2^128. A new wallet version has been bundled with this release that supports the new cycle count. You will not be able to use this feature with your existing wallets without running `+dfx wallet upgrade+`, but old wallets will still work just fine with old cycle counts.
 
 === fix: dfx start will once again notice if dfx is already running
 
