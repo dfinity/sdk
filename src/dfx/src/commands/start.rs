@@ -322,7 +322,8 @@ fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
         if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
             if let Ok(pid) = s.parse::<Pid>() {
                 // If we find the pid in the file, we tell the user and don't start!
-                let system = System::new();
+                let mut system = System::new();
+                system.refresh_processes();
                 if let Some(_process) = system.process(pid) {
                     bail!("dfx is already running.");
                 }
