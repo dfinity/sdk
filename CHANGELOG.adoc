@@ -97,6 +97,11 @@ then dfx start/replica will launch the ic-btc-adapter process.
 
 This integration is not yet complete, pending upcoming functionality in ic-starter.
 
+=== fix: report context of errors
+
+dfx now displays the context of an error in several places where previously the only error
+message would be something like "No such file or directory."
+
 == updating dependencies
 
 Updated to version 0.14.0 of agent-rs
