@@ -122,10 +122,6 @@ This incorporates the following executed proposals:
 
 Added the ic-btc-adapter binary to the cache.
 
-= 0.9.4
-
-== DFX
-
 === chore: updates starter project for Node 18
 
 Webpack dev server now works for Node 18 (and should work for Node 17). A few packages are also upgraded
