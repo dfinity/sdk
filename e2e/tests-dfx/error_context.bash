@@ -131,6 +131,10 @@ teardown() {
     dfx_path=$(whereis dfx | awk '{ print $2 }')
     # commands needed by assert_command_fail:
     helpers_path="$(whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':')"
+    echo "helpers path: $helpers_path"
+    echo "whereis mktemp: $(whereis mktemp)"
+    echo "whereis rm: $(whereis rm)"
+    echo "whereis echo: $(whereis echo)"
     PATH="$helpers_path" assert_command_fail "$dfx_path" deploy npm_missing
 
     # expect to see the npm command line
