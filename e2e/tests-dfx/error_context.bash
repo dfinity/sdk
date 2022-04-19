@@ -128,9 +128,12 @@ teardown() {
     assert_command dfx canister create npm_missing
 
     touch package.json
-    dfx_path=$(whereis dfx | awk '{ print $2 }')
     # commands needed by assert_command_fail:
+    echo "call direct"
+    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':'
+    dfx_path="$(whereis dfx | awk '{ print $2 }')"
     helpers_path="$(whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':')"
+    echo "dfx path: $dfx_path"
     echo "helpers path: $helpers_path"
     echo "whereis mktemp: $(whereis mktemp)"
     echo "whereis rm: $(whereis rm)"
