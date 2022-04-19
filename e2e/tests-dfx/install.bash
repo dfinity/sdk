@@ -66,3 +66,15 @@ teardown() {
 
     assert_match "ComputeNetworkNotFound.*nosuch"
 }
+
+@test "install succeeds with arbitrary wasm" {
+    dfx_start
+    dfx canister create --all
+    assert_command dfx canister install e2e_project --wasm "${archive:?}/wallet/0.10.0/wallet.wasm"
+}
+
+@test "install --all fails with arbitrary wasm" {
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx canister install --all --wasm "${archive:?}/wallet/0.10.0/wallet.wasm"
+}

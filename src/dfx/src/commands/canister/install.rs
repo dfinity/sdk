@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::install_canister;
+use crate::lib::operations::canister::{install_canister, install_canister_wasm};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
@@ -13,6 +13,8 @@ use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
+use std::fs;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 /// Deploys compiled code as a canister on the Internet Computer.
@@ -22,7 +24,7 @@ pub struct CanisterInstallOpts {
     canister: Option<String>,
 
     /// Deploys all canisters configured in the project dfx.json files.
-    #[clap(long, required_unless_present("canister"))]
+    #[clap(long, short, required_unless_present("canister"))]
     all: bool,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
@@ -45,6 +47,10 @@ pub struct CanisterInstallOpts {
     /// Specifies the data type for the argument when making the call using an argument.
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     argument_type: Option<String>,
+
+    /// Specifies a particular WASM file to install, bypassing the dfx.json project system.
+    #[clap(long, conflicts_with("all"))]
+    wasm: Option<PathBuf>,
 }
 
 pub async fn exec(
@@ -78,28 +84,44 @@ pub async fn exec(
 
         let canister_id =
             Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
-        let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
-
-        let maybe_path = canister_info.get_output_idl_path();
-        let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
         let arguments = opts.argument.as_deref();
         let arg_type = opts.argument_type.as_deref();
-        let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
-        let installed_module_hash =
-            read_module_hash(agent, &canister_id_store, &canister_info).await?;
-
-        install_canister(
-            env,
-            agent,
-            &canister_info,
-            &install_args,
-            mode,
-            timeout,
-            call_sender,
-            installed_module_hash,
-            opts.upgrade_unchanged,
-        )
-        .await
+        let canister_info = CanisterInfo::load(&config, canister, Some(canister_id));
+        if let Some(wasm_path) = opts.wasm {
+            // streamlined version, we can ignore most of the environment
+            let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
+            install_canister_wasm(
+                env,
+                agent,
+                canister_id,
+                canister_info.as_ref().map(|info| info.get_name()).ok(),
+                &install_args,
+                mode,
+                timeout,
+                call_sender,
+                fs::read(wasm_path)?,
+            )
+            .await
+        } else {
+            let canister_info = canister_info?;
+            let maybe_path = canister_info.get_output_idl_path();
+            let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
+            let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
+            let installed_module_hash =
+                read_module_hash(agent, &canister_id_store, &canister_info).await?;
+            install_canister(
+                env,
+                agent,
+                &canister_info,
+                &install_args,
+                mode,
+                timeout,
+                call_sender,
+                installed_module_hash,
+                opts.upgrade_unchanged,
+            )
+            .await
+        }
     } else if opts.all {
         // Install all canisters.
 
