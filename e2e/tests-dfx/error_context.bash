@@ -127,7 +127,9 @@ teardown() {
 
     assert_command dfx canister create npm_missing
 
+    # this is how dfx decides to run `npm run build'
     touch package.json
+
     dfx_path="$(which dfx)"
     # commands needed by assert_command_fail:
     helpers_path="$(which mktemp rm echo | xargs -n 1 dirname | sort | uniq | tr '\n' ':')"
