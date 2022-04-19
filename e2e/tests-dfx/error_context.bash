@@ -130,7 +130,21 @@ teardown() {
     touch package.json
     # commands needed by assert_command_fail:
     echo "call direct"
+    echo "1"
     whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':'
+    echo "2"
+    whereis mktemp rm echo
+    echo "3"
+    whereis mktemp rm echo | awk '{ print $2 }'
+    echo "4"
+    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname
+    echo "5"
+    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort
+    echo "5"
+    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq
+    echo "6"
+    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':'
+    echo "end"
     dfx_path="$(whereis dfx | awk '{ print $2 }')"
     helpers_path="$(whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':')"
     echo "dfx path: $dfx_path"
