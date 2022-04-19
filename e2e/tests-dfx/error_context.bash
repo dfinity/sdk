@@ -128,32 +128,9 @@ teardown() {
     assert_command dfx canister create npm_missing
 
     touch package.json
+    dfx_path="$(which dfx)"
     # commands needed by assert_command_fail:
-    uname
-    echo "** 1"
-    whereis mktemp rm echo
-    echo "** 2"
-    whereis mktemp rm echo | awk '{ print NF }'
-    echo "** 3"
-    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }'
-    echo "** 4"
-    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname
-    echo "** 5"
-    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname | sort
-    echo "** 6"
-    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname | sort | uniq
-    echo "** 7"
-    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname | sort | uniq | tr '\n' ':'
-    echo "** 8"
-    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | hexdump -C
-    echo "end"
-    dfx_path="$(whereis dfx | awk '{ if (NF == 1) print $1; else print $2; }')"
-    helpers_path="$(whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname | sort | uniq | tr '\n' ':')"
-    echo "dfx path: $dfx_path"
-    echo "helpers path: $helpers_path"
-    echo "whereis mktemp: $(whereis mktemp)"
-    echo "whereis rm: $(whereis rm)"
-    echo "whereis echo: $(whereis echo)"
+    helpers_path="$(which mktemp rm echo | xargs -n 1 dirname | sort | uniq | tr '\n' ':')"
     PATH="$helpers_path" assert_command_fail "$dfx_path" deploy npm_missing
 
     # expect to see the npm command line
