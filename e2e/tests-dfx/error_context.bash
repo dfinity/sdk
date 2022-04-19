@@ -130,25 +130,25 @@ teardown() {
     touch package.json
     # commands needed by assert_command_fail:
     uname
-    echo "1"
+    echo "** 1"
     whereis mktemp rm echo
-    echo "2"
+    echo "** 2"
     whereis mktemp rm echo | awk '{ print NF }'
-    echo "3"
+    echo "** 3"
     whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }'
-    echo "4"
-    whereis mktemp rm echo | awk '{ print $2 }'
-    echo "5"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname
-    echo "6"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort
-    echo "7"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq
-    echo "8"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':'
+    echo "** 4"
+    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname
+    echo "** 5"
+    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname | sort
+    echo "** 6"
+    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname | sort | uniq
+    echo "** 7"
+    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname | sort | uniq | tr '\n' ':'
+    echo "** 8"
+    whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | hexdump -C
     echo "end"
     dfx_path="$(whereis dfx | awk '{ if (NF == 1) print $1; else print $2; }')"
-    helpers_path="$(whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs dirname | sort | uniq | tr '\n' ':')"
+    helpers_path="$(whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs -n 1 dirname | sort | uniq | tr '\n' ':')"
     echo "dfx path: $dfx_path"
     echo "helpers path: $helpers_path"
     echo "whereis mktemp: $(whereis mktemp)"
