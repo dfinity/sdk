@@ -128,25 +128,11 @@ teardown() {
     assert_command dfx canister create npm_missing
 
     touch package.json
+    # whereis on some MacOS displays path only and accepts no parameters.  On others, displays something like
+    #    dfx: /path/to/dfx
+    dfx_path="$(whereis dfx | awk '{ if (NF == 1) print $1; else print $2; }')"
     # commands needed by assert_command_fail:
-    echo "call direct"
-    echo "1"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':'
-    echo "2"
-    whereis mktemp rm echo
-    echo "3"
-    whereis mktemp rm echo | awk '{ print $2 }'
-    echo "4"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname
-    echo "5"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort
-    echo "5"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq
-    echo "6"
-    whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':'
-    echo "end"
-    dfx_path="$(whereis dfx | awk '{ print $2 }')"
-    helpers_path="$(whereis mktemp rm echo | awk '{ print $2 }' | xargs dirname | sort | uniq | tr '\n' ':')"
+    helpers_path="$(whereis mktemp rm echo | awk '{ if (NF == 1) print $1; else print $2; }' | xargs dirname | sort | uniq | tr '\n' ':')"
     echo "dfx path: $dfx_path"
     echo "helpers path: $helpers_path"
     echo "whereis mktemp: $(whereis mktemp)"
