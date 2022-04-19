@@ -99,11 +99,7 @@ jobs:
     needs: [ build_dfx, list_tests ]
     strategy:
       fail-fast: false
-      matrix:
-        test: [ "dfx/error_context" ]
-        backend: [ "ic-ref", "replica" ]
-        os: [ "macos-11", "ubuntu-20.04" ]
-        rust: [ "1.58.1" ]
+      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
     steps:
@@ -132,7 +128,7 @@ jobs:
           export
       - name: Run e2e test
         # rust tests sometimes fail with a 30-minute timeout
-        run: timeout 500 bats "e2e/$E2E_TEST"
+        run: timeout 2100 bats "e2e/$E2E_TEST"
 
   aggregate:
     name: e2e:required
