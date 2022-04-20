@@ -19,18 +19,21 @@ pub struct ImportOpts {
     /// I you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
     #[clap(long)]
     disable_encryption: bool,
+
+    /// If the identity already exists, remove and re-import it.
+    #[clap(long)]
+    force: bool,
 }
 
 /// Executes the import subcommand.
 pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let log = env.get_logger();
     let name = opts.identity.as_str();
-    info!(log, r#"Creating identity: "{}"."#, name);
     let params = IdentityCreationParameters::PemFile {
         src_pem_file: opts.pem_file,
         disable_encryption: opts.disable_encryption,
     };
-    IdentityManager::new(env)?.create_new_identity(name, params)?;
+    IdentityManager::new(env)?.create_new_identity(name, params, opts.force)?;
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())
 }

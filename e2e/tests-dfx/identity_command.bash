@@ -61,7 +61,6 @@ teardown() {
 
 @test "identity new: creates a new identity" {
     assert_command dfx identity new --disable-encryption alice
-    assert_match 'Creating identity: "alice".' "$stderr"
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
@@ -79,6 +78,11 @@ teardown() {
     assert_command dfx identity new --disable-encryption bob
     assert_command_fail dfx identity new --disable-encryption bob
     assert_match "Identity already exists"
+}
+
+@test "identity new: --force re-creates an identity" {
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption --force alice
 }
 
 @test "identity new: create an HSM-backed identity" {
@@ -338,16 +342,25 @@ teardown() {
 @test "identity: import" {
     openssl ecparam -name secp256k1 -genkey -out identity.pem
     assert_command dfx identity import --disable-encryption alice identity.pem
-    assert_match 'Creating identity: "alice".' "$stderr"
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command diff identity.pem "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
 }
 
+@test "identity: import can only overwrite identity with --force" {
+    openssl ecparam -name secp256k1 -genkey -out identity.pem
+    assert_command dfx identity import --disable-encryption alice identity.pem
+    assert_match 'Created identity: "alice".' "$stderr"
+
+    assert_command_fail dfx identity import --disable-encryption alice identity.pem
+    assert_match "Identity already exists."
+    assert_command dfx identity import --disable-encryption --force alice identity.pem
+    assert_match 'Created identity: "alice".'
+}
+
 @test "identity: import default" {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity import --disable-encryption bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match 'Creating identity: "bob".' "$stderr"
     assert_match 'Created identity: "bob".' "$stderr"
     assert_command diff "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_eq ""
@@ -361,7 +374,6 @@ teardown() {
     echo -n 1 >> bob.pem
     tail -n 3 alice.pem > bob.pem
     assert_command_fail dfx identity import --disable-encryption bob bob.pem
-    assert_match 'Creating identity: "bob".' "$stderr"
     assert_match 'Invalid Ed25519 private key in PEM file' "$stderr"
 }
 
