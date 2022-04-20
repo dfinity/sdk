@@ -486,7 +486,7 @@ impl Identity {
                         .context("Failed during wallet creation.")
                 } else {
                     Err(anyhow!(
-                        "Could not find wallet for \"{}\" on \"{}\" network.",
+                        "Could not find wallet for \"{}\" on \"{}\" network. Please set a wallet using \"dfx identity set-wallet\" command or use an identity with a wallet.",
                         name,
                         network.name.clone(),
                     ))
