@@ -34,4 +34,4 @@ SANDBOX_LAUNCHER_X86_64_DARWIN_URL="https://download.dfinity.systems/blessed/ic/
 SANDBOX_LAUNCHER_X86_64_LINUX_SHA256="ceb64804690041582dc103131933f92be2f0dda9769a47971f1d334ab0ab3f20"
 SANDBOX_LAUNCHER_X86_64_LINUX_URL="https://download.dfinity.systems/blessed/ic/7424ea8c83b86cd7867c0686eaeb2c0285450b12/sdk-release/x86_64-linux/sandbox_launcher.gz"
 MOTOKO_BASE_BRANCH="next-moc"
-MOTOKO_BASE_REV="d93339ae86ad93ecd909ee240c630146fac2ec2d"
+MOTOKO_BASE_REV="9a0930048fc300cc4388eb39def77e38cae10d52"
