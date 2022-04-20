@@ -7,7 +7,7 @@ use crate::lib::operations::canister::{install_canister, install_canister_wasm};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
@@ -99,7 +99,7 @@ pub async fn exec(
                 mode,
                 timeout,
                 call_sender,
-                fs::read(wasm_path)?,
+                fs::read(wasm_path).with_context(|| format!("Unable to read {}", wasm_path.display()))?,
             )
             .await
         } else {
