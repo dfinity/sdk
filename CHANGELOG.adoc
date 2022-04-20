@@ -18,6 +18,8 @@ As a consequence, after `dfx start` failed to notice that dfx was already runnin
 it would replace .dfx/pid with an empty file.  Later invocations of `dfx stop`
 would display no output and return a successful exit code, but leave dfx running.
 
+=== fix: dfx canister update-settings works if passed a canister id, even if that canister id is unknown to the project
+
 === feat: dfx deploy --upgrade-unchanged or dfx canister install --mode upgrade --upgrade-unchanged
 
 When upgrading a canister, `dfx deploy` and `dfx canister install` skip installing the .wasm
