@@ -19,7 +19,7 @@ teardown() {
     dfx_start
     dfx deploy
     # default amount is 10 trillion cycles, which results in an amount like 13_899_071_239_420
-    assert_command dfx ledger fabricate-cycles "$(dfx canister id hello)"
+    assert_command dfx ledger fabricate-cycles --canister "$(dfx canister id hello)"
     # bash does not accept \d, use [0-9] instead
     assert_match 'updated balance: [0-9]{2}(_[0-9]{3}){4} cycles'
     assert_command dfx ledger fabricate-cycles --all
@@ -31,9 +31,9 @@ teardown() {
     dfx_start
     dfx deploy
     # adding 100 trillion cycles, which results in an amount like 103_899_071_239_420
-    assert_command dfx ledger fabricate-cycles "$(dfx canister id hello)" 100000000000000
+    assert_command dfx ledger fabricate-cycles --canister "$(dfx canister id hello)" 100000000000000
     assert_match 'updated balance: [0-9]{3}(_[0-9]{3}){4} cycles'
-    assert_command dfx ledger fabricate-cycles hello 100000000000000
+    assert_command dfx ledger fabricate-cycles --canister hello 100000000000000
     assert_match 'updated balance: [0-9]{3}(_[0-9]{3}){4} cycles'
 }
 

@@ -15,13 +15,14 @@ use std::time::Duration;
 /// Local development only: Fabricate cycles out of thin air and deposit them into the specified canister(s).
 #[derive(Parser)]
 pub struct FabricateCyclesOpts {
-    /// Specifies the name or id of the canister to receive the cycles deposit.
-    /// You must specify either a canister name/id or the --all option.
-    canister: Option<String>,
-
     /// Specifies the amount of cycles to fabricate.
     #[clap(validator(cycle_amount_validator), default_value = "10000000000000")]
     cycles: String,
+
+    /// Specifies the name or id of the canister to receive the cycles deposit.
+    /// You must specify either a canister name/id or the --all option.
+    #[clap(long)]
+    canister: Option<String>,
 
     /// Deposit cycles to all of the canisters configured in the dfx.json file.
     #[clap(long, required_unless_present("canister"))]
