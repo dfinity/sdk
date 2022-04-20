@@ -99,7 +99,7 @@ pub async fn exec(
                 mode,
                 timeout,
                 call_sender,
-                fs::read(wasm_path).with_context(|| format!("Unable to read {}", wasm_path.display()))?,
+                fs::read(&wasm_path).with_context(|| format!("Unable to read {}", wasm_path.display()))?,
             )
             .await
         } else {
