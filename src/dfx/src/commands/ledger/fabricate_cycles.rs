@@ -4,7 +4,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
-use crate::util::clap::validators::cycle_amount_validator;
+use crate::util::clap::validators::{cycle_amount_validator, trillion_cycle_amount_validator};
 use crate::util::expiry_duration;
 
 use clap::Parser;
@@ -12,12 +12,22 @@ use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
+const DEFAULT_CYCLES_TO_FABRICATE: u128 = 10_000_000_000_000_u128;
+
 /// Local development only: Fabricate cycles out of thin air and deposit them into the specified canister(s).
 #[derive(Parser)]
 pub struct FabricateCyclesOpts {
-    /// Specifies the amount of cycles to fabricate.
-    #[clap(validator(cycle_amount_validator), default_value = "10000000000000")]
-    cycles: String,
+    /// Specifies the amount of cycles to fabricate. Defaults to 10T cycles.
+    #[clap(long, validator(cycle_amount_validator), conflicts_with("t"))]
+    amount: Option<String>,
+
+    /// Specifies the amount of trillion cycles to fabricate. Defaults to 10T cycles.
+    #[clap(
+        long,
+        validator(trillion_cycle_amount_validator),
+        conflicts_with("amount")
+    )]
+    t: Option<String>,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.
     /// You must specify either a canister name/id or the --all option.
@@ -57,7 +67,7 @@ async fn deposit_minted_cycles(
 
 pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult {
     // amount has been validated by cycle_amount_validator
-    let cycles = opts.cycles.parse::<u128>().unwrap();
+    let cycles = cycles_to_fabricate(&opts);
 
     fetch_root_key_or_anyhow(env).await?;
 
@@ -76,5 +86,19 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
         Ok(())
     } else {
         unreachable!()
+    }
+}
+
+fn cycles_to_fabricate(opts: &FabricateCyclesOpts) -> u128 {
+    if let Some(cycles_str) = &opts.amount {
+        //cycles_str is validated by cycle_amount_validator
+        cycles_str.parse::<u128>().unwrap()
+    } else if let Some(t_cycles_str) = &opts.t {
+        //cycles_str is validated by trillion_cycle_amount_validator
+        format!("{}000000000000", t_cycles_str)
+            .parse::<u128>()
+            .unwrap()
+    } else {
+        DEFAULT_CYCLES_TO_FABRICATE
     }
 }
