@@ -2,7 +2,7 @@
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -468,11 +468,11 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
-    pub fn resolve_config_path(working_dir: &Path) -> Result<PathBuf, std::io::Error> {
+    fn resolve_config_path(working_dir: &Path) -> DfxResult<Option<PathBuf>> {
         let mut curr = PathBuf::from(working_dir).canonicalize()?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
-                return Ok(curr.join(CONFIG_FILE_NAME));
+                return Ok(Some(curr.join(CONFIG_FILE_NAME)));
             } else {
                 curr.pop();
             }
@@ -480,26 +480,27 @@ impl Config {
 
         // Have to check if the config could be in the root (e.g. on VMs / CI).
         if curr.join(CONFIG_FILE_NAME).is_file() {
-            return Ok(curr.join(CONFIG_FILE_NAME));
+            return Ok(Some(curr.join(CONFIG_FILE_NAME)));
         }
 
-        Err(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "Config not found.",
-        ))
+        Ok(None)
     }
 
-    pub fn from_file(path: &Path) -> std::io::Result<Config> {
-        let content = std::fs::read(&path)?;
-        Config::from_slice(path.to_path_buf(), &content)
+    fn from_file(path: &Path) -> DfxResult<Config> {
+        {
+            let content = std::fs::read(&path)?;
+            Config::from_slice(path.to_path_buf(), &content)
+        }
+        .with_context(|| format!("Reading {}", path.to_string_lossy()))
     }
 
-    pub fn from_dir(working_dir: &Path) -> std::io::Result<Config> {
+    fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
         let path = Config::resolve_config_path(working_dir)?;
-        Config::from_file(&path)
+        let maybe_config = path.map(|path| Config::from_file(&path)).transpose()?;
+        Ok(maybe_config)
     }
 
-    pub fn from_current_dir() -> std::io::Result<Config> {
+    pub fn from_current_dir() -> DfxResult<Option<Config>> {
         Config::from_dir(&std::env::current_dir()?)
     }
 
@@ -567,7 +568,9 @@ mod tests {
 
         assert_eq!(
             config_path,
-            Config::resolve_config_path(config_path.parent().unwrap()).unwrap(),
+            Config::resolve_config_path(config_path.parent().unwrap())
+                .unwrap()
+                .unwrap(),
         );
     }
 
@@ -581,7 +584,9 @@ mod tests {
         std::fs::write(&config_path, "{}").unwrap();
 
         assert!(
-            Config::resolve_config_path(config_path.parent().unwrap().parent().unwrap()).is_err()
+            Config::resolve_config_path(config_path.parent().unwrap().parent().unwrap())
+                .unwrap()
+                .is_none()
         );
     }
 
@@ -597,7 +602,9 @@ mod tests {
 
         assert_eq!(
             config_path,
-            Config::resolve_config_path(subdir_path.as_path()).unwrap(),
+            Config::resolve_config_path(subdir_path.as_path())
+                .unwrap()
+                .unwrap(),
         );
     }
 

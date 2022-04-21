@@ -39,6 +39,7 @@ $ export BATSLIB=/usr/local/lib/bats-support
 sdk $ cargo build
 sdk $ export PATH="$(pwd)/target/debug:$PATH"
 ----
+. Install `jq`.
 
 ==== Running End-to-End Tests
 
