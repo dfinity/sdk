@@ -90,7 +90,7 @@ teardown() {
     assert_command dfx canister call hello greet '("First")'
     assert_eq '("Hello, First!")'
 
-    assert_command dfx deploy hello
+    assert_command dfx deploy hello --upgrade-unchanged
     assert_match 'Upgrading code for canister'
 
     assert_command dfx canister call hello greet '("Second")'
