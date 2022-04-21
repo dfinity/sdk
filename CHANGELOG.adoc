@@ -86,6 +86,10 @@ dfx identity import identity_name identity.pem
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
 
+=== feat: Identity new/import now has a --force flag
+
+If you want to script identity creation and don't care about overwriting existing identities, you now can use the `--force` flag for the commands `dfx identity new` and `dfx identity import`.
+
 === fix: Do not automatically create a wallet on IC
 
 When running `dfx deploy --network ic`, `dfx canister --network ic create`, or `dfx identity --network ic get-wallet` dfx no longer automatically creates a cycles wallet for the user if none is configured. Instead, it will simply report that no wallet was found for that user.
