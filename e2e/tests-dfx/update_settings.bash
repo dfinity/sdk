@@ -384,3 +384,29 @@ teardown() {
     assert_command dfx canister info hello
     assert_match "Controllers: $SORTED"
 }
+
+@test "update settings by canister id, when canister id is not known to the project" {
+    dfx_start
+    dfx deploy
+
+    CANISTER_ID=$(dfx canister id hello)
+
+    rm .dfx/local/canister_ids.json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .canisters={} dfx.json)" >dfx.json
+
+    assert_command dfx canister status "$CANISTER_ID"
+    assert_match 'Memory allocation: 0'
+    assert_match 'Compute allocation: 0'
+
+    dfx canister update-settings --memory-allocation 2GB "$CANISTER_ID"
+    assert_command dfx canister status "$CANISTER_ID"
+    assert_match 'Memory allocation: 2_000_000_000'
+    assert_match 'Compute allocation: 0'
+
+    # leaves the previous value alone
+    dfx canister update-settings --compute-allocation 4 "$CANISTER_ID"
+    assert_command dfx canister status "$CANISTER_ID"
+    assert_match 'Memory allocation: 2_000_000_000'
+    assert_match 'Compute allocation: 4'
+}
