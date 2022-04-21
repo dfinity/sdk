@@ -138,9 +138,12 @@ https://github.com/dfinity/cycles-wallet/commit/f18e9f5c2f96e9807b6f149c975e2563
 
 == Replica
 
-Updated replica to blessed commit 7424ea8c83b86cd7867c0686eaeb2c0285450b12.
+Updated replica to elected commit 0ef2aebde4ff735a1a93efa342dcf966b6df5061.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/54964[54964]
+* https://dashboard.internetcomputer.org/proposal/53702[53702]
+* https://dashboard.internetcomputer.org/proposal/53231[53231]
 * https://dashboard.internetcomputer.org/proposal/53134[53134]
 * https://dashboard.internetcomputer.org/proposal/52627[52627]
 * https://dashboard.internetcomputer.org/proposal/52144[52144]
