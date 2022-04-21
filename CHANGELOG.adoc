@@ -5,6 +5,14 @@
 
 == DFX
 
+=== feat: dfx canister call --candid <path to candid file> ...
+
+Allows one to provide the .did file for calls to an arbitrary canister.
+
+=== feat: Install arbitrary wasm into canisters
+
+You no longer need a DFX project setup with a build task to install an already-built wasm module into a canister ID. The new `+--wasm <path>+` flag to `+dfx canister install+` will bypass project configuration and install the wasm module at `+<path>+`. A DFX project setup is still recommended for general use; this should mostly be used for installing pre-built canisters. Note that DFX will also not perform its usual checks for API/ABI/stable-memory compatibility in this mode.
+
 === feat: Support for 128-bit cycle counts
 
 Cycle counts can now exceed the previously set maximum of 2^64. The new limit is 2^128. A new wallet version has been bundled with this release that supports the new cycle count. You will not be able to use this feature with your existing wallets without running `+dfx wallet upgrade+`, but old wallets will still work just fine with old cycle counts.
