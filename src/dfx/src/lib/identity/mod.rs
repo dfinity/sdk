@@ -289,15 +289,45 @@ impl Identity {
         Ok((
             wallet_path.clone(),
             if wallet_path.exists() {
-                let mut buffer = Vec::new();
-                std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
-                serde_json::from_slice::<WalletGlobalConfig>(&buffer)?
+                Identity::load_wallet_config(&wallet_path)?
             } else {
                 WalletGlobalConfig {
                     identities: BTreeMap::new(),
                 }
             },
         ))
+    }
+
+    fn load_wallet_config(path: &Path) -> DfxResult<WalletGlobalConfig> {
+        let mut buffer = Vec::new();
+        std::fs::File::open(&path)
+            .with_context(|| format!("Unable to open {}", path.to_string_lossy()))?
+            .read_to_end(&mut buffer)
+            .with_context(|| format!("Unable to read {}", path.to_string_lossy()))?;
+        serde_json::from_slice::<WalletGlobalConfig>(&buffer).with_context(|| {
+            format!(
+                "Unable to parse contents of {} as json",
+                path.to_string_lossy()
+            )
+        })
+    }
+
+    fn save_wallet_config(path: &Path, config: &WalletGlobalConfig) -> DfxResult {
+        let parent_path = match path.parent() {
+            Some(parent) => parent,
+            None => bail!(format!(
+                "Unable to determine parent of {}",
+                path.to_string_lossy()
+            )),
+        };
+        std::fs::create_dir_all(parent_path).with_context(|| {
+            format!(
+                "Unable to create directory {} with parents for wallet configuration",
+                parent_path.to_string_lossy()
+            )
+        })?;
+        std::fs::write(&path, &serde_json::to_string_pretty(&config)?)
+            .with_context(|| format!("Unable to write {}", path.to_string_lossy()))
     }
 
     pub fn set_wallet_id(
@@ -317,8 +347,7 @@ impl Identity {
 
         network_map.networks.insert(network.name.clone(), id);
 
-        std::fs::create_dir_all(wallet_path.parent().unwrap())?;
-        std::fs::write(&wallet_path, &serde_json::to_string_pretty(&config)?)?;
+        Identity::save_wallet_config(&wallet_path, &config)?;
         Ok(())
     }
 
@@ -349,9 +378,7 @@ impl Identity {
         renamed_identity: &str,
         wallet_path: PathBuf,
     ) -> DfxResult {
-        let mut buffer = Vec::new();
-        std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
-        let mut config = serde_json::from_slice::<WalletGlobalConfig>(&buffer)?;
+        let mut config = Identity::load_wallet_config(&wallet_path)?;
         let identities = &mut config.identities;
         let v = identities
             .remove(original_identity)
@@ -359,8 +386,7 @@ impl Identity {
                 networks: BTreeMap::new(),
             });
         identities.insert(renamed_identity.to_string(), v);
-        std::fs::create_dir_all(wallet_path.parent().unwrap())?;
-        std::fs::write(&wallet_path, &serde_json::to_string_pretty(&config)?)?;
+        Identity::save_wallet_config(&wallet_path, &config)?;
         Ok(())
     }
 
@@ -505,11 +531,7 @@ impl Identity {
             ));
         }
 
-        let config = {
-            let mut buffer = Vec::new();
-            std::fs::File::open(&wallet_path)?.read_to_end(&mut buffer)?;
-            serde_json::from_slice::<WalletGlobalConfig>(&buffer)?
-        };
+        let config = Identity::load_wallet_config(&wallet_path)?;
 
         let wallet_network = config.identities.get(name).ok_or_else(|| {
             anyhow!(

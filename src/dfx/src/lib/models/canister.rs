@@ -345,15 +345,30 @@ impl CanisterPool {
             if let Some(canister) = self.get_canister(canister_id) {
                 result.push(
                     self.step_prebuild(build_config, canister)
-                        .map_err(|e| BuildError::PreBuildStepFailed(*canister_id, Box::new(e)))
+                        .map_err(|e| {
+                            BuildError::PreBuildStepFailed(
+                                *canister_id,
+                                canister.get_name().to_string(),
+                                Box::new(e),
+                            )
+                        })
                         .and_then(|_| {
-                            self.step_build(build_config, canister)
-                                .map_err(|e| BuildError::BuildStepFailed(*canister_id, Box::new(e)))
+                            self.step_build(build_config, canister).map_err(|e| {
+                                BuildError::BuildStepFailed(
+                                    *canister_id,
+                                    canister.get_name().to_string(),
+                                    Box::new(e),
+                                )
+                            })
                         })
                         .and_then(|o| {
                             self.step_postbuild(build_config, canister, o)
                                 .map_err(|e| {
-                                    BuildError::PostBuildStepFailed(*canister_id, Box::new(e))
+                                    BuildError::PostBuildStepFailed(
+                                        *canister_id,
+                                        canister.get_name().to_string(),
+                                        Box::new(e),
+                                    )
                                 })
                                 .map(|_| o)
                         }),
