@@ -66,13 +66,21 @@ pub struct Identity {
 }
 
 impl Identity {
+    /// Creates a new identity.
+    ///
+    /// `force`: If the identity already exists, remove it and re-create.
     pub fn create(
         manager: &IdentityManager,
         name: &str,
         parameters: IdentityCreationParameters,
+        force: bool,
     ) -> DfxResult {
         if manager.require_identity_exists(name).is_ok() {
-            bail!("Identity already exists.");
+            if force {
+                manager.remove(name)?;
+            } else {
+                bail!("Identity already exists.");
+            }
         }
 
         fn create(identity_dir: &Path) -> DfxResult {

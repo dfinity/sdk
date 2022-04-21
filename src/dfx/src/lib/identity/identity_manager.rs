@@ -157,16 +157,19 @@ impl IdentityManager {
     }
 
     /// Create a new identity (name -> generated key)
+    ///
+    /// `force`: If the identity already exists, remove and re-create it.
     pub fn create_new_identity(
         &self,
         name: &str,
         parameters: IdentityCreationParameters,
+        force: bool,
     ) -> DfxResult {
         if name == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
 
-        DfxIdentity::create(self, name, parameters)
+        DfxIdentity::create(self, name, parameters, force)
     }
 
     /// Return a sorted list of all available identity names
