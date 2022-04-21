@@ -70,14 +70,23 @@ impl Identity {
     ///
     /// `force`: If the identity already exists, remove it and re-create.
     pub fn create(
-        manager: &IdentityManager,
+        manager: &mut IdentityManager,
         name: &str,
         parameters: IdentityCreationParameters,
         force: bool,
     ) -> DfxResult {
+        let identity_in_use = name;
+        // cannot delete an identity in use. Use anonymous identity temporarily if we force-overwrite the identity currently in use
+        let temporarily_use_anonymous_identity = identity_in_use == name && force;
+
         if manager.require_identity_exists(name).is_ok() {
             if force {
-                manager.remove(name)?;
+                if temporarily_use_anonymous_identity {
+                    manager.use_identity_named(ANONYMOUS_IDENTITY_NAME)?;
+                }
+                manager
+                    .remove(name)
+                    .context("Cannot remove pre-existing identity.")?;
             } else {
                 bail!("Identity already exists.");
             }
@@ -148,6 +157,10 @@ impl Identity {
         // Everything is created. Now move from the temporary directory to the actual identity location.
         let identity_dir = manager.get_identity_dir_path(name);
         std::fs::rename(temp_identity_dir, identity_dir)?;
+
+        if temporarily_use_anonymous_identity {
+            manager.use_identity_named(identity_in_use)?;
+        }
         Ok(())
     }
 

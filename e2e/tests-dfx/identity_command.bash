@@ -82,7 +82,11 @@ teardown() {
 
 @test "identity new: --force re-creates an identity" {
     assert_command dfx identity new --disable-encryption alice
+    dfx identity use alice
+    PRINCIPAL_1="$(dfx identity get-principal)"
     assert_command dfx identity new --disable-encryption --force alice
+    PRINCIPAL_2="$(dfx identity get-principal)"
+    assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
 }
 
 @test "identity new: create an HSM-backed identity" {
@@ -349,13 +353,19 @@ teardown() {
 
 @test "identity: import can only overwrite identity with --force" {
     openssl ecparam -name secp256k1 -genkey -out identity.pem
+    openssl ecparam -name secp256k1 -genkey -out identity2.pem
     assert_command dfx identity import --disable-encryption alice identity.pem
     assert_match 'Created identity: "alice".' "$stderr"
+    dfx identity use alice
+    PRINCIPAL_1="$(dfx identity get-principal)"
 
-    assert_command_fail dfx identity import --disable-encryption alice identity.pem
+    assert_command_fail dfx identity import --disable-encryption alice identity2.pem
     assert_match "Identity already exists."
-    assert_command dfx identity import --disable-encryption --force alice identity.pem
+    assert_command dfx identity import --disable-encryption --force alice identity2.pem
     assert_match 'Created identity: "alice".'
+    PRINCIPAL_2="$(dfx identity get-principal)"
+
+    assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
 }
 
 @test "identity: import default" {

@@ -160,7 +160,7 @@ impl IdentityManager {
     ///
     /// `force`: If the identity already exists, remove and re-create it.
     pub fn create_new_identity(
-        &self,
+        &mut self,
         name: &str,
         parameters: IdentityCreationParameters,
         force: bool,
@@ -272,9 +272,11 @@ impl IdentityManager {
     }
 
     /// Select an identity by name to use by default
-    pub fn use_identity_named(&self, name: &str) -> DfxResult {
+    pub fn use_identity_named(&mut self, name: &str) -> DfxResult {
         self.require_identity_exists(name)?;
-        self.write_default_identity(name)
+        self.write_default_identity(name)?;
+        self.configuration.default = name.to_string();
+        Ok(())
     }
 
     fn write_default_identity(&self, name: &str) -> DfxResult {
@@ -282,6 +284,7 @@ impl IdentityManager {
             default: String::from(name),
         };
         write_configuration(&self.identity_json_path, &config)
+            .context(format!("Failed to write to {:?}", self.identity_json_path))
     }
 
     /// Determines if there are enough files present to consider the identity as existing.
