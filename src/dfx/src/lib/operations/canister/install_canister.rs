@@ -9,6 +9,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util::read_module_metadata;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
@@ -32,26 +33,12 @@ pub async fn install_canister(
     installed_module_hash: Option<Vec<u8>>,
     upgrade_unchanged: bool,
 ) -> DfxResult {
+    let log = env.get_logger();
     let network = env.get_network_descriptor().unwrap();
     if !network.is_ic && named_canister::get_ui_canister_id(network).is_none() {
         named_canister::install_ui_canister(env, network, None).await?;
     }
 
-    if mode == InstallMode::Reinstall {
-        let msg = format!(
-            "You are about to reinstall the {} canister",
-            canister_info.get_name()
-        ) + r#"
-This will OVERWRITE all the data and code in the canister.
-
-YOU WILL LOSE ALL DATA IN THE CANISTER.");
-
-"#;
-        ask_for_consent(&msg)?;
-    }
-
-    let mgr = ManagementCanister::create(agent);
-    let log = env.get_logger();
     let canister_id = canister_info.get_canister_id().context(format!(
         "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
         canister_info.get_name().to_owned()
@@ -102,20 +89,6 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
         }
     }
 
-    let mode_str = match mode {
-        InstallMode::Install => "Installing",
-        InstallMode::Reinstall => "Reinstalling",
-        InstallMode::Upgrade => "Upgrading",
-    };
-
-    info!(
-        log,
-        "{} code for canister {}, with canister_id {}",
-        mode_str,
-        canister_info.get_name(),
-        canister_id,
-    );
-
     let wasm_path = canister_info
         .get_output_wasm_path()
         .expect("Cannot get WASM output path.");
@@ -130,36 +103,18 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
             hex::encode(installed_module_hash.unwrap())
         );
     } else {
-        match call_sender {
-            CallSender::SelectedId => {
-                let install_builder = mgr
-                    .install_code(&canister_id, &wasm_module)
-                    .with_raw_arg(args.to_vec())
-                    .with_mode(mode);
-                install_builder
-                    .build()?
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?;
-            }
-            CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
-                let install_args = CanisterInstall {
-                    mode,
-                    canister_id,
-                    wasm_module,
-                    arg: args.to_vec(),
-                };
-                wallet
-                    .call(
-                        *mgr.canister_id_(),
-                        "install_code",
-                        Argument::from_candid((install_args,)),
-                        0,
-                    )
-                    .call_and_wait(waiter_with_timeout(timeout))
-                    .await?;
-            }
-        }
+        install_canister_wasm(
+            env,
+            agent,
+            canister_id,
+            Some(canister_info.get_name()),
+            args,
+            mode,
+            timeout,
+            call_sender,
+            wasm_module,
+        )
+        .await?;
     }
 
     if canister_info.get_type() == "assets" {
@@ -189,6 +144,79 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
         post_install_store_assets(canister_info, agent, timeout).await?;
     }
 
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn install_canister_wasm(
+    env: &dyn Environment,
+    agent: &Agent,
+    canister_id: Principal,
+    canister_name: Option<&str>,
+    args: &[u8],
+    mode: InstallMode,
+    timeout: Duration,
+    call_sender: &CallSender,
+    wasm_module: Vec<u8>,
+) -> DfxResult {
+    let log = env.get_logger();
+    let mgr = ManagementCanister::create(agent);
+    if mode == InstallMode::Reinstall {
+        let msg = if let Some(name) = canister_name {
+            format!("You are about to reinstall the {name} canister")
+        } else {
+            format!("You are about to reinstall the canister {canister_id}")
+        } + r#"
+This will OVERWRITE all the data and code in the canister.
+
+YOU WILL LOSE ALL DATA IN THE CANISTER.");
+
+"#;
+        ask_for_consent(&msg)?;
+    }
+    let mode_str = match mode {
+        InstallMode::Install => "Installing",
+        InstallMode::Reinstall => "Reinstalling",
+        InstallMode::Upgrade => "Upgrading",
+    };
+    if let Some(name) = canister_name {
+        info!(
+            log,
+            "{mode_str} code for canister {name}, with canister ID {canister_id}",
+        );
+    } else {
+        info!(log, "{mode_str} code for canister {canister_id}");
+    }
+    match call_sender {
+        CallSender::SelectedId => {
+            let install_builder = mgr
+                .install_code(&canister_id, &wasm_module)
+                .with_raw_arg(args.to_vec())
+                .with_mode(mode);
+            install_builder
+                .build()?
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
+        }
+        CallSender::Wallet(wallet_id) => {
+            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+            let install_args = CanisterInstall {
+                mode,
+                canister_id,
+                wasm_module,
+                arg: args.to_vec(),
+            };
+            wallet
+                .call(
+                    *mgr.canister_id_(),
+                    "install_code",
+                    Argument::from_candid((install_args,)),
+                    0,
+                )
+                .call_and_wait(waiter_with_timeout(timeout))
+                .await?;
+        }
+    }
     Ok(())
 }
 

@@ -5,6 +5,14 @@
 
 == DFX
 
+=== feat: dfx canister call --candid <path to candid file> ...
+
+Allows one to provide the .did file for calls to an arbitrary canister.
+
+=== feat: Install arbitrary wasm into canisters
+
+You no longer need a DFX project setup with a build task to install an already-built wasm module into a canister ID. The new `+--wasm <path>+` flag to `+dfx canister install+` will bypass project configuration and install the wasm module at `+<path>+`. A DFX project setup is still recommended for general use; this should mostly be used for installing pre-built canisters. Note that DFX will also not perform its usual checks for API/ABI/stable-memory compatibility in this mode.
+
 === feat: Support for 128-bit cycle counts
 
 Cycle counts can now exceed the previously set maximum of 2^64. The new limit is 2^128. A new wallet version has been bundled with this release that supports the new cycle count. You will not be able to use this feature with your existing wallets without running `+dfx wallet upgrade+`, but old wallets will still work just fine with old cycle counts.
@@ -17,6 +25,11 @@ rather than 'Address already in use'.
 As a consequence, after `dfx start` failed to notice that dfx was already running,
 it would replace .dfx/pid with an empty file.  Later invocations of `dfx stop`
 would display no output and return a successful exit code, but leave dfx running.
+
+=== fix: dfx canister update-settings <canister id> works even if the canister id is not known to the project.
+
+This makes the behavior match the usage text of the command:
+`<CANISTER> Specifies the canister name or id to update. You must specify either canister name/id or the --all option`
 
 === feat: dfx deploy --upgrade-unchanged or dfx canister install --mode upgrade --upgrade-unchanged
 
@@ -77,6 +90,10 @@ dfx identity import identity_name identity.pem
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
 
+=== feat: Identity new/import now has a --force flag
+
+If you want to script identity creation and don't care about overwriting existing identities, you now can use the `--force` flag for the commands `dfx identity new` and `dfx identity import`.
+
 === fix: Do not automatically create a wallet on IC
 
 When running `dfx deploy --network ic`, `dfx canister --network ic create`, or `dfx identity --network ic get-wallet` dfx no longer automatically creates a cycles wallet for the user if none is configured. Instead, it will simply report that no wallet was found for that user.
@@ -125,6 +142,10 @@ This incorporates the following executed proposals:
 * https://dashboard.internetcomputer.org/proposal/50282[50282]
 
 Added the ic-btc-adapter binary to the cache.
+
+== Motoko
+
+Updated Motoko from 0.6.25 to 0.6.26.
 
 = 0.9.3
 
