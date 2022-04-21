@@ -14,6 +14,27 @@ teardown() {
     standard_teardown
 }
 
+@test "call --candid <path to candid file>" {
+    install_asset call
+    cat dfx.json
+
+    dfx_start
+    dfx deploy
+    assert_command dfx canister call hello make_struct '("A", "B")'
+    assert_eq '(record { c = "A"; d = "B" })'
+
+    CANISTER_ID=$(dfx canister id hello)
+    rm .dfx/local/canister_ids.json
+
+    # if no candid file known, then no field names
+    assert_command dfx canister call "$CANISTER_ID" make_struct '("A", "B")'
+    assert_eq '(record { 99 = "A"; 100 = "B" })'
+
+    # if passing the candid file, field names available
+    assert_command dfx canister call --candid .dfx/local/canisters/hello/hello.did "$CANISTER_ID" make_struct '("A", "B")'
+    assert_eq '(record { c = "A"; d = "B" })'
+}
+
 @test "call subcommand accepts canister identifier as canister name" {
     install_asset greet
     dfx_start

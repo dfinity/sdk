@@ -19,6 +19,7 @@ use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
 use std::option::Option;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 /// Calls a method on a deployed canister.
@@ -65,6 +66,11 @@ pub struct CanisterCallOpts {
     /// Deducted from the wallet.
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
+
+    /// Provide the .did file with which to decode the response.  Overrides value from dfx.json
+    /// for project canisters.
+    #[clap(long)]
+    candid: Option<PathBuf>,
 }
 
 #[derive(Clone, CandidType, Deserialize)]
@@ -195,6 +201,7 @@ pub async fn exec(
             get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
         }
     };
+    let maybe_candid_path = opts.candid.or(maybe_candid_path);
 
     let is_management_canister = canister_id == CanisterId::management_canister();
 
