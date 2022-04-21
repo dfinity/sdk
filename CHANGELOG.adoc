@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: dfx canister call --candid <path to candid file> ...
+
+Allows one to provide the .did file for calls to an arbitrary canister.
+
 === feat: Install arbitrary wasm into canisters
 
 You no longer need a DFX project setup with a build task to install an already-built wasm module into a canister ID. The new `+--wasm <path>+` flag to `+dfx canister install+` will bypass project configuration and install the wasm module at `+<path>+`. A DFX project setup is still recommended for general use; this should mostly be used for installing pre-built canisters. Note that DFX will also not perform its usual checks for API/ABI/stable-memory compatibility in this mode.
@@ -21,6 +25,11 @@ rather than 'Address already in use'.
 As a consequence, after `dfx start` failed to notice that dfx was already running,
 it would replace .dfx/pid with an empty file.  Later invocations of `dfx stop`
 would display no output and return a successful exit code, but leave dfx running.
+
+=== fix: dfx canister update-settings <canister id> works even if the canister id is not known to the project.
+
+This makes the behavior match the usage text of the command:
+`<CANISTER> Specifies the canister name or id to update. You must specify either canister name/id or the --all option`
 
 === feat: dfx deploy --upgrade-unchanged or dfx canister install --mode upgrade --upgrade-unchanged
 
