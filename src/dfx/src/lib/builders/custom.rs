@@ -183,7 +183,9 @@ fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
         cmd.env(key.as_ref(), value);
     }
 
-    let output = cmd.output().expect("Could not run custom tool.");
+    let output = cmd
+        .output()
+        .with_context(|| format!("Error executing custom build step {:#?}", cmd))?;
     if output.status.success() {
         Ok(())
     } else {

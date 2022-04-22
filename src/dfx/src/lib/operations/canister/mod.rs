@@ -258,6 +258,37 @@ pub async fn deposit_cycles(
     Ok(())
 }
 
+/// Can only run this locally, not on the real IC.
+/// Conjures cycles from nothing and deposits them in the selected canister.
+pub async fn provisional_deposit_cycles(
+    env: &dyn Environment,
+    canister_id: Principal,
+    timeout: Duration,
+    call_sender: &CallSender,
+    cycles: u128,
+) -> DfxResult {
+    #[derive(CandidType)]
+    struct In {
+        canister_id: Principal,
+        amount: u128,
+    }
+    let _: () = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ProvisionalTopUpCanister.as_ref(),
+        In {
+            canister_id,
+            amount: cycles,
+        },
+        timeout,
+        call_sender,
+        0,
+    )
+    .await?;
+
+    Ok(())
+}
+
 pub fn get_local_cid_and_candid_path(
     env: &dyn Environment,
     canister_name: &str,

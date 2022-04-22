@@ -44,6 +44,13 @@ pub fn cycle_amount_validator(cycles: &str) -> Result<(), String> {
     Err("Must be a non negative amount.".to_string())
 }
 
+pub fn trillion_cycle_amount_validator(cycles: &str) -> Result<(), String> {
+    if format!("{}000000000000", cycles).parse::<u128>().is_ok() {
+        return Ok(());
+    }
+    Err("Must be a non negative amount.".to_string())
+}
+
 pub fn compute_allocation_validator(compute_allocation: &str) -> Result<(), String> {
     if let Ok(num) = compute_allocation.parse::<u64>() {
         if num <= 100 {

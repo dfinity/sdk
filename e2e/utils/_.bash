@@ -226,6 +226,8 @@ dfx_stop_replica_and_bootstrap() {
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
+    # to help tell if other icx-proxy processes are from this test:
+    echo "pwd: $(pwd)"
     # A suspicion: "address already is use" errors are due to an extra icx-proxy process.
     echo "icx-proxy processes:"
     ps aux | grep icx-proxy || echo "no ps/grep/icx-proxy output"
